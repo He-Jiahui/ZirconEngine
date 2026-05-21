@@ -5,9 +5,9 @@ use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, Resourc
 
 use super::{world::QueryCacheRevision, World};
 use crate::scene::components::{
-    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
-    Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RenderLayerMask,
-    SpotLight,
+    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, AmbientLight, CameraComponent,
+    DirectionalLight, Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind,
+    PointLight, RectLight, RenderLayerMask, SpotLight,
 };
 use crate::scene::ecs::Schedule;
 use crate::scene::EntityId;
@@ -25,8 +25,10 @@ impl World {
             mesh_renderers: HashMap::new(),
             sprite_2d: HashMap::new(),
             mesh_2d: HashMap::new(),
+            ambient_lights: HashMap::new(),
             directional_lights: HashMap::new(),
             point_lights: HashMap::new(),
+            rect_lights: HashMap::new(),
             spot_lights: HashMap::new(),
             rigid_bodies: HashMap::new(),
             colliders: HashMap::new(),
@@ -46,6 +48,7 @@ impl World {
             next_id: 1,
             active_camera: 0,
             schedule: Schedule::default(),
+            archetype_index: Default::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),
@@ -119,6 +122,10 @@ impl World {
                 self.local_transforms.insert(id, LocalTransform::default());
                 self.mesh_renderers.insert(id, MeshRenderer::default());
             }
+            NodeKind::AmbientLight => {
+                self.local_transforms.insert(id, LocalTransform::default());
+                self.ambient_lights.insert(id, AmbientLight::default());
+            }
             NodeKind::DirectionalLight => {
                 let mut transform = Transform::default();
                 transform.translation = Vec3::new(1.5, 2.0, 1.5);
@@ -134,6 +141,14 @@ impl World {
                 self.local_transforms
                     .insert(id, LocalTransform { transform });
                 self.point_lights.insert(id, PointLight::default());
+            }
+            NodeKind::RectLight => {
+                let mut transform = Transform::default();
+                transform.translation = Vec3::new(0.0, 3.0, 0.0);
+                transform.rotation = Quat::from_rotation_x(-90.0_f32.to_radians());
+                self.local_transforms
+                    .insert(id, LocalTransform { transform });
+                self.rect_lights.insert(id, RectLight::default());
             }
             NodeKind::SpotLight => {
                 let mut transform = Transform::default();
@@ -169,8 +184,10 @@ fn default_name(kind: &NodeKind, ordinal: usize) -> String {
         NodeKind::Camera => format!("Camera {ordinal}"),
         NodeKind::Cube => format!("Cube {ordinal}"),
         NodeKind::Mesh => format!("Mesh {ordinal}"),
+        NodeKind::AmbientLight => format!("Ambient Light {ordinal}"),
         NodeKind::DirectionalLight => format!("Directional Light {ordinal}"),
         NodeKind::PointLight => format!("Point Light {ordinal}"),
+        NodeKind::RectLight => format!("Rect Light {ordinal}"),
         NodeKind::SpotLight => format!("Spot Light {ordinal}"),
     }
 }

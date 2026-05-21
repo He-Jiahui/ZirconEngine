@@ -1,6 +1,9 @@
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
-    layout::{UiFrame, UiPoint},
+    layout::{
+        UiFrame, UiLayoutEngineCapability, UiLayoutEngineFamily, UiLayoutEngineRequest,
+        UiLayoutEngineSelection, UiLayoutEngineSelectionReport, UiPoint,
+    },
     surface::{
         UiDamageDebugReport, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
         UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,
@@ -16,7 +19,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::export::{load_snapshot_json, snapshot_to_json};
-use super::model::EditorUiDebugReflectorModel;
+use super::model::{EditorUiDebugReflectorModel, EditorUiDebugReflectorSection};
 use super::overlay::EditorUiDebugReflectorOverlayState;
 use super::selection::EditorUiDebugReflectorSelection;
 use super::EditorUiDebugTimelineModel;
@@ -74,6 +77,30 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
         .iter()
         .any(|section| section.title == "Render" && section.lines[0] == "commands: 3"));
     assert!(model.sections.iter().any(|section| {
+        section.title == "Layout Engine"
+            && section.lines.iter().any(|line| line == "requests: 2")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "selected: taffy=1 zircon=1")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "fallbacks: 1 unsupported: 0")
+            && section.lines.iter().any(|line| {
+                line.contains("node=1")
+                    && line.contains("family=Flex")
+                    && line.contains("selected=Taffy")
+                    && line.contains("support=Native")
+            })
+            && section.lines.iter().any(|line| {
+                line.contains("node=2")
+                    && line.contains("family=Overlay")
+                    && line.contains("selected=LegacyZircon")
+                    && line.contains("reason=ZirconOwnedSemantics")
+            })
+    }));
+    assert!(model.sections.iter().any(|section| {
         section.title == "Render"
             && section.lines.iter().any(|line| {
                 line.contains("batch breaks:") && line.contains("kind=Quad;unclipped;opaque;text")
@@ -87,6 +114,57 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
                 .any(|line| line.contains("dirty flags:"))
     }));
     assert!(model.warnings.is_empty());
+}
+
+#[test]
+fn ui_debug_reflector_model_displays_unsupported_layout_routes() {
+    let mut snapshot = snapshot_fixture(None);
+    snapshot.layout_engine_report = unsupported_layout_engine_report_fixture();
+    let model = EditorUiDebugReflectorModel::from_snapshot(&snapshot);
+
+    assert!(model.sections.iter().any(|section| {
+        section.title == "Layout Engine"
+            && section.lines.iter().any(|line| line == "requests: 1")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "fallbacks: 0 unsupported: 1")
+            && section.lines.iter().any(|line| {
+                line.contains("node=42")
+                    && line.contains("family=Block")
+                    && line.contains("support=Unsupported")
+                    && line.contains("reason=UnsupportedFamily")
+            })
+    }));
+}
+
+#[test]
+fn ui_debug_reflector_model_flattens_sections_for_runtime_diagnostics_display() {
+    let model = EditorUiDebugReflectorModel {
+        sections: vec![
+            EditorUiDebugReflectorSection {
+                title: "Layout Engine".to_string(),
+                lines: vec![
+                    "requests: 2".to_string(),
+                    "selected: taffy=1 zircon=1".to_string(),
+                ],
+            },
+            EditorUiDebugReflectorSection {
+                title: "  ".to_string(),
+                lines: vec!["ignored".to_string()],
+            },
+        ],
+        ..EditorUiDebugReflectorModel::default()
+    };
+
+    assert_eq!(
+        model.section_display_lines(),
+        vec![
+            "Layout Engine:".to_string(),
+            "  requests: 2".to_string(),
+            "  selected: taffy=1 zircon=1".to_string(),
+        ]
+    );
 }
 
 #[test]
@@ -390,6 +468,7 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
             max_layers: 2,
             ..UiOverdrawDebugStats::default()
         },
+        layout_engine_report: layout_engine_report_fixture(),
         overlay_primitives: vec![UiDebugOverlayPrimitive {
             kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
             node_id: Some(UiNodeId::new(2)),
@@ -406,6 +485,38 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
         render_batches: render_debug_snapshot_fixture(),
         ..UiSurfaceDebugSnapshot::default()
     }
+}
+
+fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    UiLayoutEngineSelectionReport::from_selections(vec![
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(1)),
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(2)),
+    ])
+}
+
+fn unsupported_layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
+    let mut taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    taffy.supported_families.clear();
+    let mut zircon = UiLayoutEngineCapability::legacy_zircon();
+    zircon.supported_families.clear();
+    UiLayoutEngineSelectionReport::from_selections(vec![UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block),
+        &taffy,
+        &zircon,
+    )
+    .with_node_id(UiNodeId::new(42))])
 }
 
 fn timeline_fixture(selected_frame: Option<UiDebugTimelineFrameHandle>) -> UiDebugTimelineSnapshot {

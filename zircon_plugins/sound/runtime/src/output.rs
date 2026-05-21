@@ -18,6 +18,8 @@ pub(crate) struct SoundOutputDeviceRuntimeState {
     next_callback_sequence: u64,
     underrun_count: u64,
     last_error: Option<String>,
+    unavailable_backend: Option<String>,
+    unavailable_detail: Option<String>,
 }
 
 impl SoundOutputDeviceRuntimeState {
@@ -37,6 +39,8 @@ impl SoundOutputDeviceRuntimeState {
             next_callback_sequence: 0,
             underrun_count: 0,
             last_error: None,
+            unavailable_backend: None,
+            unavailable_detail: None,
         }
     }
 
@@ -55,6 +59,8 @@ impl SoundOutputDeviceRuntimeState {
         self.next_callback_sequence = 0;
         self.underrun_count = 0;
         self.last_error = None;
+        self.unavailable_backend = None;
+        self.unavailable_detail = None;
         Ok(())
     }
 
@@ -68,6 +74,9 @@ impl SoundOutputDeviceRuntimeState {
     }
 
     pub(crate) fn block_size_frames(&self) -> Result<usize, SoundError> {
+        if let Some(error) = self.unavailable_backend_error() {
+            return Err(error);
+        }
         if self.state != SoundOutputDeviceState::Started {
             return Err(SoundError::BackendUnavailable {
                 detail: "sound output device is stopped".to_string(),
@@ -89,6 +98,32 @@ impl SoundOutputDeviceRuntimeState {
     pub(crate) fn record_error(&mut self, error: &SoundError) {
         self.underrun_count = self.underrun_count.saturating_add(1);
         self.last_error = Some(error.to_string());
+    }
+
+    pub(crate) fn record_backend_unavailable(
+        &mut self,
+        backend: impl Into<String>,
+        detail: impl Into<String>,
+    ) {
+        let detail = detail.into();
+        self.unavailable_backend = Some(backend.into());
+        self.unavailable_detail = Some(detail.clone());
+        self.state = SoundOutputDeviceState::Stopped;
+        self.last_error = Some(format!("sound backend unavailable: {detail}"));
+    }
+
+    pub(crate) fn unavailable_backend_status(&self) -> Option<(&str, &str)> {
+        Some((
+            self.unavailable_backend.as_deref()?,
+            self.unavailable_detail.as_deref()?,
+        ))
+    }
+
+    pub(crate) fn unavailable_backend_error(&self) -> Option<SoundError> {
+        let (_, detail) = self.unavailable_backend_status()?;
+        Some(SoundError::BackendUnavailable {
+            detail: detail.to_string(),
+        })
     }
 
     pub(crate) fn record_callback_block(

@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use libloading::Library;
 
 use super::{
-    NativePluginBehaviorCallReport, NativePluginDescriptor, NativePluginEntryReport,
+    NativePluginBehaviorCallReport, NativePluginBehaviorHealth,
+    NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
 };
 
@@ -27,6 +28,32 @@ impl LoadedNativePlugin {
             .as_ref()
             .and_then(|report| report.behavior.as_ref())
             .map(|behavior| behavior.is_stateless)
+    }
+
+    pub fn runtime_behavior_validation_report(
+        &self,
+    ) -> Option<&NativePluginBehaviorValidationReport> {
+        self.runtime_entry_report
+            .as_ref()
+            .map(|report| &report.behavior_validation)
+    }
+
+    pub fn editor_behavior_validation_report(
+        &self,
+    ) -> Option<&NativePluginBehaviorValidationReport> {
+        self.editor_entry_report
+            .as_ref()
+            .map(|report| &report.behavior_validation)
+    }
+
+    pub fn runtime_behavior_health(&self) -> Option<NativePluginBehaviorHealth> {
+        self.runtime_behavior_validation_report()
+            .map(|report| report.health)
+    }
+
+    pub fn editor_behavior_health(&self) -> Option<NativePluginBehaviorHealth> {
+        self.editor_behavior_validation_report()
+            .map(|report| report.health)
     }
 
     pub fn editor_behavior_is_stateless(&self) -> Option<bool> {

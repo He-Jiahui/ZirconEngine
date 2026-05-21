@@ -1,6 +1,6 @@
 use crate::scene::ecs::{
-    ArchetypeId, ComponentId, ComponentStorage, EntityLocation, EntityRegistry, InternalEntity,
-    StorageType,
+    ArchetypeId, ChangeTick, ComponentId, ComponentStorage, ComponentStorageLocation,
+    ComponentTicks, EntityLocation, EntityRegistry, InternalEntity, StorageType,
 };
 use crate::scene::{NodeKind, World};
 
@@ -121,6 +121,50 @@ fn component_storage_supports_table_swap_remove_and_sparse_remove() {
         )
         .unwrap();
 
+    let second_location = ComponentStorageLocation {
+        component_id: table_component,
+        storage_type: StorageType::Table,
+        entity: second,
+        table_row: Some(1),
+    };
+    let sparse_location = ComponentStorageLocation {
+        component_id: sparse_component,
+        storage_type: StorageType::SparseSet,
+        entity: first,
+        table_row: None,
+    };
+
+    assert_eq!(
+        storage.location(table_component, second),
+        Some(second_location)
+    );
+    assert_eq!(
+        storage.get_table_row::<TestComponent>(table_component, 2),
+        Some((
+            third,
+            &TestComponent("third"),
+            ComponentTicks::new(ChangeTick::INITIAL)
+        ))
+    );
+    assert_eq!(
+        storage.location(sparse_component, first),
+        Some(sparse_location)
+    );
+    assert_eq!(
+        storage.get_with_ticks_at_location::<TestComponent>(second_location),
+        Some((
+            &TestComponent("second"),
+            ComponentTicks::new(ChangeTick::INITIAL)
+        ))
+    );
+    assert_eq!(
+        storage.get_with_ticks_at_location::<TestComponent>(sparse_location),
+        Some((
+            &TestComponent("sparse"),
+            ComponentTicks::new(ChangeTick::INITIAL)
+        ))
+    );
+
     let removed = storage
         .remove::<TestComponent>(table_component, second)
         .unwrap()
@@ -133,6 +177,19 @@ fn component_storage_supports_table_swap_remove_and_sparse_remove() {
         storage.get::<TestComponent>(table_component, third),
         Some(&TestComponent("third"))
     );
+    assert_eq!(
+        storage.location(table_component, third),
+        Some(ComponentStorageLocation {
+            component_id: table_component,
+            storage_type: StorageType::Table,
+            entity: third,
+            table_row: Some(1),
+        })
+    );
+    assert_eq!(
+        storage.get_with_ticks_at_location::<TestComponent>(second_location),
+        None
+    );
 
     let sparse_removed = storage
         .remove::<TestComponent>(sparse_component, first)
@@ -142,6 +199,10 @@ fn component_storage_supports_table_swap_remove_and_sparse_remove() {
     assert_eq!(sparse_removed.value, TestComponent("sparse"));
     assert_eq!(sparse_removed.swapped_entity, None);
     assert!(!storage.contains(sparse_component, first));
+    assert_eq!(
+        storage.get_with_ticks_at_location::<TestComponent>(sparse_location),
+        None
+    );
 }
 
 #[test]

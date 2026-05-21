@@ -67,6 +67,7 @@ impl HubRuntime {
             )));
         };
         self.selected_project_path = Some(project.path.clone());
+        self.refresh_selected_project_scoped_views()?;
         self.task_status = TaskStatus {
             label: "Project selected".to_string(),
             detail: recent_project_display_name(&project),
@@ -272,7 +273,7 @@ impl HubRuntime {
         ui: &HubWindow,
     ) -> Result<ProjectPackageReport, HubError> {
         self.sync_from_ui(ui);
-        let Some(project) = self.selected_or_latest_recent_project() else {
+        let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
             return Err(HubError::message(
                 "No recent project is available to package",
             ));
@@ -297,7 +298,7 @@ impl HubRuntime {
         ui: &HubWindow,
     ) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        let Some(project) = self.selected_recent_project() else {
+        let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
             return self.launch_editor_without_project(ui);
         };
         let display_name = recent_project_display_name(&project);
@@ -393,6 +394,7 @@ impl HubRuntime {
         let path = self.selected_project_path_required()?;
         self.remove_project_from_hub_path(&path);
         self.project_subpage = ProjectSubpage::ProjectBrowser;
+        self.refresh_selected_project_scoped_views()?;
         self.persist()?;
         self.task_status = TaskStatus {
             label: "Project removed from Hub".to_string(),
@@ -442,6 +444,7 @@ impl HubRuntime {
         self.remove_project_from_hub_path(&path);
         self.pending_delete_project_path = None;
         self.project_subpage = ProjectSubpage::ProjectBrowser;
+        self.refresh_selected_project_scoped_views()?;
         self.persist()?;
         self.task_status = TaskStatus {
             label: "Project moved to Recycle Bin".to_string(),
@@ -491,8 +494,14 @@ impl HubRuntime {
             std::iter::once(project),
             self.config.recent_projects.clone(),
         );
-        self.refresh_asset_catalog()?;
+        self.refresh_selected_project_scoped_views()?;
         self.persist_with_last_project(Some(&last_project_path))
+    }
+
+    fn refresh_selected_project_scoped_views(&mut self) -> Result<(), HubError> {
+        self.refresh_asset_catalog()?;
+        self.refresh_plugin_catalog()?;
+        self.refresh_team_overview()
     }
 
     pub(super) fn selected_recent_project(&mut self) -> Option<RecentProject> {
@@ -525,6 +534,23 @@ impl HubRuntime {
         project
     }
 
+    pub(super) fn selected_or_latest_recent_project_for_action(
+        &mut self,
+    ) -> Result<Option<RecentProject>, HubError> {
+        let selected_before = self.selected_project_path.clone();
+        let active_engine_before = self.config.active_engine_id.clone();
+        let project = self.selected_or_latest_recent_project();
+        if let Some(project) = &project {
+            self.activate_project_engine_for_path(&project.path);
+        }
+        if self.selected_project_path != selected_before
+            || self.config.active_engine_id != active_engine_before
+        {
+            self.refresh_selected_project_scoped_views()?;
+        }
+        Ok(project)
+    }
+
     pub(super) fn selected_project_label(&mut self) -> String {
         self.selected_recent_project()
             .map(|project| recent_project_display_name(&project))
@@ -544,6 +570,13 @@ impl HubRuntime {
         self.config
             .project_metadata
             .remove(&project_metadata_key(path));
+        if self
+            .pending_delete_project_path
+            .as_ref()
+            .is_some_and(|pending| pending == path)
+        {
+            self.pending_delete_project_path = None;
+        }
         if self
             .selected_project_path
             .as_ref()

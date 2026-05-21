@@ -48,7 +48,7 @@ layout = { width = { min = 97, preferred = 97, max = 97, stretch = "Fixed" }, he
 component = "Label"
 control_id = "buttons_MetaVariant"
 classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
-props = { text = "contained / outlined / text", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "contained / outlined / text", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+props = { text = "filled / outlined / text / tonal / elevated", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "filled / outlined / text / tonal / elevated", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 162, preferred = 162, max = 162, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.meta_layout]
@@ -61,7 +61,7 @@ layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" },
 component = "Button"
 control_id = "buttons_Sample"
 classes = ["material-control", "material-lab-sample", "material-button-primary"]
-props = { text = "Contained Button", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { text = "Filled Button", surface_variant = "elevated", button_variant = "contained", slint_material_button_variant = "filled", button_color = "primary", button_size = "medium", icon_placement = "none", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 17.0, border_width = 1.0, button_horizontal_padding = 24.0, button_vertical_padding = 10.0, button_spacing = 8.0, min_layout_width = 40.0, min_layout_height = 40.0, icon_size = 18.0, hover_elevation = 1.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 style = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "material.primary" }, foreground = { color = "material.on_primary" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [

@@ -1,4 +1,4 @@
-use super::SoundTrackId;
+use super::{SoundSourceInput, SoundTrackId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -130,6 +130,23 @@ pub struct SoundPlaybackStatus {
     pub output_track: SoundTrackId,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundSourceStatus {
+    pub source: super::SoundSourceId,
+    pub input: SoundSourceInput,
+    pub playing: bool,
+    pub muted: bool,
+    pub looped: bool,
+    pub completion_action: SoundPlaybackCompletionAction,
+    pub gain: f32,
+    pub speed: f32,
+    pub range_start_frame: usize,
+    pub range_end_frame: Option<usize>,
+    pub cursor_frame: usize,
+    pub cursor_seconds: f32,
+    pub output_track: SoundTrackId,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SoundPlaybackCompletionAction {
     None,
@@ -149,6 +166,23 @@ pub struct SoundPlaybackFinished {
     pub playback: super::SoundPlaybackId,
     pub clip: super::SoundClipId,
     pub reason: SoundPlaybackFinishReason,
+    pub completion_action: SoundPlaybackCompletionAction,
+    pub output_track: SoundTrackId,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SoundSourceFinishReason {
+    Completed,
+    MissingClip,
+    Stopped,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundSourceFinished {
+    pub source: super::SoundSourceId,
+    pub input: SoundSourceInput,
+    pub clip: Option<super::SoundClipId>,
+    pub reason: SoundSourceFinishReason,
     pub completion_action: SoundPlaybackCompletionAction,
     pub output_track: SoundTrackId,
 }

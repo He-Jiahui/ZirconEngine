@@ -1,21 +1,21 @@
-use zircon_runtime::core::framework::window::WindowDescriptor;
-use zircon_runtime::platform::EventLoopPolicy;
 use zircon_runtime_interface::{
     ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
     ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::RuntimeEntryApp;
+use super::RuntimeEntryAppConfig;
 use crate::entry::runtime_library::{RuntimeLibraryError, RuntimeSession};
 
 impl RuntimeEntryApp {
-    pub(in crate::entry) fn new(session: RuntimeSession) -> Self {
-        let window_descriptor = WindowDescriptor::default();
+    pub(in crate::entry) fn new(session: RuntimeSession, config: RuntimeEntryAppConfig) -> Self {
+        let window_descriptor = config.window_descriptor;
         let window_size = window_descriptor.resolution.physical_size();
         Self {
             window: None,
             window_descriptor,
-            event_loop_policy: EventLoopPolicy::Game,
+            event_loop_policy: config.event_loop_policy,
+            window_lifecycle_policy: config.window_lifecycle_policy,
             presenter: None,
             surface_present_enabled: false,
             surface_present_failed: false,

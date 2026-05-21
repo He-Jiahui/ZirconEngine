@@ -1,9 +1,10 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiComponentEmissionPolicy, UiComponentEventReport, UiDispatchAppliedEffect,
-        UiDispatchEffect, UiDispatchHostRequest, UiDispatchHostRequestKind,
-        UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep, UiDragDropEffectKind,
-        UiInputDispatchResult, UiInputEvent, UiInputMethodRequest, UiInputMethodRequestKind,
+        UiClipboardRequest, UiClipboardRequestKind, UiComponentEmissionPolicy,
+        UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
+        UiDispatchHostRequestKind, UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep,
+        UiDragDropEffectKind, UiInputDispatchResult, UiInputEvent, UiInputMethodRequest,
+        UiInputMethodRequestKind,
     },
     event_ui::UiNodeId,
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
@@ -296,6 +297,7 @@ fn apply_effect(
         UiDispatchEffect::RequestInputMethod { request } => {
             apply_input_method_request(surface, request)
         }
+        UiDispatchEffect::RequestClipboard { request } => apply_clipboard_request(surface, request),
         UiDispatchEffect::DirtyRedraw { target, dirty, .. } => {
             let node = surface
                 .tree
@@ -350,6 +352,24 @@ fn apply_input_method_request(
     Ok(Some(request.owner))
 }
 
+fn apply_clipboard_request(
+    surface: &UiSurface,
+    request: &UiClipboardRequest,
+) -> Result<Option<UiNodeId>, String> {
+    require_valid_input_owner(surface, request.owner)?;
+    match request.kind {
+        UiClipboardRequestKind::ReadText if request.text.is_some() => {
+            Err("clipboard read request cannot carry text".to_string())
+        }
+        UiClipboardRequestKind::WriteText if request.text.is_none() => {
+            Err("clipboard write request missing text".to_string())
+        }
+        UiClipboardRequestKind::ReadText | UiClipboardRequestKind::WriteText => {
+            Ok(Some(request.owner))
+        }
+    }
+}
+
 fn host_request_for_effect(
     effect_index: usize,
     effect: &UiDispatchEffect,
@@ -387,6 +407,9 @@ fn host_request_for_effect(
         UiDispatchEffect::RequestInputMethod { request } => {
             UiDispatchHostRequestKind::InputMethod(request.clone())
         }
+        UiDispatchEffect::RequestClipboard { request } => {
+            UiDispatchHostRequestKind::Clipboard(request.clone())
+        }
         _ => return None,
     };
     Some(UiDispatchHostRequest {
@@ -411,6 +434,7 @@ fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
         | UiDispatchEffect::DirtyRedraw { target, .. }
         | UiDispatchEffect::EmitComponentEvent { target, .. } => Some(*target),
         UiDispatchEffect::RequestInputMethod { request } => Some(request.owner),
+        UiDispatchEffect::RequestClipboard { request } => Some(request.owner),
         UiDispatchEffect::RequestNavigation { .. }
         | UiDispatchEffect::Popup { .. }
         | UiDispatchEffect::Tooltip { .. } => None,

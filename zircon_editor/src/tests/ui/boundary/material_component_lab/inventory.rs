@@ -316,7 +316,17 @@ fn material_component_prototype_sample_nodes_carry_typed_material_props() {
                 path.display()
             );
         }
-        for (prop, expected) in [("corner_radius", 10.0), ("border_width", 1.0)] {
+        let key = path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .expect("prototype file stem is UTF-8")
+            .strip_prefix("material_")
+            .expect("prototype files use material_ prefix");
+        let expected_corner_radius = if key == "buttons" { 17.0 } else { 10.0 };
+        for (prop, expected) in [
+            ("corner_radius", expected_corner_radius),
+            ("border_width", 1.0),
+        ] {
             assert_eq!(
                 numeric_prop(sample.props.get(prop)),
                 Some(expected),
@@ -469,7 +479,7 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
     .into_iter()
     .collect::<BTreeSet<_>>();
     let required_variant_examples = [
-        ("buttons", "contained / outlined / text"),
+        ("buttons", "filled / outlined / text / tonal / elevated"),
         ("text_fields", "outlined / filled / standard"),
         ("textarea_autosize", "min rows / max rows"),
         ("switches", "checked / unchecked"),

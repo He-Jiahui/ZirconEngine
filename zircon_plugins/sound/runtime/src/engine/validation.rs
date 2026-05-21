@@ -67,9 +67,17 @@ pub(crate) fn validate_effect(effect: &SoundEffectDescriptor) -> Result<(), Soun
         SoundEffectKind::Compressor(compressor) if compressor.ratio < 1.0 => Err(
             SoundError::InvalidEffect("compressor ratio must be at least 1".to_string()),
         ),
-        SoundEffectKind::Filter(filter) if filter.cutoff_hz <= 0.0 => Err(
-            SoundError::InvalidEffect("filter cutoff must be positive".to_string()),
-        ),
+        SoundEffectKind::Filter(filter)
+            if !filter.cutoff_hz.is_finite()
+                || filter.cutoff_hz <= 0.0
+                || !filter.resonance.is_finite()
+                || !filter.gain_db.is_finite() =>
+        {
+            Err(SoundError::InvalidEffect(
+                "filter cutoff, resonance, and gain must be finite, with positive cutoff"
+                    .to_string(),
+            ))
+        }
         SoundEffectKind::Limiter(limiter) if limiter.ceiling <= 0.0 => Err(
             SoundError::InvalidEffect("limiter ceiling must be positive".to_string()),
         ),

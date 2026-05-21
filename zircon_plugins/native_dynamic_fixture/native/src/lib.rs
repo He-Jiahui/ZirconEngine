@@ -105,6 +105,7 @@ const STATUS_STATE_RESTORE_DIAGNOSTICS: &[u8] = b"state restore accepted\0";
 const STATUS_STATE_RESTORE_INVALID_DIAGNOSTICS: &[u8] = b"state restore rejected invalid blob\0";
 const STATUS_UNLOAD_DIAGNOSTICS: &[u8] = b"unload callback reached\0";
 const STATUS_STATELESS_UNLOAD_DIAGNOSTICS: &[u8] = b"stateless unload callback reached\0";
+const STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS: &[u8] = b"stateless editor command dispatch has no commands\0";
 const STATUS_FREE_MISMATCH_DIAGNOSTICS: &[u8] = b"allocation/free owner mismatch\0";
 const RUNTIME_STATE_BLOB: &[u8] = b"state:v2:native_dynamic_fixture";
 
@@ -354,7 +355,7 @@ static EDITOR_BEHAVIOR: SyncBehaviorV2 = SyncBehaviorV2(NativePluginBehaviorV2 {
     is_stateless: 1,
     command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
     event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: None,
+    invoke_command: Some(fixture_stateless_invoke_command),
     save_state: None,
     restore_state: None,
     unload: Some(fixture_stateless_unload),
@@ -383,12 +384,12 @@ static EDITOR_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV
     is_stateless: 1,
     schema_versions: NativePluginSchemaVersionsV3 {
         state_schema_version: 0,
-        command_manifest_schema: COMMAND_MANIFEST_SCHEMA.as_ptr().cast(),
-        event_manifest_schema: EVENT_MANIFEST_SCHEMA.as_ptr().cast(),
+        command_manifest_schema: std::ptr::null(),
+        event_manifest_schema: std::ptr::null(),
     },
     command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
     event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: None,
+    invoke_command: Some(fixture_stateless_invoke_command),
     save_state: None,
     restore_state: None,
     unload: Some(fixture_stateless_unload),
@@ -724,6 +725,17 @@ unsafe extern "C" fn fixture_stateless_unload() -> NativePluginCallbackStatusV2 
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         STATUS_STATELESS_UNLOAD_DIAGNOSTICS,
+    )
+}
+
+unsafe extern "C" fn fixture_stateless_invoke_command(
+    _command_name: *const c_char,
+    _payload: NativePluginByteSliceV2,
+    _output: *mut NativePluginOwnedByteBufferV2,
+) -> NativePluginCallbackStatusV2 {
+    status(
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS,
     )
 }
 

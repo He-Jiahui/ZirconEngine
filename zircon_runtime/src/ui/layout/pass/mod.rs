@@ -2,6 +2,7 @@ mod arrange;
 mod axis;
 mod child_frame;
 mod clip;
+mod engine;
 mod incremental;
 mod layout_tree;
 mod material;

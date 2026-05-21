@@ -65,7 +65,7 @@ The field list is schema-led:
 
 This avoids hard-coding fields such as `Name.value` or plugin component properties in editor UI code.
 
-The M10 editor-consumer slice expands the fixed reflection coverage needed by the viewport inspector. In addition to the M8 fixed adapters, runtime projection now sees hierarchy parent, derived active-in-hierarchy, camera clip/FOV fields, mesh renderer model/material/tint, mobility, and directional/point/spot light fields. `Hierarchy.parent` is marked non-serializable because `DynamicScene` already carries parent relationships in `NodeRecord`; this prevents scene spawning from reapplying parent changes through runtime mutation rules after records have already been inserted.
+The M10 editor-consumer slice expands the fixed reflection coverage needed by the viewport inspector. In addition to the M8 fixed adapters, runtime projection now sees hierarchy parent, derived active-in-hierarchy, camera clip/FOV fields, mesh renderer model/material/tint, mobility, and ambient/directional/point/rect/spot light fields. `Hierarchy.parent` is marked non-serializable because `DynamicScene` already carries parent relationships in `NodeRecord`; this prevents scene spawning from reapplying parent changes through runtime mutation rules after records have already been inserted.
 
 ## Hierarchy Rules
 

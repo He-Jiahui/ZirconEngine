@@ -1,5 +1,12 @@
 ---
 related_code:
+  - dev/bevy/crates/bevy_post_process/src/lib.rs
+  - dev/bevy/crates/bevy_post_process/src/bloom/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/motion_blur/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/dof/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/msaa_writeback.rs
+  - dev/bevy/examples/3d/post_processing.rs
   - zircon_runtime/src/core/framework/render/post_process/mod.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
@@ -56,6 +63,7 @@ implementation_files:
 plan_sources:
   - user: 2026-05-16 continue Render M4B postprocess pass graph productization
   - user: 2026-05-18 continue Render M8A anti-alias product surface
+  - user: 2026-05-20 continue Bevy-level render postprocess evidence mapping
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs
@@ -76,6 +84,16 @@ doc_type: module-detail
 `zircon_runtime::core::framework::render::post_process` owns the neutral M4B postprocess product contract. It describes the per-camera stack as data on `RenderFrameExtract` and keeps effect ordering, resource names, and validation independent from WGPU pipelines.
 
 Concrete rendering stays in `zircon_runtime::graphics`. The renderer consumes the frame's validated graph for execution evidence and treats actual renderer history availability as a final resource gate: when history is not available, it derives a frame-local graph by removing only the history resource/node from the submitted stack. It still uses the existing shader-backed postprocess stack for pixels until later milestones replace individual passes with graph-native implementations.
+
+## Bevy Evidence
+
+The Bevy reference surface is `bevy_post_process`, not a single monolithic effect pass. `dev/bevy/crates/bevy_post_process/src/lib.rs:9-36` splits the crate into `auto_exposure`, `bloom`, `dof`, `effect_stack`, `motion_blur`, and `msaa_writeback`, then wires `MsaaWritebackPlugin`, `BloomPlugin`, `MotionBlurPlugin`, `DepthOfFieldPlugin`, and `EffectStackPlugin` into `PostProcessPlugin`.
+
+`dev/bevy/crates/bevy_post_process/src/bloom/mod.rs:44-83` shows bloom as a real Core2d/Core3d post-process system with extracted component data, prepared textures/bind groups, and scheduling before tonemapping. `dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs:3-6` names the built-in effect-stack features as chromatic aberration and vignette, while `effect_stack/mod.rs:141-165` extracts those camera components and schedules the combined pass before tonemapping.
+
+The heavier Bevy effects have additional prerequisites. `dev/bevy/crates/bevy_post_process/src/motion_blur/mod.rs:75-173` requires depth and motion-vector prepasses and runs in the Core3d post-process set before bloom. `dev/bevy/crates/bevy_post_process/src/dof/mod.rs:69-241` defines depth-of-field camera state, prepares depth/focus resources, and schedules after bloom and before tonemapping. `dev/bevy/crates/bevy_post_process/src/msaa_writeback.rs:21-33` registers MSAA writeback before the Core2d/Core3d main pass, and `msaa_writeback.rs:110-126` only inserts the blit pipeline when camera writeback policy and MSAA sample count require it.
+
+The user-facing Bevy example `dev/bevy/examples/3d/post_processing.rs` demonstrates the effect-stack authoring model by attaching chromatic aberration and vignette components to a 3D camera. Zircon does not yet expose equivalent camera components for those effects.
 
 ## Data Model
 
@@ -124,6 +142,14 @@ The compiled-scene renderer is the final authority for execution evidence. The s
 The concrete built-in product executors for `post.bloom`, `post.color-grading`, `post.history-resolve`, `post.final-composite`, and `post.fxaa` require renderer GPU context and validate the graph node's required and produced texture resources through `RenderGraphExecutionResources`. Legacy descriptor IDs such as `post.bloom-extract`, `post.color-grade`, and `post.stack` remain compatibility no-ops for existing compiled pipeline descriptors.
 
 `RenderStats` reports `last_post_process_graph_node_count`, `last_post_process_graph_skipped_node_count`, `last_post_process_final_composite_node`, and `last_post_process_graph_executed_nodes`. The executed-node list is separate from normal render graph passes, so product postprocess evidence does not change existing pass-order expectations such as overlay staying the last compiled graph pass.
+
+## Bevy Gap Classification
+
+Zircon currently covers the neutral product graph, bloom/color-grading/history/final-composite node vocabulary, graph validation, renderer execution evidence, and the FXAA node that is shared with the anti-alias surface. That is enough for DefaultRender diagnostics and pass-order accountability.
+
+Zircon is not yet Bevy-complete for post-processing. Motion blur is not implemented because the required motion-vector prepass contract has not been productized. Depth of field is not implemented because the camera focus/lens model and auxiliary blur resources are not exposed through `render::camera` or `render::post_process`. Chromatic aberration and vignette are not implemented as authorable camera components. MSAA writeback is represented only indirectly through camera MSAA settings and anti-alias fallback reporting; there is no Bevy-style sorted-camera MSAA writeback blit path yet.
+
+The next Bevy-parity implementation milestone should add typed post-process authoring descriptors before adding more shader passes. The safe order is: camera-facing post-process settings, neutral graph nodes/resources, validation and stats, then concrete WGPU execution. This keeps advanced effects from bypassing the basic DefaultRender product contract.
 
 ## Test Coverage
 

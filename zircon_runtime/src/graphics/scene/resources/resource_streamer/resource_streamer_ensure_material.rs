@@ -1,3 +1,4 @@
+use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
     RenderMaterialAlphaMode, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
     RenderMaterialFallbackUsage, RenderMaterialValidationError,
@@ -8,7 +9,7 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, Resource
 use crate::graphics::types::GraphicsError;
 
 use super::super::prepared::PreparedMaterial;
-use super::super::{MaterialRuntime, PipelineKey};
+use super::super::{texture_upload_support_from_device, MaterialRuntime, PipelineKey};
 use super::ResourceStreamer;
 
 const FALLBACK_MATERIAL_URI: &str = "builtin://missing-material";
@@ -44,8 +45,43 @@ impl ResourceStreamer {
                 (material, Some(missing_material_fallback_usage(id)))
             }
         };
-        let descriptor = material.standard_material_descriptor();
-        let mut readiness = material.readiness_report();
+        let shader_contract = self.load_shader_contract(material.shader.clone());
+        let descriptor = shader_contract
+            .as_ref()
+            .map(|shader| material.standard_material_descriptor_for_shader(shader))
+            .unwrap_or_else(|| material.standard_material_descriptor());
+        let shader_resolver = self.asset_manager.clone();
+        let texture_resolver = self.asset_manager.clone();
+        let mut readiness = if let Some(shader) = shader_contract.as_ref() {
+            material.readiness_report_with_shader_contract(
+                shader,
+                move |reference| {
+                    shader_resolver
+                        .resolve_asset_id(&reference.locator)
+                        .is_some()
+                },
+                move |reference| {
+                    texture_resolver
+                        .resolve_asset_id(&reference.locator)
+                        .is_some()
+                },
+            )
+        } else {
+            let shader_resolver = self.asset_manager.clone();
+            let texture_resolver = self.asset_manager.clone();
+            material.readiness_report_with_resolution(
+                move |reference| {
+                    shader_resolver
+                        .resolve_asset_id(&reference.locator)
+                        .is_some()
+                },
+                move |reference| {
+                    texture_resolver
+                        .resolve_asset_id(&reference.locator)
+                        .is_some()
+                },
+            )
+        };
         if let Some((validation_error, fallback_usage)) = missing_material_fallback {
             readiness.push_validation_error_once(validation_error);
             readiness.push_fallback_usage_once(fallback_usage);
@@ -55,20 +91,40 @@ impl ResourceStreamer {
             RenderMaterialAlphaMode::Mask { cutoff } => (false, true, Some(cutoff)),
             RenderMaterialAlphaMode::Blend => (true, false, None),
         };
-        let base_color_texture = self.resolve_texture_reference(
+        let texture_support = texture_upload_support_from_device(device);
+        let base_color_texture = self.resolve_texture_reference_with_support(
             "base_color_texture",
             descriptor.base_color_texture.as_ref(),
+            texture_support,
         );
-        let normal_texture =
-            self.resolve_texture_reference("normal_texture", descriptor.normal_texture.as_ref());
-        let metallic_roughness_texture = self.resolve_texture_reference(
+        let normal_texture = self.resolve_texture_reference_with_support(
+            "normal_texture",
+            descriptor.normal_texture.as_ref(),
+            texture_support,
+        );
+        let metallic_roughness_texture = self.resolve_texture_reference_with_support(
             "metallic_roughness_texture",
             descriptor.metallic_roughness_texture.as_ref(),
+            texture_support,
         );
-        let occlusion_texture = self
-            .resolve_texture_reference("occlusion_texture", descriptor.occlusion_texture.as_ref());
-        let emissive_texture = self
-            .resolve_texture_reference("emissive_texture", descriptor.emissive_texture.as_ref());
+        let occlusion_texture = self.resolve_texture_reference_with_support(
+            "occlusion_texture",
+            descriptor.occlusion_texture.as_ref(),
+            texture_support,
+        );
+        let emissive_texture = self.resolve_texture_reference_with_support(
+            "emissive_texture",
+            descriptor.emissive_texture.as_ref(),
+            texture_support,
+        );
+        let shader_slot_textures = material
+            .all_texture_slots()
+            .into_iter()
+            .filter(|(slot, _)| !is_standard_texture_slot(slot))
+            .map(|(slot, texture)| {
+                self.resolve_texture_reference_with_support(&slot, Some(texture), texture_support)
+            })
+            .collect::<Vec<_>>();
         for texture in [
             &base_color_texture,
             &normal_texture,
@@ -76,6 +132,14 @@ impl ResourceStreamer {
             &occlusion_texture,
             &emissive_texture,
         ] {
+            if let Some(error) = &texture.validation_error {
+                readiness.push_validation_error_once(error.clone());
+            }
+            if let Some(usage) = &texture.fallback_usage {
+                readiness.push_fallback_usage_once(usage.clone());
+            }
+        }
+        for texture in &shader_slot_textures {
             if let Some(error) = &texture.validation_error {
                 readiness.push_validation_error_once(error.clone());
             }
@@ -147,11 +211,21 @@ impl ResourceStreamer {
         ]
         .into_iter()
         .flatten()
-        {
+        .chain(
+            shader_slot_textures
+                .iter()
+                .filter_map(|texture| texture.id()),
+        ) {
             self.ensure_texture(device, queue, texture_layout, texture_id)?;
         }
         self.materials.insert(id, PreparedMaterial { runtime });
         Ok(())
+    }
+
+    fn load_shader_contract(&self, reference: AssetReference) -> Option<ShaderAsset> {
+        self.asset_manager
+            .resolve_asset_id(&reference.locator)
+            .and_then(|id| self.asset_manager.load_shader_asset(id).ok())
     }
 }
 
@@ -168,5 +242,21 @@ fn missing_material_fallback_usage(
             reason: RenderMaterialFallbackReason::Material { material },
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         },
+    )
+}
+
+fn is_standard_texture_slot(slot: &str) -> bool {
+    matches!(
+        slot,
+        "base_color"
+            | "base_color_texture"
+            | "normal"
+            | "normal_texture"
+            | "metallic_roughness"
+            | "metallic_roughness_texture"
+            | "occlusion"
+            | "occlusion_texture"
+            | "emissive"
+            | "emissive_texture"
     )
 }

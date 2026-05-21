@@ -1,7 +1,7 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
-    import_material, import_model, import_physics_material, import_scene, import_shader,
-    import_shader_package, import_ui_zui_asset,
+    import_material, import_mesh, import_model, import_physics_material, import_scene,
+    import_shader, import_shader_package, import_ui_zui_asset,
 };
 #[cfg(test)]
 use super::{
@@ -45,6 +45,17 @@ impl AssetImporter {
         &mut self.registry
     }
 
+    pub fn capability_reports(&self) -> Vec<crate::asset::AssetImporterCapabilityReport> {
+        self.registry.capability_reports()
+    }
+
+    pub fn capability_report_for_source(
+        &self,
+        source_path: &std::path::Path,
+    ) -> Result<crate::asset::AssetImporterCapabilityReport, AssetImportError> {
+        self.registry.capability_report_for_source(source_path)
+    }
+
     fn register_builtin_importers(&mut self) -> Result<(), AssetImportError> {
         self.register_function(
             descriptor("zircon.builtin.data.toml", AssetKind::Data, 1)
@@ -81,8 +92,13 @@ impl AssetImporter {
         )?;
         self.register_function(
             descriptor("zircon.builtin.toml.model", AssetKind::Model, 1)
-                .with_full_suffixes([".model.toml"]),
+                .with_full_suffixes([".model.toml"])
+                .with_additional_output_kinds([AssetKind::Mesh]),
             import_model::import_model,
+        )?;
+        self.register_function(
+            descriptor("zircon.builtin.zmesh", AssetKind::Mesh, 1).with_full_suffixes([".zmesh"]),
+            import_mesh::import_zmesh,
         )?;
         self.register_function(
             descriptor(
@@ -270,12 +286,20 @@ impl AssetImporter {
         self.register_optional(
             plugin_required_descriptor("zircon.plugin_required.model.obj", AssetKind::Model, 1)
                 .with_source_extensions(["obj"])
+                .with_additional_output_kinds([AssetKind::Mesh])
                 .with_required_capabilities(["runtime.asset.importer.model.obj"]),
             "obj model importer plugin is not installed",
         )?;
         self.register_optional(
             plugin_required_descriptor("zircon.plugin_required.model.gltf", AssetKind::Model, 1)
                 .with_source_extensions(["gltf", "glb"])
+                .with_additional_output_kinds([
+                    AssetKind::Mesh,
+                    AssetKind::Scene,
+                    AssetKind::Material,
+                    AssetKind::Texture,
+                    AssetKind::Data,
+                ])
                 .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
             "glTF model importer plugin is not installed",
         )?;
@@ -289,6 +313,7 @@ impl AssetImporter {
                     1,
                 )
                 .with_source_extensions([extension])
+                .with_additional_output_kinds([AssetKind::Mesh])
                 .with_required_capabilities([format!("runtime.asset.importer.model.{extension}")]),
                 format!("{extension} model importer backend is not installed"),
             )?;
@@ -400,12 +425,20 @@ impl AssetImporter {
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor("obj_importer.obj", "obj_importer", AssetKind::Model)
                     .with_source_extensions(["obj"])
+                    .with_additional_output_kinds([AssetKind::Mesh])
                     .with_required_capabilities(["runtime.asset.importer.model.obj"]),
                 import_obj::import_obj,
             ),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor("gltf_importer.gltf", "gltf_importer", AssetKind::Model)
                     .with_source_extensions(["gltf", "glb"])
+                    .with_additional_output_kinds([
+                        AssetKind::Mesh,
+                        AssetKind::Scene,
+                        AssetKind::Material,
+                        AssetKind::Texture,
+                        AssetKind::Data,
+                    ])
                     .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
                 import_gltf::import_gltf,
             ),

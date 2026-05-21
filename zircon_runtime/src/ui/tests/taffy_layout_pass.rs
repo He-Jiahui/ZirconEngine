@@ -1,9 +1,13 @@
-use crate::ui::{layout::compute_layout_tree, tree::UiRuntimeTreeAccessExt};
+use crate::ui::{layout::compute_layout_tree, surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
-        AxisConstraint, BoxConstraints, StretchMode, UiContainerKind, UiFrame, UiGridBoxConfig,
-        UiLinearBoxConfig, UiSize, UiSizeBoxConfig, UiWrapBoxConfig,
+        AxisConstraint, BoxConstraints, StretchMode, UiAlignment, UiAlignment2D,
+        UiCanvasSlotPlacement, UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement,
+        UiLayoutEngineBackend, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
+        UiLayoutEngineSupport, UiLinearBoxConfig, UiLinearSlotSizeRule, UiLinearSlotSizing,
+        UiMargin, UiScrollableBoxConfig, UiSize, UiSizeBoxConfig, UiSlot, UiSlotKind,
+        UiVirtualListConfig, UiWrapBoxConfig,
     },
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
 };
@@ -32,6 +36,199 @@ fn layout_pass_routes_supported_containers_through_taffy_arrange() {
 }
 
 #[test]
+fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
+    let mut surface = UiSurface::new(UiTreeId::new("taffy.layout.report.native"));
+    surface
+        .tree
+        .insert_root(
+            node(1).with_container(UiContainerKind::HorizontalBox(UiLinearBoxConfig {
+                gap: 0.0,
+            })),
+        );
+    insert_child(&mut surface.tree, 1, node(2));
+    insert_child(&mut surface.tree, 1, node(3));
+    surface.compute_layout(UiSize::new(160.0, 20.0)).unwrap();
+    let frame = surface.surface_frame();
+    let report = &frame.layout_engine_report;
+    assert_eq!(report.request_count, 1);
+    assert_eq!(report.taffy_selected_count, 1);
+    let root = selection_for_node(report, 1);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(root.support, UiLayoutEngineSupport::Native);
+
+    let mut free = UiSurface::new(UiTreeId::new("taffy.layout.report.free"));
+    free.tree
+        .insert_root(node(5).with_container(UiContainerKind::Free));
+    insert_child(&mut free.tree, 5, fixed_node(6, Some(10.0), Some(10.0)));
+    free.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let free_frame = free.surface_frame();
+    let free_report = &free_frame.layout_engine_report;
+    let free_root = selection_for_node(free_report, 5);
+    assert_eq!(free_root.request.family, UiLayoutEngineFamily::Free);
+    assert_eq!(
+        free_root.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(
+        free_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    let mut container = UiSurface::new(UiTreeId::new("taffy.layout.report.container"));
+    container
+        .tree
+        .insert_root(node(7).with_container(UiContainerKind::Container));
+    insert_child(
+        &mut container.tree,
+        7,
+        fixed_node(8, Some(12.0), Some(12.0)),
+    );
+    container.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let container_frame = container.surface_frame();
+    let container_report = &container_frame.layout_engine_report;
+    let container_root = selection_for_node(container_report, 7);
+    assert_eq!(
+        container_root.request.family,
+        UiLayoutEngineFamily::Container
+    );
+    assert_eq!(
+        container_root.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(
+        container_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    let mut space = UiSurface::new(UiTreeId::new("taffy.layout.report.space"));
+    space
+        .tree
+        .insert_root(node(9).with_container(UiContainerKind::Space));
+    insert_child(&mut space.tree, 9, fixed_node(19, Some(12.0), Some(12.0)));
+    space.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let space_frame = space.surface_frame();
+    let space_report = &space_frame.layout_engine_report;
+    let space_root = selection_for_node(space_report, 9);
+    assert_eq!(space_root.request.family, UiLayoutEngineFamily::Container);
+    assert_eq!(
+        space_root.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(
+        space_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    let mut overlay = UiSurface::new(UiTreeId::new("taffy.layout.report.overlay"));
+    overlay
+        .tree
+        .insert_root(node(10).with_container(UiContainerKind::Overlay));
+    insert_child(&mut overlay.tree, 10, node(11));
+    overlay.compute_layout(UiSize::new(80.0, 40.0)).unwrap();
+    let overlay_frame = overlay.surface_frame();
+    let overlay_report = &overlay_frame.layout_engine_report;
+    let overlay_root = selection_for_node(overlay_report, 10);
+    assert_eq!(
+        overlay_root.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(
+        overlay_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    let mut slotted = UiSurface::new(UiTreeId::new("taffy.layout.report.slot"));
+    slotted
+        .tree
+        .insert_root(
+            node(20).with_container(UiContainerKind::HorizontalBox(UiLinearBoxConfig {
+                gap: 0.0,
+            })),
+        );
+    insert_child(&mut slotted.tree, 20, node(21));
+    slotted.tree.slots.push(
+        UiSlot::new(UiNodeId::new(20), UiNodeId::new(21), UiSlotKind::Linear)
+            .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Start)),
+    );
+    slotted.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let slot_frame = slotted.surface_frame();
+    let slot_report = &slot_frame.layout_engine_report;
+    let slotted_root = selection_for_node(slot_report, 20);
+    assert_eq!(
+        slotted_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::SlotFramePolicy)
+    );
+
+    let mut canvas_slot = UiSurface::new(UiTreeId::new("taffy.layout.report.canvas_slot"));
+    canvas_slot
+        .tree
+        .insert_root(
+            node(25).with_container(UiContainerKind::HorizontalBox(UiLinearBoxConfig {
+                gap: 0.0,
+            })),
+        );
+    insert_child(&mut canvas_slot.tree, 25, node(26));
+    canvas_slot.tree.slots.push(
+        UiSlot::new(UiNodeId::new(25), UiNodeId::new(26), UiSlotKind::Linear)
+            .with_canvas_placement(UiCanvasSlotPlacement::default()),
+    );
+    canvas_slot.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let canvas_frame = canvas_slot.surface_frame();
+    let canvas_report = &canvas_frame.layout_engine_report;
+    let canvas_root = selection_for_node(canvas_report, 25);
+    assert_eq!(
+        canvas_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::SlotCanvasPlacement)
+    );
+
+    let mut scrollable = UiSurface::new(UiTreeId::new("taffy.layout.report.scrollable"));
+    scrollable
+        .tree
+        .insert_root(node(28).with_container(UiContainerKind::ScrollableBox(
+            UiScrollableBoxConfig::default(),
+        )));
+    insert_child(&mut scrollable.tree, 28, fixed_node(29, None, Some(20.0)));
+    scrollable.compute_layout(UiSize::new(80.0, 20.0)).unwrap();
+    let scroll_frame = scrollable.surface_frame();
+    let scroll_report = &scroll_frame.layout_engine_report;
+    let scroll_root = selection_for_node(scroll_report, 28);
+    assert_eq!(scroll_root.request.family, UiLayoutEngineFamily::Scrollable);
+    assert_eq!(
+        scroll_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    let mut virtual_list = UiSurface::new(UiTreeId::new("taffy.layout.report.virtual"));
+    virtual_list
+        .tree
+        .insert_root(node(30).with_container(UiContainerKind::ScrollableBox(
+            UiScrollableBoxConfig {
+                virtualization: Some(UiVirtualListConfig {
+                    item_extent: 20.0,
+                    overscan: 0,
+                }),
+                ..UiScrollableBoxConfig::default()
+            },
+        )));
+    insert_child(&mut virtual_list.tree, 30, fixed_node(31, None, Some(20.0)));
+    virtual_list
+        .compute_layout(UiSize::new(80.0, 20.0))
+        .unwrap();
+    let virtual_frame = virtual_list.surface_frame();
+    let virtual_report = &virtual_frame.layout_engine_report;
+    let virtual_root = selection_for_node(virtual_report, 30);
+    assert_eq!(
+        virtual_root.request.family,
+        UiLayoutEngineFamily::VirtualizedList
+    );
+    assert_eq!(
+        virtual_root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+}
+
+#[test]
 fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     let mut linear = tree_with_root(
         1,
@@ -40,10 +237,11 @@ fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     insert_child(&mut linear, 1, fixed_node(2, Some(50.0), None));
     insert_child(&mut linear, 1, node(3));
     insert_child(&mut linear, 1, fixed_node(4, Some(25.0), None));
-    compute_layout_tree(&mut linear, UiSize::new(200.0, 40.0)).unwrap();
+    let linear_report = compute_layout_tree(&mut linear, UiSize::new(200.0, 40.0)).unwrap();
     assert_eq!(frame(&linear, 2), UiFrame::new(0.0, 0.0, 50.0, 40.0));
     assert_eq!(frame(&linear, 3), UiFrame::new(55.0, 0.0, 115.0, 40.0));
     assert_eq!(frame(&linear, 4), UiFrame::new(175.0, 0.0, 25.0, 40.0));
+    assert_taffy_native_family(&linear_report, 1, UiLayoutEngineFamily::Flex);
 
     let mut wrap = tree_with_root(
         10,
@@ -56,10 +254,11 @@ fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     insert_child(&mut wrap, 10, fixed_node(11, Some(40.0), Some(10.0)));
     insert_child(&mut wrap, 10, fixed_node(12, Some(40.0), Some(10.0)));
     insert_child(&mut wrap, 10, fixed_node(13, Some(40.0), Some(10.0)));
-    compute_layout_tree(&mut wrap, UiSize::new(90.0, 40.0)).unwrap();
+    let wrap_report = compute_layout_tree(&mut wrap, UiSize::new(90.0, 40.0)).unwrap();
     assert_eq!(frame(&wrap, 11), UiFrame::new(0.0, 0.0, 40.0, 10.0));
     assert_eq!(frame(&wrap, 12), UiFrame::new(44.0, 0.0, 40.0, 10.0));
     assert_eq!(frame(&wrap, 13), UiFrame::new(0.0, 15.0, 40.0, 10.0));
+    assert_taffy_native_family(&wrap_report, 10, UiLayoutEngineFamily::Wrap);
 
     let mut grid = tree_with_root(
         20,
@@ -72,9 +271,10 @@ fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     );
     insert_child(&mut grid, 20, node(21));
     insert_child(&mut grid, 20, node(22));
-    compute_layout_tree(&mut grid, UiSize::new(104.0, 20.0)).unwrap();
+    let grid_report = compute_layout_tree(&mut grid, UiSize::new(104.0, 20.0)).unwrap();
     assert_eq!(frame(&grid, 21), UiFrame::new(0.0, 0.0, 50.0, 20.0));
     assert_eq!(frame(&grid, 22), UiFrame::new(54.0, 0.0, 50.0, 20.0));
+    assert_taffy_native_family(&grid_report, 20, UiLayoutEngineFamily::Grid);
 }
 
 #[test]
@@ -101,6 +301,94 @@ fn taffy_layout_pass_accepts_template_metadata_from_v2_assets() {
 }
 
 #[test]
+fn taffy_layout_pass_uses_measured_text_and_image_desired_sizes() {
+    let mut tree = tree_with_root(
+        150,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 3.0 }),
+    );
+    insert_child(
+        &mut tree,
+        150,
+        node(151).with_template_metadata(metadata_with_attributes(
+            "Label",
+            r#"
+text = "Hello"
+font_size = 10.0
+line_height = 12.0
+"#,
+        )),
+    );
+    insert_child(
+        &mut tree,
+        150,
+        node(152).with_template_metadata(metadata_with_attributes(
+            "IconButton",
+            r#"
+image = "asset://icons/run.png"
+layout_icon_size = 18.0
+layout_padding_left = 2.0
+layout_padding_right = 2.0
+"#,
+        )),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let text = tree.node(UiNodeId::new(151)).expect("text node");
+    assert_eq!(text.layout_cache.desired_size.width, 25.0);
+    assert_eq!(text.layout_cache.desired_size.height, 12.0);
+    assert_eq!(text.layout_cache.frame, UiFrame::new(0.0, 0.0, 25.0, 30.0));
+
+    let image = tree.node(UiNodeId::new(152)).expect("image node");
+    assert_eq!(image.layout_cache.desired_size.width, 22.0);
+    assert_eq!(image.layout_cache.desired_size.height, 18.0);
+    assert_eq!(
+        image.layout_cache.frame,
+        UiFrame::new(28.0, 0.0, 22.0, 30.0)
+    );
+    assert_taffy_native_family(&report, 150, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_linear_slot_padding_without_fallback() {
+    let mut tree = tree_with_root(
+        180,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 180, fixed_node(181, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(180), UiNodeId::new(181), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    assert_eq!(frame(&tree, 181), UiFrame::new(5.0, 2.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 180, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_rejects_unsupported_slot_padding_values() {
+    let mut tree = tree_with_root(
+        190,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 190, fixed_node(191, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(190), UiNodeId::new(191), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(-1.0, 0.0, 0.0, 0.0)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let root = selection_for_node(&report, 190);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::SlotFramePolicy)
+    );
+}
+
+#[test]
 fn size_box_contain_aspect_ratio_stays_zircon_owned() {
     let mut tree = tree_with_root(
         200,
@@ -108,10 +396,101 @@ fn size_box_contain_aspect_ratio_stays_zircon_owned() {
     );
     insert_child(&mut tree, 200, node(201));
 
-    compute_layout_tree(&mut tree, UiSize::new(100.0, 100.0)).unwrap();
+    let report = compute_layout_tree(&mut tree, UiSize::new(100.0, 100.0)).unwrap();
 
     assert_eq!(frame(&tree, 200), UiFrame::new(0.0, 0.0, 100.0, 100.0));
     assert_eq!(frame(&tree, 201), UiFrame::new(0.0, 25.0, 100.0, 50.0));
+    let root = selection_for_node(&report, 200);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Container);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+}
+
+#[test]
+fn taffy_layout_pass_maps_grid_slot_placement_without_fallback() {
+    let mut tree = tree_with_root(
+        300,
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 2,
+            rows: 2,
+            column_gap: 4.0,
+            row_gap: 6.0,
+        }),
+    );
+    insert_child(&mut tree, 300, node(301));
+    insert_child(&mut tree, 300, node(302));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(300), UiNodeId::new(301), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(0, 0)),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(300), UiNodeId::new(302), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(1, 1)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(124.0, 82.0)).unwrap();
+
+    assert_eq!(frame(&tree, 301), UiFrame::new(0.0, 0.0, 60.0, 38.0));
+    assert_eq!(frame(&tree, 302), UiFrame::new(64.0, 44.0, 60.0, 38.0));
+    let root = selection_for_node(&report, 300);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(root.support, UiLayoutEngineSupport::Native);
+}
+
+#[test]
+fn taffy_layout_pass_maps_grid_slot_padding_and_alignment_without_fallback() {
+    let mut tree = tree_with_root(
+        350,
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 2,
+            rows: 2,
+            column_gap: 4.0,
+            row_gap: 6.0,
+        }),
+    );
+    insert_child(&mut tree, 350, fixed_node(351, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(350), UiNodeId::new(351), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(1, 1))
+            .with_padding(UiMargin::new(2.0, 3.0, 4.0, 5.0))
+            .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::End)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(124.0, 82.0)).unwrap();
+
+    assert_eq!(frame(&tree, 351), UiFrame::new(83.0, 67.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 350, UiLayoutEngineFamily::Grid);
+}
+
+#[test]
+fn taffy_layout_pass_maps_linear_slot_sizing_without_fallback() {
+    let mut tree = tree_with_root(
+        400,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 400, node(401));
+    insert_child(&mut tree, 400, node(402));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(400), UiNodeId::new(401), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(400), UiNodeId::new(402), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(300.0, 30.0)).unwrap();
+
+    assert_eq!(frame(&tree, 401), UiFrame::new(0.0, 0.0, 200.0, 30.0));
+    assert_eq!(frame(&tree, 402), UiFrame::new(200.0, 0.0, 100.0, 30.0));
+    let root = selection_for_node(&report, 400);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(root.support, UiLayoutEngineSupport::Native);
 }
 
 fn tree_with_root(root_id: u64, container: UiContainerKind) -> UiTree {
@@ -163,4 +542,35 @@ fn template_metadata(component: &str) -> UiTemplateNodeMetadata {
         component: component.to_string(),
         ..UiTemplateNodeMetadata::default()
     }
+}
+
+fn metadata_with_attributes(component: &str, attributes: &str) -> UiTemplateNodeMetadata {
+    UiTemplateNodeMetadata {
+        component: component.to_string(),
+        attributes: toml::from_str(attributes).expect("metadata attributes"),
+        ..UiTemplateNodeMetadata::default()
+    }
+}
+
+fn selection_for_node<'a>(
+    report: &'a zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+    node_id: u64,
+) -> &'a zircon_runtime_interface::ui::layout::UiLayoutEngineSelection {
+    report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(UiNodeId::new(node_id)))
+        .expect("layout engine selection")
+}
+
+fn assert_taffy_native_family(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+    node_id: u64,
+    family: UiLayoutEngineFamily,
+) {
+    let selection = selection_for_node(report, node_id);
+    assert_eq!(selection.request.family, family);
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(selection.support, UiLayoutEngineSupport::Native);
+    assert_eq!(selection.fallback_reason, None);
 }

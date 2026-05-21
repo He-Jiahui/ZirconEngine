@@ -1,6 +1,6 @@
 use crate::resource::{
-    AssetReference, AssetUuid, ResourceId, ResourceKind, ResourceLocator, ResourceRecord,
-    ResourceScheme,
+    AssetReference, AssetUuid, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
+    ResourceRecord, ResourceScheme,
 };
 
 #[test]
@@ -39,4 +39,25 @@ fn resource_contract_parses_package_locators_and_asset_reference_urls() {
     assert!(!json.contains("\"locator\""));
     assert_eq!(decoded.uuid, uuid);
     assert_eq!(decoded.locator, locator);
+}
+
+#[test]
+fn resource_contract_rejects_malformed_package_locators() {
+    let missing_path = ResourceLocator::parse("package://com.zircon.navigation").unwrap_err();
+    let escaping_path = ResourceLocator::parse("package://../secret").unwrap_err();
+    let escaping_package_root =
+        ResourceLocator::parse("package://com.zircon.navigation/../secret").unwrap_err();
+
+    assert!(matches!(
+        missing_path,
+        ResourceLocatorError::MissingPackagePath(_)
+    ));
+    assert!(matches!(
+        escaping_path,
+        ResourceLocatorError::EscapeAttempt(_)
+    ));
+    assert!(matches!(
+        escaping_package_root,
+        ResourceLocatorError::EscapeAttempt(_)
+    ));
 }

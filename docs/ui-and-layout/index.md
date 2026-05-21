@@ -85,6 +85,9 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
+  - dev/material-rust-template/material-1.0/material.slint
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
 implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/module.rs
@@ -159,6 +162,9 @@ implementation_files:
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
   - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
+  - docs/ui-and-layout/slint-material-retained-editor-migration.md
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
 plan_sources:
   - user: 2026-04-14 实现运行时/编辑器共享 UI 布局与事件系统架构计划
   - user: 2026-04-15 继续实现 ScrollableBox、scroll state、visible range invalidation 和 pointer dispatcher
@@ -168,6 +174,9 @@ plan_sources:
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
   - .codex/plans/全系统重构方案.md
   - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - user: 2026-05-20 migrate Slint Material component behavior into retained Editor UI without direct Slint runtime
+  - docs/superpowers/specs/2026-05-20-slint-material-retained-editor-migration-design.md
+  - docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md
 tests:
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/asset.rs
@@ -205,6 +214,9 @@ tests:
   - cargo test -p zircon_runtime --lib diagnostics --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo check --workspace --locked
   - docs-only validation: git diff --check docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md docs/ui-and-layout/index.md
+  - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
+  - cargo metadata --locked --no-deps --format-version 1
 doc_type: category-index
 ---
 
@@ -229,6 +241,7 @@ doc_type: category-index
   该文档现在也记录了 `zircon_runtime_interface::ui::layout` 的 L1 起步契约、template build 将 parent-owned slot record 保留到 `UiTree.slots` 的当前落点、Linear slot size-rule、Overlay slot z-order、Canvas/Free slot placement contract 的 preservation 状态，以及 runtime layout pass 对 Linear/Overlay/Free slot padding/alignment/order 的最小消费边界。
 - [Runtime UI Layout Pass Slots](../zircon_runtime/ui/layout/pass.md): `zircon_runtime::ui::layout::pass` 的 slot/panel module detail，记录 `UiSlotSchema`、`UiSlot`、`UiContainerKind`、template slot contract、runtime slot padding/alignment/order consumption、M1.3 overlay/scroll shared-frame focused tests，以及 grid/flow、overlay slot `z_order` 和 canvas placement 的剩余缺口。
 - [Material UI Token And Component Audit](./material-ui-token-component-audit.md): M2.1a 的参考 Material 组件与 Zircon `.ui.toml` Material token/component 对照表，覆盖 density、spacing、radius、color roles、state layers、focus ring、shadow/elevation、typography、meta component coverage、参考导出缺口、runtime Material layout support、Material Component Lab `.zui` 原型规则、UI shader contract、MUI X 原型边界，以及 Material Lab startup/hover/click 视觉证据门禁。
+- [Slint Material Retained Editor Migration](./slint-material-retained-editor-migration.md): 记录 `dev/material-rust-template/material-1.0` 到 retained Editor UI 的正式迁移边界、Slint Material export 映射、no direct Slint dependency fence、M0/M1 token landing、后续 state layer/ripple/elevation/control/surface/adoption 里程碑和 focused validation 口径。
 - [Material UI Component Design Matrix](./material-ui-component-design-matrix.md): 按 MUI All Components 与 MUI X Tree View/Data Grid/Charts/Chat 建立的组件设计矩阵，记录每个组件的响应机制、外观变体、布局模式、`.zui` 映射和视觉 + 交互验证策略。
 - [Zircon UI 与 Unreal Slate 渲染差异审计](../assets-and-rendering/runtime-ui-slate-rendering-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 渲染源码，细化 paint element、brush/material payload、batch plan、cached render elements、runtime renderer/debug visualizer 与当前 shared UI render extract 的差距及后续渲染里程碑。
 - [Shared UI Template Runtime](./shared-ui-template-runtime.md): `zircon_runtime::ui::template` 的 TOML 文档模型、component/slot 节点语义、模板校验规则、运行时实例展开、shared `UiTree` / `UiSurface` 桥接，以及 `.ui.toml -> UiSurface -> host projection / UiRenderExtract` 的显式映射；它记录 no-Slint generic host fence、Rust-owned `host_contract` DTO/callback seam、runtime fixture acceptance，以及 workbench pane body、HostMenuChrome business rows/popup、top menu/Page tab/Dock header/status bar/floating header/activity rail chrome 从手写 `.slint` 迁到 `.ui.toml -> TemplatePane` 的 cutover 状态。

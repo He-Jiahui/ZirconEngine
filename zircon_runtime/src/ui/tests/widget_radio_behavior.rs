@@ -5,7 +5,7 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::{
     accessibility::{UiA11yCheckedState, UiA11yRole, UiAccessibilityAction},
-    binding::UiEventKind,
+    binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiDispatchDisposition, UiInputEvent, UiInputEventMetadata, UiInputSequence,
@@ -43,6 +43,7 @@ fn radio_button_click_updates_group_value_and_unchecks_siblings() {
                     if property == "choice" && value == &UiValue::String("two".to_string())
             )
     }));
+    assert_widget_binding_report(&result.binding_reports);
 }
 
 #[test]
@@ -51,6 +52,7 @@ fn checked_radio_button_click_is_ignored() {
     let result = click_node(&mut surface, UiPoint::new(20.0, 22.0));
 
     assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
     assert_checked(&surface, UiNodeId::new(3), true);
     assert_checked(&surface, UiNodeId::new(4), false);
     assert_group_value(&surface, "one");
@@ -72,6 +74,7 @@ fn radio_button_under_disabled_group_is_ignored() {
     let result = click_node(&mut surface, UiPoint::new(20.0, 54.0));
 
     assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
     assert_checked(&surface, UiNodeId::new(3), true);
     assert_checked(&surface, UiNodeId::new(4), false);
     assert_group_value(&surface, "one");
@@ -113,6 +116,19 @@ fn radio_button_keyboard_activation_updates_group_value() {
                 UiComponentEvent::ValueChanged { property, value }
                     if property == "choice" && value == &UiValue::String("two".to_string())
             )
+    }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+fn assert_widget_binding_report(
+    reports: &[zircon_runtime_interface::ui::binding::UiBindingUpdateReport],
+) {
+    assert!(!reports.is_empty());
+    assert!(reports.iter().any(|report| {
+        report
+            .updates
+            .first()
+            .is_some_and(|update| update.source.kind == UiBindingSourceKind::WidgetBehavior)
     }));
 }
 

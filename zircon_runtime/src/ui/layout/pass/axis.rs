@@ -2,7 +2,10 @@ use crate::ui::layout::solve_axis_constraints;
 use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiFrame, UiSize},
+    layout::{
+        AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiFrame, UiLinearSlotSizeRule,
+        UiLinearSlotSizing, UiSize,
+    },
     tree::{UiTree, UiTreeError},
 };
 
@@ -60,6 +63,7 @@ pub(crate) fn resolve_linear_child_main_extents(
             desired_extent,
             padding_extent,
             preserve_stretch,
+            slot.and_then(|slot| slot.linear_sizing),
         ));
     }
 
@@ -114,17 +118,61 @@ fn linear_main_axis_constraint(
     desired_extent: f32,
     padding_extent: f32,
     preserve_stretch: bool,
+    slot_sizing: Option<UiLinearSlotSizing>,
 ) -> AxisConstraint {
     let was_default = constraint == AxisConstraint::default();
     let padding_extent = padding_extent.max(0.0);
     constraint = inflate_axis_constraint(constraint, padding_extent);
 
     let desired_extent = desired_extent.max(0.0) + padding_extent;
+    if let Some(slot_sizing) = slot_sizing {
+        return apply_linear_slot_sizing(constraint, desired_extent, slot_sizing);
+    }
     if desired_extent > 0.0 && was_default && !preserve_stretch {
         constraint.preferred = desired_extent;
         constraint.stretch_mode = StretchMode::Fixed;
     }
     constraint
+}
+
+fn apply_linear_slot_sizing(
+    mut constraint: AxisConstraint,
+    desired_extent: f32,
+    sizing: UiLinearSlotSizing,
+) -> AxisConstraint {
+    let slot_max = (sizing.max >= 0.0).then_some(sizing.max.max(0.0));
+    constraint.min = constraint.min.max(sizing.min.max(0.0));
+    constraint.max = merge_max_constraint(constraint.max, slot_max);
+    if constraint.max >= 0.0 && constraint.max < constraint.min {
+        constraint.max = constraint.min;
+    }
+    match sizing.rule {
+        UiLinearSlotSizeRule::Auto => {
+            constraint.preferred = desired_extent.max(constraint.preferred).max(constraint.min);
+            constraint.weight = sizing.shrink_value.max(0.0);
+            constraint.stretch_mode = StretchMode::Fixed;
+        }
+        UiLinearSlotSizeRule::Stretch => {
+            constraint.preferred = constraint.min;
+            constraint.weight = sizing.value.max(0.0);
+            constraint.stretch_mode = StretchMode::Stretch;
+        }
+        UiLinearSlotSizeRule::StretchContent => {
+            constraint.preferred = desired_extent.max(constraint.preferred).max(constraint.min);
+            constraint.weight = sizing.value.max(0.0);
+            constraint.stretch_mode = StretchMode::Stretch;
+        }
+    }
+    constraint
+}
+
+fn merge_max_constraint(current: f32, slot_max: Option<f32>) -> f32 {
+    match (current >= 0.0, slot_max) {
+        (true, Some(slot_max)) => current.min(slot_max),
+        (true, None) => current,
+        (false, Some(slot_max)) => slot_max,
+        (false, None) => current,
+    }
 }
 
 fn inflate_axis_constraint(mut constraint: AxisConstraint, padding_extent: f32) -> AxisConstraint {

@@ -344,8 +344,10 @@ fn apply_source_parameter(
 ) -> Result<(), SoundError> {
     match parameter.as_str() {
         "gain" => source.gain = value,
+        "speed" => source.speed = value,
         "playing" => source.playing = bool_from_value(value),
         "looped" => source.looped = bool_from_value(value),
+        "muted" => source.muted = bool_from_value(value),
         "position_x" => source.position[0] = value,
         "position_y" => source.position[1] = value,
         "position_z" => source.position[2] = value,
@@ -356,6 +358,7 @@ fn apply_source_parameter(
         "velocity_y" => source.velocity[1] = value,
         "velocity_z" => source.velocity[2] = value,
         "spatial_blend" => source.spatial.spatial_blend = value,
+        "spatial_scale" => source.spatial.spatial_scale = Some(value),
         "min_distance" => source.spatial.min_distance = value,
         "max_distance" => source.spatial.max_distance = value,
         "cone_inner_degrees" => source.spatial.cone_inner_degrees = value,

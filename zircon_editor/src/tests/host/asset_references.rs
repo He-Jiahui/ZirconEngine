@@ -307,8 +307,10 @@ fn scene_asset() -> SceneAsset {
             mobility: SceneMobilityAsset::Dynamic,
             camera: None,
             mesh: None,
+            ambient_light: None,
             directional_light: None,
             point_light: None,
+            rect_light: None,
             spot_light: None,
             rigid_body: None,
             collider: Some(SceneColliderAsset {

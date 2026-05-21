@@ -135,6 +135,15 @@ pub(crate) struct TemplatePaneNodeData {
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,
+    pub enter_pressed: bool,
+    /// Slint Material state-layer/ripple metadata carried without linking Slint.
+    /// Runtime-owned input state still decides when these flags are set.
+    pub state_layer_enabled: bool,
+    pub state_layer_color: Color,
+    pub ripple_enabled: bool,
+    pub ripple_pressed_x: f32,
+    pub ripple_pressed_y: f32,
+    pub ripple_unclipped: bool,
     pub drop_hovered: bool,
     pub active_drag_target: bool,
     pub disabled: bool,

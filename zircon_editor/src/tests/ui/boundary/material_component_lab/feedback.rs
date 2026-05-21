@@ -645,16 +645,37 @@ fn material_floating_action_button_sample_covers_circular_small_and_extended_sha
         );
     }
 
-    for (node_id, component, shape, size, icon_placement) in [
+    for (node_id, component, shape, size, icon_placement, fab_style, corner_radius, elevation) in [
         (
             "fab_circular",
             "IconButton",
             "circular",
             "medium",
             "icon_only",
+            "standard",
+            16.0,
+            3.0,
         ),
-        ("fab_small", "IconButton", "circular", "small", "icon_only"),
-        ("fab_extended", "Button", "extended", "medium", "leading"),
+        (
+            "fab_small",
+            "IconButton",
+            "circular",
+            "small",
+            "icon_only",
+            "small",
+            12.0,
+            3.0,
+        ),
+        (
+            "fab_extended",
+            "Button",
+            "extended",
+            "medium",
+            "leading",
+            "large",
+            28.0,
+            3.0,
+        ),
     ] {
         let node = document
             .nodes
@@ -683,13 +704,19 @@ fn material_floating_action_button_sample_covers_circular_small_and_extended_sha
             "FAB `{node_id}` should freeze icon placement metadata"
         );
         assert_eq!(
-            numeric_prop(node.props.get("corner_radius")),
-            Some(999.0),
-            "FAB `{node_id}` should use pill radius for circular/extended geometry"
+            node.props.get("fab_style").and_then(|value| value.as_str()),
+            Some(fab_style),
+            "FAB `{node_id}` should freeze Slint FABStyle metadata"
         );
-        assert!(
-            numeric_prop(node.props.get("elevation")).is_some_and(|value| value > 0.0),
-            "FAB `{node_id}` should carry painter-visible elevation metadata"
+        assert_eq!(
+            numeric_prop(node.props.get("corner_radius")),
+            Some(corner_radius),
+            "FAB `{node_id}` should use source-derived FABStyle radius"
+        );
+        assert_eq!(
+            numeric_prop(node.props.get("elevation")),
+            Some(elevation),
+            "FAB `{node_id}` should carry source-derived elevation metadata"
         );
         assert!(
             node.events.is_empty(),

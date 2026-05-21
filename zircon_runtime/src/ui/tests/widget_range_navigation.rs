@@ -2,6 +2,7 @@ use crate::ui::{
     dispatch::UiNavigationDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
+    binding::UiBindingSourceKind,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     surface::UiNavigationEventKind,
@@ -24,6 +25,7 @@ fn range_home_and_end_navigation_use_authored_min_max_aliases() {
         .unwrap();
     assert_eq!(end.handled_by, Some(node_id));
     assert_eq!(end.focus_changed_to, None);
+    assert_widget_binding_report(&end.binding_reports);
     assert_range_value(&surface, 100.0);
     assert!(surface.dirty_flags().render);
     assert!(!surface.dirty_flags().layout);
@@ -37,9 +39,20 @@ fn range_home_and_end_navigation_use_authored_min_max_aliases() {
         .unwrap();
     assert_eq!(home.handled_by, Some(node_id));
     assert_eq!(home.focus_changed_to, None);
+    assert_widget_binding_report(&home.binding_reports);
     assert_range_value(&surface, 0.0);
     assert!(surface.dirty_flags().render);
     assert!(!surface.dirty_flags().layout);
+}
+
+fn assert_widget_binding_report(
+    reports: &[zircon_runtime_interface::ui::binding::UiBindingUpdateReport],
+) {
+    assert_eq!(reports.len(), 1);
+    assert_eq!(
+        reports[0].updates.first().map(|update| update.source.kind),
+        Some(UiBindingSourceKind::WidgetBehavior)
+    );
 }
 
 fn range_surface() -> UiSurface {

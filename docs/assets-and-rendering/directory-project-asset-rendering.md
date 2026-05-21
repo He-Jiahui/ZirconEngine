@@ -329,6 +329,7 @@ tests:
   - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
+  - zircon_runtime/src/asset/tests/project/package_assets.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/asset/tests/watcher.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
@@ -359,6 +360,8 @@ tests:
   - cargo test -p zircon_runtime --locked asset::tests::watcher
   - cargo test -p zircon_runtime --locked shader
   - cargo test -p zircon_runtime --locked material
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --locked package --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed after warm cache, 43 package-filtered runtime lib tests plus package-filtered integration binaries)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-asset-package-m2 cargo test --manifest-path zircon_plugins/Cargo.toml --locked --jobs 1 --message-format short --color never package -- --test-threads=1 (2026-05-20 package roots M2: passed after moving off full D: target dir)
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir F:\cargo-targets\zircon-zmeta-validation
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir F:\cargo-targets\zircon-zmeta-validation
 doc_type: module-detail
@@ -394,7 +397,7 @@ doc_type: module-detail
 
 - `ResourceLocator`
   - 统一支持 `res://`、`lib://`、`package://`、`builtin://`、`mem://`
-  - 负责规范化、越界拒绝和 `#label` 子资源语法
+  - 负责规范化、越界拒绝和 `#label` 子资源语法；`package://` 会先固定 package id，再规范化包内相对路径，禁止 `..` 越过 package 根
 - `AssetUuid` / `AssetReference`
   - 项目资产稳定身份为 `uuid` 权威、`url` 辅助定位
   - serialized reference 固定写作 `{ uuid, url }`；`url` 不参与身份判定，只作为可读路径和修复线索
@@ -433,6 +436,7 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 
 - manifest / path layout
 - 扫描 `assets/`
+- 扫描已注册 package asset roots，并为包资源生成 `package://{package_id}/...` URL
 - 为缺失资源补写 `*.zmeta`
 - 调 importer 解析 PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB
 - 把导入物写到 `library/`
@@ -441,6 +445,10 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 实现上，`zircon_runtime/src/asset/project/manager/mod.rs` 现在只保留 `ProjectManager` 结构定义与子模块声明；`open`、`scan_and_import`、registry/lookup、artifact 访问和本地文件/meta helper 全部下沉到 `zircon_runtime/src/asset/project/manager/` 子树，避免 project root manager 继续堆叠 importer 与文件系统逻辑。
 
 当前 public surface 也已经跟随收束：workspace 调用点统一通过 `zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths}` 访问目录式项目 API，不再从 runtime asset 根模块平铺拿这组三元组。
+
+`ProjectManifest` 的现行文件格式写出 `format_version` 与 `library_version`。读取路径仍接受旧项目 manifest 省略 `format_version` 的文件，并把旧字段名 `schema_version` 作为 `library_version` 的 serde alias 解析；这保证旧 export profile 文件在补充 `runtime_profile_id` 之前仍能加载，缺失的 runtime profile 继续表示为 `None`。
+
+Package asset roots are registered on the same `ProjectManager` through `register_package_asset_root(...)` or `register_package_manifest_asset_roots(...)`. Manifest registration composes `PluginPackageManifest::package_id()` from `package_prefix/package_company/package_name`, defaults omitted `asset_roots` to `assets`, and rejects multiple or escaping roots so `package://` has one clear filesystem owner. Registered package files use the same `.zmeta` schema, importer registry, `Project/library` artifact store, UUID index, dependency resolution, and live `ResourceRegistry` as project files; only the URL scheme and package id differ.
 
 runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 

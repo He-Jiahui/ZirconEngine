@@ -1,5 +1,6 @@
+use super::model_mesh_subassets::model_outcome_with_mesh_subassets;
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
-use crate::asset::assets::{ImportedAsset, ModelAsset};
+use crate::asset::assets::ModelAsset;
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
 
 pub(crate) fn import_obj(
@@ -32,11 +33,11 @@ pub(crate) fn import_obj(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(AssetImportOutcome::new(
+    Ok(model_outcome_with_mesh_subassets(
         context.uri.clone(),
-        ImportedAsset::Model(ModelAsset {
+        ModelAsset {
             uri: context.uri.clone(),
             primitives,
-        }),
+        },
     ))
 }

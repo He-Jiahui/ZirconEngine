@@ -39,14 +39,16 @@ export global HubTokens {
     in property <length> panel-min-md: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_80;
     in property <length> panel-min-lg: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_200;
 
-    in property <length> workspace-row-editor-summary: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_90;
+    in property <length> workspace-row-editor-summary: root.control-md + root.list-row-md * 3 + root.toolbar-gap * 3 + root.space-4 * 2;
     in property <length> workspace-row-editor-config: MaterialStyleMetrics.size_200 * 2 + MaterialStyleMetrics.size_72 + MaterialStyleMetrics.size_4;
-    in property <length> workspace-row-build-summary: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_90 + MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_2;
-    in property <length> workspace-row-build-detail: MaterialStyleMetrics.size_360;
+    in property <length> workspace-row-build-summary: root.control-md + root.list-row-md * 5 + root.toolbar-gap * 5 + root.space-4 * 2;
+    in property <length> workspace-row-build-detail: root.control-md + root.list-row-md * 4 + root.toolbar-gap * 4 + root.space-4 * 2;
     in property <length> workspace-row-settings-controls: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_6;
     in property <length> workspace-row-settings-detail: MaterialStyleMetrics.size_200 * 2 - MaterialStyleMetrics.size_8;
+    in property <length> workspace-row-cloud-metrics: root.list-row-lg + root.space-6;
+    in property <length> workspace-row-team-summary: root.list-row-lg + root.space-7;
 
-    in property <length> breakpoint-short: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_40;
+    in property <length> breakpoint-short: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_256 + MaterialStyleMetrics.size_64;
     in property <length> shell-row-min: MaterialStyleMetrics.size_52;
     in property <length> shell-row-max: MaterialStyleMetrics.size_56;
     in property <length> shell-drag-min: MaterialStyleMetrics.size_8;
@@ -56,11 +58,12 @@ export global HubTokens {
     in property <length> shell-gap-max: MaterialStyleMetrics.spacing_12;
     in property <length> shell-pad-x-min: MaterialStyleMetrics.padding_16;
     in property <length> shell-pad-x-max: MaterialStyleMetrics.padding_24;
-    in property <length> nav-width-collapsed-min: MaterialStyleMetrics.size_64;
-    in property <length> nav-width-collapsed-max: MaterialStyleMetrics.size_72;
+    in property <length> nav-width-collapsed-min: MaterialStyleMetrics.size_80;
+    in property <length> nav-width-collapsed-max: MaterialStyleMetrics.size_80;
     in property <length> nav-width-expanded-min: MaterialStyleMetrics.size_200;
     in property <length> nav-width-expanded-max: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_32;
     in property <length> bottom-status-height: MaterialStyleMetrics.size_32;
+    in property <length> status-badge-width: root.control-lg * 5;
     in property <length> window-resize-border: MaterialStyleMetrics.size_6;
     in property <length> window-min-width: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_344;
     in property <length> window-min-height: MaterialStyleMetrics.size_640;

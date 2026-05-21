@@ -345,9 +345,32 @@ mod tests {
                 assert_eq!(sound.sample_rate_hz, 8_000);
                 assert_eq!(sound.channel_count, 1);
                 assert_eq!(sound.frame_count(), 2);
+                assert_eq!(sound.duration_seconds(), 2.0 / 8_000.0);
             }
             other => panic!("unexpected imported asset: {other:?}"),
         }
+    }
+
+    #[test]
+    fn wav_importer_rejects_partial_multichannel_frame() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("partial.wav"))
+            .unwrap();
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "partial.wav".into(),
+            zircon_runtime::asset::AssetUri::parse("res://audio/partial.wav").unwrap(),
+            partial_stereo_wav_bytes(),
+            Default::default(),
+        );
+
+        let error = importer.import(&context).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("wav data chunk did not align to whole audio frames"));
     }
 
     #[test]
@@ -380,22 +403,39 @@ mod tests {
     }
 
     fn tiny_wav_bytes() -> Vec<u8> {
+        wav_bytes(1, 8_000, 16, &[0, 0, 0, 64])
+    }
+
+    fn partial_stereo_wav_bytes() -> Vec<u8> {
+        wav_bytes(2, 8_000, 16, &[0, 0])
+    }
+
+    fn wav_bytes(
+        channel_count: u16,
+        sample_rate_hz: u32,
+        bits_per_sample: u16,
+        data: &[u8],
+    ) -> Vec<u8> {
+        let bytes_per_sample = bits_per_sample / 8;
+        let block_align = channel_count * bytes_per_sample;
+        let byte_rate = sample_rate_hz * block_align as u32;
+        let riff_size = 36 + data.len() as u32;
+
         let mut bytes = Vec::new();
         bytes.extend_from_slice(b"RIFF");
-        bytes.extend_from_slice(&40_u32.to_le_bytes());
+        bytes.extend_from_slice(&riff_size.to_le_bytes());
         bytes.extend_from_slice(b"WAVE");
         bytes.extend_from_slice(b"fmt ");
         bytes.extend_from_slice(&16_u32.to_le_bytes());
         bytes.extend_from_slice(&1_u16.to_le_bytes());
-        bytes.extend_from_slice(&1_u16.to_le_bytes());
-        bytes.extend_from_slice(&8_000_u32.to_le_bytes());
-        bytes.extend_from_slice(&16_000_u32.to_le_bytes());
-        bytes.extend_from_slice(&2_u16.to_le_bytes());
-        bytes.extend_from_slice(&16_u16.to_le_bytes());
+        bytes.extend_from_slice(&channel_count.to_le_bytes());
+        bytes.extend_from_slice(&sample_rate_hz.to_le_bytes());
+        bytes.extend_from_slice(&byte_rate.to_le_bytes());
+        bytes.extend_from_slice(&block_align.to_le_bytes());
+        bytes.extend_from_slice(&bits_per_sample.to_le_bytes());
         bytes.extend_from_slice(b"data");
-        bytes.extend_from_slice(&4_u32.to_le_bytes());
-        bytes.extend_from_slice(&0_i16.to_le_bytes());
-        bytes.extend_from_slice(&16_384_i16.to_le_bytes());
+        bytes.extend_from_slice(&(data.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(data);
         bytes
     }
 }

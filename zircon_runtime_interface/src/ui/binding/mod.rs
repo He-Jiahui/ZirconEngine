@@ -1,5 +1,7 @@
 mod model;
 
 pub use model::{
-    UiBindingCall, UiBindingParseError, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
+    UiBindingCall, UiBindingDirtyDomain, UiBindingParseError, UiBindingSource, UiBindingSourceKind,
+    UiBindingTarget, UiBindingTargetKind, UiBindingUpdate, UiBindingUpdateReport,
+    UiBindingUpdateStatus, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
 };

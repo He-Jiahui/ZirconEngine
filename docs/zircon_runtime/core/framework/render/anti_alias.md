@@ -1,5 +1,11 @@
 ---
 related_code:
+  - dev/bevy/crates/bevy_anti_alias/src/lib.rs
+  - dev/bevy/crates/bevy_anti_alias/src/fxaa/mod.rs
+  - dev/bevy/crates/bevy_anti_alias/src/smaa/mod.rs
+  - dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs
+  - dev/bevy/crates/bevy_anti_alias/src/contrast_adaptive_sharpening/mod.rs
+  - dev/bevy/examples/3d/anti_aliasing.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
@@ -55,6 +61,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
 plan_sources:
   - user: 2026-05-18 continue Render M8A anti-alias product surface
+  - user: 2026-05-20 continue Bevy-level render anti-alias evidence mapping
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
@@ -77,6 +84,18 @@ doc_type: module-detail
 `zircon_runtime::core::framework::render::anti_alias` owns the neutral M8A anti-alias contract. It turns `RenderProductFeature::AntiAlias` from profile vocabulary into a per-view product setting with explicit resolution and fallback reporting.
 
 The framework layer only describes requested and effective modes. Concrete pixels remain in `zircon_runtime::graphics`, where the first implemented path is FXAA inside the postprocess product surface.
+
+## Bevy Evidence
+
+The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/lib.rs:23-33` wires `FxaaPlugin`, `SmaaPlugin`, `TemporalAntiAliasPlugin`, `CasPlugin`, and optional `DlssPlugin` behind one `AntiAliasPlugin`.
+
+`dev/bevy/crates/bevy_anti_alias/src/fxaa/mod.rs:57-108` defines the per-camera `Fxaa` component, sensitivity settings, and Core2d/Core3d post-process scheduling after tonemapping. `fxaa/mod.rs:191-218` prepares a per-view specialized FXAA pipeline.
+
+`dev/bevy/crates/bevy_anti_alias/src/smaa/mod.rs:1-31` documents SMAA's quality/performance tradeoffs and current Bevy limitations, and `smaa/mod.rs:137-196` makes the three-pass shape explicit: edge detection, blending-weight calculation, and neighborhood blending. `smaa/mod.rs:290-359` registers LUTs, pipeline preparation, temporary textures, bind groups, and Core2d/Core3d post-process scheduling.
+
+`dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs:47-72` registers TAA extraction, jitter, pipeline, and history-texture preparation, then schedules TAA in Core3d early post-process. `taa/mod.rs:101-115` requires temporal jitter, mip bias, depth prepass, and motion-vector prepass; `taa/mod.rs:152` rejects TAA when MSAA is enabled. `dev/bevy/crates/bevy_anti_alias/src/contrast_adaptive_sharpening/mod.rs:40-122` defines camera-facing CAS sharpening settings and schedules CAS after FXAA for Core2d/Core3d.
+
+`dev/bevy/examples/3d/anti_aliasing.rs` is the practical product target: it lets one camera switch between no AA, MSAA, FXAA, SMAA, TAA, and optional DLSS. Zircon's current product surface names the same families, but only FXAA is a concrete renderer path.
 
 ## Product Surface
 
@@ -117,6 +136,17 @@ The concrete shader gets an `anti_alias` uniform lane. When enabled, it samples 
 - `last_anti_alias_graph_executed_pass_count`
 
 The fallback report proves what the renderer actually used for the submitted frame. The graph count proves the FXAA executor participated in the product graph. Existing postprocess stats also expose the `fxaa` node in `last_post_process_graph_executed_nodes` when the effective graph enables FXAA.
+
+## Bevy Gap Classification
+
+| Bevy AA family | Zircon product state | Completion requirement |
+| --- | --- | --- |
+| FXAA | Concrete DefaultRender path. `Auto` resolves to FXAA when the backend supports offscreen rendering, and the post-process graph records the `fxaa` node. | Add Bevy-style sensitivity controls if user-facing tuning becomes part of the profile surface. |
+| MSAA | Named through `AntiAliasMode::Msaa { samples }` and camera MSAA projection, but current capability reports max supported samples as `1`. Unsupported counts degrade through `AntiAliasFallbackReport`. | Add multisampled render targets, resolve/writeback policy, and sorted-camera writeback behavior before claiming Bevy parity. |
+| SMAA | Named but unsupported. It degrades to FXAA or Off with `UnsupportedSmaa`. | Add three-pass temporary resources, LUT handling, presets, and Core2d/Core3d graph nodes. |
+| TAA | Named but unsupported. Missing history and unsupported temporal capability are distinct fallback reasons. | Add temporal jitter, mip-bias, depth/motion-vector prepass ownership, history reset, and Core3d early post-process scheduling. |
+| CAS | Named but unsupported. It degrades with `UnsupportedCas`. | Add camera-facing sharpening settings and schedule CAS after the chosen screen-space AA pass. |
+| DLSS | Named but unsupported and treated as optional capability-gated provider work. | Add explicit backend/provider capability checks before exposing it as anything other than a degraded optional mode. |
 
 ## Out Of Scope
 

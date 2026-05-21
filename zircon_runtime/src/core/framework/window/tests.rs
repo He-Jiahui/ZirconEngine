@@ -1,8 +1,9 @@
 use crate::core::math::UVec2;
 
 use super::{
-    PrimaryWindowHandle, WindowDescriptor, WindowMode, WindowPosition, WindowPresentMode,
-    WindowResizeConstraints, WindowResolution, DEFAULT_WINDOW_TITLE,
+    PrimaryWindowHandle, WindowDescriptor, WindowExitCondition, WindowLifecyclePolicy, WindowMode,
+    WindowMonitorSelection, WindowPosition, WindowPresentMode, WindowResizeConstraints,
+    WindowResolution, WindowVideoMode, WindowVideoModeSelection, DEFAULT_WINDOW_TITLE,
 };
 
 #[test]
@@ -108,6 +109,9 @@ fn window_descriptor_builder_preserves_host_neutral_settings() {
         .with_title("Zircon Editor")
         .with_resolution(WindowResolution::new(1600, 900))
         .with_position(WindowPosition::At { x: 80, y: 120 })
+        .with_mode(WindowMode::borderless_fullscreen_on(
+            WindowMonitorSelection::Index(1),
+        ))
         .with_present_mode(WindowPresentMode::AutoNoVsync)
         .with_resizable(false)
         .with_decorated(false)
@@ -118,11 +122,48 @@ fn window_descriptor_builder_preserves_host_neutral_settings() {
     assert_eq!(descriptor.primary_window.unwrap().raw(), 99);
     assert_eq!(descriptor.resolution.physical_size(), UVec2::new(1600, 900));
     assert_eq!(descriptor.position, WindowPosition::At { x: 80, y: 120 });
+    assert_eq!(
+        descriptor.mode,
+        WindowMode::BorderlessFullscreenOn(WindowMonitorSelection::Index(1))
+    );
     assert_eq!(descriptor.present_mode, WindowPresentMode::AutoNoVsync);
     assert!(!descriptor.resizable);
     assert!(!descriptor.decorated);
     assert!(!descriptor.visible);
     assert!(!descriptor.focused);
+}
+
+#[test]
+fn window_monitor_and_video_mode_selection_record_bevy_style_policy() {
+    let video_mode = WindowVideoMode::new(0, 1080)
+        .with_refresh_rate_millihertz(60_000)
+        .with_bit_depth(32);
+    let descriptor = WindowDescriptor::default()
+        .with_position(WindowPosition::centered_on(WindowMonitorSelection::index(
+            2,
+        )))
+        .with_mode(WindowMode::fullscreen_on(
+            WindowMonitorSelection::Primary,
+            WindowVideoModeSelection::Specific(video_mode),
+        ));
+
+    assert_eq!(video_mode.physical_size, UVec2::new(1, 1080));
+    assert_eq!(video_mode.refresh_rate_millihertz, Some(60_000));
+    assert_eq!(video_mode.bit_depth, Some(32));
+    assert_eq!(
+        descriptor.position,
+        WindowPosition::CenteredOn(WindowMonitorSelection::Index(2))
+    );
+    assert_eq!(
+        descriptor.mode,
+        WindowMode::FullscreenOn {
+            monitor: WindowMonitorSelection::Primary,
+            video_mode: WindowVideoModeSelection::Specific(video_mode),
+        }
+    );
+    assert!(descriptor
+        .format_diagnostics()
+        .contains("window.mode=FullscreenOn"));
 }
 
 #[test]
@@ -136,26 +177,69 @@ fn window_descriptor_diagnostics_can_record_absent_primary_window() {
 }
 
 #[test]
+fn default_window_lifecycle_policy_matches_bevy_window_plugin_close_behavior() {
+    let policy = WindowLifecyclePolicy::default();
+
+    assert_eq!(policy.exit_condition, WindowExitCondition::OnAllClosed);
+    assert!(policy.close_when_requested);
+    assert!(policy.should_close_on_request());
+    assert!(policy.should_exit_after_primary_close());
+    assert_eq!(
+        policy.diagnostic_lines(),
+        [
+            "window.exit_condition=OnAllClosed".to_string(),
+            "window.close_when_requested=true".to_string()
+        ]
+    );
+}
+
+#[test]
+fn window_lifecycle_policy_can_keep_runtime_alive_after_primary_close() {
+    let policy = WindowLifecyclePolicy::default()
+        .with_exit_condition(WindowExitCondition::DontExit)
+        .with_close_when_requested(true);
+
+    assert!(policy.should_close_on_request());
+    assert!(!policy.should_exit_after_primary_close());
+}
+
+#[test]
+fn window_lifecycle_policy_can_ignore_close_requests() {
+    let policy = WindowLifecyclePolicy::default().with_close_when_requested(false);
+
+    assert!(!policy.should_close_on_request());
+    assert!(!policy.should_exit_after_primary_close());
+}
+
+#[test]
 fn window_framework_root_stays_structural_after_folder_split() {
     let window_mod = include_str!("mod.rs");
 
     for required in [
         "mod constants;",
         "mod descriptor;",
+        "mod lifecycle_policy;",
         "mod mode;",
+        "mod monitor_selection;",
         "mod position;",
         "mod primary_window_handle;",
         "mod present_mode;",
         "mod resize_constraints;",
         "mod resolution;",
         "mod validation;",
+        "mod video_mode_selection;",
         "WindowDescriptor",
+        "WindowExitCondition",
+        "WindowLifecyclePolicy",
         "PrimaryWindowHandle",
         "WindowMode",
+        "WindowMonitorSelection",
         "WindowPosition",
         "WindowPresentMode",
         "WindowResizeConstraints",
         "WindowResolution",
+        "WindowVideoMode",
+        "WindowVideoModeSelection",
     ] {
         assert!(
             window_mod.contains(required),

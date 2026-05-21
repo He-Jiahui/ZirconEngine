@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::asset::{
     AlphaMode, AssetEvent, AssetLoadState, AssetReference, AssetUri, Assets, Handle, MaterialAsset,
-    ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset, ShaderEntryPointAsset,
-    ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
+    MeshAsset, ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset,
+    ShaderEntryPointAsset, ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
 };
 use crate::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind, ResourceManager, ResourceRecord,
@@ -71,10 +71,13 @@ fn typed_handle_roundtrips_and_rejects_kind_mismatch() {
     let handle = Handle::<TextureAsset>::new(id);
     let raw: ResourceHandle<TextureMarker> = handle.into();
     let untyped: UntypedResourceHandle = handle.into();
+    let mesh_id = ResourceId::from_stable_label("res://meshes/triangle.zmesh");
+    let mesh_untyped: UntypedResourceHandle = Handle::<MeshAsset>::new(mesh_id).into();
 
     assert_eq!(handle.id(), id);
     assert_eq!(raw.id(), id);
     assert_eq!(untyped.kind(), ResourceKind::Texture);
+    assert_eq!(mesh_untyped.kind(), ResourceKind::Mesh);
     assert_eq!(Handle::<TextureAsset>::try_from(untyped).unwrap().id(), id);
     assert!(Handle::<ShaderAsset>::try_from(untyped).is_err());
 }
@@ -405,8 +408,17 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         manager.recursive_dependency_load_state(material_handle),
         RecursiveDependencyLoadState::Loaded
     );
+    assert_eq!(
+        manager.direct_dependency_load_state(material_handle),
+        RecursiveDependencyLoadState::Loaded
+    );
 
     resource_manager.start_reload(texture_id, Vec::new());
+    assert_eq!(
+        manager.direct_dependency_load_state(material_handle),
+        RecursiveDependencyLoadState::Loaded,
+        "direct dependency state should not include nested texture dependencies"
+    );
     assert_eq!(
         manager.recursive_dependency_load_state(material_handle),
         RecursiveDependencyLoadState::Reloading
@@ -430,6 +442,38 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         manager.recursive_dependency_load_state(material_handle),
         RecursiveDependencyLoadState::Failed,
         "failed dependencies take precedence over unloaded dependencies"
+    );
+}
+
+#[test]
+fn direct_dependency_load_state_reports_first_level_dependency_changes() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let texture = record("res://textures/checker.png", ResourceKind::Texture);
+    let texture_id = texture.id;
+    let _texture_handle = manager
+        .assets::<TextureAsset>()
+        .insert(texture, texture_asset("res://textures/checker.png"))
+        .expect("texture handle");
+    let mut shader = record("res://shaders/pbr.wgsl", ResourceKind::Shader);
+    shader.dependency_ids = vec![texture_id];
+    let shader_id = shader.id;
+    let _shader_handle = manager
+        .assets::<ShaderAsset>()
+        .insert(shader, shader_asset("res://shaders/pbr.wgsl"))
+        .expect("shader handle");
+    let mut material = record("res://materials/grid.zmaterial", ResourceKind::Material);
+    material.dependency_ids = vec![shader_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(material, material_asset("res://shaders/pbr.wgsl"))
+        .expect("material handle");
+
+    resource_manager.start_reload(shader_id, Vec::new());
+
+    assert_eq!(
+        manager.direct_dependency_load_state(material_handle),
+        RecursiveDependencyLoadState::Reloading
     );
 }
 

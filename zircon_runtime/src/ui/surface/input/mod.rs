@@ -1,6 +1,7 @@
 mod dispatch;
 mod effect;
 mod state;
+mod text_constraints;
 mod text_keyboard;
 mod validation;
 

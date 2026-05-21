@@ -1,25 +1,34 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
 plan_sources:
   - user: 2026-05-15 continue Zircon Editor Demo first-screen and .zui showcase plan
+  - user: 2026-05-20 migrate Slint Material component behavior into retained Editor UI without direct Slint runtime
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md
+  - docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md
 tests:
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs inline unit tests
   - cargo test -p zircon_editor --lib component_showcase_template_nodes_preserve_scroll_clip_frames --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 1 passed)
   - cargo test -p zircon_editor --lib component_showcase --locked --target-dir target/codex-shared-b --message-format short -- --test-threads=1 (2026-05-15: passed, 24 passed)
   - cargo test -p zircon_editor --lib template_nodes --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 7 passed)
@@ -50,6 +59,23 @@ doc_type: module-detail
 - the node's own retained clip frame, when `has_clip_frame` is true.
 
 This matters for image and text nodes because image rasterization can be expensive and text can otherwise bleed outside a scroll viewport. The painter skips nodes whose frame does not intersect the effective clip before requesting image pixels, then passes the same clip into quad, image, and text commands.
+
+## Slint Material State Metadata
+
+The retained Material migration carries Slint-derived state-layer and ripple facts directly on `TemplatePaneNodeData` so the native host can paint Material behavior without linking Slint or generated `.slint` code.
+
+The state-layer/ripple fields are:
+
+- `enter_pressed`: keyboard activation metadata equivalent to `FocusTouchArea.enter_pressed`; runtime input routing owns when it is set.
+- `state_layer_enabled`: opt-in for drawing a Material state-layer overlay.
+- `state_layer_color`: source `StateLayerArea.color` / `Ripple.color`; the painter falls back to the host focus-ring color when it is transparent.
+- `ripple_enabled`: opt-in for the retained static press ripple.
+- `ripple_pressed_x` and `ripple_pressed_y`: source-compatible press origin metadata from `pressed_x` / `pressed_y` or explicit retained ripple attrs.
+- `ripple_unclipped`: host-internal inverse of source `clip_ripple`.
+
+Projection accepts both retained names and source-compatible names. `pane_component_projection::host_template_node(...)` maps `state_layer_enabled` / `display_state_layer`, `state_layer_color` / `ripple_color` / `color`, `ripple_enabled` / `ripple`, `ripple_pressed_x` / `pressed_x`, `ripple_pressed_y` / `pressed_y`, and `clip_ripple`. Older conversion paths in `template_node_conversion.rs` default all M2 metadata to inactive values so existing template nodes do not accidentally draw overlays.
+
+`host_contract/painter/material_state_layer.rs` applies the retained priority `disabled > focus/selected/checked > pressed/enter_pressed > drag > hover/drop/active-drag-target > default`. Disabled uses focus opacity to preserve the source `root.state_layer_opacity: MaterialPalette.state_layer_opacity_focus` behavior for disabled display backgrounds. `ripple_enabled` does not imply `state_layer_enabled`, so callers may request only the static press ripple without the full overlay. Ripple is intentionally static in M2: it draws a width-derived press-origin circle with press opacity while animation timing remains metadata in `editor_material.v2.ui.toml` for a later motion layer.
 
 ## Hit Testing
 

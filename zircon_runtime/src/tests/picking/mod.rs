@@ -1,9 +1,10 @@
 use crate::core::framework::picking::{
-    hovered_hits_for_pointer, ray_from_viewport_point, sorted_hits_for_pointer, CameraRaySource,
-    HitData, HitRecord, HitTarget, Pickable, PickingAxis, PickingBackend, PickingEventKind,
-    PickingEventLabel, PickingEventState, PickingHoverMap, PickingPrimitive, PointerAction,
-    PointerButton, PointerHits, PointerId, PointerInput, PointerLocation, PointerScrollUnit,
-    PrimitivePickingBackend, RayId, RayMap,
+    hovered_hits_for_pointer, ray_from_viewport_point, run_picking_pipeline,
+    sorted_hits_for_pointer, CameraRaySource, HitData, HitRecord, HitTarget, Pickable, PickingAxis,
+    PickingBackend, PickingEventKind, PickingEventLabel, PickingEventState, PickingHoverMap,
+    PickingPipelineInput, PickingPipelineReport, PickingPrimitive, PickingScheduleLabel,
+    PickingSettings, PointerAction, PointerButton, PointerHits, PointerId, PointerInput,
+    PointerLocation, PointerScrollUnit, PrimitivePickingBackend, RayId, RayMap,
 };
 use crate::core::framework::render::{
     ProjectionMode, RenderViewportHandle, ViewportCameraSnapshot,
@@ -58,6 +59,92 @@ fn ray_map_respects_pointer_viewport_and_camera_activity() {
     assert!(ray_map.get(&RayId::new(12, pointer, viewport)).is_none());
     assert!(ray_map
         .get(&RayId::new(11, PointerId::new(8), other_viewport))
+        .is_none());
+}
+
+#[test]
+fn ray_map_builds_rays_for_two_pointers_and_two_active_cameras() {
+    let first_pointer = PointerId::new(1);
+    let second_pointer = PointerId::new(2);
+    let viewport = RenderViewportHandle::new(1);
+    let mut ray_map = RayMap::default();
+
+    ray_map.rebuild(
+        &[
+            PointerLocation::new(first_pointer, viewport, Vec2::new(25.0, 25.0)),
+            PointerLocation::new(second_pointer, viewport, Vec2::new(75.0, 75.0)),
+        ],
+        &[
+            CameraRaySource::new(
+                11,
+                viewport,
+                UVec2::new(100, 100),
+                test_camera(ProjectionMode::Perspective),
+            ),
+            CameraRaySource::new(
+                12,
+                viewport,
+                UVec2::new(100, 100),
+                test_camera(ProjectionMode::Perspective),
+            ),
+        ],
+    );
+
+    assert_eq!(ray_map.len(), 4);
+    assert!(ray_map
+        .get(&RayId::new(11, first_pointer, viewport))
+        .is_some());
+    assert!(ray_map
+        .get(&RayId::new(12, first_pointer, viewport))
+        .is_some());
+    assert!(ray_map
+        .get(&RayId::new(11, second_pointer, viewport))
+        .is_some());
+    assert!(ray_map
+        .get(&RayId::new(12, second_pointer, viewport))
+        .is_some());
+}
+
+#[test]
+fn ray_map_keeps_same_pointer_locations_scoped_by_viewport() {
+    let pointer = PointerId::new(1);
+    let first_viewport = RenderViewportHandle::new(1);
+    let second_viewport = RenderViewportHandle::new(2);
+    let mut ray_map = RayMap::default();
+
+    ray_map.rebuild(
+        &[
+            PointerLocation::new(pointer, first_viewport, Vec2::new(25.0, 25.0)),
+            PointerLocation::new(pointer, second_viewport, Vec2::new(75.0, 75.0)),
+        ],
+        &[
+            CameraRaySource::new(
+                11,
+                first_viewport,
+                UVec2::new(100, 100),
+                test_camera(ProjectionMode::Perspective),
+            ),
+            CameraRaySource::new(
+                12,
+                second_viewport,
+                UVec2::new(100, 100),
+                test_camera(ProjectionMode::Perspective),
+            ),
+        ],
+    );
+
+    assert_eq!(ray_map.len(), 2);
+    assert!(ray_map
+        .get(&RayId::new(11, pointer, first_viewport))
+        .is_some());
+    assert!(ray_map
+        .get(&RayId::new(12, pointer, second_viewport))
+        .is_some());
+    assert!(ray_map
+        .get(&RayId::new(11, pointer, second_viewport))
+        .is_none());
+    assert!(ray_map
+        .get(&RayId::new(12, pointer, first_viewport))
         .is_none());
 }
 
@@ -209,6 +296,179 @@ fn hover_map_builds_from_multiple_backend_outputs() {
         .map(|hit| hit.target)
         .collect::<Vec<_>>();
     assert_eq!(targets, vec![HitTarget::handle_axis(1, PickingAxis::Y)]);
+}
+
+#[test]
+fn picking_pipeline_report_counts_rays_outputs_and_hover_reduction() {
+    let pointer = PointerId::new(1);
+    let other_pointer = PointerId::new(2);
+    let viewport = RenderViewportHandle::new(1);
+    let mut ray_map = RayMap::default();
+    let ray = ray_from_viewport_point(
+        &test_camera(ProjectionMode::Perspective),
+        UVec2::new(100, 100),
+        Vec2::new(50.0, 50.0),
+    )
+    .expect("center pointer should produce a camera ray");
+    ray_map.insert(RayId::new(7, pointer, viewport), ray);
+    ray_map.insert(RayId::new(8, other_pointer, viewport), ray);
+
+    let outputs = [
+        PointerHits::new(
+            pointer,
+            vec![
+                hit(HitTarget::scene_gizmo(10), 0.2).with_pickable(Pickable::NON_BLOCKING),
+                hit(HitTarget::renderable(11), 0.3),
+            ],
+            0.0,
+        ),
+        PointerHits::new(pointer, vec![hit(HitTarget::renderable(12), 0.1)], 1.0),
+    ];
+
+    let report = PickingPipelineReport::from_ray_map_and_outputs(&ray_map, &outputs);
+
+    assert_eq!(report.ray_count, 2);
+    assert_eq!(report.pointer_count, 2);
+    assert_eq!(report.backend_output_count, 2);
+    assert_eq!(report.raw_hit_count, 3);
+    assert_eq!(report.hovered_hit_count, 2);
+    assert_eq!(report.blocked_pointer_count, 1);
+
+    let pointer_report = report.pointer(pointer).expect("pointer report exists");
+    assert_eq!(pointer_report.ray_count, 1);
+    assert_eq!(pointer_report.backend_output_count, 2);
+    assert_eq!(pointer_report.raw_hit_count, 3);
+    assert_eq!(pointer_report.sorted_hit_count, 3);
+    assert_eq!(pointer_report.hovered_hit_count, 2);
+    assert_eq!(pointer_report.top_target, Some(HitTarget::scene_gizmo(10)));
+    assert_eq!(
+        pointer_report.blocking_target,
+        Some(HitTarget::renderable(12))
+    );
+
+    let other_report = report
+        .pointer(other_pointer)
+        .expect("ray-only pointer report exists");
+    assert_eq!(other_report.ray_count, 1);
+    assert_eq!(other_report.backend_output_count, 0);
+    assert_eq!(other_report.raw_hit_count, 0);
+    assert_eq!(other_report.hovered_hit_count, 0);
+    assert_eq!(other_report.top_target, None);
+}
+
+#[test]
+fn picking_pipeline_report_exposes_blocking_non_hoverable_targets() {
+    let pointer = PointerId::new(1);
+    let outputs = [PointerHits::new(
+        pointer,
+        vec![
+            hit(HitTarget::renderable(1), 0.1).with_pickable(Pickable::BLOCKING_NON_HOVERABLE),
+            hit(HitTarget::renderable(2), 0.2),
+        ],
+        0.0,
+    )];
+
+    let report = PickingPipelineReport::from_outputs(&outputs);
+    let pointer_report = report.pointer(pointer).expect("pointer report exists");
+
+    assert_eq!(report.hovered_hit_count, 0);
+    assert_eq!(report.blocked_pointer_count, 1);
+    assert_eq!(pointer_report.non_hoverable_hit_count, 1);
+    assert_eq!(
+        pointer_report.blocking_target,
+        Some(HitTarget::renderable(1))
+    );
+    assert_eq!(pointer_report.top_target, Some(HitTarget::renderable(1)));
+}
+
+#[test]
+fn picking_pipeline_runs_stages_and_carries_report() {
+    let pointer = PointerId::new(1);
+    let viewport = RenderViewportHandle::new(1);
+    let location = PointerLocation::new(pointer, viewport, Vec2::new(50.0, 50.0));
+    let camera = CameraRaySource::new(
+        42,
+        viewport,
+        UVec2::new(100, 100),
+        test_camera(ProjectionMode::Perspective),
+    );
+    let backend = PrimitivePickingBackend::new("pipeline-test").with_primitive(
+        PickingPrimitive::sphere(HitTarget::renderable(9), Vec3::ZERO, 1.0),
+    );
+    let pointer_locations = [location];
+    let pointer_inputs = [];
+    let cameras = [camera];
+    let backends: [&dyn PickingBackend; 1] = [&backend];
+    let mut state = PickingEventState::default();
+
+    let output = run_picking_pipeline(
+        &mut state,
+        PickingPipelineInput::new(&pointer_locations, &pointer_inputs, &cameras, &backends),
+    );
+
+    let labels = output
+        .stages
+        .iter()
+        .map(|stage| stage.label)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        labels,
+        vec![
+            PickingScheduleLabel::Input,
+            PickingScheduleLabel::RayMap,
+            PickingScheduleLabel::Backend,
+            PickingScheduleLabel::Hover,
+            PickingScheduleLabel::Events,
+        ]
+    );
+    assert_eq!(output.ray_map.len(), 1);
+    assert_eq!(output.backend_outputs.len(), 1);
+    assert_eq!(output.hover_map.get(pointer).len(), 1);
+    assert_eq!(
+        event_labels(&output.events),
+        vec![PickingEventLabel::Enter, PickingEventLabel::Over]
+    );
+    assert_eq!(output.report.pointer_count, 1);
+    assert_eq!(output.report.raw_hit_count, 1);
+    assert_eq!(output.report.hovered_hit_count, 1);
+}
+
+#[test]
+fn disabled_picking_pipeline_clears_previous_interaction_state() {
+    let pointer = PointerId::new(1);
+    let location = pointer_location(pointer, 10.0, 10.0);
+    let target = HitTarget::renderable(1);
+    let mut state = PickingEventState::default();
+
+    state.dispatch_frame(
+        PickingHoverMap::new(pointer, vec![hit(target, 0.1)]),
+        &[location],
+        &[PointerInput::new(
+            location,
+            PointerAction::Press(PointerButton::Primary),
+        )],
+    );
+    assert!(state.previous_hover().is_hovered(pointer, target));
+
+    let pointer_locations = [location];
+    let pointer_inputs = [];
+    let cameras = [];
+    let backends = [];
+    let output = run_picking_pipeline(
+        &mut state,
+        PickingPipelineInput::new(&pointer_locations, &pointer_inputs, &cameras, &backends)
+            .with_settings(PickingSettings {
+                enabled: false,
+                ..PickingSettings::DEFAULT
+            }),
+    );
+
+    assert!(state.previous_hover().is_empty());
+    assert!(output.ray_map.is_empty());
+    assert!(output.backend_outputs.is_empty());
+    assert!(output.hover_map.is_empty());
+    assert!(output.events.is_empty());
+    assert!(output.stages.iter().all(|stage| !stage.enabled));
 }
 
 #[test]

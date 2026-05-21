@@ -4,10 +4,11 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
     FallbackSkyboxKind, GeometryExtract, PreviewEnvironmentExtract, ProjectionMode,
-    RenderAmbientLightSnapshot, RenderFrameExtract, RenderFramework, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderPhase, RenderPipelineHandle,
-    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
-    RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteAnchor,
+    RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    RenderFramework, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature,
+    RenderProductProfile, RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor,
     RenderSpriteSnapshot, RenderViewportDescriptor, RenderVirtualGeometryPayloadSource,
     RenderWorldSnapshotHandle, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
 };
@@ -165,17 +166,50 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         .push(RenderAmbientLightSnapshot {
             color: Vec3::new(0.04, 0.05, 0.06),
             intensity: 0.25,
-            renderer_degraded: true,
-            degradation_reason: Some(
-                "ambient light renderer path is deferred after M5A".to_string(),
-            ),
+            renderer_degraded: false,
+            degradation_reason: None,
         });
+    extract.lighting.directional_lights.extend([
+        RenderDirectionalLightSnapshot {
+            node_id: 701,
+            direction: Vec3::new(0.0, -1.0, 0.0),
+            color: Vec3::ONE,
+            intensity: 4.0,
+        },
+        RenderDirectionalLightSnapshot {
+            node_id: 702,
+            direction: Vec3::new(1.0, -1.0, 0.0),
+            color: Vec3::new(0.6, 0.7, 1.0),
+            intensity: 2.0,
+        },
+    ]);
+    extract
+        .lighting
+        .point_lights
+        .push(RenderPointLightSnapshot {
+            node_id: 703,
+            position: Vec3::new(-1.0, 1.0, 0.5),
+            color: Vec3::new(0.9, 0.8, 1.0),
+            intensity: 6.0,
+            range: 8.0,
+        });
+    extract.lighting.spot_lights.push(RenderSpotLightSnapshot {
+        node_id: 704,
+        position: Vec3::new(0.0, 3.0, 2.0),
+        direction: Vec3::new(0.0, -1.0, -0.5),
+        color: Vec3::new(1.0, 0.95, 0.75),
+        intensity: 5.0,
+        range: 10.0,
+        inner_angle_radians: 0.35,
+        outer_angle_radians: 0.75,
+    });
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 700,
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
         intensity: 4.0,
+        range: 12.0,
         size: Vec2::new(2.0, 0.5),
         renderer_degraded: true,
         degradation_reason: Some("rect light renderer path is deferred after M5A".to_string()),
@@ -188,8 +222,21 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     assert_eq!(stats.last_material_ready_count, 0);
     assert_eq!(stats.last_material_fallback_count, 1);
     assert_eq!(stats.last_material_validation_error_count, 1);
+    assert_eq!(stats.last_directional_light_count, 2);
+    assert_eq!(stats.last_directional_light_ready_count, 1);
+    assert_eq!(stats.last_directional_light_degraded_count, 1);
+    assert_eq!(stats.last_point_light_count, 1);
+    assert_eq!(stats.last_point_light_ready_count, 0);
+    assert_eq!(stats.last_point_light_degraded_count, 1);
+    assert_eq!(stats.last_spot_light_count, 1);
+    assert_eq!(stats.last_spot_light_ready_count, 0);
+    assert_eq!(stats.last_spot_light_degraded_count, 1);
     assert_eq!(stats.last_ambient_light_count, 1);
+    assert_eq!(stats.last_ambient_light_ready_count, 1);
+    assert_eq!(stats.last_ambient_light_degraded_count, 0);
     assert_eq!(stats.last_rect_light_count, 1);
+    assert_eq!(stats.last_rect_light_ready_count, 0);
+    assert_eq!(stats.last_rect_light_degraded_count, 1);
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
 }

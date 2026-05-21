@@ -56,6 +56,40 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
     assert_eq!(scrollable.family, UiLayoutEngineFamily::VirtualizedList);
     assert!(scrollable.requires_zircon_semantics());
     assert_eq!(round_trip(&scrollable), scrollable);
+    assert_eq!(
+        round_trip(&UiLayoutEngineFallbackReason::SlotFramePolicy),
+        UiLayoutEngineFallbackReason::SlotFramePolicy
+    );
+}
+
+#[test]
+fn ui_layout_engine_block_is_explicit_not_implied_by_current_container_contracts() {
+    let current_containers = [
+        UiContainerKind::Free,
+        UiContainerKind::Container,
+        UiContainerKind::Overlay,
+        UiContainerKind::Space,
+        UiContainerKind::SizeBox(UiSizeBoxConfig { aspect_ratio: 1.0 }),
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 1.0 }),
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 1.0 }),
+        UiContainerKind::ScrollableBox(UiScrollableBoxConfig::default()),
+        UiContainerKind::WrapBox(Default::default()),
+        UiContainerKind::GridBox(Default::default()),
+    ];
+
+    for container in current_containers {
+        assert_ne!(
+            UiLayoutEngineRequest::from_container_kind(container).family,
+            UiLayoutEngineFamily::Block
+        );
+    }
+
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let legacy = UiLayoutEngineCapability::legacy_zircon();
+    let block = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block);
+    let selection = UiLayoutEngineSelection::select(&block, &taffy, &legacy);
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(selection.support, UiLayoutEngineSupport::Native);
 }
 
 #[test]
@@ -69,6 +103,7 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
     let taffy_flex = UiLayoutEngineSelection::select(&flex, &taffy, &legacy);
     let taffy_overlay = UiLayoutEngineSelection::select(&overlay, &taffy, &legacy);
     let taffy_scrollable = UiLayoutEngineSelection::select(&scrollable, &taffy, &legacy);
+    let taffy_flex = taffy_flex.with_node_id(crate::ui::event_ui::UiNodeId::new(7));
     let report = UiLayoutEngineSelectionReport::from_selections(vec![
         taffy_flex.clone(),
         taffy_overlay.clone(),
@@ -76,6 +111,10 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
     ]);
 
     assert_eq!(taffy_flex.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(
+        taffy_flex.node_id,
+        Some(crate::ui::event_ui::UiNodeId::new(7))
+    );
     assert_eq!(taffy_flex.support, UiLayoutEngineSupport::Native);
     assert_eq!(
         taffy_overlay.selected_backend,
@@ -93,5 +132,41 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
     assert_eq!(report.taffy_selected_count, 1);
     assert_eq!(report.legacy_selected_count, 2);
     assert_eq!(report.fallback_count, 2);
+    assert_eq!(round_trip(&report), report);
+}
+
+#[test]
+fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {
+    let preferred = UiLayoutEngineCapability {
+        backend: UiLayoutEngineBackend::Taffy,
+        supported_families: Vec::new(),
+        supports_content_measure: true,
+        supports_dpi_scaling: true,
+    };
+    let fallback = UiLayoutEngineCapability {
+        backend: UiLayoutEngineBackend::LegacyZircon,
+        supported_families: Vec::new(),
+        supports_content_measure: true,
+        supports_dpi_scaling: true,
+    };
+    let request = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block);
+    let selection = UiLayoutEngineSelection::select(&request, &preferred, &fallback)
+        .with_node_id(crate::ui::event_ui::UiNodeId::new(42));
+    let report = UiLayoutEngineSelectionReport::from_selections(vec![selection.clone()]);
+
+    assert_eq!(selection.request.family, UiLayoutEngineFamily::Block);
+    assert_eq!(selection.requested_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(
+        selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(selection.support, UiLayoutEngineSupport::Unsupported);
+    assert_eq!(
+        selection.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::UnsupportedFamily)
+    );
+    assert_eq!(report.request_count, 1);
+    assert_eq!(report.fallback_count, 0);
+    assert_eq!(report.unsupported_count, 1);
     assert_eq!(round_trip(&report), report);
 }

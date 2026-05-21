@@ -2,7 +2,10 @@ use crate::core::math::{Mat4, Transform};
 
 use super::World;
 use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
-use crate::scene::ecs::Schedule;
+use crate::scene::ecs::{
+    ArchetypeId, Component, ComponentId, ComponentStorageLocation, ComponentTicks, InternalEntity,
+    QueryAccess, Schedule, StableEntityLocation,
+};
 use crate::scene::EntityId;
 
 impl World {
@@ -12,6 +15,66 @@ impl World {
 
     pub(super) fn bump_query_cache_revision(&mut self) {
         self.query_cache_revision.advance();
+    }
+
+    pub(crate) fn archetype_generation(&self) -> u64 {
+        self.archetype_index.generation()
+    }
+
+    pub(crate) fn entity_ids_matching_query_archetypes(
+        &self,
+        access: &QueryAccess,
+    ) -> (Vec<ArchetypeId>, Vec<EntityId>) {
+        let (archetypes, locations) = self.entity_locations_matching_query_archetypes(access);
+        (
+            archetypes,
+            locations
+                .into_iter()
+                .map(|location| location.stable_id)
+                .collect(),
+        )
+    }
+
+    pub(crate) fn entity_locations_matching_query_archetypes(
+        &self,
+        access: &QueryAccess,
+    ) -> (Vec<ArchetypeId>, Vec<StableEntityLocation>) {
+        let archetypes = self
+            .archetype_index
+            .matching_archetypes(access.with(), access.without());
+        let locations = self
+            .entities
+            .iter()
+            .filter_map(|entity| self.internal_entity_location(*entity))
+            .filter(|location| {
+                archetypes
+                    .binary_search(&location.location.archetype_id)
+                    .is_ok()
+            })
+            .collect();
+        (archetypes, locations)
+    }
+
+    pub(crate) fn component_storage_locations_for_internal(
+        &self,
+        internal: InternalEntity,
+        component_ids: &[ComponentId],
+    ) -> Vec<ComponentStorageLocation> {
+        component_ids
+            .iter()
+            .filter_map(|component_id| self.component_storage.location(*component_id, internal))
+            .collect()
+    }
+
+    pub(crate) fn component_ref_with_ticks_at_location<T>(
+        &self,
+        location: ComponentStorageLocation,
+    ) -> Option<(&T, ComponentTicks)>
+    where
+        T: Component,
+    {
+        self.component_storage
+            .get_with_ticks_at_location::<T>(location)
     }
 
     pub fn schedule(&self) -> &Schedule {

@@ -29,7 +29,7 @@ import { LearnPage } from "learn.slint";
 import { TeamPage } from "team.slint";
 import { SettingsPage } from "settings.slint";
 import { ZirconMaterialTheme } from "theme.slint";
-import { HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar } from "components.slint";
+import { HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, NavigationItem } from "components.slint";
 
 export component HubWindow inherits Window {
     title: "Zircon Hub";
@@ -73,6 +73,8 @@ export component HubWindow inherits Window {
     in-out property <string> build-profile: "debug";
     in-out property <string> language: "English";
     in property <[NavItemData]> nav-items;
+    in property <[NavigationItem]> material-nav-items;
+    in-out property <int> selected-nav-index: 0;
     in property <[ProjectCardData]> project-cards;
     in property <int> project-card-count;
     in-out property <bool> project-cards-expanded: false;
@@ -124,12 +126,13 @@ export component HubWindow inherits Window {
     private property <length> shell-pad-x: HubTokens.space-6;
     private property <length> nav-width: root.nav-collapsed ? ((HubTokens.nav-width-collapsed-min + HubTokens.nav-width-collapsed-max) / 2) : ((HubTokens.nav-width-expanded-min + HubTokens.nav-width-expanded-max) / 2);
     private property <length> nav-pad: root.nav-collapsed ? max(HubTokens.space-2, min(HubTokens.space-3, root.nav-width / 7)) : max(HubTokens.space-3, min(HubTokens.space-4, root.nav-width / 16));
-    private property <length> nav-status-height: root.shell-row-height * 3;
+    private property <length> nav-status-height: root.shell-row-height * 4;
     private property <length> page-title-height: root.shell-header-height + HubTokens.space-6;
     private property <length> page-pad-x: HubTokens.page-padding;
     private property <length> page-action-height: HubTokens.control-lg;
     private property <length> bottom-status-height: HubTokens.bottom-status-height;
     private property <bool> header-compact: root.width < HubTokens.breakpoint-wide;
+    private property <bool> status-compact: root.width < HubTokens.breakpoint-medium;
     private property <bool> sidebar-compact-height: root.height < HubTokens.breakpoint-short;
 
     callback show-page(string);
@@ -208,6 +211,7 @@ export component HubWindow inherits Window {
                 nav-width: root.nav-width;
                 action-height: root.page-action-height;
                 compact: root.header-compact;
+                project: root.project-detail;
                 source-engine: root.source-engine;
                 source-engines: root.source-engines;
                 source-engine-count: root.source-engine-count;
@@ -243,9 +247,12 @@ export component HubWindow inherits Window {
                         row-height: root.shell-row-height;
                         gap: max(HubTokens.space-2, min(HubTokens.toolbar-gap, root.nav-pad));
                         nav-items: root.nav-items;
+                        material-nav-items: root.material-nav-items;
+                        selected-nav-index <=> root.selected-nav-index;
                         collapsed: root.nav-collapsed;
                         compact-height: root.sidebar-compact-height;
                         task-running: root.task-running;
+                        project: root.project-detail;
                         source-engine: root.source-engine;
                         ui-text: root.ui-text;
                         clicked(id) => {
@@ -281,6 +288,10 @@ export component HubWindow inherits Window {
                                 selected-page-subtitle: root.selected-page-subtitle;
                                 status-label: root.status-label;
                                 task-running: root.task-running;
+                                project: root.project-detail;
+                                source-engine: root.source-engine;
+                                context-compact: root.status-compact;
+                                context-badge-width: HubTokens.status-badge-width;
                                 ui-text: root.ui-text;
                                 import-project => {
                                     root.project-entry-mode = "open";
@@ -403,13 +414,18 @@ export component HubWindow inherits Window {
                                 width: parent.width;
                                 height: parent.height;
                                 scroll-y <=> root.builds-scroll-y;
+                                project: root.project-detail;
                                 source-engine: root.source-engine;
+                                source-build-history: root.source-build-history;
+                                source-build-history-count: root.source-build-history-count;
                                 status-label: root.status-label;
                                 status-detail: root.status-detail;
                                 ui-text: root.ui-text;
                                 build-engine => { root.build-engine(); }
                                 open-output => { root.open-output(); }
                                 launch-editor => { root.launch-editor(); }
+                                package-project => { root.quick-action("package-project"); }
+                                install-device => { root.quick-action("install-device"); }
                             }
                             if root.selected-page == "assets": AssetsPage {
                                 width: parent.width;
@@ -417,6 +433,7 @@ export component HubWindow inherits Window {
                                 scroll-y <=> root.assets-scroll-y;
                                 assets: root.assets;
                                 asset-count: root.asset-count;
+                                has-selected-project: root.project-detail.selected;
                                 ui-text: root.ui-text;
                             }
                             if root.selected-page == "plugins": PluginsPage {
@@ -425,6 +442,7 @@ export component HubWindow inherits Window {
                                 scroll-y <=> root.plugins-scroll-y;
                                 plugins: root.plugins;
                                 plugin-count: root.plugin-count;
+                                has-selected-project: root.project-detail.selected;
                                 ui-text: root.ui-text;
                             }
                             if root.selected-page == "cloud": CloudPage {
@@ -434,6 +452,7 @@ export component HubWindow inherits Window {
                                 summary: root.cloud-summary;
                                 services: root.cloud-services;
                                 service-count: root.cloud-service-count;
+                                has-selected-project: root.project-detail.selected;
                                 ui-text: root.ui-text;
                             }
                             if root.selected-page == "team": TeamPage {
@@ -443,6 +462,7 @@ export component HubWindow inherits Window {
                                 summary: root.team-summary;
                                 members: root.team-members;
                                 member-count: root.team-member-count;
+                                has-selected-project: root.project-detail.selected;
                                 ui-text: root.ui-text;
                             }
                             if root.selected-page == "learn": LearnPage {
@@ -459,6 +479,11 @@ export component HubWindow inherits Window {
                         HubStatusBar {
                             status-height: root.bottom-status-height;
                             status-detail: root.status-detail;
+                            project: root.project-detail;
+                            source-engine: root.source-engine;
+                            ui-text: root.ui-text;
+                            compact: root.status-compact;
+                            context-badge-width: HubTokens.status-badge-width;
                         }
                     }
                     }

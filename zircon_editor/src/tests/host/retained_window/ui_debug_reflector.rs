@@ -60,6 +60,21 @@ fn runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay(
     assert!(model_texts(&projected.nodes)
         .iter()
         .any(|text| text == "summary"));
+    assert!(model_texts(&projected.nodes)
+        .iter()
+        .any(|text| text == "Layout Engine:"));
+    assert!(model_texts(&projected.nodes)
+        .iter()
+        .any(|text| text == "  selected: taffy=1 zircon=1"));
+    assert!(
+        model_texts(&projected.nodes).iter().any(|text| {
+            text.contains("node=2")
+                && text.contains("family=Overlay")
+                && text.contains("selected=LegacyZircon")
+                && text.contains("reason=ZirconOwnedSemantics")
+        }),
+        "payload route detail should survive host conversion"
+    );
     assert_eq!(projected.overlay_primitives.row_count(), 1);
     let primitive = projected
         .overlay_primitives
@@ -102,6 +117,20 @@ fn runtime_diagnostics_body_refresh_preserves_active_payload_reflector() {
     assert!(model_texts(&host_pane.runtime_diagnostics.nodes)
         .iter()
         .any(|text| text == "summary"));
+    assert!(model_texts(&host_pane.runtime_diagnostics.nodes)
+        .iter()
+        .any(|text| text == "Layout Engine:"));
+    assert!(
+        model_texts(&host_pane.runtime_diagnostics.nodes)
+            .iter()
+            .any(|text| {
+                text.contains("node=2")
+                    && text.contains("family=Overlay")
+                    && text.contains("selected=LegacyZircon")
+                    && text.contains("reason=ZirconOwnedSemantics")
+            }),
+        "active payload route detail should not be replaced during body refresh"
+    );
     assert_eq!(
         host_pane.runtime_diagnostics.overlay_primitives.row_count(),
         1
@@ -186,6 +215,12 @@ fn runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_over
         "focus/capture diagnostics should be projected into live reflector rows"
     );
     assert!(
+        model_texts(&pane.runtime_diagnostics.nodes)
+            .iter()
+            .any(|text| text == "Layout Engine:"),
+        "layout-engine routing diagnostics should be projected into live reflector rows"
+    );
+    assert!(
         pane.runtime_diagnostics.overlay_primitives.row_count() > 0,
         "live body surface should expose snapshot overlay primitives"
     );
@@ -236,6 +271,12 @@ fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> 
                         ui_debug_reflector_summary: "summary".to_string(),
                         ui_debug_reflector_nodes: Vec::new(),
                         ui_debug_reflector_details: Vec::new(),
+                        ui_debug_reflector_sections: vec![
+                            "Layout Engine:".to_string(),
+                            "  requests: 2".to_string(),
+                            "  selected: taffy=1 zircon=1".to_string(),
+                            "  node=2 family=Overlay requested=Taffy selected=LegacyZircon support=Fallback reason=ZirconOwnedSemantics".to_string(),
+                        ],
                         ui_debug_reflector_export_status: "export".to_string(),
                         ui_debug_reflector_overlay_primitives: vec![primitive],
                         ui_debug_reflector_has_active_snapshot: true,

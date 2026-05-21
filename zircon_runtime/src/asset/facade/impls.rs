@@ -1,7 +1,7 @@
 use super::Asset;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
+    AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
     ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
     SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
     TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
@@ -10,9 +10,9 @@ use crate::asset::{
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
-    ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker, PrefabMarker,
-    SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker, TextureMarker,
-    TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
+    PrefabMarker, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker,
+    TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 
 macro_rules! impl_asset {
@@ -54,6 +54,7 @@ impl_asset!(TileMapAsset, TileMapMarker, "tile_map");
 impl_asset!(PrefabAsset, PrefabMarker, "prefab");
 impl_asset!(SceneAsset, SceneMarker, "scene");
 impl_asset!(ModelAsset, ModelMarker, "model");
+impl_asset!(MeshAsset, MeshMarker, "mesh");
 impl_asset!(
     AnimationSkeletonAsset,
     AnimationSkeletonMarker,

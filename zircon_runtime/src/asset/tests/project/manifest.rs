@@ -4,8 +4,8 @@ use crate::asset::project::{ProjectManifest, ProjectPaths};
 use crate::asset::AssetUri;
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginSelection, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::ExportTargetPlatform, plugin::ProjectPluginSelection, plugin::RuntimeProfileId,
+    RuntimePluginId, RuntimeTargetMode,
 };
 
 use super::unique_temp_project_root;
@@ -53,6 +53,7 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
         )
+        .with_runtime_profile_id(RuntimeProfileId::Client3d)
         .with_strategy(ExportPackagingStrategy::SourceTemplate)
         .with_strategy(ExportPackagingStrategy::LibraryEmbed),
     );
@@ -72,6 +73,10 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
 
     let client = ExportBuildPlan::from_project_manifest(&loaded, "client").unwrap();
     assert_eq!(client.profile.name, "client");
+    assert_eq!(
+        client.profile.runtime_profile_id,
+        Some(RuntimeProfileId::Client3d)
+    );
     assert!(client
         .linked_runtime_crates
         .contains(&"zircon_plugin_sound_runtime".to_string()));
@@ -88,4 +93,25 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
         .any(|file| file.path == "Cargo.toml"));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn export_profile_runtime_profile_id_is_backward_compatible() {
+    let source = r#"
+name = "Sandbox"
+default_scene = "res://scenes/main.scene.toml"
+schema_version = 3
+
+[[export_profiles]]
+name = "client"
+target_mode = "client_runtime"
+target_platform = "windows"
+strategies = ["source_template"]
+output_name = "client"
+"#;
+
+    let manifest: ProjectManifest = toml::from_str(source).unwrap();
+
+    assert_eq!(manifest.export_profiles.len(), 1);
+    assert_eq!(manifest.export_profiles[0].runtime_profile_id, None);
 }

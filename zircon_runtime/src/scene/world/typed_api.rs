@@ -102,6 +102,7 @@ impl World {
 
         self.mark_component_mutation::<T>();
         if !was_present {
+            self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
         if was_present {
@@ -178,6 +179,7 @@ impl World {
                 self.mark_component_mutation::<T>();
             }
             if removed.is_some() || removed_from_storage {
+                self.refresh_entity_archetype(entity);
                 self.bump_query_cache_revision();
             }
             return Ok(removed);
@@ -196,6 +198,7 @@ impl World {
         if removed.is_some() {
             self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>();
+            self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
         Ok(removed)
@@ -312,6 +315,7 @@ impl World {
             )
             .map_err(|error| error.to_string())?;
         if old.is_none() {
+            self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
         Ok(())
@@ -336,6 +340,7 @@ impl World {
             .remove::<DynamicComponentPresence>(component_id, internal)
             .map_err(|error| error.to_string())?;
         if removed.is_some() {
+            self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
         }
         Ok(())
@@ -344,6 +349,7 @@ impl World {
     pub(super) fn rebuild_typed_component_presence(&mut self) {
         self.component_registry = Default::default();
         self.component_storage = Default::default();
+        self.archetype_index = Default::default();
         for entity in self.entities.clone() {
             self.rebuild_fixed_component_presence_for_entity(entity);
             if let Some(components) = self.dynamic_components.get(&entity).cloned() {
@@ -352,6 +358,7 @@ impl World {
                 }
             }
         }
+        self.rebuild_archetype_index();
         self.mark_derived_state_dirty();
     }
 

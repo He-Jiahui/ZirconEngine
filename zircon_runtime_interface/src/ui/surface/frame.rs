@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{UiFocusState, UiHitTestGrid, UiRenderExtract, UiSurfaceRebuildDebugStats};
 use crate::ui::event_ui::UiTreeId;
+use crate::ui::layout::UiLayoutEngineSelectionReport;
 
 use super::UiArrangedTree;
 
@@ -13,4 +14,6 @@ pub struct UiSurfaceFrame {
     pub hit_grid: UiHitTestGrid,
     pub focus_state: UiFocusState,
     pub last_rebuild: UiSurfaceRebuildDebugStats,
+    #[serde(default)]
+    pub layout_engine_report: UiLayoutEngineSelectionReport,
 }

@@ -37,6 +37,11 @@ pub enum RenderMaterialValidationError {
         name: String,
         expected: String,
     },
+    MissingRequiredProperty {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        name: String,
+    },
     UnknownTextureSlot {
         source: RenderMaterialDiagnosticSource,
         path: String,

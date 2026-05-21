@@ -8,8 +8,12 @@ mod service_types;
 mod target;
 
 pub use capability::{
-    CapabilityStatus, EventLoopPolicy, FileDragDropBackend, GamepadBackend, InputBackend,
-    LinuxWindowProtocol, PlatformCapabilityMatrix, PlatformCapabilityReport, WindowBackend,
+    CapabilityStatus, CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy,
+    FileDragDropBackend, GamepadBackend, GamepadEventBackend, GamepadRumbleBackend,
+    GestureEventBackend, ImeBackend, InputBackend, KeyboardEventBackend, LinuxWindowProtocol,
+    MonitorBackend, MouseButtonBackend, MouseWheelBackend, PlatformCapabilityMatrix,
+    PlatformCapabilityReport, PointerPositionBackend, RawMouseMotionBackend, TouchEventBackend,
+    WindowBackend, WindowEventBackend, WindowLifecycleBackend, WindowMetricsBackend,
 };
 pub use config::{PlatformConfig, PLATFORM_CONFIG_KEY};
 pub use feature_selection::PlatformFeatureSelection;

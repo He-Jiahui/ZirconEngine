@@ -1,4 +1,4 @@
-use crate::asset::{AssetReference, TexturePayload};
+use crate::asset::{AssetReference, TextureUploadSupport};
 use crate::core::framework::render::{
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialValidationError,
@@ -26,6 +26,19 @@ impl ResourceStreamer {
         &self,
         slot: &'static str,
         reference: Option<&AssetReference>,
+    ) -> ResolvedTextureReference {
+        self.resolve_texture_reference_with_support(
+            slot,
+            reference,
+            TextureUploadSupport::uncompressed_only(),
+        )
+    }
+
+    pub(in crate::graphics::scene::resources) fn resolve_texture_reference_with_support(
+        &self,
+        slot: &str,
+        reference: Option<&AssetReference>,
+        support: TextureUploadSupport,
     ) -> ResolvedTextureReference {
         let Some(reference) = reference else {
             return ResolvedTextureReference {
@@ -80,17 +93,13 @@ impl ResourceStreamer {
             }
         };
 
-        if matches!(&texture.payload, TexturePayload::Container { .. }) {
-            let descriptor = texture.texture_descriptor();
+        if let Some(reason) = texture.upload_readiness(support).unsupported_reason() {
             return ResolvedTextureReference {
                 id: None,
                 validation_error: Some(RenderMaterialValidationError::TextureNotUploadReady {
                     slot: slot.to_string(),
                     reference: reference.clone(),
-                    reason: format!(
-                        "container texture payload format {} has no M3A GPU upload path",
-                        descriptor.format
-                    ),
+                    reason: reason.to_string(),
                 }),
                 fallback_usage: Some(RenderMaterialFallbackUsage {
                     reason: RenderMaterialFallbackReason::Texture {

@@ -64,7 +64,18 @@ impl SoundAsset {
     }
 
     pub fn frame_count(&self) -> usize {
-        self.samples.len() / self.channel_count as usize
+        let channel_count = self.channel_count as usize;
+        if channel_count == 0 {
+            return 0;
+        }
+        self.samples.len() / channel_count
+    }
+
+    pub fn duration_seconds(&self) -> f32 {
+        if self.sample_rate_hz == 0 {
+            return 0.0;
+        }
+        self.frame_count() as f32 / self.sample_rate_hz as f32
     }
 }
 
@@ -105,6 +116,9 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> Result<Vec<f32>, String> {
             "wav block align {} did not match channel_count {} * bytes_per_sample {}",
             format.block_align, format.channel_count, bytes_per_sample
         ));
+    }
+    if data.len() % format.block_align as usize != 0 {
+        return Err("wav data chunk did not align to whole audio frames".to_string());
     }
     if data.len() % bytes_per_sample != 0 {
         return Err("wav data chunk did not align to sample width".to_string());

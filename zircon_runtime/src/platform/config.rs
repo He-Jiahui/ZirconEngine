@@ -22,7 +22,7 @@ impl PlatformConfig {
     }
 
     pub fn diagnostic_lines(&self) -> Vec<String> {
-        let mut lines = Vec::with_capacity(13);
+        let mut lines = Vec::with_capacity(28);
         lines.push(format!("platform.enabled={}", self.enabled));
         lines.extend(self.capability_report().diagnostic_lines());
         lines

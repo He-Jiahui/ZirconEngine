@@ -1,9 +1,20 @@
-use crate::scene::ecs::{Component, Mut, QueryAccess, QueryAccessError, Ref};
+use crate::scene::ecs::{
+    Component, ComponentStorageLocation, Mut, QueryAccess, QueryAccessError, Ref,
+    StableEntityLocation,
+};
 use crate::scene::{EntityId, World};
 
 pub trait QueryDataAccess {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError>;
     fn matches_data(world: &World, entity: EntityId) -> bool;
+    fn matches_component_locations(
+        world: &World,
+        entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        let _ = component_locations;
+        Self::matches_data(world, entity)
+    }
 }
 
 pub trait QueryData: QueryDataAccess {
@@ -38,11 +49,21 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_read(component_id)
+        access.add_read(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches_data(world: &World, entity: EntityId) -> bool {
         world.get::<T>(entity).is_some()
+    }
+
+    fn matches_component_locations(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        has_component_location::<T>(world, component_locations)
     }
 }
 
@@ -63,11 +84,21 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_write(component_id)
+        access.add_write(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches_data(world: &World, entity: EntityId) -> bool {
         world.get::<T>(entity).is_some()
+    }
+
+    fn matches_component_locations(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        has_component_location::<T>(world, component_locations)
     }
 }
 
@@ -77,11 +108,21 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_read(component_id)
+        access.add_read(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches_data(world: &World, entity: EntityId) -> bool {
         world.get::<T>(entity).is_some()
+    }
+
+    fn matches_component_locations(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        has_component_location::<T>(world, component_locations)
     }
 }
 
@@ -116,11 +157,21 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_write(component_id)
+        access.add_write(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches_data(world: &World, entity: EntityId) -> bool {
         world.get::<T>(entity).is_some()
+    }
+
+    fn matches_component_locations(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        has_component_location::<T>(world, component_locations)
     }
 }
 
@@ -206,6 +257,27 @@ impl QueryData for EntityId {
     }
 }
 
+impl QueryDataAccess for StableEntityLocation {
+    fn update_access(
+        _world: &mut World,
+        _access: &mut QueryAccess,
+    ) -> Result<(), QueryAccessError> {
+        Ok(())
+    }
+
+    fn matches_data(_world: &World, _entity: EntityId) -> bool {
+        true
+    }
+}
+
+impl QueryData for StableEntityLocation {
+    type Item<'world> = StableEntityLocation;
+
+    fn fetch<'world>(world: &'world World, entity: EntityId) -> Option<Self::Item<'world>> {
+        world.internal_entity_location(entity)
+    }
+}
+
 impl QueryDataAccess for () {
     fn update_access(
         _world: &mut World,
@@ -244,6 +316,15 @@ macro_rules! tuple_query_data {
             fn matches_data(world: &World, entity: EntityId) -> bool {
                 true $(&& $name::matches_data(world, entity))*
             }
+
+            #[allow(non_snake_case)]
+            fn matches_component_locations(
+                world: &World,
+                entity: EntityId,
+                component_locations: &[ComponentStorageLocation],
+            ) -> bool {
+                true $(&& $name::matches_component_locations(world, entity, component_locations))*
+            }
         }
 
         impl<$($name),*> QueryData for ($($name,)*)
@@ -273,3 +354,23 @@ tuple_query_data!(A);
 tuple_query_data!(A, B);
 tuple_query_data!(A, B, C);
 tuple_query_data!(A, B, C, D);
+tuple_query_data!(A, B, C, D, E);
+tuple_query_data!(A, B, C, D, E, F);
+tuple_query_data!(A, B, C, D, E, F, G);
+tuple_query_data!(A, B, C, D, E, F, G, H);
+
+fn has_component_location<T>(
+    world: &World,
+    component_locations: &[ComponentStorageLocation],
+) -> bool
+where
+    T: Component,
+{
+    world
+        .registered_component_id::<T>()
+        .is_some_and(|component_id| {
+            component_locations
+                .iter()
+                .any(|location| location.component_id == component_id)
+        })
+}

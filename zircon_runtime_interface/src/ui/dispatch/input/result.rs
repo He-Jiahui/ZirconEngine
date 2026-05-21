@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::binding::UiBindingUpdateReport;
 use crate::ui::component::UiComponentEvent;
 use crate::ui::event_ui::UiNodeId;
 
 use super::{
-    UiDispatchEffect, UiDispatchReply, UiInputEvent, UiInputMethodRequest, UiPointerLockPolicy,
-    UiPopupEffectKind, UiTooltipEffectKind,
+    UiClipboardRequest, UiDispatchEffect, UiDispatchReply, UiInputEvent, UiInputMethodRequest,
+    UiPointerLockPolicy, UiPopupEffectKind, UiTooltipEffectKind,
 };
 use crate::ui::layout::UiPoint;
 
@@ -35,6 +36,7 @@ pub struct UiDispatchRejectedEffect {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiDispatchHostRequestKind {
     InputMethod(UiInputMethodRequest),
+    Clipboard(UiClipboardRequest),
     PointerLock {
         target: UiNodeId,
         policy: UiPointerLockPolicy,
@@ -86,6 +88,8 @@ pub struct UiInputDispatchResult {
     pub host_requests: Vec<UiDispatchHostRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub component_events: Vec<UiComponentEventReport>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub binding_reports: Vec<UiBindingUpdateReport>,
 }
 
 impl UiInputDispatchResult {
@@ -98,6 +102,17 @@ impl UiInputDispatchResult {
             rejected_effects: Vec::new(),
             host_requests: Vec::new(),
             component_events: Vec::new(),
+            binding_reports: Vec::new(),
+        }
+    }
+
+    pub fn record_binding_report(&mut self, report: UiBindingUpdateReport) {
+        if !report.updates.is_empty()
+            || report.applied_count > 0
+            || report.unchanged_count > 0
+            || report.rejected_count > 0
+        {
+            self.binding_reports.push(report);
         }
     }
 }

@@ -4,7 +4,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::{
-    plugin::NativePluginLoader, plugin::PluginModuleKind,
+    plugin::NativePluginBehaviorHealth, plugin::NativePluginLoader, plugin::PluginModuleKind,
     plugin::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     plugin::ZIRCON_NATIVE_PLUGIN_STATUS_OK, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
@@ -100,6 +100,36 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
 
     let runtime_report = plugin.runtime_entry_report.as_ref().unwrap();
     assert_eq!(runtime_report.plugin_id, "native_dynamic_fixture");
+    assert_eq!(
+        runtime_report.behavior_validation.health,
+        NativePluginBehaviorHealth::Clean
+    );
+    assert!(runtime_report.behavior_validation.diagnostics.is_empty());
+    assert_eq!(runtime_report.behavior_validation.is_stateless, Some(false));
+    assert_eq!(
+        runtime_report.behavior_validation.state_schema_version,
+        Some(3)
+    );
+    assert_eq!(
+        runtime_report
+            .behavior_validation
+            .command_manifest_schema
+            .as_deref(),
+        Some("zircon.native.command-manifest/3")
+    );
+    assert_eq!(
+        runtime_report
+            .behavior_validation
+            .event_manifest_schema
+            .as_deref(),
+        Some("zircon.native.event-manifest/3")
+    );
+    assert!(runtime_report.behavior_validation.has_command_manifest);
+    assert!(runtime_report.behavior_validation.has_event_manifest);
+    assert!(runtime_report.behavior_validation.has_invoke_command);
+    assert!(runtime_report.behavior_validation.has_save_state);
+    assert!(runtime_report.behavior_validation.has_restore_state);
+    assert!(runtime_report.behavior_validation.has_unload);
     assert!(runtime_report
         .negotiated_capabilities
         .iter()
@@ -194,6 +224,14 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
 
     let editor_report = plugin.editor_entry_report.as_ref().unwrap();
     assert_eq!(editor_report.plugin_id, "native_dynamic_fixture");
+    assert_eq!(
+        editor_report.behavior_validation.health,
+        NativePluginBehaviorHealth::Clean
+    );
+    assert!(editor_report.behavior_validation.diagnostics.is_empty());
+    assert_eq!(editor_report.behavior_validation.is_stateless, Some(true));
+    assert!(!editor_report.behavior_validation.has_save_state);
+    assert!(!editor_report.behavior_validation.has_restore_state);
     assert_eq!(plugin.editor_behavior_is_stateless(), Some(true));
     let editor_state_report = plugin.save_editor_state();
     assert_eq!(
@@ -285,6 +323,10 @@ fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
         Some("zircon_native_dynamic_fixture_runtime_entry_v2")
     );
     assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
+    assert_eq!(
+        plugin.runtime_behavior_health(),
+        Some(NativePluginBehaviorHealth::Clean)
+    );
     assert_eq!(plugin.runtime_state_schema_version(), Some(0));
     assert!(plugin.runtime_command_manifest_schema().is_none());
     assert!(report

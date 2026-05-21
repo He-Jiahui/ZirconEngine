@@ -9,9 +9,10 @@ use zircon_runtime_interface::reflect::{
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::core::math::{Transform, Vec3};
+use crate::core::math::{Transform, Vec2, Vec3};
 use crate::scene::components::{
-    ActiveSelf, LocalTransform, Name, RenderLayerMask, RigidBodyComponent, RigidBodyType,
+    ActiveSelf, AmbientLight, LocalTransform, Name, RectLight, RenderLayerMask, RigidBodyComponent,
+    RigidBodyType,
 };
 use crate::scene::{
     json_from_reflected, reflected_from_json, reflected_from_scene_value,
@@ -492,8 +493,10 @@ fn fixed_component_registrations_exist_in_empty_world() {
     let world = World::empty();
     let expected = [
         "zircon_runtime::scene::components::ActiveSelf",
+        "zircon_runtime::scene::components::AmbientLight",
         "zircon_runtime::scene::components::LocalTransform",
         "zircon_runtime::scene::components::Name",
+        "zircon_runtime::scene::components::RectLight",
         "zircon_runtime::scene::components::RenderLayerMask",
         "zircon_runtime::scene::components::RigidBodyComponent",
     ];
@@ -510,6 +513,79 @@ fn fixed_component_registrations_exist_in_empty_world() {
             .component
             .is_some());
     }
+}
+
+#[test]
+fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
+    let mut world = World::empty();
+    let ambient = world.spawn_node(NodeKind::AmbientLight);
+    let rect = world.spawn_node(NodeKind::RectLight);
+    let ambient_address = fixed_component_address(ambient, "AmbientLight");
+    let rect_address = fixed_component_address(rect, "RectLight");
+
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            ambient_address.clone(),
+            "color",
+            ReflectedValue::Vec3([0.05, 0.06, 0.07]),
+        ))
+        .expect("ambient color should be writable");
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            ambient_address.clone(),
+            "intensity",
+            ReflectedValue::Scalar(0.35),
+        ))
+        .expect("ambient intensity should be writable");
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            ambient_address.clone(),
+            "affects_lightmapped_meshes",
+            ReflectedValue::Bool(false),
+        ))
+        .expect("ambient lightmap flag should be writable");
+
+    let ambient_light = world.get::<AmbientLight>(ambient).unwrap();
+    assert_eq!(ambient_light.color, Vec3::new(0.05, 0.06, 0.07));
+    assert_eq!(ambient_light.intensity, 0.35);
+    assert!(!ambient_light.affects_lightmapped_meshes);
+    assert!(world
+        .reflect_fields(
+            zircon_runtime_interface::reflect::ReflectFieldsRequest::new(ambient_address)
+        )
+        .expect("ambient fields should be enumerable")
+        .fields
+        .contains(&ReflectFieldValue::new(
+            "affects_lightmapped_meshes",
+            ReflectedValue::Bool(false)
+        )));
+
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            rect_address.clone(),
+            "range",
+            ReflectedValue::Scalar(16.0),
+        ))
+        .expect("rect range should be writable");
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            rect_address.clone(),
+            "size",
+            ReflectedValue::Vec2([2.0, 0.5]),
+        ))
+        .expect("rect size should be writable");
+
+    let rect_light = world.get::<RectLight>(rect).unwrap();
+    assert_eq!(rect_light.range, 16.0);
+    assert_eq!(rect_light.size, Vec2::new(2.0, 0.5));
+    assert!(world
+        .reflect_fields(zircon_runtime_interface::reflect::ReflectFieldsRequest::new(rect_address))
+        .expect("rect fields should be enumerable")
+        .fields
+        .contains(&ReflectFieldValue::new(
+            "size",
+            ReflectedValue::Vec2([2.0, 0.5])
+        )));
 }
 
 #[test]

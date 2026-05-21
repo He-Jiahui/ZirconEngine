@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::ui::retained_host::primitives::{ModelRc, VecModel};
+use crate::ui::retained_host::primitives::{Color, ModelRc, VecModel};
 use crate::ui::retained_host::{
     paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
     TemplateNodeFrameData, TemplatePaneNodeData,
@@ -31,6 +31,8 @@ const INFO_CONTAINER: [u8; 4] = [24, 57, 91, 255];
 const TEXT_DISABLED: [u8; 4] = [88, 101, 108, 255];
 const SHADOW_BACKGROUND: [u8; 4] = [100, 100, 100, 255];
 const SHADOW_ON_BACKGROUND: [u8; 4] = [71, 71, 71, 255];
+const STATE_LAYER_PRESS_ON_PRESSED: [u8; 4] = [27, 77, 92, 255];
+const RIPPLE_PRESS_ON_PRESSED_STATE_LAYER: [u8; 4] = [37, 93, 108, 255];
 
 #[test]
 fn native_template_painter_uses_material_state_palette_for_controls() {
@@ -287,6 +289,99 @@ fn native_template_painter_resolves_button_variants_and_interaction_priority() {
     assert_eq!(pixel(&bytes, 96, 8, 148), SURFACE_DISABLED);
     assert_eq!(pixel(&bytes, 96, 40, 144), BORDER_DISABLED);
     assert_eq!(pixel(&bytes, 96, 8, 176), BACKGROUND);
+}
+
+#[test]
+fn native_template_painter_matches_slint_state_layer_priority() {
+    let nodes = model_rc(vec![
+        TemplatePaneNodeData {
+            control_id: "DisabledPriority".into(),
+            node_id: "DisabledPriority.node".into(),
+            disabled: true,
+            focused: true,
+            pressed: true,
+            hovered: true,
+            frame: frame(4.0, 4.0),
+            ..material_button_base()
+        },
+        TemplatePaneNodeData {
+            control_id: "FocusPriority".into(),
+            node_id: "FocusPriority.node".into(),
+            focused: true,
+            pressed: true,
+            hovered: true,
+            frame: frame(4.0, 32.0),
+            ..material_button_base()
+        },
+        TemplatePaneNodeData {
+            control_id: "PressedPriority".into(),
+            node_id: "PressedPriority.node".into(),
+            pressed: true,
+            hovered: true,
+            frame: frame(4.0, 60.0),
+            ..material_button_base()
+        },
+        TemplatePaneNodeData {
+            control_id: "HoverPriority".into(),
+            node_id: "HoverPriority.node".into(),
+            hovered: true,
+            dragging: true,
+            frame: frame(4.0, 88.0),
+            ..material_button_base()
+        },
+    ]);
+
+    let bytes = paint_template_nodes_for_test(96, 116, nodes);
+
+    assert_eq!(pixel(&bytes, 96, 8, 8), SURFACE_DISABLED);
+    assert_eq!(pixel(&bytes, 96, 8, 36), SURFACE_SELECTED);
+    assert_eq!(pixel(&bytes, 96, 8, 64), SURFACE_PRESSED);
+    assert_eq!(pixel(&bytes, 96, 8, 92), SURFACE_HOVER);
+}
+
+#[test]
+fn native_template_painter_draws_static_slint_ripple_metadata() {
+    let nodes = model_rc(vec![
+        TemplatePaneNodeData {
+            control_id: "StateLayer".into(),
+            node_id: "StateLayer.node".into(),
+            role: "Button".into(),
+            surface_variant: "inset".into(),
+            pressed: true,
+            state_layer_enabled: true,
+            state_layer_color: Color::from_argb_u8(255, 128, 234, 255),
+            border_width: 1.0,
+            corner_radius: 10.0,
+            frame: frame(4.0, 4.0),
+            ..TemplatePaneNodeData::default()
+        },
+        TemplatePaneNodeData {
+            control_id: "Ripple".into(),
+            node_id: "Ripple.node".into(),
+            role: "Button".into(),
+            surface_variant: "inset".into(),
+            pressed: true,
+            state_layer_enabled: true,
+            state_layer_color: Color::from_argb_u8(255, 128, 234, 255),
+            ripple_enabled: true,
+            ripple_pressed_x: 36.0,
+            ripple_pressed_y: 10.0,
+            ripple_unclipped: false,
+            border_width: 1.0,
+            corner_radius: 10.0,
+            frame: frame(4.0, 32.0),
+            ..TemplatePaneNodeData::default()
+        },
+    ]);
+
+    let bytes = paint_template_nodes_for_test(96, 60, nodes);
+
+    assert_eq!(pixel(&bytes, 96, 2, 14), BACKGROUND);
+    assert_eq!(pixel(&bytes, 96, 40, 14), STATE_LAYER_PRESS_ON_PRESSED);
+    assert_eq!(
+        pixel(&bytes, 96, 40, 42),
+        RIPPLE_PRESS_ON_PRESSED_STATE_LAYER
+    );
 }
 
 #[test]

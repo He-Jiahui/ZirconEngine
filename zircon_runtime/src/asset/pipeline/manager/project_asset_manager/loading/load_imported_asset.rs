@@ -18,6 +18,7 @@ impl ProjectAssetManager {
         match kind {
             AssetKind::Data => self.load_data_asset(id).map(ImportedAsset::Data),
             AssetKind::Model => self.load_model_asset(id).map(ImportedAsset::Model),
+            AssetKind::Mesh => self.load_mesh_asset(id).map(ImportedAsset::Mesh),
             AssetKind::Material => self.load_material_asset(id).map(ImportedAsset::Material),
             AssetKind::MaterialGraph => self
                 .load_material_graph_asset(id)

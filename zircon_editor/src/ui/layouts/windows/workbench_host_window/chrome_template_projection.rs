@@ -368,7 +368,9 @@ fn scene_create_menu_icon_name(action: &str) -> &'static str {
     match action.strip_prefix("CreateNode.").unwrap_or_default() {
         "Cube" => "cube-outline",
         "Camera" => "scan-outline",
-        "DirectionalLight" => "color-fill-outline",
+        "AmbientLight" | "DirectionalLight" | "PointLight" | "RectLight" | "SpotLight" => {
+            "color-fill-outline"
+        }
         _ => "add-outline",
     }
 }
@@ -1456,6 +1458,7 @@ mod tests {
                 true,
             ),
             test_menu_item("Create Cube", "", "CreateNode.Cube", true),
+            test_menu_item("Create Rect Light", "", "CreateNode.RectLight", true),
         ]);
 
         let nodes = menu_popup_nodes(&items, 224.0, 180.0);
@@ -1464,6 +1467,7 @@ mod tests {
         let undo = node(&nodes, "MenuPopupItemLabel2");
         let export = node(&nodes, "MenuPopupItemLabel3");
         let cube = node(&nodes, "MenuPopupItemLabel4");
+        let rect_light = node(&nodes, "MenuPopupItemLabel5");
 
         assert_eq!(open.text.as_str(), "Open Project");
         assert_eq!(open.icon_name.as_str(), "folder-open-outline");
@@ -1479,6 +1483,7 @@ mod tests {
         );
         assert_eq!(export.icon_name.as_str(), "share-outline");
         assert_eq!(cube.icon_name.as_str(), "cube-outline");
+        assert_eq!(rect_light.icon_name.as_str(), "color-fill-outline");
     }
 
     #[test]

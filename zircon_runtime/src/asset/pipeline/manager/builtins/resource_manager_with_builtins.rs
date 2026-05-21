@@ -28,6 +28,7 @@ pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> R
             crate::asset::ImportedAsset::NavigationSettings(_) => AssetKind::NavigationSettings,
             crate::asset::ImportedAsset::Scene(_) => AssetKind::Scene,
             crate::asset::ImportedAsset::Model(_) => AssetKind::Model,
+            crate::asset::ImportedAsset::Mesh(_) => AssetKind::Mesh,
             crate::asset::ImportedAsset::UiLayout(_) => AssetKind::UiLayout,
             crate::asset::ImportedAsset::UiWidget(_) => AssetKind::UiWidget,
             crate::asset::ImportedAsset::UiStyle(_) => AssetKind::UiStyle,

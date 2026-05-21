@@ -477,6 +477,48 @@ fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
         )
         .with_undoable(UndoableEditorOperation::new("Create Cube")),
         operation(
+            "Scene.Node.CreateCamera",
+            "Create Camera",
+            "GameObject/Camera",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Camera)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Camera")),
+        operation(
+            "Scene.Node.CreateAmbientLight",
+            "Create Ambient Light",
+            "GameObject/Light/Ambient Light",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::AmbientLight)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Ambient Light")),
+        operation(
+            "Scene.Node.CreateDirectionalLight",
+            "Create Directional Light",
+            "GameObject/Light/Directional Light",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::DirectionalLight)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Directional Light")),
+        operation(
+            "Scene.Node.CreatePointLight",
+            "Create Point Light",
+            "GameObject/Light/Point Light",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::PointLight)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Point Light")),
+        operation(
+            "Scene.Node.CreateRectLight",
+            "Create Rect Light",
+            "GameObject/Light/Rect Light",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::RectLight)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Rect Light")),
+        operation(
+            "Scene.Node.CreateSpotLight",
+            "Create Spot Light",
+            "GameObject/Light/Spot Light",
+            EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::SpotLight)),
+        )
+        .with_undoable(UndoableEditorOperation::new("Create Spot Light")),
+        operation(
             "Scene.Node.DeleteSelected",
             "Delete Selected",
             "Edit/Delete",

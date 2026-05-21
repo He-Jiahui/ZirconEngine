@@ -1,11 +1,11 @@
 use crate::asset::{
-    AssetReference, AssetUri, AssetUuid, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
-    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    AssetReference, AssetUri, AssetUuid, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
+    SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
     SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
     SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneSpotLightAsset,
-    SceneViewportRectAsset, TransformAsset,
+    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
+    SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
@@ -34,8 +34,10 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     ..SceneCameraAsset::default()
                 }),
                 mesh: None,
+                ambient_light: None,
                 directional_light: None,
                 point_light: None,
+                rect_light: None,
                 spot_light: None,
                 rigid_body: None,
                 collider: None,
@@ -72,8 +74,10 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                         AssetUri::parse("res://materials/robot.zmaterial").unwrap(),
                     ),
                 }),
+                ambient_light: None,
                 directional_light: None,
                 point_light: None,
+                rect_light: None,
                 spot_light: None,
                 rigid_body: None,
                 collider: None,
@@ -101,12 +105,14 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 mobility: SceneMobilityAsset::Static,
                 camera: None,
                 mesh: None,
+                ambient_light: None,
                 directional_light: Some(SceneDirectionalLightAsset {
                     direction: [-0.4, -1.0, -0.25],
                     color: [1.0, 1.0, 1.0],
                     intensity: 3.0,
                 }),
                 point_light: None,
+                rect_light: None,
                 spot_light: None,
                 rigid_body: None,
                 collider: None,
@@ -167,8 +173,10 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
                 msaa_samples: 4,
             }),
             mesh: None,
+            ambient_light: None,
             directional_light: None,
             point_light: None,
+            rect_light: None,
             spot_light: None,
             rigid_body: None,
             collider: None,
@@ -248,8 +256,10 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                     AssetUri::parse("res://materials/hero.zmaterial").unwrap(),
                 ),
             }),
+            ambient_light: None,
             directional_light: None,
             point_light: None,
+            rect_light: None,
             spot_light: None,
             rigid_body: Some(SceneRigidBodyAsset {
                 body_type: SceneRigidBodyTypeAsset::Dynamic,
@@ -416,6 +426,8 @@ active = true
     assert!(entity.animation_sequence_player.is_none());
     assert!(entity.animation_graph_player.is_none());
     assert!(entity.animation_state_machine_player.is_none());
+    assert!(entity.ambient_light.is_none());
+    assert!(entity.rect_light.is_none());
 }
 
 #[test]
@@ -436,12 +448,14 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 mobility: SceneMobilityAsset::Dynamic,
                 camera: None,
                 mesh: None,
+                ambient_light: None,
                 directional_light: None,
                 point_light: Some(ScenePointLightAsset {
                     color: [0.4, 0.7, 1.0],
                     intensity: 5.5,
                     range: 11.0,
                 }),
+                rect_light: None,
                 spot_light: None,
                 rigid_body: None,
                 collider: None,
@@ -469,8 +483,10 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 mobility: SceneMobilityAsset::Dynamic,
                 camera: None,
                 mesh: None,
+                ambient_light: None,
                 directional_light: None,
                 point_light: None,
+                rect_light: None,
                 spot_light: Some(SceneSpotLightAsset {
                     direction: [0.0, -1.0, 0.25],
                     color: [1.0, 0.8, 0.3],
@@ -500,4 +516,82 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
     assert_eq!(loaded, scene);
     assert!(document.contains("point_light"));
     assert!(document.contains("spot_light"));
+}
+
+#[test]
+fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
+    let scene = SceneAsset {
+        entities: vec![
+            SceneEntityAsset {
+                entity: 50,
+                name: "Ambient".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: None,
+                mesh: None,
+                ambient_light: Some(SceneAmbientLightAsset {
+                    color: [0.15, 0.2, 0.35],
+                    intensity: 120.0,
+                    affects_lightmapped_meshes: false,
+                }),
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+            },
+            SceneEntityAsset {
+                entity: 51,
+                name: "Softbox".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: None,
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: Some(SceneRectLightAsset {
+                    color: [1.0, 0.75, 0.45],
+                    intensity: 80_000.0,
+                    range: 16.0,
+                    size: [4.0, 2.0],
+                }),
+                spot_light: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+            },
+        ],
+    };
+
+    let document = scene.to_toml_string().unwrap();
+    let loaded = SceneAsset::from_toml_str(&document).unwrap();
+
+    assert_eq!(loaded, scene);
+    assert!(document.contains("ambient_light"));
+    assert!(document.contains("rect_light"));
 }

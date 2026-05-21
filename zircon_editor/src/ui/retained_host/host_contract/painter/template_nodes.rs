@@ -3,6 +3,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 use super::super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
 use super::frame::HostRgbaFrame;
 use super::geometry::{frame_from_template, intersect, is_visible_frame, translated};
+use super::material_state_layer::push_state_layer_commands;
 use super::render_commands::{draw_host_paint_commands, HostPaintCommand};
 use super::theme::PALETTE;
 use super::visual_assets::{raster_size_from_frame, template_image_pixels, template_image_tint};
@@ -140,9 +141,17 @@ fn push_template_node_commands(
             corner_radius,
             1.0,
         ));
+        push_state_layer_commands(
+            commands,
+            node,
+            &rect,
+            &node_clip,
+            corner_radius,
+            order * 4 + 1,
+        );
     }
 
-    push_template_image_command(commands, node, &rect, &node_clip, order * 4 + 1);
+    push_template_image_command(commands, node, &rect, &node_clip, order * 4 + 2);
 
     let label = node_label(node, text_input_focus);
     if (!label.is_empty() && !is_icon_only_node(node))
@@ -158,7 +167,7 @@ fn push_template_node_commands(
                 height: text_rect.height,
             },
             Some(node_clip),
-            order * 4 + 2,
+            order * 4 + 3,
             label,
             text_color(node),
             font_size,
@@ -358,6 +367,8 @@ fn draws_surface(node: &TemplatePaneNodeData) -> bool {
         || node.hovered
         || node.pressed
         || node.focused
+        || node.state_layer_enabled
+        || node.ripple_enabled
         || node.disabled
 }
 
@@ -539,7 +550,7 @@ fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     }
 }
 
-fn is_button_disabled(node: &TemplatePaneNodeData) -> bool {
+pub(super) fn is_button_disabled(node: &TemplatePaneNodeData) -> bool {
     node.disabled
         || node.button_style.disabled
         || matches!(
@@ -552,14 +563,7 @@ fn button_interaction_state(node: &TemplatePaneNodeData) -> ButtonInteractionSta
     if is_button_disabled(node) {
         return ButtonInteractionState::Disabled;
     }
-    if node.pressed
-        || matches!(
-            node.button_style.interaction_state,
-            ButtonInteractionState::Pressed
-        )
-    {
-        return ButtonInteractionState::Pressed;
-    }
+    // Slint Material gives focus priority over pressed for the state-layer overlay.
     if node.selected
         || node.checked
         || node.focused
@@ -569,6 +573,14 @@ fn button_interaction_state(node: &TemplatePaneNodeData) -> ButtonInteractionSta
         )
     {
         return ButtonInteractionState::Focused;
+    }
+    if node.pressed
+        || matches!(
+            node.button_style.interaction_state,
+            ButtonInteractionState::Pressed
+        )
+    {
+        return ButtonInteractionState::Pressed;
     }
     if node.hovered
         || node.drop_hovered

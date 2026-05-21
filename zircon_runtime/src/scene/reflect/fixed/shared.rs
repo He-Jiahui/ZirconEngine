@@ -202,6 +202,25 @@ pub(super) fn expect_vec3(
     }
 }
 
+pub(super) fn expect_vec2(
+    type_path: &'static str,
+    field_name: &str,
+    value: ReflectedValue,
+) -> Result<[f32; 2], ReflectError> {
+    match value {
+        ReflectedValue::Vec2(value) if value.iter().all(|component| component.is_finite()) => {
+            Ok(value)
+        }
+        ReflectedValue::Vec2(_) => Err(invalid_value(
+            type_path,
+            field_name,
+            "finite Vec2",
+            "non-finite Vec2",
+        )),
+        value => Err(type_mismatch(type_path, field_name, "Vec2", &value)),
+    }
+}
+
 pub(super) fn expect_vec4(
     type_path: &'static str,
     field_name: &str,

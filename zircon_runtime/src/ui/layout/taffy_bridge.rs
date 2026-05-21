@@ -69,7 +69,7 @@ pub fn taffy_display_for_family(family: UiLayoutEngineFamily) -> Option<Display>
     match family {
         UiLayoutEngineFamily::Flex | UiLayoutEngineFamily::Wrap => Some(Display::Flex),
         UiLayoutEngineFamily::Grid => Some(Display::Grid),
-        UiLayoutEngineFamily::Block | UiLayoutEngineFamily::Container => Some(Display::Block),
+        UiLayoutEngineFamily::Block => Some(Display::Block),
         _ => None,
     }
 }

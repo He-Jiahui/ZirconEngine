@@ -5,5 +5,9 @@ mod validation;
 
 pub use declarations::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
-    RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset, RendererFeatureSource,
+    RenderPipelineCompileOptions, RenderPipelineCompileReport, RendererAsset, RendererDataDocument,
+    RendererDataDocumentError, RendererFeatureAsset, RendererFeatureAssetReferences,
+    RendererFeatureContractDiagnostic, RendererFeatureDocument, RendererFeatureSource,
+    RENDERER_DATA_DOCUMENT_VERSION,
 };
+pub use render_pipeline_asset::RenderPipelineAssetContext;

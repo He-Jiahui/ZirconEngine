@@ -86,6 +86,12 @@ pub(super) fn preview_palette(kind: zircon_runtime::asset::AssetKind) -> Preview
             accent: [210, 204, 250, 255],
             banner: [229, 225, 255, 255],
         },
+        zircon_runtime::asset::AssetKind::Mesh => PreviewPalette {
+            primary: [88, 113, 152, 255],
+            secondary: [39, 52, 76, 255],
+            accent: [198, 218, 248, 255],
+            banner: [226, 237, 255, 255],
+        },
         zircon_runtime::asset::AssetKind::Sound => PreviewPalette {
             primary: [181, 92, 57, 255],
             secondary: [89, 41, 24, 255],

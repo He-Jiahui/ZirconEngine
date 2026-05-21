@@ -297,13 +297,103 @@ fn render_extract_separates_directional_point_and_spot_lights() {
 }
 
 #[test]
-fn render_product_pbr_world_frame_extract_exposes_empty_degraded_ambient_and_rect_light_slots() {
-    let world = World::new();
+fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_light_slots() {
+    let mut world = World::new();
+    let ambient = world.spawn_node(NodeKind::AmbientLight);
+    let rect = world.spawn_node(NodeKind::RectLight);
+
+    world
+        .update_transform(
+            rect,
+            Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)).with_rotation(
+                crate::core::math::Quat::from_rotation_y(45.0_f32.to_radians()),
+            ),
+        )
+        .unwrap();
+    world
+        .set_property(
+            ambient,
+            &ComponentPropertyPath::parse("AmbientLight.color").unwrap(),
+            ScenePropertyValue::Vec3([0.05, 0.06, 0.07]),
+        )
+        .unwrap();
+    world
+        .set_property(
+            ambient,
+            &ComponentPropertyPath::parse("AmbientLight.intensity").unwrap(),
+            ScenePropertyValue::Scalar(0.35),
+        )
+        .unwrap();
+    world
+        .set_property(
+            ambient,
+            &ComponentPropertyPath::parse("AmbientLight.affects_lightmapped_meshes").unwrap(),
+            ScenePropertyValue::Bool(false),
+        )
+        .unwrap();
+    world
+        .set_property(
+            rect,
+            &ComponentPropertyPath::parse("RectLight.color").unwrap(),
+            ScenePropertyValue::Vec3([1.0, 0.8, 0.6]),
+        )
+        .unwrap();
+    world
+        .set_property(
+            rect,
+            &ComponentPropertyPath::parse("RectLight.intensity").unwrap(),
+            ScenePropertyValue::Scalar(12.0),
+        )
+        .unwrap();
+    world
+        .set_property(
+            rect,
+            &ComponentPropertyPath::parse("RectLight.range").unwrap(),
+            ScenePropertyValue::Scalar(16.0),
+        )
+        .unwrap();
+    world
+        .set_property(
+            rect,
+            &ComponentPropertyPath::parse("RectLight.size").unwrap(),
+            ScenePropertyValue::Vec2([2.0, 0.5]),
+        )
+        .unwrap();
+
+    let snapshot = world.to_render_extract();
+    assert_eq!(snapshot.scene.ambient_lights.len(), 1);
+    assert_eq!(
+        snapshot.scene.ambient_lights[0].color,
+        Vec3::new(0.05, 0.06, 0.07)
+    );
+    assert_eq!(snapshot.scene.ambient_lights[0].intensity, 0.35);
+    assert!(!snapshot.scene.ambient_lights[0].renderer_degraded);
+    assert_eq!(snapshot.scene.ambient_lights[0].degradation_reason, None);
+
+    let rect_light = snapshot
+        .scene
+        .rect_lights
+        .iter()
+        .find(|light| light.node_id == rect)
+        .unwrap();
+    assert_eq!(rect_light.position, Vec3::new(1.0, 2.0, 3.0));
+    assert_eq!(
+        rect_light.direction,
+        world.world_transform(rect).unwrap().forward()
+    );
+    assert_eq!(rect_light.color, Vec3::new(1.0, 0.8, 0.6));
+    assert_eq!(rect_light.intensity, 12.0);
+    assert_eq!(rect_light.range, 16.0);
+    assert_eq!(rect_light.size, Vec2::new(2.0, 0.5));
+    assert!(rect_light.renderer_degraded);
 
     let extract = world.to_render_frame_extract();
+    assert_eq!(
+        extract.lighting.ambient_lights,
+        snapshot.scene.ambient_lights
+    );
+    assert_eq!(extract.lighting.rect_lights, snapshot.scene.rect_lights);
 
-    assert!(extract.lighting.ambient_lights.is_empty());
-    assert!(extract.lighting.rect_lights.is_empty());
     let default_ambient = RenderAmbientLightSnapshot::default();
     assert!(default_ambient.renderer_degraded);
     assert!(default_ambient

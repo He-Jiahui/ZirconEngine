@@ -5,6 +5,13 @@ related_code:
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/reflection_macros/src/lib.rs
+  - zircon_runtime/reflection_macros/src/args.rs
+  - zircon_runtime/reflection_macros/src/attrs.rs
+  - zircon_runtime/reflection_macros/src/derive_type.rs
+  - zircon_runtime/reflection_macros/src/function.rs
+  - zircon_runtime/reflection_macros/src/module.rs
+  - zircon_runtime/reflection_macros/src/tokens.rs
+  - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
@@ -29,6 +36,13 @@ implementation_files:
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/reflection_macros/src/lib.rs
+  - zircon_runtime/reflection_macros/src/args.rs
+  - zircon_runtime/reflection_macros/src/attrs.rs
+  - zircon_runtime/reflection_macros/src/derive_type.rs
+  - zircon_runtime/reflection_macros/src/function.rs
+  - zircon_runtime/reflection_macros/src/module.rs
+  - zircon_runtime/reflection_macros/src/tokens.rs
+  - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
@@ -51,6 +65,9 @@ plan_sources:
   - user: 2026-05-15 implement ZrVM language plugin and reflection registration plan
   - user: 2026-05-16 continue precise VM host reflection macro implementation
   - user: 2026-05-18 modular reflection content/generated reflection interface documentation
+  - user: 2026-05-20 continue ZrVM host reflection follow-up with macro modularity
+  - docs/superpowers/specs/2026-05-20-zrvm-reflection-macro-modularity-design.md
+  - docs/superpowers/plans/2026-05-20-zrvm-reflection-macro-modularity.md
   - docs/superpowers/plans/2026-05-18-zrvm-host-reflection-docs.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
@@ -87,6 +104,16 @@ tests:
   - "cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs -- F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 final validation; generated explicit-output host interface Markdown"
   - "Test-Path -LiteralPath 'F:\\cargo-targets\\codex-reflection-docs\\host-interface.md': passed 2026-05-18 final validation; generated file existed"
   - "Grep tool search for 'zr\\.zircon\\.math' in F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 final validation; generated file included zr.zircon.math at line 76"
+  - "rustfmt --edition 2021 --check zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/reflection_macros/src/args.rs zircon_runtime/reflection_macros/src/attrs.rs zircon_runtime/reflection_macros/src/derive_type.rs zircon_runtime/reflection_macros/src/function.rs zircon_runtime/reflection_macros/src/module.rs zircon_runtime/reflection_macros/src/tokens.rs zircon_runtime/reflection_macros/src/tests.rs: passed 2026-05-20 final validation"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity: passed 2026-05-20 final validation; 10 passed, 0 failed, 0 doc-tests"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose: passed 2026-05-20 evidence run; 2 existing warnings in scene ECS helpers"
+  - "cargo test -p zircon_runtime --lib rust_reflection_macros_generate_type_function_and_module_descriptors --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-20 final validation; 1 passed, 0 failed, 1745 filtered out"
+  - "cargo test -p zircon_runtime --lib host_reflection_docs_include_macro_generated_builtin_math_module --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-20 final validation; 1 passed, 0 failed, 1746 filtered out"
+  - "F: free space check before closeout validation: passed 2026-05-21; 66.86 GB free, no target cleanup required for F:\\cargo-targets\\codex-reflection-macro-modularity"
+  - "rustfmt --edition 2021 --check zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/reflection_macros/src/args.rs zircon_runtime/reflection_macros/src/attrs.rs zircon_runtime/reflection_macros/src/derive_type.rs zircon_runtime/reflection_macros/src/function.rs zircon_runtime/reflection_macros/src/module.rs zircon_runtime/reflection_macros/src/tokens.rs zircon_runtime/reflection_macros/src/tests.rs: passed 2026-05-21 closeout validation"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity: passed 2026-05-21 closeout validation; 10 passed, 0 failed, 0 doc-tests"
+  - "cargo test -p zircon_runtime --lib rust_reflection_macros_generate_type_function_and_module_descriptors --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-21 closeout validation; 1 passed, 0 failed, 1746 filtered out"
+  - "cargo test -p zircon_runtime --lib host_reflection_docs_include_macro_generated_builtin_math_module --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-21 closeout validation; 1 passed, 0 failed, 1746 filtered out"
 doc_type: module-detail
 ---
 
@@ -116,6 +143,8 @@ The conversion traits are the Rust-side source of default type refs:
 The macro entry points reject unsupported Rust shapes instead of emitting descriptors that would fail later through trait-bound or runtime errors. `zircon_host_function` supports synchronous, non-generic free functions with simple identifier parameters. `ZirconScriptType` supports non-generic structs and enums; unions are rejected. Async functions, generic functions, and generic script types must be wrapped in a concrete host export before reflection.
 
 The proc-macro crate is a separate workspace member because Rust procedural macros must live in a `proc-macro` crate. `zircon_runtime` re-exports the macros so runtime-owned host modules can write `#[crate::zircon_host_function]`, `#[crate::zircon_host_module]`, and `#[derive(crate::ZirconScriptType)]` without depending on the macro crate directly.
+
+The macro crate is split by code-generation responsibility. `lib.rs` contains only the Rust-required proc-macro entry points and module declarations. `args.rs` owns attribute argument parsing, `attrs.rs` owns `#[zircon_script]` parsing and item discovery, `derive_type.rs` emits `ZirconScriptType` descriptors, `function.rs` emits host function descriptors and callbacks, `module.rs` emits host module descriptors and registration functions, `tokens.rs` owns shared token helpers, and `tests.rs` covers unsupported input plus descriptor metadata generation. Runtime validation remains in `HostExportRegistry`; the macro crate only rejects Rust shapes that cannot be represented correctly as host descriptors.
 
 ## Registry Behavior
 

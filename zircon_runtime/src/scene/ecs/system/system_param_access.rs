@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-use crate::scene::ecs::{QueryAccess, ResourceId, SystemParamError};
+use crate::scene::ecs::{ComponentId, QueryAccess, ResourceId, SystemParamError};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SystemParamAccess {
@@ -12,6 +12,14 @@ pub struct SystemParamAccess {
     message_reads: Vec<TypeId>,
     message_writes: Vec<TypeId>,
     has_deferred_commands: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SystemParamConflictKind {
+    Component(ComponentId),
+    Resource(ResourceId),
+    Event(TypeId),
+    Message(TypeId),
 }
 
 impl SystemParamAccess {
@@ -146,6 +154,109 @@ impl SystemParamAccess {
 
     pub fn has_deferred_commands(&self) -> bool {
         self.has_deferred_commands
+    }
+
+    pub fn conflicts_with(&self, other: &Self) -> bool {
+        !self.conflict_kinds_with(other).is_empty()
+    }
+
+    pub fn conflict_kinds_with(&self, other: &Self) -> Vec<SystemParamConflictKind> {
+        let mut conflicts = Vec::new();
+
+        for component_id in self
+            .component_access
+            .conflicting_components_with(&other.component_access)
+        {
+            insert_conflict(
+                &mut conflicts,
+                SystemParamConflictKind::Component(component_id),
+            );
+        }
+
+        push_resource_conflicts(
+            &mut conflicts,
+            &self.resource_reads,
+            &self.resource_writes,
+            &other.resource_reads,
+            &other.resource_writes,
+        );
+        push_type_conflicts(
+            &mut conflicts,
+            SystemParamConflictKind::Event,
+            &self.event_reads,
+            &self.event_writes,
+            &other.event_reads,
+            &other.event_writes,
+        );
+        push_type_conflicts(
+            &mut conflicts,
+            SystemParamConflictKind::Message,
+            &self.message_reads,
+            &self.message_writes,
+            &other.message_reads,
+            &other.message_writes,
+        );
+
+        conflicts
+    }
+}
+
+fn push_resource_conflicts(
+    conflicts: &mut Vec<SystemParamConflictKind>,
+    left_reads: &[ResourceId],
+    left_writes: &[ResourceId],
+    right_reads: &[ResourceId],
+    right_writes: &[ResourceId],
+) {
+    push_resource_intersections(conflicts, left_writes, right_reads);
+    push_resource_intersections(conflicts, left_reads, right_writes);
+    push_resource_intersections(conflicts, left_writes, right_writes);
+}
+
+fn push_resource_intersections(
+    conflicts: &mut Vec<SystemParamConflictKind>,
+    left: &[ResourceId],
+    right: &[ResourceId],
+) {
+    for resource_id in left {
+        if contains_id(right, *resource_id) {
+            insert_conflict(conflicts, SystemParamConflictKind::Resource(*resource_id));
+        }
+    }
+}
+
+fn push_type_conflicts(
+    conflicts: &mut Vec<SystemParamConflictKind>,
+    conflict_kind: fn(TypeId) -> SystemParamConflictKind,
+    left_reads: &[TypeId],
+    left_writes: &[TypeId],
+    right_reads: &[TypeId],
+    right_writes: &[TypeId],
+) {
+    push_type_intersections(conflicts, conflict_kind, left_writes, right_reads);
+    push_type_intersections(conflicts, conflict_kind, left_reads, right_writes);
+    push_type_intersections(conflicts, conflict_kind, left_writes, right_writes);
+}
+
+fn push_type_intersections(
+    conflicts: &mut Vec<SystemParamConflictKind>,
+    conflict_kind: fn(TypeId) -> SystemParamConflictKind,
+    left: &[TypeId],
+    right: &[TypeId],
+) {
+    for type_id in left {
+        if contains_type_id(right, *type_id) {
+            insert_conflict(conflicts, conflict_kind(*type_id));
+        }
+    }
+}
+
+fn insert_conflict(
+    conflicts: &mut Vec<SystemParamConflictKind>,
+    conflict: SystemParamConflictKind,
+) {
+    if !conflicts.contains(&conflict) {
+        conflicts.push(conflict);
     }
 }
 

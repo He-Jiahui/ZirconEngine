@@ -84,8 +84,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_reference.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_report.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_app/src/entry/entry_config.rs
@@ -701,6 +706,11 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_reference.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_report.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
@@ -1132,6 +1142,8 @@ plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
   - user: 2026-05-18 continue M7A runtime UI placement in the product pipeline
+  - user: 2026-05-18 continue SRP RendererData zshader/zmaterial workflow
+  - docs/superpowers/plans/2026-05-18-srp-rendererdata-zmaterial-workflow.md
 tests:
   - "M0 docs acceptance only: no runtime tests required by plan"
   - cargo test -p zircon_runtime render_profile --locked
@@ -1139,6 +1151,10 @@ tests:
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 render_graph::tests -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 graph_execution -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 pipeline_compile -- --nocapture
+  - cargo test -p zircon_runtime --locked renderer_data_asset --jobs 1 --message-format short --color never (2026-05-20 SRP RendererData M2: 9 focused tests passed with CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1)
+  - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never (2026-05-20 SRP RendererData M2: 39 focused tests passed with CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1)
+  - cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never (2026-05-20 SRP RendererData M2: 74 runtime lib tests plus 1 matching integration test passed with CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never (2026-05-20 SRP RendererData M2: passed with CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1)
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 render_framework_bridge -- --nocapture
   - cargo test -p zircon_runtime --lib disabled_advanced_features_do_not_carry_previous_runtime_states --locked --jobs 1
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
@@ -1396,6 +1412,14 @@ Focused M7A validation passed on 2026-05-18 using `CARGO_TARGET_DIR=target/codex
 The direct-surface damage companion validation also passed and was revalidated on 2026-05-19 with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage`: `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never` (50 passed) and `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` (5 passed). The broader regression guards also pass: `cargo test -p zircon_runtime --lib material_button_style --locked --jobs 1 --message-format short --color never` (4 passed) and `cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never` (6 passed). The current checkout needs the already-present `RenderMaterialDiagnosticSource` re-export from the render root for these scoped checks to compile. The Material painter guard samples the FAB shadow on a non-black test background so half-transparent shadow output is distinguishable from the default black frame.
 
 Workspace expansion on 2026-05-19 passed the previous `zircon_app` linked-plugin blocker and then exposed an unrelated `.zmaterial` source-rewrite blocker in the material asset pipeline. The failing asset watcher/reimport tests mutated `MaterialAsset.base_color`, but serialization preserved the old `overrides.base_color`, so source bytes and resource revisions did not change. That lower shared serialization bug was fixed after the M7A/damage path was already green. The focused material serialization test passed, the asset manager pipeline filter passed 9/9, `cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1` passed 1634/1634, and the final `cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage`.
+
+## 2026-05-18 SRP RendererData Shader/Material Contract
+
+The SRP asset layer now has a Unity-style `RendererDataDocument` surface for renderer stages, feature entries, enabled state, quality gates, local feature config, and feature-local shader/material contract references. The document converts into the existing `RendererAsset` and `RendererFeatureAsset` graph declarations without changing default pipeline graph execution, so product profiles still choose Core2d, Forward+, Deferred, and advanced feature participation through the existing pipeline compile path.
+
+Shader and material authoring truth stays in `.zshader` and `.zmaterial` runtime assets. `RenderPipelineAsset::compile_with_asset_context(...)` resolves feature shader/material references through an abstract `RenderPipelineAssetContext`, delegates hard graph validation to `compile_with_options(...)`, and returns a `RenderPipelineCompileReport` with non-fatal `RendererFeatureContractDiagnostic` rows for missing assets, material-shader mismatches, missing entry points, missing properties, missing texture slots, material-local validation errors, stored material diagnostics, material shader-contract validation errors, and shader validation diagnostics. Descriptor, stage, phase, resource, and core-pipeline graph errors remain hard compile failures.
+
+This deliberately stops before GPU behavior. The compile report does not prewarm GPU resources, compile shader variants, specialize WGPU pipelines, mutate material draw paths, add ShaderGraph/VFX graph behavior, or expose a real GPU preview. The workflow is documented in [SRP RendererData Documents](../zircon_runtime/graphics/srp-renderer-data.md), and scoped 2026-05-20 validation covered `renderer_data_asset` (10 focused tests), `pipeline_compile` (39 focused tests), `material` (75 runtime lib tests plus 1 matching integration test), `cargo check -p zircon_runtime --lib`, `cargo test -p zircon_editor --lib material_editor` (8 focused tests), `cargo check -p zircon_editor --lib`, and `cargo fmt --all --check`. Warnings remained outside this lane: the pre-existing `entity_ids_matching_query_archetypes` dead-code warning and editor sprite-atlas unused-item warnings.
 
 ## 2026-05-18 M8A Anti-Alias Product Surface
 

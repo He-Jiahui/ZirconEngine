@@ -1,10 +1,14 @@
 use std::collections::BTreeMap;
 
+use crate::asset::AssetReference;
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
 };
 
-use super::renderer_feature_source::RendererFeatureSource;
+use super::{
+    renderer_feature_reference::RendererFeatureAssetReferences,
+    renderer_feature_source::RendererFeatureSource,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RendererFeatureAsset {
@@ -14,6 +18,7 @@ pub struct RendererFeatureAsset {
     pub quality_gate: Option<BuiltinRenderFeature>,
     pub capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub descriptor_override: Option<RenderFeatureDescriptor>,
+    pub asset_references: RendererFeatureAssetReferences,
 }
 
 impl RendererFeatureAsset {
@@ -25,6 +30,7 @@ impl RendererFeatureAsset {
             quality_gate: Some(feature),
             capability_requirements: Vec::new(),
             descriptor_override: None,
+            asset_references: RendererFeatureAssetReferences::default(),
         }
     }
 
@@ -43,6 +49,7 @@ impl RendererFeatureAsset {
             quality_gate: None,
             capability_requirements: Vec::new(),
             descriptor_override: Some(descriptor),
+            asset_references: RendererFeatureAssetReferences::default(),
         }
     }
 
@@ -114,6 +121,37 @@ impl RendererFeatureAsset {
 
     pub fn without_descriptor_override(mut self) -> Self {
         self.descriptor_override = None;
+        self
+    }
+
+    pub fn with_shader_reference(mut self, reference: AssetReference) -> Self {
+        self.asset_references.shader = Some(reference);
+        self
+    }
+
+    pub fn with_material_reference(mut self, reference: AssetReference) -> Self {
+        self.asset_references.material = Some(reference);
+        self
+    }
+
+    pub fn with_required_entry_point(mut self, entry_point: impl Into<String>) -> Self {
+        self.asset_references
+            .required_entry_points
+            .push(entry_point.into());
+        self
+    }
+
+    pub fn with_expected_property(mut self, property: impl Into<String>) -> Self {
+        self.asset_references
+            .expected_properties
+            .push(property.into());
+        self
+    }
+
+    pub fn with_expected_texture_slot(mut self, slot: impl Into<String>) -> Self {
+        self.asset_references
+            .expected_texture_slots
+            .push(slot.into());
         self
     }
 }

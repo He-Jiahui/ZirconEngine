@@ -4,7 +4,10 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
-use crate::asset::{AssetUri, ImportedAsset};
+use crate::asset::{
+    AssetUri, ImportedAsset, TextureAsset, TextureUploadCompressionFamily, TextureUploadReadiness,
+    TextureUploadSupport,
+};
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
     RenderSamplerAddressMode, RenderSamplerFilter,
@@ -452,6 +455,109 @@ fn importer_texture_fixture_rejects_invalid_array_layout() {
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn texture_upload_readiness_reports_compressed_container_support() {
+    let uri = AssetUri::parse("res://textures/bc1.dds").unwrap();
+    let mut bytes = vec![0_u8; 128];
+    bytes.extend_from_slice(&[1_u8; 8]);
+    let texture = TextureAsset::new_container(uri, 4, 4, "dds/DXT1", bytes, 1, 1);
+
+    let unsupported = texture.upload_readiness(TextureUploadSupport::uncompressed_only());
+    assert_eq!(
+        unsupported.unsupported_reason(),
+        Some("gpu device does not support BC compressed textures")
+    );
+
+    match texture.upload_readiness(TextureUploadSupport {
+        bc: true,
+        ..TextureUploadSupport::uncompressed_only()
+    }) {
+        TextureUploadReadiness::Ready { plan } => {
+            assert_eq!(plan.compression, TextureUploadCompressionFamily::Bc);
+            assert_eq!(plan.data_offset, 128);
+            assert_eq!(plan.bytes_per_block, 8);
+        }
+        other => panic!("expected BC upload-ready texture, got {other:?}"),
+    }
+}
+
+#[test]
+fn texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload_exists() {
+    let mut bytes = vec![0_u8; 128];
+    bytes.extend_from_slice(&[1_u8; 8]);
+    let support = TextureUploadSupport {
+        bc: true,
+        ..TextureUploadSupport::uncompressed_only()
+    };
+
+    let mip_chain = TextureAsset::new_container(
+        AssetUri::parse("res://textures/bc1-mips.dds").unwrap(),
+        4,
+        4,
+        "dds/DXT1",
+        bytes.clone(),
+        2,
+        1,
+    );
+    assert_eq!(
+        mip_chain.upload_readiness(support).unsupported_reason(),
+        Some("compressed texture mip-chain upload is not implemented")
+    );
+
+    let array_layers = TextureAsset::new_container(
+        AssetUri::parse("res://textures/bc1-array.dds").unwrap(),
+        4,
+        4,
+        "dds/DXT1",
+        bytes,
+        1,
+        6,
+    );
+    assert_eq!(
+        array_layers.upload_readiness(support).unsupported_reason(),
+        Some("compressed texture array/cubemap upload is not implemented")
+    );
+}
+
+#[test]
+fn texture_upload_readiness_reports_supercompression_and_astc_3d_boundaries() {
+    let ktx2 = TextureAsset::new_container(
+        AssetUri::parse("res://textures/super.ktx2").unwrap(),
+        4,
+        4,
+        "ktx2/vk-37/supercompression-1",
+        vec![0; 96],
+        1,
+        1,
+    );
+    assert_eq!(
+        ktx2.upload_readiness(TextureUploadSupport::all_compressed())
+            .unsupported_reason(),
+        Some("ktx2 supercompression 1 requires a transcoding backend")
+    );
+
+    let mut astc_bytes = vec![0_u8; 16];
+    astc_bytes.extend_from_slice(&[1_u8; 16]);
+    let astc_3d = TextureAsset::new_container(
+        AssetUri::parse("res://textures/volume.astc").unwrap(),
+        4,
+        4,
+        "astc/4x4x4",
+        astc_bytes,
+        1,
+        1,
+    );
+    assert_eq!(
+        astc_3d
+            .upload_readiness(TextureUploadSupport {
+                astc_ldr: true,
+                ..TextureUploadSupport::uncompressed_only()
+            })
+            .unsupported_reason(),
+        Some("gpu device does not support ASTC sliced 3d textures")
+    );
 }
 
 fn tiny_jpeg_bytes() -> Vec<u8> {

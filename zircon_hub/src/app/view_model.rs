@@ -3,16 +3,15 @@ use std::path::Path;
 use slint::{ModelRc, SharedString, VecModel};
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::now_unix_ms;
+use crate::projects::{now_unix_ms, RecentProject};
 use crate::settings::{HubLanguage, HubSettings};
 use crate::state::{HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectViewMode};
 
 use super::localization;
-use super::quick_action::HubQuickAction;
 use super::{
     AssetData, CloudServiceData, CloudSummaryData, HeaderStatusData, LearnData, NavItemData,
-    PluginData, QuickActionData, SettingStatusData, SourceBuildHistoryRowData, SourceEngineData,
-    SourceEngineRowData, TeamData, TeamMemberData, UiTextData,
+    NavigationItem, PluginData, QuickActionData, SettingStatusData, SourceBuildHistoryRowData,
+    SourceEngineData, SourceEngineRowData, TeamData, TeamMemberData, UiTextData,
 };
 
 mod assets;
@@ -21,6 +20,7 @@ mod learn;
 mod media;
 mod plugins;
 mod projects;
+mod quick_actions;
 mod team;
 
 const PROJECT_CARD_LIMIT: usize = 12;
@@ -38,9 +38,12 @@ pub(super) use projects::{
     project_detail, project_engine_rows, project_list_rows, project_subpage_id, project_templates,
     recent_project_rows,
 };
-
 pub(super) fn model_from<T: Clone + 'static>(items: Vec<T>) -> ModelRc<T> {
     ModelRc::new(VecModel::from(items))
+}
+
+pub(super) fn quick_actions(snapshot: &HubSnapshot, language: HubLanguage) -> Vec<QuickActionData> {
+    quick_actions::quick_actions(snapshot, language)
 }
 
 pub(super) fn ui_text(language: HubLanguage) -> UiTextData {
@@ -74,64 +77,37 @@ pub(super) fn navigation_items(selected_page: HubPage, language: HubLanguage) ->
     .collect()
 }
 
-pub(super) fn quick_actions(language: HubLanguage) -> Vec<QuickActionData> {
-    [
-        (
-            HubQuickAction::BuildProject,
-            "/>",
-            localization::text(language, "Build Project", "构建项目"),
-            localization::text(
-                language,
-                "Build the configured source editor/runtime payload",
-                "构建已配置的编辑器/运行时源码产物",
-            ),
-        ),
-        (
-            HubQuickAction::InstallToDevice,
-            "[]",
-            localization::text(language, "Install to Device", "安装到设备"),
-            localization::text(
-                language,
-                "Copy the latest package into the configured device folder",
-                "复制最新包到已配置的设备目录",
-            ),
-        ),
-        (
-            HubQuickAction::PackageProject,
-            "{}",
-            localization::text(language, "Package Project", "打包项目"),
-            localization::text(
-                language,
-                "Stage the latest recent project into a package folder",
-                "将最近项目暂存为本地包目录",
-            ),
-        ),
-        (
-            HubQuickAction::OpenEditor,
-            "<>",
-            localization::text(language, "Open in Editor", "在编辑器中打开"),
-            localization::text(
-                language,
-                "Launch the editor without selecting a project",
-                "不选择项目直接启动编辑器",
-            ),
-        ),
-    ]
-    .into_iter()
-    .map(|(action, icon, title, detail)| {
-        let id = action.id();
-        let icon_image = media::quick_action_icon(id);
-        QuickActionData {
-            id: shared(id),
-            icon: shared(icon),
-            icon_image: icon_image.clone().unwrap_or_default(),
-            has_icon_image: icon_image.is_some(),
-            title,
-            detail,
-            enabled: true,
-        }
-    })
-    .collect()
+pub(super) fn material_navigation_items(items: &[NavItemData]) -> Vec<NavigationItem> {
+    items
+        .iter()
+        .map(|item| NavigationItem {
+            icon: item.icon_image.clone(),
+            selected_icon: item.icon_image.clone(),
+            text: item.title.clone(),
+            show_badge: false,
+            badge: SharedString::default(),
+        })
+        .collect()
+}
+
+pub(super) fn selected_nav_index(items: &[NavItemData]) -> i32 {
+    items
+        .iter()
+        .position(|item| item.active)
+        .map(|index| index as i32)
+        .unwrap_or_default()
+}
+
+fn project_display_name(project: &RecentProject) -> String {
+    if project.display_name.trim().is_empty() {
+        return project
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Zircon Project")
+            .to_string();
+    }
+    project.display_name.clone()
 }
 
 pub(super) fn plugin_items(snapshot: &HubSnapshot) -> Vec<PluginData> {

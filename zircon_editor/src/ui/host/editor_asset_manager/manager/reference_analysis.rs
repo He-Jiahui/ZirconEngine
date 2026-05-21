@@ -66,6 +66,7 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         | ImportedAsset::Texture(_)
         | ImportedAsset::Shader(_)
         | ImportedAsset::Model(_)
+        | ImportedAsset::Mesh(_)
         | ImportedAsset::Sound(_)
         | ImportedAsset::Font(_)
         | ImportedAsset::PhysicsMaterial(_)

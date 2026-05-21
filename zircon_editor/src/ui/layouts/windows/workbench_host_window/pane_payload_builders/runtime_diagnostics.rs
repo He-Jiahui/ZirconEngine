@@ -21,6 +21,8 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
             )
         })
         .unwrap_or_else(|| (EditorUiDebugReflectorModel::no_active_surface(), Vec::new()));
+    let reflector_sections = reflector.section_display_lines();
+    let reflector_nodes = reflector.nodes.into_iter().map(|node| node.label).collect();
 
     PanePayload::RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload {
         summary: summary(&diagnostics),
@@ -29,8 +31,9 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
         animation_status: animation_status(&diagnostics),
         detail_items: detail_items(&diagnostics),
         ui_debug_reflector_summary: reflector.summary.title,
-        ui_debug_reflector_nodes: reflector.nodes.into_iter().map(|node| node.label).collect(),
+        ui_debug_reflector_nodes: reflector_nodes,
         ui_debug_reflector_details: reflector.details,
+        ui_debug_reflector_sections: reflector_sections,
         ui_debug_reflector_export_status: reflector.summary.export_status,
         ui_debug_reflector_overlay_primitives: overlay_primitives,
         ui_debug_reflector_has_active_snapshot: active_ui_debug_snapshot.is_some(),

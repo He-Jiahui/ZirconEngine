@@ -1,6 +1,6 @@
 use crate::asset::{
-    AlphaMode, AssetReference, AssetUri, AssetUuid, MaterialAsset, ShaderAsset,
-    ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
+    AlphaMode, AssetReference, AssetUri, AssetUuid, MaterialAsset, MaterialTextureSlotValue,
+    ShaderAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
 };
 use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialValidationError,
@@ -260,6 +260,13 @@ url = "res://textures/extra.png"
                 && path == "textures.unknown_slot"
                 && slot == "unknown_slot"
     )));
+    assert!(diagnostics.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::MissingRequiredProperty { source, path, name }
+            if *source == RenderMaterialDiagnosticSource::ShaderSchema
+                && path == "overrides.emissive_power"
+                && name == "emissive_power"
+    )));
     assert!(!diagnostics.iter().any(|error| matches!(
         error,
         RenderMaterialValidationError::UnresolvedTextureReference { slot, .. }
@@ -268,6 +275,49 @@ url = "res://textures/extra.png"
     assert!(!report.is_ready());
     assert_eq!(report.validation_errors.len(), diagnostics.len());
     assert!(report.fallback_usages.is_empty());
+}
+
+#[test]
+fn shader_declared_texture_slot_overrides_standard_material_bridge() {
+    let legacy = AssetReference::new(
+        AssetUuid::from_stable_label("legacy-base-color"),
+        AssetUri::parse("res://textures/legacy.png").unwrap(),
+    );
+    let shader_driven = AssetReference::new(
+        AssetUuid::from_stable_label("shader-albedo"),
+        AssetUri::parse("res://textures/albedo.png").unwrap(),
+    );
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/custom.zshader"
+"#,
+    )
+    .unwrap();
+    material.base_color_texture = Some(legacy.clone());
+    material.texture_slots.insert(
+        "albedo".to_string(),
+        MaterialTextureSlotValue::new(shader_driven.clone()),
+    );
+    let mut shader = shader_contract();
+    shader.texture_slots = vec![ShaderTextureSlotAsset {
+        name: "albedo".to_string(),
+        kind: "texture2d".to_string(),
+        default: None,
+        sampler: None,
+        group: None,
+        label: None,
+        editor: Default::default(),
+    }];
+
+    let legacy_descriptor = material.standard_material_descriptor();
+    let shader_descriptor = material.standard_material_descriptor_for_shader(&shader);
+
+    assert_eq!(legacy_descriptor.base_color_texture, Some(legacy));
+    assert_eq!(shader_descriptor.base_color_texture, Some(shader_driven));
 }
 
 fn shader_contract() -> ShaderAsset {
@@ -280,13 +330,22 @@ fn shader_contract() -> ShaderAsset {
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
-        property_schema: vec![ShaderMaterialPropertyAsset {
-            name: "base_color".to_string(),
-            kind: "vec4".to_string(),
-            required: true,
-            default: None,
-            editor: Default::default(),
-        }],
+        property_schema: vec![
+            ShaderMaterialPropertyAsset {
+                name: "base_color".to_string(),
+                kind: "vec4".to_string(),
+                required: true,
+                default: None,
+                editor: Default::default(),
+            },
+            ShaderMaterialPropertyAsset {
+                name: "emissive_power".to_string(),
+                kind: "float".to_string(),
+                required: true,
+                default: None,
+                editor: Default::default(),
+            },
+        ],
         texture_slots: vec![ShaderTextureSlotAsset {
             name: "base_color".to_string(),
             kind: "texture2d".to_string(),

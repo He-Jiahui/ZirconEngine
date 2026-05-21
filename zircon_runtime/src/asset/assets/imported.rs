@@ -3,10 +3,10 @@ use serde::{Deserialize, Serialize};
 use super::{
     ui_v2_asset_references, AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset,
     AnimationSkeletonAsset, AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset,
-    MaterialGraphAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
-    PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
-    TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset,
-    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    MaterialGraphAsset, MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset,
+    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
+    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::asset::AssetReference;
 
@@ -29,6 +29,7 @@ pub enum ImportedAsset {
     Prefab(PrefabAsset),
     Scene(SceneAsset),
     Model(ModelAsset),
+    Mesh(MeshAsset),
     AnimationSkeleton(AnimationSkeletonAsset),
     AnimationClip(AnimationClipAsset),
     AnimationSequence(AnimationSequenceAsset),
@@ -83,6 +84,7 @@ pub fn asset_kind_for_imported_asset(imported: &ImportedAsset) -> crate::asset::
         ImportedAsset::Prefab(_) => crate::asset::AssetKind::Prefab,
         ImportedAsset::Scene(_) => crate::asset::AssetKind::Scene,
         ImportedAsset::Model(_) => crate::asset::AssetKind::Model,
+        ImportedAsset::Mesh(_) => crate::asset::AssetKind::Mesh,
         ImportedAsset::AnimationSkeleton(_) => crate::asset::AssetKind::AnimationSkeleton,
         ImportedAsset::AnimationClip(_) => crate::asset::AssetKind::AnimationClip,
         ImportedAsset::AnimationSequence(_) => crate::asset::AssetKind::AnimationSequence,

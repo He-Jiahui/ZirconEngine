@@ -24,8 +24,10 @@ impl World {
             mesh: self.mesh_renderers.get(&entity).cloned(),
             sprite_2d: self.sprite_2d.get(&entity).cloned(),
             mesh_2d: self.mesh_2d.get(&entity).cloned(),
+            ambient_light: self.ambient_lights.get(&entity).cloned(),
             directional_light: self.directional_lights.get(&entity).cloned(),
             point_light: self.point_lights.get(&entity).cloned(),
+            rect_light: self.rect_lights.get(&entity).cloned(),
             spot_light: self.spot_lights.get(&entity).cloned(),
             active: self.active_self.get(&entity).copied().unwrap_or_default().0,
             render_layer_mask: self
@@ -91,11 +93,17 @@ impl World {
         if let Some(mesh_2d) = record.mesh_2d {
             self.mesh_2d.insert(record.id, mesh_2d);
         }
+        if let Some(ambient_light) = record.ambient_light {
+            self.ambient_lights.insert(record.id, ambient_light);
+        }
         if let Some(directional_light) = record.directional_light {
             self.directional_lights.insert(record.id, directional_light);
         }
         if let Some(point_light) = record.point_light {
             self.point_lights.insert(record.id, point_light);
+        }
+        if let Some(rect_light) = record.rect_light {
+            self.rect_lights.insert(record.id, rect_light);
         }
         if let Some(spot_light) = record.spot_light {
             self.spot_lights.insert(record.id, spot_light);

@@ -59,6 +59,31 @@ async fn send_http_request(
     request: NetHttpRequestDescriptor,
 ) -> Result<NetHttpResponseDescriptor, NetError> {
     validate_http_security_policy(&request)?;
+    let max_attempts = request.max_retry_attempts.saturating_add(1);
+    let mut attempt = 0;
+    let mut last_error = None;
+    while attempt < max_attempts {
+        match send_http_request_once(&request).await {
+            Ok(response)
+                if response_is_retryable(response.status_code) && attempt + 1 < max_attempts =>
+            {
+                attempt += 1;
+                continue;
+            }
+            Ok(response) => return Ok(response),
+            Err(error) if attempt + 1 < max_attempts => {
+                last_error = Some(error);
+                attempt += 1;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| NetError::Io("HTTP retry attempts exhausted".to_string())))
+}
+
+async fn send_http_request_once(
+    request: &NetHttpRequestDescriptor,
+) -> Result<NetHttpResponseDescriptor, NetError> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_millis(request.timeout_ms))
         .use_rustls_tls()
@@ -94,6 +119,10 @@ async fn send_http_request(
     let mut response = NetHttpResponseDescriptor::new(request.request, status_code, body);
     response.headers = headers;
     Ok(response)
+}
+
+fn response_is_retryable(status_code: u16) -> bool {
+    matches!(status_code, 408 | 425 | 429 | 500 | 502 | 503 | 504)
 }
 
 fn validate_http_security_policy(request: &NetHttpRequestDescriptor) -> Result<(), NetError> {

@@ -128,13 +128,76 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     let window_descriptor = WindowDescriptor::default()
         .with_primary_window(PrimaryWindowHandle::new(7))
         .with_title("Prelude Window")
-        .with_present_mode(WindowPresentMode::Fifo);
+        .with_present_mode(WindowPresentMode::Fifo)
+        .with_position(WindowPosition::CenteredOn(WindowMonitorSelection::Primary))
+        .with_mode(WindowMode::FullscreenOn {
+            monitor: WindowMonitorSelection::Index(0),
+            video_mode: WindowVideoModeSelection::Specific(
+                WindowVideoMode::new(1920, 1080).with_refresh_rate_millihertz(60_000),
+            ),
+        });
+    let window_lifecycle_policy =
+        WindowLifecyclePolicy::default().with_exit_condition(WindowExitCondition::DontExit);
     let window_event = WindowStatusEvent::ThemeChanged(WindowTheme::Light);
     let module_names = [PlatformModule.module_name(), InputModule.module_name()];
 
     assert_eq!(
         report.window_backend,
         CapabilityStatus::Supported(WindowBackend::Winit)
+    );
+    assert_eq!(
+        report.monitor_inventory,
+        CapabilityStatus::Supported(MonitorBackend::WinitMonitorHandles)
+    );
+    assert_eq!(
+        report.window_events,
+        CapabilityStatus::Supported(WindowEventBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.window_lifecycle,
+        CapabilityStatus::Supported(WindowLifecycleBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.window_metrics,
+        CapabilityStatus::Supported(WindowMetricsBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.ime,
+        CapabilityStatus::Supported(ImeBackend::WinitIme)
+    );
+    assert_eq!(
+        report.keyboard_events,
+        CapabilityStatus::Supported(KeyboardEventBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.cursor_boundary,
+        CapabilityStatus::Supported(CursorBoundaryBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.cursor_options,
+        CapabilityStatus::Unavailable {
+            reason: "desktop cursor options host-request backend is not implemented yet"
+        }
+    );
+    assert_eq!(
+        report.mouse_buttons,
+        CapabilityStatus::Supported(MouseButtonBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.mouse_wheel,
+        CapabilityStatus::Supported(MouseWheelBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.touch_events,
+        CapabilityStatus::Supported(TouchEventBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.pointer_position,
+        CapabilityStatus::Supported(PointerPositionBackend::WinitWindowEvents)
+    );
+    assert_eq!(
+        report.raw_mouse_motion,
+        CapabilityStatus::Supported(RawMouseMotionBackend::WinitDeviceEvents)
     );
     assert_eq!(report.event_loop_policy, EventLoopPolicy::Game);
     assert_eq!(
@@ -146,6 +209,16 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
         CapabilityStatus::Supported(GamepadBackend::Gilrs)
     );
     assert_eq!(
+        report.gamepad_events,
+        CapabilityStatus::Supported(GamepadEventBackend::GilrsEventPolling)
+    );
+    assert_eq!(
+        report.gamepad_rumble,
+        CapabilityStatus::Unavailable {
+            reason: "desktop gamepad rumble host backend is not implemented yet"
+        }
+    );
+    assert_eq!(
         report.file_drag_drop,
         CapabilityStatus::Supported(FileDragDropBackend::WinitWindowEvents)
     );
@@ -155,11 +228,24 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     assert_eq!(DEFAULT_WINDOW_TITLE, "Zircon Runtime");
     assert_eq!(window_descriptor.title, "Prelude Window");
     assert_eq!(window_descriptor.primary_window.unwrap().raw(), 7);
-    assert_eq!(window_descriptor.mode, WindowMode::Windowed);
-    assert_eq!(window_descriptor.position, WindowPosition::Automatic);
+    assert_eq!(
+        window_descriptor.mode,
+        WindowMode::FullscreenOn {
+            monitor: WindowMonitorSelection::Index(0),
+            video_mode: WindowVideoModeSelection::Specific(
+                WindowVideoMode::new(1920, 1080).with_refresh_rate_millihertz(60_000),
+            ),
+        }
+    );
+    assert_eq!(
+        window_descriptor.position,
+        WindowPosition::CenteredOn(WindowMonitorSelection::Primary)
+    );
     assert_eq!(window_descriptor.present_mode, WindowPresentMode::Fifo);
     assert_eq!(WindowResolution::default().physical_size().x, 1280);
     assert_eq!(WindowResizeConstraints::default().min_width, 180.0);
+    assert!(window_lifecycle_policy.should_close_on_request());
+    assert!(!window_lifecycle_policy.should_exit_after_primary_close());
     assert_eq!(
         PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
         "runtime.window.primary_descriptor"

@@ -6,8 +6,10 @@ use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadat
 use crate::core::framework::render::{
     ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderViewportRect,
 };
-use crate::core::math::{UVec2, Vec3};
-use crate::scene::components::{CameraComponent, ColliderShape, JointKind, RigidBodyType};
+use crate::core::math::{UVec2, Vec2, Vec3};
+use crate::scene::components::{
+    AmbientLight, CameraComponent, ColliderShape, JointKind, RectLight, RigidBodyType,
+};
 
 use crate::scene::components::NodeKind;
 use crate::scene::world::World;
@@ -290,6 +292,87 @@ fn scene_assets_roundtrip_camera_product_fields() {
     assert!(!loaded_camera.is_active);
     assert!(loaded_camera.hdr);
     assert_eq!(loaded_camera.clear_color, RenderCameraClearColor::None);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
+    let root = unique_temp_project_root("scene_light_products");
+    let project = create_test_project(&root);
+    let mut world = World::load_scene_from_uri(
+        &project,
+        &AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+    )
+    .unwrap();
+
+    let ambient = world.spawn_node(NodeKind::AmbientLight);
+    world
+        .set_ambient_light(
+            ambient,
+            Some(AmbientLight {
+                color: Vec3::new(0.2, 0.25, 0.3),
+                intensity: 96.0,
+                affects_lightmapped_meshes: false,
+            }),
+        )
+        .unwrap();
+
+    let rect = world.spawn_node(NodeKind::RectLight);
+    world
+        .set_rect_light(
+            rect,
+            Some(RectLight {
+                color: Vec3::new(1.0, 0.72, 0.35),
+                intensity: 72_000.0,
+                range: 18.0,
+                size: Vec2::new(3.5, 1.5),
+            }),
+        )
+        .unwrap();
+
+    let saved = world.to_scene_asset(&project).unwrap();
+    let saved_ambient = saved
+        .entities
+        .iter()
+        .find(|entity| entity.entity == ambient)
+        .and_then(|entity| entity.ambient_light.as_ref())
+        .unwrap();
+    assert_eq!(saved_ambient.color, [0.2, 0.25, 0.3]);
+    assert_eq!(saved_ambient.intensity, 96.0);
+    assert!(!saved_ambient.affects_lightmapped_meshes);
+
+    let saved_rect = saved
+        .entities
+        .iter()
+        .find(|entity| entity.entity == rect)
+        .and_then(|entity| entity.rect_light.as_ref())
+        .unwrap();
+    assert_eq!(saved_rect.color, [1.0, 0.72, 0.35]);
+    assert_eq!(saved_rect.intensity, 72_000.0);
+    assert_eq!(saved_rect.range, 18.0);
+    assert_eq!(saved_rect.size, [3.5, 1.5]);
+
+    let loaded = World::from_scene_asset(&project, &saved).unwrap();
+    assert!(matches!(
+        loaded.find_node(ambient).unwrap().kind,
+        NodeKind::AmbientLight
+    ));
+    assert_eq!(
+        loaded.ambient_light(ambient).unwrap().color,
+        Vec3::new(0.2, 0.25, 0.3)
+    );
+    assert!(
+        !loaded
+            .ambient_light(ambient)
+            .unwrap()
+            .affects_lightmapped_meshes
+    );
+    assert!(matches!(
+        loaded.find_node(rect).unwrap().kind,
+        NodeKind::RectLight
+    ));
+    assert_eq!(loaded.rect_light(rect).unwrap().size, Vec2::new(3.5, 1.5));
 
     let _ = fs::remove_dir_all(root);
 }

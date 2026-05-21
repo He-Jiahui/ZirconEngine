@@ -7,10 +7,10 @@ use super::super::World;
 use super::value_conversion::{
     axis_index, expect_animation_parameter, expect_bool, expect_enum, expect_quat,
     expect_resource_id, expect_scalar, expect_segment, expect_segment_count, expect_string,
-    expect_u32, expect_vec3, expect_vec4, missing_component_error, normalized_identifier,
-    parse_combine_rule, parse_joint_kind, parse_mobility, parse_rigid_body_type,
-    property_type_error, quat_axis_index, set_animation_player_like_property,
-    unknown_property_error, validate_quat_array,
+    expect_u32, expect_vec2, expect_vec3, expect_vec4, missing_component_error,
+    normalized_identifier, parse_combine_rule, parse_joint_kind, parse_mobility,
+    parse_rigid_body_type, property_type_error, quat_axis_index,
+    set_animation_player_like_property, unknown_property_error, validate_quat_array,
 };
 
 impl World {
@@ -142,6 +142,37 @@ impl World {
                 self.mark_node_cache_dirty();
                 Ok(true)
             }
+            "ambientlight" => {
+                let Some(light) = self.ambient_lights.get_mut(&entity) else {
+                    return missing_component_error(entity, property_path);
+                };
+                match segments.as_slice() {
+                    [field] if field == "color" => {
+                        let next = expect_vec3(value, property_path)?;
+                        if light.color == next {
+                            return Ok(false);
+                        }
+                        light.color = next;
+                    }
+                    [field] if field == "intensity" => {
+                        let next = expect_scalar(value, property_path)?;
+                        if light.intensity == next {
+                            return Ok(false);
+                        }
+                        light.intensity = next;
+                    }
+                    [field] if field == "affectslightmappedmeshes" => {
+                        let next = expect_bool(value, property_path)?;
+                        if light.affects_lightmapped_meshes == next {
+                            return Ok(false);
+                        }
+                        light.affects_lightmapped_meshes = next;
+                    }
+                    _ => return unknown_property_error(property_path),
+                }
+                self.mark_node_cache_dirty();
+                Ok(true)
+            }
             "directionallight" | "light" => {
                 let Some(light) = self.directional_lights.get_mut(&entity) else {
                     return missing_component_error(entity, property_path);
@@ -198,6 +229,44 @@ impl World {
                             return Ok(false);
                         }
                         light.range = next;
+                    }
+                    _ => return unknown_property_error(property_path),
+                }
+                self.mark_node_cache_dirty();
+                Ok(true)
+            }
+            "rectlight" => {
+                let Some(light) = self.rect_lights.get_mut(&entity) else {
+                    return missing_component_error(entity, property_path);
+                };
+                match segments.as_slice() {
+                    [field] if field == "color" => {
+                        let next = expect_vec3(value, property_path)?;
+                        if light.color == next {
+                            return Ok(false);
+                        }
+                        light.color = next;
+                    }
+                    [field] if field == "intensity" => {
+                        let next = expect_scalar(value, property_path)?;
+                        if light.intensity == next {
+                            return Ok(false);
+                        }
+                        light.intensity = next;
+                    }
+                    [field] if field == "range" => {
+                        let next = expect_scalar(value, property_path)?;
+                        if light.range == next {
+                            return Ok(false);
+                        }
+                        light.range = next;
+                    }
+                    [field] if field == "size" => {
+                        let next = expect_vec2(value, property_path)?;
+                        if light.size == next {
+                            return Ok(false);
+                        }
+                        light.size = next;
                     }
                     _ => return unknown_property_error(property_path),
                 }

@@ -181,6 +181,7 @@ fn asset_kind_label(kind: ResourceKind) -> &'static str {
         ResourceKind::Prefab => "Prefab",
         ResourceKind::Scene => "Scene",
         ResourceKind::Model => "Model",
+        ResourceKind::Mesh => "Mesh",
         ResourceKind::Sound => "Sound",
         ResourceKind::Font => "Font",
         ResourceKind::AnimationSkeleton => "AnimationSkeleton",

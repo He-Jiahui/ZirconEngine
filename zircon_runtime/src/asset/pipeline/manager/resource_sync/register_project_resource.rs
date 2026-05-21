@@ -36,6 +36,9 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
         ImportedAsset::Model(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
+        ImportedAsset::Mesh(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
         ImportedAsset::UiLayout(asset) => {
             resource_manager.register_ready(metadata, asset);
         }

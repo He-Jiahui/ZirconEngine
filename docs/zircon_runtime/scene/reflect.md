@@ -269,7 +269,7 @@ M10 extends `reflect/fixed` so `World::editor_projection` can be the editor view
 - `CameraComponent.fov_y_radians`, `z_near`, and `z_far` as editable scalar fields.
 - `MeshRenderer.model` and `material` as read-only resource fields, plus editable `tint: Vec4`.
 - `Mobility.kind` as an editable enum field using the existing runtime mobility validation path.
-- `DirectionalLight`, `PointLight`, and `SpotLight` authoring fields for color, direction, intensity, range, and spot cone angles.
+- `AmbientLight`, `DirectionalLight`, `PointLight`, `RectLight`, and `SpotLight` authoring fields. Ambient exposes color, intensity, and lightmap influence; rect exposes color, intensity, range, and size, with direction still derived from transform during render extraction.
 
 The editor crate maps these reflected type paths back to legacy command-compatible property paths such as `Transform.translation`, `Active.enabled`, `MeshRenderer.model`, and plugin paths like `weather.Component.CloudLayer.coverage`. This keeps the runtime reflection schema as the single field source while preserving editor command/history compatibility.
 

@@ -10,8 +10,10 @@ const PROJECT_FORMAT_VERSION: u32 = 1;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectManifest {
     pub name: String,
+    #[serde(default = "default_project_format_version")]
     pub format_version: u32,
     pub default_scene: AssetUri,
+    #[serde(alias = "schema_version")]
     pub library_version: u32,
     #[serde(default, skip_serializing_if = "ProjectPluginManifest::is_empty")]
     pub plugins: ProjectPluginManifest,
@@ -47,6 +49,10 @@ impl ProjectManifest {
         let document = toml::to_string_pretty(self).map_err(invalid_data)?;
         fs::write(path, document)
     }
+}
+
+fn default_project_format_version() -> u32 {
+    PROJECT_FORMAT_VERSION
 }
 
 fn invalid_data(error: impl std::error::Error) -> std::io::Error {

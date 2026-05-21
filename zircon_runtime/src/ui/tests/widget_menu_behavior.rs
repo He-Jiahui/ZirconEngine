@@ -4,7 +4,7 @@ use crate::ui::{
     tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
+    binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiDispatchDisposition, UiInputEvent, UiInputEventMetadata, UiInputSequence,
@@ -36,6 +36,7 @@ fn menu_item_pointer_activation_closes_nearest_popup() {
         event.node_id == UiNodeId::new(2)
             && matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
     }));
+    assert_widget_binding_report(&result.binding_reports);
 }
 
 #[test]
@@ -68,6 +69,7 @@ fn menu_item_keyboard_activation_closes_nearest_popup() {
     assert!(result.component_events.iter().any(|event| {
         event.target == UiNodeId::new(2) && matches!(&event.event, UiComponentEvent::ClosePopup)
     }));
+    assert_widget_binding_report(&result.binding_reports);
 }
 
 #[test]
@@ -98,13 +100,84 @@ fn escape_on_focused_menu_item_closes_nearest_popup_without_activation() {
     assert!(result.component_events.iter().any(|event| {
         event.target == UiNodeId::new(2) && matches!(&event.event, UiComponentEvent::ClosePopup)
     }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn outside_pointer_click_closes_open_popup_without_menu_item_activation() {
+    let mut surface = menu_surface();
+    let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
+
+    assert_popup_open(&surface, false);
+    assert!(result.component_events.iter().any(|event| {
+        event.node_id == UiNodeId::new(2)
+            && matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
+    }));
+    assert!(result.component_events.iter().all(|event| {
+        !matches!(
+            &event.envelope.event,
+            UiComponentEvent::Commit { property, .. } if property == "activated"
+        )
+    }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn outside_pointer_click_closes_topmost_popup_only() {
+    let mut surface = menu_surface();
+    insert_nested_popup(&mut surface);
+
+    let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
+
+    assert_popup_node_open(&surface, UiNodeId::new(2), true);
+    assert_popup_node_open(&surface, UiNodeId::new(4), false);
+    assert!(result.component_events.iter().any(|event| {
+        event.node_id == UiNodeId::new(4)
+            && matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
+    }));
+    assert!(result.component_events.iter().all(|event| {
+        event.node_id != UiNodeId::new(2)
+            || !matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
+    }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn pointer_click_inside_popup_empty_space_does_not_dismiss_popup() {
+    let mut surface = menu_surface();
+    let result = click_point(&mut surface, UiPoint::new(132.0, 70.0));
+
+    assert_popup_open(&surface, true);
+    assert!(result.binding_reports.is_empty());
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| { !matches!(&event.envelope.event, UiComponentEvent::ClosePopup) }));
+}
+
+fn assert_widget_binding_report(
+    reports: &[zircon_runtime_interface::ui::binding::UiBindingUpdateReport],
+) {
+    assert!(!reports.is_empty());
+    assert!(reports.iter().any(|report| {
+        report
+            .updates
+            .first()
+            .is_some_and(|update| update.source.kind == UiBindingSourceKind::WidgetBehavior)
+    }));
 }
 
 fn click_menu_item(
     surface: &mut UiSurface,
 ) -> zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult {
+    click_point(surface, UiPoint::new(22.0, 28.0))
+}
+
+fn click_point(
+    surface: &mut UiSurface,
+    point: UiPoint,
+) -> zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult {
     let dispatcher = UiPointerDispatcher::default();
-    let point = UiPoint::new(22.0, 28.0);
     surface
         .dispatch_pointer_event(
             &dispatcher,
@@ -173,10 +246,41 @@ fn menu_surface() -> UiSurface {
     surface
 }
 
+fn insert_nested_popup(surface: &mut UiSurface) {
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(2),
+            UiTreeNode::new(UiNodeId::new(4), UiNodePath::new("root/popup/nested"))
+                .with_frame(UiFrame::new(72.0, 40.0, 76.0, 40.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(container_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "NestedMenuPopup".to_string(),
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(true))]
+                        .into_iter()
+                        .collect(),
+                    bindings: vec![binding("NestedMenuPopup/ClosePopup", UiEventKind::Click)],
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Popup,
+                        open_property: Some("popup_open".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+}
+
 fn assert_popup_open(surface: &UiSurface, expected: bool) {
+    assert_popup_node_open(surface, UiNodeId::new(2), expected);
+}
+
+fn assert_popup_node_open(surface: &UiSurface, node_id: UiNodeId, expected: bool) {
     let metadata = surface
         .tree
-        .node(UiNodeId::new(2))
+        .node(node_id)
         .unwrap()
         .template_metadata
         .as_ref()

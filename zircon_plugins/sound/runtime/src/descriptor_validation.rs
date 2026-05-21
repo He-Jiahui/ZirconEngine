@@ -44,6 +44,14 @@ pub(crate) fn validate_source_descriptor_for_tracks(
             "source gain must be finite".to_string(),
         ));
     }
+    if !source.speed.is_finite() || source.speed <= 0.0 {
+        return Err(SoundError::InvalidParameter(
+            "source speed must be finite and greater than zero".to_string(),
+        ));
+    }
+    validate_optional_seconds("source start seconds", source.start_seconds)?;
+    validate_optional_seconds("source duration seconds", source.duration_seconds)?;
+    validate_source_clip_range(state, source)?;
     validate_vec3("source position", source.position)?;
     validate_vec3("source forward", source.forward)?;
     validate_vec3("source velocity", source.velocity)?;
@@ -64,6 +72,47 @@ pub(crate) fn validate_source_descriptor_for_tracks(
         if !track_ids.contains(&send.target) {
             return Err(SoundError::UnknownTrack { track: send.target });
         }
+    }
+    Ok(())
+}
+
+fn validate_optional_seconds(label: &str, seconds: Option<f32>) -> Result<(), SoundError> {
+    let Some(seconds) = seconds else {
+        return Ok(());
+    };
+    if !seconds.is_finite() || seconds < 0.0 {
+        return Err(SoundError::InvalidParameter(format!(
+            "{label} must be finite and non-negative"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_source_clip_range(
+    state: &SoundEngineState,
+    source: &SoundSourceDescriptor,
+) -> Result<(), SoundError> {
+    let SoundSourceInput::Clip(clip_id) = &source.input else {
+        return Ok(());
+    };
+    let Some(duration_seconds) = source.duration_seconds else {
+        return Ok(());
+    };
+    let Some(clip) = state.clips.get(clip_id) else {
+        return Ok(());
+    };
+    let frame_count = clip.asset.frame_count();
+    let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
+    let start_frame = (source.start_seconds.unwrap_or_default() * sample_rate)
+        .round()
+        .max(0.0) as usize;
+    let duration_frames = (duration_seconds * sample_rate).round().max(0.0) as usize;
+    let start_frame = start_frame.min(frame_count);
+    let end_frame = start_frame.saturating_add(duration_frames).min(frame_count);
+    if end_frame <= start_frame {
+        return Err(SoundError::InvalidParameter(
+            "source duration must cover at least one frame".to_string(),
+        ));
     }
     Ok(())
 }
@@ -254,8 +303,10 @@ fn is_supported_source_parameter_binding(parameter: &str) -> bool {
     matches!(
         parameter,
         "gain"
+            | "speed"
             | "playing"
             | "looped"
+            | "muted"
             | "position_x"
             | "position_y"
             | "position_z"
@@ -266,6 +317,7 @@ fn is_supported_source_parameter_binding(parameter: &str) -> bool {
             | "velocity_y"
             | "velocity_z"
             | "spatial_blend"
+            | "spatial_scale"
             | "min_distance"
             | "max_distance"
             | "cone_inner_degrees"
@@ -282,6 +334,9 @@ fn validate_spatial_settings(source: &SoundSourceDescriptor) -> Result<(), Sound
         || !spatial.max_distance.is_finite()
         || spatial.min_distance < 0.0
         || spatial.max_distance < spatial.min_distance
+        || spatial
+            .spatial_scale
+            .is_some_and(|scale| !scale.is_finite() || scale < 0.0)
         || !spatial.cone_inner_degrees.is_finite()
         || !spatial.cone_outer_degrees.is_finite()
         || spatial.cone_inner_degrees < 0.0

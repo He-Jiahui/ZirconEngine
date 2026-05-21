@@ -42,7 +42,7 @@ impl SceneUniform {
                     render_vec3_or(light.color * light.intensity, RenderVec3::splat(1.8))
                         .extend(1.0)
                         .to_array(),
-                    RenderVec3::splat(0.22).extend(1.0).to_array(),
+                    authored_ambient_color(frame, RenderVec3::splat(0.22)),
                 )
             } else {
                 (
@@ -51,7 +51,7 @@ impl SceneUniform {
                         .extend(0.0)
                         .to_array(),
                     RenderVec3::splat(1.8).extend(1.0).to_array(),
-                    RenderVec3::splat(0.2).extend(1.0).to_array(),
+                    authored_ambient_color(frame, RenderVec3::splat(0.2)),
                 )
             }
         } else {
@@ -68,5 +68,102 @@ impl SceneUniform {
             light_color,
             ambient_color,
         }
+    }
+}
+
+fn authored_ambient_color(
+    frame: &crate::graphics::types::ViewportRenderFrame,
+    fallback: RenderVec3,
+) -> [f32; 4] {
+    if frame.ambient_lights().is_empty() {
+        return fallback.extend(1.0).to_array();
+    }
+
+    frame
+        .ambient_lights()
+        .iter()
+        .fold(RenderVec3::ZERO, |accumulated, light| {
+            accumulated + render_vec3_or(light.color * light.intensity, RenderVec3::ZERO)
+        })
+        .extend(1.0)
+        .to_array()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SceneUniform;
+    use crate::core::framework::render::{
+        FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
+        RenderFrameExtract, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    };
+    use crate::core::math::{UVec2, Vec3, Vec4};
+    use crate::graphics::types::ViewportRenderFrame;
+
+    #[test]
+    fn scene_uniform_uses_authored_ambient_light_when_lighting_is_enabled() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.post_process.preview.lighting_enabled = true;
+        extract
+            .lighting
+            .ambient_lights
+            .push(RenderAmbientLightSnapshot {
+                color: Vec3::new(0.05, 0.06, 0.07),
+                intensity: 0.35,
+                renderer_degraded: false,
+                degradation_reason: None,
+            });
+        extract
+            .lighting
+            .ambient_lights
+            .push(RenderAmbientLightSnapshot {
+                color: Vec3::new(0.01, 0.02, 0.03),
+                intensity: 0.5,
+                renderer_degraded: false,
+                degradation_reason: None,
+            });
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame, 1.0);
+
+        assert_close(uniform.ambient_color[0], 0.0225);
+        assert_close(uniform.ambient_color[1], 0.031);
+        assert_close(uniform.ambient_color[2], 0.0395);
+        assert_eq!(uniform.ambient_color[3], 1.0);
+    }
+
+    fn empty_scene_snapshot() -> RenderSceneSnapshot {
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot {
+                    projection_mode: ProjectionMode::Perspective,
+                    ..ViewportCameraSnapshot::default()
+                },
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        }
+    }
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() <= 0.0001,
+            "expected {actual} to be close to {expected}"
+        );
     }
 }

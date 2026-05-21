@@ -30,6 +30,7 @@ mod material_layout;
 mod pointer_click_semantics;
 mod popup_tooltip_state;
 mod runtime_input_ownership;
+mod runtime_ui_layout_routes;
 mod shared_core;
 mod surface_dirty_domains;
 mod surface_frame_authority;

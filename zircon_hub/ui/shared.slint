@@ -1,10 +1,14 @@
 import {
+    ActionChip,
     FilledButton,
     FilledIconButton,
+    IconButton as MaterialIconButton,
+    ListTile,
     OutlineButton,
     OutlineIconButton,
     TonalButton,
     TonalIconButton,
+    MaterialText,
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialTypography,
@@ -94,6 +98,7 @@ export struct PluginData {
     id: string,
     title: string,
     category: string,
+    scope: string,
     maturity: string,
     packaging: string,
     modules: string,
@@ -199,6 +204,9 @@ export struct UiTextData {
     game-engine: string,
     local-user: string,
     local-user-initials: string,
+    current-project: string,
+    active-source-engine: string,
+    no-project-selected: string,
     engine-status: string,
     check-for-updates: string,
     collapse: string,
@@ -309,13 +317,20 @@ export struct UiTextData {
     compile-editor: string,
     stage-runtime: string,
     package-project: string,
+    install-to-device: string,
+    select-project-before-opening: string,
+    select-project-before-packaging: string,
+    select-project-before-installing: string,
     reserved-project-export: string,
     unavailable: string,
     current-task: string,
     profile-prefix: string,
     asset-catalog: string,
+    asset-catalog-selected: string,
     assets-found: string,
     no-assets-found: string,
+    asset-empty-selected-detail: string,
+    asset-empty-global-detail: string,
     asset-kind: string,
     asset-source: string,
     asset-size: string,
@@ -325,14 +340,19 @@ export struct UiTextData {
     learn-category: string,
     learn-open: string,
     team-workspace: string,
+    team-workspace-selected: string,
     team-members-found: string,
     no-team-members-found: string,
+    team-empty-selected-detail: string,
+    team-empty-global-detail: string,
     team-git-identity: string,
     team-repository: string,
     team-local-only: string,
     team-commits: string,
     cloud-overview: string,
+    cloud-overview-selected: string,
     cloud-local-only: string,
+    cloud-local-selected-detail: string,
     cloud-account: string,
     cloud-output: string,
     cloud-device-install: string,
@@ -340,8 +360,11 @@ export struct UiTextData {
     cloud-services: string,
     cloud-service-slots: string,
     plugin-catalog: string,
+    plugin-catalog-selected: string,
     plugins-found: string,
     no-plugins-found: string,
+    plugin-empty-selected-detail: string,
+    plugin-empty-global-detail: string,
     plugin-packaging: string,
     plugin-modules: string,
     plugin-maturity: string,
@@ -497,55 +520,17 @@ export component NavButton inherits Rectangle {
     border-radius: root.height / 2;
     border-width: root.item.active ? MaterialStyleMetrics.size_1 : 0px;
     border-color: MaterialPalette.primary;
-    background: root.item.active ? MaterialPalette.secondary_container : (area.has-hover ? MaterialPalette.surface_container_high : transparent);
+    background: root.item.active ? MaterialPalette.secondary_container : transparent;
+    clip: true;
 
-    if root.collapsed: HorizontalLayout {
+    ListTile {
         width: parent.width;
         height: parent.height;
-        alignment: center;
-
-        CenteredIcon {
-            width: parent.width;
-            height: parent.height;
-            icon-size: MaterialStyleMetrics.icon_size_24;
-            source-image: root.item.icon-image;
-            has-source-image: root.item.has-icon-image;
-            fallback-image: @image-url("../assets/icons/nav/projects.svg");
-        }
-    }
-
-    if !root.collapsed: HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: MaterialStyleMetrics.padding_16;
-        padding-right: MaterialStyleMetrics.padding_24;
-        spacing: MaterialStyleMetrics.spacing_12;
-        alignment: start;
-
-        CenteredIcon {
-            width: MaterialStyleMetrics.icon_size_24;
-            height: parent.height;
-            icon-size: MaterialStyleMetrics.icon_size_24;
-            source-image: root.item.icon-image;
-            has-source-image: root.item.has-icon-image;
-            fallback-image: @image-url("../assets/icons/nav/projects.svg");
-        }
-
-        Text {
-            text: root.item.title;
-            color: root.item.active ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant;
-            font-size: MaterialTypography.label_large.font_size;
-            font-weight: MaterialTypography.label_large.font_weight;
-            vertical-alignment: center;
-            overflow: elide;
-            horizontal-stretch: 1;
-        }
-    }
-
-    area := TouchArea {
-        width: parent.width;
-        height: parent.height;
-
+        text: root.collapsed ? "" : root.item.title;
+        supporting_text: "";
+        avatar_icon: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/icons/nav/projects.svg");
+        avatar_background: transparent;
+        avatar_foreground: root.item.active ? MaterialPalette.on_secondary_container : MaterialPalette.primary;
         clicked => {
             root.clicked(root.item.id);
         }
@@ -565,31 +550,14 @@ export component StatusPill inherits Rectangle {
     border-width: MaterialStyleMetrics.size_1;
     border-color: root.accent-color;
     background: MaterialPalette.surface_container_low;
+    clip: true;
 
-    HorizontalLayout {
+    ActionChip {
         width: parent.width;
         height: parent.height;
-        padding-left: MaterialStyleMetrics.padding_16;
-        padding-right: MaterialStyleMetrics.padding_16;
-        spacing: MaterialStyleMetrics.spacing_8;
-        alignment: center;
-
-        CenteredIcon {
-            width: MaterialStyleMetrics.icon_size_18;
-            height: parent.height;
-            icon-size: MaterialStyleMetrics.icon_size_18;
-            source-image: root.icon-image;
-            has-source-image: root.has-icon-image;
-            fallback-image: @image-url("../assets/icons/status/running.svg");
-        }
-
-        Text {
-            text: root.text;
-            color: root.accent-color;
-            font-size: MaterialTypography.label_large.font_size;
-            font-weight: MaterialTypography.label_large.font_weight;
-            vertical-alignment: center;
-        }
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/status/running.svg");
+        text: root.text;
+        tooltip: root.text;
     }
 }
 
@@ -602,18 +570,15 @@ export component WindowButton inherits Rectangle {
 
     width: MaterialStyleMetrics.size_40;
     height: root.width;
-    background: root.danger && area.has-hover ? MaterialPalette.error_container : (area.has-hover ? MaterialPalette.surface_container_high : transparent);
+    clip: true;
 
-    CenteredIcon {
+    MaterialIconButton {
         width: parent.width;
         height: parent.height;
-        icon-size: MaterialStyleMetrics.icon_size_18;
-        source-image: root.icon-image;
-        has-source-image: root.has-icon-image;
-        fallback-image: @image-url("../assets/icons/ui/close.svg");
-    }
-
-    area := TouchArea {
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/close.svg");
+        inline: true;
+        has_error: root.danger;
+        tooltip: root.icon;
         clicked => {
             root.clicked();
         }
@@ -627,13 +592,12 @@ export component Panel inherits Rectangle {
     background: MaterialPalette.surface_container_low;
 }
 
-export component FieldLabel inherits Text {
+export component FieldLabel inherits MaterialText {
     color: MaterialPalette.on_surface;
-    font-size: MaterialTypography.label_large.font_size;
-    font-weight: MaterialTypography.label_large.font_weight;
+    style: MaterialTypography.label_large;
 }
 
-export component MutedText inherits Text {
+export component MutedText inherits MaterialText {
     color: MaterialPalette.on_surface_variant;
-    font-size: MaterialTypography.body_small.font_size;
+    style: MaterialTypography.body_small;
 }

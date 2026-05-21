@@ -23,6 +23,25 @@ pub struct AssetImporterDescriptor {
     pub required_capabilities: Vec<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum AssetImporterCapabilityStatus {
+    Available,
+    DiagnosticOnly { message: String },
+}
+
+impl AssetImporterCapabilityStatus {
+    pub fn is_available(&self) -> bool {
+        matches!(self, Self::Available)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetImporterCapabilityReport {
+    pub descriptor: AssetImporterDescriptor,
+    pub status: AssetImporterCapabilityStatus,
+}
+
 impl AssetImporterDescriptor {
     pub fn new(
         id: impl Into<String>,
@@ -219,6 +238,10 @@ impl AssetImportOutcome {
 pub trait AssetImporterHandler: fmt::Debug + Send + Sync {
     fn descriptor(&self) -> &AssetImporterDescriptor;
 
+    fn capability_status(&self) -> AssetImporterCapabilityStatus {
+        AssetImporterCapabilityStatus::Available
+    }
+
     fn import(&self, context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError>;
 }
 
@@ -287,6 +310,12 @@ impl fmt::Debug for DiagnosticOnlyAssetImporter {
 impl AssetImporterHandler for DiagnosticOnlyAssetImporter {
     fn descriptor(&self) -> &AssetImporterDescriptor {
         &self.descriptor
+    }
+
+    fn capability_status(&self) -> AssetImporterCapabilityStatus {
+        AssetImporterCapabilityStatus::DiagnosticOnly {
+            message: self.message.clone(),
+        }
     }
 
     fn import(

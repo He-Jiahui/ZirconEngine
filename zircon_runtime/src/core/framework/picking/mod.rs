@@ -6,6 +6,7 @@ mod hit_record;
 mod hit_target;
 mod hover_map;
 mod pickable;
+mod pipeline;
 mod pointer_button;
 mod pointer_event;
 mod pointer_event_state;
@@ -17,6 +18,7 @@ mod pointer_phase;
 mod primitive_backend;
 mod ray;
 mod ray_map;
+mod report;
 mod schedule_label;
 mod settings;
 
@@ -26,6 +28,9 @@ pub use hit_record::HitRecord;
 pub use hit_target::{HitTarget, PickingAxis, PickingTargetPriority};
 pub use hover_map::PickingHoverMap;
 pub use pickable::Pickable;
+pub use pipeline::{
+    run_picking_pipeline, PickingPipelineInput, PickingPipelineOutput, PickingPipelineStageReport,
+};
 pub use pointer_button::PointerButton;
 pub use pointer_event::{PickingEventKind, PickingEventLabel, PickingPointerEvent};
 pub use pointer_event_state::PickingEventState;
@@ -37,5 +42,6 @@ pub use pointer_phase::PointerPhase;
 pub use primitive_backend::{PickingPrimitive, PickingPrimitiveShape, PrimitivePickingBackend};
 pub use ray::{ray_from_viewport_point, PointerRay};
 pub use ray_map::{CameraRaySource, RayId, RayMap};
+pub use report::{PickingPipelineReport, PickingPointerPipelineReport};
 pub use schedule_label::PickingScheduleLabel;
 pub use settings::PickingSettings;

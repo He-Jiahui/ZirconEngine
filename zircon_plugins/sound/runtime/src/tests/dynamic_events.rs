@@ -168,6 +168,135 @@ fn dynamic_event_dispatch_fans_out_to_plugin_handlers_deterministically() {
 }
 
 #[test]
+fn dynamic_event_executor_registration_requires_registered_handler() {
+    let sound = DefaultSoundManager::default();
+
+    assert!(matches!(
+        sound
+            .register_dynamic_event_executor("missing", "handler", |_| Ok(()))
+            .unwrap_err(),
+        SoundError::UnknownDynamicEventHandler { .. }
+    ));
+
+    sound
+        .register_dynamic_event(SoundDynamicEventDescriptor {
+            id: "sound.dynamic.registered".to_string(),
+            display_name: "Registered".to_string(),
+            payload_schema: "sound.dynamic.registered.v1".to_string(),
+        })
+        .unwrap();
+    sound
+        .register_dynamic_event_handler(SoundDynamicEventHandlerDescriptor {
+            plugin_id: "registered_plugin".to_string(),
+            handler_id: "registered_handler".to_string(),
+            event_id: "sound.dynamic.registered".to_string(),
+            display_name: "Registered Handler".to_string(),
+            priority: 0,
+        })
+        .unwrap();
+
+    sound
+        .register_dynamic_event_executor("registered_plugin", "registered_handler", |_| Ok(()))
+        .unwrap();
+}
+
+#[test]
+fn dynamic_event_execution_reports_success_failure_and_missing_executors_in_order() {
+    let sound = DefaultSoundManager::default();
+    sound
+        .register_dynamic_event(SoundDynamicEventDescriptor {
+            id: "sound.dynamic.weapon.fire".to_string(),
+            display_name: "Weapon Fire".to_string(),
+            payload_schema: "sound.dynamic.weapon_fire.v1".to_string(),
+        })
+        .unwrap();
+    for (plugin_id, handler_id, priority) in [
+        ("timeline_sequence", "timeline-marker", 10),
+        ("gameplay_audio", "weapon-foley", 20),
+        ("analytics", "combat-counter", 20),
+    ] {
+        sound
+            .register_dynamic_event_handler(SoundDynamicEventHandlerDescriptor {
+                plugin_id: plugin_id.to_string(),
+                handler_id: handler_id.to_string(),
+                event_id: "sound.dynamic.weapon.fire".to_string(),
+                display_name: handler_id.to_string(),
+                priority,
+            })
+            .unwrap();
+    }
+
+    let calls = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let analytics_calls = calls.clone();
+    sound
+        .register_dynamic_event_executor("analytics", "combat-counter", move |delivery| {
+            analytics_calls
+                .lock()
+                .unwrap()
+                .push(delivery.handler.plugin_id.clone());
+            Ok(())
+        })
+        .unwrap();
+    let gameplay_calls = calls.clone();
+    sound
+        .register_dynamic_event_executor("gameplay_audio", "weapon-foley", move |delivery| {
+            gameplay_calls
+                .lock()
+                .unwrap()
+                .push(delivery.handler.plugin_id.clone());
+            Err("foley unavailable".to_string())
+        })
+        .unwrap();
+
+    sound
+        .submit_dynamic_event(SoundDynamicEventInvocation {
+            event_id: "sound.dynamic.weapon.fire".to_string(),
+            source_path: Some("Timeline/Combat/Weapon".to_string()),
+            time_seconds: 4.0,
+            payload_schema: "sound.dynamic.weapon_fire.v1".to_string(),
+            payload: vec![7, 9],
+        })
+        .unwrap();
+
+    let report = sound.execute_dynamic_events().unwrap();
+    assert_eq!(report.executions.len(), 3);
+    assert_eq!(report.executions[0].delivery.handler.plugin_id, "analytics");
+    assert_eq!(
+        report.executions[0].status,
+        SoundDynamicEventExecutionStatus::Succeeded
+    );
+    assert_eq!(
+        report.executions[1].delivery.handler.plugin_id,
+        "gameplay_audio"
+    );
+    assert_eq!(
+        report.executions[1].status,
+        SoundDynamicEventExecutionStatus::Failed
+    );
+    assert_eq!(
+        report.executions[1].detail.as_deref(),
+        Some("foley unavailable")
+    );
+    assert_eq!(
+        report.executions[2].delivery.handler.plugin_id,
+        "timeline_sequence"
+    );
+    assert_eq!(
+        report.executions[2].status,
+        SoundDynamicEventExecutionStatus::SkippedMissingExecutor
+    );
+    assert_eq!(
+        *calls.lock().unwrap(),
+        vec!["analytics".to_string(), "gameplay_audio".to_string()]
+    );
+    assert!(sound
+        .execute_dynamic_events()
+        .unwrap()
+        .executions
+        .is_empty());
+}
+
+#[test]
 fn dynamic_event_handlers_validate_event_ownership_and_unregister_cleanly() {
     let sound = DefaultSoundManager::default();
     assert!(matches!(
@@ -235,4 +364,98 @@ fn dynamic_event_handlers_validate_event_ownership_and_unregister_cleanly() {
 
     assert!(sound.dynamic_event_handlers().unwrap().is_empty());
     assert!(sound.dispatch_dynamic_events().unwrap().is_empty());
+}
+
+#[test]
+fn dynamic_event_unregistering_event_removes_matching_executors() {
+    let sound = DefaultSoundManager::default();
+    let descriptor = SoundDynamicEventDescriptor {
+        id: "sound.dynamic.cleanup".to_string(),
+        display_name: "Cleanup".to_string(),
+        payload_schema: "sound.dynamic.cleanup.v1".to_string(),
+    };
+    let handler = SoundDynamicEventHandlerDescriptor {
+        plugin_id: "cleanup_plugin".to_string(),
+        handler_id: "cleanup_handler".to_string(),
+        event_id: "sound.dynamic.cleanup".to_string(),
+        display_name: "Cleanup Handler".to_string(),
+        priority: 0,
+    };
+
+    sound.register_dynamic_event(descriptor.clone()).unwrap();
+    sound
+        .register_dynamic_event_handler(handler.clone())
+        .unwrap();
+    sound
+        .register_dynamic_event_executor("cleanup_plugin", "cleanup_handler", |_| Ok(()))
+        .unwrap();
+    sound
+        .unregister_dynamic_event("sound.dynamic.cleanup")
+        .unwrap();
+
+    sound.register_dynamic_event(descriptor).unwrap();
+    sound.register_dynamic_event_handler(handler).unwrap();
+    sound
+        .submit_dynamic_event(SoundDynamicEventInvocation {
+            event_id: "sound.dynamic.cleanup".to_string(),
+            source_path: None,
+            time_seconds: 0.0,
+            payload_schema: "sound.dynamic.cleanup.v1".to_string(),
+            payload: Vec::new(),
+        })
+        .unwrap();
+
+    let report = sound.execute_dynamic_events().unwrap();
+    assert_eq!(report.executions.len(), 1);
+    assert_eq!(
+        report.executions[0].status,
+        SoundDynamicEventExecutionStatus::SkippedMissingExecutor
+    );
+}
+
+#[test]
+fn configure_mixer_removes_executors_for_removed_dynamic_events() {
+    let sound = DefaultSoundManager::default();
+    let descriptor = SoundDynamicEventDescriptor {
+        id: "sound.dynamic.graph_cleanup".to_string(),
+        display_name: "Graph Cleanup".to_string(),
+        payload_schema: "sound.dynamic.graph_cleanup.v1".to_string(),
+    };
+    let handler = SoundDynamicEventHandlerDescriptor {
+        plugin_id: "graph_plugin".to_string(),
+        handler_id: "graph_handler".to_string(),
+        event_id: "sound.dynamic.graph_cleanup".to_string(),
+        display_name: "Graph Handler".to_string(),
+        priority: 0,
+    };
+
+    sound.register_dynamic_event(descriptor.clone()).unwrap();
+    sound
+        .register_dynamic_event_handler(handler.clone())
+        .unwrap();
+    sound
+        .register_dynamic_event_executor("graph_plugin", "graph_handler", |_| Ok(()))
+        .unwrap();
+    sound
+        .configure_mixer(SoundMixerGraph::default_stereo(48_000))
+        .unwrap();
+
+    sound.register_dynamic_event(descriptor).unwrap();
+    sound.register_dynamic_event_handler(handler).unwrap();
+    sound
+        .submit_dynamic_event(SoundDynamicEventInvocation {
+            event_id: "sound.dynamic.graph_cleanup".to_string(),
+            source_path: None,
+            time_seconds: 0.0,
+            payload_schema: "sound.dynamic.graph_cleanup.v1".to_string(),
+            payload: Vec::new(),
+        })
+        .unwrap();
+
+    let report = sound.execute_dynamic_events().unwrap();
+    assert_eq!(report.executions.len(), 1);
+    assert_eq!(
+        report.executions[0].status,
+        SoundDynamicEventExecutionStatus::SkippedMissingExecutor
+    );
 }

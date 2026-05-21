@@ -7,8 +7,9 @@ pub use crate::core::diagnostics::{
 };
 pub use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual};
 pub use crate::core::framework::window::{
-    PrimaryWindowHandle, WindowDescriptor, WindowMode, WindowPosition, WindowPresentMode,
-    WindowResizeConstraints, WindowResolution, DEFAULT_WINDOW_TITLE,
+    PrimaryWindowHandle, WindowDescriptor, WindowExitCondition, WindowLifecyclePolicy, WindowMode,
+    WindowMonitorSelection, WindowPosition, WindowPresentMode, WindowResizeConstraints,
+    WindowResolution, WindowVideoMode, WindowVideoModeSelection, DEFAULT_WINDOW_TITLE,
     PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
 pub use crate::core::modules::{
@@ -54,10 +55,14 @@ pub use crate::input::{
     LEGACY_PIXEL_SCROLL_SCALE,
 };
 pub use crate::platform::{
-    CapabilityStatus, EventLoopPolicy, FileDragDropBackend, GamepadBackend, InputBackend,
-    LinuxWindowProtocol, PlatformCapabilityMatrix, PlatformCapabilityReport, PlatformConfig,
-    PlatformDriver, PlatformFeatureSelection, PlatformManager, PlatformModule, PlatformTarget,
-    WindowBackend, PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME, PLATFORM_MANAGER_NAME,
+    CapabilityStatus, CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy,
+    FileDragDropBackend, GamepadBackend, GamepadEventBackend, GamepadRumbleBackend,
+    GestureEventBackend, ImeBackend, InputBackend, KeyboardEventBackend, LinuxWindowProtocol,
+    MonitorBackend, MouseButtonBackend, MouseWheelBackend, PlatformCapabilityMatrix,
+    PlatformCapabilityReport, PlatformConfig, PlatformDriver, PlatformFeatureSelection,
+    PlatformManager, PlatformModule, PlatformTarget, PointerPositionBackend, RawMouseMotionBackend,
+    TouchEventBackend, WindowBackend, WindowEventBackend, WindowLifecycleBackend,
+    WindowMetricsBackend, PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME, PLATFORM_MANAGER_NAME,
     PLATFORM_MODULE_NAME,
 };
 pub use crate::plugin::{

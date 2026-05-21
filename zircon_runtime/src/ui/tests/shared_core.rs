@@ -8,7 +8,7 @@ use crate::ui::{
     },
 };
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
+    binding::{UiBindingDirtyDomain, UiBindingSourceKind, UiBindingTargetKind, UiEventKind},
     component::{UiValue, UiValueKind},
     dispatch::{UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent},
     event_ui::{UiNodeId, UiNodePath, UiReflectedPropertySource, UiStateFlags, UiTreeId},
@@ -2645,16 +2645,49 @@ fn surface_property_mutation_marks_dirty_only_when_values_change() {
         ))
         .unwrap();
     assert_eq!(unchanged.status, UiPropertyMutationStatus::Unchanged);
+    assert_eq!(unchanged.binding.unchanged_count, 1);
+    assert_eq!(
+        unchanged.binding.updates[0].source.kind,
+        UiBindingSourceKind::RuntimeState
+    );
+    assert_eq!(
+        unchanged.binding.updates[0].target.kind,
+        UiBindingTargetKind::RetainedAttribute
+    );
     assert!(!surface.tree.node(UiNodeId::new(1)).unwrap().dirty.any());
 
     let changed = surface
-        .mutate_property(UiPropertyMutationRequest::new(
+        .mutate_property(UiPropertyMutationRequest::widget_behavior(
             UiNodeId::new(1),
             "enabled",
             UiValue::Bool(false),
         ))
         .unwrap();
     assert_eq!(changed.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(changed.binding.applied_count, 2);
+    assert_eq!(
+        changed.binding.updates[0].previous,
+        Some(UiValue::Bool(true))
+    );
+    assert_eq!(
+        changed.binding.updates[0].source.kind,
+        UiBindingSourceKind::WidgetBehavior
+    );
+    assert_eq!(
+        changed.binding.updates[1].target.kind,
+        UiBindingTargetKind::ComponentStateValue
+    );
+    assert_eq!(changed.binding.updates[1].previous, None);
+    assert_eq!(changed.binding.updates[1].value, UiValue::Bool(false));
+    assert!(changed
+        .binding
+        .dirty
+        .contains(&UiBindingDirtyDomain::HitTest));
+    assert!(changed
+        .binding
+        .dirty
+        .contains(&UiBindingDirtyDomain::Render));
+    assert!(changed.binding.dirty.contains(&UiBindingDirtyDomain::Input));
     assert!(changed.invalidation.dirty.input);
     assert!(changed.invalidation.dirty.hit_test);
     let node = surface.tree.node(UiNodeId::new(1)).unwrap();
@@ -2670,6 +2703,7 @@ fn surface_property_mutation_marks_dirty_only_when_values_change() {
         ))
         .unwrap();
     assert_eq!(rejected.status, UiPropertyMutationStatus::Rejected);
+    assert_eq!(rejected.binding.rejected_count, 1);
     assert!(rejected.message.unwrap().contains("boolean"));
 }
 

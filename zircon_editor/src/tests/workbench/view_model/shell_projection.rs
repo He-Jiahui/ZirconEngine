@@ -18,6 +18,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
     ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
 };
+use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::math::UVec2;
 
 use super::support::{
@@ -91,6 +92,45 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
     assert_eq!(
         save_project_binding,
         r#"WorkbenchMenuBar/SaveProject:onClick(MenuAction("SaveProject"))"#
+    );
+    let selection_menu = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "Selection")
+        .expect("selection menu");
+    assert_eq!(
+        selection_menu
+            .items
+            .iter()
+            .map(|item| item.label.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "Create Cube",
+            "Create Camera",
+            "Create Ambient Light",
+            "Create Directional Light",
+            "Create Point Light",
+            "Create Rect Light",
+            "Create Spot Light",
+            "Delete Selection",
+        ]
+    );
+    let rect_light_item = selection_menu
+        .items
+        .iter()
+        .find(|item| item.label == "Create Rect Light")
+        .expect("rect light create menu item");
+    assert_eq!(
+        rect_light_item.action,
+        Some(MenuAction::CreateNode(NodeKind::RectLight))
+    );
+    assert_eq!(
+        rect_light_item
+            .operation_path
+            .as_ref()
+            .map(|path| path.as_str()),
+        Some("Scene.Node.CreateRectLight")
     );
     let reset_layout_operation = model
         .menu_bar

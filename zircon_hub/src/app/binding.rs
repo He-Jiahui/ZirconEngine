@@ -45,10 +45,12 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     let plugin_items = view_model::plugin_items(snapshot);
     let team_members = view_model::team_members(snapshot);
     let cloud_services = view_model::cloud_services(language);
-    ui.set_nav_items(view_model::model_from(view_model::navigation_items(
-        snapshot.selected_page,
-        language,
-    )));
+    let nav_items = view_model::navigation_items(snapshot.selected_page, language);
+    ui.set_selected_nav_index(view_model::selected_nav_index(&nav_items));
+    ui.set_material_nav_items(view_model::model_from(
+        view_model::material_navigation_items(&nav_items),
+    ));
+    ui.set_nav_items(view_model::model_from(nav_items));
     ui.set_project_card_count(project_cards.len() as i32);
     ui.set_project_cards(view_model::model_from(project_cards));
     ui.set_project_list_row_count(project_list_rows.len() as i32);
@@ -68,7 +70,9 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_project_detail(view_model::project_detail(snapshot));
     ui.set_recent_project_row_count(recent_project_rows.len() as i32);
     ui.set_recent_project_rows(view_model::model_from(recent_project_rows));
-    ui.set_quick_actions(view_model::model_from(view_model::quick_actions(language)));
+    ui.set_quick_actions(view_model::model_from(view_model::quick_actions(
+        snapshot, language,
+    )));
     ui.set_asset_count(asset_items.len() as i32);
     ui.set_assets(view_model::model_from(asset_items));
     ui.set_learn_count(learn_items.len() as i32);

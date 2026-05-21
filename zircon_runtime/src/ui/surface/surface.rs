@@ -18,7 +18,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent},
     event_ui::{UiNodeId, UiReflectorSnapshot, UiTreeId},
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
-    layout::UiPoint,
+    layout::{UiLayoutEngineSelectionReport, UiPoint},
     surface::{
         UiArrangedTree, UiFocusState, UiHitTestDebugDump, UiHitTestQuery, UiNavigationEventKind,
         UiNavigationRoute, UiNavigationState, UiPointerActivationPhase, UiPointerButton,
@@ -69,6 +69,8 @@ pub struct UiSurface {
     pub node_pool: UiSurfaceNodePool,
     pub last_rebuild_report: UiSurfaceRebuildReport,
     #[serde(default)]
+    pub layout_engine_report: UiLayoutEngineSelectionReport,
+    #[serde(default)]
     pub(super) pending_pool_report: UiSurfaceNodePoolReport,
 }
 
@@ -93,6 +95,7 @@ impl UiSurface {
             render_cache: UiSurfaceRenderCache::default(),
             node_pool: UiSurfaceNodePool::default(),
             last_rebuild_report: UiSurfaceRebuildReport::default(),
+            layout_engine_report: UiLayoutEngineSelectionReport::default(),
             pending_pool_report: UiSurfaceNodePoolReport::default(),
         }
     }
@@ -201,6 +204,7 @@ impl UiSurface {
             hit_grid: self.hit_test.grid.clone(),
             focus_state: self.focus.clone(),
             last_rebuild: self.last_rebuild_report.debug_stats(),
+            layout_engine_report: self.layout_engine_report.clone(),
         }
     }
 
@@ -254,6 +258,14 @@ impl UiSurface {
         let property = request.property.clone();
         let value = request.value.clone();
         let mut report = mutate_tree_property(&mut self.tree, request)?;
+        let previous_component_value =
+            if matches!(report.status, UiPropertyMutationStatus::Accepted) {
+                self.component_states
+                    .get(node_id)
+                    .and_then(|state| state.value(&property).cloned())
+            } else {
+                None
+            };
         let component_state_changed = if matches!(report.status, UiPropertyMutationStatus::Accepted)
         {
             self.sync_component_state_from_property(node_id, &property, &value)?
@@ -263,11 +275,17 @@ impl UiSurface {
         if matches!(report.status, UiPropertyMutationStatus::Accepted) {
             if component_state_changed {
                 self.mark_component_state_render_dirty(node_id)?;
-                report.invalidation.dirty.render = true;
+                report.mark_render_dirty();
+                report.record_component_state_value_update(
+                    node_id,
+                    property.clone(),
+                    previous_component_value,
+                    value.clone(),
+                );
             } else if property_may_affect_runtime_pseudo_state(&property) {
                 let changed = self.apply_runtime_state_style_subtree(node_id, true)?;
                 if changed > 0 {
-                    report.invalidation.dirty.render = true;
+                    report.mark_render_dirty();
                 }
             }
         }
@@ -527,8 +545,11 @@ impl UiSurface {
         self.apply_pointer_component_state(&route, focus_before_dispatch)?;
         self.apply_pointer_transient_state_dirty(&route, pressed_before_dispatch)?;
         result.component_events = self.pointer_component_events(&route, &event)?;
-        let range_action =
-            self.apply_default_range_pointer_actions(&route, &mut result.component_events)?;
+        let range_action = self.apply_default_range_pointer_actions(
+            &route,
+            &mut result.component_events,
+            &mut result.binding_reports,
+        )?;
         if let Some(node_id) = range_action.captured_by {
             result.captured_by = Some(node_id);
             result.handled_by = Some(node_id);
@@ -542,7 +563,21 @@ impl UiSurface {
         if let Some(node_id) = range_action.handled_by {
             result.handled_by = Some(node_id);
         } else {
-            let scrollbar_action = self.apply_default_scrollbar_pointer_action(&route)?;
+            let scrollbar_action = self.apply_default_scrollbar_pointer_action(
+                &route,
+                &mut result.component_events,
+                &mut result.binding_reports,
+            )?;
+            if let Some(node_id) = scrollbar_action.captured_by {
+                result.captured_by = Some(node_id);
+                result.handled_by = Some(node_id);
+                result.diagnostics.capture_started = true;
+            }
+            if let Some(node_id) = scrollbar_action.released_capture {
+                result.released_capture = Some(node_id);
+                result.handled_by = Some(node_id);
+                result.diagnostics.capture_released = true;
+            }
             if let Some(node_id) = scrollbar_action.handled_by {
                 result.handled_by = Some(node_id);
                 result.diagnostics.scroll_defaulted = true;
@@ -551,6 +586,7 @@ impl UiSurface {
                     &route,
                     event.click_count,
                     &mut result.component_events,
+                    &mut result.binding_reports,
                 )?;
             }
             if let Some(node_id) = scrollbar_action.damage_node {
@@ -997,9 +1033,10 @@ impl UiSurface {
                         self.mutate_default_range_endpoint_value(target, true)?
                     }
                 };
-                if range_action.is_some() {
+                if let Some((report, _value)) = range_action {
                     let mut result = UiNavigationDispatchResult::new(route);
                     result.handled_by = Some(target);
+                    result.record_binding_report(report.binding);
                     return Ok(result);
                 }
             }

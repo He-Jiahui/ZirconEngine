@@ -13,6 +13,7 @@ mod render_product_sprite;
 mod render_product_submit;
 mod render_product_ui;
 mod render_profiling;
+mod renderer_data_asset;
 mod scene_overlay;
 mod surface_targets;
 mod visibility;

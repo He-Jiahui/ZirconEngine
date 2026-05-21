@@ -3,6 +3,7 @@ mod debug_reflector_overlay;
 mod diagnostics_overlay;
 mod frame;
 mod geometry;
+mod material_state_layer;
 mod primitives;
 mod render_commands;
 mod template_nodes;

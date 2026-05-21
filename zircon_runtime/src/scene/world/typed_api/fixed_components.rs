@@ -1,9 +1,10 @@
 use crate::scene::components::{
-    ActiveInHierarchy, ActiveSelf, AnimationGraphPlayerComponent, AnimationPlayerComponent,
-    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
+    AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
-    PointLight, RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
+    PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent,
+    WorldMatrix,
 };
 use crate::scene::ecs::Component;
 use crate::scene::EntityId;
@@ -36,8 +37,10 @@ impl_component_for_scene_type!(
     AnimationSequencePlayerComponent,
     AnimationGraphPlayerComponent,
     AnimationStateMachinePlayerComponent,
+    AmbientLight,
     DirectionalLight,
     PointLight,
+    RectLight,
     SpotLight,
     Mobility,
 );
@@ -83,8 +86,10 @@ fixed_component_map!(
     AnimationStateMachinePlayerComponent,
     animation_state_machine_players
 );
+fixed_component_map!(AmbientLight, ambient_lights);
 fixed_component_map!(DirectionalLight, directional_lights);
 fixed_component_map!(PointLight, point_lights);
+fixed_component_map!(RectLight, rect_lights);
 fixed_component_map!(SpotLight, spot_lights);
 fixed_component_map!(Mobility, mobility);
 
@@ -177,6 +182,9 @@ impl World {
         {
             return AnimationStateMachinePlayerComponent::insert_fixed(self, entity, component);
         }
+        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<AmbientLight>() {
+            return AmbientLight::insert_fixed(self, entity, component);
+        }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<DirectionalLight>()
         {
@@ -184,6 +192,9 @@ impl World {
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<PointLight>() {
             return PointLight::insert_fixed(self, entity, component);
+        }
+        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<RectLight>() {
+            return RectLight::insert_fixed(self, entity, component);
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<SpotLight>() {
             return SpotLight::insert_fixed(self, entity, component);
@@ -258,12 +269,18 @@ impl World {
             self.animation_state_machine_players
                 .remove(&entity)
                 .map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
+            self.ambient_lights
+                .remove(&entity)
+                .map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
             self.directional_lights
                 .remove(&entity)
                 .map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<PointLight>() {
             self.point_lights.remove(&entity).map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<RectLight>() {
+            self.rect_lights.remove(&entity).map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.remove(&entity).map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
@@ -328,12 +345,16 @@ impl World {
             self.animation_state_machine_players
                 .get(&entity)
                 .and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
+            self.ambient_lights.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
             self.directional_lights
                 .get(&entity)
                 .and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<PointLight>() {
             self.point_lights.get(&entity).and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<RectLight>() {
+            self.rect_lights.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
@@ -406,12 +427,18 @@ impl World {
             self.animation_state_machine_players
                 .get_mut(&entity)
                 .and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
+            self.ambient_lights
+                .get_mut(&entity)
+                .and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
             self.directional_lights
                 .get_mut(&entity)
                 .and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<PointLight>() {
             self.point_lights.get_mut(&entity).and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<RectLight>() {
+            self.rect_lights.get_mut(&entity).and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.get_mut(&entity).and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
@@ -445,8 +472,10 @@ impl World {
             || type_id == std::any::TypeId::of::<AnimationSequencePlayerComponent>()
             || type_id == std::any::TypeId::of::<AnimationGraphPlayerComponent>()
             || type_id == std::any::TypeId::of::<AnimationStateMachinePlayerComponent>()
+            || type_id == std::any::TypeId::of::<AmbientLight>()
             || type_id == std::any::TypeId::of::<DirectionalLight>()
             || type_id == std::any::TypeId::of::<PointLight>()
+            || type_id == std::any::TypeId::of::<RectLight>()
             || type_id == std::any::TypeId::of::<SpotLight>()
             || type_id == std::any::TypeId::of::<Mobility>()
     }
@@ -512,10 +541,16 @@ impl World {
         if let Some(component) = self.animation_state_machine_players.get(&entity).cloned() {
             let _ = self.insert(entity, component);
         }
+        if let Some(component) = self.ambient_lights.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
         if let Some(component) = self.directional_lights.get(&entity).cloned() {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.point_lights.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
+        if let Some(component) = self.rect_lights.get(&entity).cloned() {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.spot_lights.get(&entity).cloned() {

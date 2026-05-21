@@ -1,5 +1,7 @@
 use zircon_runtime::core::framework::sound::{SoundEffectId, SoundTrackId};
 
+use super::filter::SoundBiquadFilterState;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct SoundEffectStateKey {
     pub(crate) track: SoundTrackId,
@@ -18,6 +20,7 @@ pub(crate) struct SoundEffectRuntimeState {
     pub(crate) reverb_history: SoundHistoryState,
     pub(crate) convolution_history: SoundHistoryState,
     pub(crate) modulation_history: SoundHistoryState,
+    pub(crate) filter_state: SoundBiquadFilterState,
     pub(crate) modulated_delay_phase: f32,
     pub(crate) phaser_phase: f32,
     pub(crate) compressor_gain: f32,
@@ -30,6 +33,7 @@ impl Default for SoundEffectRuntimeState {
             reverb_history: SoundHistoryState::default(),
             convolution_history: SoundHistoryState::default(),
             modulation_history: SoundHistoryState::default(),
+            filter_state: SoundBiquadFilterState::default(),
             modulated_delay_phase: 0.0,
             phaser_phase: 0.0,
             compressor_gain: 1.0,

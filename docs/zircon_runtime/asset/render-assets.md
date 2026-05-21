@@ -5,6 +5,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/core/framework/render/image/descriptor.rs
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
@@ -14,6 +15,8 @@ related_code:
   - zircon_plugins/texture_importer/runtime/src/container.rs
   - zircon_runtime/src/asset/assets/model/mod.rs
   - zircon_runtime/src/asset/assets/model/primitive.rs
+  - zircon_runtime/src/asset/assets/mesh/mod.rs
+  - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/assets/shader/mod.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
@@ -27,8 +30,11 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
@@ -40,15 +46,20 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - zircon_runtime/tests/virtual_geometry_visibility_debug_contract.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/core/framework/render/image/descriptor.rs
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
@@ -61,6 +72,8 @@ implementation_files:
   - zircon_runtime/src/asset/assets/model/model_asset.rs
   - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/assets/model/virtual_geometry.rs
+  - zircon_runtime/src/asset/assets/mesh/mod.rs
+  - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/assets/shader/mod.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
@@ -75,18 +88,25 @@ implementation_files:
   - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/asset/assets/material/zmaterial.rs
   - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
 plan_sources:
   - user: 2026-05-09 implement M3A from render M4+ product pipeline plan
   - user: 2026-05-16 continue Bevy-style asset/image completion toward M4
@@ -95,11 +115,42 @@ plan_sources:
   - docs/superpowers/specs/2026-05-17-zmaterial-material-editor-design.md
   - docs/superpowers/plans/2026-05-17-zmaterial-material-editor.md
   - user: 2026-05-19 finish runtime UI graph and direct-surface damage, then close the `.zmaterial` workspace blocker
+  - user: 2026-05-20 implement ZirconEngine asset/texture/model/ZShader/ZMaterial/ZMesh completion plan
 tests:
+  - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/material.rs
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked material_asset_reports_shader_contract_diagnostics_without_blocking_import --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 required shader property diagnostics: passed, 1 passed)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked shader --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader shader validation: passed, 15 passed)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked material --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader material validation: passed, 71 passed)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked asset::tests::project --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader project validation: passed, 26 passed)
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::texture_upload_readiness_reports_compressed_container_support
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload_exists
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::texture_upload_readiness_reports_supercompression_and_astc_3d_boundaries
+  - cargo test -p zircon_runtime --lib texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload_exists --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 M3 compressed texture upload shape boundaries: passed, 1 passed, 1723 filtered out)
+  - cargo test -p zircon_runtime --lib texture_upload_readiness --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 M3 compressed texture broader filter: blocked before texture tests by unrelated `zircon_runtime/src/scene/tests/ecs_systems.rs` large tuple `assert_eq!` E0369/E0277)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never (2026-05-20 M3 compressed texture upload shape boundaries: passed; existing scene/world warnings only)
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs::render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: attempted, Cargo failed before test execution while writing default target dep-info after concurrent target directory mutation)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m5-renderer-slot-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: first independent-target attempt timed out during compile; matching residual Cargo child processes were stopped)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m5-renderer-slot-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot final: passed, 1 passed, 1720 filtered out)
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
+  - cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing warnings only)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing runtime warning only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --offline --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 asset parity implementation: timed out during Windows test build/link before Rust test diagnostics)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-20 glTF labeled subassets: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 glTF labeled subassets: passed; existing runtime dead_code warning only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF labeled subassets: timed out during Windows runtime test build/link; matching residual Cargo chain was stopped after timeout)
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
+  - CARGO_TARGET_DIR=/tmp/zircon-gltf-m4-wsl-fast cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: blocked before test execution by unrelated zircon_runtime_interface/src/ui/dispatch/navigation/result.rs E0277, UiBindingUpdateReport does not implement Eq)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: Windows attempt timed out after 304s before Rust test diagnostics; matching residual Cargo child processes were stopped)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --message-format short --color never (2026-05-20 runtime glTF labels retry: passed, confirming the earlier WSL Eq error is not present in the current Windows source tree)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels retry: passed, 1 passed, after replacing the invalid fixture PNG data URI with a valid CRC 1x1 RGBA PNG)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF animation/skin labels: passed, 1 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib importer_decodes_triangle_gltf_into_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin labels retry: passed, 1 passed, after the same fixture PNG replacement)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin animation/skin labels: passed, 3 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
@@ -236,6 +287,10 @@ Container descriptor settings do not expand compressed payloads: DDS/KTX/KTX2/AS
 overridden for diagnostics and later prepare stages. `[array_layout]` is rejected on those container
 imports because it requires decoded RGBA bytes that can be reinterpreted as a vertical layer stack.
 
+`TextureAsset::upload_readiness(...)` is the support query between imported texture bytes and renderer upload. It accepts a `TextureUploadSupport` feature record, returns a `TextureUploadPlan` for uploadable payloads, and returns deterministic unsupported reasons for cases the current device or runtime cannot upload. The first supported container path covers single-layer mip0 DDS BC formats and ASTC 2D blocks when the corresponding GPU features are present, while uncompressed RGBA8 keeps the existing byte-size validation. KTX/KTX2 level extraction, KTX2 supercompression/transcoding, ASTC 3D block payload upload, cubemap/array-layer compressed upload, and full mip-chain upload remain explicit unsupported diagnostics instead of falling through to a generic missing-texture path.
+
+Renderer preparation consumes the same query. `resolve_texture_reference_with_support(...)` uses the current device-derived support to decide whether a referenced texture can be used directly or should emit `TextureNotUploadReady` and fall back. `GpuTextureResource::from_asset(...)` now returns a `Result`, uploads RGBA8 as before, and maps upload-ready DDS BC or ASTC 2D payloads to `wgpu::TextureFormat` before writing the mip-zero container payload to the GPU. This keeps importer diagnostics, asset readiness, and renderer fallback behavior aligned around the same support decision.
+
 PSD imports use the same descriptor settings path after flattening to RGBA8, so Photoshop source
 files and image crate source files expose the same render-facing `TextureAssetDescriptor` behavior.
 Runtime texture fixture coverage lives in `zircon_runtime/src/asset/tests/assets/texture_importer.rs`
@@ -243,6 +298,8 @@ so descriptor/decode matrix tests remain separate from the generic importer regi
 fixture coverage in `importer.rs`.
 
 `ModelPrimitiveAsset::render_mesh_descriptor()` projects primitive vertex/index data into topology, bounds, primitive kind, 2D/3D suitability, primitive counts, and Virtual Geometry payload presence through `RenderMeshDescriptor`.
+
+`MeshAsset` is the first-class typed mesh asset introduced for the Bevy-style asset plan. It stores topology, a named attribute map, optional u16/u32 indices, main-world/render-world residency intent, and optional Virtual Geometry payload. `MeshAsset::render_mesh_descriptor()` projects the attribute map into the same `RenderMeshDescriptor` surface, with required `position` data driving bounds and planar/spatial classification. Existing model import paths now keep legacy `ModelAsset.primitives` while emitting matching labeled `MeshAsset` subassets for future renderer handle consumption.
 
 `ShaderAsset::runtime_wgsl_source()` chooses runtime WGSL by preferring non-empty `wgsl_source`, then non-empty `source` only when `source_language == ShaderSourceLanguage::Wgsl`. Non-WGSL source without emitted WGSL is not treated as render-ready WGSL.
 
@@ -254,7 +311,16 @@ Editor renderable project scaffolding follows the same source contract instead o
 
 Material direct dependencies include the shader plus every concrete texture-slot reference. Fallback-only texture slots remain authoring/runtime fallback data and are omitted from dependency locators until a real texture reference is authored.
 
-Material/schema mismatches are diagnostics, not import blockers. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` and `[textures.<slot>]` against the loaded `ShaderAsset` contract and emits typed `RenderMaterialValidationError` values for unknown overrides, override type mismatches, and unknown texture slots. `readiness_report_with_shader_contract(...)` merges those diagnostics into the neutral readiness report while preserving fallback-only texture slots as non-dependency data.
+glTF material imports now feed this same contract instead of remaining model-local metadata. The
+split glTF importer maps PBR base-color, normal, metallic-roughness, occlusion, and emissive texture
+links into `MaterialAsset` legacy fields and shader-style `texture_slots`, while embedded or external
+glTF images become labeled `Texture{n}` `TextureAsset` subassets. Scene mesh instances point at
+`Mesh{n}` plus `Material{n}` or `DefaultMaterial`, so renderer readiness can trace missing shader,
+texture, and fallback state by the same asset locators used by authored `.zmaterial` sources.
+
+Material/schema mismatches are diagnostics, not import blockers. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` and `[textures.<slot>]` against the loaded `ShaderAsset` contract and emits typed `RenderMaterialValidationError` values for unknown overrides, override type mismatches, missing required shader properties, and unknown texture slots. `readiness_report_with_shader_contract(...)` merges those diagnostics into the neutral readiness report while preserving fallback-only texture slots as non-dependency data.
+
+`MaterialAsset::standard_material_descriptor_for_shader(...)` is the renderer bridge for shader-driven texture slots. It starts from the legacy PBR descriptor for compatibility, then lets shader-declared texture slot aliases such as `base_color`, `albedo`, `normal`, `metallic_roughness`, `occlusion`, and `emissive` override the fixed PBR texture fields. The legacy `standard_material_descriptor()` path remains available for callers without a loaded shader contract, but renderer material preparation now prefers the shader contract when it can load one.
 
 Compound `.zshader` import now performs a lightweight WGSL capture check after reading the declared source files. Every declared property and texture-slot name should appear in the combined WGSL source; misses are recorded in `ShaderAsset.validation_diagnostics` as `wgsl_capture` diagnostics. The import still succeeds so authoring tools and readiness reports can show the mismatch instead of losing the asset.
 
@@ -266,9 +332,11 @@ Diagnostic sources are explicit through `RenderMaterialDiagnosticSource`: shader
 
 The resource streamer uses typed material readiness before preparing GPU material state and stores the resulting `RenderMaterialReadinessReport` on `MaterialRuntime`. Renderer-side consumers and tests can query it through `ResourceStreamer::material_readiness_report(...)`. Existing fallback shader and missing-texture behavior remains allowed for compatibility, but unresolved shader references, wrong-kind or load-failing dependencies, unresolved texture references, and the fallback policy used for each slot are preserved in the stored report instead of being discarded.
 
+Material preparation now loads the referenced `ShaderAsset` as a contract when possible, feeds `readiness_report_with_shader_contract(...)`, and resolves every authored material texture slot rather than only the fixed standard PBR slots. Standard PBR aliases are still synchronized into the current runtime material shape, while non-standard shader slots are resolved for readiness and fallback diagnostics so missing or not-upload-ready shader-specific textures can be traced by asset locator and slot key. `render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key` covers this with a shader-declared `mask_map` slot backed by an unsupported compressed container texture.
+
 Shader fallback is exposed through `ensure_shader_source(...)`, which now returns the prepared shader identity and an optional structured readiness report when the requested shader reference resolves through the default fallback shader. A shader that exists but cannot provide runtime WGSL is reported as `MissingRuntimeShaderSource`, stored on the material runtime report, and then treated as a blocking material readiness error.
 
-Texture lookup is exposed through `resolve_texture_reference(...)`, which returns the resolved texture id plus an unresolved-reference validation error and fallback usage when the declared texture locator is missing, is the wrong typed payload, cannot load as a `TextureAsset`, or is not upload-ready. M3A advertises `TexturePayload::Container` metadata through render image descriptors, but the current GPU upload path only supports `TexturePayload::Rgba8`; container textures are therefore reported as `TextureNotUploadReady` using the resolved descriptor format and use the fallback texture until container upload support lands. The older texture id helper remains a narrow compatibility convenience for internal paths that only need the id.
+Texture lookup is exposed through `resolve_texture_reference(...)`, which returns the resolved texture id plus an unresolved-reference validation error and fallback usage when the declared texture locator is missing, is the wrong typed payload, cannot load as a `TextureAsset`, or is not upload-ready. The compatibility helper uses an uncompressed-only support profile; renderer preparation calls `resolve_texture_reference_with_support(...)` with actual device support so uploadable DDS BC and ASTC 2D containers can avoid fallback. Unsupported compression, KTX/KTX2 supercompression or missing level extraction, ASTC 3D, malformed byte lengths, and unavailable GPU features are reported as `TextureNotUploadReady` using the resolved descriptor format and asset locator.
 
 ## Scope Boundary
 

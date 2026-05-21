@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager, ShaderAsset,
-    ShaderSourceLanguage, TextureAsset,
+    AlphaMode, AssetReference, AssetUri, MaterialAsset, MaterialTextureSlotValue,
+    ProjectAssetManager, ShaderAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, TextureAsset,
 };
 use crate::core::framework::render::{RenderMaterialFallbackReason, RenderMaterialValidationError};
 use crate::core::resource::{
@@ -515,6 +515,78 @@ fn render_product_streamer_reports_container_textures_as_not_upload_ready() {
     )));
 }
 
+#[test]
+fn render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/custom-slot.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let shader_uri = locator("res://shaders/custom-slot.zshader");
+    let texture_uri = locator("res://textures/custom-mask.ktx2");
+    asset_manager
+        .assets::<ShaderAsset>()
+        .insert(
+            ResourceRecord::new(
+                ResourceId::from_locator(&shader_uri),
+                ResourceKind::Shader,
+                shader_uri.clone(),
+            ),
+            shader_with_texture_slot("res://shaders/custom-slot.zshader", "mask_map"),
+        )
+        .expect("shader insert");
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(
+                ResourceId::from_locator(&texture_uri),
+                ResourceKind::Texture,
+                texture_uri.clone(),
+            ),
+            container_texture("res://textures/custom-mask.ktx2"),
+        )
+        .expect("texture insert");
+    let mut material = material_with_refs("res://shaders/custom-slot.zshader", None);
+    material.texture_slots.insert(
+        "mask_map".to_string(),
+        MaterialTextureSlotValue::new(asset_reference("res://textures/custom-mask.ktx2")),
+    );
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer = ResourceStreamer::new(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("shader texture slot fallback is non-blocking");
+    let report = streamer
+        .material_readiness_report(&material_id)
+        .expect("streamer readiness report");
+
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::TextureNotUploadReady { slot, reference, .. }
+            if slot == "mask_map"
+                && reference.locator == locator("res://textures/custom-mask.ktx2")
+    )));
+    assert!(report.fallback_usages.iter().any(|usage| matches!(
+        &usage.reason,
+        RenderMaterialFallbackReason::Texture { slot, reference }
+            if slot == "mask_map"
+                && reference.locator == locator("res://textures/custom-mask.ktx2")
+    )));
+}
+
 fn missing_refs_material() -> MaterialAsset {
     material_with_refs(
         "res://shaders/missing-streamer.wgsl",
@@ -596,6 +668,20 @@ fn wgsl_shader(uri: &str) -> ShaderAsset {
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     }
+}
+
+fn shader_with_texture_slot(uri: &str, slot: &str) -> ShaderAsset {
+    let mut shader = wgsl_shader(uri);
+    shader.texture_slots = vec![ShaderTextureSlotAsset {
+        name: slot.to_string(),
+        kind: "texture2d".to_string(),
+        default: Some("white".to_string()),
+        sampler: Some("linear_repeat".to_string()),
+        group: None,
+        label: None,
+        editor: Default::default(),
+    }];
+    shader
 }
 
 fn glsl_without_runtime_wgsl(uri: &str) -> ShaderAsset {

@@ -3,18 +3,18 @@ use zircon_runtime_interface::ui::surface::{
     UiTextSelection,
 };
 
+use super::{next_grapheme_boundary, previous_grapheme_boundary};
+
 pub(crate) fn apply_text_edit_action(
     mut state: UiEditableTextState,
     action: UiTextEditAction,
 ) -> UiEditableTextState {
-    if state.read_only {
-        return state;
-    }
-
     match action {
-        UiTextEditAction::Insert { text } => replace_selection_or_range(&mut state, &text),
-        UiTextEditAction::Backspace => backspace(&mut state),
-        UiTextEditAction::Delete => delete(&mut state),
+        UiTextEditAction::Insert { text } if !state.read_only => {
+            replace_selection_or_range(&mut state, &text)
+        }
+        UiTextEditAction::Backspace if !state.read_only => backspace(&mut state),
+        UiTextEditAction::Delete if !state.read_only => delete(&mut state),
         UiTextEditAction::MoveCaret {
             offset,
             extend_selection,
@@ -25,7 +25,7 @@ pub(crate) fn apply_text_edit_action(
             state.caret.offset = focus;
             state.selection = Some(UiTextSelection { anchor, focus });
         }
-        UiTextEditAction::SetComposition { range, text } => {
+        UiTextEditAction::SetComposition { range, text } if !state.read_only => {
             if let Some(composition) = state.composition.take() {
                 if let Some(restore_text) = composition.restore_text {
                     replace_range_preserving_composition(
@@ -48,14 +48,14 @@ pub(crate) fn apply_text_edit_action(
                 restore_text: Some(restore_text),
             });
         }
-        UiTextEditAction::CommitComposition => {
+        UiTextEditAction::CommitComposition if !state.read_only => {
             if let Some(composition) = state.composition.take() {
                 state.caret.offset = clamp_boundary(&state.text, composition.range.end);
                 state.caret.affinity = UiTextCaretAffinity::Downstream;
                 state.selection = None;
             }
         }
-        UiTextEditAction::CancelComposition => {
+        UiTextEditAction::CancelComposition if !state.read_only => {
             if let Some(composition) = state.composition.take() {
                 if let Some(restore_text) = composition.restore_text {
                     replace_range_preserving_composition(
@@ -67,6 +67,12 @@ pub(crate) fn apply_text_edit_action(
                 }
             }
         }
+        UiTextEditAction::Insert { .. }
+        | UiTextEditAction::Backspace
+        | UiTextEditAction::Delete
+        | UiTextEditAction::SetComposition { .. }
+        | UiTextEditAction::CommitComposition
+        | UiTextEditAction::CancelComposition => {}
     }
 
     state
@@ -178,15 +184,9 @@ fn clamp_boundary(text: &str, offset: usize) -> usize {
 }
 
 fn previous_boundary(text: &str, offset: usize) -> Option<usize> {
-    text.char_indices()
-        .map(|(index, _)| index)
-        .take_while(|index| *index < offset)
-        .last()
+    previous_grapheme_boundary(text, offset)
 }
 
 fn next_boundary(text: &str, offset: usize) -> Option<usize> {
-    text.char_indices()
-        .map(|(index, _)| index)
-        .find(|index| *index > offset)
-        .or_else(|| (offset < text.len()).then_some(text.len()))
+    next_grapheme_boundary(text, offset)
 }

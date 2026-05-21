@@ -1,6 +1,11 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/update.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/result.rs
   - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
@@ -37,6 +42,11 @@ related_code:
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/update.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/result.rs
   - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
@@ -68,12 +78,14 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
 plan_sources:
   - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - .codex/plans/ZirconEngine UITextInputA11y 缺口收束计划.md
   - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
   - user: 2026-05-08 continue M1 Contract Spine implementation
   - user: 2026-05-08 include M3 tab/directional navigation in M2 focus milestone
 tests:
   - zircon_runtime_interface/src/tests/mod.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+  - planned: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1
   - zircon_runtime/src/ui/tests/asset_contract_spine.rs
   - target: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked
   - target: cargo check -p zircon_runtime_interface --locked
@@ -81,6 +93,14 @@ tests:
   - target: cargo test -p zircon_runtime --lib focus_navigation --locked
   - 2026-05-17 scrollbar-widget-contract-validation: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-scrollbar-contract --message-format short --color never (passed, 6 tests)
   - 2026-05-17 typed-style-contract-validation: WSL cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 (passed)
+  - 2026-05-20 binding-update-contract-validation: cargo test -p zircon_runtime_interface --lib ui_binding_update_contract_represents_attribute_state_and_ecs_domains --locked --jobs 1 --message-format short --color never (passed, 1 test)
+  - 2026-05-20 binding-update-contract-spine-validation: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 --message-format short --color never (passed, 7 tests)
+  - 2026-05-20 binding-result-contract-validation: cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --message-format short --color never (passed, 91 tests)
+  - 2026-05-20 widget-binding-result-contract-validation: rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/dispatch/pointer/result.rs zircon_runtime_interface/src/ui/dispatch/navigation/result.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs (passed)
+  - 2026-05-20 widget-binding-result-contract-validation: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 --message-format short --color never (passed, 7 tests)
+  - 2026-05-20 widget-binding-result-contract-validation: cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --message-format short --color never (passed, 91 tests)
+  - 2026-05-20 scrollbar-runtime-state-contract-validation: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 --message-format short --color never (passed, 7 tests)
+  - 2026-05-20 scrollbar-runtime-state-contract-validation: cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --message-format short --color never (passed, 91 tests)
 doc_type: module-detail
 ---
 
@@ -99,6 +119,10 @@ M1 does not implement widget reducers, text shaping, AccessKit bridging, or edit
 `ui::navigation` defines `UiTabIndex`, `UiNavigationGroup`, `UiNavigationGroupId`, `UiDirectionalNavigation`, and `UiNavigationContract`. These DTOs let runtime M3 represent tab order, modal trap groups, nested navigation groups, manual directional overrides, and blocked edges.
 
 `ui::picking` defines `UiPickPolicy`, `UiPickMode`, `UiPointerCapture`, and `UiPointerCaptureKind`. The policy intentionally uses one neutral vocabulary for pointer, hover, focus, accessibility, capture, and text-hit eligibility so Zircon does not inherit Bevy's split between UI picking and focus policy.
+
+`ui::binding` defines both legacy native event-binding DTOs and the newer binding-update report vocabulary. `UiBindingSource`, `UiBindingTarget`, `UiBindingUpdate`, and `UiBindingUpdateReport` let retained attributes, runtime state, runtime component state, widget behavior, accessibility actions, host projection, and the future runtime UI ECS bridge describe the same value movement and dirty domains without moving execution into the interface crate.
+
+`ui::dispatch::input::UiInputDispatchResult`, `ui::dispatch::pointer::UiPointerDispatchResult`, and `ui::dispatch::navigation::UiNavigationDispatchResult` carry defaulted `binding_reports` next to component events, host requests, and legacy route results. This keeps the result DTOs backward-compatible while allowing runtime dispatch paths such as accessibility SetValue and default widget reducers to return binding update evidence without string-only diagnostics.
 
 `ui::accessibility` defines neutral a11y roles, states, actions, nodes, diagnostics, `UiAccessibilityTreeSnapshot`, and `UiAccessibilityContract`. The snapshot is AccessKit-independent: runtime M9 may map it to AccessKit, but the shared contract stores node ids, paths, role/name/description, bounds, state, actions, label links, tooltip text, focused node, and diagnostics such as missing accessible names.
 
@@ -133,3 +157,5 @@ Editor code may consume these DTOs for authoring and presentation, but it must n
 ## Test Coverage
 
 `zircon_runtime_interface/src/tests/ui_contract_spine.rs` covers serde roundtrips and default compatibility for the new focus/navigation/picking, a11y snapshot/diagnostics, widget/text/cursor, scrollbar target fields, render kind/stats, compiled-template sections, and source `.ui.toml` section contracts. It also verifies that legacy TOML without new sections still deserializes with safe defaults. `zircon_runtime/src/ui/tests/asset_contract_spine.rs` covers the runtime compiler path that preserves authored source sections through component expansion.
+
+The M3 binding-update contract slice is covered by `ui_binding_update_contract_represents_attribute_state_and_ecs_domains`, which roundtrips `UiBindingUpdate`, verifies retained-attribute, runtime-state, component-state, accessibility-action, widget-alias, and runtime-ECS source or target kinds, checks report dirty-domain aggregation, and verifies `UiInputDispatchResult`, `UiPointerDispatchResult`, and `UiNavigationDispatchResult` binding reports roundtrip while legacy results default the field to empty.

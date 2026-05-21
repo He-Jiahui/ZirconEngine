@@ -1,4 +1,4 @@
-import { ScrollView } from "@material";
+import { HorizontalDivider, ScrollView, VerticalDivider } from "@material";
 import { HubTokens } from "tokens.slint";
 
 export component Fill inherits Rectangle {
@@ -17,7 +17,17 @@ export component Divider inherits Rectangle {
     height: root.vertical ? 0px : HubTokens.border-width;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: root.vertical ? 1 : 0;
-    background: root.tone;
+    background: transparent;
+
+    if root.vertical: VerticalDivider {
+        width: parent.width;
+        height: parent.height;
+    }
+
+    if !root.vertical: HorizontalDivider {
+        width: parent.width;
+        height: parent.height;
+    }
 }
 
 export component Stack inherits Rectangle {
@@ -81,6 +91,7 @@ export component ResponsiveSlot inherits Rectangle {
 export component PanelGrid inherits Rectangle {
     in property <length> gap: HubTokens.panel-gap;
     in property <length> row-gap: root.gap;
+    in property <bool> compact: false;
     in property <bool> clip-content: true;
 
     min-width: 0px;
@@ -95,7 +106,7 @@ export component PanelGrid inherits Rectangle {
         flex-direction: FlexboxLayoutDirection.row;
         flex-wrap: FlexboxLayoutWrap.wrap;
         align-content: FlexboxLayoutAlignContent.start;
-        align-items: FlexboxLayoutAlignItems.start;
+        align-items: root.compact ? FlexboxLayoutAlignItems.stretch : FlexboxLayoutAlignItems.start;
         spacing-horizontal: root.gap;
         spacing-vertical: root.row-gap;
 
@@ -108,13 +119,16 @@ export component Page inherits Rectangle {
     in property <length> page-padding: HubTokens.page-padding;
     in property <length> bottom-padding: HubTokens.space-6;
     in property <length> gap: HubTokens.panel-gap;
+    out property <length> content-width: max(1px, root.width - root.page-padding * 2);
+    out property <length> viewport-height: max(HubTokens.control-md, root.height - HubTokens.bottom-status-height);
+    out property <length> content-height: max(HubTokens.control-md, root.viewport-height - root.page-padding * 2);
 
     background: HubTokens.surface-page;
     clip: true;
 
     page-scroll := ScrollView {
         width: root.width;
-        height: root.height;
+        height: root.viewport-height;
         viewport_y <=> root.scroll-y;
         viewport_width: page-scroll.visible_width;
         viewport_height: max(page-scroll.visible_height, content-layout.preferred-height);
@@ -134,7 +148,7 @@ export component Page inherits Rectangle {
                 padding-top: root.page-padding;
                 padding-bottom: root.bottom-padding;
                 spacing: root.gap;
-                alignment: start;
+                alignment: stretch;
 
                 @children
             }
@@ -159,10 +173,14 @@ export component ResponsivePanelFlow inherits PanelGrid {
 
 export component WorkspacePanelSection inherits Rectangle {
     in property <bool> compact: false;
+    in property <bool> compact-stack: true;
+    in property <int> compact-rows: 2;
     in property <length> row-height: HubTokens.workspace-row-build-detail;
     in property <length> spacing-horizontal: HubTokens.panel-gap;
     in property <length> spacing-vertical: HubTokens.panel-gap;
-    private property <length> section-height: root.compact ? (root.row-height * 2 + root.spacing-vertical) : root.row-height;
+    private property <int> compact-row-count: root.compact-rows < 1 ? 1 : root.compact-rows;
+    private property <length> compact-height: root.row-height * root.compact-row-count + root.spacing-vertical * (root.compact-row-count - 1);
+    private property <length> section-height: root.compact ? root.compact-height : root.row-height;
 
     min-width: 0px;
     preferred-width: 0px;
@@ -177,10 +195,10 @@ export component WorkspacePanelSection inherits Rectangle {
     FlexboxLayout {
         width: parent.width;
         height: root.section-height;
-        flex-direction: root.compact ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
-        flex-wrap: root.compact ? FlexboxLayoutWrap.no-wrap : FlexboxLayoutWrap.wrap;
+        flex-direction: root.compact && root.compact-stack ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
+        flex-wrap: root.compact && root.compact-stack ? FlexboxLayoutWrap.no-wrap : FlexboxLayoutWrap.wrap;
         align-content: FlexboxLayoutAlignContent.start;
-        align-items: FlexboxLayoutAlignItems.start;
+        align-items: root.compact && root.compact-stack ? FlexboxLayoutAlignItems.stretch : FlexboxLayoutAlignItems.start;
         spacing-horizontal: root.spacing-horizontal;
         spacing-vertical: root.spacing-vertical;
 

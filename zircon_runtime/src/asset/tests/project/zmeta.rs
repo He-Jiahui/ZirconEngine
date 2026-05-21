@@ -5,7 +5,8 @@ use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
     AssetKind, AssetMetaDocument, AssetSourceUnit, AssetUri, AssetUuid, DataAsset, DataAssetFormat,
     FunctionAssetImporter, ImportedAsset, ImportedAssetEntry, MaterialAsset, ProjectManager,
-    ProjectManifest, ProjectPaths, ZShaderDocument,
+    ProjectManifest, ProjectPaths, ShaderAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset, ZShaderDocument,
 };
 use crate::core::resource::ResourceState;
 use crate::plugin::PluginPackageManifest;
@@ -635,6 +636,39 @@ fn documented_zmeta_shader_material_fixture_parses() {
     assert_eq!(zshader.wgsl_files, vec!["unlit.wgsl"]);
     assert_eq!(zshader.entry_points.len(), 2);
     assert_eq!(zshader.properties[0].name, "base_color");
+    let fixture_wgsl = fs::read_to_string(
+        fixture_root
+            .join("shaders")
+            .join("unlit_shader")
+            .join("unlit.wgsl"),
+    )
+    .unwrap();
+    let shader_asset = ShaderAsset {
+        uri: shader_uri.clone(),
+        source_language: ShaderSourceLanguage::Wgsl,
+        source: fixture_wgsl.clone(),
+        wgsl_source: fixture_wgsl,
+        entry_points: Vec::new(),
+        dependencies: Vec::new(),
+        source_files: vec![ShaderSourceFileAsset {
+            path: "unlit.wgsl".to_string(),
+            url: AssetUri::parse("res://shaders/unlit_shader/unlit.wgsl").unwrap(),
+        }],
+        imports: Vec::new(),
+        property_schema: zshader.properties.clone(),
+        texture_slots: zshader
+            .texture_slots
+            .iter()
+            .map(ShaderTextureSlotAsset::from)
+            .collect(),
+        editor: zshader.editor.clone(),
+        pipeline_layout: Default::default(),
+        validation_diagnostics: Vec::new(),
+    };
+    assert!(
+        crate::asset::validate_wgsl_captures(&shader_asset).is_empty(),
+        "documented fixture WGSL should reference every declared shader property and texture slot"
+    );
 
     let material = MaterialAsset::from_toml_str(
         &fs::read_to_string(fixture_root.join("materials").join("hero_unlit.zmaterial")).unwrap(),

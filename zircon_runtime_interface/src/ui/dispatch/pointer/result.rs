@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::binding::UiBindingUpdateReport;
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::UiFrame;
 use crate::ui::surface::UiPointerRoute;
@@ -45,6 +46,8 @@ pub struct UiPointerDispatchResult {
     pub diagnostics: UiPointerDispatchDiagnostics,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub component_events: Vec<UiPointerComponentEvent>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub binding_reports: Vec<UiBindingUpdateReport>,
 }
 
 impl UiPointerDispatchResult {
@@ -74,6 +77,17 @@ impl UiPointerDispatchResult {
             requested_damage: Vec::new(),
             diagnostics,
             component_events: Vec::new(),
+            binding_reports: Vec::new(),
+        }
+    }
+
+    pub fn record_binding_report(&mut self, report: UiBindingUpdateReport) {
+        if !report.updates.is_empty()
+            || report.applied_count > 0
+            || report.unchanged_count > 0
+            || report.rejected_count > 0
+        {
+            self.binding_reports.push(report);
         }
     }
 }

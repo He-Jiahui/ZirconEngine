@@ -17,7 +17,10 @@ use zircon_runtime::foundation::{
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
-    layout::UiFrame,
+    layout::{
+        UiFrame, UiLayoutEngineCapability, UiLayoutEngineFamily, UiLayoutEngineRequest,
+        UiLayoutEngineSelection, UiLayoutEngineSelectionReport,
+    },
     surface::{
         UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiRenderDebugStats,
         UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot, UiWidgetReflectorNode,
@@ -341,6 +344,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
             estimated_draw_calls: 3,
             ..UiRenderDebugStats::default()
         },
+        layout_engine_report: layout_engine_report_fixture(),
         overlay_primitives: vec![UiDebugOverlayPrimitive {
             kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
             node_id: Some(UiNodeId::new(2)),
@@ -350,6 +354,25 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
         }],
         ..UiSurfaceDebugSnapshot::default()
     }
+}
+
+fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    UiLayoutEngineSelectionReport::from_selections(vec![
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(1)),
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(2)),
+    ])
 }
 
 fn module_plugins_fixture() -> ModulePluginsPaneViewData {
@@ -662,6 +685,20 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
         .ui_debug_reflector_details
         .iter()
         .any(|detail| detail.contains("Selected: runtime/root/live_button")));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "Layout Engine:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "  selected: taffy=1 zircon=1"));
+    assert!(payload.ui_debug_reflector_sections.iter().any(|line| {
+        line.contains("node=2")
+            && line.contains("family=Overlay")
+            && line.contains("selected=LegacyZircon")
+            && line.contains("reason=ZirconOwnedSemantics")
+    }));
     assert!(payload
         .ui_debug_reflector_export_status
         .contains("JSON export ready"));

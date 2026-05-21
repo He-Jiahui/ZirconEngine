@@ -8,9 +8,10 @@ use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::AssetWorkerPool;
-#[cfg(test)]
-use crate::asset::AssetImporter;
-use crate::asset::{AssetId, AssetImporterHandler, AssetImporterRegistry, AssetUri, ShaderAsset};
+use crate::asset::{
+    AssetId, AssetImportError, AssetImporter, AssetImporterCapabilityReport, AssetImporterHandler,
+    AssetImporterRegistry, AssetUri, ShaderAsset,
+};
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
@@ -85,6 +86,26 @@ impl ProjectAssetManager {
         Ok(())
     }
 
+    pub fn asset_importer_capability_reports(&self) -> Vec<AssetImporterCapabilityReport> {
+        let project = self.project_read();
+        if let Some(project) = project.as_ref() {
+            return project.importer().capability_reports();
+        }
+        self.active_importer_registry().capability_reports()
+    }
+
+    pub fn asset_importer_capability_report_for_source(
+        &self,
+        source_path: &std::path::Path,
+    ) -> Result<AssetImporterCapabilityReport, AssetImportError> {
+        let project = self.project_read();
+        if let Some(project) = project.as_ref() {
+            return project.importer().capability_report_for_source(source_path);
+        }
+        self.active_importer_registry()
+            .capability_report_for_source(source_path)
+    }
+
     #[cfg(test)]
     pub(crate) fn register_first_wave_plugin_fixture_importers_for_test(
         &self,
@@ -119,6 +140,19 @@ impl ProjectAssetManager {
             .resolve_asset_id(uri)
             .ok_or_else(|| asset_error_message(format!("missing shader locator {uri}")))?;
         self.load_shader_asset(id)
+    }
+
+    fn active_importer_registry(&self) -> AssetImporterRegistry {
+        let mut registry = AssetImporter::default().registry().clone();
+        for importer in self
+            .asset_importers
+            .read()
+            .expect("asset importer registry lock poisoned")
+            .importers()
+        {
+            let _ = registry.register_arc(importer);
+        }
+        registry
     }
 }
 

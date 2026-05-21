@@ -1,17 +1,40 @@
 import { NavButton, NavItemData } from "shared.slint";
 import { HubTokens } from "tokens.slint";
+import {
+    NavigationItem,
+    NavigationRail as MaterialNavigationRail,
+    MaterialStyleMetrics,
+} from "material_bridge.slint";
 
 export component NavRail inherits Rectangle {
     in property <[NavItemData]> items;
+    in property <[NavigationItem]> material-items;
+    in-out property <int> current-index: 0;
     in property <bool> collapsed: false;
     in property <length> rail-padding: root.collapsed ? HubTokens.space-2 : HubTokens.space-3;
     in property <length> rail-gap: HubTokens.toolbar-gap;
     in property <brush> rail-background: HubTokens.surface-page;
     callback clicked(string);
 
+    min-width: root.collapsed ? MaterialStyleMetrics.size_80 : 0px;
     background: root.rail-background;
 
-    VerticalLayout {
+    if root.collapsed: MaterialNavigationRail {
+        width: parent.width;
+        height: parent.height;
+        items: root.material-items;
+        current_index <=> root.current-index;
+        alignment: start;
+        has_menu: false;
+
+        index_changed(index) => {
+            if index >= 0 && index < root.items.length {
+                root.clicked(root.items[index].id);
+            }
+        }
+    }
+
+    if !root.collapsed: VerticalLayout {
         width: parent.width;
         height: parent.height;
         padding: root.rail-padding;
@@ -19,7 +42,7 @@ export component NavRail inherits Rectangle {
 
         for item in root.items: NavButton {
             item: item;
-            collapsed: root.collapsed;
+            collapsed: false;
             clicked(id) => {
                 root.clicked(id);
             }

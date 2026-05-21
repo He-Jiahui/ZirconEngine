@@ -240,6 +240,10 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
                 string_array(&payload.ui_debug_reflector_details),
             );
             attributes.insert(
+                "payload_ui_debug_reflector_sections".to_string(),
+                string_array(&payload.ui_debug_reflector_sections),
+            );
+            attributes.insert(
                 "payload_ui_debug_reflector_export_status".to_string(),
                 Value::String(payload.ui_debug_reflector_export_status.clone()),
             );

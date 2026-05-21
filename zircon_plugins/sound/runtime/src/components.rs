@@ -14,9 +14,19 @@ pub fn sound_component_descriptors() -> Vec<ComponentTypeDescriptor> {
             .with_property("forward", "vec3", true)
             .with_property("velocity", "vec3", true)
             .with_property("gain", "scalar", true)
+            .with_property("speed", "scalar", true)
             .with_property("looped", "bool", true)
             .with_property("playing", "bool", true)
+            .with_property("muted", "bool", true)
+            .with_property(
+                "completion_action",
+                "sound_playback_completion_action",
+                true,
+            )
+            .with_property("start_seconds", "scalar", true)
+            .with_property("duration_seconds", "scalar", true)
             .with_property("spatial_blend", "scalar", true)
+            .with_property("spatial_scale", "scalar", true)
             .with_property("attenuation", "sound_attenuation", true)
             .with_property("doppler_factor", "scalar", true)
             .with_property("occlusion_enabled", "bool", true)

@@ -3,8 +3,19 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let input_mod_source = include_str!("../mod.rs");
     let input_runtime_source = include_str!("../runtime/default_input_manager.rs");
-    let app_runtime_handler_source =
-        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/application_handler.rs");
+    let app_runtime_input_source = concat!(
+        include_str!(
+            "../../../../zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs"
+        ),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/keyboard_input/event.rs"),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/pointer_input/button.rs"),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/pointer_input/motion.rs"),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/pointer_input/wheel.rs"),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/ime_input/composition.rs"),
+        include_str!(
+            "../../../../zircon_app/src/entry/runtime_entry_app/file_drag_drop/dropped.rs"
+        ),
+    );
     let manager_mod_source = include_str!("../../core/manager/mod.rs");
     let manager_resolver_source = include_str!("../../core/manager/resolver.rs");
 
@@ -34,7 +45,7 @@ fn input_protocol_types_live_in_runtime_input_surface() {
         "runtime input manager should source input contracts from zircon_framework"
     );
     assert!(
-        !app_runtime_handler_source.contains("use crate::core::manager::{InputButton, InputEvent};"),
+        !app_runtime_input_source.contains("use crate::core::manager::{InputButton, InputEvent};"),
         "runtime app should import input protocol types from zircon_runtime::input instead of zircon_manager"
     );
 

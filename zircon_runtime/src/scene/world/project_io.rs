@@ -2,13 +2,13 @@ use std::fs;
 use std::path::Path;
 
 use crate::asset::assets::{
-    ImportedAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
-    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    ImportedAsset, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
+    SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
     SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
     SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneSpotLightAsset,
-    SceneViewportRectAsset, TransformAsset,
+    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
+    SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
 };
 use crate::asset::importer::AssetImportError;
 use crate::asset::project::ProjectManager;
@@ -24,10 +24,11 @@ use thiserror::Error;
 use super::World;
 use crate::core::framework::render::{RenderCameraTarget, RenderViewportRect};
 use crate::scene::components::{
-    AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
-    AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, CameraComponent,
-    ColliderComponent, ColliderShape, JointComponent, JointKind, Mobility, NodeKind, PointLight,
-    RigidBodyComponent, RigidBodyType, SpotLight,
+    AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, ColliderShape,
+    JointComponent, JointKind, Mobility, NodeKind, PointLight, RectLight, RigidBodyComponent,
+    RigidBodyType, SpotLight,
 };
 use crate::scene::ecs::Schedule;
 
@@ -77,10 +78,14 @@ impl World {
         for entity in &scene.entities {
             let kind = if entity.camera.is_some() {
                 NodeKind::Camera
+            } else if entity.ambient_light.is_some() {
+                NodeKind::AmbientLight
             } else if entity.directional_light.is_some() {
                 NodeKind::DirectionalLight
             } else if entity.point_light.is_some() {
                 NodeKind::PointLight
+            } else if entity.rect_light.is_some() {
+                NodeKind::RectLight
             } else if entity.spot_light.is_some() {
                 NodeKind::SpotLight
             } else if entity
@@ -133,6 +138,11 @@ impl World {
                     mesh,
                     sprite_2d: None,
                     mesh_2d: None,
+                    ambient_light: entity.ambient_light.clone().map(|light| AmbientLight {
+                        color: crate::core::math::Vec3::from_array(light.color),
+                        intensity: light.intensity,
+                        affects_lightmapped_meshes: light.affects_lightmapped_meshes,
+                    }),
                     directional_light: entity.directional_light.clone().map(|light| {
                         crate::scene::components::DirectionalLight {
                             direction: crate::core::math::Vec3::from_array(light.direction),
@@ -152,6 +162,12 @@ impl World {
                         range: light.range,
                         inner_angle_radians: light.inner_angle_radians,
                         outer_angle_radians: light.outer_angle_radians,
+                    }),
+                    rect_light: entity.rect_light.clone().map(|light| RectLight {
+                        color: crate::core::math::Vec3::from_array(light.color),
+                        intensity: light.intensity,
+                        range: light.range,
+                        size: crate::core::math::Vec2::from_array(light.size),
                     }),
                     active: entity.active,
                     render_layer_mask: entity.render_layer_mask,
@@ -311,6 +327,11 @@ impl World {
                         .map(|camera| camera_to_asset(project, camera))
                         .transpose()?,
                     mesh,
+                    ambient_light: record.ambient_light.map(|light| SceneAmbientLightAsset {
+                        color: light.color.to_array(),
+                        intensity: light.intensity,
+                        affects_lightmapped_meshes: light.affects_lightmapped_meshes,
+                    }),
                     directional_light: record.directional_light.map(|light| {
                         SceneDirectionalLightAsset {
                             direction: light.direction.to_array(),
@@ -322,6 +343,12 @@ impl World {
                         color: light.color.to_array(),
                         intensity: light.intensity,
                         range: light.range,
+                    }),
+                    rect_light: record.rect_light.map(|light| SceneRectLightAsset {
+                        color: light.color.to_array(),
+                        intensity: light.intensity,
+                        range: light.range,
+                        size: light.size.to_array(),
                     }),
                     spot_light: record.spot_light.map(|light| SceneSpotLightAsset {
                         direction: light.direction.to_array(),
@@ -506,10 +533,14 @@ impl World {
             for entity in &self.entities {
                 let kind = if self.cameras.contains_key(entity) {
                     NodeKind::Camera
+                } else if self.ambient_lights.contains_key(entity) {
+                    NodeKind::AmbientLight
                 } else if self.directional_lights.contains_key(entity) {
                     NodeKind::DirectionalLight
                 } else if self.point_lights.contains_key(entity) {
                     NodeKind::PointLight
+                } else if self.rect_lights.contains_key(entity) {
+                    NodeKind::RectLight
                 } else if self.spot_lights.contains_key(entity) {
                     NodeKind::SpotLight
                 } else if self.mesh_renderers.contains_key(entity) {

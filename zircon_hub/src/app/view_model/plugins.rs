@@ -1,6 +1,6 @@
 use slint::SharedString;
 
-use crate::plugins::PluginCatalogEntry;
+use crate::plugins::{PluginCatalogEntry, ENGINE_PLUGIN_SCOPE, PROJECT_PLUGIN_SCOPE};
 use crate::settings::HubLanguage;
 use crate::state::HubSnapshot;
 
@@ -20,6 +20,7 @@ fn plugin_data(plugin: &PluginCatalogEntry, language: HubLanguage) -> PluginData
         id: shared(plugin.id.clone()),
         title: shared(plugin.display_name.clone()),
         category: shared(plugin.category.clone()),
+        scope: shared(plugin_scope_label(&plugin.scope, language)),
         maturity: shared(plugin.maturity.clone()),
         packaging: shared(packaging_label(&plugin.default_packaging, language)),
         modules: shared(plugin.module_count.to_string()),
@@ -29,6 +30,18 @@ fn plugin_data(plugin: &PluginCatalogEntry, language: HubLanguage) -> PluginData
             plugin.description.clone()
         }),
         path: shared(plugin.package_root.to_string_lossy().into_owned()),
+    }
+}
+
+fn plugin_scope_label(scope: &str, language: HubLanguage) -> String {
+    match scope {
+        PROJECT_PLUGIN_SCOPE => {
+            localization::text(language, "Selected Project", "选中项目").to_string()
+        }
+        ENGINE_PLUGIN_SCOPE => {
+            localization::text(language, "Source Engine", "Source Engine").to_string()
+        }
+        _ => scope.to_string(),
     }
 }
 
@@ -81,6 +94,7 @@ mod tests {
                 maturity: "beta".to_string(),
                 default_packaging: vec!["native_dynamic".to_string()],
                 module_count: 2,
+                scope: crate::plugins::ENGINE_PLUGIN_SCOPE.to_string(),
                 package_root: PathBuf::from("E:/plugins/demo"),
                 manifest_path: PathBuf::from("E:/plugins/demo/plugin.toml"),
             }],
@@ -96,6 +110,7 @@ mod tests {
         assert_eq!(plugins[0].title, SharedString::from("Demo Plugin"));
         assert_eq!(plugins[0].packaging, SharedString::from("native_dynamic"));
         assert_eq!(plugins[0].modules, SharedString::from("2"));
+        assert_eq!(plugins[0].scope, SharedString::from("Source Engine"));
         assert_eq!(plugins[0].description, SharedString::from("No description"));
     }
 }

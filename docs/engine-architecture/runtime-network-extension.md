@@ -120,6 +120,8 @@ plan_sources:
   - user: 2026-05-03 continue current net gaps and report remaining gaps
   - user: 2026-05-03 continue remaining net gaps
   - user: 2026-05-04 continue remaining net gaps
+  - user: 2026-05-20 continue net replication scheduling/budget hardening
+  - user: 2026-05-20 continue net RPC wall-clock handler timeout hardening
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/多插件组合可选功能规则设计.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -171,6 +173,32 @@ tests:
   - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
   - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime
   - attempted: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --tests --locked
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime
+  - passed: git diff --check -- zircon_runtime/src/core/framework/net zircon_plugins/net/features/replication/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime --tests --locked
+  - attempted: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime --lib --locked
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime
+  - passed: git diff --check -- zircon_plugins/net/features/rpc/runtime/src/manager.rs zircon_plugins/net/features/rpc/runtime/src/tests.rs docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime --tests --locked
+  - attempted: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime --lib --locked --jobs 1 --message-format short --color never
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime
+  - passed: git diff --check -- zircon_plugins/net/features/reliable_udp/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --tests --locked
+  - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --lib --locked --jobs 1 --message-format short --color never
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime
+  - passed: git diff --check -- zircon_plugins/net/features/content_download/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --tests --locked
+  - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --lib --locked --jobs 1 --message-format short --color never
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime
+  - passed: git diff --check -- zircon_runtime/src/core/framework/net/http.rs zircon_plugins/net/features/http/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --tests --locked
+  - attempted: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --lib --locked --jobs 1 --message-format short --color never
+  - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -234,6 +262,11 @@ The ownership split is fixed:
   - `NetRpcRuntimeManager`
   - `NetRpcFeatureModule.Manager.NetRpcManager`
   - session handshake state machine and RPC registry validation for `runtime.feature.net.rpc`
+- `zircon_plugin_net_replication_runtime`
+  - `NetReplicationRuntimeFeature`
+  - `NetReplicationRuntimeManager`
+  - `NetReplicationFeatureModule.Manager.NetReplicationManager`
+  - descriptor-backed dirty snapshots, interest filtering, and deterministic schedule/budget selection for `runtime.feature.net.replication`
 - `zircon_plugin_net_editor`
   - network authoring view, drawer, menu operation, and template registration
 
@@ -261,10 +294,18 @@ upper-layer authority or handler state. Shared RPC/session contracts now include
 - `NetSessionHandshakePolicy`, `NetSessionHandshakeState`, and `NetSessionControlReport` for deterministic control-message progression.
 - `NetSessionInfo` for copied session snapshots that expose the session handle, optional connection handle, handshake/lifecycle state, accepted login identity, and latest `NetSpeed` value.
 - `RpcInvocationDescriptor`, `RpcPeerRole`, `RpcDispatchStatus`, and `RpcDispatchReport` for diagnostics-first registry validation.
-- `RpcInvocationDescriptor` carries optional `NetRequestId`, timeout, and priority metadata so queued calls can preserve request correlation and deterministic dispatch order.
+- `RpcInvocationDescriptor` carries optional `NetRequestId`, timeout, and priority metadata so queued calls can preserve request correlation, direct/queued handler execution can enforce wall-clock timeout diagnostics, and deterministic dispatch order remains observable.
 - `RpcDescriptor` remains the schema, direction, payload-limit, and call-rate contract.
 - `RpcDescriptor::command`, `RpcDescriptor::client_rpc`, and `RpcDescriptor::target_rpc` provide Mirror-style descriptor helpers without introducing language attributes.
 - `RpcDispatchReport` carries copied schema, diagnostic, and optional response payload data so handler execution stays observable without exposing runtime-owned closures.
+
+The optional replication feature is also separate from `NetManager`, keeping object-state authority above
+the base transport layer. Shared sync contracts now include:
+
+- `SyncComponentDescriptor::update_hz` as the descriptor-level replication frequency gate.
+- `SyncComponentDescriptor::replication_priority` as a copied priority value for deterministic selection under contention.
+- `SyncReplicationBudget` for per-schedule snapshot-count and byte budgets, with `SYNC_REPLICATION_UNBOUNDED_BUDGET` as the explicit unlimited sentinel.
+- `SyncReplicationScheduleReport` for copied diagnostics about sent snapshots, used bytes, not-due skips, interest skips, and budget deferrals.
 
 ## Runtime Implementation
 
@@ -292,6 +333,7 @@ The M2 HTTP/WebSocket slice now has base local paths plus optional real protocol
 - Local `send_http_request` calls without an explicit URL port still dispatch to registered routes by method/path for deterministic route tests and editor/catalog plumbing.
 - Base `listen_http` and explicit-port/network `send_http_request` return `ProtocolUnavailable { capability: "runtime.feature.net.http" }` unless `net.http` injects `HyperReqwestHttpBackend`.
 - `net.http` binds a real Tokio TCP listener, serves registered routes through `hyper` HTTP/1, and uses a `reqwest` rustls client for outbound requests.
+- `NetHttpRequestDescriptor::max_retry_attempts` lets callers opt into bounded retry for transient HTTP failures/status codes; the default is zero retries, preserving one-attempt behavior.
 - `net.http` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-HTTPS requests unless insecure loopback is explicitly allowed, and certificate pinning requires a configured `NetCertificatePin` for the request host before network I/O proceeds.
 - WebSocket loopback pairs use `NetConnectionId` handles, `NetWebSocketFrame` values, peer queues, close frames, and frame poll budgets.
 - Base `listen_websocket` and `connect_websocket` return `ProtocolUnavailable { capability: "runtime.feature.net.websocket" }` unless `net.websocket` injects `TungsteniteWebSocketBackend`.
@@ -305,8 +347,9 @@ This keeps the framework contract DTO-only while making the base plugin lightwei
 network protocol crates are disabled. HTTPS and WSS use the rustls-enabled feature dependency stack.
 Policy enforcement now fails closed for unconfigured certificate pinning and has a shared pin DTO for
 host/fingerprint configuration. WebSocket server admission policy now covers path, required-header,
-and subprotocol gates. Actual peer certificate fingerprint extraction/matching, proxy policy, and
-retry policy remain later HTTP/WebSocket hardening work.
+and subprotocol gates. HTTP retry is descriptor-driven and bounded in the optional HTTP backend.
+Actual peer certificate fingerprint extraction/matching and proxy policy remain later HTTP/WebSocket
+hardening work.
 
 The first M3 RPC/session slice adds `zircon_plugin_net_rpc_runtime` without changing the base
 transport manager. `NetRpcRuntimeManager` owns feature-local state for:
@@ -330,24 +373,28 @@ transport manager. `NetRpcRuntimeManager` owns feature-local state for:
 - schema-unavailable and schema-rejected diagnostics before handler invocation
 - per-source-session call-rate windows plus per-source-session `NetSpeed` byte windows for DoS-style quota blocking
 - copied dispatch reports for no-handler, direction-denied, session-unavailable, schema-unavailable, schema-rejected, payload-too-large, quota-exceeded, handler-failed, and accepted outcomes
-- queue admission through `enqueue_rpc`, bounded queue rejection through `QueueFull`, priority-ordered `drain_rpc_queue`, and timeout diagnostics through `TimedOut`
+- queue admission through `enqueue_rpc`, bounded queue rejection through `QueueFull`, priority-ordered `drain_rpc_queue`, and timeout diagnostics through `TimedOut` for zero-timeout invocations, expired queued calls, pending request expiry, and direct/queued handlers whose wall-clock execution exceeds the invocation timeout
 - correlated request tracking through `pending_request` and `expire_pending_requests`, keyed by `NetRequestId`, so feature callers can observe outstanding request/response contracts and timeout diagnostics
 
 `dispatch_rpc` remains a validation-only path for diagnostics and queues. `invoke_rpc` runs the same
 validation path and then executes a registered handler closure only after direction, payload, schema,
-and quota gates accept the invocation. Handlers return copied response bytes or a copied failure
-diagnostic; they do not expose runtime-owned state into `zircon_runtime::core::framework::net`.
+and quota gates accept the invocation. Direct and queued handler calls measure wall-clock elapsed time
+against `RpcInvocationDescriptor::timeout_ms`; late handler results are reported as `TimedOut`, their
+response bytes are discarded, and any correlated pending request is still completed. Handlers return
+copied response bytes or a copied failure diagnostic; they do not expose runtime-owned state into
+`zircon_runtime::core::framework::net`.
 
 The first M4+ contract crates add focused runtime managers while keeping the base transport manager
 free of upper-layer state:
 
-- `zircon_plugin_net_replication_runtime` registers `net.replication`, stores `SyncComponentDescriptor` entries, publishes `SyncObjectSnapshot` values, emits dirty-only `SyncDelta` reports, filters visible snapshots through `SyncInterestDescriptor` groups, serves late-join snapshot lists, and removes object snapshots through explicit despawn lifecycle calls.
-- `zircon_plugin_net_reliable_udp_runtime` registers `net.reliable_udp`, assigns reliable datagram sequence numbers, fragments payloads according to `ReliableDatagramConfig::mtu_bytes`, tracks pending packets, removes pending fragments by `ReliableDatagramAck`, exposes resend batches, reassembles received fragments, applies deterministic loss/reorder simulation profiles, and records copied recovery diagnostics for connected/recovering/disconnected state.
-- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, queues `NetDownloadManifest` values, tracks chunk progress through `NetDownloadProgress`, builds primary/mirror candidate URLs, records cache-hit completion, builds resumable `NetDownloadAttemptDescriptor` values for chunk fetch attempts, advances mirror failover after failed attempts, records per-chunk failure diagnostics, supports explicit cancellation, and fails closed on chunk hash mismatch.
+- `zircon_plugin_net_replication_runtime` registers `net.replication`, stores `SyncComponentDescriptor` entries, publishes `SyncObjectSnapshot` values, emits dirty-only `SyncDelta` reports, filters visible snapshots through `SyncInterestDescriptor` groups, serves late-join snapshot lists, removes object snapshots through explicit despawn lifecycle calls, and selects scheduled snapshots deterministically by interest, update frequency, priority, per-session last-send time, max-snapshot budget, and max-byte budget.
+- `zircon_plugin_net_reliable_udp_runtime` registers `net.reliable_udp`, assigns reliable datagram sequence numbers, fragments payloads according to `ReliableDatagramConfig::mtu_bytes`, tracks pending packets, removes pending fragments by `ReliableDatagramAck`, exposes immediate resend batches and deterministic timeout-driven resend ticks, disconnects after `ReliableDatagramConfig::max_resend_attempts`, reassembles received fragments, applies deterministic loss/reorder simulation profiles, and records copied recovery diagnostics for connected/recovering/disconnected state.
+- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, validates `NetDownloadManifest` chunk shape before queueing, tracks chunk progress through `NetDownloadProgress`, builds primary/mirror candidate URLs, records cache-hit completion, builds resumable `NetDownloadAttemptDescriptor` values for chunk fetch attempts, advances mirror failover after failed attempts, records per-chunk failure diagnostics, supports explicit cancellation, and fails closed on chunk hash mismatch.
 
 These crates are contract-level stepping stones. They do not yet provide KCP/tokio-kcp transport I/O,
 real socket-backed reliable datagram transport, real HTTP range downloading, CDN mirror retry/failover
-transport execution, persistent cache storage, or production replication graph scheduling.
+transport execution, persistent cache storage, ECS/entity integration for replication, or a production
+spatial replication graph.
 
 ## Optional Features
 
@@ -386,24 +433,24 @@ Mirror-style convenience maps to descriptors rather than language attributes:
 
 ## Validation Status
 
-Unit-test coverage now spans the base runtime and the HTTP/WebSocket/RPC feature crates:
+Unit-test coverage now spans the base runtime and optional net feature crates:
 
 - net package optional feature bundle metadata
 - UDP loopback preservation
 - TCP listen/connect/accept/send/poll echo behavior
 - base HTTP route-table dispatch without an explicit network backend
 - disabled-base `ProtocolUnavailable` errors for real HTTP/WebSocket protocol calls
-- `net.http` feature registration plus real HTTP socket route serving through `hyper` and `reqwest`
+- `net.http` feature registration plus real HTTP socket route serving through `hyper` and `reqwest`, including bounded retry of transient HTTP responses
 - `net.http` client-side TLS rejection, missing-pin rejection, and configured-pin admission before network I/O
 - `net.websocket` feature registration plus real WebSocket client/server handshake and text frame exchange through `tokio-tungstenite`
 - `net.websocket` client-side WSS rejection, missing-pin rejection, and configured-pin admission before network I/O
 - `net.websocket` server-side listener descriptor enforcement for allowed path, required header, and allowed subprotocol admission, including a successful policy-matched text frame exchange
 - `net.rpc` feature registration plus handshake success/failure and RPC no-handler/direction/payload/quota diagnostics
 - `net.rpc` session snapshots, transport-event close teardown, joined-session client RPC gating, NetSpeed byte-budget blocking, schema validator, handler invocation, handler failure, schema unavailable, and Mirror descriptor helper coverage
-- `net.rpc` request correlation, pending request completion/expiry, bounded queue admission, priority-ordered queue draining, timeout diagnostics, and no-double-count quota behavior for queued dispatch
-- `net.replication` feature registration, dirty-field delta reporting, interest-group snapshot filtering, late-join snapshot copyout, and despawn lifecycle removal
-- `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, ack removal, resend batch copyout, deterministic loss/reorder simulation, out-of-order fragment reassembly, recovery/disconnect state reporting, dropped-packet accounting, and RTT stats
-- `net.content_download` feature registration, manifest progress accounting, primary/mirror candidate URLs, cache-hit completion, range-resume attempt descriptors, mirror failover state, cancellation, and chunk hash mismatch failure diagnostics
+- `net.rpc` request correlation, pending request completion/expiry, bounded queue admission, priority-ordered queue draining, zero-timeout/expired-queue/pending-expiry/slow-handler timeout diagnostics, and no-double-count quota behavior for queued dispatch
+- `net.replication` feature registration, dirty-field delta reporting, interest-group snapshot filtering, late-join snapshot copyout, despawn lifecycle removal, update-frequency scheduling, priority ordering, per-session snapshot/byte budgets, and budget deferral diagnostics
+- `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, ack removal, resend batch copyout, deterministic resend-timeout ticks, resend attempt-cap disconnect, deterministic loss/reorder simulation, out-of-order fragment reassembly, recovery/disconnect state reporting, dropped-packet accounting, and RTT stats
+- `net.content_download` feature registration, manifest progress accounting, invalid/partial manifest rejection, primary/mirror candidate URLs, cache-hit completion, range-resume attempt descriptors, mirror failover state, cancellation, and chunk hash mismatch failure diagnostics
 - base runtime state extraction into `runtime_state.rs`, reducing `service_types.rs` from 1045 lines to 910 lines in this continuation
 - listener shutdown for TCP listeners through `close_listener`, with HTTP/WebSocket listener-map removal sharing the same manager contract
 - runtime mode diagnostics and listener events
@@ -454,8 +501,32 @@ Validation status for the net package is now:
 - `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime` passed after the reliable UDP simulation/recovery slice.
 - The first `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --tests --locked` attempt timed out after 120 seconds while compiling shared runtime crates. Free space on `E:` was 46.38 GB, below the repository 50 GB cleanup threshold, so `cargo clean --manifest-path zircon_plugins/Cargo.toml` removed 7.8 GiB before retrying.
 - The retry of `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --tests --locked` reached `zircon_runtime` compilation and is currently blocked before reliable UDP crate checking by unrelated active platform/input work: `zircon_runtime/src/dynamic_api/session.rs:604` uses the `?` operator in `RuntimeDynamicSession::handle_mouse_wheel`, which returns `ZrStatus` rather than `Result`/`Option`. This net continuation did not modify that active platform/input session area.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime` passed after the replication scheduling/budget slice.
+- `git diff --check -- zircon_runtime/src/core/framework/net zircon_plugins/net/features/replication/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md` passed after the replication scheduling/budget slice with CRLF warnings only.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime --tests --locked` passed after the replication scheduling/budget slice, with one existing unrelated `zircon_runtime` dead-code warning for `World::entity_ids_matching_query_archetypes`.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_replication_runtime --lib --locked` is currently blocked before replication tests execute by unrelated shared runtime native plugin loader errors: `zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs:122` has an invalid format string, and `zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs:258` borrows `behavior` after move. This net continuation did not modify the native plugin loader area.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime` passed after the RPC wall-clock handler timeout slice.
+- `git diff --check -- zircon_plugins/net/features/rpc/runtime/src/manager.rs zircon_plugins/net/features/rpc/runtime/src/tests.rs docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md` passed after the RPC timeout slice with CRLF warnings only.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime --tests --locked` passed after the RPC timeout slice, with an existing unrelated `zircon_runtime` dead-code warning for `World::entity_ids_matching_query_archetypes`.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_rpc_runtime --lib --locked --jobs 1 --message-format short --color never` is currently blocked before RPC tests execute by unrelated active UI work: `zircon_runtime/src/ui/surface/surface/default_interactions/scrollbar.rs:11` imports `crate::ui::binding::runtime_state_update_with_source_kind`, which is not currently exported by `ui::binding`. This net continuation did not modify the UI binding/default-interaction area.
+- The reliable UDP resend-timer slice adds feature-local deterministic resend tick state keyed by datagram sequence. `resend_due(now_ms)` returns packets only after `resend_timeout_ms`, increments resend attempts per sequence, keeps ack removal authoritative, and drops/disconnects capped sequences with the diagnostic `reliable datagram resend attempt cap exceeded`. This is still contract-level behavior, not real KCP/socket transport I/O.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime` passed after the reliable UDP resend timer/cap slice.
+- `git diff --check -- zircon_plugins/net/features/reliable_udp/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md` passed after the reliable UDP resend timer/cap slice with CRLF warnings only.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --tests --locked` passed after the reliable UDP resend timer/cap slice, with existing unrelated `zircon_runtime` warnings for render scene-extract imports, `SystemState::state`, and `World::entity_ids_matching_query_archetypes`.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_reliable_udp_runtime --lib --locked --jobs 1 --message-format short --color never` passed after the reliable UDP resend timer/cap slice: 7 tests passed, 0 failed, with the same unrelated `zircon_runtime` warnings.
+- The content-download manifest validation slice rejects empty manifests, duplicate chunk IDs, empty chunk IDs, empty URLs, zero byte lengths, empty hashes, and resume offsets outside the chunk byte range before storing manifest/progress state. Rejected manifests return a copied `Failed` progress report with a diagnostic instead of becoming queued work.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime` passed after the content-download manifest validation slice.
+- `git diff --check -- zircon_plugins/net/features/content_download/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md` passed after the content-download manifest validation slice with CRLF warnings only.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --tests --locked` passed after the content-download manifest validation slice, with existing unrelated `zircon_runtime` warnings for `SystemState::state` and `World::entity_ids_matching_query_archetypes`.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --lib --locked --jobs 1 --message-format short --color never` passed after the content-download manifest validation slice: 8 tests passed, 0 failed, with the same unrelated `zircon_runtime` warnings.
+- The HTTP retry slice adds `NetHttpRequestDescriptor::max_retry_attempts` with a default of zero and a builder helper. The optional HTTP backend retries transient request errors and retryable response statuses `408`, `425`, `429`, `500`, `502`, `503`, and `504` up to that bound after security policy validation.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime` passed after the HTTP retry slice.
+- `git diff --check -- zircon_runtime/src/core/framework/net/http.rs zircon_plugins/net/features/http/runtime docs/engine-architecture/runtime-network-extension.md .codex/sessions/20260504-0024-net-full-gap-closure.md` passed after the HTTP retry slice with CRLF warnings only.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --tests --locked` passed after the HTTP retry slice, with existing unrelated `zircon_runtime` dead-code warnings for `SystemState::state` and `World::entity_ids_matching_query_archetypes`.
+- The first HTTP lib-test command hit the 15-minute timeout while rebuilding after the repository low-disk cleanup policy triggered at 45.51 GiB free on `E:`; `cargo clean --manifest-path zircon_plugins/Cargo.toml` removed 28.1 GiB before the timed-out rebuild attempt.
+- Retried `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --lib --locked --jobs 1 --message-format short --color never` passed after the HTTP retry slice: 6 tests passed, 0 failed, with the same unrelated `zircon_runtime` dead-code warnings.
 
 Full plugin-workspace and root-workspace Cargo validation remain broader milestone gates because the
 workspace is currently dirty with unrelated active asset/render/editor/platform-input work. Current
-reliable UDP compile/test acceptance is blocked before the net feature crate by the unrelated
-`dynamic_api::session` compile error above.
+reliable UDP compile/test acceptance plus replication/RPC lib-test acceptance are blocked before the
+net feature tests by unrelated shared-runtime compile errors above.

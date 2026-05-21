@@ -1,11 +1,15 @@
 use zircon_runtime_interface::ui::{
+    binding::{UiBindingSourceKind, UiBindingUpdateReport, UiBindingUpdateStatus, UiEventKind},
+    component::{UiComponentEvent, UiValue},
+    dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     layout::{UiAxis, UiContainerKind, UiFrame, UiScrollState},
-    surface::{UiPointerActivationPhase, UiPointerRoute},
-    tree::{UiTemplateNodeMetadata, UiTreeError},
+    surface::{UiPointerActivationPhase, UiPointerEventKind, UiPointerRoute},
+    tree::{UiDirtyFlags, UiTemplateNodeMetadata, UiTreeError},
     widget::UiWidgetBehavior,
 };
 
+use crate::ui::binding::{binding_update_report, runtime_state_update_with_source_kind};
 use crate::ui::surface::UiSurface;
 use crate::ui::tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeScrollExt};
 
@@ -14,6 +18,8 @@ use super::widget_behavior;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::surface::surface) struct UiDefaultScrollbarPointerActionReport {
     pub handled_by: Option<UiNodeId>,
+    pub captured_by: Option<UiNodeId>,
+    pub released_capture: Option<UiNodeId>,
     pub damage_node: Option<UiNodeId>,
 }
 
@@ -21,10 +27,24 @@ impl UiSurface {
     pub(in crate::ui::surface::surface) fn apply_default_scrollbar_pointer_action(
         &mut self,
         route: &UiPointerRoute,
+        events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<UiDefaultScrollbarPointerActionReport, UiTreeError> {
-        if route.activation_phase != UiPointerActivationPhase::PrimaryRelease {
-            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        match route.activation_phase {
+            UiPointerActivationPhase::PrimaryPress => {
+                return self.apply_default_scrollbar_thumb_press(route, events);
+            }
+            UiPointerActivationPhase::Hover if matches!(route.kind, UiPointerEventKind::Move) => {
+                return self.apply_default_scrollbar_thumb_drag(route, events, binding_reports);
+            }
+            UiPointerActivationPhase::PrimaryRelease => {
+                if let Some(action) = self.apply_default_scrollbar_thumb_release(route, events)? {
+                    return Ok(action);
+                }
+            }
+            _ => return Ok(UiDefaultScrollbarPointerActionReport::default()),
         }
+
         let Some(scrollbar_id) = route.click_target else {
             return Ok(UiDefaultScrollbarPointerActionReport::default());
         };
@@ -39,13 +59,165 @@ impl UiSurface {
         };
 
         if self.tree.set_scroll_offset(target_id, next_offset)? {
+            self.push_scrollbar_runtime_state_report(
+                binding_reports,
+                scrollbar_id,
+                "scroll_target",
+                target_id,
+                scroll_state.offset,
+                next_offset,
+            );
             Ok(UiDefaultScrollbarPointerActionReport {
                 handled_by: Some(scrollbar_id),
                 damage_node: Some(target_id),
+                ..UiDefaultScrollbarPointerActionReport::default()
             })
         } else {
             Ok(UiDefaultScrollbarPointerActionReport::default())
         }
+    }
+
+    fn apply_default_scrollbar_thumb_press(
+        &mut self,
+        route: &UiPointerRoute,
+        events: &mut Vec<UiPointerComponentEvent>,
+    ) -> Result<UiDefaultScrollbarPointerActionReport, UiTreeError> {
+        let Some(thumb_id) = route.target else {
+            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        };
+        if self.default_scrollbar_thumb(thumb_id)?.is_none() {
+            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        }
+        self.capture_pointer(thumb_id)?;
+        self.push_pointer_component_events(
+            events,
+            thumb_id,
+            UiEventKind::DragBegin,
+            UiComponentEvent::BeginDrag {
+                property: "scroll_offset".to_string(),
+            },
+            UiPointerComponentEventReason::PressBegin,
+        )?;
+        Ok(UiDefaultScrollbarPointerActionReport {
+            handled_by: Some(thumb_id),
+            captured_by: Some(thumb_id),
+            damage_node: Some(thumb_id),
+            ..UiDefaultScrollbarPointerActionReport::default()
+        })
+    }
+
+    fn apply_default_scrollbar_thumb_drag(
+        &mut self,
+        route: &UiPointerRoute,
+        events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
+    ) -> Result<UiDefaultScrollbarPointerActionReport, UiTreeError> {
+        let Some(thumb_id) = route.captured else {
+            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        };
+        let Some(context) = self.default_scrollbar_thumb(thumb_id)? else {
+            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        };
+        let Some(next_offset) = thumb_drag_offset(route, context) else {
+            return Ok(UiDefaultScrollbarPointerActionReport::default());
+        };
+        if !self
+            .tree
+            .set_scroll_offset(context.target_id, next_offset)?
+        {
+            return Ok(UiDefaultScrollbarPointerActionReport {
+                handled_by: Some(thumb_id),
+                damage_node: Some(thumb_id),
+                ..UiDefaultScrollbarPointerActionReport::default()
+            });
+        }
+        self.push_scrollbar_runtime_state_report(
+            binding_reports,
+            thumb_id,
+            "scroll_thumb",
+            context.target_id,
+            context.scroll_state.offset,
+            next_offset,
+        );
+        self.push_pointer_component_events(
+            events,
+            thumb_id,
+            UiEventKind::DragUpdate,
+            UiComponentEvent::DragDelta {
+                property: "scroll_offset".to_string(),
+                delta: f64::from(next_offset - context.scroll_state.offset),
+            },
+            UiPointerComponentEventReason::DirectBinding,
+        )?;
+        Ok(UiDefaultScrollbarPointerActionReport {
+            handled_by: Some(thumb_id),
+            damage_node: Some(context.target_id),
+            ..UiDefaultScrollbarPointerActionReport::default()
+        })
+    }
+
+    fn apply_default_scrollbar_thumb_release(
+        &mut self,
+        route: &UiPointerRoute,
+        events: &mut Vec<UiPointerComponentEvent>,
+    ) -> Result<Option<UiDefaultScrollbarPointerActionReport>, UiTreeError> {
+        let Some(thumb_id) = route.captured.or(route.pressed) else {
+            return Ok(None);
+        };
+        if self.default_scrollbar_thumb(thumb_id)?.is_none() {
+            return Ok(None);
+        }
+        self.push_pointer_component_events(
+            events,
+            thumb_id,
+            UiEventKind::DragEnd,
+            UiComponentEvent::EndDrag {
+                property: "scroll_offset".to_string(),
+            },
+            UiPointerComponentEventReason::PressEnd,
+        )?;
+        Ok(Some(UiDefaultScrollbarPointerActionReport {
+            handled_by: Some(thumb_id),
+            released_capture: Some(thumb_id),
+            damage_node: Some(thumb_id),
+            ..UiDefaultScrollbarPointerActionReport::default()
+        }))
+    }
+
+    fn push_scrollbar_runtime_state_report(
+        &self,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
+        source_id: UiNodeId,
+        source_property: &'static str,
+        target_id: UiNodeId,
+        previous_offset: f32,
+        next_offset: f32,
+    ) {
+        let dirty = self
+            .tree
+            .node(target_id)
+            .map(|node| node.dirty)
+            .unwrap_or(UiDirtyFlags {
+                layout: true,
+                hit_test: true,
+                render: true,
+                input: true,
+                ..UiDirtyFlags::default()
+            });
+        binding_reports.push(binding_update_report(vec![
+            runtime_state_update_with_source_kind(
+                source_id,
+                source_property,
+                UiBindingSourceKind::WidgetBehavior,
+                target_id,
+                "scroll_offset",
+                Some(UiValue::Float(f64::from(previous_offset))),
+                UiValue::Float(f64::from(next_offset)),
+                dirty,
+                UiBindingUpdateStatus::Applied,
+                None,
+            ),
+        ]));
     }
 
     fn default_scrollbar_track(
@@ -85,6 +257,39 @@ impl UiSurface {
         )))
     }
 
+    fn default_scrollbar_thumb(
+        &self,
+        thumb_id: UiNodeId,
+    ) -> Result<Option<UiDefaultScrollbarThumbContext>, UiTreeError> {
+        let thumb = self
+            .tree
+            .node(thumb_id)
+            .ok_or(UiTreeError::MissingNode(thumb_id))?;
+        let Some(thumb_metadata) = thumb.template_metadata.as_ref() else {
+            return Ok(None);
+        };
+        if widget_behavior(thumb_metadata) != UiWidgetBehavior::ScrollbarThumb
+            || !self.widget_interaction_enabled(thumb_id, thumb, thumb_metadata)
+        {
+            return Ok(None);
+        }
+        let Some(scrollbar_id) = thumb.parent else {
+            return Ok(None);
+        };
+        let Some((target_id, axis, track_frame, scroll_state)) =
+            self.default_scrollbar_track(scrollbar_id)?
+        else {
+            return Ok(None);
+        };
+        Ok(Some(UiDefaultScrollbarThumbContext {
+            target_id,
+            axis,
+            track_frame,
+            thumb_frame: thumb.layout_cache.frame,
+            scroll_state,
+        }))
+    }
+
     fn resolve_scrollbar_target(&self, metadata: &UiTemplateNodeMetadata) -> Option<UiNodeId> {
         let reference = metadata
             .widget
@@ -105,6 +310,15 @@ impl UiSurface {
                 .then_some(*node_id)
         })
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct UiDefaultScrollbarThumbContext {
+    target_id: UiNodeId,
+    axis: UiAxis,
+    track_frame: UiFrame,
+    thumb_frame: UiFrame,
+    scroll_state: UiScrollState,
 }
 
 fn page_offset_for_track_click(
@@ -136,6 +350,44 @@ fn page_offset_for_track_click(
         -scroll_state.viewport_extent
     };
     Some(scroll_state.offset + page_delta)
+}
+
+fn thumb_drag_offset(
+    route: &UiPointerRoute,
+    context: UiDefaultScrollbarThumbContext,
+) -> Option<f32> {
+    let track_extent = axis_extent(context.axis, context.track_frame);
+    let thumb_extent = axis_extent(context.axis, context.thumb_frame);
+    let travel_extent = track_extent - thumb_extent;
+    let scroll_extent = context.scroll_state.content_extent - context.scroll_state.viewport_extent;
+    if travel_extent <= f32::EPSILON || scroll_extent <= f32::EPSILON {
+        return None;
+    }
+    let track_start = axis_start(context.axis, context.track_frame);
+    let pointer = axis_point(context.axis, route) - track_start;
+    let thumb_origin = (pointer - thumb_extent * 0.5).clamp(0.0, travel_extent);
+    Some((thumb_origin / travel_extent) * scroll_extent)
+}
+
+fn axis_extent(axis: UiAxis, frame: UiFrame) -> f32 {
+    match axis {
+        UiAxis::Horizontal => frame.width,
+        UiAxis::Vertical => frame.height,
+    }
+}
+
+fn axis_start(axis: UiAxis, frame: UiFrame) -> f32 {
+    match axis {
+        UiAxis::Horizontal => frame.x,
+        UiAxis::Vertical => frame.y,
+    }
+}
+
+fn axis_point(axis: UiAxis, route: &UiPointerRoute) -> f32 {
+    match axis {
+        UiAxis::Horizontal => route.point.x,
+        UiAxis::Vertical => route.point.y,
+    }
 }
 
 fn target_scroll_axis(container: UiContainerKind) -> UiAxis {

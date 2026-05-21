@@ -48,7 +48,7 @@ layout = { width = { min = 97, preferred = 97, max = 97, stretch = "Fixed" }, he
 component = "Label"
 control_id = "floating_action_button_MetaVariant"
 classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
-props = { text = "circular / extended", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "circular / extended", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+props = { text = "small / standard / large", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "small / standard / large", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 127, preferred = 127, max = 127, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.meta_layout]
@@ -76,22 +76,22 @@ events = [
 component = "IconButton"
 control_id = "floating-action-button_Circular"
 classes = ["material-control", "material-fab", "material-fab-circular"]
-props = { text = "Add", icon = "add", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "icon_only", button_shape = "circular", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 0.0, elevation = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+props = { text = "Add", icon = "add", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "icon_only", button_shape = "circular", fab_style = "standard", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 16.0, border_width = 0.0, elevation = 3.0, hover_elevation = 4.0, button_horizontal_padding = 14.0, button_vertical_padding = 14.0, min_layout_width = 56.0, min_layout_height = 56.0, icon_size = 24.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
 
 [nodes.fab_small]
 component = "IconButton"
 control_id = "floating-action-button_Small"
 classes = ["material-control", "material-fab", "material-fab-small", "material-fab-circular"]
-props = { text = "Edit", icon = "edit", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_shape = "circular", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 0.0, elevation = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Edit", icon = "edit", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_shape = "circular", fab_style = "small", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 12.0, border_width = 0.0, elevation = 3.0, hover_elevation = 4.0, button_horizontal_padding = 10.0, button_vertical_padding = 10.0, min_layout_width = 40.0, min_layout_height = 40.0, icon_size = 24.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
 
 [nodes.fab_extended]
 component = "Button"
 control_id = "floating-action-button_Extended"
 classes = ["material-control", "material-fab", "material-fab-extended"]
-props = { text = "Create", icon = "add", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "leading", button_shape = "extended", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 0.0, elevation = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 92.0, preferred = 104.0, max = 120.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+props = { text = "Create", icon = "add", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "leading", button_shape = "extended", fab_style = "large", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 28.0, border_width = 0.0, elevation = 3.0, hover_elevation = 4.0, button_horizontal_padding = 30.0, button_vertical_padding = 30.0, min_layout_width = 96.0, min_layout_height = 96.0, icon_size = 36.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 96.0, preferred = 112.0, max = 136.0, stretch = "Fixed" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

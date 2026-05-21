@@ -2,7 +2,7 @@ use std::sync::OnceLock;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;
-use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::primitives::{Color, ModelRc};
 use crate::ui::template_runtime::RetainedUiHostNodeProjection;
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime::ui::style::resolve_button_style_from_values;
@@ -79,7 +79,7 @@ pub(super) fn host_template_node(
         .attributes
         .get("value")
         .and_then(value_as_color)
-        .unwrap_or_else(|| crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0));
+        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0));
     let media_source = node
         .attributes
         .get("image")
@@ -406,6 +406,47 @@ pub(super) fn host_template_node(
         .get("elevation")
         .and_then(value_as_f64)
         .unwrap_or(0.0) as f32;
+    let state_layer_enabled = node
+        .attributes
+        .get("state_layer_enabled")
+        .or_else(|| node.attributes.get("display_state_layer"))
+        .and_then(value_as_bool)
+        .unwrap_or(false);
+    let state_layer_color = node
+        .attributes
+        .get("state_layer_color")
+        .or_else(|| node.attributes.get("ripple_color"))
+        .or_else(|| node.attributes.get("color"))
+        .and_then(value_as_color)
+        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0));
+    let ripple_enabled = node
+        .attributes
+        .get("ripple_enabled")
+        .or_else(|| node.attributes.get("ripple"))
+        .and_then(value_as_bool)
+        .unwrap_or(false);
+    let ripple_pressed_x = node
+        .attributes
+        .get("ripple_pressed_x")
+        .or_else(|| node.attributes.get("pressed_x"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let ripple_pressed_y = node
+        .attributes
+        .get("ripple_pressed_y")
+        .or_else(|| node.attributes.get("pressed_y"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let clip_ripple = node
+        .attributes
+        .get("clip_ripple")
+        .and_then(value_as_bool)
+        .unwrap_or(true);
+    let enter_pressed = node
+        .attributes
+        .get("enter_pressed")
+        .and_then(value_as_bool)
+        .unwrap_or(false);
 
     Some(host_contract::TemplatePaneNodeData {
         node_id: node.node_id.into(),
@@ -511,6 +552,13 @@ pub(super) fn host_template_node(
             .get("dragging")
             .and_then(value_as_bool)
             .unwrap_or(false),
+        enter_pressed,
+        state_layer_enabled,
+        state_layer_color,
+        ripple_enabled,
+        ripple_pressed_x,
+        ripple_pressed_y,
+        ripple_unclipped: !clip_ripple,
         drop_hovered: node
             .attributes
             .get("drop_hovered")
@@ -842,6 +890,12 @@ mod tests {
                 ("corner_radius", Value::Float(5.0)),
                 ("border_width", Value::Float(1.0)),
                 ("elevation", Value::Float(3.0)),
+                ("state_layer_enabled", Value::Boolean(true)),
+                ("state_layer_color", Value::String("#80eaff".to_owned())),
+                ("ripple_enabled", Value::Boolean(true)),
+                ("ripple_pressed_x", Value::Float(24.0)),
+                ("ripple_pressed_y", Value::Float(12.0)),
+                ("clip_ripple", Value::Boolean(false)),
                 ("validation_level", Value::String("error".to_owned())),
                 ("selected", Value::Boolean(true)),
                 ("hovered", Value::Boolean(true)),
@@ -868,6 +922,12 @@ mod tests {
         assert_eq!(button.corner_radius, 5.0);
         assert_eq!(button.border_width, 1.0);
         assert_eq!(button.elevation, 3.0);
+        assert!(button.state_layer_enabled);
+        assert_eq!(button.state_layer_color, Color::from_rgb_u8(128, 234, 255));
+        assert!(button.ripple_enabled);
+        assert_eq!(button.ripple_pressed_x, 24.0);
+        assert_eq!(button.ripple_pressed_y, 12.0);
+        assert!(button.ripple_unclipped);
     }
 
     #[test]

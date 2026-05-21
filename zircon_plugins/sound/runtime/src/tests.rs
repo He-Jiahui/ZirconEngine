@@ -2,21 +2,23 @@ use zircon_runtime::asset::{AssetUri, SoundAsset};
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAttenuationMode, SoundAutomationBinding,
     SoundAutomationBindingId, SoundAutomationCurve, SoundAutomationKeyframe, SoundAutomationTarget,
-    SoundChorusEffect, SoundClipId, SoundCompressorEffect, SoundConvolutionReverbEffect,
-    SoundDelayEffect, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
+    SoundBackendState, SoundChorusEffect, SoundClipId, SoundCompressorEffect,
+    SoundConvolutionReverbEffect, SoundDelayEffect, SoundDynamicEventDescriptor,
+    SoundDynamicEventExecutionStatus, SoundDynamicEventHandlerDescriptor,
     SoundDynamicEventInvocation, SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundError,
     SoundExternalSourceBlock, SoundFilterEffect, SoundFilterMode, SoundFlangerEffect,
     SoundGainEffect, SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundLimiterEffect,
-    SoundListenerDescriptor, SoundListenerId, SoundManager, SoundOutputDeviceDescriptor,
-    SoundOutputDeviceId, SoundOutputDeviceState, SoundPanStereoEffect, SoundParameterId,
-    SoundPhaserEffect, SoundPlaybackCompletionAction, SoundPlaybackFinishReason,
+    SoundListenerDescriptor, SoundListenerId, SoundManager, SoundMixerGraph,
+    SoundOutputDeviceDescriptor, SoundOutputDeviceId, SoundOutputDeviceState, SoundPanStereoEffect,
+    SoundParameterId, SoundPhaserEffect, SoundPlaybackCompletionAction, SoundPlaybackFinishReason,
     SoundPlaybackSettings, SoundRayTracedImpulseResponseDescriptor,
     SoundRayTracingConvolutionStatus, SoundReverbEffect, SoundSidechainInput,
-    SoundSourceDescriptor, SoundSourceId, SoundSourceInput, SoundSourceParameterBinding,
-    SoundSourceSend, SoundSpatialSourceSettings, SoundTimelineAutomationTrack,
-    SoundTimelineSequence, SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId,
-    SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape, SoundWaveShaperEffect,
-    AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
+    SoundSourceDescriptor, SoundSourceFinishReason, SoundSourceId, SoundSourceInput,
+    SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,
+    SoundTimelineAutomationTrack, SoundTimelineSequence, SoundTimelineSequenceId,
+    SoundTrackDescriptor, SoundTrackId, SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId,
+    SoundVolumeShape, SoundWaveShaperEffect, AUDIO_LISTENER_COMPONENT_TYPE,
+    AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 
@@ -186,6 +188,257 @@ fn default_spatial_scale_controls_listener_source_distance() {
     let mix = sound.render_mix(1).unwrap();
     assert_sample_near(mix.samples[0], 0.0);
     assert_sample_near(mix.samples[1], 1.0);
+}
+
+#[test]
+fn source_spatial_scale_overrides_default_spatial_scale() {
+    let sound = DefaultSoundManager::default();
+    let clip =
+        sound.insert_clip_for_test(test_clip("res://sound/source-spatial-scale.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    sound.set_default_spatial_scale(0.5).unwrap();
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        spatial_scale: Some(1.0),
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 0.75);
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.spatial.spatial_scale = Some(f32::NAN);
+    assert!(sound.create_source(invalid).is_err());
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.spatial.spatial_scale = Some(-0.1);
+    assert!(sound.create_source(invalid).is_err());
+}
+
+#[test]
+fn source_speed_and_muted_controls_match_bevy_playback_settings() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip(
+        "res://sound/source-speed-muted.wav",
+        &[0.25, 0.5, 0.75],
+    ));
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.speed = 2.0;
+    source.muted = true;
+    let source_id = sound.create_source(source.clone()).unwrap();
+
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+
+    source.id = Some(source_id);
+    source.muted = false;
+    sound.update_source(source).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.75, 0.75]);
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.speed = 0.0;
+    assert!(sound.create_source(invalid).is_err());
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.speed = f32::NAN;
+    assert!(sound.create_source(invalid).is_err());
+}
+
+#[test]
+fn source_runtime_controls_match_bevy_audio_sink_controls() {
+    let sound = DefaultSoundManager::default();
+    sound
+        .configure_output_device(SoundOutputDeviceDescriptor {
+            id: SoundOutputDeviceId::new("sound.output.source_controls"),
+            backend: "software-test".to_string(),
+            display_name: "Source Controls Test Output".to_string(),
+            sample_rate_hz: 10,
+            channel_count: 2,
+            block_size_frames: 1,
+            latency_blocks: 1,
+        })
+        .unwrap();
+    let clip = sound.insert_clip_for_test(test_clip_with_rate(
+        "res://sound/source-controls.wav",
+        10,
+        &[0.1, 0.2, 0.3, 0.4],
+    ));
+    let source = sound
+        .create_source(SoundSourceDescriptor::clip(clip))
+        .unwrap();
+
+    sound.pause_source(source).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert_eq!(sound.source_status(source).unwrap().cursor_frame, 0);
+    assert!(!sound.source_status(source).unwrap().playing);
+
+    sound.resume_source(source).unwrap();
+    sound.seek_source_seconds(source, 0.2).unwrap();
+    sound.set_source_gain(source, 2.0).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.6, 0.6]);
+    assert_eq!(sound.source_status(source).unwrap().cursor_frame, 3);
+
+    sound.mute_source(source).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert!(sound.source_status(source).unwrap().muted);
+
+    sound.toggle_mute_source(source).unwrap();
+    sound.set_source_speed(source, 0.5).unwrap();
+    let status = sound.source_status(source).unwrap();
+    assert_eq!(status.speed, 0.5);
+    assert!(!status.muted);
+
+    sound.toggle_source(source).unwrap();
+    assert!(!sound.source_status(source).unwrap().playing);
+    sound.toggle_source(source).unwrap();
+    assert!(sound.source_status(source).unwrap().playing);
+
+    assert!(sound.seek_source_seconds(source, -0.1).is_err());
+    assert!(sound.set_source_gain(source, f32::NAN).is_err());
+    assert!(sound.set_source_speed(source, 0.0).is_err());
+    assert!(sound.unmute_source(SoundSourceId::new(999_999)).is_err());
+}
+
+#[test]
+fn source_start_and_duration_limit_clip_playback_range() {
+    let sound = DefaultSoundManager::default();
+    sound
+        .configure_output_device(SoundOutputDeviceDescriptor {
+            id: SoundOutputDeviceId::new("sound.output.source_range"),
+            backend: "software-test".to_string(),
+            display_name: "Source Range Test Output".to_string(),
+            sample_rate_hz: 10,
+            channel_count: 2,
+            block_size_frames: 3,
+            latency_blocks: 1,
+        })
+        .unwrap();
+    let clip = sound.insert_clip_for_test(test_clip_with_rate(
+        "res://sound/source-range.wav",
+        10,
+        &[0.1, 0.2, 0.3, 0.4],
+    ));
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.looped = true;
+    source.start_seconds = Some(0.1);
+    source.duration_seconds = Some(0.2);
+    let source_id = sound.create_source(source).unwrap();
+
+    let status = sound.source_status(source_id).unwrap();
+    assert_eq!(status.range_start_frame, 1);
+    assert_eq!(status.range_end_frame, Some(3));
+    assert_eq!(status.cursor_frame, 0);
+    assert!(status.looped);
+
+    assert_eq!(
+        sound.render_mix(3).unwrap().samples,
+        vec![0.2, 0.2, 0.3, 0.3, 0.2, 0.2]
+    );
+    assert_eq!(sound.source_status(source_id).unwrap().cursor_frame, 2);
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.start_seconds = Some(-0.1);
+    assert!(sound.create_source(invalid).is_err());
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.duration_seconds = Some(0.0);
+    assert!(sound.create_source(invalid).is_err());
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.duration_seconds = Some(f32::NAN);
+    assert!(sound.create_source(invalid).is_err());
+}
+
+#[test]
+fn source_completion_reports_cleanup_intent() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/source-finished.wav", &[0.5]));
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.completion_action = SoundPlaybackCompletionAction::RemoveAudioComponents;
+    let source_id = sound.create_source(source).unwrap();
+
+    assert!(!sound.source_empty(source_id).unwrap());
+    assert_eq!(
+        sound.source_status(source_id).unwrap().input,
+        SoundSourceInput::Clip(clip)
+    );
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.5, 0.5]);
+    assert!(sound.drain_finished_sources().unwrap().is_empty());
+
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert!(sound.source_status(source_id).is_err());
+    assert!(sound.source_empty(source_id).unwrap());
+    let finished = sound.drain_finished_sources().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].source, source_id);
+    assert_eq!(finished[0].input, SoundSourceInput::Clip(clip));
+    assert_eq!(finished[0].clip, Some(clip));
+    assert_eq!(finished[0].reason, SoundSourceFinishReason::Completed);
+    assert_eq!(
+        finished[0].completion_action,
+        SoundPlaybackCompletionAction::RemoveAudioComponents
+    );
+    assert!(sound.remove_source(source_id).is_err());
+    assert!(sound.source_empty(source_id).is_err());
+    assert!(sound.drain_finished_sources().unwrap().is_empty());
+}
+
+#[test]
+fn stop_source_reports_cleanup_intent_for_any_input() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/source-stop.wav", &[0.5]));
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.completion_action = SoundPlaybackCompletionAction::DespawnEntity;
+    let source_id = sound.create_source(source).unwrap();
+
+    sound.stop_source(source_id).unwrap();
+    assert!(sound.source_status(source_id).is_err());
+    assert!(sound.source_empty(source_id).unwrap());
+    let finished = sound.drain_finished_sources().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].source, source_id);
+    assert_eq!(finished[0].input, SoundSourceInput::Clip(clip));
+    assert_eq!(finished[0].clip, Some(clip));
+    assert_eq!(finished[0].reason, SoundSourceFinishReason::Stopped);
+    assert_eq!(
+        finished[0].completion_action,
+        SoundPlaybackCompletionAction::DespawnEntity
+    );
+    assert!(sound.source_empty(source_id).is_err());
+
+    let external = ExternalAudioSourceHandle::new("source.stop.external");
+    sound
+        .submit_external_source_block(
+            external.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 10,
+                channel_count: 1,
+                samples: vec![0.25],
+            },
+        )
+        .unwrap();
+    let mut external_source = SoundSourceDescriptor::clip(clip);
+    external_source.input = SoundSourceInput::External(external.clone());
+    let external_id = sound.create_source(external_source).unwrap();
+
+    sound.stop_source(external_id).unwrap();
+    let finished = sound.drain_finished_sources().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].source, external_id);
+    assert_eq!(finished[0].input, SoundSourceInput::External(external));
+    assert_eq!(finished[0].clip, None);
+    assert_eq!(finished[0].reason, SoundSourceFinishReason::Stopped);
+    assert!(sound.stop_source(SoundSourceId::new(999_999)).is_err());
 }
 
 #[test]
@@ -932,7 +1185,7 @@ fn dsp_filter_reverb_waveshaper_and_modulation_effects_are_deterministic() {
         2,
     );
     assert!(low_pass[0] > 0.0 && low_pass[0] < 0.2);
-    assert!(low_pass[2] > 0.0 && low_pass[2] < low_pass[0]);
+    assert!(low_pass[2] > low_pass[0] && low_pass[2] < 0.1);
 
     assert_samples_near(
         &render_master_effect(
@@ -1177,7 +1430,7 @@ fn external_audio_source_block_routes_other_component_audio() {
         .unwrap();
     let source_id = sound
         .create_source(SoundSourceDescriptor {
-            input: SoundSourceInput::External(handle),
+            input: SoundSourceInput::External(handle.clone()),
             gain: 0.5,
             ..SoundSourceDescriptor::clip(SoundClipId::new(999))
         })
@@ -1189,6 +1442,13 @@ fn external_audio_source_block_routes_other_component_audio() {
     assert_eq!(source_id.raw(), 1);
     assert_samples_near(&first_mix.samples, &[0.125, 0.125, 0.25, 0.25]);
     assert_samples_near(&second_mix.samples, &[0.0, 0.0]);
+    assert!(sound.source_empty(source_id).unwrap());
+    let finished = sound.drain_finished_sources().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].source, source_id);
+    assert_eq!(finished[0].input, SoundSourceInput::External(handle));
+    assert_eq!(finished[0].clip, None);
+    assert_eq!(finished[0].reason, SoundSourceFinishReason::Completed);
 }
 
 #[test]

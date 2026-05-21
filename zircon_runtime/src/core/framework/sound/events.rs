@@ -47,3 +47,22 @@ pub struct SoundDynamicEventDelivery {
     pub handler: SoundDynamicEventHandlerDescriptor,
     pub invocation: SoundDynamicEventInvocation,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SoundDynamicEventExecutionStatus {
+    Succeeded,
+    Failed,
+    SkippedMissingExecutor,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundDynamicEventHandlerExecution {
+    pub delivery: SoundDynamicEventDelivery,
+    pub status: SoundDynamicEventExecutionStatus,
+    pub detail: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundDynamicEventExecutionReport {
+    pub executions: Vec<SoundDynamicEventHandlerExecution>,
+}

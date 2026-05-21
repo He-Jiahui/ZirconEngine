@@ -41,6 +41,15 @@ pub fn validate_shader_contract(
             }),
         }
     }
+    for schema in &shader.property_schema {
+        if schema.required && !material.property_overrides().contains_key(&schema.name) {
+            errors.push(RenderMaterialValidationError::MissingRequiredProperty {
+                source: RenderMaterialDiagnosticSource::ShaderSchema,
+                path: format!("overrides.{}", schema.name),
+                name: schema.name.clone(),
+            });
+        }
+    }
 
     for slot in material.texture_slots.keys() {
         if !shader

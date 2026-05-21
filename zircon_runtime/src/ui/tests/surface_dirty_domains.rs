@@ -12,8 +12,11 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
-        AxisConstraint, BoxConstraints, LayoutBoundary, StretchMode, UiContainerKind, UiSize,
+        AxisConstraint, BoxConstraints, LayoutBoundary, StretchMode, UiContainerKind,
+        UiLayoutEngineBackend, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
+        UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiSize,
     },
+    surface::{UiSurfaceDebugOptions, UiSurfaceDebugSnapshot},
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
@@ -202,6 +205,156 @@ fn surface_dirty_layout_skips_siblings_under_non_auto_parent() {
         sibling_frame
     );
     assert_dirty_cleared_for(&surface, primary_id());
+}
+
+#[test]
+fn surface_dirty_layout_preserves_unvisited_layout_engine_routes() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    let initial_report = surface.layout_engine_report.clone();
+    let root_selection = initial_report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(root_id()))
+        .expect("root route should be reported");
+
+    assert_eq!(initial_report.request_count, 1);
+    assert_eq!(root_selection.request.family, UiLayoutEngineFamily::Free);
+    assert_eq!(
+        root_selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(root_selection.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root_selection.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .constraints
+        .width = fixed_constraint(60.0);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .dirty
+        .layout = true;
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert!(report.layout_recomputed);
+    assert_eq!(report.layout_visited_node_count, 1);
+    assert_eq!(report.layout_skipped_node_count, 2);
+    assert_eq!(surface.layout_engine_report, initial_report);
+    assert_layout_engine_report_exported(&surface, &initial_report);
+    assert_dirty_cleared_for(&surface, primary_id());
+}
+
+#[test]
+fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
+    let mut surface = layout_route_merge_surface();
+    let initial_report = surface.layout_engine_report.clone();
+
+    assert_eq!(initial_report.request_count, 2);
+    assert_route(
+        &initial_report,
+        root_id(),
+        UiLayoutEngineFamily::Free,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
+    );
+    assert_route(
+        &initial_report,
+        primary_id(),
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineBackend::Taffy,
+        UiLayoutEngineSupport::Native,
+        None,
+    );
+
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary route node should exist")
+        .container = UiContainerKind::Overlay;
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary route node should exist")
+        .dirty
+        .layout = true;
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert!(report.layout_recomputed);
+    assert_eq!(report.layout_visited_node_count, 2);
+    assert_eq!(report.layout_skipped_node_count, 2);
+    assert_route(
+        &surface.layout_engine_report,
+        root_id(),
+        UiLayoutEngineFamily::Free,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
+    );
+    assert_route(
+        &surface.layout_engine_report,
+        primary_id(),
+        UiLayoutEngineFamily::Overlay,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
+    );
+    assert_eq!(
+        route_count_for_node(&surface.layout_engine_report, primary_id()),
+        1
+    );
+    assert!(!surface
+        .layout_engine_report
+        .selections
+        .iter()
+        .any(|selection| selection.node_id == Some(primary_id())
+            && selection.request.family == UiLayoutEngineFamily::Flex));
+    assert_layout_engine_report_exported(&surface, &surface.layout_engine_report);
+}
+
+#[test]
+fn surface_dirty_layout_drops_removed_layout_engine_routes() {
+    let mut surface = layout_route_merge_surface();
+
+    assert_route(
+        &surface.layout_engine_report,
+        primary_id(),
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineBackend::Taffy,
+        UiLayoutEngineSupport::Native,
+        None,
+    );
+
+    surface.detach_subtree_to_pool(primary_id()).unwrap();
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert!(report.layout_recomputed);
+    assert_eq!(report.layout_visited_node_count, 2);
+    assert_eq!(report.layout_skipped_node_count, 0);
+    assert!(!surface.tree.nodes.contains_key(&primary_id()));
+    assert_eq!(surface.layout_engine_report.request_count, 1);
+    assert_route(
+        &surface.layout_engine_report,
+        root_id(),
+        UiLayoutEngineFamily::Free,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
+    );
+    assert_eq!(
+        route_count_for_node(&surface.layout_engine_report, primary_id()),
+        0
+    );
+    assert_layout_engine_report_exported(&surface, &surface.layout_engine_report);
 }
 
 #[test]
@@ -687,6 +840,71 @@ fn sibling_surface(container: UiContainerKind, boundary: LayoutBoundary) -> UiSu
     surface
 }
 
+fn layout_route_merge_surface() -> UiSurface {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .container = UiContainerKind::HorizontalBox(Default::default());
+    surface
+        .tree
+        .insert_child(
+            primary_id(),
+            UiTreeNode::new(grandchild_id(), UiNodePath::new("root/primary/leaf"))
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(16.0),
+                    height: fixed_constraint(16.0),
+                }),
+        )
+        .unwrap();
+    surface.compute_layout(root_size()).unwrap();
+    surface.clear_dirty_flags();
+    surface
+}
+
+fn assert_route(
+    report: &UiLayoutEngineSelectionReport,
+    node_id: UiNodeId,
+    family: UiLayoutEngineFamily,
+    backend: UiLayoutEngineBackend,
+    support: UiLayoutEngineSupport,
+    fallback_reason: Option<UiLayoutEngineFallbackReason>,
+) {
+    let selection = report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(node_id))
+        .unwrap_or_else(|| panic!("route for node {node_id:?} should be reported"));
+    assert_eq!(selection.request.family, family, "{report:#?}");
+    assert_eq!(selection.selected_backend, backend, "{report:#?}");
+    assert_eq!(selection.support, support, "{report:#?}");
+    assert_eq!(selection.fallback_reason, fallback_reason, "{report:#?}");
+}
+
+fn route_count_for_node(report: &UiLayoutEngineSelectionReport, node_id: UiNodeId) -> usize {
+    report
+        .selections
+        .iter()
+        .filter(|selection| selection.node_id == Some(node_id))
+        .count()
+}
+
+fn assert_layout_engine_report_exported(
+    surface: &UiSurface,
+    expected: &UiLayoutEngineSelectionReport,
+) {
+    assert_eq!(&surface.surface_frame().layout_engine_report, expected);
+    assert_eq!(&surface.debug_snapshot().layout_engine_report, expected);
+
+    let snapshot_json = surface
+        .debug_snapshot_json(&UiSurfaceDebugOptions::default())
+        .expect("incremental layout debug snapshot should serialize");
+    let snapshot: UiSurfaceDebugSnapshot =
+        serde_json::from_str(&snapshot_json).expect("incremental layout debug snapshot JSON");
+    assert_eq!(&snapshot.layout_engine_report, expected);
+}
+
 fn root_id() -> UiNodeId {
     UiNodeId::new(1)
 }
@@ -701,6 +919,10 @@ fn primary_id() -> UiNodeId {
 
 fn sibling_id() -> UiNodeId {
     UiNodeId::new(3)
+}
+
+fn grandchild_id() -> UiNodeId {
+    UiNodeId::new(4)
 }
 
 fn root_size() -> UiSize {

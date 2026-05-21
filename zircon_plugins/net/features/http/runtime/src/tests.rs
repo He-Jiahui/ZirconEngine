@@ -1,3 +1,6 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+
 use zircon_plugin_net_runtime::DefaultNetManager;
 use zircon_runtime::core::framework::net::{
     NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
@@ -117,4 +120,40 @@ fn http_feature_manager_accepts_configured_certificate_pin_before_network_io() {
                 .to_string(),
         }
     );
+}
+
+#[test]
+fn http_feature_manager_retries_transient_server_statuses() {
+    let net = http_runtime_manager();
+    let attempts = Arc::new(AtomicUsize::new(0));
+    let attempts_for_handler = attempts.clone();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/retry", [NetHttpMethod::Get]),
+        move |request| {
+            let attempt = attempts_for_handler.fetch_add(1, Ordering::SeqCst);
+            if attempt == 0 {
+                NetHttpResponseDescriptor::new(request.request, 503, b"try-again".to_vec())
+            } else {
+                NetHttpResponseDescriptor::new(request.request, 200, b"ok-after-retry".to_vec())
+            }
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(34),
+                NetHttpMethod::Get,
+                format!("http://{}:{}/retry", endpoint.host, endpoint.port),
+            )
+            .with_max_retry_attempts(1),
+        )
+        .unwrap();
+
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body, b"ok-after-retry");
+    assert_eq!(attempts.load(Ordering::SeqCst), 2);
 }

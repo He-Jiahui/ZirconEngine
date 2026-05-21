@@ -279,8 +279,10 @@ fn write_default_scene(path: PathBuf) {
                     ..SceneCameraAsset::default()
                 }),
                 mesh: None,
+                ambient_light: None,
                 directional_light: None,
                 point_light: None,
+                rect_light: None,
                 spot_light: None,
                 rigid_body: None,
                 collider: None,
@@ -311,8 +313,10 @@ fn write_default_scene(path: PathBuf) {
                     model: asset_reference("res://models/triangle.obj"),
                     material: asset_reference("res://materials/grid.zmaterial"),
                 }),
+                ambient_light: None,
                 directional_light: None,
                 point_light: None,
+                rect_light: None,
                 spot_light: None,
                 rigid_body: Some(SceneRigidBodyAsset {
                     body_type: SceneRigidBodyTypeAsset::Dynamic,

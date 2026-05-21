@@ -8,6 +8,7 @@ pub trait ResourceMarker: Send + Sync + 'static {
 pub enum ResourceKind {
     Data,
     Model,
+    Mesh,
     Material,
     MaterialGraph,
     Texture,
@@ -35,6 +36,9 @@ pub enum ResourceKind {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct ModelMarker;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct MeshMarker;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct DataMarker;
@@ -110,6 +114,10 @@ pub struct AnimationStateMachineMarker;
 
 impl ResourceMarker for ModelMarker {
     const KIND: ResourceKind = ResourceKind::Model;
+}
+
+impl ResourceMarker for MeshMarker {
+    const KIND: ResourceKind = ResourceKind::Mesh;
 }
 
 impl ResourceMarker for MaterialMarker {

@@ -6,6 +6,7 @@ import {
     MutedText,
     NavItemData,
     PillButton,
+    ProjectDetailData,
     SourceEngineData,
     SourceEngineRowData,
     StatusPill,
@@ -16,7 +17,7 @@ import { HubTokens } from "tokens.slint";
 import { DropDownButton } from "inputs.slint";
 import { NavRail } from "navigation.slint";
 import { Badge, HeaderGroup, HubPanel } from "surfaces.slint";
-import { ListTile, MaterialPalette, MaterialStyleMetrics, MaterialTypography } from "material_bridge.slint";
+import { ListTile, NavigationItem, StateLayerArea, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
 
 component HeaderEngineOption inherits Rectangle {
     in property <SourceEngineRowData> engine;
@@ -88,19 +89,18 @@ component HeaderEngineSelector inherits Rectangle {
                     height: HubTokens.icon-lg;
                     spacing: HubTokens.space-2;
 
-                    Text {
+                    MaterialText {
                         text: root.ui-text.source-engines;
                         color: MaterialPalette.on_surface;
-                        font-size: MaterialTypography.label_large.font_size;
-                        font-weight: MaterialTypography.label_large.font_weight;
+                        style: MaterialTypography.label_large;
                     }
 
                     Rectangle { horizontal-stretch: 1; }
 
-                    Text {
+                    MaterialText {
                         text: root.ui-text.registered;
                         color: MaterialPalette.on_surface_variant;
-                        font-size: MaterialTypography.label_medium.font_size;
+                        style: MaterialTypography.label_medium;
                     }
                 }
 
@@ -131,10 +131,10 @@ component WindowDragRegion inherits Rectangle {
     background: transparent;
 
     drag-area := TouchArea {
+        width: root.width;
+        height: root.height;
+
         pointer-event(event) => {
-            if (event.button != PointerEventButton.left) {
-                return;
-            }
             if (event.kind == PointerEventKind.down) {
                 root.drag-start(drag-area.mouse-x / 1px, drag-area.mouse-y / 1px);
             }
@@ -149,6 +149,7 @@ component WindowDragRegion inherits Rectangle {
 }
 
 export component HubTopHeader inherits HeaderGroup {
+    in property <ProjectDetailData> project;
     in property <SourceEngineData> source-engine;
     in property <[SourceEngineRowData]> source-engines;
     in property <int> source-engine-count;
@@ -170,6 +171,13 @@ export component HubTopHeader inherits HeaderGroup {
     callback window-drag-start(float, float);
     callback window-drag-move(float, float);
     callback window-drag-end();
+    private property <bool> tight: root.width < HubTokens.breakpoint-medium;
+    private property <bool> minimal: root.width < HubTokens.breakpoint-compact;
+    private property <length> header-button-size: min(root.action-height, root.row-height);
+    private property <length> brand-width: root.minimal ? HubTokens.icon-xl + root.gap : max(HubTokens.nav-width-collapsed-max + HubTokens.panel-gap * 5, min(HubTokens.nav-width-expanded-min - HubTokens.space-4, root.nav-width * 4 / 5));
+    private property <length> engine-selector-width: root.minimal ? max(HubTokens.control-md * 3, min(HubTokens.nav-width-expanded-min, root.nav-width + root.header-button-size)) : max(HubTokens.nav-width-collapsed-max * 2, min(HubTokens.nav-width-expanded-min, root.nav-width * 5 / 6));
+    private property <length> user-menu-width: root.tight ? root.header-button-size : max(HubTokens.user-menu-min-width, min(HubTokens.user-menu-max-width, root.nav-width * 2 / 3));
+    private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;
 
     group-height: root.header-height;
 
@@ -194,25 +202,26 @@ export component HubTopHeader inherits HeaderGroup {
             alignment: center;
 
             HorizontalLayout {
-                width: max(HubTokens.nav-width-collapsed-max + HubTokens.panel-gap * 5, min(HubTokens.nav-width-expanded-min - HubTokens.space-4, root.nav-width * 4 / 5));
+                width: root.brand-width;
                 spacing: root.gap;
                 alignment: center;
                 BrandMark {}
-                VerticalLayout {
+                if !root.minimal: VerticalLayout {
                     height: parent.height;
                     spacing: HubTokens.space-0;
                     Rectangle {
                         vertical-stretch: 1;
                         min-height: 0px;
                     }
-                    Text {
+                    MaterialText {
                         text: "ZIRCON HUB";
                         color: MaterialPalette.on_surface;
-                        font-size: MaterialTypography.title_medium.font_size;
-                        font-weight: MaterialTypography.title_medium.font_weight;
+                        style: MaterialTypography.title_medium;
+                        overflow: elide;
                     }
                     MutedText {
-                        text: root.ui-text.game-engine;
+                        text: root.brand-subtitle;
+                        overflow: elide;
                     }
                     Rectangle {
                         vertical-stretch: 1;
@@ -222,7 +231,7 @@ export component HubTopHeader inherits HeaderGroup {
             }
 
             HeaderEngineSelector {
-                selector-width: max(HubTokens.nav-width-collapsed-max * 2, min(HubTokens.nav-width-expanded-min, root.nav-width * 5 / 6));
+                selector-width: root.engine-selector-width;
                 selector-height: max(HubTokens.control-sm, min(HubTokens.control-md, root.row-height * 2 / 3));
                 current-engine: root.source-engine;
                 engines: root.source-engines;
@@ -261,17 +270,23 @@ export component HubTopHeader inherits HeaderGroup {
                 drag-end => { root.window-drag-end(); }
             }
 
-            IconButton {
+            if !root.tight: IconButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/bell.svg");
                 has-icon-image: true;
                 enabled: false;
             }
-            IconButton {
+            if !root.tight: IconButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/help.svg");
                 has-icon-image: true;
                 enabled: false;
             }
             IconButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/settings.svg");
                 has-icon-image: true;
                 clicked => {
@@ -279,14 +294,14 @@ export component HubTopHeader inherits HeaderGroup {
                 }
             }
 
-            Rectangle {
+            if !root.tight: Rectangle {
                 width: HubTokens.border-width;
                 height: root.row-height * 3 / 5;
                 background: HubTokens.stroke-muted;
             }
 
             Rectangle {
-                width: max(HubTokens.user-menu-min-width, min(HubTokens.user-menu-max-width, root.nav-width * 2 / 3));
+                width: root.user-menu-width;
                 height: root.action-height;
                 HorizontalLayout {
                     width: parent.width;
@@ -298,24 +313,25 @@ export component HubTopHeader inherits HeaderGroup {
                         height: HubTokens.icon-xl;
                         border-radius: HubTokens.icon-xl / 2;
                         background: MaterialPalette.secondary_container;
-                        Text {
+                        MaterialText {
+                            width: parent.width;
+                            height: parent.height;
                             text: root.ui-text.local-user-initials;
                             color: MaterialPalette.on_secondary_container;
-                            font-size: MaterialTypography.label_medium_prominent.font_size;
-                            font-weight: MaterialTypography.label_medium_prominent.font_weight;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
+                            style: MaterialTypography.label_medium_prominent;
+                            horizontal_alignment: center;
+                            vertical_alignment: center;
                         }
                     }
-                    Text {
+                    if !root.tight: MaterialText {
                         text: root.ui-text.local-user;
                         color: MaterialPalette.on_surface;
-                        font-size: MaterialTypography.label_medium.font_size;
-                        vertical-alignment: center;
+                        style: MaterialTypography.label_medium;
+                        vertical_alignment: center;
                         horizontal-stretch: 1;
                         overflow: elide;
                     }
-                    CenteredIcon {
+                    if !root.tight: CenteredIcon {
                         width: MaterialStyleMetrics.size_14;
                         height: parent.height;
                         icon-size: MaterialStyleMetrics.size_14;
@@ -326,16 +342,22 @@ export component HubTopHeader inherits HeaderGroup {
             }
 
             WindowButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/minimize.svg");
                 has-icon-image: true;
                 clicked => { root.window-minimize(); }
             }
             WindowButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/maximize.svg");
                 has-icon-image: true;
                 clicked => { root.window-toggle-maximize(); }
             }
             WindowButton {
+                width: root.header-button-size;
+                height: root.header-button-size;
                 icon-image: @image-url("../assets/icons/ui/close.svg");
                 has-icon-image: true;
                 danger: true;
@@ -343,20 +365,25 @@ export component HubTopHeader inherits HeaderGroup {
             }
         }
     }
+
 }
 
 export component HubNavSidebar inherits Rectangle {
     in property <[NavItemData]> nav-items;
+    in property <[NavigationItem]> material-nav-items;
+    in-out property <int> selected-nav-index: 0;
     in property <bool> collapsed: false;
     in property <bool> compact-height: false;
     in property <bool> task-running: false;
+    in property <ProjectDetailData> project;
     in property <SourceEngineData> source-engine;
     in property <UiTextData> ui-text;
     in property <length> nav-width: HubTokens.nav-width-expanded-min;
     in property <length> nav-pad: HubTokens.space-3;
-    in property <length> nav-status-height: HubTokens.shell-row-min * 3;
+    in property <length> nav-status-height: HubTokens.shell-row-min * 4 + HubTokens.space-6;
     in property <length> row-height: HubTokens.shell-row-min;
     in property <length> gap: HubTokens.toolbar-gap;
+    private property <string> project-title: root.project.selected ? root.project.title : root.ui-text.no-project-selected;
     callback clicked(string);
     callback toggle-collapse();
 
@@ -379,6 +406,8 @@ export component HubNavSidebar inherits Rectangle {
             rail-gap: root.gap;
             rail-background: transparent;
             items: root.nav-items;
+            material-items: root.material-nav-items;
+            current-index <=> root.selected-nav-index;
             collapsed: root.collapsed;
             clicked(id) => {
                 root.clicked(id);
@@ -403,11 +432,10 @@ export component HubNavSidebar inherits Rectangle {
                         background: root.task-running ? MaterialPalette.tertiary : MaterialPalette.primary;
                     }
 
-                    Text {
+                    MaterialText {
                         text: root.ui-text.engine-status;
                         color: MaterialPalette.on_surface;
-                        font-size: MaterialTypography.label_large.font_size;
-                        font-weight: MaterialTypography.label_large.font_weight;
+                        style: MaterialTypography.label_large;
                     }
                 }
 
@@ -417,6 +445,20 @@ export component HubNavSidebar inherits Rectangle {
                     text: root.source-engine.status;
                     tone: "ok";
                     badge-width: HubTokens.control-md * 3;
+                }
+
+                MaterialText {
+                    text: root.ui-text.current-project;
+                    color: MaterialPalette.on_surface_variant;
+                    style: MaterialTypography.label_medium;
+                    overflow: elide;
+                }
+
+                MaterialText {
+                    text: root.project-title;
+                    color: root.project.selected ? MaterialPalette.on_surface : MaterialPalette.on_surface_variant;
+                    style: MaterialTypography.label_medium;
+                    overflow: elide;
                 }
 
                 Rectangle { vertical-stretch: 1; }
@@ -441,12 +483,12 @@ export component HubNavSidebar inherits Rectangle {
                             has-source-image: true;
                         }
 
-                        Text {
+                        MaterialText {
                             text: root.ui-text.check-for-updates;
                             overflow: elide;
                             color: MaterialPalette.on_surface_variant;
-                            font-size: MaterialTypography.label_medium.font_size;
-                            vertical-alignment: center;
+                            style: MaterialTypography.label_medium;
+                            vertical_alignment: center;
                         }
                     }
                 }
@@ -457,33 +499,37 @@ export component HubNavSidebar inherits Rectangle {
         if !root.compact-height: Rectangle {
             height: max(HubTokens.control-md, min(HubTokens.control-lg, root.row-height * 3 / 4));
             border-radius: MaterialStyleMetrics.border_radius_12;
-            background: collapse-area.has-hover ? MaterialPalette.surface_container_high : transparent;
+            background: transparent;
 
-            HorizontalLayout {
+            collapse-state := StateLayerArea {
                 width: parent.width;
                 height: parent.height;
-                padding-left: root.collapsed ? 0px : HubTokens.space-2;
-                padding-right: root.collapsed ? 0px : HubTokens.space-2;
-                spacing: HubTokens.space-2;
-                alignment: start;
-
-                CenteredIcon {
-                    width: root.collapsed ? parent.width : HubTokens.icon-sm;
-                    height: parent.height;
-                    icon-size: HubTokens.icon-sm;
-                    source-image: root.collapsed ? @image-url("../assets/icons/ui/chevron-right.svg") : @image-url("../assets/icons/ui/collapse.svg");
-                    has-source-image: true;
-                }
-
-                if !root.collapsed: MutedText {
-                    text: root.ui-text.collapse;
-                    vertical-alignment: center;
-                }
-            }
-
-            collapse-area := TouchArea {
+                color: MaterialPalette.on_surface;
+                border_radius: MaterialStyleMetrics.border_radius_12;
                 clicked => {
                     root.toggle-collapse();
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-left: root.collapsed ? 0px : HubTokens.space-2;
+                    padding-right: root.collapsed ? 0px : HubTokens.space-2;
+                    spacing: HubTokens.space-2;
+                    alignment: start;
+
+                    CenteredIcon {
+                        width: root.collapsed ? parent.width : HubTokens.icon-sm;
+                        height: parent.height;
+                        icon-size: HubTokens.icon-sm;
+                        source-image: root.collapsed ? @image-url("../assets/icons/ui/chevron-right.svg") : @image-url("../assets/icons/ui/collapse.svg");
+                        has-source-image: true;
+                    }
+
+                    if !root.collapsed: MutedText {
+                        text: root.ui-text.collapse;
+                        vertical-alignment: center;
+                    }
                 }
             }
         }
@@ -497,10 +543,16 @@ export component HubPageHeader inherits Rectangle {
     in property <string> status-label;
     in property <bool> task-running: false;
     in property <UiTextData> ui-text;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <bool> context-compact: false;
+    in property <length> context-badge-width: HubTokens.status-badge-width;
     in property <length> page-title-height: HubTokens.shell-header-height + HubTokens.space-6;
     in property <length> page-pad-x: HubTokens.page-padding;
     in property <length> gap: HubTokens.toolbar-gap;
     in property <length> action-height: HubTokens.control-lg;
+    private property <string> project-context: root.ui-text.current-project + ": " + (root.project.selected ? root.project.title : root.ui-text.no-project-selected);
+    private property <string> engine-context: root.ui-text.active-source-engine + ": " + (root.source-engine.title == "" ? root.ui-text.no-source-engines : root.source-engine.title);
     callback import-project();
     callback create-project();
 
@@ -518,16 +570,16 @@ export component HubPageHeader inherits Rectangle {
 
         VerticalLayout {
             height: parent.height;
-                spacing: MaterialStyleMetrics.spacing_6;
+            spacing: MaterialStyleMetrics.spacing_6;
             Rectangle {
                 vertical-stretch: 1;
                 min-height: 0px;
             }
-            Text {
+            MaterialText {
                 text: root.selected-page-title;
                 color: MaterialPalette.on_surface;
-                font-size: max(MaterialTypography.headline_small.font_size, min(MaterialTypography.headline_medium.font_size, root.page-title-height * 7 / 25));
-                font-weight: MaterialTypography.headline_medium.font_weight;
+                style: MaterialTypography.headline_medium;
+                overflow: elide;
             }
             MutedText {
                 text: root.selected-page-subtitle;
@@ -539,6 +591,26 @@ export component HubPageHeader inherits Rectangle {
         }
 
         Rectangle { horizontal-stretch: 1; }
+
+        if root.selected-page != "projects" && !root.context-compact: HorizontalLayout {
+            height: parent.height;
+            spacing: root.gap;
+            alignment: center;
+
+            Badge {
+                text: root.project-context;
+                tone: root.project.selected ? "accent" : "neutral";
+                badge-width: root.context-badge-width;
+                badge-height: HubTokens.control-sm;
+            }
+
+            Badge {
+                text: root.engine-context;
+                tone: "neutral";
+                badge-width: root.context-badge-width;
+                badge-height: HubTokens.control-sm;
+            }
+        }
 
         if root.selected-page == "projects": VerticalLayout {
             height: parent.height;
@@ -579,11 +651,11 @@ export component HubPageHeader inherits Rectangle {
             }
         }
 
-        if root.selected-page != "projects": Text {
+        if root.selected-page != "projects": MaterialText {
             text: root.status-label;
             color: root.task-running ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
-            font-size: MaterialTypography.label_large.font_size;
-            vertical-alignment: center;
+            style: MaterialTypography.label_large;
+            vertical_alignment: center;
         }
     }
 }
@@ -591,6 +663,13 @@ export component HubPageHeader inherits Rectangle {
 export component HubStatusBar inherits Rectangle {
     in property <string> status-detail;
     in property <length> status-height: HubTokens.bottom-status-height;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    in property <bool> compact: false;
+    in property <length> context-badge-width: HubTokens.status-badge-width;
+    private property <string> project-context: root.ui-text.current-project + ": " + (root.project.selected ? root.project.title : root.ui-text.no-project-selected);
+    private property <string> engine-context: root.ui-text.active-source-engine + ": " + root.source-engine.title;
 
     height: root.status-height;
     horizontal-stretch: 1;
@@ -603,15 +682,30 @@ export component HubStatusBar inherits Rectangle {
         height: parent.height;
         padding-left: HubTokens.panel-gap;
         padding-right: HubTokens.panel-gap;
+        spacing: HubTokens.toolbar-gap;
         alignment: center;
 
-        Text {
+        MaterialText {
             text: root.status-detail;
             color: MaterialPalette.on_surface_variant;
-            font-size: MaterialTypography.label_medium.font_size;
-            vertical-alignment: center;
+            style: MaterialTypography.label_medium;
+            vertical_alignment: center;
             overflow: elide;
             horizontal-stretch: 1;
+        }
+
+        if !root.compact: Badge {
+            text: root.project-context;
+            tone: root.project.selected ? "accent" : "neutral";
+            badge-width: root.context-badge-width;
+            badge-height: root.status-height - HubTokens.space-2;
+        }
+
+        if !root.compact: Badge {
+            text: root.engine-context;
+            tone: "neutral";
+            badge-width: root.context-badge-width;
+            badge-height: root.status-height - HubTokens.space-2;
         }
     }
 }

@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/core/framework/picking/hit_target.rs
   - zircon_runtime/src/core/framework/picking/hover_map.rs
   - zircon_runtime/src/core/framework/picking/pickable.rs
+  - zircon_runtime/src/core/framework/picking/pipeline.rs
   - zircon_runtime/src/core/framework/picking/pointer_button.rs
   - zircon_runtime/src/core/framework/picking/pointer_event.rs
   - zircon_runtime/src/core/framework/picking/pointer_event_state.rs
@@ -18,6 +19,7 @@ related_code:
   - zircon_runtime/src/core/framework/picking/primitive_backend.rs
   - zircon_runtime/src/core/framework/picking/ray.rs
   - zircon_runtime/src/core/framework/picking/ray_map.rs
+  - zircon_runtime/src/core/framework/picking/report.rs
   - zircon_runtime/src/core/framework/picking/schedule_label.rs
   - zircon_runtime/src/core/framework/picking/settings.rs
   - zircon_runtime/src/core/framework/mod.rs
@@ -32,6 +34,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/picking/hit_target.rs
   - zircon_runtime/src/core/framework/picking/hover_map.rs
   - zircon_runtime/src/core/framework/picking/pickable.rs
+  - zircon_runtime/src/core/framework/picking/pipeline.rs
   - zircon_runtime/src/core/framework/picking/pointer_event.rs
   - zircon_runtime/src/core/framework/picking/pointer_event_state.rs
   - zircon_runtime/src/core/framework/picking/pointer_hits.rs
@@ -40,6 +43,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/picking/primitive_backend.rs
   - zircon_runtime/src/core/framework/picking/ray.rs
   - zircon_runtime/src/core/framework/picking/ray_map.rs
+  - zircon_runtime/src/core/framework/picking/report.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_route.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
@@ -95,6 +99,8 @@ The module is split by declaration so the root stays structural:
 - `PointerInput`, `PointerAction`, and `PointerScrollUnit` describe ordered pointer input records that drive pointer events.
 - `PickingPointerEvent`, `PickingEventKind`, `PickingEventLabel`, and `PickingEventState` describe runtime-neutral interaction events and the per-pointer/button state machine that emits them.
 - `PrimitivePickingBackend`, `PickingPrimitive`, and `PickingPrimitiveShape` provide a small CPU ray primitive backend for overlay, gizmo, and coarse scene-primitive tests. The first shape is a sphere; exact mesh picking remains a later backend concern.
+- `PickingPipelineReport` and `PickingPointerPipelineReport` provide a stable diagnostics snapshot of one picking frame: ray count, pointer count, backend output count, raw hit count, hovered hit count, blocking pointer count, and per-pointer top/blocking target details.
+- `PickingPipelineInput`, `PickingPipelineOutput`, `PickingPipelineStageReport`, and `run_picking_pipeline` provide a reusable plain-Rust stage runner for one picking frame. The runner is intentionally independent of ECS schedules, editor windows, or render backend ownership.
 - `PickingSettings` and `PickingScheduleLabel` reserve the configuration and pipeline labels later used by pointer events and backend orchestration.
 
 ## Behavior
@@ -110,6 +116,10 @@ The module is split by declaration so the root stays structural:
 `PickingHoverMap::from_outputs` converts one frame of backend output into direct hovered hits per pointer using the existing sorting and pickability rules. It is intentionally direct-hover only: hierarchy bubbling is represented by each emitted `PickingPointerEvent` carrying `propagate`, while scene/editor consumers decide how to walk their current ownership graph.
 
 `PrimitivePickingBackend` is a generic CPU ray backend over framework primitives. It casts each `RayMap` ray against registered `PickingPrimitive`s and returns ordinary `PointerHits`. This backend does not inspect the runtime world, editor state, render resources, or selection; it exists so overlays, gizmos, tests, and future render extract adapters can share the same backend contract before exact mesh acceleration data is exposed.
+
+`PickingPipelineReport::from_ray_map_and_outputs` is the M1 diagnostics bridge for dev tools and future editor cutover. It collects pointer ids from both `RayMap` and backend output, so a pointer with a valid camera ray but no backend hits is still visible in diagnostics. Per-pointer reports reuse `sorted_hits_for_pointer` and `hovered_hits_for_pointer` instead of reimplementing ordering; this is deliberate so debug overlays cannot drift from runtime picking semantics. Blocking reports record the first sorted blocking target even when that target is non-hoverable, which makes invisible blockers diagnosable without making them hover events.
+
+`run_picking_pipeline` executes the fixed runtime stage order `Input -> RayMap -> Backend -> Hover -> Events`. It returns all intermediate frame products plus stage counters and the diagnostics report, so editor overlays, remote dev tools, and future runtime debug panels can observe the same picking state without owning the pipeline. When `PickingSettings::enabled` is false, the runner clears `PickingEventState` and returns empty output with every stage marked disabled; this prevents stale hover, press, drag, or click state from surviving a disabled picking frame.
 
 `PickingEventState::dispatch_frame` mirrors Bevy's pointer event order while staying independent of ECS observers:
 
@@ -134,6 +144,8 @@ The editor route enum is not removed in this slice. It is a private adapter arou
 
 - perspective viewport-center pointer to camera ray conversion,
 - multi-pointer, multi-viewport, active-camera filtering in `RayMap`,
+- two pointers across two active cameras in one viewport,
+- same pointer id scoped to independent viewport locations,
 - viewport-size aspect correction for off-center rays,
 - hit sorting for the required handle/gizmo/renderable priority,
 - hit sorting priority remaining stronger than backend order,
@@ -144,6 +156,8 @@ The editor route enum is not removed in this slice. It is a private adapter arou
 - click/release targeting the previous hover map,
 - drag/drop and scroll event sequencing,
 - cancel filtering of current hover plus pointer interaction state clearing.
+- picking pipeline diagnostics for ray-only pointers, backend output counts, raw/hovered hit counts, top target selection, and blocking non-hoverable targets.
+- picking pipeline stage execution, report carry-through, and disabled-frame state clearing.
 
 `zircon_editor/src/tests/editing/viewport.rs` covers:
 
@@ -159,5 +173,15 @@ Milestone testing evidence for this slice:
 - `cargo metadata --offline --format-version 1` on 2026-05-08 refreshed generated `Cargo.lock` entries for the sibling platform/plugin feature manifest drift, including `gilrs`, first-party runtime plugin packages, `tokio`, and `socket2`. The offline metadata command then stopped because `objc2-io-kit` was not cached locally, but the generated lock resolution was sufficient for the next `--locked` validation.
 - `cargo test -p zircon_runtime picking --locked --target-dir "E:\cargo-targets\zircon-runtime-picking-validation" --message-format short --color never` passed on 2026-05-08: 12 focused picking tests passed, 0 failed, 1059 filtered out. Cargo emitted existing warning noise in graphics/UI/native-plugin code outside the picking module.
 - `cargo test -p zircon_editor viewport --locked` was not rerun in this validation continuation. Earlier evidence showed it blocked before viewport tests in unrelated active editor UI presentation code, so editor viewport and full-workspace validation remain broader follow-up gates.
+- M1 report hardening on 2026-05-21 added `PickingPipelineReport` / `PickingPointerPipelineReport`, plus focused tests for ray-only pointers, backend output counts, raw/hovered hit totals, top target selection, and blocking non-hoverable targets.
+- `cargo fmt --all --check` passed on 2026-05-21 after the working tree's stale unclosed app source-guard comment was no longer present.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-21: 14 focused picking tests passed, 0 failed, 1778 filtered out.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib input_protocol_types_live_in_runtime_input_surface --locked --color never --jobs 1` passed on 2026-05-21 after updating the source guard to the folder-backed `zircon_app/src/entry/runtime_entry_app/*` input files.
+- M1 pipeline hardening on 2026-05-21 added `run_picking_pipeline`, `PickingPipelineInput`, `PickingPipelineOutput`, and `PickingPipelineStageReport`, plus focused tests for fixed stage ordering, report carry-through, and disabled-frame state clearing.
+- `cargo fmt --all --check` passed on 2026-05-21 after the M1 pipeline slice.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-21 after the M1 pipeline slice: 16 focused picking tests passed, 0 failed, 1778 filtered out.
+- M1 boundary hardening on 2026-05-21 added ray-map tests for two pointers across two active cameras and for the same pointer id scoped to separate viewport locations.
+- `cargo fmt --all --check` passed on 2026-05-21 after the M1 boundary slice.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-21 after the M1 boundary slice: 18 focused picking tests passed, 0 failed, 1778 filtered out.
 
 The focused runtime M2 picking backend/event validation is accepted by the 12-test locked run above. Because this is a shared framework API, editor viewport and workspace-level validation still need to be rerun before claiming the broader runtime/editor cutover is green.

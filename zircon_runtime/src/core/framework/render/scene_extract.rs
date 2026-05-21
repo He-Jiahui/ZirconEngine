@@ -5,6 +5,10 @@ use crate::core::resource::{
 
 use crate::core::framework::scene::{EntityId, Mobility};
 
+use super::light::{
+    RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
+    RenderRectLightSnapshot, RenderSpotLightSnapshot,
+};
 use super::{FallbackSkyboxKind, RenderOverlayExtract, ViewportCameraSnapshot};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -16,68 +20,6 @@ pub struct RenderMeshSnapshot {
     pub tint: Vec4,
     pub mobility: Mobility,
     pub render_layer_mask: u32,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RenderDirectionalLightSnapshot {
-    pub node_id: EntityId,
-    pub direction: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RenderPointLightSnapshot {
-    pub node_id: EntityId,
-    pub position: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-    pub range: Real,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RenderSpotLightSnapshot {
-    pub node_id: EntityId,
-    pub position: Vec3,
-    pub direction: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-    pub range: Real,
-    pub inner_angle_radians: Real,
-    pub outer_angle_radians: Real,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RenderAmbientLightSnapshot {
-    pub color: Vec3,
-    pub intensity: Real,
-    pub renderer_degraded: bool,
-    pub degradation_reason: Option<String>,
-}
-
-impl Default for RenderAmbientLightSnapshot {
-    fn default() -> Self {
-        Self {
-            color: Vec3::ZERO,
-            intensity: 0.0,
-            renderer_degraded: true,
-            degradation_reason: Some(
-                "ambient light has no authored scene component yet".to_string(),
-            ),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RenderRectLightSnapshot {
-    pub node_id: EntityId,
-    pub position: Vec3,
-    pub direction: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-    pub size: crate::core::math::Vec2,
-    pub renderer_degraded: bool,
-    pub degradation_reason: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -114,40 +56,6 @@ impl Default for RenderColorGradingSettings {
             saturation: 1.0,
             gamma: 1.0,
             tint: Vec3::ONE,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderReflectionProbeSnapshot {
-    pub position: Vec3,
-    pub radius: Real,
-    pub color: Vec3,
-    pub intensity: Real,
-}
-
-impl Default for RenderReflectionProbeSnapshot {
-    fn default() -> Self {
-        Self {
-            position: Vec3::ZERO,
-            radius: 0.0,
-            color: Vec3::ZERO,
-            intensity: 0.0,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderBakedLightingExtract {
-    pub color: Vec3,
-    pub intensity: Real,
-}
-
-impl Default for RenderBakedLightingExtract {
-    fn default() -> Self {
-        Self {
-            color: Vec3::ZERO,
-            intensity: 0.0,
         }
     }
 }

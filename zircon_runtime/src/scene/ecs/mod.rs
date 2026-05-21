@@ -1,6 +1,8 @@
 //! Local scene ECS scheduling, resource, and event primitives.
 
 mod archetype_id;
+mod archetype_index;
+mod archetype_signature;
 mod bundle;
 mod change_detection;
 mod commands;
@@ -26,7 +28,9 @@ mod resource_store;
 mod scene_system_descriptor;
 mod scene_system_registry;
 mod schedule;
+mod schedule_conflict_graph;
 mod schedule_error;
+mod schedule_parallel_executor;
 mod schedule_runner;
 mod stable_entity_location;
 mod storage;
@@ -35,6 +39,8 @@ mod system;
 mod system_stage;
 
 pub use archetype_id::ArchetypeId;
+pub use archetype_index::{ArchetypeIndex, ArchetypeMove, ArchetypeRecord};
+pub use archetype_signature::ArchetypeSignature;
 pub use bundle::Bundle;
 pub use change_detection::{ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref};
 pub use commands::{Command, CommandQueue, Commands, CommandsParam, EntityCommands, FnCommand};
@@ -54,8 +60,10 @@ pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
 pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageStore, Messages};
 pub use observer::{ObserverId, ObserverStore};
 pub use query::{
-    Added, Changed, QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryFilter,
-    QueryIter, QueryMutData, QueryState, With, Without,
+    Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
+    QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryEntityError, QueryEntityItem,
+    QueryFilter, QueryIter, QueryManyIter, QueryManyMutIter, QueryMutData, QuerySingleError,
+    QueryState, With, Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
@@ -65,16 +73,25 @@ pub use resource_store::ResourceStore;
 pub use scene_system_descriptor::SceneSystemDescriptor;
 pub use scene_system_registry::SceneSystemRegistry;
 pub use schedule::Schedule;
+pub use schedule_conflict_graph::{
+    ScheduleConflictEdge, ScheduleConflictGraph, ScheduleConflictNode, ScheduleParallelBatch,
+};
 pub use schedule_error::ScheduleError;
+pub use schedule_parallel_executor::{
+    ScheduleParallelExecutor, ScheduleParallelExecutorError, ScheduleParallelTaskRegistry,
+};
 pub use stable_entity_location::StableEntityLocation;
-pub use storage::{ComponentRemoveResult, ComponentStorage, StorageError};
+pub use storage::{
+    ComponentRemoveResult, ComponentStorage, ComponentStorageLocation, StorageError,
+};
 pub use storage_type::StorageType;
 pub use system::{
     EventReader, EventReaderParam, EventWriter, EventWriterParam, Local, LocalParam, MessageReader,
     MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam,
     Query, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam,
-    SystemParam, SystemParamAccess, SystemParamError, SystemState,
+    SystemParam, SystemParamAccess, SystemParamConflictKind, SystemParamError, SystemState,
 };
 pub use system_stage::SystemStage;
 
+pub(crate) use query::single_from_iter;
 pub(crate) use schedule_runner::SceneScheduleRunner;

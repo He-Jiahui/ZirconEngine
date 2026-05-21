@@ -35,7 +35,10 @@ pub use material::MaterialDomain;
 pub use particle_runtime_provider::{ParticleGpuFeedback, ParticleRuntimeFeedback};
 pub use pipeline::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
-    RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset, RendererFeatureSource,
+    RenderPipelineAssetContext, RenderPipelineCompileOptions, RenderPipelineCompileReport,
+    RendererAsset, RendererDataDocument, RendererDataDocumentError, RendererFeatureAsset,
+    RendererFeatureAssetReferences, RendererFeatureContractDiagnostic, RendererFeatureDocument,
+    RendererFeatureSource, RENDERER_DATA_DOCUMENT_VERSION,
 };
 pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,

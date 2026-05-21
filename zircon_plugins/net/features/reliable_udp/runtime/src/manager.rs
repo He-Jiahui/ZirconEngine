@@ -8,6 +8,8 @@ use zircon_runtime::core::framework::net::{
     ReliableDatagramSendStatus, ReliableDatagramSimulationProfile, ReliableDatagramStats,
 };
 
+const RESEND_ATTEMPT_CAP_DIAGNOSTIC: &str = "reliable datagram resend attempt cap exceeded";
+
 #[derive(Clone, Debug)]
 pub struct NetReliableUdpRuntimeManager {
     state: Arc<Mutex<NetReliableUdpRuntimeState>>,
@@ -18,6 +20,7 @@ struct NetReliableUdpRuntimeState {
     config: ReliableDatagramConfig,
     next_sequence: u64,
     outbound: VecDeque<ReliableDatagramPacket>,
+    resend_state: HashMap<u64, PendingResendState>,
     inbound_fragments: HashMap<u64, InboundFragmentAssembly>,
     completed_inbound_sequences: VecDeque<u64>,
     simulation_profile: ReliableDatagramSimulationProfile,
@@ -26,6 +29,12 @@ struct NetReliableUdpRuntimeState {
     dropped_packets_since_recovery: u64,
     recovery_diagnostic: Option<String>,
     stats: ReliableDatagramStats,
+}
+
+#[derive(Clone, Debug, Default)]
+struct PendingResendState {
+    last_sent_at_ms: u64,
+    attempts: u8,
 }
 
 // Keeps partial datagrams in fragment-index order so out-of-order delivery can be
@@ -81,6 +90,7 @@ impl NetReliableUdpRuntimeManager {
                 config,
                 next_sequence: 1,
                 outbound: VecDeque::new(),
+                resend_state: HashMap::new(),
                 inbound_fragments: HashMap::new(),
                 completed_inbound_sequences: VecDeque::new(),
                 simulation_profile: ReliableDatagramSimulationProfile::default(),
@@ -138,6 +148,7 @@ impl NetReliableUdpRuntimeManager {
         };
         state.stats.sent_packets += packets.len() as u64;
         state.outbound.extend(packets.iter().cloned());
+        state.resend_state.entry(sequence).or_default();
         let status = if packets.len() > 1 {
             ReliableDatagramSendStatus::Fragmented
         } else {
@@ -155,6 +166,7 @@ impl NetReliableUdpRuntimeManager {
         state
             .outbound
             .retain(|packet| packet.sequence != ack.sequence);
+        state.resend_state.remove(&ack.sequence);
         let removed = before - state.outbound.len();
         state.stats.received_packets += removed as u64;
         removed
@@ -299,6 +311,46 @@ impl NetReliableUdpRuntimeManager {
         packets
     }
 
+    pub fn resend_due(&self, now_ms: u64) -> Vec<ReliableDatagramPacket> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        let mut due_sequences = state.due_resend_sequences(now_ms);
+        due_sequences.sort_unstable();
+        if due_sequences.is_empty() {
+            return Vec::new();
+        }
+
+        let mut due_packets = Vec::new();
+        let mut capped_sequences = Vec::new();
+        let max_attempts = state.config.max_resend_attempts;
+        for sequence in due_sequences {
+            let resend_state = state.resend_state.entry(sequence).or_default();
+            if resend_state.attempts >= max_attempts {
+                capped_sequences.push(sequence);
+                continue;
+            }
+            resend_state.attempts += 1;
+            resend_state.last_sent_at_ms = now_ms;
+            due_packets.extend(
+                state
+                    .outbound
+                    .iter()
+                    .filter(|packet| packet.sequence == sequence)
+                    .cloned(),
+            );
+        }
+
+        if !capped_sequences.is_empty() {
+            state.drop_capped_sequences(&capped_sequences);
+            state.recovery_state = ReliableDatagramRecoveryState::Disconnected;
+            state.recovery_diagnostic = Some(RESEND_ATTEMPT_CAP_DIAGNOSTIC.to_string());
+        }
+        state.stats.resent_packets += due_packets.len() as u64;
+        due_packets
+    }
+
     pub fn record_dropped_packet(&self) {
         let mut state = self
             .state
@@ -378,6 +430,30 @@ impl NetReliableUdpRuntimeState {
         }
         while self.completed_inbound_sequences.len() > receive_window {
             self.completed_inbound_sequences.pop_front();
+        }
+    }
+
+    fn due_resend_sequences(&self, now_ms: u64) -> Vec<u64> {
+        let resend_timeout_ms = self.config.resend_timeout_ms;
+        if resend_timeout_ms == 0 {
+            return self.resend_state.keys().copied().collect();
+        }
+        self.resend_state
+            .iter()
+            .filter_map(|(sequence, resend_state)| {
+                now_ms
+                    .saturating_sub(resend_state.last_sent_at_ms)
+                    .ge(&resend_timeout_ms)
+                    .then_some(*sequence)
+            })
+            .collect()
+    }
+
+    fn drop_capped_sequences(&mut self, sequences: &[u64]) {
+        self.outbound
+            .retain(|packet| !sequences.contains(&packet.sequence));
+        for sequence in sequences {
+            self.resend_state.remove(sequence);
         }
     }
 }

@@ -35,6 +35,9 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
         ImportedAsset::Model(asset) => {
             resource_manager.store_payload(id, asset);
         }
+        ImportedAsset::Mesh(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
         ImportedAsset::UiLayout(asset) => {
             resource_manager.store_payload(id, asset);
         }

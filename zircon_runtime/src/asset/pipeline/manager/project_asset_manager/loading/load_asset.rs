@@ -1,9 +1,10 @@
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
-    ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker, PrefabMarker,
-    ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker,
-    TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
+    PrefabMarker, ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker,
+    TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker,
+    UiWidgetMarker,
 };
 use crate::core::CoreError;
 
@@ -11,15 +12,19 @@ use super::super::ProjectAssetManager;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
     AnimationStateMachineAsset, AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
-    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
-    SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
-    UiV2ViewAsset, UiWidgetAsset,
+    MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
+    PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
+    TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset,
+    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
     pub fn load_model_asset(&self, id: AssetId) -> Result<ModelAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<ModelMarker>::new(id), "model")
+    }
+
+    pub fn load_mesh_asset(&self, id: AssetId) -> Result<MeshAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<MeshMarker>::new(id), "mesh")
     }
 
     pub fn load_material_asset(&self, id: AssetId) -> Result<MaterialAsset, CoreError> {

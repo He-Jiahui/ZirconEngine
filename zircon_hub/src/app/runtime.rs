@@ -281,7 +281,7 @@ impl HubRuntime {
 
     fn quick_action(&mut self, ui: &HubWindow, action_id: &str) -> Result<(), HubError> {
         match HubQuickAction::from_id(action_id) {
-            Some(HubQuickAction::BuildProject) => self.build_editor_runtime(ui),
+            Some(HubQuickAction::BuildProject) => self.build_selected_project_engine(ui),
             Some(HubQuickAction::OpenEditor) => self.open_selected_project_or_editor(ui),
             Some(HubQuickAction::PackageProject) => self.package_recent_project(ui),
             Some(HubQuickAction::InstallToDevice) => self.install_recent_project_to_device(ui),
@@ -291,8 +291,20 @@ impl HubRuntime {
         }
     }
 
+    fn build_selected_project_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let Some(_project) = self.selected_or_latest_recent_project_for_action()? else {
+            return Err(HubError::message("No recent project is available to build"));
+        };
+        self.build_editor_runtime_after_sync(ui)
+    }
+
     fn build_editor_runtime(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
+        self.build_editor_runtime_after_sync(ui)
+    }
+
+    fn build_editor_runtime_after_sync(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.register_source_engine_from_settings();
         let validation = validate_source_engine(&self.config.settings.default_source_dir);
         if validation != SourceEngineValidation::Valid {
@@ -771,7 +783,7 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     let runtime_for_launch = Rc::clone(&runtime);
     ui.on_launch_editor(move || {
         with_runtime(&weak, &runtime_for_launch, |runtime, ui| {
-            runtime.launch_editor_without_project(ui)
+            runtime.open_selected_project_or_editor(ui)
         })
     });
 
@@ -924,6 +936,26 @@ mod tests {
 
         assert_eq!(runtime.project_view_mode, ProjectViewMode::List);
         assert_eq!(runtime.project_subpage, ProjectSubpage::ProjectBrowser);
+    }
+
+    #[test]
+    fn opening_project_detail_selects_project_and_enters_detail_subpage() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Stellar Outpost",
+            "E:/Projects/StellarOutpost",
+            20,
+        )]);
+
+        runtime
+            .open_project_detail("E:/Projects/StellarOutpost")
+            .unwrap();
+
+        assert_eq!(
+            runtime.selected_project_path,
+            Some(PathBuf::from("E:/Projects/StellarOutpost"))
+        );
+        assert_eq!(runtime.project_view_mode, ProjectViewMode::List);
+        assert_eq!(runtime.project_subpage, ProjectSubpage::ProjectDetail);
     }
 
     #[test]

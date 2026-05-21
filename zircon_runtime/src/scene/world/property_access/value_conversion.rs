@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::framework::{animation::AnimationParameterValue, physics::PhysicsCombineRule};
-use crate::core::math::{Quat, Real, Vec3, Vec4};
+use crate::core::math::{Quat, Real, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, ResourceMarker};
 use crate::scene::components::{JointKind, Mobility, RigidBodyType};
 use crate::scene::EntityId;
@@ -159,6 +159,17 @@ pub(super) fn expect_vec3(
     };
     validate_finite_array(&value, property_path, "vec3")?;
     Ok(Vec3::from_array(value))
+}
+
+pub(super) fn expect_vec2(
+    value: ScenePropertyValue,
+    property_path: &ComponentPropertyPath,
+) -> Result<Vec2, String> {
+    let ScenePropertyValue::Vec2(value) = value else {
+        return Err(format!("property `{property_path}` expected vec2"));
+    };
+    validate_finite_array(&value, property_path, "vec2")?;
+    Ok(Vec2::from_array(value))
 }
 
 pub(super) fn expect_vec4(

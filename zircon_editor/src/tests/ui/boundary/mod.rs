@@ -7,6 +7,8 @@ mod material_meta_component_contracts;
 mod material_ui_component_design_matrix;
 mod root_surfaces;
 mod runtime_ui_golden;
+mod slint_material_retained_editor_m3_controls;
+mod slint_material_retained_editor_migration;
 mod support;
 mod template_assets;
 mod view_projection_cutover;

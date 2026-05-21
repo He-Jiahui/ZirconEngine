@@ -1,8 +1,8 @@
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Added, Changed, CommandsParam, Component, EventReaderParam, EventWriterParam, LocalParam,
-    ParamSet, QueryState, RemovedComponentsParam, ResMutParam, ResParam, Resource,
-    SystemParamError, SystemState, With,
+    ParamSet, QueryEntityError, QuerySingleError, QueryState, RemovedComponentsParam, ResMutParam,
+    ResParam, Resource, SystemParamError, SystemState, With,
 };
 use crate::scene::{EntityId, World};
 
@@ -36,6 +36,13 @@ struct HitEvent(u32);
 
 #[derive(Default, Debug, PartialEq, Eq)]
 struct LocalCounter(u32);
+
+fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityError {
+    match result {
+        Ok(_) => panic!("expected query error"),
+        Err(error) => error,
+    }
+}
 
 #[test]
 fn commands_are_deferred_until_apply_deferred() {
@@ -119,6 +126,82 @@ fn system_state_runs_query_resource_and_commands_params() {
     world.apply_deferred();
 
     assert_eq!(world.get::<Marker>(enemy), Some(&Marker));
+}
+
+#[test]
+fn system_query_for_each_mut_uses_persistent_query_state_cache() {
+    let mut world = World::empty();
+    let player = world
+        .spawn((Name("Player".to_string()), Health(10), Player))
+        .unwrap();
+    let enemy = world.spawn((Name("Enemy".to_string()), Health(4))).unwrap();
+
+    type PlayerHealth = QueryState<&'static mut Health, With<Player>>;
+    let mut system = SystemState::<PlayerHealth>::new(&mut world).unwrap();
+    assert_eq!(system.state().cache_rebuilds(), 1);
+    assert_eq!(system.state().cached_entity_count(), 1);
+
+    system.run(&mut world, |mut query| {
+        query.for_each_mut(|health| health.0 += 1);
+    });
+
+    assert_eq!(world.get::<Health>(player), Some(&Health(11)));
+    assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let ally = world
+        .spawn((Name("Ally".to_string()), Health(7), Player))
+        .unwrap();
+    system.run(&mut world, |mut query| {
+        query.for_each_mut(|health| health.0 += 2);
+    });
+
+    assert_eq!(world.get::<Health>(player), Some(&Health(13)));
+    assert_eq!(world.get::<Health>(ally), Some(&Health(9)));
+    assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
+    assert_eq!(system.state().cache_rebuilds(), 2);
+    assert_eq!(system.state().cached_entity_count(), 2);
+}
+
+#[test]
+fn system_query_get_mut_helpers_mutate_targets_and_reject_aliases() {
+    let mut world = World::empty();
+    let player = world
+        .spawn((Name("Player".to_string()), Health(10), Player))
+        .unwrap();
+    let ally = world
+        .spawn((Name("Ally".to_string()), Health(7), Player))
+        .unwrap();
+    let enemy = world.spawn((Name("Enemy".to_string()), Health(4))).unwrap();
+
+    type PlayerHealth = QueryState<&'static mut Health, With<Player>>;
+    let mut system = SystemState::<PlayerHealth>::new(&mut world).unwrap();
+    system.run(&mut world, |mut query| {
+        query.get_mut(player).unwrap().0 += 5;
+        let healths = query.get_many_mut([ally, player]).unwrap();
+        healths[0].0 += 2;
+        healths[1].0 += 3;
+    });
+
+    assert_eq!(world.get::<Health>(player), Some(&Health(18)));
+    assert_eq!(world.get::<Health>(ally), Some(&Health(9)));
+    assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
+
+    let errors = system.run(&mut world, |mut query| {
+        (
+            expect_query_error(query.get_mut(enemy)),
+            expect_query_error(query.get_many_mut([player, player])),
+            expect_query_error(query.get_many_mut([player, 999])),
+        )
+    });
+    assert_eq!(
+        errors,
+        (
+            QueryEntityError::QueryDoesNotMatch(enemy),
+            QueryEntityError::AliasedMutability(player),
+            QueryEntityError::NotSpawned(999),
+        )
+    );
 }
 
 #[test]
@@ -365,6 +448,474 @@ fn added_and_changed_filters_use_system_run_windows() {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(changed, vec![first]);
+}
+
+#[test]
+fn system_query_cached_direct_rechecks_run_window_filters() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("Tracked".to_string()), Health(10)))
+        .unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+
+    let first = system.run(&mut world, |mut query| {
+        query
+            .iter_cached_direct()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(first, vec![(entity, 10)]);
+
+    let second = system.run(&mut world, |mut query| {
+        query
+            .iter_cached_direct()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert!(second.is_empty());
+
+    world.get_mut::<Health>(entity).unwrap().0 = 11;
+    let changed = system.run(&mut world, |mut query| {
+        query
+            .iter_cached_direct()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(changed, vec![(entity, 11)]);
+}
+
+#[test]
+fn system_query_iter_cached_reuses_state_and_rechecks_run_window_filters() {
+    let mut world = World::empty();
+    let first = world
+        .spawn((Name("First".to_string()), Health(10)))
+        .unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let baseline = system.run(&mut world, |mut query| {
+        query
+            .iter_cached()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(baseline, vec![(first, 10)]);
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let unchanged = system.run(&mut world, |mut query| {
+        query
+            .iter_cached()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert!(unchanged.is_empty());
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    world.get_mut::<Health>(first).unwrap().0 = 11;
+    let changed = system.run(&mut world, |mut query| {
+        query
+            .single_cached()
+            .map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(changed, Ok((first, 11)));
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let second = world
+        .spawn((Name("Second".to_string()), Health(1)))
+        .unwrap();
+    let after_spawn = system.run(&mut world, |mut query| {
+        query
+            .iter_cached()
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(after_spawn, vec![(second, 1)]);
+    assert_eq!(system.state().cache_rebuilds(), 2);
+}
+
+#[test]
+fn system_query_count_and_empty_helpers_reuse_cache_and_run_window_filters() {
+    let mut world = World::empty();
+    let first = world
+        .spawn((Name("First".to_string()), Health(10)))
+        .unwrap();
+    let marker_only = world.spawn((Name("Marker".to_string()), Marker)).unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let baseline = system.run(&mut world, |mut query| {
+        (
+            query.count(),
+            query.is_empty(),
+            query.count_cached(),
+            query.is_empty_cached(),
+            query.count_cached_direct(),
+            query.is_empty_cached_direct(),
+            query.contains(first),
+            query.contains(marker_only),
+            query.get(first).map(|(entity, health)| (entity, health.0)),
+            query
+                .get(marker_only)
+                .map(|(entity, health)| (entity, health.0)),
+            query.contains_cached(first),
+            query.contains_cached(marker_only),
+            query
+                .get_cached(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query
+                .get_cached(marker_only)
+                .map(|(entity, health)| (entity, health.0)),
+            query.contains_cached_direct(first),
+            query.contains_cached_direct(marker_only),
+            query
+                .get_cached_direct(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query
+                .get_cached_direct(marker_only)
+                .map(|(entity, health)| (entity, health.0)),
+        )
+    });
+    assert_eq!(
+        (baseline.0, baseline.1, baseline.2, baseline.3, baseline.4, baseline.5),
+        (1, false, 1, false, 1, false)
+    );
+    assert_eq!(
+        (baseline.6, baseline.7, baseline.8, baseline.9),
+        (
+            true,
+            false,
+            Ok((first, 10)),
+            Err(QueryEntityError::QueryDoesNotMatch(marker_only)),
+        )
+    );
+    assert_eq!(
+        (baseline.10, baseline.11, baseline.12, baseline.13),
+        (
+            true,
+            false,
+            Ok((first, 10)),
+            Err(QueryEntityError::QueryDoesNotMatch(marker_only)),
+        )
+    );
+    assert_eq!(
+        (baseline.14, baseline.15, baseline.16, baseline.17),
+        (
+            true,
+            false,
+            Ok((first, 10)),
+            Err(QueryEntityError::QueryDoesNotMatch(marker_only)),
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let unchanged = system.run(&mut world, |mut query| {
+        (
+            query.count(),
+            query.is_empty(),
+            query.count_cached(),
+            query.is_empty_cached(),
+            query.count_cached_direct(),
+            query.is_empty_cached_direct(),
+            query.contains(first),
+            query.get(first).map(|(entity, health)| (entity, health.0)),
+            query.contains_cached(first),
+            query
+                .get_cached(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query.contains_cached_direct(first),
+            query
+                .get_cached_direct(first)
+                .map(|(entity, health)| (entity, health.0)),
+        )
+    });
+    assert_eq!(
+        unchanged,
+        (
+            0,
+            true,
+            0,
+            true,
+            0,
+            true,
+            false,
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            false,
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            false,
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    world.get_mut::<Health>(first).unwrap().0 = 11;
+    let changed = system.run(&mut world, |mut query| {
+        (
+            query.count_cached(),
+            query.is_empty_cached(),
+            query.count_cached_direct(),
+            query.is_empty_cached_direct(),
+            query.contains_cached(first),
+            query
+                .get_cached(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query.contains_cached_direct(first),
+            query
+                .get_cached_direct(first)
+                .map(|(entity, health)| (entity, health.0)),
+        )
+    });
+    assert_eq!(
+        changed,
+        (
+            1,
+            false,
+            1,
+            false,
+            true,
+            Ok((first, 11)),
+            true,
+            Ok((first, 11))
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let second = world
+        .spawn((Name("Second".to_string()), Health(1)))
+        .unwrap();
+    let after_spawn = system.run(&mut world, |mut query| {
+        (
+            query.count_cached(),
+            query.is_empty_cached(),
+            query.count_cached_direct(),
+            query.is_empty_cached_direct(),
+            query.contains_cached(first),
+            query.contains_cached(second),
+            query
+                .get_cached(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query
+                .get_cached(second)
+                .map(|(entity, health)| (entity, health.0)),
+            query.contains_cached_direct(first),
+            query.contains_cached_direct(second),
+            query
+                .get_cached_direct(first)
+                .map(|(entity, health)| (entity, health.0)),
+            query
+                .get_cached_direct(second)
+                .map(|(entity, health)| (entity, health.0)),
+        )
+    });
+    assert_eq!(
+        after_spawn,
+        (
+            1,
+            false,
+            1,
+            false,
+            false,
+            true,
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            Ok((second, 1)),
+            false,
+            true,
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            Ok((second, 1)),
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 2);
+}
+
+#[test]
+fn system_query_get_many_helpers_preserve_order_duplicates_and_run_window_filters() {
+    let mut world = World::empty();
+    let first = world
+        .spawn((Name("First".to_string()), Health(10)))
+        .unwrap();
+    let marker_only = world.spawn((Name("Marker".to_string()), Marker)).unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+
+    let baseline = system.run(&mut world, |mut query| {
+        (
+            query
+                .get_many([first, first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many([first, marker_only])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached([first, first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached_direct([first, first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        )
+    });
+    assert_eq!(
+        baseline,
+        (
+            Ok([(first, 10), (first, 10)]),
+            Err(QueryEntityError::QueryDoesNotMatch(marker_only)),
+            Ok([(first, 10), (first, 10)]),
+            Ok([(first, 10), (first, 10)]),
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    let unchanged = system.run(&mut world, |mut query| {
+        (
+            query
+                .get_many([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached_direct([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        )
+    });
+    assert_eq!(
+        unchanged,
+        (
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+            Err(QueryEntityError::QueryDoesNotMatch(first)),
+        )
+    );
+    assert_eq!(system.state().cache_rebuilds(), 1);
+
+    world.get_mut::<Health>(first).unwrap().0 = 11;
+    let changed = system.run(&mut world, |mut query| {
+        (
+            query
+                .get_many([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_cached_direct([first])
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        )
+    });
+    assert_eq!(
+        changed,
+        (Ok([(first, 11)]), Ok([(first, 11)]), Ok([(first, 11)]),)
+    );
+}
+
+#[test]
+fn system_query_iter_many_preserves_order_duplicates_and_run_window_filters() {
+    let mut world = World::empty();
+    let first = world
+        .spawn((Name("First".to_string()), Health(10)))
+        .unwrap();
+    let marker_only = world.spawn((Name("Marker".to_string()), Marker)).unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+
+    let requested = vec![marker_only, first, 999, first];
+    let baseline = system.run(&mut world, |mut query| {
+        (
+            query
+                .iter_many(&requested)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+            query
+                .iter_many_cached(&requested)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+        )
+    });
+    assert_eq!(
+        baseline,
+        (
+            vec![(first, 10), (first, 10)],
+            vec![(first, 10), (first, 10)]
+        )
+    );
+
+    let unchanged = system.run(&mut world, |mut query| {
+        (
+            query
+                .iter_many([first])
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+            query
+                .iter_many_cached([first])
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+        )
+    });
+    assert!(unchanged.0.is_empty());
+    assert!(unchanged.1.is_empty());
+
+    world.get_mut::<Health>(first).unwrap().0 = 11;
+    let changed = system.run(&mut world, |mut query| {
+        (
+            query
+                .iter_many([first])
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+            query
+                .iter_many_cached([first])
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+        )
+    });
+    assert_eq!(changed, (vec![(first, 11)], vec![(first, 11)]));
+}
+
+#[test]
+fn system_query_single_helpers_report_zero_one_many_matches() {
+    let mut world = World::empty();
+    type PlayerHealth = QueryState<(EntityId, &'static Health), With<Player>>;
+    let mut system = SystemState::<PlayerHealth>::new(&mut world).unwrap();
+
+    let empty = system.run(&mut world, |query| {
+        query.single().map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(empty, Err(QuerySingleError::NoEntities));
+
+    let player = world
+        .spawn((Name("Player".to_string()), Health(10), Player))
+        .unwrap();
+    let one = system.run(&mut world, |query| {
+        query.single().map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(one, Ok((player, 10)));
+
+    let cached = system.run(&mut world, |mut query| {
+        query
+            .single_cached()
+            .map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(cached, Ok((player, 10)));
+
+    let cached_direct = system.run(&mut world, |mut query| {
+        query
+            .single_cached_direct()
+            .map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(cached_direct, Ok((player, 10)));
+
+    world
+        .spawn((Name("Ally".to_string()), Health(7), Player))
+        .unwrap();
+    let many = system.run(&mut world, |query| {
+        query.single().map(|(entity, health)| (entity, health.0))
+    });
+    assert_eq!(many, Err(QuerySingleError::MultipleEntities));
 }
 
 #[test]

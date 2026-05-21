@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     ExternalAudioSourceHandle, SoundClipId, SoundImpulseResponseId, SoundListenerId,
-    SoundParameterId, SoundSourceId, SoundTrackId, SoundVolumeId,
+    SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId, SoundVolumeId,
 };
 
 pub const AUDIO_SOURCE_COMPONENT_TYPE: &str = "sound.Component.AudioSource";
@@ -19,8 +19,13 @@ pub struct SoundSourceDescriptor {
     pub forward: [f32; 3],
     pub velocity: [f32; 3],
     pub gain: f32,
+    pub speed: f32,
     pub looped: bool,
     pub playing: bool,
+    pub muted: bool,
+    pub completion_action: SoundPlaybackCompletionAction,
+    pub start_seconds: Option<f32>,
+    pub duration_seconds: Option<f32>,
     pub spatial: SoundSpatialSourceSettings,
     pub parameter_bindings: Vec<SoundSourceParameterBinding>,
 }
@@ -36,8 +41,13 @@ impl SoundSourceDescriptor {
             forward: [0.0, 0.0, 1.0],
             velocity: [0.0, 0.0, 0.0],
             gain: 1.0,
+            speed: 1.0,
             looped: false,
             playing: true,
+            muted: false,
+            completion_action: SoundPlaybackCompletionAction::None,
+            start_seconds: None,
+            duration_seconds: None,
             spatial: SoundSpatialSourceSettings::default(),
             parameter_bindings: Vec::new(),
         }
@@ -78,6 +88,7 @@ pub struct SoundSourceParameterBinding {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundSpatialSourceSettings {
     pub spatial_blend: f32,
+    pub spatial_scale: Option<f32>,
     pub min_distance: f32,
     pub max_distance: f32,
     pub attenuation: SoundAttenuationMode,
@@ -92,6 +103,7 @@ impl Default for SoundSpatialSourceSettings {
     fn default() -> Self {
         Self {
             spatial_blend: 0.0,
+            spatial_scale: None,
             min_distance: 1.0,
             max_distance: 50.0,
             attenuation: SoundAttenuationMode::InverseDistance,

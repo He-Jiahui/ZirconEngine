@@ -39,6 +39,7 @@ pub(super) fn generate_preview_artifact(
         | zircon_runtime::asset::AssetKind::Prefab
         | zircon_runtime::asset::AssetKind::Scene
         | zircon_runtime::asset::AssetKind::Model
+        | zircon_runtime::asset::AssetKind::Mesh
         | zircon_runtime::asset::AssetKind::Sound
         | zircon_runtime::asset::AssetKind::Font
         | zircon_runtime::asset::AssetKind::AnimationSkeleton

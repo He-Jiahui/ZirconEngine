@@ -51,7 +51,9 @@ pub use session::{
 pub use socket_id::NetSocketId;
 pub use sync::{
     SyncAuthority, SyncComponentDescriptor, SyncDelta, SyncFieldDescriptor, SyncFieldValue,
-    SyncInterestDescriptor, SyncObjectSnapshot,
+    SyncInterestDescriptor, SyncObjectSnapshot, SyncReplicationBudget,
+    SyncReplicationScheduleReport, SYNC_DEFAULT_COMPONENT_UPDATE_HZ,
+    SYNC_DEFAULT_REPLICATION_PRIORITY, SYNC_REPLICATION_UNBOUNDED_BUDGET,
 };
 pub use transport::{NetCertificatePin, NetConnectionState, NetSecurityPolicy, NetTransportKind};
 pub use websocket::{

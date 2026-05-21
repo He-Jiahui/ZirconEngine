@@ -4,6 +4,7 @@ mod authoring;
 mod font;
 mod importer;
 mod material;
+mod mesh;
 mod model;
 mod physics_material;
 mod render_product;

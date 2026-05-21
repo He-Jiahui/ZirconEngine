@@ -3,20 +3,22 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{UiFrame, UiSize},
+    layout::{UiFrame, UiLayoutEngineSelectionReport, UiSize},
     tree::{UiTree, UiTreeError},
 };
 
 use super::{
-    arrange::arrange_node, child_frame::free_child_frame, measure::measure_node,
-    slot::slot_for_container_child,
+    arrange::arrange_node, child_frame::free_child_frame, engine::UiLayoutPassEngineContext,
+    measure::measure_node, slot::slot_for_container_child,
 };
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiIncrementalLayoutStats {
     pub visited_node_count: usize,
+    pub visited_node_ids: BTreeSet<UiNodeId>,
     pub geometry_changed_node_count: usize,
     pub skipped_node_count: usize,
+    pub layout_engine_report: UiLayoutEngineSelectionReport,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -32,11 +34,12 @@ pub(crate) fn compute_incremental_layout_tree(
     let previous = snapshot_geometry(tree);
     let roots = incremental_layout_roots(tree)?;
     let mut visited = BTreeSet::new();
+    let mut engine_context = UiLayoutPassEngineContext::default();
 
     for root_id in roots {
         collect_subtree_nodes(tree, root_id, &mut visited)?;
         measure_node(tree, root_id)?;
-        arrange_layout_root(tree, root_id, root_size)?;
+        arrange_layout_root(tree, root_id, root_size, &mut engine_context)?;
     }
 
     let geometry_changed_node_count = tree
@@ -51,10 +54,15 @@ pub(crate) fn compute_incremental_layout_tree(
         })
         .count();
 
+    let visited_node_count = visited.len();
+    let skipped_node_count = tree.nodes.len().saturating_sub(visited_node_count);
+
     Ok(UiIncrementalLayoutStats {
-        visited_node_count: visited.len(),
+        visited_node_count,
+        visited_node_ids: visited,
         geometry_changed_node_count,
-        skipped_node_count: tree.nodes.len().saturating_sub(visited.len()),
+        skipped_node_count,
+        layout_engine_report: engine_context.finish(),
     })
 }
 
@@ -124,13 +132,14 @@ fn arrange_layout_root(
     tree: &mut UiTree,
     root_id: UiNodeId,
     root_size: UiSize,
+    engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let parent_id = tree
         .node(root_id)
         .ok_or(UiTreeError::MissingNode(root_id))?
         .parent;
     let Some(parent_id) = parent_id else {
-        return arrange_node(tree, root_id, root_frame(root_size), None);
+        return arrange_node(tree, root_id, root_frame(root_size), None, engine_context);
     };
 
     let parent = tree
@@ -146,7 +155,7 @@ fn arrange_layout_root(
         slot_for_container_child(tree, parent_id, root_id, parent_container),
     )?;
 
-    arrange_node(tree, root_id, child_frame, inherited_clip)
+    arrange_node(tree, root_id, child_frame, inherited_clip, engine_context)
 }
 
 fn collect_subtree_nodes(

@@ -59,10 +59,10 @@ impl ResourceLocator {
         label: Option<String>,
     ) -> Result<Self, ResourceLocatorError> {
         let raw_path = path.into();
-        let normalized_path = normalize_resource_path(&raw_path)?;
-        if scheme == ResourceScheme::Package {
-            validate_package_path(&normalized_path)?;
-        }
+        let normalized_path = match scheme {
+            ResourceScheme::Package => normalize_package_resource_path(&raw_path)?,
+            _ => normalize_resource_path(&raw_path)?,
+        };
         let normalized_label = match label {
             Some(value) if value.is_empty() => return Err(ResourceLocatorError::EmptyLabel),
             Some(value) => Some(value),
@@ -173,22 +173,7 @@ fn split_label(value: &str) -> Result<(String, Option<String>), ResourceLocatorE
 
 fn normalize_resource_path(path: &str) -> Result<String, ResourceLocatorError> {
     let original = path.replace('\\', "/");
-    let mut normalized = Vec::new();
-
-    for component in Path::new(&original).components() {
-        match component {
-            Component::Normal(segment) => normalized.push(segment.to_string_lossy().to_string()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                if normalized.pop().is_none() {
-                    return Err(ResourceLocatorError::EscapeAttempt(original));
-                }
-            }
-            Component::RootDir | Component::Prefix(_) => {
-                return Err(ResourceLocatorError::EscapeAttempt(original));
-            }
-        }
-    }
+    let normalized = normalize_relative_path_components(&original)?;
 
     if normalized.is_empty() {
         return Err(ResourceLocatorError::EmptyPath);
@@ -197,11 +182,51 @@ fn normalize_resource_path(path: &str) -> Result<String, ResourceLocatorError> {
     Ok(normalized.join("/"))
 }
 
-fn validate_package_path(path: &str) -> Result<(), ResourceLocatorError> {
-    match path.split_once('/') {
-        Some((package_id, package_path)) if !package_id.is_empty() && !package_path.is_empty() => {
-            Ok(())
-        }
-        _ => Err(ResourceLocatorError::MissingPackagePath(path.to_string())),
+fn normalize_package_resource_path(path: &str) -> Result<String, ResourceLocatorError> {
+    let original = path.replace('\\', "/");
+    let Some((package_id, package_path)) = original.split_once('/') else {
+        return Err(ResourceLocatorError::MissingPackagePath(original));
+    };
+    if package_id.is_empty() || package_path.is_empty() {
+        return Err(ResourceLocatorError::MissingPackagePath(original));
     }
+    if !matches!(
+        Path::new(package_id)
+            .components()
+            .collect::<Vec<_>>()
+            .as_slice(),
+        [Component::Normal(_)]
+    ) {
+        return Err(ResourceLocatorError::EscapeAttempt(original));
+    }
+    let normalized_package_path = normalize_relative_path_components(package_path)?;
+    if normalized_package_path.is_empty() {
+        return Err(ResourceLocatorError::MissingPackagePath(original));
+    }
+
+    Ok(format!(
+        "{package_id}/{}",
+        normalized_package_path.join("/")
+    ))
+}
+
+fn normalize_relative_path_components(path: &str) -> Result<Vec<String>, ResourceLocatorError> {
+    let mut normalized = Vec::new();
+
+    for component in Path::new(path).components() {
+        match component {
+            Component::Normal(segment) => normalized.push(segment.to_string_lossy().to_string()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if normalized.pop().is_none() {
+                    return Err(ResourceLocatorError::EscapeAttempt(path.to_string()));
+                }
+            }
+            Component::RootDir | Component::Prefix(_) => {
+                return Err(ResourceLocatorError::EscapeAttempt(path.to_string()));
+            }
+        }
+    }
+
+    Ok(normalized)
 }

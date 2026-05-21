@@ -1,5 +1,8 @@
 ---
 related_code:
+  - dev/bevy/Cargo.toml
+  - dev/bevy/docs/cargo_features.md
+  - dev/bevy/crates/bevy_internal/src/default_plugins.rs
   - zircon_runtime/src/core/framework/render/advanced/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/feature.rs
   - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
@@ -75,9 +78,13 @@ implementation_files:
   - zircon_runtime/src/rhi/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
 plan_sources:
+  - user: 2026-05-21 continue Bevy advanced/default render boundary evidence
   - user: 2026-05-18 continue Render M9A advanced profile integration
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
+  - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs::default_render_plan_does_not_request_advanced_providers
+  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs::compile_options_do_not_enable_advanced_capabilities_without_providers
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs::runtime_profile_bundle_for_quality_profile_defaults_without_advanced_flags
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --lib advanced --locked --jobs 1 --message-format short --color never
@@ -111,6 +118,18 @@ doc_type: module-detail
 `zircon_runtime::core::framework::render::advanced` owns the neutral M9A report vocabulary for advanced render products. It is deliberately framework-level: it describes whether `VirtualGeometry` and `HybridGlobalIllumination` are requested, backed by backend capability, backed by a runtime provider, and therefore ready to run.
 
 This module does not instantiate plugin providers, select app features, or touch renderer-private VG/HGI state. Those steps are later M9A slices. The first contract slice gives those later systems one stable DTO family to report through instead of inventing ad hoc booleans.
+
+## M10L Default Render Boundary Evidence
+
+Bevy keeps default rendering and optional renderer breadth separate in source. `dev/bevy/Cargo.toml:134-151` defines the default profile as the union of 2D, 3D, UI, and audio; the rendering plan intentionally excludes audio but still inherits the separate 2D, 3D, and UI obligations. `dev/bevy/Cargo.toml:198-261` then splits `common_api`, `2d_api`, `2d_bevy_render`, `3d_api`, `3d_bevy_render`, `ui_api`, and `ui_bevy_render`, which means API readiness, renderer readiness, and UI rendering cannot substitute for one another.
+
+`dev/bevy/docs/cargo_features.md:10-52` documents that profiles are high-level product groups and collections compose those groups. `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77` loads the render-facing default plugins through `RenderPlugin`, image, mesh, camera, light, pipelined rendering, core pipeline, post-process, anti-aliasing, sprite rendering, UI rendering, and PBR before later plugin families. No Bevy source path makes an advanced renderer product a replacement for those default slices.
+
+Zircon deliberately mirrors that separation at runtime. `RenderProfileBundle::default_render()` is `CommonRenderApi + Render2d + Render3d + Ui`; `RenderProfileBundle::advanced_render()` includes `DefaultRender` and then adds `VirtualGeometry` plus `HybridGlobalIllumination`; `RenderProfileBundle::solari_experimental()` includes `AdvancedRender` and then adds Solari. That inheritance is a dependency rule, not completion evidence. A passing `AdvancedRender` submit only proves the advanced provider-gating path, sideband payload handling, and VG/HGI stats for the advanced profile.
+
+The runtime gates enforce the same rule. `AdvancedProfileRuntimePlan::from_profile_bundle(...)` reports VG/HGI as `NotRequested` for `DefaultRender`, even if providers are available. `compile_options_for_profile(...)` only enables advanced compile capabilities when the selected quality profile requests an advanced feature and a provider is present. `runtime_profile_bundle_for_quality_profile(...)` falls back to `DefaultRender` whenever the quality profile does not set VG/HGI/Solari flags.
+
+M10L therefore treats advanced-render evidence as non-substitutable. It cannot close missing Mesh2d/SpriteMesh rendering, full PBR lighting, UI render targeting, presentation/capture, render diagnostics, shader/material reflection, or Bevy-style render scheduling gaps. Those gaps stay with their default product slices, while this module only owns the advanced profile's capability/provider/runtime-plan truth.
 
 ## Feature Mapping
 

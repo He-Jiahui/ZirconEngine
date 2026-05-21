@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::RuntimeTargetMode;
+use crate::{plugin::RuntimeProfileId, RuntimeTargetMode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -116,6 +116,8 @@ pub enum ExportPackagingStrategy {
 pub struct ExportProfile {
     pub name: String,
     pub target_mode: RuntimeTargetMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime_profile_id: Option<RuntimeProfileId>,
     pub target_platform: ExportTargetPlatform,
     #[serde(default = "default_export_strategies")]
     pub strategies: Vec<ExportPackagingStrategy>,
@@ -134,9 +136,15 @@ impl ExportProfile {
             output_name: name.clone(),
             name,
             target_mode,
+            runtime_profile_id: None,
             target_platform,
             strategies: default_export_strategies(),
         }
+    }
+
+    pub fn with_runtime_profile_id(mut self, runtime_profile_id: RuntimeProfileId) -> Self {
+        self.runtime_profile_id = Some(runtime_profile_id);
+        self
     }
 
     pub fn with_strategy(mut self, strategy: ExportPackagingStrategy) -> Self {
@@ -165,6 +173,7 @@ impl Default for ExportProfile {
             RuntimeTargetMode::ClientRuntime,
             ExportTargetPlatform::Windows,
         )
+        .with_runtime_profile_id(RuntimeProfileId::Client2d)
     }
 }
 

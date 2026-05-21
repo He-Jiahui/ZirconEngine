@@ -204,6 +204,7 @@ fn materialize_report_carries_planner_diagnostics_even_without_generated_files()
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
+    .with_runtime_profile_id(zircon_runtime::plugin::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "native-only").unwrap();

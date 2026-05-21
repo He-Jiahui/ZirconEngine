@@ -1,9 +1,10 @@
 use crate::core::framework::render::{
     default_viewport_aspect_ratio, DebugOverlayExtract, FallbackSkyboxKind, GeometryExtract,
     GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
-    PreviewEnvironmentExtract, ProjectionMode, RenderBloomSettings, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
+    PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot, RenderBloomSettings,
+    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    RenderHybridGiExtract, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot, RenderViewExtract,
     RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
     SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot, VisibilityInput,
@@ -66,55 +67,11 @@ impl World {
             .collect::<Vec<_>>();
         meshes.sort_by_key(|mesh| mesh.node_id);
 
-        let mut directional_lights = self
-            .directional_lights
-            .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, light)| RenderDirectionalLightSnapshot {
-                node_id: *entity,
-                direction: light.direction,
-                color: light.color,
-                intensity: light.intensity,
-            })
-            .collect::<Vec<_>>();
-        directional_lights.sort_by_key(|light| light.node_id);
-
-        let mut point_lights = self
-            .point_lights
-            .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, light)| RenderPointLightSnapshot {
-                node_id: *entity,
-                position: self
-                    .world_transform(*entity)
-                    .unwrap_or_default()
-                    .translation,
-                color: light.color,
-                intensity: light.intensity,
-                range: light.range,
-            })
-            .collect::<Vec<_>>();
-        point_lights.sort_by_key(|light| light.node_id);
-
-        let mut spot_lights = self
-            .spot_lights
-            .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, light)| RenderSpotLightSnapshot {
-                node_id: *entity,
-                position: self
-                    .world_transform(*entity)
-                    .unwrap_or_default()
-                    .translation,
-                direction: light.direction,
-                color: light.color,
-                intensity: light.intensity,
-                range: light.range,
-                inner_angle_radians: light.inner_angle_radians,
-                outer_angle_radians: light.outer_angle_radians,
-            })
-            .collect::<Vec<_>>();
-        spot_lights.sort_by_key(|light| light.node_id);
+        let ambient_lights = self.collect_ambient_lights();
+        let directional_lights = self.collect_directional_lights();
+        let point_lights = self.collect_point_lights();
+        let rect_lights = self.collect_rect_lights();
+        let spot_lights = self.collect_spot_lights();
 
         SceneViewportRenderPacket {
             scene: RenderSceneGeometryExtract {
@@ -123,8 +80,8 @@ impl World {
                 directional_lights,
                 point_lights,
                 spot_lights,
-                ambient_lights: Vec::new(),
-                rect_lights: Vec::new(),
+                ambient_lights,
+                rect_lights,
             },
             overlays: RenderOverlayExtract {
                 display_mode: request.settings.display_mode,
@@ -148,8 +105,10 @@ impl World {
         let (meshes, phase_inputs) =
             self.collect_render_meshes_and_phase_inputs(&camera.render_layers);
         let sprites = self.collect_render_sprites(&camera.render_layers);
+        let ambient_lights = self.collect_ambient_lights();
         let directional_lights = self.collect_directional_lights();
         let point_lights = self.collect_point_lights();
+        let rect_lights = self.collect_rect_lights();
         let spot_lights = self.collect_spot_lights();
         let visibility = build_visibility_input(&meshes, &sprites);
 
@@ -174,8 +133,8 @@ impl World {
                 directional_lights,
                 point_lights,
                 spot_lights,
-                ambient_lights: Vec::new(),
-                rect_lights: Vec::new(),
+                ambient_lights,
+                rect_lights,
                 reflection_probes: Vec::new(),
                 baked_lighting: None,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
@@ -307,6 +266,27 @@ impl World {
         })
     }
 
+    fn collect_ambient_lights(&self) -> Vec<RenderAmbientLightSnapshot> {
+        let mut ambient_lights = self
+            .ambient_lights
+            .iter()
+            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
+            .map(|(entity, light)| {
+                (
+                    *entity,
+                    RenderAmbientLightSnapshot {
+                        color: light.color,
+                        intensity: light.intensity,
+                        renderer_degraded: false,
+                        degradation_reason: None,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        ambient_lights.sort_by_key(|(entity, _)| *entity);
+        ambient_lights.into_iter().map(|(_, light)| light).collect()
+    }
+
     fn collect_directional_lights(&self) -> Vec<RenderDirectionalLightSnapshot> {
         let mut directional_lights = self
             .directional_lights
@@ -341,6 +321,32 @@ impl World {
             .collect::<Vec<_>>();
         point_lights.sort_by_key(|light| light.node_id);
         point_lights
+    }
+
+    fn collect_rect_lights(&self) -> Vec<RenderRectLightSnapshot> {
+        let mut rect_lights = self
+            .rect_lights
+            .iter()
+            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
+            .map(|(entity, light)| {
+                let transform = self.world_transform(*entity).unwrap_or_default();
+                RenderRectLightSnapshot {
+                    node_id: *entity,
+                    position: transform.translation,
+                    direction: transform.forward(),
+                    color: light.color,
+                    intensity: light.intensity,
+                    range: light.range,
+                    size: light.size,
+                    renderer_degraded: true,
+                    degradation_reason: Some(
+                        "rect light renderer shading is not implemented yet".to_string(),
+                    ),
+                }
+            })
+            .collect::<Vec<_>>();
+        rect_lights.sort_by_key(|light| light.node_id);
+        rect_lights
     }
 
     fn collect_spot_lights(&self) -> Vec<RenderSpotLightSnapshot> {

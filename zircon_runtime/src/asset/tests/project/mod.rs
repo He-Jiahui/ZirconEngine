@@ -1,5 +1,6 @@
 mod manager;
 mod manifest;
+mod package_assets;
 mod uri;
 mod zmeta;
 

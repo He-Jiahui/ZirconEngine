@@ -73,6 +73,18 @@ impl ProjectAssetManager {
         dependency_state.unwrap_or(RecursiveDependencyLoadState::Loaded)
     }
 
+    pub fn direct_dependency_load_state<TAsset: Asset>(
+        &self,
+        handle: Handle<TAsset>,
+    ) -> RecursiveDependencyLoadState {
+        let root_state = self.load_state(handle);
+        if !matches!(root_state, AssetLoadState::Loaded) {
+            return root_state.into();
+        }
+        self.aggregate_direct_dependency_state(handle.id())
+            .unwrap_or(RecursiveDependencyLoadState::Loaded)
+    }
+
     pub fn asset_load_state_by_id<TAsset: Asset>(&self, id: AssetId) -> AssetLoadState {
         self.load_state(Handle::<TAsset>::new(id))
     }
@@ -145,6 +157,24 @@ impl ProjectAssetManager {
             if let Some(nested) = self.aggregate_dependency_state(dependency_id, visited) {
                 aggregate = combine_recursive_dependency_state(aggregate, nested);
             }
+        }
+        aggregate
+    }
+
+    fn aggregate_direct_dependency_state(
+        &self,
+        id: AssetId,
+    ) -> Option<RecursiveDependencyLoadState> {
+        let record = self.resource_manager().registry().get(id).cloned()?;
+        let mut aggregate = None;
+        for dependency_id in record.dependency_ids {
+            let dependency = self
+                .resource_manager()
+                .registry()
+                .get(dependency_id)
+                .cloned();
+            let dependency_state = self.dependency_record_load_state(dependency.as_ref());
+            aggregate = combine_recursive_dependency_state(aggregate, dependency_state.into());
         }
         aggregate
     }

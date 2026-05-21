@@ -253,6 +253,7 @@ fn resource_kind_label(kind: zircon_runtime_interface::resource::ResourceKind) -
         ResourceKind::Material => "Material",
         ResourceKind::Scene => "Scene",
         ResourceKind::Model => "Model",
+        ResourceKind::Mesh => "Mesh",
         ResourceKind::Shader => "Shader",
         ResourceKind::Sound => "Sound",
         ResourceKind::Font => "Font",

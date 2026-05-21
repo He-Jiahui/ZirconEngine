@@ -16,7 +16,10 @@ use zircon_runtime::foundation::{
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
-    layout::UiFrame,
+    layout::{
+        UiFrame, UiLayoutEngineCapability, UiLayoutEngineFamily, UiLayoutEngineRequest,
+        UiLayoutEngineSelection, UiLayoutEngineSelectionReport,
+    },
     surface::{
         UiRenderDebugStats, UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot,
         UiWidgetReflectorNode,
@@ -271,8 +274,28 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
             estimated_draw_calls: 2,
             ..UiRenderDebugStats::default()
         },
+        layout_engine_report: layout_engine_report_fixture(),
         ..UiSurfaceDebugSnapshot::default()
     }
+}
+
+fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    UiLayoutEngineSelectionReport::from_selections(vec![
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(1)),
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(2)),
+    ])
 }
 
 #[test]
@@ -387,6 +410,28 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             detail
                 .as_str()
                 .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str()
+                .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str().is_some_and(|text| {
+                text.contains("node=2")
+                    && text.contains("family=Overlay")
+                    && text.contains("selected=LegacyZircon")
+                    && text.contains("reason=ZirconOwnedSemantics")
+            })
         })));
 
     let timeline =

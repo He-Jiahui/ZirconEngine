@@ -3,6 +3,7 @@ use zircon_runtime_interface::ui::{
         UiA11yRole, UiAccessibilityAction, UiAccessibilityActionStatus, UiAccessibilityNode,
         UiAccessibilityTreeSnapshot,
     },
+    binding::{UiBindingSourceKind, UiBindingUpdateStatus},
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiAccessibilityInputEvent, UiComponentEventReport, UiDispatchReply, UiInputDispatchResult,
@@ -10,8 +11,10 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::{UiNodeId, UiReflectedPropertySource},
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
+    tree::UiDirtyFlags,
 };
 
+use crate::ui::binding::{binding_update_report, runtime_state_update_with_source_kind};
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
 use crate::ui::tree::UiRuntimeTreeScrollExt;
 
@@ -97,15 +100,36 @@ fn dispatch_scroll_to(
             "scroll to action requires value or numeric_value",
         );
     };
+    let previous_offset = scroll_state_offset(surface, target).unwrap_or_default();
 
     match surface.tree.set_scroll_offset(target, offset as f32) {
-        Ok(true) => finish_handled(result, target, "accessibility.scroll_to"),
+        Ok(true) => {
+            let mut result = finish_handled(result, target, "accessibility.scroll_to");
+            let next_offset = scroll_state_offset(surface, target).unwrap_or(offset as f32);
+            append_scroll_binding_report(
+                surface,
+                &mut result,
+                target,
+                previous_offset,
+                next_offset,
+                UiBindingUpdateStatus::Applied,
+            );
+            result
+        }
         Ok(false) => {
             let mut result = finish_handled(result, target, "accessibility.scroll_to");
             result
                 .diagnostics
                 .notes
                 .push("accessibility_scroll_unchanged".to_string());
+            append_scroll_binding_report(
+                surface,
+                &mut result,
+                target,
+                previous_offset,
+                previous_offset,
+                UiBindingUpdateStatus::Unchanged,
+            );
             result
         }
         Err(error) => finish_unhandled(
@@ -150,7 +174,11 @@ fn dispatch_adjust_value(
         UiAccessibilityAction::Decrement => -1.0,
         _ => unreachable!("dispatch_adjust_value only handles increment/decrement"),
     };
-    match surface.mutate_default_range_step_value(target, direction) {
+    match surface.mutate_default_range_step_value_with_source_kind(
+        target,
+        direction,
+        UiBindingSourceKind::AccessibilityAction,
+    ) {
         Ok(Some((report, value)))
             if matches!(
                 report.status,
@@ -162,6 +190,7 @@ fn dispatch_adjust_value(
                 "accessibility_property_changed:{}:{:?}",
                 report.property, report.invalidation.dirty
             ));
+            append_binding_report_diagnostic(&mut result, &report);
             if matches!(report.status, UiPropertyMutationStatus::Accepted) {
                 result.component_events.push(UiComponentEventReport {
                     target,
@@ -277,6 +306,7 @@ fn dispatch_activate(
         Ok(report) if report.handled => {
             let mut result = finish_handled(result, target, "accessibility.activate");
             result.component_events.extend(report.component_events);
+            result.binding_reports.extend(report.binding_reports);
             return result;
         }
         Ok(_) => {}
@@ -344,7 +374,7 @@ fn dispatch_set_value(
     };
 
     let report = surface.mutate_property(
-        UiPropertyMutationRequest::new(target, property, value.clone())
+        UiPropertyMutationRequest::accessibility_action(target, property, value.clone())
             .with_source(UiReflectedPropertySource::RuntimeState),
     );
     match report {
@@ -354,6 +384,7 @@ fn dispatch_set_value(
                 "accessibility_property_changed:{}:{:?}",
                 report.property, report.invalidation.dirty
             ));
+            append_binding_report_diagnostic(&mut result, &report);
             result.component_events.push(UiComponentEventReport {
                 target,
                 event: UiComponentEvent::ValueChanged {
@@ -370,6 +401,7 @@ fn dispatch_set_value(
                 "accessibility_property_unchanged:{}",
                 report.property
             ));
+            append_binding_report_diagnostic(&mut result, &report);
             result
         }
         Ok(report) => finish_unhandled(
@@ -390,6 +422,75 @@ fn dispatch_set_value(
             &format!("set value mutation failed: {error}"),
         ),
     }
+}
+
+fn append_binding_report_diagnostic(
+    result: &mut UiInputDispatchResult,
+    report: &crate::ui::surface::UiPropertyMutationReport,
+) {
+    result.record_binding_report(report.binding.clone());
+    result.diagnostics.notes.push(format!(
+        "accessibility_binding_updates:applied={},unchanged={},rejected={}",
+        report.binding.applied_count, report.binding.unchanged_count, report.binding.rejected_count
+    ));
+    if let Some(update) = report.binding.updates.first() {
+        result.diagnostics.notes.push(format!(
+            "accessibility_binding_source:{:?}",
+            update.source.kind
+        ));
+    }
+}
+
+fn append_scroll_binding_report(
+    surface: &UiSurface,
+    result: &mut UiInputDispatchResult,
+    target: UiNodeId,
+    previous_offset: f32,
+    next_offset: f32,
+    status: UiBindingUpdateStatus,
+) {
+    let dirty = if status == UiBindingUpdateStatus::Applied {
+        surface
+            .tree
+            .nodes
+            .get(&target)
+            .map(|node| node.dirty)
+            .unwrap_or(UiDirtyFlags {
+                layout: true,
+                hit_test: true,
+                render: true,
+                input: true,
+                ..UiDirtyFlags::default()
+            })
+    } else {
+        UiDirtyFlags::default()
+    };
+    let report = binding_update_report(vec![runtime_state_update_with_source_kind(
+        target,
+        "scroll_to",
+        UiBindingSourceKind::AccessibilityAction,
+        target,
+        "scroll_offset",
+        Some(UiValue::Float(f64::from(previous_offset))),
+        UiValue::Float(f64::from(next_offset)),
+        dirty,
+        status,
+        None,
+    )]);
+    result.record_binding_report(report);
+    result.diagnostics.notes.push(format!(
+        "accessibility_scroll_binding_update:{status:?}:{}->{}",
+        previous_offset, next_offset
+    ));
+}
+
+fn scroll_state_offset(surface: &UiSurface, target: UiNodeId) -> Option<f32> {
+    surface
+        .tree
+        .nodes
+        .get(&target)
+        .and_then(|node| node.scroll_state)
+        .map(|state| state.offset)
 }
 
 fn set_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {

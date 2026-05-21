@@ -7,7 +7,8 @@ mod registry;
 mod schema;
 
 pub use contract::{
-    AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetImporterHandler,
+    AssetImportContext, AssetImportOutcome, AssetImporterCapabilityReport,
+    AssetImporterCapabilityStatus, AssetImporterDescriptor, AssetImporterHandler,
     AssetSchemaMigrationReport, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
     ImportedAssetEntry,
 };

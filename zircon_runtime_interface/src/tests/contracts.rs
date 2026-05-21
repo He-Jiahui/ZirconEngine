@@ -8,16 +8,16 @@ use crate::{
             UiHostCapability, UiPropSchema, UiRenderCapability, UiSlotSchema, UiValue, UiValueKind,
         },
         dispatch::{
-            UiAnalogInputEvent, UiComponentEmissionPolicy, UiComponentEventReport, UiDeviceId,
-            UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect,
-            UiDispatchHostRequest, UiDispatchHostRequestKind, UiDispatchPhase,
-            UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep, UiDragDropEffectKind,
-            UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
-            UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics,
-            UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
-            UiInputMethodRequestKind, UiInputMethodSurroundingText,
-            UiInputMethodSurroundingTextError, UiInputSequence, UiInputTimestamp,
-            UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent,
+            UiAnalogInputEvent, UiClipboardRequest, UiClipboardRequestKind,
+            UiComponentEmissionPolicy, UiComponentEventReport, UiDeviceId, UiDispatchAppliedEffect,
+            UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequest,
+            UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchRejectedEffect, UiDispatchReply,
+            UiDispatchReplyStep, UiDragDropEffectKind, UiDragDropInputEvent,
+            UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason, UiImeInputEvent,
+            UiImeInputEventKind, UiInputDispatchDiagnostics, UiInputDispatchResult, UiInputEvent,
+            UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
+            UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputSequence,
+            UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent,
             UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEventReason,
             UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchResult,
             UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy,
@@ -184,6 +184,7 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
         hit_grid,
         focus_state: Default::default(),
         last_rebuild: Default::default(),
+        layout_engine_report: Default::default(),
     };
     let hit_path = UiHitPath {
         target: Some(node_id),
@@ -283,6 +284,7 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
             hit_cell_count: 2,
         }],
         rebuild: Default::default(),
+        layout_engine_report: Default::default(),
         render: UiRenderDebugStats {
             command_count: 1,
             quad_count: 1,
@@ -398,6 +400,7 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
     assert!(serialized.contains("schema_version"));
     assert!(serialized.contains("command_records"));
     assert!(serialized.contains("cell_records"));
+    assert!(serialized.contains("layout_engine_report"));
     assert!(serialized.contains("material_batches"));
     assert!(serialized.contains("overdraw"));
     assert!(serialized.contains("overlay_primitives"));
@@ -1473,6 +1476,13 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
                 ),
             },
         },
+        UiDispatchEffect::RequestClipboard {
+            request: UiClipboardRequest {
+                kind: UiClipboardRequestKind::WriteText,
+                owner: target,
+                text: Some("selected".to_string()),
+            },
+        },
         UiDispatchEffect::DirtyRedraw {
             target,
             dirty,
@@ -1507,27 +1517,39 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             effect: effects[1].clone(),
             reason: "no focused node".to_string(),
         }],
-        host_requests: vec![UiDispatchHostRequest {
-            effect_index: 11,
-            request: UiDispatchHostRequestKind::InputMethod(UiInputMethodRequest {
-                kind: UiInputMethodRequestKind::Enable,
-                owner: target,
-                cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
-                composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
-                surrounding_text: Some(
-                    UiInputMethodSurroundingText::new("search term", 6, 6).unwrap(),
-                ),
-            }),
-            reason: "ime owner changed".to_string(),
-        }],
+        host_requests: vec![
+            UiDispatchHostRequest {
+                effect_index: 11,
+                request: UiDispatchHostRequestKind::InputMethod(UiInputMethodRequest {
+                    kind: UiInputMethodRequestKind::Enable,
+                    owner: target,
+                    cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
+                    composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
+                    surrounding_text: Some(
+                        UiInputMethodSurroundingText::new("search term", 6, 6).unwrap(),
+                    ),
+                }),
+                reason: "ime owner changed".to_string(),
+            },
+            UiDispatchHostRequest {
+                effect_index: 12,
+                request: UiDispatchHostRequestKind::Clipboard(UiClipboardRequest {
+                    kind: UiClipboardRequestKind::WriteText,
+                    owner: target,
+                    text: Some("selected".to_string()),
+                }),
+                reason: "clipboard write requested".to_string(),
+            },
+        ],
         component_events: vec![UiComponentEventReport {
             target,
             event: component_event,
             delivered: true,
         }],
+        binding_reports: Vec::new(),
     };
 
-    assert_eq!(effects.len(), 14);
+    assert_eq!(effects.len(), 15);
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(result.reply.effects.len(), effects.len());
     assert!(result.diagnostics.routed);
@@ -1655,6 +1677,18 @@ fn ui_input_payloads_round_trip_through_serde() {
             surrounding_text: Some(UiInputMethodSurroundingText::new("foobar", 3, 3).unwrap()),
         },
     };
+    let clipboard_effect = UiDispatchEffect::RequestClipboard {
+        request: UiClipboardRequest {
+            kind: UiClipboardRequestKind::ReadText,
+            owner: UiNodeId::new(77),
+            text: None,
+        },
+    };
+    let clipboard_host_request = UiDispatchHostRequestKind::Clipboard(UiClipboardRequest {
+        kind: UiClipboardRequestKind::WriteText,
+        owner: UiNodeId::new(77),
+        text: Some("clipboard".to_string()),
+    });
 
     assert_eq!(ui_input_round_trip(&pointer), pointer);
     let UiInputEvent::Pointer(round_tripped_pointer) = ui_input_round_trip(&pointer) else {
@@ -1677,6 +1711,11 @@ fn ui_input_payloads_round_trip_through_serde() {
     assert_eq!(
         ui_input_round_trip(&input_method_request),
         input_method_request
+    );
+    assert_eq!(ui_input_round_trip(&clipboard_effect), clipboard_effect);
+    assert_eq!(
+        ui_input_round_trip(&clipboard_host_request),
+        clipboard_host_request
     );
 }
 

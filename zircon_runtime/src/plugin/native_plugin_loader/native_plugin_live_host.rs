@@ -8,8 +8,9 @@ use super::super::runtime_plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 use super::{
-    LoadedNativePlugin, NativePluginBehaviorCallReport, NativePluginLoadReport, NativePluginLoader,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    LoadedNativePlugin, NativePluginBehaviorCallReport, NativePluginBehaviorValidationReport,
+    NativePluginLoadReport, NativePluginLoader, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
 pub const NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND: &str = "play-mode.enter";
@@ -47,6 +48,7 @@ pub struct NativePluginRuntimeBehaviorDescriptor {
     pub event_manifest_schema: Option<String>,
     pub command_manifest: Option<String>,
     pub event_manifest: Option<String>,
+    pub validation_report: Option<NativePluginBehaviorValidationReport>,
 }
 
 #[derive(Debug)]
@@ -159,6 +161,7 @@ impl NativePluginRuntimeCommandDispatchReport {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginRuntimePluginState {
     pub plugin_id: String,
+    pub state_schema_version: Option<u32>,
     pub state: Vec<u8>,
 }
 
@@ -412,6 +415,7 @@ impl NativePluginLiveHost {
             match report.payload {
                 Some(state) => plugin_states.push(NativePluginRuntimePluginState {
                     plugin_id,
+                    state_schema_version: plugin.runtime_state_schema_version(),
                     state,
                 }),
                 None => diagnostics.push(format!(
@@ -458,6 +462,15 @@ impl NativePluginLiveHost {
                 ));
                 continue;
             };
+            let loaded_schema = plugin.runtime_state_schema_version();
+            if plugin_state.state_schema_version != loaded_schema {
+                skipped_plugin_ids.push(plugin_state.plugin_id.clone());
+                diagnostics.push(format!(
+                    "runtime plugin {} restore-state skipped because snapshot state schema {:?} does not match loaded state schema {:?}",
+                    plugin_state.plugin_id, plugin_state.state_schema_version, loaded_schema
+                ));
+                continue;
+            }
             let report = plugin.restore_runtime_state(&plugin_state.state);
             diagnostics.extend(report_diagnostics(
                 &plugin_state.plugin_id,
@@ -728,6 +741,7 @@ fn runtime_behavior_descriptor(
         event_manifest_schema: plugin.runtime_event_manifest_schema().map(str::to_string),
         command_manifest: plugin.runtime_command_manifest().map(str::to_string),
         event_manifest: plugin.runtime_event_manifest().map(str::to_string),
+        validation_report: plugin.runtime_behavior_validation_report().cloned(),
     }
 }
 

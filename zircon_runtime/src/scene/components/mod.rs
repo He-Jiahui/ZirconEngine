@@ -6,10 +6,11 @@ mod scene;
 pub use crate::core::framework::scene::Mobility;
 pub use render2d::{Mesh2dComponent, Sprite2dComponent};
 pub use scene::{
-    default_render_layer_mask, Active, ActiveInHierarchy, ActiveSelf,
+    default_render_layer_mask, Active, ActiveInHierarchy, ActiveSelf, AmbientLight,
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, CameraComponent,
     ColliderComponent, ColliderShape, DirectionalLight, Hierarchy, JointComponent, JointKind,
-    LocalTransform, MeshRenderer, Name, NodeKind, NodeRecord, PointLight, RenderLayerMask,
-    RigidBodyComponent, RigidBodyType, SceneNode, SpotLight, WorldMatrix, WorldTransform,
+    LocalTransform, MeshRenderer, Name, NodeKind, NodeRecord, PointLight, RectLight,
+    RenderLayerMask, RigidBodyComponent, RigidBodyType, SceneNode, SpotLight, WorldMatrix,
+    WorldTransform,
 };

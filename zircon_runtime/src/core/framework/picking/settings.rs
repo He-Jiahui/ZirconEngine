@@ -10,11 +10,18 @@ pub struct PickingSettings {
 
 impl Default for PickingSettings {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            ray_map_enabled: true,
-            target_priority_enabled: true,
-            default_pickable: Pickable::default(),
-        }
+        Self::DEFAULT
     }
+}
+
+impl PickingSettings {
+    pub const DEFAULT: Self = Self {
+        enabled: true,
+        ray_map_enabled: true,
+        target_priority_enabled: true,
+        default_pickable: Pickable {
+            should_block_lower: true,
+            is_hoverable: true,
+        },
+    };
 }

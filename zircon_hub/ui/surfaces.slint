@@ -1,6 +1,6 @@
 import { MutedText } from "shared.slint";
 import { HubTokens } from "tokens.slint";
-import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialTypography } from "material_bridge.slint";
+import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
 
 export component HubPanel inherits Rectangle {
     in property <string> variant: "default";
@@ -58,16 +58,15 @@ export component Badge inherits Rectangle {
     border-color: root.tone == "warning" ? MaterialPalette.tertiary : (root.tone == "error" ? MaterialPalette.error : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary : MaterialPalette.outline_variant));
     background: root.tone == "warning" ? MaterialPalette.tertiary_container : (root.tone == "error" ? MaterialPalette.error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary_container : MaterialPalette.surface_container_highest));
 
-    Text {
+    MaterialText {
         width: parent.width;
         height: parent.height;
         text: root.text;
         overflow: elide;
         color: root.tone == "warning" ? MaterialPalette.on_tertiary_container : (root.tone == "error" ? MaterialPalette.on_error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.on_primary_container : MaterialPalette.on_surface_variant));
-        font-size: MaterialTypography.label_medium.font_size;
-        font-weight: MaterialTypography.label_medium.font_weight;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+        style: MaterialTypography.label_medium;
+        horizontal_alignment: center;
+        vertical_alignment: center;
     }
 }
 
@@ -82,6 +81,7 @@ export component PanelHeader inherits Rectangle {
     in property <string> badge-text;
     in property <string> badge-tone: "neutral";
     in property <bool> show-badge: false;
+    in property <length> badge-width: HubTokens.control-md * 3;
     in property <string> action-text;
     in property <bool> show-action: false;
     in property <length> action-width: HubTokens.panel-min-sm / 2;
@@ -90,7 +90,7 @@ export component PanelHeader inherits Rectangle {
     height: subtitle == "" ? HubTokens.control-md : HubTokens.list-row-sm;
     horizontal-stretch: 1;
     min-width: 1px;
-    preferred-width: 100%;
+    preferred-width: 0px;
     background: transparent;
 
     HorizontalLayout {
@@ -103,14 +103,13 @@ export component PanelHeader inherits Rectangle {
             spacing: MaterialStyleMetrics.spacing_2;
             min-width: 1px;
 
-            Text {
+            MaterialText {
                 text: root.title;
                 overflow: elide;
                 color: HubTokens.text-primary;
-                font-size: MaterialTypography.title_medium.font_size;
-                font-weight: MaterialTypography.title_medium.font_weight;
-                horizontal-alignment: left;
-                vertical-alignment: center;
+                style: MaterialTypography.title_medium;
+                horizontal_alignment: left;
+                vertical_alignment: center;
             }
 
             if root.subtitle != "": MutedText {
@@ -127,6 +126,7 @@ export component PanelHeader inherits Rectangle {
         if root.show-badge: StatusBadge {
             text: root.badge-text;
             tone: root.badge-tone;
+            badge-width: root.badge-width;
         }
 
         if root.show-action: OutlineButton {
@@ -155,12 +155,11 @@ export component StatusBanner inherits HubPanel {
         padding: HubTokens.space-4;
         spacing: HubTokens.space-1;
 
-        Text {
+        MaterialText {
             text: root.title;
             overflow: elide;
             color: HubTokens.text-primary;
-            font-size: MaterialTypography.title_small.font_size;
-            font-weight: MaterialTypography.title_small.font_weight;
+            style: MaterialTypography.title_small;
         }
 
         if root.detail != "": MutedText {

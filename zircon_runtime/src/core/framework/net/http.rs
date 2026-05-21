@@ -20,6 +20,7 @@ pub struct NetHttpRequestDescriptor {
     pub body: Vec<u8>,
     pub timeout_ms: u64,
     pub security: NetSecurityPolicy,
+    pub max_retry_attempts: u8,
 }
 
 impl NetHttpRequestDescriptor {
@@ -32,6 +33,7 @@ impl NetHttpRequestDescriptor {
             body: Vec::new(),
             timeout_ms: 30_000,
             security: NetSecurityPolicy::default(),
+            max_retry_attempts: 0,
         }
     }
 
@@ -42,6 +44,11 @@ impl NetHttpRequestDescriptor {
 
     pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
         self.body = body.into();
+        self
+    }
+
+    pub fn with_max_retry_attempts(mut self, attempts: u8) -> Self {
+        self.max_retry_attempts = attempts;
         self
     }
 }

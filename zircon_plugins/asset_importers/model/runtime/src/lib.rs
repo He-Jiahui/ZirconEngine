@@ -7,7 +7,8 @@ use ply_rs_bw as ply;
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
     AssetImporterDescriptor, AssetKind, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
-    ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    ImportedAsset, ImportedAssetEntry, MeshAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 use zircon_runtime::core::ModuleDescriptor;
@@ -306,13 +307,35 @@ pub(crate) fn model_outcome(
     context: &AssetImportContext,
     primitives: Vec<ModelPrimitiveAsset>,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    Ok(AssetImportOutcome::new(
+    let model = ModelAsset {
+        uri: context.uri.clone(),
+        primitives,
+    };
+    Ok(model_outcome_with_mesh_subassets(
         context.uri.clone(),
-        ImportedAsset::Model(ModelAsset {
-            uri: context.uri.clone(),
-            primitives,
-        }),
+        model,
     ))
+}
+
+fn model_outcome_with_mesh_subassets(
+    root_uri: zircon_runtime::asset::AssetUri,
+    model: ModelAsset,
+) -> AssetImportOutcome {
+    model.primitives.iter().enumerate().fold(
+        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
+        |outcome, (primitive_index, primitive)| {
+            let mesh_uri = zircon_runtime::asset::AssetUri::parse(&format!(
+                "{root_uri}#Mesh{primitive_index}/Primitive0"
+            ))
+            .expect("generated model mesh subasset uri must be valid");
+            outcome
+                .with_dependency(mesh_uri.clone())
+                .with_entry(ImportedAssetEntry::new(
+                    mesh_uri.clone(),
+                    ImportedAsset::Mesh(MeshAsset::from_model_primitive(mesh_uri, primitive)),
+                ))
+        },
+    )
 }
 
 pub(crate) fn primitive_from_indexed_mesh(
@@ -488,6 +511,7 @@ fn descriptor(
     AssetImporterDescriptor::new(id, PLUGIN_ID, AssetKind::Model, 1)
         .with_priority(priority)
         .with_source_extensions(extensions)
+        .with_additional_output_kinds([AssetKind::Mesh])
 }
 
 #[cfg(test)]
@@ -551,7 +575,10 @@ mod tests {
 
     #[test]
     fn stl_importer_decodes_ascii_triangle() {
-        let imported = import_fixture("triangle.stl", ascii_stl_fixture());
+        let outcome = import_fixture_outcome("triangle.stl", ascii_stl_fixture());
+        let imported = root_imported(&outcome);
+
+        assert_single_mesh_subasset(&outcome, "triangle.stl");
 
         match imported {
             ImportedAsset::Model(model) => {
@@ -566,7 +593,10 @@ mod tests {
 
     #[test]
     fn ply_importer_decodes_ascii_triangle() {
-        let imported = import_fixture("triangle.ply", ascii_ply_fixture());
+        let outcome = import_fixture_outcome("triangle.ply", ascii_ply_fixture());
+        let imported = root_imported(&outcome);
+
+        assert_single_mesh_subasset(&outcome, "triangle.ply");
 
         match imported {
             ImportedAsset::Model(model) => {
@@ -582,7 +612,10 @@ mod tests {
 
     #[test]
     fn dxf_importer_decodes_3dface_triangle() {
-        let imported = import_fixture("triangle.dxf", ascii_dxf_3dface_fixture());
+        let outcome = import_fixture_outcome("triangle.dxf", ascii_dxf_3dface_fixture());
+        let imported = root_imported(&outcome);
+
+        assert_single_mesh_subasset(&outcome, "triangle.dxf");
 
         match imported {
             ImportedAsset::Model(model) => {
@@ -595,7 +628,43 @@ mod tests {
         }
     }
 
-    fn import_fixture(path: &str, source: &str) -> ImportedAsset {
+    fn assert_single_mesh_subasset(outcome: &AssetImportOutcome, path: &str) {
+        let mesh_uri = zircon_runtime::asset::AssetUri::parse(&format!(
+            "res://models/{path}#Mesh0/Primitive0"
+        ))
+        .expect("test mesh subasset uri");
+        let root = outcome.root_entry().expect("root model asset entry");
+        assert!(
+            root.dependencies.contains(&mesh_uri),
+            "root dependencies should include {mesh_uri}"
+        );
+        let mesh_entry = outcome
+            .entries
+            .iter()
+            .find(|entry| entry.locator == mesh_uri)
+            .unwrap_or_else(|| panic!("missing mesh subasset {mesh_uri}"));
+        match &mesh_entry.asset {
+            ImportedAsset::Mesh(mesh) => {
+                assert_eq!(mesh.vertex_count().unwrap(), 3);
+                assert_eq!(mesh.to_model_primitive().unwrap().indices, vec![0, 1, 2]);
+                assert!(
+                    mesh.virtual_geometry.is_some(),
+                    "{mesh_uri} should preserve cooked virtual geometry"
+                );
+            }
+            other => panic!("unexpected mesh subasset {mesh_uri}: {other:?}"),
+        }
+    }
+
+    fn root_imported(outcome: &AssetImportOutcome) -> ImportedAsset {
+        outcome
+            .root_entry()
+            .expect("root model asset entry")
+            .asset
+            .clone()
+    }
+
+    fn import_fixture_outcome(path: &str, source: &str) -> AssetImportOutcome {
         let report = plugin_registration();
         let importer = report
             .extensions
@@ -609,13 +678,7 @@ mod tests {
             source.as_bytes().to_vec(),
             Default::default(),
         );
-        importer
-            .import(&context)
-            .unwrap()
-            .root_entry()
-            .expect("root model asset entry")
-            .asset
-            .clone()
+        importer.import(&context).unwrap()
     }
 
     fn ascii_stl_fixture() -> &'static str {

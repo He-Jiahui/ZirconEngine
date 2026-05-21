@@ -920,6 +920,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::new(1.0, 0.8, 0.6),
                 intensity: 6.0,
+                range: 12.0,
                 size: Vec2::new(2.0, 0.5),
                 renderer_degraded: true,
                 degradation_reason: Some(
@@ -1006,6 +1007,7 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
         intensity: 5.0,
+        range: 12.0,
         size: Vec2::new(2.0, 0.5),
         renderer_degraded: true,
         degradation_reason: Some("rect light renderer path is deferred after M5A".to_string()),

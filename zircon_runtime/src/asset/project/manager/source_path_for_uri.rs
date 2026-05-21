@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use crate::core::resource::ResourceScheme;
 
@@ -32,6 +32,7 @@ impl ProjectManager {
                             "source path requested for unknown package {package_id}"
                         ))
                     })?;
+                validate_relative_package_path(package_path)?;
                 Ok(root.join(package_path))
             }
             ResourceScheme::Builtin | ResourceScheme::Memory => {
@@ -41,4 +42,18 @@ impl ProjectManager {
             }
         }
     }
+}
+
+fn validate_relative_package_path(package_path: &str) -> Result<(), AssetImportError> {
+    if Path::new(package_path).components().any(|component| {
+        matches!(
+            component,
+            Component::Prefix(_) | Component::RootDir | Component::ParentDir
+        )
+    }) {
+        return Err(AssetImportError::UnsupportedFormat(format!(
+            "source path requested for package path {package_path} that escapes the package root"
+        )));
+    }
+    Ok(())
 }

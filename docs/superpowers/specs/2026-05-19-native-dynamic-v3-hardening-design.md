@@ -97,9 +97,15 @@ The report should cover:
 - Command manifest and event manifest presence.
 - Callback availability for invoke, save, restore, and unload.
 - Validation diagnostics.
-- A health state such as clean, degraded, or invalid.
+- A health state with exactly three values: `Clean`, `Degraded`, and `Invalid`.
 
-The first implementation can keep manifest parsing intentionally shallow. Schema string validation should prove that the schema belongs to the supported Zircon native schema family, such as `zircon.native.command-manifest/3` and `zircon.native.event-manifest/3`, and should reject empty or unknown schema names for ABI v3 behavior. Command/event manifest content can initially be validated as present text with non-empty lines. A deeper typed command/event manifest parser can be a later SDK/examples milestone.
+The first implementation can keep manifest parsing intentionally shallow. Schema string validation should prove that the schema belongs to the supported Zircon native schema family, such as `zircon.native.command-manifest/3` and `zircon.native.event-manifest/3`, and should reject empty or unknown schema names for ABI v3 behavior. Command/event manifest content can initially be validated as present text with non-empty lines. A deeper typed command/event manifest parser is a later SDK/examples milestone, not part of this slice.
+
+Health-state rules:
+
+- `Clean`: no validation diagnostics.
+- `Degraded`: behavior can remain loaded but has reduced capability, such as a missing `unload` callback or missing command callback on a module that only contributes state metadata.
+- `Invalid`: required metadata is inconsistent or unsupported, such as an unsupported ABI v3 schema string, a stateful behavior missing either state callback, or a declared command/event manifest schema with no matching manifest text.
 
 State callback consistency rules:
 
@@ -128,15 +134,15 @@ Bad behavior metadata degrades the plugin. It should not crash the runtime, inva
 
 Hot reload rollback semantics remain unchanged. A failed replacement discovery keeps the previous handle available. A failed unload restores the old handle. A replacement that loads but has degraded behavior can be kept loaded with diagnostics unless it lacks required metadata for the selected module kind.
 
-Host log and diagnostic callbacks remain entry-safe. The implementation may keep the existing flattened entry diagnostics if structured report plumbing would broaden the slice too far. If structured fields are added, the flattened strings should still remain available for existing report consumers.
+Host log and diagnostic callbacks remain entry-safe. The implementation must preserve the existing flattened entry diagnostics for current report consumers. Structured callback records may be added only if they stay inside the native-loader report boundary and do not require editor UI, app bootstrap, or core diagnostics-store work in this slice.
 
 ## Tests
 
 Focused runtime tests should cover:
 
 - A valid v3 fixture reports clean behavior validation metadata.
-- Malformed command manifest schema is diagnostic-only and marks behavior degraded or invalid.
-- Malformed event manifest schema is diagnostic-only and marks behavior degraded or invalid.
+- Malformed command manifest schema is diagnostic-only and marks behavior `Invalid`.
+- Malformed event manifest schema is diagnostic-only and marks behavior `Invalid`.
 - Stateful behavior missing `save_state` or `restore_state` is unhealthy before state execution.
 - Stateless editor behavior may omit state callbacks without being unhealthy.
 - Runtime command names with interior NUL return a structured behavior call error.

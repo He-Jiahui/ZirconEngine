@@ -8,9 +8,10 @@ use crate::asset::tests::support::{
     write_default_physics_material,
 };
 use crate::asset::{
-    AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterDescriptor,
-    AssetImporterRegistry, AssetImporterRegistryError, AssetUri, FunctionAssetImporter,
-    ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus,
+    AssetImporterDescriptor, AssetImporterRegistry, AssetImporterRegistryError, AssetUri,
+    DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, ImportedAssetEntry,
+    MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -265,6 +266,28 @@ fn importer_default_reports_missing_first_wave_plugin_backend() {
 }
 
 #[test]
+fn importer_capability_report_marks_diagnostic_only_backends() {
+    let importer = AssetImporter::default();
+    let report = importer
+        .capability_report_for_source(Path::new("asset.fbx"))
+        .expect("fbx diagnostic importer report");
+
+    assert_eq!(report.descriptor.id, "zircon.optional.model.fbx");
+    match report.status {
+        AssetImporterCapabilityStatus::DiagnosticOnly { message } => {
+            assert!(message.contains("fbx model importer backend is not installed"));
+        }
+        other => panic!("expected diagnostic-only capability, got {other:?}"),
+    }
+    assert!(importer
+        .capability_reports()
+        .iter()
+        .any(
+            |report| report.descriptor.id == "zircon.builtin.zmesh" && report.status.is_available()
+        ));
+}
+
+#[test]
 fn importer_reports_ui_toml_schema_migration() {
     let root = unique_temp_project_root("ui_toml_migration");
     fs::create_dir_all(&root).unwrap();
@@ -335,6 +358,114 @@ fn importer_registry_priority_overrides_duplicate_extension() {
 
     match imported {
         ImportedAsset::Data(data) => assert_eq!(data.canonical_json["winner"], "high"),
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_prefers_available_extension_importer_over_higher_priority_diagnostic() {
+    let root = unique_temp_project_root("registry_available_over_diagnostic_extension");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("payload.profileaudio");
+    fs::write(&path, "payload").unwrap();
+    let uri = AssetUri::parse("res://data/payload.profileaudio").unwrap();
+
+    let mut registry = AssetImporterRegistry::default();
+    registry
+        .register(DiagnosticOnlyAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "test.externalized.profileaudio",
+                "test",
+                crate::asset::AssetKind::Data,
+                1,
+            )
+            .with_source_extensions(["profileaudio"])
+            .with_priority(100),
+            "profile audio importer is externalized",
+        ))
+        .unwrap();
+    registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "test.available.profileaudio",
+                "test",
+                crate::asset::AssetKind::Data,
+                1,
+            )
+            .with_source_extensions(["profileaudio"])
+            .with_priority(10),
+            |context| test_data_outcome(context, "available"),
+        ))
+        .unwrap();
+
+    let report = registry
+        .capability_report_for_source(&path)
+        .expect("available importer report");
+    assert_eq!(report.descriptor.id, "test.available.profileaudio");
+    assert!(report.status.is_available());
+
+    let imported = AssetImporter::with_registry(registry)
+        .import_from_source(&path, &uri)
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Data(data) => assert_eq!(data.canonical_json["winner"], "available"),
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_prefers_available_full_suffix_importer_over_higher_priority_diagnostic() {
+    let root = unique_temp_project_root("registry_available_over_diagnostic_suffix");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("payload.profile.audio");
+    fs::write(&path, "payload").unwrap();
+    let uri = AssetUri::parse("res://data/payload.profile.audio").unwrap();
+
+    let mut registry = AssetImporterRegistry::default();
+    registry
+        .register(DiagnosticOnlyAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "test.externalized.profile_audio_suffix",
+                "test",
+                crate::asset::AssetKind::Data,
+                1,
+            )
+            .with_full_suffixes([".profile.audio"])
+            .with_priority(100),
+            "profile audio suffix importer is externalized",
+        ))
+        .unwrap();
+    registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "test.available.profile_audio_suffix",
+                "test",
+                crate::asset::AssetKind::Data,
+                1,
+            )
+            .with_full_suffixes([".profile.audio"])
+            .with_priority(10),
+            |context| test_data_outcome(context, "available_suffix"),
+        ))
+        .unwrap();
+
+    let report = registry
+        .capability_report_for_source(&path)
+        .expect("available suffix importer report");
+    assert_eq!(report.descriptor.id, "test.available.profile_audio_suffix");
+    assert!(report.status.is_available());
+
+    let imported = AssetImporter::with_registry(registry)
+        .import_from_source(&path, &uri)
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Data(data) => assert_eq!(data.canonical_json["winner"], "available_suffix"),
         other => panic!("unexpected imported asset: {other:?}"),
     }
 
@@ -456,6 +587,145 @@ f 1/1/1 2/2/1 3/3/1
 }
 
 #[test]
+fn importer_emits_mesh_subassets_for_model_imports() {
+    let root = unique_temp_project_root("model_import_mesh_subassets");
+    fs::create_dir_all(&root).unwrap();
+    let obj_path = root.join("triangle.obj");
+    fs::write(
+        &obj_path,
+        "\
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 0.0 1.0 0.0
+f 1 2 3
+",
+    )
+    .unwrap();
+
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let outcome = importer
+        .import_with_settings(
+            &obj_path,
+            &AssetUri::parse("res://models/triangle.obj").unwrap(),
+            Default::default(),
+        )
+        .unwrap();
+    let mesh_uri = AssetUri::parse("res://models/triangle.obj#Mesh0/Primitive0").unwrap();
+
+    assert!(matches!(
+        &outcome.root_entry().unwrap().asset,
+        ImportedAsset::Model(_)
+    ));
+    assert!(outcome
+        .root_entry()
+        .unwrap()
+        .dependencies
+        .contains(&mesh_uri));
+    let mesh_entry = outcome
+        .entries
+        .iter()
+        .find(|entry| entry.locator == mesh_uri)
+        .expect("mesh subasset entry");
+    match &mesh_entry.asset {
+        ImportedAsset::Mesh(mesh) => {
+            assert_eq!(mesh.vertex_count().unwrap(), 3);
+            assert_eq!(mesh.to_model_primitive().unwrap().indices, vec![0, 1, 2]);
+        }
+        other => panic!("unexpected mesh subasset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_emits_bevy_style_gltf_labeled_subassets() {
+    let root = unique_temp_project_root("gltf_labeled_subassets");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_triangle_gltf(&root);
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let outcome = importer
+        .import_with_settings(
+            &gltf_path,
+            &AssetUri::parse("res://models/triangle.gltf").unwrap(),
+            Default::default(),
+        )
+        .unwrap();
+
+    let root_entry = outcome.root_entry().expect("root gltf entry");
+    for label in [
+        "Scene0",
+        "Node0",
+        "Mesh0",
+        "Mesh0/Primitive0",
+        "Material0",
+        "Texture0",
+        "DefaultMaterial",
+        "Animation0",
+        "Skin0",
+        "Skin0/InverseBindMatrices",
+    ] {
+        assert!(
+            root_entry
+                .dependencies
+                .contains(&gltf_test_label_uri(label)),
+            "root dependencies should include {label}"
+        );
+        assert!(
+            outcome
+                .entries
+                .iter()
+                .any(|entry| entry.locator == gltf_test_label_uri(label)),
+            "outcome should include {label}"
+        );
+    }
+
+    match &gltf_entry_for_label(&outcome, "Texture0").asset {
+        ImportedAsset::Texture(texture) => {
+            assert_eq!(texture.width, 1);
+            assert_eq!(texture.height, 1);
+            assert_eq!(texture.rgba.len(), 4);
+        }
+        other => panic!("unexpected Texture0 asset: {other:?}"),
+    }
+    match &gltf_entry_for_label(&outcome, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            assert_eq!(material.name.as_deref(), Some("TriangleMaterial"));
+            assert_eq!(material.base_color, [0.2, 0.3, 0.4, 1.0]);
+            assert_eq!(
+                material.base_color_texture.as_ref().unwrap().locator,
+                gltf_test_label_uri("Texture0")
+            );
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+    match &gltf_entry_for_label(&outcome, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => assert_eq!(mesh.vertex_count().unwrap(), 3),
+        other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
+    }
+    match &gltf_entry_for_label(&outcome, "Node0").asset {
+        ImportedAsset::Scene(scene) => {
+            let entity = scene.entities.first().expect("node entity");
+            assert_eq!(entity.name, "TriangleNode");
+            let mesh = entity.mesh.as_ref().expect("node mesh");
+            assert_eq!(mesh.model.locator, gltf_test_label_uri("Mesh0"));
+            assert_eq!(mesh.material.locator, gltf_test_label_uri("Material0"));
+        }
+        other => panic!("unexpected Node0 asset: {other:?}"),
+    }
+    for label in ["Animation0", "Skin0", "Skin0/InverseBindMatrices"] {
+        match &gltf_entry_for_label(&outcome, label).asset {
+            ImportedAsset::Data(data) => assert!(
+                data.text.contains("not implemented yet"),
+                "{label} should carry a diagnostic placeholder"
+            ),
+            other => panic!("unexpected {label} asset: {other:?}"),
+        }
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh() {
     let root = unique_temp_project_root("model_toml_virtual_geometry_import");
     fs::create_dir_all(&root).unwrap();
@@ -533,6 +803,22 @@ fn importer_preserves_gltf_skinning_channels_on_model_vertices() {
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn gltf_entry_for_label<'a>(
+    outcome: &'a AssetImportOutcome,
+    label: &str,
+) -> &'a ImportedAssetEntry {
+    let locator = gltf_test_label_uri(label);
+    outcome
+        .entries
+        .iter()
+        .find(|entry| entry.locator == locator)
+        .unwrap_or_else(|| panic!("missing gltf subasset {locator}"))
+}
+
+fn gltf_test_label_uri(label: &str) -> AssetUri {
+    AssetUri::parse(&format!("res://models/triangle.gltf#{label}")).unwrap()
 }
 
 #[test]
@@ -666,6 +952,19 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
     for index in [0_u16, 1, 2] {
         bytes.extend_from_slice(&index.to_le_bytes());
     }
+    bytes.extend_from_slice(&[0, 0]);
+    for value in [
+        1.0_f32, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0, //
+        0.0, 0.0, 0.0, 1.0,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    bytes.extend_from_slice(&0.0_f32.to_le_bytes());
+    for value in [0.0_f32, 0.0, 0.0] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
     fs::write(&buffer_path, bytes).unwrap();
 
     fs::write(
@@ -673,11 +972,14 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
         r#"{
   "asset": { "version": "2.0" },
   "buffers": [
-    { "uri": "triangle.bin", "byteLength": 42 }
+    { "uri": "triangle.bin", "byteLength": 124 }
   ],
   "bufferViews": [
     { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
-    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 }
+    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 },
+    { "buffer": 0, "byteOffset": 44, "byteLength": 64 },
+    { "buffer": 0, "byteOffset": 108, "byteLength": 4 },
+    { "buffer": 0, "byteOffset": 112, "byteLength": 12 }
   ],
   "accessors": [
     {
@@ -693,20 +995,68 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
       "componentType": 5123,
       "count": 3,
       "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 1,
+      "type": "MAT4"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 1,
+      "type": "SCALAR",
+      "min": [0.0],
+      "max": [0.0]
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 1,
+      "type": "VEC3"
+    }
+  ],
+  "images": [
+    {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
+    }
+  ],
+  "textures": [
+    { "source": 0 }
+  ],
+  "materials": [
+    {
+      "name": "TriangleMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.2, 0.3, 0.4, 1.0],
+        "baseColorTexture": { "index": 0 },
+        "metallicFactor": 0.5,
+        "roughnessFactor": 0.6
+      }
     }
   ],
   "meshes": [
     {
+      "name": "TriangleMesh",
       "primitives": [
         {
           "attributes": { "POSITION": 0 },
-          "indices": 1
+          "indices": 1,
+          "material": 0
         }
       ]
     }
   ],
-  "nodes": [{ "mesh": 0 }],
-  "scenes": [{ "nodes": [0] }],
+  "nodes": [{ "name": "TriangleNode", "mesh": 0, "skin": 0 }],
+  "skins": [{ "inverseBindMatrices": 2, "joints": [0] }],
+  "animations": [
+    {
+      "samplers": [{ "input": 3, "output": 4, "interpolation": "LINEAR" }],
+      "channels": [{ "sampler": 0, "target": { "node": 0, "path": "translation" } }]
+    }
+  ],
+  "scenes": [{ "name": "SceneRoot", "nodes": [0] }],
   "scene": 0
 }"#,
     )

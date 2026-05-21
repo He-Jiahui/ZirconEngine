@@ -217,6 +217,11 @@ fn runtime_debug_reflector_nodes(
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
+    let section_lines = payload
+        .ui_debug_reflector_sections
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
     let node_labels = payload
         .ui_debug_reflector_nodes
         .iter()
@@ -227,6 +232,7 @@ fn runtime_debug_reflector_nodes(
         payload.ui_debug_reflector_summary.as_str(),
         payload.ui_debug_reflector_export_status.as_str(),
         &details,
+        &section_lines,
         &node_labels,
         content_size,
     )
@@ -248,11 +254,13 @@ fn runtime_debug_reflector_nodes_from_model(
             }
         })
         .collect::<Vec<_>>();
+    let section_lines = reflector.section_display_lines();
     runtime_debug_reflector_nodes_from_parts(
         template_nodes,
         reflector.summary.title.as_str(),
         reflector.summary.export_status.as_str(),
         &reflector.details,
+        &section_lines,
         &node_labels,
         content_size,
     )
@@ -263,6 +271,7 @@ fn runtime_debug_reflector_nodes_from_parts(
     summary: &str,
     export_status: &str,
     details: &[String],
+    section_lines: &[String],
     node_labels: &[String],
     content_size: PaneContentSize,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
@@ -312,6 +321,19 @@ fn runtime_debug_reflector_nodes_from_parts(
             &mut y,
             width,
             true,
+        );
+    }
+
+    for (index, section_line) in section_lines.iter().enumerate() {
+        push_label(
+            &mut nodes,
+            format!("section_{index}"),
+            format!("UiDebugReflectorSection.{index}"),
+            section_line,
+            x,
+            &mut y,
+            width,
+            !section_line.ends_with(':'),
         );
     }
 

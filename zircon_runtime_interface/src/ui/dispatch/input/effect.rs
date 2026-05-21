@@ -72,6 +72,9 @@ pub enum UiDispatchEffect {
     RequestInputMethod {
         request: UiInputMethodRequest,
     },
+    RequestClipboard {
+        request: UiClipboardRequest,
+    },
     DirtyRedraw {
         target: UiNodeId,
         dirty: UiDirtyFlags,
@@ -141,6 +144,20 @@ pub enum UiTooltipEffectKind {
     Show,
     Hide,
     Cancel,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiClipboardRequest {
+    pub kind: UiClipboardRequestKind,
+    pub owner: UiNodeId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum UiClipboardRequestKind {
+    ReadText,
+    WriteText,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

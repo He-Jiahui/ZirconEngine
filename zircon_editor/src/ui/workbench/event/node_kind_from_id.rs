@@ -5,8 +5,10 @@ pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {
         "Camera" => Some(NodeKind::Camera),
         "Cube" => Some(NodeKind::Cube),
         "Mesh" => Some(NodeKind::Mesh),
+        "AmbientLight" => Some(NodeKind::AmbientLight),
         "DirectionalLight" => Some(NodeKind::DirectionalLight),
         "PointLight" => Some(NodeKind::PointLight),
+        "RectLight" => Some(NodeKind::RectLight),
         "SpotLight" => Some(NodeKind::SpotLight),
         _ => None,
     }

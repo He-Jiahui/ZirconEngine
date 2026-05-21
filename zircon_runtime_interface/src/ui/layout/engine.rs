@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::event_ui::UiNodeId;
+
 use super::UiContainerKind;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -151,11 +153,19 @@ pub enum UiLayoutEngineFallbackReason {
     MissingContentMeasure,
     MissingDpiScaling,
     ZirconOwnedSemantics,
+    UnsupportedChildVisibility,
+    ChildPlacementPolicy,
+    SlotFramePolicy,
+    SlotCanvasPlacement,
+    TaffyStyleUnavailable,
+    TaffyTreeBuildFailed,
+    TaffyComputeFailed,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiLayoutEngineSelection {
+    pub node_id: Option<UiNodeId>,
     pub request: UiLayoutEngineRequest,
     pub requested_backend: UiLayoutEngineBackend,
     pub selected_backend: UiLayoutEngineBackend,
@@ -167,6 +177,7 @@ impl Default for UiLayoutEngineSelection {
     fn default() -> Self {
         let request = UiLayoutEngineRequest::default();
         Self {
+            node_id: None,
             request,
             requested_backend: UiLayoutEngineBackend::LegacyZircon,
             selected_backend: UiLayoutEngineBackend::LegacyZircon,
@@ -184,6 +195,7 @@ impl UiLayoutEngineSelection {
     ) -> Self {
         if let Some(reason) = unsupported_reason(request, preferred) {
             return Self {
+                node_id: None,
                 request: request.clone(),
                 requested_backend: preferred.backend,
                 selected_backend: fallback.backend,
@@ -197,12 +209,18 @@ impl UiLayoutEngineSelection {
         }
 
         Self {
+            node_id: None,
             request: request.clone(),
             requested_backend: preferred.backend,
             selected_backend: preferred.backend,
             support: UiLayoutEngineSupport::Native,
             fallback_reason: None,
         }
+    }
+
+    pub fn with_node_id(mut self, node_id: UiNodeId) -> Self {
+        self.node_id = Some(node_id);
+        self
     }
 }
 

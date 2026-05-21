@@ -326,7 +326,7 @@ impl NetRpcRuntimeManager {
         invocation: RpcInvocationDescriptor,
         caller: RpcPeerRole,
     ) -> RpcDispatchReport {
-        if Self::invocation_timed_out(&invocation, Instant::now()) {
+        if Self::invocation_timed_out(&invocation) {
             return RpcDispatchReport::for_invocation(&invocation, RpcDispatchStatus::TimedOut)
                 .with_diagnostic("RPC invocation timed out before handler execution");
         }
@@ -351,13 +351,7 @@ impl NetRpcRuntimeManager {
             return report;
         };
 
-        let report = match handler(&invocation) {
-            Ok(payload) => report.with_response_payload(payload),
-            Err(error) => {
-                report.status = RpcDispatchStatus::HandlerFailed;
-                report.with_diagnostic(error)
-            }
-        };
+        let report = Self::invoke_handler_with_timeout(&invocation, report, handler);
         self.complete_pending_request(&invocation);
         report
     }
@@ -448,13 +442,7 @@ impl NetRpcRuntimeManager {
             return report;
         };
 
-        let report = match handler(&invocation) {
-            Ok(payload) => report.with_response_payload(payload),
-            Err(error) => {
-                report.status = RpcDispatchStatus::HandlerFailed;
-                report.with_diagnostic(error)
-            }
-        };
+        let report = Self::invoke_handler_with_timeout(&invocation, report, handler);
         self.complete_pending_request(&invocation);
         report
     }
@@ -576,11 +564,43 @@ impl NetRpcRuntimeManager {
         report
     }
 
-    fn invocation_timed_out(invocation: &RpcInvocationDescriptor, now: Instant) -> bool {
-        let _ = now;
+    fn invocation_timed_out(invocation: &RpcInvocationDescriptor) -> bool {
         invocation
             .timeout_ms
             .is_some_and(|timeout_ms| timeout_ms == 0)
+    }
+
+    fn invoke_handler_with_timeout(
+        invocation: &RpcInvocationDescriptor,
+        mut report: RpcDispatchReport,
+        handler: RpcHandler,
+    ) -> RpcDispatchReport {
+        let started_at = Instant::now();
+        let handler_result = handler(invocation);
+        // Synchronous feature handlers cannot be preempted here, so timeout
+        // hardening reports and discards late completions after the closure returns.
+        if Self::handler_timed_out(invocation, started_at, Instant::now()) {
+            report.status = RpcDispatchStatus::TimedOut;
+            return report.with_diagnostic("RPC handler exceeded invocation timeout");
+        }
+
+        match handler_result {
+            Ok(payload) => report.with_response_payload(payload),
+            Err(error) => {
+                report.status = RpcDispatchStatus::HandlerFailed;
+                report.with_diagnostic(error)
+            }
+        }
+    }
+
+    fn handler_timed_out(
+        invocation: &RpcInvocationDescriptor,
+        started_at: Instant,
+        now: Instant,
+    ) -> bool {
+        invocation.timeout_ms.is_some_and(|timeout_ms| {
+            timeout_ms == 0 || now.duration_since(started_at) > Duration::from_millis(timeout_ms)
+        })
     }
 
     fn track_pending_request(state: &mut NetRpcRuntimeState, invocation: &RpcInvocationDescriptor) {

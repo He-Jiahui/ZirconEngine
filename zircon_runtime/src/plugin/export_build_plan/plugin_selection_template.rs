@@ -1,6 +1,7 @@
 use crate::{
     plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
-    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection, RuntimeTargetMode,
+    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection,
+    plugin::RuntimeProfileId, RuntimeTargetMode,
 };
 
 use super::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
@@ -38,9 +39,10 @@ pub(super) fn plugin_selection_template(
         .collect::<Vec<_>>()
         .join(",\n");
     format!(
-        "use zircon_runtime::{{plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport, RuntimeTargetMode}};\n\npub fn target_mode() -> RuntimeTargetMode {{\n    {}\n}}\n\npub fn export_profile() -> ExportProfile {{\n    ExportProfile {{\n        name: {:?}.to_string(),\n        target_mode: target_mode(),\n        target_platform: {},\n        strategies: vec![{}],\n        output_name: {:?}.to_string(),\n    }}\n}}\n\npub fn project_plugins() -> ProjectPluginManifest {{\n    ProjectPluginManifest {{\n        selections: vec![\n{}\n        ],\n    }}\n}}\n\npub fn runtime_plugin_registrations() -> Vec<RuntimePluginRegistrationReport> {{\n    vec![\n{}\n    ]\n}}\n\npub fn runtime_plugin_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {{\n    vec![\n{}\n    ]\n}}\n",
+        "use zircon_runtime::{{plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport, plugin::RuntimeProfileId, RuntimeTargetMode}};\n\npub fn target_mode() -> RuntimeTargetMode {{\n    {}\n}}\n\npub fn export_profile() -> ExportProfile {{\n    ExportProfile {{\n        name: {:?}.to_string(),\n        target_mode: target_mode(),\n        runtime_profile_id: {},\n        target_platform: {},\n        strategies: vec![{}],\n        output_name: {:?}.to_string(),\n    }}\n}}\n\npub fn project_plugins() -> ProjectPluginManifest {{\n    ProjectPluginManifest {{\n        selections: vec![\n{}\n        ],\n    }}\n}}\n\npub fn runtime_plugin_registrations() -> Vec<RuntimePluginRegistrationReport> {{\n    vec![\n{}\n    ]\n}}\n\npub fn runtime_plugin_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {{\n    vec![\n{}\n    ]\n}}\n",
         target_mode_expr(profile.target_mode),
         profile.name,
+        runtime_profile_id_expr(profile.runtime_profile_id),
         target_platform_expr(profile.target_platform),
         strategies,
         profile.output_name,
@@ -102,6 +104,18 @@ fn feature_selection_template(selection: &ProjectPluginFeatureSelection) -> Stri
         option_string_expr(selection.editor_crate.as_deref()),
         option_string_expr(selection.provider_package_id.as_deref())
     )
+}
+
+fn runtime_profile_id_expr(profile_id: Option<RuntimeProfileId>) -> String {
+    match profile_id {
+        Some(RuntimeProfileId::Minimal) => "Some(RuntimeProfileId::Minimal)".to_string(),
+        Some(RuntimeProfileId::Client2d) => "Some(RuntimeProfileId::Client2d)".to_string(),
+        Some(RuntimeProfileId::Client3d) => "Some(RuntimeProfileId::Client3d)".to_string(),
+        Some(RuntimeProfileId::Editor) => "Some(RuntimeProfileId::Editor)".to_string(),
+        Some(RuntimeProfileId::Dev) => "Some(RuntimeProfileId::Dev)".to_string(),
+        Some(RuntimeProfileId::Server) => "Some(RuntimeProfileId::Server)".to_string(),
+        None => "None".to_string(),
+    }
 }
 
 fn target_mode_expr(target_mode: RuntimeTargetMode) -> &'static str {

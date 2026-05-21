@@ -34,7 +34,7 @@ impl ExportBuildPlan {
             generated_files,
             copied_packages: Vec::new(),
             diagnostics: self.diagnostics.clone(),
-            fatal_diagnostics: self.fatal_diagnostics.clone(),
+            fatal_diagnostics: self.effective_fatal_diagnostics(),
         })
     }
 

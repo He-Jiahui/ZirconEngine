@@ -32,7 +32,7 @@ Runtime UI surface diagnostics generate the shared debug snapshot consumed by th
 
 ## Snapshot Contract
 
-`zircon_runtime_interface::ui::surface::UiSurfaceDebugSnapshot` is the neutral serde contract. It carries schema version/capture context, widget reflector nodes, render command records, material batches, `UiRenderDebugSnapshot.render_batches`, hit-grid cell records, pick hit-test dumps, sampled overdraw cells, invalidation and damage reports, event records, and overlay primitives.
+`zircon_runtime_interface::ui::surface::UiSurfaceDebugSnapshot` is the neutral serde contract. It carries schema version/capture context, widget reflector nodes, layout-engine route reports, render command records, material batches, `UiRenderDebugSnapshot.render_batches`, hit-grid cell records, pick hit-test dumps, sampled overdraw cells, invalidation and damage reports, event records, and overlay primitives.
 
 `render_batches` is the replay-friendly render slice for M7 tools. It carries batch/debug rows, cache status, renderer parity rows, and `UiRenderVisualizerSnapshot` paint rows, batch groups, overlays, overdraw regions, resource bindings, text backend/glyph/decorator counters, and cache reuse/rebuild stats. Editor Debug Reflector reads this packet directly; renderer-specific code does not need to expose private draw commands.
 
@@ -44,7 +44,7 @@ Stable hit-test reject reasons live in `UiHitTestRejectReason`, with a separate 
 
 `debug_surface_frame_with_options(...)` builds the baseline snapshot. `debug_surface_frame_for_selection(...)` adds selected-node capture and selection overlay primitives. `debug_surface_frame_for_pick(...)` runs query-aware frame hit testing, stores the pick dump, selects the top hit, and emits hit-path/rejected-bounds overlay primitives.
 
-`UiSurface::debug_snapshot_for_selection(...)`, `UiSurface::debug_snapshot_for_pick(...)`, and `UiSurface::debug_snapshot_json(...)` are convenience methods for callers that already own a retained surface. JSON export remains payload-only; editor code owns paths and import/export UI.
+`UiSurface::debug_snapshot_for_selection(...)`, `UiSurface::debug_snapshot_for_pick(...)`, and `UiSurface::debug_snapshot_json(...)` are convenience methods for callers that already own a retained surface. JSON export remains payload-only; editor code owns paths and import/export UI. The JSON path includes `UiLayoutEngineSelectionReport`, so a Taffy-native or Zircon-fallback route visible in the frame is also visible in serialized diagnostics.
 
 ## Current Limits
 
@@ -53,3 +53,11 @@ Backend render counters are optional until host render backends provide measured
 ## Validation
 
 M7 diagnostics validation on 2026-05-07 used `E:\zircon-build\targets-ui-m7`: `cargo check -p zircon_runtime_interface --tests`, `cargo test -p zircon_runtime --lib diagnostics`, and `cargo test -p zircon_runtime --lib hit_grid`. These passed with existing runtime warning noise.
+
+The 2026-05-20 layout-engine route export check passed:
+
+```powershell
+cargo test -p zircon_runtime --lib surface_debug_snapshot_json_exports_layout_engine_route_report --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-impl --message-format short --color never
+```
+
+That focused test proves a computed Taffy-native horizontal surface exports `layout_engine_report` through `debug_snapshot_json(...)`, round-trips it through serde, and preserves the root selection as `Taffy` + `Native`.

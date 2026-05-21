@@ -5,7 +5,8 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use super::{
-    normalize_extension, normalize_full_suffix, AssetImporterDescriptor, AssetImporterHandler,
+    normalize_extension, normalize_full_suffix, AssetImporterCapabilityReport,
+    AssetImporterDescriptor, AssetImporterHandler,
 };
 use crate::asset::AssetImportError;
 
@@ -100,6 +101,27 @@ impl AssetImporterRegistry {
             .map(|importer| importer.descriptor().clone())
     }
 
+    pub fn capability_report_for_source(
+        &self,
+        source_path: &Path,
+    ) -> Result<AssetImporterCapabilityReport, AssetImportError> {
+        self.select(source_path)
+            .map(|importer| AssetImporterCapabilityReport {
+                descriptor: importer.descriptor().clone(),
+                status: importer.capability_status(),
+            })
+    }
+
+    pub fn capability_reports(&self) -> Vec<AssetImporterCapabilityReport> {
+        self.importers
+            .iter()
+            .map(|importer| AssetImporterCapabilityReport {
+                descriptor: importer.descriptor().clone(),
+                status: importer.capability_status(),
+            })
+            .collect()
+    }
+
     pub fn descriptors(&self) -> Vec<AssetImporterDescriptor> {
         self.importers
             .iter()
@@ -128,10 +150,20 @@ impl AssetImporterRegistry {
                     .filter(|suffix| name.ends_with(suffix))
                     .map(|suffix| suffix.len())
                     .max()?;
-                Some((importer.clone(), importer.descriptor().priority, suffix_len))
+                Some((
+                    importer.clone(),
+                    capability_rank(importer.as_ref()),
+                    importer.descriptor().priority,
+                    suffix_len,
+                ))
             })
-            .max_by(|left, right| left.1.cmp(&right.1).then_with(|| left.2.cmp(&right.2)))
-            .map(|(importer, _, _)| importer)
+            .max_by(|left, right| {
+                left.1
+                    .cmp(&right.1)
+                    .then_with(|| left.2.cmp(&right.2))
+                    .then_with(|| left.3.cmp(&right.3))
+            })
+            .map(|(importer, _, _, _)| importer)
     }
 
     fn best_extension_match(&self, source_path: &Path) -> Option<Arc<dyn AssetImporterHandler>> {
@@ -149,8 +181,20 @@ impl AssetImporterRegistry {
                     .map(|extension| normalize_extension(extension))
                     .any(|candidate| candidate == extension)
             })
-            .max_by_key(|importer| importer.descriptor().priority)
+            .max_by(|left, right| {
+                capability_rank(left.as_ref())
+                    .cmp(&capability_rank(right.as_ref()))
+                    .then_with(|| left.descriptor().priority.cmp(&right.descriptor().priority))
+            })
             .cloned()
+    }
+}
+
+fn capability_rank(importer: &dyn AssetImporterHandler) -> u8 {
+    if importer.capability_status().is_available() {
+        1
+    } else {
+        0
     }
 }
 

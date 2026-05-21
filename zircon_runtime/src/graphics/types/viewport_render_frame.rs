@@ -39,6 +39,12 @@ impl ViewportRenderFrame {
         &self.extract.lighting.directional_lights
     }
 
+    pub(crate) fn ambient_lights(
+        &self,
+    ) -> &[crate::core::framework::render::RenderAmbientLightSnapshot] {
+        &self.extract.lighting.ambient_lights
+    }
+
     pub(crate) fn overlays(&self) -> &crate::core::framework::render::RenderOverlayExtract {
         &self.extract.debug.overlays
     }

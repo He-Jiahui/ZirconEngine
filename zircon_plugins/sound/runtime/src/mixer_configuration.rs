@@ -42,6 +42,14 @@ pub(crate) fn configure_mixer_graph(
     state
         .dynamic_event_handlers
         .retain(|handler| dynamic_event_ids.contains(&handler.event_id));
+    let dynamic_event_handler_keys = state
+        .dynamic_event_handlers
+        .iter()
+        .map(|handler| (handler.plugin_id.clone(), handler.handler_id.clone()))
+        .collect::<HashSet<_>>();
+    state.dynamic_event_executors.retain(|key, _| {
+        dynamic_event_handler_keys.contains(&(key.plugin_id.clone(), key.handler_id.clone()))
+    });
     state
         .pending_dynamic_events
         .retain(|event| dynamic_event_ids.contains(&event.event_id));
@@ -62,6 +70,7 @@ pub(crate) fn configure_mixer_graph(
     });
     state.effect_states.clear();
     state.track_states.clear();
+    state.hrtf_states.clear();
     state.meters = meters;
     state.latency_frames = 0;
     Ok(())
@@ -89,6 +98,7 @@ fn configured_sources(
                     descriptor,
                     cursor_frame: 0,
                     cursor_position: 0.0,
+                    pending_finish: None,
                 },
             )
             .is_some()

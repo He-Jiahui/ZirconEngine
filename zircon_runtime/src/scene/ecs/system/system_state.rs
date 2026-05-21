@@ -39,6 +39,10 @@ where
         self.last_run
     }
 
+    pub(crate) fn state(&self) -> &P::State {
+        &self.state
+    }
+
     pub fn run<R>(&mut self, world: &mut World, f: impl FnOnce(P::Item<'_>) -> R) -> R {
         let this_run = world.advance_change_tick();
         let previous_active_tick = world.replace_active_change_tick(Some(this_run));

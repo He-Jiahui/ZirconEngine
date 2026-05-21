@@ -1,5 +1,5 @@
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
+    binding::{UiBindingUpdateReport, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
@@ -37,6 +37,7 @@ impl UiSurface {
         &mut self,
         node_id: UiNodeId,
         events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<bool, UiTreeError> {
         let Some(mutation) = self.default_radio_mutation(node_id)? else {
             return Ok(false);
@@ -57,6 +58,7 @@ impl UiSurface {
         if !report.radio_changed {
             return Ok(false);
         }
+        binding_reports.extend(report.binding_reports);
         self.push_pointer_component_events(
             events,
             mutation.radio_id,
@@ -121,6 +123,7 @@ impl UiSurface {
         Ok(UiDefaultKeyboardActionReport {
             handled: true,
             component_events,
+            binding_reports: report.binding_reports,
         })
     }
 
@@ -180,15 +183,17 @@ impl UiSurface {
         &mut self,
         mutation: &UiDefaultRadioMutation,
     ) -> Result<UiDefaultRadioMutationReport, UiTreeError> {
+        let mut binding_reports = Vec::new();
         for (sibling_id, property) in &mutation.sibling_unchecks {
-            self.mutate_property(UiPropertyMutationRequest::new(
+            let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
                 *sibling_id,
                 property.clone(),
                 UiValue::Bool(false),
             ))?;
+            binding_reports.push(report.binding);
         }
 
-        let radio_report = self.mutate_property(UiPropertyMutationRequest::new(
+        let radio_report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
             mutation.radio_id,
             mutation.checked_property.clone(),
             UiValue::Bool(true),
@@ -197,16 +202,20 @@ impl UiSurface {
             return Ok(UiDefaultRadioMutationReport {
                 radio_changed: false,
                 group_changed: false,
+                binding_reports,
             });
         }
+        binding_reports.push(radio_report.binding);
 
         let group_changed = if let Some(group) = mutation.group.as_ref() {
-            let group_report = self.mutate_property(UiPropertyMutationRequest::new(
+            let group_report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
                 group.node_id,
                 group.value_property.clone(),
                 mutation.option_value.clone(),
             ))?;
-            matches!(group_report.status, UiPropertyMutationStatus::Accepted)
+            let group_changed = matches!(group_report.status, UiPropertyMutationStatus::Accepted);
+            binding_reports.push(group_report.binding);
+            group_changed
         } else {
             false
         };
@@ -214,6 +223,7 @@ impl UiSurface {
         Ok(UiDefaultRadioMutationReport {
             radio_changed: true,
             group_changed,
+            binding_reports,
         })
     }
 
@@ -305,6 +315,7 @@ impl UiSurface {
 struct UiDefaultRadioMutationReport {
     radio_changed: bool,
     group_changed: bool,
+    binding_reports: Vec<UiBindingUpdateReport>,
 }
 
 fn default_radio_option_value(node: &UiTreeNode, metadata: &UiTemplateNodeMetadata) -> UiValue {

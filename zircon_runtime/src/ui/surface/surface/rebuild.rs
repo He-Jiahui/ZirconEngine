@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::BTreeSet, time::Instant};
 
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +8,8 @@ use crate::ui::surface::{
 };
 use zircon_runtime_interface::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerDispatchResult},
-    layout::UiSize,
+    event_ui::UiNodeId,
+    layout::{UiLayoutEngineSelectionReport, UiSize},
     surface::UiSurfaceRebuildDebugStats,
     tree::{UiDirtyFlags, UiTree, UiTreeError, UiTreeNode},
 };
@@ -228,6 +229,12 @@ impl UiSurface {
         if dirty.layout || dirty.style || dirty.text || dirty.visible_range {
             let layout_start = Instant::now();
             let layout_stats = compute_incremental_layout_tree(&mut self.tree, root_size)?;
+            self.layout_engine_report = merge_incremental_layout_engine_report(
+                &self.layout_engine_report,
+                &layout_stats.layout_engine_report,
+                &layout_stats.visited_node_ids,
+                &self.tree,
+            );
             let layout_elapsed_micros = elapsed_micros(layout_start);
             let arranged_start = Instant::now();
             self.arranged_tree = build_arranged_tree(&self.tree);
@@ -300,7 +307,7 @@ impl UiSurface {
         let dirty_flags = self.dirty_flags();
         let dirty_node_count = dirty_node_count(&self.tree);
         let layout_start = Instant::now();
-        compute_layout_tree(&mut self.tree, root_size)?;
+        self.layout_engine_report = compute_layout_tree(&mut self.tree, root_size)?;
         let layout_elapsed_micros = elapsed_micros(layout_start);
         self.rebuild();
         self.last_rebuild_report.layout_recomputed = true;
@@ -342,6 +349,29 @@ fn dirty_node_count(tree: &UiTree) -> usize {
         .values()
         .filter(|node| node.dirty.any() || node.state_flags.dirty)
         .count()
+}
+
+// Incremental layout visits only dirty subtrees, while diagnostics expose a surface-level route map.
+// Keep untouched container routes and replace any route owned by the visited subtree.
+fn merge_incremental_layout_engine_report(
+    previous: &UiLayoutEngineSelectionReport,
+    incremental: &UiLayoutEngineSelectionReport,
+    visited_node_ids: &BTreeSet<UiNodeId>,
+    tree: &UiTree,
+) -> UiLayoutEngineSelectionReport {
+    let mut selections = Vec::new();
+
+    for selection in &previous.selections {
+        let Some(node_id) = selection.node_id else {
+            continue;
+        };
+        if tree.nodes.contains_key(&node_id) && !visited_node_ids.contains(&node_id) {
+            selections.push(selection.clone());
+        }
+    }
+
+    selections.extend(incremental.selections.iter().cloned());
+    UiLayoutEngineSelectionReport::from_selections(selections)
 }
 
 fn elapsed_micros(start: Instant) -> u64 {

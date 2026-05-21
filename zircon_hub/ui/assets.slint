@@ -20,8 +20,11 @@ export component AssetsPage inherits Rectangle {
     in-out property <length> scroll-y: 0px;
     in property <[AssetData]> assets;
     in property <int> asset-count;
+    in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
     private property <length> list-scroll-y: 0px;
+    private property <string> catalog-title: root.has-selected-project ? root.ui-text.asset-catalog-selected : root.ui-text.asset-catalog;
+    private property <string> assets-empty-detail: root.has-selected-project ? root.ui-text.asset-empty-selected-detail : root.ui-text.asset-empty-global-detail;
 
     background: HubTokens.surface-page;
 
@@ -30,10 +33,11 @@ export component AssetsPage inherits Rectangle {
         height: root.height;
         scroll-y <=> root.scroll-y;
         list-scroll-y <=> root.list-scroll-y;
-        title: root.ui-text.asset-catalog;
+        title: root.catalog-title;
         badge-text: root.asset-count + " " + root.ui-text.assets-found;
         badge-tone: "accent";
         empty-title: root.ui-text.no-assets-found;
+        empty-detail: root.assets-empty-detail;
         row-count: root.asset-count;
         row-height: HubTokens.list-row-lg;
 

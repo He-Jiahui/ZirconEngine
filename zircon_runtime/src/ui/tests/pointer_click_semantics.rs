@@ -4,7 +4,7 @@ use crate::ui::{
     tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
+    binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiDispatchDisposition, UiInputEvent, UiInputEventMetadata, UiInputSequence,
@@ -127,6 +127,7 @@ fn authored_toggle_behavior_uses_widget_contract_instead_of_component_name() {
                     if property == "selected" && value == &UiValue::Bool(true)
             )
     }));
+    assert_widget_binding_report(&result.binding_reports);
 }
 
 #[test]
@@ -162,6 +163,19 @@ fn authored_toggle_behavior_uses_widget_contract_for_keyboard_activation() {
                 UiComponentEvent::ValueChanged { property, value }
                     if property == "selected" && value == &UiValue::Bool(true)
             )
+    }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+fn assert_widget_binding_report(
+    reports: &[zircon_runtime_interface::ui::binding::UiBindingUpdateReport],
+) {
+    assert!(!reports.is_empty());
+    assert!(reports.iter().any(|report| {
+        report
+            .updates
+            .first()
+            .is_some_and(|update| update.source.kind == UiBindingSourceKind::WidgetBehavior)
     }));
 }
 

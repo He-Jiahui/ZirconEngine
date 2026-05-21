@@ -67,6 +67,21 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
         ("Window.AnimationEditor.Open", "Window/Animation Editor"),
         ("Window.AssetBrowser.Open", "Window/Asset Browser"),
         ("Window.Diagnostics.Open", "Window/Diagnostics"),
+        ("Scene.Node.CreateCamera", "GameObject/Camera"),
+        (
+            "Scene.Node.CreateAmbientLight",
+            "GameObject/Light/Ambient Light",
+        ),
+        (
+            "Scene.Node.CreateDirectionalLight",
+            "GameObject/Light/Directional Light",
+        ),
+        (
+            "Scene.Node.CreatePointLight",
+            "GameObject/Light/Point Light",
+        ),
+        ("Scene.Node.CreateRectLight", "GameObject/Light/Rect Light"),
+        ("Scene.Node.CreateSpotLight", "GameObject/Light/Spot Light"),
         ("View.PluginManager.Open", "View/Plugin Manager"),
         ("View.BuildExport.Open", "View/Desktop Export"),
         ("Inspector.Field.ApplyBatch", "Inspector/Apply Changes"),
@@ -248,6 +263,50 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
         "Scene.Node.CreateCube"
     );
     assert_eq!(runtime.runtime.operation_stack().undo_stack().len(), 1);
+    assert_eq!(
+        runtime.runtime.editor_snapshot().scene_entries.len(),
+        before + 1
+    );
+}
+
+#[test]
+fn operation_invocation_dispatches_rect_light_creation() {
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_rect_light");
+    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+
+    let record = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Menu,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Scene.Node.CreateRectLight").unwrap(),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::RectLight))
+    );
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("Scene.Node.CreateRectLight")
+    );
+    assert_eq!(
+        record.operation_display_name.as_deref(),
+        Some("Create Rect Light")
+    );
+    assert_eq!(
+        runtime.runtime.operation_stack().undo_stack()[0]
+            .operation_id
+            .as_str(),
+        "Scene.Node.CreateRectLight"
+    );
     assert_eq!(
         runtime.runtime.editor_snapshot().scene_entries.len(),
         before + 1

@@ -17,8 +17,10 @@ const RENDER_LAYER_MASK_TYPE_PATH: &str = "zircon_runtime::scene::components::Re
 const MOBILITY_TYPE_PATH: &str = "zircon_runtime::core::framework::scene::Mobility";
 const CAMERA_COMPONENT_TYPE_PATH: &str = "zircon_runtime::scene::components::CameraComponent";
 const MESH_RENDERER_TYPE_PATH: &str = "zircon_runtime::scene::components::MeshRenderer";
+const AMBIENT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::AmbientLight";
 const DIRECTIONAL_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::DirectionalLight";
 const POINT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::PointLight";
+const RECT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::RectLight";
 const SPOT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::SpotLight";
 const RIGID_BODY_COMPONENT_TYPE_PATH: &str =
     "zircon_runtime::scene::components::RigidBodyComponent";
@@ -88,6 +90,7 @@ fn scene_inspector_value_from_reflected(
         ReflectedValue::Scalar(value) => Some(SceneInspectorFieldValue::Scalar(*value)),
         ReflectedValue::String(value) => Some(SceneInspectorFieldValue::Text(value.clone())),
         ReflectedValue::Enum(value) => Some(SceneInspectorFieldValue::Enum(value.clone())),
+        ReflectedValue::Vec2(value) => Some(SceneInspectorFieldValue::Vec2(*value)),
         ReflectedValue::Vec3(value) => Some(SceneInspectorFieldValue::Vec3(*value)),
         ReflectedValue::Vec4(value) if is_transform_rotation(field) => {
             Some(SceneInspectorFieldValue::Quaternion(*value))
@@ -98,7 +101,6 @@ fn scene_inspector_value_from_reflected(
         ReflectedValue::Resource(value) => Some(SceneInspectorFieldValue::Resource(value.clone())),
         ReflectedValue::Null
         | ReflectedValue::Integer(_)
-        | ReflectedValue::Vec2(_)
         | ReflectedValue::List(_)
         | ReflectedValue::Map(_)
         | ReflectedValue::Json(_) => None,
@@ -128,8 +130,10 @@ fn property_component_name(field: &SceneEditorInspectorField) -> &str {
         MOBILITY_TYPE_PATH => "Mobility",
         CAMERA_COMPONENT_TYPE_PATH => "Camera",
         MESH_RENDERER_TYPE_PATH => "MeshRenderer",
+        AMBIENT_LIGHT_TYPE_PATH => "AmbientLight",
         DIRECTIONAL_LIGHT_TYPE_PATH => "DirectionalLight",
         POINT_LIGHT_TYPE_PATH => "PointLight",
+        RECT_LIGHT_TYPE_PATH => "RectLight",
         SPOT_LIGHT_TYPE_PATH => "SpotLight",
         RIGID_BODY_COMPONENT_TYPE_PATH => "RigidBody",
         _ if field.plugin_owned => field.component_type_path.as_str(),
@@ -155,8 +159,10 @@ fn component_label(field: &SceneEditorInspectorField) -> &str {
         RENDER_LAYER_MASK_TYPE_PATH => "Render Layer",
         CAMERA_COMPONENT_TYPE_PATH => "Camera",
         MESH_RENDERER_TYPE_PATH => "Mesh Renderer",
+        AMBIENT_LIGHT_TYPE_PATH => "Ambient Light",
         DIRECTIONAL_LIGHT_TYPE_PATH => "Directional Light",
         POINT_LIGHT_TYPE_PATH => "Point Light",
+        RECT_LIGHT_TYPE_PATH => "Rect Light",
         SPOT_LIGHT_TYPE_PATH => "Spot Light",
         RIGID_BODY_COMPONENT_TYPE_PATH => "Rigid Body",
         _ => field.component_display_name.as_str(),
@@ -235,7 +241,9 @@ fn build_stats(scene: &Scene, selected: Option<EntityId>) -> SceneViewportStats 
             stats.mesh_count += 1;
         }
         if node.directional_light.is_some()
+            || node.ambient_light.is_some()
             || node.point_light.is_some()
+            || node.rect_light.is_some()
             || node.spot_light.is_some()
         {
             stats.light_count += 1;

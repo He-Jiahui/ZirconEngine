@@ -1,15 +1,15 @@
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, FontMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
-    ResourceHandle, ResourceLease, SceneMarker, ShaderMarker, SoundMarker, TextureMarker,
-    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    AnimationStateMachineMarker, FontMarker, MaterialMarker, MeshMarker, ModelMarker,
+    PhysicsMaterialMarker, ResourceHandle, ResourceLease, SceneMarker, ShaderMarker, SoundMarker,
+    TextureMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, ModelAsset,
+    AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, MeshAsset, ModelAsset,
     PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiLayoutAsset,
     UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
@@ -17,6 +17,10 @@ use crate::asset::{
 impl ProjectAssetManager {
     pub fn acquire_model_asset(&self, id: AssetId) -> Result<ResourceLease<ModelAsset>, CoreError> {
         self.acquire_typed(id, ResourceHandle::<ModelMarker>::new(id), "model")
+    }
+
+    pub fn acquire_mesh_asset(&self, id: AssetId) -> Result<ResourceLease<MeshAsset>, CoreError> {
+        self.acquire_typed(id, ResourceHandle::<MeshMarker>::new(id), "mesh")
     }
 
     pub fn acquire_material_asset(

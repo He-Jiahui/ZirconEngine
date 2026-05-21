@@ -605,8 +605,10 @@ fn node_kind_name(kind: &NodeKind) -> &'static str {
         NodeKind::Camera => "camera",
         NodeKind::Cube => "cube",
         NodeKind::Mesh => "mesh",
+        NodeKind::AmbientLight => "ambient_light",
         NodeKind::DirectionalLight => "directional_light",
         NodeKind::PointLight => "point_light",
+        NodeKind::RectLight => "rect_light",
         NodeKind::SpotLight => "spot_light",
     }
 }

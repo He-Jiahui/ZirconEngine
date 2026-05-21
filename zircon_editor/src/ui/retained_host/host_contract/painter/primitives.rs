@@ -643,11 +643,19 @@ fn rounded_rect_contains_pixel(x: u32, y: u32, rect: &FrameRect, corner_radius: 
     if radius <= 0.0 {
         return true;
     }
-    let center_x = px.clamp(left + radius, right - radius);
-    let center_y = py.clamp(top + radius, bottom - radius);
+    let center_x = clamp_to_ordered_range(px, left + radius, right - radius);
+    let center_y = clamp_to_ordered_range(py, top + radius, bottom - radius);
     let dx = px - center_x;
     let dy = py - center_y;
     dx * dx + dy * dy <= radius * radius
+}
+
+fn clamp_to_ordered_range(value: f32, min: f32, max: f32) -> f32 {
+    if min <= max {
+        value.clamp(min, max)
+    } else {
+        (min + max) * 0.5
+    }
 }
 
 fn inset_frame(rect: &FrameRect, amount: f32) -> FrameRect {
@@ -707,6 +715,12 @@ mod tests {
 
         assert_eq!(&frame.as_bytes()[0..4], &[60, 70, 80, 255]);
         assert_eq!(&frame.as_bytes()[4..8], &[60, 70, 80, 255]);
+    }
+
+    #[test]
+    fn rounded_rect_center_clamp_tolerates_crossed_float_bounds() {
+        let clamped = clamp_to_ordered_range(40.0, 40.0, 39.999_992);
+        assert!((clamped - 39.999_996).abs() <= f32::EPSILON);
     }
 
     #[test]

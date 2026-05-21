@@ -1,3 +1,4 @@
+use crate::core::framework::render::RenderLightReadinessReport;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::QueueLane;
 
@@ -100,11 +101,28 @@ pub(super) fn update_base_stats(
         state.renderer.last_sprite_texture_fallback_count();
     state.stats.last_sprite_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "sprite.");
-    state.stats.last_directional_light_count = context.scene_directional_lights().len();
-    state.stats.last_point_light_count = context.scene_point_lights().len();
-    state.stats.last_spot_light_count = context.scene_spot_lights().len();
-    state.stats.last_ambient_light_count = context.scene_ambient_lights().len();
-    state.stats.last_rect_light_count = context.scene_rect_lights().len();
+    let light_readiness = RenderLightReadinessReport::from_light_slices(
+        context.scene_directional_lights().len(),
+        context.scene_point_lights().len(),
+        context.scene_spot_lights().len(),
+        context.scene_ambient_lights(),
+        context.scene_rect_lights(),
+    );
+    state.stats.last_directional_light_count = light_readiness.directional.total_count;
+    state.stats.last_directional_light_ready_count = light_readiness.directional.ready_count;
+    state.stats.last_directional_light_degraded_count = light_readiness.directional.degraded_count;
+    state.stats.last_point_light_count = light_readiness.point.total_count;
+    state.stats.last_point_light_ready_count = light_readiness.point.ready_count;
+    state.stats.last_point_light_degraded_count = light_readiness.point.degraded_count;
+    state.stats.last_spot_light_count = light_readiness.spot.total_count;
+    state.stats.last_spot_light_ready_count = light_readiness.spot.ready_count;
+    state.stats.last_spot_light_degraded_count = light_readiness.spot.degraded_count;
+    state.stats.last_ambient_light_count = light_readiness.ambient.total_count;
+    state.stats.last_ambient_light_ready_count = light_readiness.ambient.ready_count;
+    state.stats.last_ambient_light_degraded_count = light_readiness.ambient.degraded_count;
+    state.stats.last_rect_light_count = light_readiness.rect.total_count;
+    state.stats.last_rect_light_ready_count = light_readiness.rect.ready_count;
+    state.stats.last_rect_light_degraded_count = light_readiness.rect.degraded_count;
 }
 
 fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {

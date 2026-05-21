@@ -6,15 +6,17 @@ use zircon_runtime::core::framework::sound::{
     SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundListenerDescriptor, SoundMixBlock,
     SoundParameterId, SoundPlaybackCompletionAction, SoundPlaybackFinishReason,
     SoundPlaybackFinished, SoundRayTracingConvolutionStatus, SoundSourceDescriptor,
-    SoundSourceInput, SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
+    SoundSourceFinishReason, SoundSourceFinished, SoundSourceId, SoundSourceInput, SoundTrackId,
+    SoundVolumeDescriptor, SoundVolumeShape,
 };
 
 use crate::SoundConfig;
 
 use super::dsp::{apply_track_controls, apply_track_effects, meter_for};
+use super::hrtf::{apply_loaded_hrtf_profile, prune_hrtf_render_states};
 use super::state::{ActivePlayback, SoundEngineState, SourceVoice};
 use super::validation::{track_render_order, validate_graph};
-use super::SoundEffectStateKey;
+use super::{SoundEffectStateKey, SoundHrtfRenderStateKey};
 
 const OCCLUSION_FALLBACK_GAIN: f32 = 0.7;
 const SPEED_OF_SOUND_METERS_PER_SECOND: f32 = 343.0;
@@ -189,7 +191,8 @@ impl SoundEngineState {
         let impulse_responses = self.impulse_responses.clone();
         let hrtf_profiles = self.hrtf_profiles.clone();
         let ray_tracing = self.ray_tracing.clone();
-        for voice in self.sources.values_mut() {
+        let mut finished = Vec::new();
+        for (source_id, voice) in self.sources.iter_mut() {
             let source_descriptor =
                 source_descriptor_with_parameter_bindings(&voice.descriptor, &parameters);
             if !source_descriptor.playing {
@@ -201,17 +204,19 @@ impl SoundEngineState {
                 SoundTrackId::master()
             };
             let mut source_buffer = vec![0.0; frames.saturating_mul(channels)];
-            mix_source_voice(
-                &mut source_buffer,
-                channels,
-                frames,
-                voice,
-                &source_descriptor,
-                &clips,
-                &external_sources,
-                &parameters,
-                config,
-            );
+            if voice.pending_finish.is_none() {
+                voice.pending_finish = mix_source_voice(
+                    &mut source_buffer,
+                    channels,
+                    frames,
+                    voice,
+                    &source_descriptor,
+                    &clips,
+                    &external_sources,
+                    &parameters,
+                    config,
+                );
+            }
             if !accepts_direct_input(output_track, solo_tracks) {
                 continue;
             }
@@ -220,14 +225,27 @@ impl SoundEngineState {
                 &mut source_buffer,
                 channels,
                 config.sample_rate_hz,
+                *source_id,
                 &source_descriptor,
                 active_listener_for(&listeners, output_track),
                 config.default_spatial_scale,
                 &volumes,
                 &impulse_responses,
                 &hrtf_profiles,
+                &mut self.hrtf_states,
                 &ray_tracing,
             );
+            if let Some(reason) = voice.pending_finish {
+                let has_tail = hrtf_tail_pending_for_source(
+                    &self.hrtf_states,
+                    *source_id,
+                    active_listener_for(&listeners, output_track),
+                    &hrtf_profiles,
+                );
+                if !has_tail {
+                    finished.push((*source_id, source_descriptor.clone(), reason));
+                }
+            }
             if let Some(destination) = track_buffers.get_mut(&output_track) {
                 add_scaled(destination, &source_buffer, 1.0);
             }
@@ -240,6 +258,25 @@ impl SoundEngineState {
                     };
                     add_scaled(destination, source, send.gain);
                 }
+            }
+        }
+        for (source_id, descriptor, reason) in finished {
+            if self.sources.remove(&source_id).is_some() {
+                let input = descriptor.input;
+                let clip = match input {
+                    SoundSourceInput::Clip(clip) => Some(clip),
+                    SoundSourceInput::External(_)
+                    | SoundSourceInput::SynthParameter { .. }
+                    | SoundSourceInput::Silence => None,
+                };
+                self.finished_sources.push(SoundSourceFinished {
+                    source: source_id,
+                    input,
+                    clip,
+                    reason,
+                    completion_action: descriptor.completion_action,
+                    output_track: descriptor.output_track,
+                });
             }
         }
     }
@@ -288,6 +325,31 @@ fn sync_runtime_states(state: &mut SoundEngineState) {
     state
         .effect_states
         .retain(|effect, _| effect_keys.contains(effect));
+
+    let listeners = state.listeners.values().cloned().collect::<Vec<_>>();
+    let parameters = state.parameters.clone();
+    let active_hrtf_keys = state
+        .sources
+        .iter()
+        .filter_map(|(source_id, voice)| {
+            let descriptor =
+                source_descriptor_with_parameter_bindings(&voice.descriptor, &parameters);
+            if !descriptor.playing && voice.pending_finish.is_none() {
+                return None;
+            }
+            let output_track = if track_ids.contains(&descriptor.output_track) {
+                descriptor.output_track
+            } else {
+                SoundTrackId::master()
+            };
+            let listener = active_listener_for(&listeners, output_track)?;
+            let profile_id = listener.hrtf_profile.as_deref()?;
+            state.hrtf_profiles.contains_key(profile_id).then(|| {
+                SoundHrtfRenderStateKey::new(*source_id, listener.id, profile_id.to_string())
+            })
+        })
+        .collect::<HashSet<_>>();
+    prune_hrtf_render_states(&mut state.hrtf_states, &active_hrtf_keys);
 }
 
 fn latency_frames_for_graph(
@@ -409,28 +471,33 @@ fn mix_source_voice(
     external_sources: &HashMap<ExternalAudioSourceHandle, SoundExternalSourceBlock>,
     parameters: &HashMap<zircon_runtime::core::framework::sound::SoundParameterId, f32>,
     config: &SoundConfig,
-) {
+) -> Option<SoundSourceFinishReason> {
     match &descriptor.input {
         SoundSourceInput::Clip(clip_id) => {
             let Some(clip) = clips.get(clip_id) else {
-                return;
+                return Some(SoundSourceFinishReason::MissingClip);
             };
+            let range = source_clip_range(
+                descriptor,
+                clip.asset.sample_rate_hz,
+                clip.asset.frame_count(),
+            );
             let mut playback = ActivePlayback {
                 clip: *clip_id,
                 cursor_frame: voice.cursor_frame,
                 cursor_position: voice.cursor_position,
                 gain: descriptor.gain,
-                speed: 1.0,
+                speed: descriptor.speed,
                 looped: descriptor.looped,
                 completion_action: SoundPlaybackCompletionAction::None,
                 paused: false,
-                muted: false,
-                range_start_frame: 0,
-                range_end_frame: None,
+                muted: descriptor.muted,
+                range_start_frame: range.0,
+                range_end_frame: range.1,
                 output_track: descriptor.output_track,
                 pan: 0.0,
             };
-            mix_clip_playback(
+            let finished = mix_clip_playback(
                 destination,
                 output_channels,
                 frames,
@@ -440,12 +507,13 @@ fn mix_source_voice(
             );
             voice.cursor_frame = playback.cursor_frame;
             voice.cursor_position = playback.cursor_position;
+            finished.then_some(SoundSourceFinishReason::Completed)
         }
         SoundSourceInput::External(handle) => {
             let Some(block) = external_sources.get(handle) else {
-                return;
+                return None;
             };
-            mix_external_source_block(
+            let finished = mix_external_source_block(
                 destination,
                 output_channels,
                 frames,
@@ -456,6 +524,7 @@ fn mix_source_voice(
                 &mut voice.cursor_frame,
                 &mut voice.cursor_position,
             );
+            finished.then_some(SoundSourceFinishReason::Completed)
         }
         SoundSourceInput::SynthParameter {
             parameter,
@@ -469,9 +538,28 @@ fn mix_source_voice(
             for sample in destination {
                 *sample += value * descriptor.gain;
             }
+            None
         }
-        SoundSourceInput::Silence => {}
+        SoundSourceInput::Silence => None,
     }
+}
+
+fn source_clip_range(
+    descriptor: &SoundSourceDescriptor,
+    sample_rate_hz: u32,
+    frame_count: usize,
+) -> (usize, Option<usize>) {
+    let sample_rate = sample_rate_hz.max(1) as f32;
+    let start_frame = descriptor
+        .start_seconds
+        .map(|seconds| (seconds * sample_rate).round().max(0.0) as usize)
+        .unwrap_or_default()
+        .min(frame_count);
+    let end_frame = descriptor.duration_seconds.map(|seconds| {
+        let duration_frames = (seconds * sample_rate).round().max(0.0) as usize;
+        start_frame.saturating_add(duration_frames).min(frame_count)
+    });
+    (start_frame, end_frame)
 }
 
 fn source_descriptor_with_parameter_bindings(
@@ -491,8 +579,10 @@ fn source_descriptor_with_parameter_bindings(
 fn apply_source_bound_parameter(source: &mut SoundSourceDescriptor, parameter: &str, value: f32) {
     match parameter {
         "gain" => source.gain = value,
+        "speed" => source.speed = value,
         "playing" => source.playing = bool_from_parameter(value),
         "looped" => source.looped = bool_from_parameter(value),
+        "muted" => source.muted = bool_from_parameter(value),
         "position_x" => source.position[0] = value,
         "position_y" => source.position[1] = value,
         "position_z" => source.position[2] = value,
@@ -503,6 +593,7 @@ fn apply_source_bound_parameter(source: &mut SoundSourceDescriptor, parameter: &
         "velocity_y" => source.velocity[1] = value,
         "velocity_z" => source.velocity[2] = value,
         "spatial_blend" => source.spatial.spatial_blend = value,
+        "spatial_scale" => source.spatial.spatial_scale = Some(value),
         "min_distance" => source.spatial.min_distance = value,
         "max_distance" => source.spatial.max_distance = value,
         "cone_inner_degrees" => source.spatial.cone_inner_degrees = value,
@@ -527,14 +618,14 @@ fn mix_external_source_block(
     output_sample_rate_hz: u32,
     cursor_frame: &mut usize,
     cursor_position: &mut f64,
-) {
+) -> bool {
     let source_channels = block.channel_count as usize;
     if source_channels == 0 {
-        return;
+        return !looped;
     }
     let frame_count = block.samples.len() / source_channels;
     if frame_count == 0 {
-        return;
+        return !looped;
     }
     let step = resample_step(block.sample_rate_hz, output_sample_rate_hz);
 
@@ -543,7 +634,7 @@ fn mix_external_source_block(
             next_source_frame_position(cursor_position, frame_count, step, looped)
         else {
             *cursor_frame = frame_count;
-            return;
+            return true;
         };
 
         let output_offset = frame_index * output_channels;
@@ -562,6 +653,7 @@ fn mix_external_source_block(
         }
         *cursor_frame = cursor_position.floor() as usize;
     }
+    false
 }
 
 fn resample_step(source_sample_rate_hz: u32, output_sample_rate_hz: u32) -> f64 {
@@ -713,20 +805,30 @@ fn apply_source_environment(
     buffer: &mut [f32],
     channels: usize,
     sample_rate_hz: u32,
+    source_id: SoundSourceId,
     source: &SoundSourceDescriptor,
     listener: Option<&SoundListenerDescriptor>,
     spatial_scale: f32,
     volumes: &[SoundVolumeDescriptor],
     impulse_responses: &HashMap<SoundImpulseResponseId, Vec<f32>>,
     hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
+    hrtf_states: &mut HashMap<SoundHrtfRenderStateKey, super::SoundHrtfRenderState>,
     ray_tracing: &SoundRayTracingConvolutionStatus,
 ) {
     let mut gain = 1.0;
     let mut pan = 0.0;
 
     if let Some(listener) = listener {
+        let spatial_scale = source.spatial.spatial_scale.unwrap_or(spatial_scale);
         let spatial = spatial_profile(source, listener, sample_rate_hz, spatial_scale);
-        if !apply_loaded_hrtf_profile(buffer, channels, listener, hrtf_profiles) {
+        if !apply_loaded_hrtf_profile_for_source(
+            buffer,
+            channels,
+            source_id,
+            listener,
+            hrtf_profiles,
+            hrtf_states,
+        ) {
             apply_hrtf_preview(buffer, channels, spatial);
         }
         gain *= spatial.gain;
@@ -938,50 +1040,49 @@ fn apply_hrtf_preview(buffer: &mut [f32], channels: usize, spatial: SpatialProfi
     }
 }
 
-fn apply_loaded_hrtf_profile(
+fn apply_loaded_hrtf_profile_for_source(
     buffer: &mut [f32],
     channels: usize,
+    source_id: SoundSourceId,
     listener: &SoundListenerDescriptor,
     hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
+    hrtf_states: &mut HashMap<SoundHrtfRenderStateKey, super::SoundHrtfRenderState>,
 ) -> bool {
-    if channels < 2 {
-        return false;
-    }
-    let Some(profile_id) = listener.hrtf_profile.as_deref() else {
+    let Some(profile_id) = listener
+        .hrtf_profile
+        .as_deref()
+        .filter(|profile_id| !profile_id.is_empty())
+    else {
         return false;
     };
     let Some(profile) = hrtf_profiles.get(profile_id) else {
         return false;
     };
 
-    let dry = buffer.to_vec();
-    let frames = buffer.len() / channels;
-    for frame in 0..frames {
-        buffer[frame * channels] =
-            convolve_channel_sample(&dry, channels, frame, 0, profile.left_kernel.as_slice());
-        buffer[frame * channels + 1] =
-            convolve_channel_sample(&dry, channels, frame, 1, profile.right_kernel.as_slice());
-    }
-    true
+    let key = SoundHrtfRenderStateKey::new(source_id, listener.id, profile_id.to_string());
+    let state = hrtf_states.entry(key).or_default();
+    apply_loaded_hrtf_profile(buffer, channels, profile, state)
 }
 
-fn convolve_channel_sample(
-    dry: &[f32],
-    channels: usize,
-    frame: usize,
-    channel: usize,
-    kernel: &[f32],
-) -> f32 {
-    kernel
-        .iter()
-        .enumerate()
-        .filter_map(|(tap, gain)| {
-            frame
-                .checked_sub(tap)
-                .and_then(|source_frame| dry.get(source_frame * channels + channel))
-                .map(|sample| *sample * *gain)
-        })
-        .sum()
+fn hrtf_tail_pending_for_source(
+    hrtf_states: &HashMap<SoundHrtfRenderStateKey, super::SoundHrtfRenderState>,
+    source_id: SoundSourceId,
+    listener: Option<&SoundListenerDescriptor>,
+    hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
+) -> bool {
+    let Some(listener) = listener else {
+        return false;
+    };
+    let Some(profile_id) = listener.hrtf_profile.as_deref() else {
+        return false;
+    };
+    if !hrtf_profiles.contains_key(profile_id) {
+        return false;
+    }
+    let key = SoundHrtfRenderStateKey::new(source_id, listener.id, profile_id.to_string());
+    hrtf_states
+        .get(&key)
+        .is_some_and(super::SoundHrtfRenderState::has_pending_tail)
 }
 
 fn attenuation_gain(

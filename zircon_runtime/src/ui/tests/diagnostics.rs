@@ -1,7 +1,11 @@
 use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::{UiFrame, UiPoint},
+    layout::{
+        UiContainerKind, UiFrame, UiLayoutEngineBackend, UiLayoutEngineFallbackReason,
+        UiLayoutEngineFamily, UiLayoutEngineSupport, UiLinearBoxConfig, UiPoint, UiSize,
+        UiSizeBoxConfig,
+    },
     surface::{
         UiDebugOverlayPrimitiveKind, UiHitTestRejectReason, UiRenderCommandKind,
         UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UI_SURFACE_DEBUG_SCHEMA_VERSION,
@@ -178,6 +182,87 @@ fn surface_debug_snapshot_json_roundtrips_export_payload() {
     assert!(!snapshot.render.command_records.is_empty());
     assert!(!snapshot.hit_test.cell_records.is_empty());
     assert!(!snapshot.overdraw.cells.is_empty());
+}
+
+#[test]
+fn surface_debug_snapshot_json_exports_layout_engine_route_report() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.diagnostics.layout_engine"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(10), UiNodePath::new("root")).with_container(
+            UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+        ),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(10),
+            UiTreeNode::new(UiNodeId::new(11), UiNodePath::new("root/child")),
+        )
+        .unwrap();
+    surface.compute_layout(UiSize::new(120.0, 24.0)).unwrap();
+
+    let json = surface
+        .debug_snapshot_json(&UiSurfaceDebugOptions::default())
+        .expect("debug snapshot json");
+    assert!(json.contains("\"layout_engine_report\""));
+
+    let snapshot: UiSurfaceDebugSnapshot = serde_json::from_str(&json).expect("roundtrip snapshot");
+    let report = &snapshot.layout_engine_report;
+    assert_eq!(report.request_count, 1);
+    assert_eq!(report.taffy_selected_count, 1);
+    assert_eq!(report.legacy_selected_count, 0);
+
+    let root = report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(UiNodeId::new(10)))
+        .expect("root layout route selection");
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Taffy);
+    assert_eq!(root.support, UiLayoutEngineSupport::Native);
+}
+
+#[test]
+fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.diagnostics.layout_fallback"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(20), UiNodePath::new("root")).with_container(
+            UiContainerKind::SizeBox(UiSizeBoxConfig { aspect_ratio: 2.0 }),
+        ),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(20),
+            UiTreeNode::new(UiNodeId::new(21), UiNodePath::new("root/child")),
+        )
+        .unwrap();
+    surface.compute_layout(UiSize::new(100.0, 100.0)).unwrap();
+
+    let json = surface
+        .debug_snapshot_json(&UiSurfaceDebugOptions::default())
+        .expect("debug snapshot json");
+    assert!(json.contains("\"selected_backend\": \"legacy_zircon\""));
+    assert!(json.contains("\"fallback_reason\": \"zircon_owned_semantics\""));
+
+    let snapshot: UiSurfaceDebugSnapshot = serde_json::from_str(&json).expect("roundtrip snapshot");
+    let report = &snapshot.layout_engine_report;
+    assert_eq!(report.request_count, 1);
+    assert_eq!(report.taffy_selected_count, 0);
+    assert_eq!(report.legacy_selected_count, 1);
+    assert_eq!(report.fallback_count, 1);
+
+    let root = report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(UiNodeId::new(20)))
+        .expect("root layout route selection");
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Container);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
 }
 
 #[test]

@@ -8,6 +8,14 @@ use super::{ComponentRemoveResult, StorageError};
 
 type StoredComponent = Box<dyn Any + Send + Sync>;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ComponentStorageLocation {
+    pub component_id: ComponentId,
+    pub storage_type: StorageType,
+    pub entity: InternalEntity,
+    pub table_row: Option<usize>,
+}
+
 #[derive(Default)]
 pub struct ComponentStorage {
     storage_types: HashMap<ComponentId, StorageType>,
@@ -196,6 +204,74 @@ impl ComponentStorage {
                 .sparse_components
                 .get(&component_id)
                 .and_then(|storage| storage.ticks(entity)),
+        }
+    }
+
+    pub fn location(
+        &self,
+        component_id: ComponentId,
+        entity: InternalEntity,
+    ) -> Option<ComponentStorageLocation> {
+        match self.storage_types.get(&component_id).copied()? {
+            StorageType::Table => {
+                let row = self.table_components.get(&component_id)?.row(entity)?;
+                Some(ComponentStorageLocation {
+                    component_id,
+                    storage_type: StorageType::Table,
+                    entity,
+                    table_row: Some(row),
+                })
+            }
+            StorageType::SparseSet => self
+                .sparse_components
+                .get(&component_id)?
+                .contains(entity)
+                .then_some(ComponentStorageLocation {
+                    component_id,
+                    storage_type: StorageType::SparseSet,
+                    entity,
+                    table_row: None,
+                }),
+        }
+    }
+
+    pub fn get_table_row<T>(
+        &self,
+        component_id: ComponentId,
+        row: usize,
+    ) -> Option<(InternalEntity, &T, ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        if self.storage_types.get(&component_id).copied()? != StorageType::Table {
+            return None;
+        }
+        self.table_components
+            .get(&component_id)
+            .and_then(|storage| storage.get_row(row))
+    }
+
+    pub fn get_with_ticks_at_location<T>(
+        &self,
+        location: ComponentStorageLocation,
+    ) -> Option<(&T, ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        match location.storage_type {
+            StorageType::Table => {
+                let row = location.table_row?;
+                let (entity, value, ticks) = self.get_table_row::<T>(location.component_id, row)?;
+                (entity == location.entity).then_some((value, ticks))
+            }
+            StorageType::SparseSet => {
+                if location.table_row.is_some() {
+                    return None;
+                }
+                let value = self.get::<T>(location.component_id, location.entity)?;
+                let ticks = self.ticks(location.component_id, location.entity)?;
+                Some((value, ticks))
+            }
         }
     }
 
@@ -388,6 +464,19 @@ impl TableComponentStorage {
 
     fn contains(&self, entity: InternalEntity) -> bool {
         self.rows.contains_key(&entity)
+    }
+
+    fn row(&self, entity: InternalEntity) -> Option<usize> {
+        self.rows.get(&entity).copied()
+    }
+
+    fn get_row<T>(&self, row: usize) -> Option<(InternalEntity, &T, ComponentTicks)>
+    where
+        T: 'static + Send + Sync,
+    {
+        let entry = self.entries.get(row)?;
+        let value = entry.value.downcast_ref::<T>()?;
+        Some((entry.entity, value, entry.ticks))
     }
 
     fn ticks(&self, entity: InternalEntity) -> Option<ComponentTicks> {

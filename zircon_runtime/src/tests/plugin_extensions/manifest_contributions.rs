@@ -392,6 +392,11 @@ fn plugin_package_manifest_declares_public_package_metadata() {
         ]
     );
     assert_eq!(manifest.asset_roots, vec!["assets".to_string()]);
+    assert_eq!(manifest.package_id(), "com.zircon.weather");
+    assert_eq!(
+        manifest.asset_roots_or_default(),
+        vec!["assets".to_string()]
+    );
     assert_eq!(manifest.content_roots, vec!["content".to_string()]);
     assert!(manifest
         .modules

@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
@@ -28,6 +30,8 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
   - zircon_editor/src/ui/retained_host/ui/tests.rs
 implementation_files:
+  - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
@@ -66,6 +70,12 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
+  - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_overlays --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib ui_debug_reflector_model_flattens_sections_for_runtime_diagnostics_display --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/host/pane_template_descriptor.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
@@ -90,7 +100,9 @@ The editor debug reflector is the workbench-side consumer for `UiSurfaceDebugSna
 
 ## Model
 
-`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives all values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status.
+`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives all values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, layout engine selection, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status. `section_display_lines()` is the single formatter for section titles and indented lines used by both pane payload construction and retained-host live refresh, so Runtime Diagnostics cannot drift between the active-snapshot and body-surface paths.
+
+The layout engine section consumes `UiSurfaceDebugSnapshot.layout_engine_report`. It reports total requests, Taffy-selected containers, Zircon-selected containers, fallback count, unsupported count, and a bounded per-node preview with family, requested backend, selected backend, support state, and fallback reason. Editor code only displays the runtime-owned report; it does not rerun layout or infer backend ownership from arranged coordinates.
 
 The M7 render visualizer section consumes `UiSurfaceDebugSnapshot.render_batches.visualizer`. It exposes paint element count, batch groups, draw calls, visualizer overlay count, overdraw regions, resource binding count, text backend/glyph/decorator counters, and paint-cache reuse/rebuild counters. The renderer parity section consumes `render_batches.parity` and reports the canonical paint/batch row counts that runtime and editor renderers can compare without reading backend-private draw commands.
 
@@ -104,9 +116,9 @@ When the current pane pipeline has no active shared UI surface frame, `no_active
 
 ## Runtime Diagnostics Pane
 
-Milestone 3 embeds the first reflector view in Runtime Diagnostics. The pane payload carries `ui_debug_reflector_summary`, node rows, detail lines, and export status. `pane_payload_projection.rs` injects those fields as template root attributes, while `runtime_diagnostics_body.ui.toml` exposes reflector summary/export/detail/list anchors.
+Milestone 3 embeds the first reflector view in Runtime Diagnostics. The pane payload carries `ui_debug_reflector_summary`, node rows, detail lines, subsystem section lines, and export status. `pane_payload_projection.rs` injects those fields as template root attributes, while `runtime_diagnostics_body.ui.toml` exposes reflector summary/export/detail/list anchors. Host conversion renders section titles and lines in the same generated text area as the reflector details, so the `Layout Engine` routing report is visible in Runtime Diagnostics instead of being limited to the in-memory model.
 
-Debug Observatory M1 adds a direct payload-build seam for an explicitly supplied active `UiSurfaceDebugSnapshot`. When `PanePayloadBuildContext::with_active_ui_debug_snapshot(...)` is used, Runtime Diagnostics projects the supplied snapshot into summary rows, details, export status, and shared overlay primitives before host conversion. When no active snapshot is supplied, the pane keeps the stable no-active placeholder and the later host-body refresh path can still derive a diagnostics-only snapshot from the pane's own `body_surface_frame`.
+Debug Observatory M1 adds a direct payload-build seam for an explicitly supplied active `UiSurfaceDebugSnapshot`. When `PanePayloadBuildContext::with_active_ui_debug_snapshot(...)` is used, Runtime Diagnostics projects the supplied snapshot into summary rows, details, sections, export status, and shared overlay primitives before host conversion. When no active snapshot is supplied, the pane keeps the stable no-active placeholder and the later host-body refresh path can still derive a diagnostics-only snapshot from the pane's own `body_surface_frame`.
 
 ## Snapshot Timeline
 
@@ -114,11 +126,11 @@ Debug Observatory M2 adds a runtime-owned bounded snapshot timeline. `zircon_run
 
 The editor timeline model is deliberately read-only. `EditorUiDebugTimelineModel::from_timeline(...)` derives retention text, latest/selected labels, previous/next frame handles, frame rows, and a selected-frame `EditorUiDebugReflectorModel` from the shared timeline snapshot. If the selected handle is missing, the model falls back to the latest retained frame; if the timeline is empty, it reuses `EditorUiDebugReflectorModel::no_active_surface()`. Historical selection never calls runtime layout, hit-test, mutation, or rebuild APIs.
 
-The retained host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
+The retained host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details, subsystem sections, and node rows. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
 
 The host-scene conversion seam is part of the reflector acceptance boundary because Runtime Diagnostics eventually travels through `apply_presentation.rs::to_host_contract_pane(...)` like every other workbench pane. That conversion must be payload-driven, not string-only. A host-scene pane may use a synthetic pane kind while carrying a real host-owned native-body payload; non-empty native-body buckets are therefore preserved even when `kind` is not the canonical editor pane label. The regression `host_scene_projection_converts_host_owned_panes_to_host_contract_panes` locks this boundary so Debug Reflector and other native panes do not lose their template nodes before the host contract rebuilds `body_surface_frame`.
 
-The live M7 projection refresh is deliberately narrow. It only rebuilds the Runtime Diagnostics pane a second time when the first `body_surface_frame` produced a fresh reflector model. All other panes keep the existing single-pass presentation conversion. The generated model includes visibility, enabled state, input policy, clickable/hoverable/focusable flags, render/hit counts, focus/capture/pressed/hovered state, hit path, bubble route, reject reason, material batch breaks, and dirty flags so the pane mirrors the shared snapshot instead of local host guesses.
+The live M7 projection refresh is deliberately narrow. It only rebuilds the Runtime Diagnostics pane a second time when the first `body_surface_frame` produced a fresh reflector model. All other panes keep the existing single-pass presentation conversion. The generated model includes visibility, enabled state, input policy, clickable/hoverable/focusable flags, render/hit counts, focus/capture/pressed/hovered state, hit path, bubble route, reject reason, material batch breaks, layout-engine routing sections, and dirty flags so the pane mirrors the shared snapshot instead of local host guesses.
 
 ## Debug Observatory Window Tool
 
@@ -143,3 +155,9 @@ The editor reflector must not rebuild a hit grid, infer layout from host rectang
 ## Validation
 
 M7 debug-reflector validation on 2026-05-07 used `E:\zircon-build\targets-ui-m7-current`: `rustfmt --edition 2021 --check` over the reflector/runtime-diagnostics touched files, `cargo check -p zircon_editor --lib`, `cargo test -p zircon_editor --lib ui_debug_reflector`, `cargo test -p zircon_editor --lib presenter::tests`, and `cargo test -p zircon_editor --lib rust_owned_host_window_snapshot_draws_top_right_debug_refresh_rate`. These passed with existing warning noise. The live Runtime Diagnostics regression is covered by `runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_overlays` inside the `ui_debug_reflector` filter.
+
+The 2026-05-20 layout-engine reflector extension passed `cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never` with `1 passed; 0 failed; 1397 filtered out`. The cold run took `30m 50s` and reported existing `zircon_runtime`/`zircon_editor` warning noise.
+
+The Runtime Diagnostics payload/display continuation on 2026-05-20 passed the focused payload, template-attribute, payload-host, and live-body refresh tests listed above. The first payload rerun passed with `1 passed; 0 failed; 1402 filtered out` after a `12m 23s` rebuild; warmed follow-up tests each passed with `1 passed; 0 failed; 1402 filtered out`. These runs reported the same existing `zircon_runtime` dead-code warning and `zircon_editor` sprite-atlas unused-import warnings.
+
+The section-display convergence added `ui_debug_reflector_model_flattens_sections_for_runtime_diagnostics_display` to lock the shared formatter that feeds Runtime Diagnostics payloads and retained-host live refresh. The first focused editor rerun on 2026-05-20 timed out after 20 minutes without producing pass/fail output while many unrelated Cargo/rustc processes were active. A background rerun of the same command then completed with `1 passed; 0 failed; 1413 filtered out` after `19m 34s` and exposed a local unused re-export warning, which was removed. The final warmed rerun passed with `1 passed; 0 failed; 1413 filtered out` after `12m 05s`, leaving only the existing runtime reflection/system and editor sprite-atlas warning noise.

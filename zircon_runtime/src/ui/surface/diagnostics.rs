@@ -111,6 +111,7 @@ fn debug_surface_frame_with_context(
         roots: surface_frame.arranged_tree.roots.clone(),
         nodes,
         rebuild: surface_frame.last_rebuild,
+        layout_engine_report: surface_frame.layout_engine_report.clone(),
         render,
         render_batches: UiRenderDebugSnapshot::from_render_extract(&surface_frame.render_extract),
         hit_test,

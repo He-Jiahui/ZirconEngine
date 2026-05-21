@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::{
         UiA11yCheckedState, UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
         UiAccessibilityContract, UiAccessibilityDiagnosticCode,
     },
+    binding::UiBindingSourceKind,
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiAccessibilityInputEvent, UiDispatchDisposition, UiInputDispatchResult, UiInputEvent,
@@ -90,6 +91,31 @@ fn has_note(result: &UiInputDispatchResult, needle: &str) -> bool {
         .notes
         .iter()
         .any(|note| note.contains(needle))
+}
+
+fn assert_accessibility_binding_report(
+    result: &UiInputDispatchResult,
+    expected_applied_count: u64,
+) {
+    assert_eq!(result.binding_reports.len(), 1);
+    let report = &result.binding_reports[0];
+    assert_eq!(report.applied_count, expected_applied_count);
+    assert_eq!(report.rejected_count, 0);
+    assert_eq!(
+        report.updates.first().map(|update| update.source.kind),
+        Some(UiBindingSourceKind::AccessibilityAction)
+    );
+}
+
+fn assert_widget_binding_report(result: &UiInputDispatchResult) {
+    assert_eq!(result.binding_reports.len(), 1);
+    let report = &result.binding_reports[0];
+    assert!(report.applied_count > 0);
+    assert_eq!(report.rejected_count, 0);
+    assert_eq!(
+        report.updates.first().map(|update| update.source.kind),
+        Some(UiBindingSourceKind::WidgetBehavior)
+    );
 }
 
 #[test]
@@ -1426,6 +1452,7 @@ fn accessibility_activate_uses_widget_toggle_behavior_alias() {
         Some("accessibility.activate")
     );
     assert!(result.component_events.is_empty());
+    assert_widget_binding_report(&result);
     let metadata = surface
         .tree
         .node(id(2))
@@ -1483,6 +1510,7 @@ fn accessibility_activate_uses_runtime_component_checked_value_alias() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.activate")
     );
+    assert_widget_binding_report(&result);
     let metadata = surface
         .tree
         .node(id(2))
@@ -1545,6 +1573,7 @@ fn accessibility_activate_uses_widget_disclosure_open_alias() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.activate")
     );
+    assert_widget_binding_report(&result);
     let metadata = surface
         .tree
         .node(id(2))
@@ -1684,6 +1713,11 @@ fn accessibility_increment_and_decrement_step_slider_value() {
         Some("accessibility.adjust_value")
     );
     assert!(has_note(&result, "status=accepted"));
+    assert!(has_note(
+        &result,
+        "accessibility_binding_source:AccessibilityAction"
+    ));
+    assert_accessibility_binding_report(&result, 2);
     assert!(result.component_events.iter().any(|event| {
         event.target == id(2)
             && event.delivered
@@ -1718,6 +1752,11 @@ fn accessibility_increment_and_decrement_step_slider_value() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.adjust_value")
     );
+    assert!(has_note(
+        &result,
+        "accessibility_binding_source:AccessibilityAction"
+    ));
+    assert_accessibility_binding_report(&result, 2);
     assert!(result.component_events.iter().any(|event| {
         event.target == id(2)
             && event.delivered
@@ -1797,6 +1836,11 @@ fn accessibility_increment_uses_runtime_component_state_range_contract() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.adjust_value")
     );
+    assert!(has_note(
+        &result,
+        "accessibility_binding_source:AccessibilityAction"
+    ));
+    assert_accessibility_binding_report(&result, 2);
     assert!(result.component_events.iter().any(|event| {
         event.target == id(2)
             && event.delivered
@@ -1867,6 +1911,12 @@ fn accessibility_set_value_uses_widget_value_property_alias() {
         Some("accessibility.set_value")
     );
     assert!(has_note(&result, "status=accepted"));
+    assert!(has_note(
+        &result,
+        "accessibility_binding_source:AccessibilityAction"
+    ));
+    assert!(has_note(&result, "accessibility_binding_updates:applied=2"));
+    assert_accessibility_binding_report(&result, 2);
     assert_eq!(
         result.component_events,
         vec![
@@ -1946,6 +1996,12 @@ fn accessibility_set_value_uses_runtime_component_state_value_alias() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.set_value")
     );
+    assert!(has_note(
+        &result,
+        "accessibility_binding_source:AccessibilityAction"
+    ));
+    assert!(has_note(&result, "accessibility_binding_updates:applied=2"));
+    assert_accessibility_binding_report(&result, 2);
     let metadata = surface
         .tree
         .node(id(2))
@@ -2043,6 +2099,7 @@ fn accessibility_set_value_updates_editable_text_property() {
         Some("accessibility.set_value")
     );
     assert!(has_note(&result, "status=accepted"));
+    assert_accessibility_binding_report(&result, 2);
     assert_eq!(
         result.component_events,
         vec![
@@ -2110,6 +2167,7 @@ fn accessibility_set_value_without_existing_text_or_value_is_unsupported() {
     assert!(has_note(&result, "status=unsupported"));
     assert!(has_note(&result, "code=unsupported_role_action"));
     assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
     let metadata = surface
         .tree
         .node(id(2))

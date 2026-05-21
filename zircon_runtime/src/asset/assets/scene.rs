@@ -133,6 +133,26 @@ pub struct SceneMeshInstanceAsset {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneAmbientLightAsset {
+    #[serde(default = "default_light_color")]
+    pub color: [Real; 3],
+    #[serde(default = "default_ambient_light_intensity")]
+    pub intensity: Real,
+    #[serde(default = "default_true")]
+    pub affects_lightmapped_meshes: bool,
+}
+
+impl Default for SceneAmbientLightAsset {
+    fn default() -> Self {
+        Self {
+            color: default_light_color(),
+            intensity: default_ambient_light_intensity(),
+            affects_lightmapped_meshes: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneDirectionalLightAsset {
     pub direction: [Real; 3],
     pub color: [Real; 3],
@@ -144,6 +164,29 @@ pub struct ScenePointLightAsset {
     pub color: [Real; 3],
     pub intensity: Real,
     pub range: Real,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneRectLightAsset {
+    #[serde(default = "default_light_color")]
+    pub color: [Real; 3],
+    #[serde(default = "default_rect_light_intensity")]
+    pub intensity: Real,
+    #[serde(default = "default_rect_light_range")]
+    pub range: Real,
+    #[serde(default = "default_rect_light_size")]
+    pub size: [Real; 2],
+}
+
+impl Default for SceneRectLightAsset {
+    fn default() -> Self {
+        Self {
+            color: default_light_color(),
+            intensity: default_rect_light_intensity(),
+            range: default_rect_light_range(),
+            size: default_rect_light_size(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -325,9 +368,13 @@ pub struct SceneEntityAsset {
     pub mobility: SceneMobilityAsset,
     pub camera: Option<SceneCameraAsset>,
     pub mesh: Option<SceneMeshInstanceAsset>,
+    #[serde(default)]
+    pub ambient_light: Option<SceneAmbientLightAsset>,
     pub directional_light: Option<SceneDirectionalLightAsset>,
     #[serde(default)]
     pub point_light: Option<ScenePointLightAsset>,
+    #[serde(default)]
+    pub rect_light: Option<SceneRectLightAsset>,
     #[serde(default)]
     pub spot_light: Option<SceneSpotLightAsset>,
     #[serde(default)]
@@ -476,4 +523,24 @@ const fn default_vec3_zero() -> [Real; 3] {
 
 const fn default_vec3_up() -> [Real; 3] {
     [0.0, 1.0, 0.0]
+}
+
+const fn default_light_color() -> [Real; 3] {
+    [1.0, 1.0, 1.0]
+}
+
+const fn default_ambient_light_intensity() -> Real {
+    80.0
+}
+
+const fn default_rect_light_intensity() -> Real {
+    1_000_000.0
+}
+
+const fn default_rect_light_range() -> Real {
+    20.0
+}
+
+const fn default_rect_light_size() -> [Real; 2] {
+    [1.0, 1.0]
 }

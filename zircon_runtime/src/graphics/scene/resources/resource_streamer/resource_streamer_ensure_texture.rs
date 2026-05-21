@@ -34,7 +34,7 @@ impl ResourceStreamer {
             texture_layout,
             id,
             texture,
-        ));
+        )?);
         self.textures
             .insert(id, PreparedTexture { revision, resource });
         Ok(())

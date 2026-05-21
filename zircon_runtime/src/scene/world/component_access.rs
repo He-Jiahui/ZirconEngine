@@ -1,8 +1,9 @@
 use super::World;
 use crate::scene::components::{
-    AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
-    AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, ColliderComponent,
-    JointComponent, PointLight, RigidBodyComponent, SpotLight,
+    AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, ColliderComponent, JointComponent, PointLight, RectLight,
+    RigidBodyComponent, SpotLight,
 };
 use crate::scene::EntityId;
 
@@ -19,8 +20,16 @@ impl World {
         self.joints.get(&entity)
     }
 
+    pub fn ambient_light(&self, entity: EntityId) -> Option<&AmbientLight> {
+        self.ambient_lights.get(&entity)
+    }
+
     pub fn point_light(&self, entity: EntityId) -> Option<&PointLight> {
         self.point_lights.get(&entity)
+    }
+
+    pub fn rect_light(&self, entity: EntityId) -> Option<&RectLight> {
+        self.rect_lights.get(&entity)
     }
 
     pub fn spot_light(&self, entity: EntityId) -> Option<&SpotLight> {
@@ -147,6 +156,54 @@ impl World {
                 }
             }
             None => self.remove::<PointLight>(entity)?.is_some(),
+        };
+        Ok(changed)
+    }
+
+    pub fn set_ambient_light(
+        &mut self,
+        entity: EntityId,
+        ambient_light: Option<AmbientLight>,
+    ) -> Result<bool, String> {
+        if !self.contains_entity(entity) {
+            return Err(format!(
+                "cannot update ambient light for missing node {entity}"
+            ));
+        }
+        let changed = match ambient_light {
+            Some(ambient_light) => {
+                if self.ambient_lights.get(&entity) == Some(&ambient_light) {
+                    false
+                } else {
+                    self.insert(entity, ambient_light)?;
+                    true
+                }
+            }
+            None => self.remove::<AmbientLight>(entity)?.is_some(),
+        };
+        Ok(changed)
+    }
+
+    pub fn set_rect_light(
+        &mut self,
+        entity: EntityId,
+        rect_light: Option<RectLight>,
+    ) -> Result<bool, String> {
+        if !self.contains_entity(entity) {
+            return Err(format!(
+                "cannot update rect light for missing node {entity}"
+            ));
+        }
+        let changed = match rect_light {
+            Some(rect_light) => {
+                if self.rect_lights.get(&entity) == Some(&rect_light) {
+                    false
+                } else {
+                    self.insert(entity, rect_light)?;
+                    true
+                }
+            }
+            None => self.remove::<RectLight>(entity)?.is_some(),
         };
         Ok(changed)
     }

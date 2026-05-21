@@ -7,13 +7,15 @@ use super::{
     SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
     SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackFinished, SoundPlaybackId,
     SoundPlaybackSettings, SoundPlaybackStatus, SoundRayTracedImpulseResponseDescriptor,
-    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence,
-    SoundTimelineSequenceAdvance, SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId,
-    SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId,
+    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceFinished, SoundSourceId,
+    SoundSourceStatus, SoundTimelineSequence, SoundTimelineSequenceAdvance,
+    SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
+    SoundVolumeDescriptor, SoundVolumeId,
 };
 use super::{
     SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventDescriptor,
-    SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
+    SoundDynamicEventExecutionReport, SoundDynamicEventHandlerDescriptor,
+    SoundDynamicEventInvocation,
 };
 
 pub trait SoundManager: Send + Sync {
@@ -83,6 +85,19 @@ pub trait SoundManager: Send + Sync {
     fn create_source(&self, source: SoundSourceDescriptor) -> Result<SoundSourceId, SoundError>;
     fn update_source(&self, source: SoundSourceDescriptor) -> Result<(), SoundError>;
     fn remove_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn stop_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn pause_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn resume_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn toggle_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn set_source_gain(&self, source: SoundSourceId, gain: f32) -> Result<(), SoundError>;
+    fn set_source_speed(&self, source: SoundSourceId, speed: f32) -> Result<(), SoundError>;
+    fn seek_source_seconds(&self, source: SoundSourceId, seconds: f32) -> Result<(), SoundError>;
+    fn mute_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn unmute_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn toggle_mute_source(&self, source: SoundSourceId) -> Result<(), SoundError>;
+    fn source_empty(&self, source: SoundSourceId) -> Result<bool, SoundError>;
+    fn source_status(&self, source: SoundSourceId) -> Result<SoundSourceStatus, SoundError>;
+    fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError>;
     fn submit_external_source_block(
         &self,
         handle: ExternalAudioSourceHandle,
@@ -142,6 +157,7 @@ pub trait SoundManager: Send + Sync {
     ) -> Result<(), SoundError>;
     fn drain_dynamic_events(&self) -> Result<Vec<SoundDynamicEventInvocation>, SoundError>;
     fn dispatch_dynamic_events(&self) -> Result<Vec<SoundDynamicEventDelivery>, SoundError>;
+    fn execute_dynamic_events(&self) -> Result<SoundDynamicEventExecutionReport, SoundError>;
     fn set_impulse_response(
         &self,
         impulse_response: SoundImpulseResponseId,

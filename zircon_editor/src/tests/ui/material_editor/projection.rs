@@ -159,6 +159,31 @@ fn material_editor_projection_preserves_material_and_generic_shader_diagnostics(
     }));
 }
 
+#[test]
+fn material_editor_projection_maps_missing_required_shader_property() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Incomplete Material"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+"#,
+    )
+    .unwrap();
+    let shader = shader_asset();
+
+    let projection = MaterialEditorProjection::from_material(&material, Some(&shader));
+
+    assert!(projection.diagnostics.iter().any(|row| {
+        row.source == Some(RenderMaterialDiagnosticSource::ShaderSchema)
+            && row.path == "overrides.base_color"
+            && row.message.contains("base_color")
+            && row.message.contains("required")
+    }));
+}
+
 fn material_asset() -> MaterialAsset {
     MaterialAsset::from_toml_str(
         r#"

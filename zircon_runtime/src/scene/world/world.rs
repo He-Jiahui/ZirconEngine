@@ -2,16 +2,17 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 use crate::scene::components::{
-    ActiveInHierarchy, ActiveSelf, AnimationGraphPlayerComponent, AnimationPlayerComponent,
-    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
+    AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
-    NodeKind, PointLight, RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight,
+    NodeKind, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight,
     Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::{
-    ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry, EventStore,
-    MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
+    ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry,
+    EventStore, MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry,
+    ResourceStore, Schedule,
 };
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
@@ -53,9 +54,13 @@ pub struct World {
     pub(super) sprite_2d: HashMap<EntityId, Sprite2dComponent>,
     #[serde(default)]
     pub(super) mesh_2d: HashMap<EntityId, Mesh2dComponent>,
+    #[serde(default)]
+    pub(super) ambient_lights: HashMap<EntityId, AmbientLight>,
     pub(super) directional_lights: HashMap<EntityId, DirectionalLight>,
     #[serde(default)]
     pub(super) point_lights: HashMap<EntityId, PointLight>,
+    #[serde(default)]
+    pub(super) rect_lights: HashMap<EntityId, RectLight>,
     #[serde(default)]
     pub(super) spot_lights: HashMap<EntityId, SpotLight>,
     #[serde(default)]
@@ -93,6 +98,8 @@ pub struct World {
     pub(super) active_camera: EntityId,
     #[serde(skip, default)]
     pub(super) schedule: Schedule,
+    #[serde(skip, default)]
+    pub(super) archetype_index: ArchetypeIndex,
     #[serde(skip, default)]
     pub(super) entity_registry: EntityRegistry,
     #[serde(skip, default)]
@@ -139,9 +146,13 @@ struct WorldPersistentState {
     sprite_2d: HashMap<EntityId, Sprite2dComponent>,
     #[serde(default)]
     mesh_2d: HashMap<EntityId, Mesh2dComponent>,
+    #[serde(default)]
+    ambient_lights: HashMap<EntityId, AmbientLight>,
     directional_lights: HashMap<EntityId, DirectionalLight>,
     #[serde(default)]
     point_lights: HashMap<EntityId, PointLight>,
+    #[serde(default)]
+    rect_lights: HashMap<EntityId, RectLight>,
     #[serde(default)]
     spot_lights: HashMap<EntityId, SpotLight>,
     #[serde(default)]
@@ -189,8 +200,10 @@ impl<'de> Deserialize<'de> for World {
             mesh_renderers: state.mesh_renderers,
             sprite_2d: state.sprite_2d,
             mesh_2d: state.mesh_2d,
+            ambient_lights: state.ambient_lights,
             directional_lights: state.directional_lights,
             point_lights: state.point_lights,
+            rect_lights: state.rect_lights,
             spot_lights: state.spot_lights,
             rigid_bodies: state.rigid_bodies,
             colliders: state.colliders,
@@ -210,6 +223,7 @@ impl<'de> Deserialize<'de> for World {
             next_id: state.next_id,
             active_camera: state.active_camera,
             schedule: Default::default(),
+            archetype_index: Default::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),

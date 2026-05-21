@@ -1,22 +1,75 @@
 use std::collections::HashMap;
+use std::fmt;
+use std::sync::Arc;
 
 use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId, SoundClipId,
-    SoundDynamicEventCatalog, SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
-    SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
-    SoundListenerDescriptor, SoundListenerId, SoundMixerGraph, SoundMixerSnapshot,
-    SoundParameterId, SoundPlaybackCompletionAction, SoundPlaybackFinished, SoundPlaybackId,
-    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
-    SoundSourceDescriptor, SoundSourceId, SoundTrackDescriptor, SoundTrackId, SoundTrackMeter,
-    SoundVolumeDescriptor, SoundVolumeId,
+    SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventHandlerDescriptor,
+    SoundDynamicEventInvocation, SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor,
+    SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixerGraph,
+    SoundMixerSnapshot, SoundParameterId, SoundPlaybackCompletionAction, SoundPlaybackFinished,
+    SoundPlaybackId, SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
+    SoundSourceDescriptor, SoundSourceFinishReason, SoundSourceFinished, SoundSourceId,
+    SoundTrackDescriptor, SoundTrackId, SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
 };
 
 use crate::output::SoundOutputDeviceRuntimeState;
 use crate::timeline::SoundTimelineSequencePlayback;
 use crate::SoundConfig;
 
-use super::{SoundEffectRuntimeState, SoundEffectStateKey, SoundTrackRuntimeState};
+use super::{
+    SoundEffectRuntimeState, SoundEffectStateKey, SoundHrtfRenderState, SoundHrtfRenderStateKey,
+    SoundTrackRuntimeState,
+};
+
+type SoundDynamicEventExecutorCallback =
+    dyn Fn(&SoundDynamicEventDelivery) -> Result<(), String> + Send + Sync;
+
+#[derive(Clone)]
+pub(crate) struct SoundDynamicEventExecutor {
+    callback: Arc<SoundDynamicEventExecutorCallback>,
+}
+
+impl SoundDynamicEventExecutor {
+    pub(crate) fn new<F>(callback: F) -> Self
+    where
+        F: Fn(&SoundDynamicEventDelivery) -> Result<(), String> + Send + Sync + 'static,
+    {
+        Self {
+            callback: Arc::new(callback),
+        }
+    }
+
+    pub(crate) fn execute(&self, delivery: &SoundDynamicEventDelivery) -> Result<(), String> {
+        (self.callback)(delivery)
+    }
+}
+
+impl fmt::Debug for SoundDynamicEventExecutor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("SoundDynamicEventExecutor")
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct SoundDynamicEventExecutorKey {
+    pub(crate) plugin_id: String,
+    pub(crate) handler_id: String,
+}
+
+impl SoundDynamicEventExecutorKey {
+    pub(crate) fn new(plugin_id: impl Into<String>, handler_id: impl Into<String>) -> Self {
+        Self {
+            plugin_id: plugin_id.into(),
+            handler_id: handler_id.into(),
+        }
+    }
+
+    pub(crate) fn from_handler(handler: &SoundDynamicEventHandlerDescriptor) -> Self {
+        Self::new(handler.plugin_id.clone(), handler.handler_id.clone())
+    }
+}
 
 #[derive(Debug)]
 pub(crate) struct SoundEngineState {
@@ -29,6 +82,7 @@ pub(crate) struct SoundEngineState {
     pub(crate) playbacks: HashMap<SoundPlaybackId, ActivePlayback>,
     pub(crate) finished_playbacks: Vec<SoundPlaybackFinished>,
     pub(crate) sources: HashMap<SoundSourceId, SourceVoice>,
+    pub(crate) finished_sources: Vec<SoundSourceFinished>,
     pub(crate) listeners: HashMap<SoundListenerId, SoundListenerDescriptor>,
     pub(crate) volumes: HashMap<SoundVolumeId, SoundVolumeDescriptor>,
     pub(crate) automation_bindings: HashMap<SoundAutomationBindingId, SoundAutomationBinding>,
@@ -36,10 +90,13 @@ pub(crate) struct SoundEngineState {
     pub(crate) parameters: HashMap<SoundParameterId, f32>,
     pub(crate) impulse_responses: HashMap<SoundImpulseResponseId, Vec<f32>>,
     pub(crate) hrtf_profiles: HashMap<String, SoundHrtfProfileDescriptor>,
+    pub(crate) hrtf_states: HashMap<SoundHrtfRenderStateKey, SoundHrtfRenderState>,
     pub(crate) ray_traced_impulse_responses:
         HashMap<SoundImpulseResponseId, SoundRayTracedImpulseResponseDescriptor>,
     pub(crate) dynamic_events: SoundDynamicEventCatalog,
     pub(crate) dynamic_event_handlers: Vec<SoundDynamicEventHandlerDescriptor>,
+    pub(crate) dynamic_event_executors:
+        HashMap<SoundDynamicEventExecutorKey, SoundDynamicEventExecutor>,
     pub(crate) pending_dynamic_events: Vec<SoundDynamicEventInvocation>,
     pub(crate) graph: SoundMixerGraph,
     pub(crate) effect_states: HashMap<SoundEffectStateKey, SoundEffectRuntimeState>,
@@ -64,6 +121,7 @@ impl SoundEngineState {
             playbacks: HashMap::new(),
             finished_playbacks: Vec::new(),
             sources: HashMap::new(),
+            finished_sources: Vec::new(),
             listeners: HashMap::new(),
             volumes: HashMap::new(),
             automation_bindings: HashMap::new(),
@@ -71,9 +129,11 @@ impl SoundEngineState {
             parameters: HashMap::new(),
             impulse_responses: HashMap::new(),
             hrtf_profiles: HashMap::new(),
+            hrtf_states: HashMap::new(),
             ray_traced_impulse_responses: HashMap::new(),
             dynamic_events: SoundDynamicEventCatalog::empty(),
             dynamic_event_handlers: Vec::new(),
+            dynamic_event_executors: HashMap::new(),
             pending_dynamic_events: Vec::new(),
             graph,
             effect_states: HashMap::new(),
@@ -186,4 +246,5 @@ pub(crate) struct SourceVoice {
     pub(crate) descriptor: SoundSourceDescriptor,
     pub(crate) cursor_frame: usize,
     pub(crate) cursor_position: f64,
+    pub(crate) pending_finish: Option<SoundSourceFinishReason>,
 }

@@ -129,6 +129,9 @@ impl MaterialAsset {
                 } => Some(format!(
                     "material property {name} expects {expected} but received override value"
                 )),
+                RenderMaterialValidationError::MissingRequiredProperty { name, .. } => Some(
+                    format!("material property {name} is required by shader schema"),
+                ),
                 _ => None,
             })
             .collect()
@@ -231,6 +234,35 @@ impl MaterialAsset {
         }
     }
 
+    pub fn standard_material_descriptor_for_shader(
+        &self,
+        shader: &ShaderAsset,
+    ) -> StandardMaterialDescriptor {
+        let mut descriptor = self.standard_material_descriptor();
+        descriptor.base_color_texture = self
+            .shader_texture_slot_reference(
+                shader,
+                &["base_color", "base_color_texture", "albedo", "diffuse"],
+            )
+            .or(descriptor.base_color_texture);
+        descriptor.normal_texture = self
+            .shader_texture_slot_reference(shader, &["normal", "normal_texture"])
+            .or(descriptor.normal_texture);
+        descriptor.metallic_roughness_texture = self
+            .shader_texture_slot_reference(
+                shader,
+                &["metallic_roughness", "metallic_roughness_texture"],
+            )
+            .or(descriptor.metallic_roughness_texture);
+        descriptor.occlusion_texture = self
+            .shader_texture_slot_reference(shader, &["occlusion", "occlusion_texture"])
+            .or(descriptor.occlusion_texture);
+        descriptor.emissive_texture = self
+            .shader_texture_slot_reference(shader, &["emissive", "emissive_texture"])
+            .or(descriptor.emissive_texture);
+        descriptor
+    }
+
     pub fn color_material_descriptor(&self) -> ColorMaterialDescriptor {
         ColorMaterialDescriptor {
             name: self.name.clone(),
@@ -293,6 +325,21 @@ impl MaterialAsset {
         sync_texture_slot(&mut slots, "occlusion", self.occlusion_texture.as_ref());
         sync_texture_slot(&mut slots, "emissive", self.emissive_texture.as_ref());
         slots
+    }
+
+    fn shader_texture_slot_reference(
+        &self,
+        shader: &ShaderAsset,
+        aliases: &[&str],
+    ) -> Option<AssetReference> {
+        aliases
+            .iter()
+            .filter(|alias| shader.texture_slots.iter().any(|slot| slot.name == **alias))
+            .find_map(|alias| {
+                self.texture_slots
+                    .get(*alias)
+                    .and_then(|value| value.reference.clone())
+            })
     }
 
     fn property_overrides_with_legacy_defaults(&self) -> BTreeMap<String, toml::Value> {

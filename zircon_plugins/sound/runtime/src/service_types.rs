@@ -7,15 +7,17 @@ use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId,
     SoundAutomationCurve, SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState,
     SoundBackendStatus, SoundClipId, SoundClipInfo, SoundDynamicEventCatalog,
-    SoundDynamicEventDelivery, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
-    SoundDynamicEventInvocation, SoundEffectDescriptor, SoundEffectId, SoundError,
-    SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
-    SoundListenerDescriptor, SoundListenerId, SoundMixBlock, SoundMixerGraph,
-    SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
+    SoundDynamicEventDelivery, SoundDynamicEventDescriptor, SoundDynamicEventExecutionReport,
+    SoundDynamicEventExecutionStatus, SoundDynamicEventHandlerDescriptor,
+    SoundDynamicEventHandlerExecution, SoundDynamicEventInvocation, SoundEffectDescriptor,
+    SoundEffectId, SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor,
+    SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixBlock,
+    SoundMixerGraph, SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
     SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackFinishReason, SoundPlaybackFinished,
     SoundPlaybackId, SoundPlaybackSettings, SoundPlaybackStatus,
     SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
-    SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence, SoundTimelineSequenceAdvance,
+    SoundSourceDescriptor, SoundSourceFinishReason, SoundSourceFinished, SoundSourceId,
+    SoundSourceInput, SoundSourceStatus, SoundTimelineSequence, SoundTimelineSequenceAdvance,
     SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
     SoundVolumeDescriptor, SoundVolumeId,
 };
@@ -35,7 +37,10 @@ use super::dynamic_events::{
     submit_dynamic_event, unregister_dynamic_event, unregister_dynamic_event_handler,
 };
 use super::engine::validation::{validate_effect, validate_graph};
-use super::engine::{ActivePlayback, LoadedClip, SoundEngineState, SourceVoice};
+use super::engine::{
+    ActivePlayback, LoadedClip, SoundDynamicEventExecutor, SoundDynamicEventExecutorKey,
+    SoundEngineState, SourceVoice,
+};
 use super::mixer_configuration::configure_mixer_graph;
 use super::output::available_output_backends;
 use super::presets::built_in_mixer_presets;
@@ -102,16 +107,73 @@ impl DefaultSoundManager {
         state.clips.insert(clip_id, LoadedClip { asset });
         clip_id
     }
+
+    pub fn register_dynamic_event_executor<F>(
+        &self,
+        plugin_id: impl Into<String>,
+        handler_id: impl Into<String>,
+        executor: F,
+    ) -> Result<(), SoundError>
+    where
+        F: Fn(&SoundDynamicEventDelivery) -> Result<(), String> + Send + Sync + 'static,
+    {
+        let key = SoundDynamicEventExecutorKey::new(plugin_id, handler_id);
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        if !state.dynamic_event_handlers.iter().any(|handler| {
+            handler.plugin_id == key.plugin_id && handler.handler_id == key.handler_id
+        }) {
+            return Err(SoundError::UnknownDynamicEventHandler {
+                plugin_id: key.plugin_id,
+                handler_id: key.handler_id,
+            });
+        }
+        state
+            .dynamic_event_executors
+            .insert(key, SoundDynamicEventExecutor::new(executor));
+        Ok(())
+    }
+
+    pub fn unregister_dynamic_event_executor(
+        &self,
+        plugin_id: &str,
+        handler_id: &str,
+    ) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let key = SoundDynamicEventExecutorKey::new(plugin_id, handler_id);
+        state
+            .dynamic_event_executors
+            .remove(&key)
+            .map(|_| ())
+            .ok_or_else(|| SoundError::UnknownDynamicEventHandler {
+                plugin_id: plugin_id.to_string(),
+                handler_id: handler_id.to_string(),
+            })
+    }
+}
+
+fn handler_exists(
+    handlers: &[SoundDynamicEventHandlerDescriptor],
+    key: &SoundDynamicEventExecutorKey,
+) -> bool {
+    handlers
+        .iter()
+        .any(|handler| handler.plugin_id == key.plugin_id && handler.handler_id == key.handler_id)
 }
 
 impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManager {
     fn backend_name(&self) -> String {
         let config = self.config();
-        if config.enabled {
-            config.backend
-        } else {
-            "disabled".to_string()
+        if !config.enabled {
+            return "disabled".to_string();
         }
+        let unavailable_backend = {
+            let state = self.state.lock().expect("sound state mutex poisoned");
+            state
+                .output_device
+                .unavailable_backend_status()
+                .map(|(backend, _)| backend.to_string())
+        };
+        unavailable_backend.unwrap_or(config.backend)
     }
 
     fn backend_status(&self) -> SoundBackendStatus {
@@ -122,6 +184,24 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
                 active_backend: None,
                 state: SoundBackendState::Disabled,
                 detail: Some("sound playback is disabled".to_string()),
+                sample_rate_hz: config.sample_rate_hz,
+                channel_count: config.channel_count,
+            };
+        }
+
+        let unavailable_backend = {
+            let state = self.state.lock().expect("sound state mutex poisoned");
+            state
+                .output_device
+                .unavailable_backend_status()
+                .map(|(backend, detail)| (backend.to_string(), detail.to_string()))
+        };
+        if let Some((backend, detail)) = unavailable_backend {
+            return SoundBackendStatus {
+                requested_backend: backend,
+                active_backend: None,
+                state: SoundBackendState::Unavailable,
+                detail: Some(detail),
                 sample_rate_hz: config.sample_rate_hz,
                 channel_count: config.channel_count,
             };
@@ -143,7 +223,14 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
     ) -> Result<(), SoundError> {
         let mut config = self.config.lock().expect("sound config mutex poisoned");
         let mut state = self.state.lock().expect("sound state mutex poisoned");
-        state.output_device.configure(descriptor.clone())?;
+        if let Err(error) = state.output_device.configure(descriptor.clone()) {
+            if let SoundError::BackendUnavailable { detail } = &error {
+                state
+                    .output_device
+                    .record_backend_unavailable(descriptor.backend, detail.clone());
+            }
+            return Err(error);
+        }
         config.backend = descriptor.backend.clone();
         config.sample_rate_hz = descriptor.sample_rate_hz;
         config.channel_count = descriptor.channel_count;
@@ -152,6 +239,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         state.graph.channel_count = config.channel_count;
         state.effect_states.clear();
         state.track_states.clear();
+        state.hrtf_states.clear();
         Ok(())
     }
 
@@ -162,11 +250,11 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
                 detail: "sound playback is disabled".to_string(),
             });
         }
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
-            .output_device
-            .start();
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        if let Some(error) = state.output_device.unavailable_backend_error() {
+            return Err(error);
+        }
+        state.output_device.start();
         Ok(())
     }
 
@@ -326,7 +414,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             sample_rate_hz: clip.asset.sample_rate_hz,
             channel_count: clip.asset.channel_count,
             frame_count: clip.asset.frame_count(),
-            duration_seconds: clip.asset.frame_count() as f32 / clip.asset.sample_rate_hz as f32,
+            duration_seconds: clip.asset.duration_seconds(),
         })
     }
 
@@ -585,6 +673,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         state.graph = preset.graph;
         state.effect_states.clear();
         state.track_states.clear();
+        state.hrtf_states.clear();
         state.meters = vec![
             zircon_runtime::core::framework::sound::SoundTrackMeter::silent(SoundTrackId::master()),
         ];
@@ -763,6 +852,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
                 descriptor: source,
                 cursor_frame: 0,
                 cursor_position: 0.0,
+                pending_finish: None,
             },
         );
         Ok(source_id)
@@ -790,6 +880,234 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             .remove(&source)
             .map(|_| ())
             .ok_or(SoundError::UnknownSource { source_id: source })
+    }
+
+    fn stop_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .remove(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        let descriptor = voice.descriptor;
+        let input = descriptor.input;
+        let clip = match input {
+            SoundSourceInput::Clip(clip) => Some(clip),
+            SoundSourceInput::External(_)
+            | SoundSourceInput::SynthParameter { .. }
+            | SoundSourceInput::Silence => None,
+        };
+        state.finished_sources.push(SoundSourceFinished {
+            source,
+            input,
+            clip,
+            reason: SoundSourceFinishReason::Stopped,
+            completion_action: descriptor.completion_action,
+            output_track: descriptor.output_track,
+        });
+        Ok(())
+    }
+
+    fn pause_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.playing = false;
+        Ok(())
+    }
+
+    fn resume_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.playing = true;
+        Ok(())
+    }
+
+    fn toggle_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.playing = !voice.descriptor.playing;
+        Ok(())
+    }
+
+    fn set_source_gain(&self, source: SoundSourceId, gain: f32) -> Result<(), SoundError> {
+        ensure_finite_value("source gain", gain)?;
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.gain = gain;
+        Ok(())
+    }
+
+    fn set_source_speed(&self, source: SoundSourceId, speed: f32) -> Result<(), SoundError> {
+        let speed = validate_playback_speed(speed)?;
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.speed = speed;
+        Ok(())
+    }
+
+    fn seek_source_seconds(&self, source: SoundSourceId, seconds: f32) -> Result<(), SoundError> {
+        ensure_finite_value("source seek seconds", seconds)?;
+        if seconds < 0.0 {
+            return Err(SoundError::InvalidParameter(
+                "source seek seconds must be non-negative".to_string(),
+            ));
+        }
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let clamped_frame = {
+            let voice = state
+                .sources
+                .get(&source)
+                .ok_or(SoundError::UnknownSource { source_id: source })?;
+            match &voice.descriptor.input {
+                SoundSourceInput::Clip(clip_id) => {
+                    let clip = state
+                        .clips
+                        .get(clip_id)
+                        .ok_or(SoundError::UnknownClip { clip: *clip_id })?;
+                    let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
+                    let frame_count = clip.asset.frame_count();
+                    let start_frame = voice
+                        .descriptor
+                        .start_seconds
+                        .map(|start_seconds| (start_seconds * sample_rate).round() as usize)
+                        .unwrap_or_default()
+                        .min(frame_count);
+                    let range_end = voice
+                        .descriptor
+                        .duration_seconds
+                        .map(|duration_seconds| {
+                            let duration_frames =
+                                (duration_seconds * sample_rate).round().max(0.0) as usize;
+                            start_frame.saturating_add(duration_frames).min(frame_count)
+                        })
+                        .unwrap_or(frame_count);
+                    ((seconds * sample_rate).round() as usize)
+                        .max(start_frame)
+                        .min(range_end)
+                }
+                SoundSourceInput::External(handle) => {
+                    let block = state.external_sources.get(handle).ok_or_else(|| {
+                        SoundError::InvalidParameter(format!(
+                            "source seek requires submitted external block for {}",
+                            handle.as_str()
+                        ))
+                    })?;
+                    let frame_count = block.samples.len() / block.channel_count.max(1) as usize;
+                    ((seconds * block.sample_rate_hz.max(1) as f32).round() as usize)
+                        .min(frame_count)
+                }
+                SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => {
+                    if seconds == 0.0 {
+                        0
+                    } else {
+                        return Err(SoundError::InvalidParameter(
+                            "source seek requires clip or external input".to_string(),
+                        ));
+                    }
+                }
+            }
+        };
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.cursor_frame = clamped_frame;
+        voice.cursor_position = clamped_frame as f64;
+        Ok(())
+    }
+
+    fn mute_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.muted = true;
+        Ok(())
+    }
+
+    fn unmute_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.muted = false;
+        Ok(())
+    }
+
+    fn toggle_mute_source(&self, source: SoundSourceId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get_mut(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.descriptor.muted = !voice.descriptor.muted;
+        Ok(())
+    }
+
+    fn source_empty(&self, source: SoundSourceId) -> Result<bool, SoundError> {
+        let state = self.state.lock().expect("sound state mutex poisoned");
+        if state.sources.contains_key(&source) {
+            return Ok(false);
+        }
+        if state
+            .finished_sources
+            .iter()
+            .any(|finished| finished.source == source)
+        {
+            return Ok(true);
+        }
+        Err(SoundError::UnknownSource { source_id: source })
+    }
+
+    fn source_status(&self, source: SoundSourceId) -> Result<SoundSourceStatus, SoundError> {
+        let state = self.state.lock().expect("sound state mutex poisoned");
+        let voice = state
+            .sources
+            .get(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        let (range_start_frame, range_end_frame, cursor_seconds) =
+            source_status_range_and_cursor_seconds(&state, voice);
+        Ok(SoundSourceStatus {
+            source,
+            input: voice.descriptor.input.clone(),
+            playing: voice.descriptor.playing,
+            muted: voice.descriptor.muted,
+            looped: voice.descriptor.looped,
+            completion_action: voice.descriptor.completion_action,
+            gain: voice.descriptor.gain,
+            speed: voice.descriptor.speed,
+            range_start_frame,
+            range_end_frame,
+            cursor_frame: voice.cursor_frame,
+            cursor_seconds,
+            output_track: voice.descriptor.output_track,
+        })
+    }
+
+    fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError> {
+        Ok(std::mem::take(
+            &mut self
+                .state
+                .lock()
+                .expect("sound state mutex poisoned")
+                .finished_sources,
+        ))
     }
 
     fn submit_external_source_block(
@@ -1001,6 +1319,10 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         state
             .dynamic_event_handlers
             .retain(|handler| handler.event_id != event_id);
+        let handlers = state.dynamic_event_handlers.clone();
+        state
+            .dynamic_event_executors
+            .retain(|key, _| handler_exists(&handlers, key));
         state
             .pending_dynamic_events
             .retain(|event| event.event_id != event_id);
@@ -1033,7 +1355,11 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         handler_id: &str,
     ) -> Result<(), SoundError> {
         let mut state = self.state.lock().expect("sound state mutex poisoned");
-        unregister_dynamic_event_handler(&mut state.dynamic_event_handlers, plugin_id, handler_id)
+        unregister_dynamic_event_handler(&mut state.dynamic_event_handlers, plugin_id, handler_id)?;
+        state
+            .dynamic_event_executors
+            .remove(&SoundDynamicEventExecutorKey::new(plugin_id, handler_id));
+        Ok(())
     }
 
     fn submit_dynamic_event(
@@ -1057,6 +1383,41 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             &handlers,
             &mut state.pending_dynamic_events,
         ))
+    }
+
+    fn execute_dynamic_events(&self) -> Result<SoundDynamicEventExecutionReport, SoundError> {
+        let (deliveries, executors) = {
+            let mut state = self.state.lock().expect("sound state mutex poisoned");
+            let handlers = state.dynamic_event_handlers.clone();
+            let deliveries = dispatch_dynamic_events(&handlers, &mut state.pending_dynamic_events);
+            (deliveries, state.dynamic_event_executors.clone())
+        };
+        let executions = deliveries
+            .into_iter()
+            .map(|delivery| {
+                let key = SoundDynamicEventExecutorKey::from_handler(&delivery.handler);
+                match executors.get(&key) {
+                    Some(executor) => match executor.execute(&delivery) {
+                        Ok(()) => SoundDynamicEventHandlerExecution {
+                            delivery,
+                            status: SoundDynamicEventExecutionStatus::Succeeded,
+                            detail: None,
+                        },
+                        Err(detail) => SoundDynamicEventHandlerExecution {
+                            delivery,
+                            status: SoundDynamicEventExecutionStatus::Failed,
+                            detail: Some(detail),
+                        },
+                    },
+                    None => SoundDynamicEventHandlerExecution {
+                        delivery,
+                        status: SoundDynamicEventExecutionStatus::SkippedMissingExecutor,
+                        detail: None,
+                    },
+                }
+            })
+            .collect();
+        Ok(SoundDynamicEventExecutionReport { executions })
     }
 
     fn set_impulse_response(
@@ -1095,24 +1456,25 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
 
     fn load_hrtf_profile(&self, profile: SoundHrtfProfileDescriptor) -> Result<(), SoundError> {
         validate_hrtf_profile_descriptor(&profile)?;
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        state
             .hrtf_profiles
             .insert(profile.profile_id.clone(), profile);
+        state.hrtf_states.clear();
         Ok(())
     }
 
     fn remove_hrtf_profile(&self, profile_id: &str) -> Result<(), SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        state
             .hrtf_profiles
             .remove(profile_id)
             .map(|_| ())
             .ok_or_else(|| SoundError::UnknownHrtfProfile {
                 profile_id: profile_id.to_string(),
-            })
+            })?;
+        state.hrtf_states.clear();
+        Ok(())
     }
 
     fn hrtf_profiles(&self) -> Result<Vec<SoundHrtfProfileDescriptor>, SoundError> {
@@ -1252,4 +1614,43 @@ fn seconds_to_frame(
         )));
     }
     Ok(Some((seconds * sample_rate).round() as usize))
+}
+
+fn source_status_range_and_cursor_seconds(
+    state: &SoundEngineState,
+    voice: &SourceVoice,
+) -> (usize, Option<usize>, f32) {
+    match &voice.descriptor.input {
+        SoundSourceInput::Clip(clip_id) => {
+            let Some(clip) = state.clips.get(clip_id) else {
+                return (0, None, 0.0);
+            };
+            let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
+            let frame_count = clip.asset.frame_count();
+            let start_frame = voice
+                .descriptor
+                .start_seconds
+                .map(|seconds| (seconds * sample_rate).round().max(0.0) as usize)
+                .unwrap_or_default()
+                .min(frame_count);
+            let end_frame = voice.descriptor.duration_seconds.map(|seconds| {
+                let duration_frames = (seconds * sample_rate).round().max(0.0) as usize;
+                start_frame.saturating_add(duration_frames).min(frame_count)
+            });
+            (
+                start_frame,
+                end_frame,
+                voice.cursor_position as f32 / sample_rate,
+            )
+        }
+        SoundSourceInput::External(handle) => {
+            let sample_rate = state
+                .external_sources
+                .get(handle)
+                .map(|block| block.sample_rate_hz.max(1) as f32)
+                .unwrap_or(1.0);
+            (0, None, voice.cursor_position as f32 / sample_rate)
+        }
+        SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => (0, None, 0.0),
+    }
 }

@@ -2,13 +2,14 @@ use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect,
-        UiDispatchReply, UiDragDropEffectKind, UiDragDropInputEvent, UiDragDropInputEventKind,
-        UiImeInputEvent, UiImeInputEventKind, UiInputDispatchResult, UiInputEvent,
-        UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent, UiPointerId,
-        UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiTextByteRange,
-        UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-        UiTooltipTimerInputEventKind,
+        UiClipboardRequest, UiClipboardRequestKind, UiComponentEventReport,
+        UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequest,
+        UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDragDropEffectKind,
+        UiDragDropInputEvent, UiDragDropInputEventKind, UiImeInputEvent, UiImeInputEventKind,
+        UiInputDispatchResult, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
+        UiNavigationInputEvent, UiPointerId, UiPopupEffectKind, UiPopupInputEvent,
+        UiPopupInputEventKind, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
+        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
     },
     event_ui::{UiNodeId, UiReflectedPropertySource},
     focus::UiFocusedInputKind,
@@ -26,7 +27,14 @@ use crate::ui::text::apply_text_edit_action;
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
 use super::super::surface::UiSurface;
-use super::{apply_dispatch_reply, is_valid_input_owner, text_keyboard::keyboard_text_edit_action};
+use super::{
+    apply_dispatch_reply, is_valid_input_owner,
+    text_constraints::{text_input_constraints_for_node, TextInputConstraints},
+    text_keyboard::{
+        keyboard_clipboard_action, keyboard_requests_newline, keyboard_text_edit_actions,
+        KeyboardClipboardAction,
+    },
+};
 
 pub(crate) fn dispatch_input_event(
     surface: &mut UiSurface,
@@ -83,6 +91,7 @@ pub(crate) fn dispatch_input_event(
                     delivered: true,
                 })
                 .collect();
+            result.binding_reports = legacy.binding_reports;
             Ok(result)
         }
         UiInputEvent::Navigation(navigation) => {
@@ -118,6 +127,7 @@ pub(crate) fn dispatch_input_event(
                         result.diagnostics.handled_phase =
                             Some("keyboard.popup_dismiss".to_string());
                         result.component_events = report.component_events;
+                        result.binding_reports = report.binding_reports;
                     }
                 }
                 if keyboard_requests_default_activation(&keyboard) {
@@ -126,6 +136,7 @@ pub(crate) fn dispatch_input_event(
                         result.reply = UiDispatchReply::handled();
                         result.diagnostics.handled_phase = Some("keyboard.widget".to_string());
                         result.component_events = report.component_events;
+                        result.binding_reports = report.binding_reports;
                     }
                 }
                 surface.record_focused_input(
@@ -190,8 +201,28 @@ fn dispatch_keyboard_text_edit(
     target: UiNodeId,
 ) -> Option<UiInputDispatchResult> {
     let editable = editable_text_state_for_node(surface, target)?;
-    let action = keyboard_text_edit_action(&keyboard, &editable)?;
-    let next = apply_text_edit_action(editable, action);
+    if let Some(action) = keyboard_clipboard_action(&keyboard) {
+        return Some(dispatch_keyboard_clipboard(
+            surface, keyboard, target, editable, action,
+        ));
+    }
+    if keyboard_requests_newline(&keyboard) {
+        let constraints = text_input_constraints_for_node(surface, target);
+        if !constraints.allows_multiline() {
+            return None;
+        }
+        let next = committed_text_state(editable, "\n".to_string(), constraints);
+        return Some(apply_editable_text_state(
+            surface,
+            UiInputEvent::Keyboard(keyboard),
+            target,
+            next,
+            "keyboard.text_edit",
+            TextComponentEventKind::Change,
+        ));
+    }
+    let actions = keyboard_text_edit_actions(&keyboard, &editable)?;
+    let next = actions.into_iter().fold(editable, apply_text_edit_action);
     Some(apply_editable_text_state(
         surface,
         UiInputEvent::Keyboard(keyboard),
@@ -200,6 +231,131 @@ fn dispatch_keyboard_text_edit(
         "keyboard.text_edit",
         TextComponentEventKind::Change,
     ))
+}
+
+fn dispatch_keyboard_clipboard(
+    surface: &mut UiSurface,
+    keyboard: UiKeyboardInputEvent,
+    target: UiNodeId,
+    editable: UiEditableTextState,
+    action: KeyboardClipboardAction,
+) -> UiInputDispatchResult {
+    let phase = match action {
+        KeyboardClipboardAction::Copy => "keyboard.clipboard_copy",
+        KeyboardClipboardAction::Cut => "keyboard.clipboard_cut",
+        KeyboardClipboardAction::Paste => "keyboard.clipboard_paste",
+    };
+    let event = UiInputEvent::Keyboard(keyboard);
+    if !is_valid_input_owner(surface, target) {
+        return owner_routed_result(surface, event, Some(target), phase);
+    }
+
+    match action {
+        KeyboardClipboardAction::Copy => {
+            let mut result = owner_routed_result(surface, event, Some(target), phase);
+            if let Some(text) = selected_clipboard_text(&editable) {
+                push_clipboard_request(
+                    &mut result,
+                    target,
+                    UiClipboardRequestKind::WriteText,
+                    Some(text),
+                );
+            } else {
+                result
+                    .diagnostics
+                    .notes
+                    .push("clipboard selection empty".to_string());
+            }
+            result
+        }
+        KeyboardClipboardAction::Cut => {
+            let Some(text) = selected_clipboard_text(&editable) else {
+                let mut result = owner_routed_result(surface, event, Some(target), phase);
+                result
+                    .diagnostics
+                    .notes
+                    .push("clipboard selection empty".to_string());
+                return result;
+            };
+            if editable.read_only {
+                let mut result = owner_routed_result(surface, event, Some(target), phase);
+                result
+                    .diagnostics
+                    .notes
+                    .push("clipboard cut blocked by read-only text".to_string());
+                return result;
+            }
+
+            let next = apply_text_edit_action(editable, UiTextEditAction::Delete);
+            let mut result = apply_editable_text_state(
+                surface,
+                event,
+                target,
+                next,
+                phase,
+                TextComponentEventKind::Change,
+            );
+            push_clipboard_request(
+                &mut result,
+                target,
+                UiClipboardRequestKind::WriteText,
+                Some(text),
+            );
+            result
+        }
+        KeyboardClipboardAction::Paste => {
+            let mut result = owner_routed_result(surface, event, Some(target), phase);
+            if editable.read_only {
+                result
+                    .diagnostics
+                    .notes
+                    .push("clipboard paste blocked by read-only text".to_string());
+            } else {
+                push_clipboard_request(&mut result, target, UiClipboardRequestKind::ReadText, None);
+            }
+            result
+        }
+    }
+}
+
+fn selected_clipboard_text(state: &UiEditableTextState) -> Option<String> {
+    let range = state.selection.as_ref()?.range();
+    if range.start == range.end || range.end > state.text.len() {
+        return None;
+    }
+    state
+        .text
+        .get(range.start..range.end)
+        .map(ToString::to_string)
+}
+
+fn push_clipboard_request(
+    result: &mut UiInputDispatchResult,
+    target: UiNodeId,
+    kind: UiClipboardRequestKind,
+    text: Option<String>,
+) {
+    let request = UiClipboardRequest {
+        kind,
+        owner: target,
+        text,
+    };
+    let effect = UiDispatchEffect::RequestClipboard {
+        request: request.clone(),
+    };
+    let effect_index = result.reply.effects.len();
+    result.reply.effects.push(effect.clone());
+    result.reply.handler = Some(target);
+    result.reply.phase = Some(UiDispatchPhase::DefaultAction);
+    result.applied_effects.push(UiDispatchAppliedEffect {
+        effect_index,
+        effect,
+    });
+    result.host_requests.push(UiDispatchHostRequest {
+        effect_index,
+        request: UiDispatchHostRequestKind::Clipboard(request),
+        reason: "text clipboard shortcut".to_string(),
+    });
 }
 
 fn dispatch_navigation_input(
@@ -240,6 +396,7 @@ fn dispatch_navigation_input(
             effect,
         });
     }
+    result.binding_reports = legacy.binding_reports;
     Ok(result)
 }
 
@@ -382,7 +539,8 @@ fn dispatch_text_input(surface: &mut UiSurface, text: UiTextInputEvent) -> UiInp
         return result;
     };
 
-    let next = committed_text_state(editable, text.text);
+    let constraints = text_input_constraints_for_node(surface, target);
+    let next = committed_text_state(editable, text.text, constraints);
     apply_editable_text_state(
         surface,
         event,
@@ -432,8 +590,17 @@ fn dispatch_ime_input(surface: &mut UiSurface, ime: UiImeInputEvent) -> UiInputD
         _ => TextComponentEventKind::Change,
     };
     let next = match ime.kind {
-        UiImeInputEventKind::Preedit => preedit_text_state(editable, &ime.text, ime.cursor_range),
-        UiImeInputEventKind::Commit => committed_text_state(editable, ime.text),
+        UiImeInputEventKind::Preedit => preedit_text_state(
+            editable,
+            &ime.text,
+            ime.cursor_range,
+            text_input_constraints_for_node(surface, target),
+        ),
+        UiImeInputEventKind::Commit => committed_text_state(
+            editable,
+            ime.text,
+            text_input_constraints_for_node(surface, target),
+        ),
         UiImeInputEventKind::Cancel => {
             apply_text_edit_action(editable, UiTextEditAction::CancelComposition)
         }
@@ -471,7 +638,11 @@ fn text_input_target(surface: &mut UiSurface) -> Option<UiNodeId> {
         .filter(|owner| is_valid_input_owner(surface, *owner))
 }
 
-fn committed_text_state(editable: UiEditableTextState, text: String) -> UiEditableTextState {
+fn committed_text_state(
+    editable: UiEditableTextState,
+    text: String,
+    constraints: TextInputConstraints,
+) -> UiEditableTextState {
     if editable.composition.is_some() {
         let range = editable
             .composition
@@ -481,10 +652,20 @@ fn committed_text_state(editable: UiEditableTextState, text: String) -> UiEditab
                 start: editable.caret.offset,
                 end: editable.caret.offset,
             });
+        let text = constraints.sanitize_replacement(&editable.text, range, &text);
         let composed =
             apply_text_edit_action(editable, UiTextEditAction::SetComposition { range, text });
         apply_text_edit_action(composed, UiTextEditAction::CommitComposition)
     } else {
+        let range = editable
+            .selection
+            .as_ref()
+            .map(UiTextSelection::range)
+            .unwrap_or(UiTextRange {
+                start: editable.caret.offset,
+                end: editable.caret.offset,
+            });
+        let text = constraints.sanitize_replacement(&editable.text, range, &text);
         apply_text_edit_action(editable, UiTextEditAction::Insert { text })
     }
 }
@@ -493,6 +674,7 @@ fn preedit_text_state(
     editable: UiEditableTextState,
     preedit: &str,
     cursor_range: Option<UiTextByteRange>,
+    constraints: TextInputConstraints,
 ) -> UiEditableTextState {
     let range = editable
         .composition
@@ -503,18 +685,21 @@ fn preedit_text_state(
             start: editable.caret.offset,
             end: editable.caret.offset,
         });
+    let preedit = constraints.sanitize_replacement(&editable.text, range, preedit);
     let mut next = apply_text_edit_action(
         editable,
         UiTextEditAction::SetComposition {
             range,
-            text: preedit.to_string(),
+            text: preedit,
         },
     );
 
     if let Some(cursor_range) = cursor_range {
         if let Some(composition) = next.composition.as_ref() {
-            let anchor = composition.range.start + cursor_range.start_byte as usize;
-            let focus = composition.range.start + cursor_range.end_byte as usize;
+            let anchor = composition.range.start
+                + clamp_text_boundary(&composition.text, cursor_range.start_byte as usize);
+            let focus = composition.range.start
+                + clamp_text_boundary(&composition.text, cursor_range.end_byte as usize);
             next = if anchor == focus {
                 apply_text_edit_action(
                     next,
@@ -763,11 +948,12 @@ fn mutate_text_property(
     result: &mut UiInputDispatchResult,
 ) -> bool {
     let report = surface.mutate_property(
-        UiPropertyMutationRequest::new(target, property, value)
+        UiPropertyMutationRequest::widget_behavior(target, property, value)
             .with_source(UiReflectedPropertySource::RuntimeState),
     );
     match report {
         Ok(report) => {
+            result.record_binding_report(report.binding.clone());
             if matches!(report.status, UiPropertyMutationStatus::Accepted) {
                 result.diagnostics.notes.push(format!(
                     "text_property_changed:{}:{:?}",

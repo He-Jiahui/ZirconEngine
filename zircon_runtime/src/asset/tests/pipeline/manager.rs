@@ -225,8 +225,24 @@ fn resource_server_reports_resource_records_for_project_assets() {
         .artifact_locator
         .as_ref()
         .is_some_and(|uri| uri.to_string().starts_with("lib://")));
-    assert!(status.dependency_ids.is_empty());
     assert!(status.diagnostics.is_empty());
+
+    let mesh_status = manager
+        .resource_status("res://models/triangle.obj#Mesh0/Primitive0")
+        .expect("model mesh subasset resource status");
+    assert_eq!(status.dependency_ids, vec![mesh_status.id]);
+    assert_eq!(mesh_status.kind, ResourceKind::Mesh);
+    assert_eq!(mesh_status.state, ResourceState::Ready);
+    assert_eq!(
+        mesh_status.primary_locator.to_string(),
+        "res://models/triangle.obj#Mesh0/Primitive0"
+    );
+    assert!(mesh_status
+        .artifact_locator
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
+    assert!(mesh_status.dependency_ids.is_empty());
+    assert!(mesh_status.diagnostics.is_empty());
     assert_eq!(
         manager.resolve_resource_id("res://models/triangle.obj"),
         Some(status.id.to_string())

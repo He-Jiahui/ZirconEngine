@@ -11,7 +11,11 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
+  - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
+  - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
@@ -31,6 +35,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/core/framework/render/image/descriptor.rs
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
@@ -47,6 +52,9 @@ related_code:
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
+  - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
@@ -78,11 +86,16 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
+  - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
+  - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/core/framework/render/image/descriptor.rs
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
@@ -105,6 +118,9 @@ implementation_files:
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
+  - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
@@ -129,6 +145,7 @@ plan_sources:
   - user: 2026-05-02 Asset Importer 插件化补齐计划
   - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
   - user: 2026-05-16 continue Bevy-style asset/image completion toward M4
+  - user: 2026-05-20 implement ZirconEngine asset/texture/model/ZShader/ZMaterial/ZMesh completion plan
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
@@ -136,10 +153,34 @@ plan_sources:
   - docs/superpowers/specs/2026-05-03-opus-native-dynamic-importer-design.md
   - docs/superpowers/plans/2026-05-03-opus-native-dynamic-importer.md
 tests:
+  - zircon_runtime_interface/src/tests/resource_contracts.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/project/package_assets.rs
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --locked package --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed after warm cache, 43 package-filtered runtime lib tests plus package-filtered integration binaries)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-asset-package-m2 cargo test --manifest-path zircon_plugins/Cargo.toml --locked --jobs 1 --message-format short --color never package -- --test-threads=1 (2026-05-20 package roots M2: passed after moving off full D: target dir)
   - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
+  - cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing warnings only)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing runtime warning only)
+  - cargo test -p zircon_runtime --lib importer_capability_report_marks_diagnostic_only_backends --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 asset parity implementation: timed out during Windows test build/link before Rust test diagnostics)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-20 glTF labeled subassets: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 glTF labeled subassets: passed; existing runtime dead_code warning only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF labeled subassets: timed out during Windows runtime test build/link; matching residual Cargo chain was stopped after timeout)
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
+  - CARGO_TARGET_DIR=/tmp/zircon-gltf-m4-wsl-fast cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: blocked before test execution by unrelated zircon_runtime_interface/src/ui/dispatch/navigation/result.rs E0277, UiBindingUpdateReport does not implement Eq)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: Windows attempt timed out after 304s before Rust test diagnostics; matching residual Cargo child processes were stopped)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --message-format short --color never (2026-05-20 runtime glTF labels retry: passed, confirming the earlier WSL Eq error is not present in the current Windows source tree)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels retry: passed, 1 passed, after replacing the invalid fixture PNG data URI with a valid CRC 1x1 RGBA PNG)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF animation/skin labels: passed, 1 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels final: passed, 1 passed, 1720 filtered out, after warming the runtime test harness and restoring the top-level WGSL capture facade export)
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs::importer_decodes_triangle_gltf_into_model_asset
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib importer_decodes_triangle_gltf_into_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin labels retry: passed, 1 passed, after the same fixture PNG replacement)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin animation/skin labels: passed, 3 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib importer --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 model plugin subasset labels: passed, 5 passed, covering STL/PLY/DXF root dependencies and Mesh0/Primitive0 MeshAsset payloads)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_obj_importer_runtime --lib obj_importer_decodes_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 OBJ plugin subasset label: passed, 1 passed, covering root dependency and Mesh0/Primitive0 MeshAsset payload)
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/container.rs
   - zircon_plugins/texture_importer/runtime/src/container.rs::dds_dx10_container_importer_reads_cubemap_array_layers
@@ -168,6 +209,9 @@ tests:
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_accepts_bevy_image_setting_aliases
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_reinterprets_stacked_array_layout
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_rejects_invalid_array_layout
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload_exists
+  - cargo test -p zircon_runtime --lib texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload_exists --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 texture container upload shape boundaries: passed, 1 passed, 1723 filtered out)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never (2026-05-20 texture container upload shape boundaries: passed; existing scene/world warnings only)
   - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_decodes_common_extension_format_matrix
   - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_uses_extension_format_by_default
   - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_can_guess_format_from_bytes_when_requested
@@ -330,13 +374,15 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 `AssetImportContext` carries the source path, normalized asset URI, source bytes, and per-asset import settings from meta. `AssetImportOutcome` is now a labeled entry list rather than a single imported asset. Each `ImportedAssetEntry` owns its locator, asset payload, dependency URIs, optional schema migration report, and diagnostics. The root entry uses the unlabeled source locator, and subassets use the same source path with a label such as `res://model/character.gltf#Mesh0`. The registry validates duplicate importer ids and duplicate matchers at the same priority before a plugin contribution is accepted.
 
+`AssetImporterCapabilityReport` is the public diagnostic view of a registered importer. It pairs the routing descriptor with `AssetImporterCapabilityStatus::Available` or `DiagnosticOnly { message }`. Function-backed and plugin-backed handlers report `Available`; `DiagnosticOnlyAssetImporter` reports the stable reason that a format is recognized but cannot currently produce runtime assets. `AssetImporterRegistry`, the ingest-level `AssetImporter`, and `ProjectAssetManager` expose source-specific and full capability reports so editor UI can present importer availability without running a scan or creating error artifacts.
+
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
 Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry now rejects legacy `.ui.toml` and broad `.v2.ui.toml` importer descriptors on the production path, so plugin manifests cannot reintroduce either the old recursive UI schema or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test migration fixtures are allowed to register those matchers for schema migration coverage.
 
 ## Built-In Coverage
 
-The production default importer registry installs real Rust paths for runtime-core formats only: plain TOML/JSON data, `.zui` UI component documents, typed Zircon TOML assets such as material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, and the remaining GLSL/SPIR-V shader paths. It no longer decodes the first-wave independent plugin formats directly.
+The production default importer registry installs real Rust paths for runtime-core formats only: plain TOML/JSON data, `.zui` UI component documents, typed Zircon source assets such as `.zmaterial`, `.zshader`, `.zmesh`, material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, and the remaining GLSL/SPIR-V shader paths. It no longer decodes the first-wave independent plugin formats directly.
 
 Common image textures, WGSL, OBJ, glTF/GLB, and WAV now register diagnostic-only `zircon.plugin_required.*` descriptors by default. These descriptors preserve output kind, matcher, importer version, and capability metadata so scans produce stable error records when a plugin is disabled or missing, but they do not perform decoding in production runtime code. Legacy UI `.ui.toml` and `.v2.ui.toml` no longer register production plugin-required fallbacks, and `AssetImporterRegistry` rejects non-fixture matcher registration for both suffixes. They remain reachable only through exact migration fixtures used by unit tests. The real stable split backends live in `texture_importer`, `shader_wgsl_importer`, `obj_importer`, `gltf_importer`, and `audio_importer`, while `ui_document_importer` mirrors the `.zui` component payload path for plugin packaging.
 
@@ -347,7 +393,13 @@ backends so project/plugin selection can move structured data loading out of the
 path. The `asset_importer.model` family plugin now registers real STL, PLY, and DXF model backends.
 STL and PLY decode through `stl_io` and `ply-rs-bw`; DXF decodes through the `dxf` crate and imports
 `3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces. These paths emit `ModelAsset`
-primitives with generated virtual-geometry metadata. The DXF importer implementation is isolated in
+primitives with generated virtual-geometry metadata and labeled `MeshAsset` subassets. The root
+`ModelAsset.primitives` path stays in place for the current renderer, while each primitive also
+receives a label such as `Mesh0/Primitive0` and is emitted through `ImportedAsset::Mesh`. The same
+compatibility subasset path is used by the split OBJ and glTF plugins and by built-in `.model.toml`
+imports. Current STL/PLY/DXF and OBJ plugin tests assert both the root dependency edge and the
+labeled `Mesh0/Primitive0` `MeshAsset` payload, including vertex count, indices, and preserved
+virtual-geometry metadata. The DXF importer implementation is isolated in
 `asset_importers/model/runtime/src/cad.rs`, while the package root keeps descriptor and registration
 wiring. The split `texture_importer` package decodes common image formats to RGBA8 through the shared
 `zircon_runtime::asset::decode_texture_source_image` helper, delegates DDS, KTX, KTX2, and ASTC
@@ -364,6 +416,21 @@ unsupported token, and the default path reports a distinct missing-extension dia
 falling back to byte guessing. This keeps those settings scoped to source decoding while the existing `format`
 import setting continues to mean render texture format, matching Bevy's separate `texture_format`
 override role (`dev/bevy/crates/bevy_image/src/image_loader.rs:122`).
+
+The split `gltf_importer` package now emits Bevy-style labeled subassets while keeping the root
+`ModelAsset.primitives` compatibility path. `runtime/src/lib.rs` still owns plugin registration and
+primitive decoding, while `runtime/src/subassets.rs` owns labeled subasset expansion. The
+runtime-only first-wave fixture mirrors the same label semantics in
+`zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs` so project/meta tests that
+cannot depend on `zircon_plugins` still exercise the public `AssetImportOutcome` shape. The importer
+and fixture descriptors declare additional output kinds for mesh, scene, material, texture, and data, then emit
+`Texture{n}` as `TextureAsset`, `Material{n}` and `DefaultMaterial` as `MaterialAsset`,
+`Mesh{n}` as a mesh-local `ModelAsset`, `Mesh{m}/Primitive{p}` as first-class `MeshAsset`,
+`Node{n}` and `Scene{n}` as `SceneAsset`, and diagnostic placeholder `DataAsset` rows for
+`Animation{n}`, `Skin{n}`, and `Skin{n}/InverseBindMatrices`. The labels intentionally match
+Bevy's glTF label vocabulary (`dev/bevy/crates/bevy_gltf/src/label.rs` and
+`dev/bevy/crates/bevy_gltf/src/assets.rs`) while using Zircon's existing neutral asset payloads
+instead of introducing Bevy-specific glTF wrapper types.
 
 All texture paths now emit an explicit `TextureAssetDescriptor`, and the same import settings table
 can override `format`, `color_space`, `dimension`, `depth_or_array_layers`/`depth`, `usage`,
@@ -428,11 +495,13 @@ plugin importers anymore; migration coverage must install explicit test fixtures
 
 Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
 
-`TextureAsset` keeps the existing RGBA8 payload while reserving a container payload for future compressed formats. The optional descriptor field is backward-compatible: old artifacts without it derive render metadata from `TexturePayload`, while newly imported assets store the descriptor explicitly for diagnostics and render prepare. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
+`TextureAsset` keeps the existing RGBA8 payload and the container payload used by DDS/KTX/KTX2/ASTC import paths. The optional descriptor field is backward-compatible: old artifacts without it derive render metadata from `TexturePayload`, while newly imported assets store the descriptor explicitly for diagnostics, support queries, and render prepare. Container payloads are not decoded into RGBA by the importer; the render preparation layer decides whether the current GPU feature set can upload the compressed format or should emit a deterministic fallback diagnostic. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
 
 ## Project Scan Behavior
 
 `ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates `.zmeta` with source hash, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset. Each entry has its own persistent UUID, and `ResourceId` is derived from that UUID instead of from the source UUID plus label.
+
+Project scanning also walks every registered `PackageAssetRegistry` root after the project `assets/` root. Project files keep `res://` locators; package files are converted to `package://{package_id}/...` locators from the package asset root, then enter the same importer, artifact, `.zmeta`, dependency, and registry flow. `source_path_for_uri(package://...)` maps back through the package registry, rejects unknown packages, and relies on locator/package-root validation so package paths cannot escape the registered root. Package subassets keep the package id when entry URLs are remapped during restore or failed reimport, so `package://com.zircon.navigation/bundles/atlas.multi#Texture0` remains a UUID-addressable record and artifact across restarts.
 
 If an importer is missing, unsupported, malformed, or fails validation, the scan writes meta with the same source hash and importer identity when known, sets `preview_state = error`, and registers `ResourceState::Error` with diagnostics. The live registry only publishes the failed root record, but `.zmeta.entries` preserves prior root/subasset UUID rows with cleared artifact locators so transient failures do not break saved subasset references after a later successful reimport. The next source file continues importing. Runtime resource sync registers error records without trying to load a missing artifact.
 

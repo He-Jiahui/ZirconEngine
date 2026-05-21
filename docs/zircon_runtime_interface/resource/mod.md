@@ -38,6 +38,7 @@ plan_sources:
 tests:
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime_interface --locked resource --jobs 1 --message-format short --color never (2026-05-20 package roots M2: passed, 12 passed)
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
@@ -60,7 +61,7 @@ This module is deliberately limited to contract data: locators, stable IDs, type
 
 The interface resource surface exposes:
 
-- `ResourceLocator` for normalized `res://`, `lib://`, `package://`, `builtin://`, and `mem://` locator strings. `package://{package_id}/{path}#label` exposes both `package_id()` and `package_path()` for package asset roots.
+- `ResourceLocator` for normalized `res://`, `lib://`, `package://`, `builtin://`, and `mem://` locator strings. `package://{package_id}/{path}#label` exposes both `package_id()` and `package_path()` for package asset roots, and validates the package id before normalizing the package-relative path so `..` segments cannot escape back across the package boundary.
 - `AssetUuid`, `AssetReference { uuid, url }`, and `ResourceId::from_asset_uuid(...)` for stable identity derivation where serialized resources need deterministic IDs.
 - `ResourceKind`, marker structs, `ResourceHandle<T>`, and `UntypedResourceHandle` for typed resource references without runtime object ownership.
 - `ResourceRecord`, `ResourceState`, `ResourceDiagnostic`, and `ResourceEvent` for serialized status and synchronization reports. `ResourceEvent` carries the affected `resource_kind` so typed asset subscribers can filter removed events after the record has already left the registry. `ResourceRecord` carries importer-facing status fields (`source_hash`, `importer_id`, `importer_version`, and `config_hash`) plus `dependency_ids` because asset pipeline status, editor lists, runtime handles, dependency graph queries, and future plugin importers all need the same serialized identity instead of parallel runtime-only records.
@@ -84,7 +85,7 @@ This keeps the dependency direction clean: implementation crates may depend on `
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/resource_contracts.rs` constructs representative resource DTOs and verifies stable locator/ID/record behavior. `zircon_runtime_interface/src/tests/boundary.rs` guards the package dependency list and scans production interface source for runtime/editor source inclusion or implementation-crate imports.
+`zircon_runtime_interface/src/tests/resource_contracts.rs` constructs representative resource DTOs and verifies stable locator/ID/record behavior, including malformed `package://` locators that omit a package path or attempt to escape the package root. `zircon_runtime_interface/src/tests/boundary.rs` guards the package dependency list and scans production interface source for runtime/editor source inclusion or implementation-crate imports.
 
 The listed Cargo commands are the intended scoped validation for this boundary. They prove the interface crate compiles, its contract tests pass, and the runtime library still type-checks while consuming the interface-owned resource DTOs. They do not claim workspace-wide acceptance.
 

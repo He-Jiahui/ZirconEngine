@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::UiComponentDescriptor;
 
+mod button_inputs;
 mod data_display;
 mod feedback;
 mod inputs;
@@ -38,6 +39,7 @@ fn build_material_editor_foundation_registry() -> UiComponentDescriptorRegistry 
 
 fn material_editor_foundation_descriptors() -> Vec<UiComponentDescriptor> {
     let mut descriptors = Vec::new();
+    descriptors.extend(button_inputs::descriptors());
     descriptors.extend(inputs::descriptors());
     descriptors.extend(selection_inputs::descriptors());
     descriptors.extend(text_inputs::descriptors());

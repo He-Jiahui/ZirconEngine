@@ -257,6 +257,13 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
             path,
             message: format!("property override `{name}` must match shader type `{expected}`"),
         },
+        RenderMaterialValidationError::MissingRequiredProperty { source, path, name } => {
+            MaterialEditorDiagnosticRow {
+                source: Some(source),
+                path,
+                message: format!("required shader property `{name}` needs a material override"),
+            }
+        }
         RenderMaterialValidationError::UnknownTextureSlot { source, path, slot } => {
             MaterialEditorDiagnosticRow {
                 source: Some(source),

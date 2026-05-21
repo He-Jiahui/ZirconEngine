@@ -12,39 +12,13 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
     MenuModel {
         label: "Selection".to_string(),
         items: vec![
-            MenuItemModel {
-                label: "Create Cube".to_string(),
-                action: Some(MenuAction::CreateNode(NodeKind::Cube)),
-                binding: menu_action_binding(&MenuAction::CreateNode(NodeKind::Cube)),
-                operation_path: operation_path_for_menu_action(&MenuAction::CreateNode(
-                    NodeKind::Cube,
-                )),
-                shortcut: None,
-                enabled: true,
-                children: Vec::new(),
-            },
-            MenuItemModel {
-                label: "Create Camera".to_string(),
-                action: Some(MenuAction::CreateNode(NodeKind::Camera)),
-                binding: menu_action_binding(&MenuAction::CreateNode(NodeKind::Camera)),
-                operation_path: operation_path_for_menu_action(&MenuAction::CreateNode(
-                    NodeKind::Camera,
-                )),
-                shortcut: None,
-                enabled: true,
-                children: Vec::new(),
-            },
-            MenuItemModel {
-                label: "Create Directional Light".to_string(),
-                action: Some(MenuAction::CreateNode(NodeKind::DirectionalLight)),
-                binding: menu_action_binding(&MenuAction::CreateNode(NodeKind::DirectionalLight)),
-                operation_path: operation_path_for_menu_action(&MenuAction::CreateNode(
-                    NodeKind::DirectionalLight,
-                )),
-                shortcut: None,
-                enabled: true,
-                children: Vec::new(),
-            },
+            create_node_item("Create Cube", NodeKind::Cube),
+            create_node_item("Create Camera", NodeKind::Camera),
+            create_node_item("Create Ambient Light", NodeKind::AmbientLight),
+            create_node_item("Create Directional Light", NodeKind::DirectionalLight),
+            create_node_item("Create Point Light", NodeKind::PointLight),
+            create_node_item("Create Rect Light", NodeKind::RectLight),
+            create_node_item("Create Spot Light", NodeKind::SpotLight),
             MenuItemModel {
                 label: "Delete Selection".to_string(),
                 action: Some(MenuAction::DeleteSelected),
@@ -55,5 +29,18 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 children: Vec::new(),
             },
         ],
+    }
+}
+
+fn create_node_item(label: &str, kind: NodeKind) -> MenuItemModel {
+    let action = MenuAction::CreateNode(kind);
+    MenuItemModel {
+        label: label.to_string(),
+        action: Some(action.clone()),
+        binding: menu_action_binding(&action),
+        operation_path: operation_path_for_menu_action(&action),
+        shortcut: None,
+        enabled: true,
+        children: Vec::new(),
     }
 }

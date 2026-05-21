@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiSurfaceDebugSnapshot, UiWidgetReflectorNode},
 };
 
+const LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT: usize = 8;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct EditorUiDebugReflectorSummary {
     pub title: String,
@@ -73,6 +75,7 @@ impl EditorUiDebugReflectorModel {
             .collect::<Vec<_>>();
         let details = details(snapshot, selected_node);
         let sections = vec![
+            layout_engine_section(snapshot),
             render_section(snapshot),
             render_visualizer_section(snapshot),
             renderer_parity_section(snapshot),
@@ -103,6 +106,22 @@ impl EditorUiDebugReflectorModel {
             warnings,
         }
     }
+
+    pub(crate) fn section_display_lines(&self) -> Vec<String> {
+        flattened_section_lines(&self.sections)
+    }
+}
+
+fn flattened_section_lines(sections: &[EditorUiDebugReflectorSection]) -> Vec<String> {
+    let mut lines = Vec::new();
+    for section in sections {
+        if section.title.trim().is_empty() {
+            continue;
+        }
+        lines.push(format!("{}:", section.title));
+        lines.extend(section.lines.iter().map(|line| format!("  {line}")));
+    }
+    lines
 }
 
 fn node_row(
@@ -220,6 +239,61 @@ fn details(snapshot: &UiSurfaceDebugSnapshot, selected_node: Option<UiNodeId>) -
         }
     }
     details
+}
+
+fn layout_engine_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugReflectorSection {
+    let report = &snapshot.layout_engine_report;
+    let mut lines = vec![
+        format!("requests: {}", report.request_count),
+        format!(
+            "selected: taffy={} zircon={}",
+            report.taffy_selected_count, report.legacy_selected_count
+        ),
+        format!(
+            "fallbacks: {} unsupported: {}",
+            report.fallback_count, report.unsupported_count
+        ),
+    ];
+
+    if report.selections.is_empty() {
+        lines.push("selections: none".to_string());
+    } else {
+        for selection in report
+            .selections
+            .iter()
+            .take(LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT)
+        {
+            let node_id = selection
+                .node_id
+                .map(|node| node.0.to_string())
+                .unwrap_or_else(|| "none".to_string());
+            let reason = selection
+                .fallback_reason
+                .map(|reason| format!("{:?}", reason))
+                .unwrap_or_else(|| "none".to_string());
+            lines.push(format!(
+                "node={} family={:?} requested={:?} selected={:?} support={:?} reason={}",
+                node_id,
+                selection.request.family,
+                selection.requested_backend,
+                selection.selected_backend,
+                selection.support,
+                reason
+            ));
+        }
+        if report.selections.len() > LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT {
+            lines.push(format!(
+                "selections truncated: showing {} of {}",
+                LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT,
+                report.selections.len()
+            ));
+        }
+    }
+
+    EditorUiDebugReflectorSection {
+        title: "Layout Engine".to_string(),
+        lines,
+    }
 }
 
 fn render_visualizer_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugReflectorSection {

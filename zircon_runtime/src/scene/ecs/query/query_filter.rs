@@ -50,7 +50,9 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_read(component_id)
+        access.add_read(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches(world: &World, entity: EntityId, ticks: ChangeTickWindow) -> bool {
@@ -68,7 +70,9 @@ where
 {
     fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
         let component_id = world.component_id::<T>();
-        access.add_read(component_id)
+        access.add_read(component_id)?;
+        access.add_with(component_id);
+        Ok(())
     }
 
     fn matches(world: &World, entity: EntityId, ticks: ChangeTickWindow) -> bool {
@@ -116,3 +120,7 @@ tuple_query_filter!(A);
 tuple_query_filter!(A, B);
 tuple_query_filter!(A, B, C);
 tuple_query_filter!(A, B, C, D);
+tuple_query_filter!(A, B, C, D, E);
+tuple_query_filter!(A, B, C, D, E, F);
+tuple_query_filter!(A, B, C, D, E, F, G);
+tuple_query_filter!(A, B, C, D, E, F, G, H);

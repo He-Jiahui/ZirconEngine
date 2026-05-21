@@ -361,14 +361,14 @@ impl StyleProperty for ButtonInteractionStateProperty {
                     .map(|_| ButtonInteractionState::Disabled)
             })
             .or_else(|| {
-                bool_value(sheet, "pressed")
-                    .filter(|value| *value)
-                    .map(|_| ButtonInteractionState::Pressed)
-            })
-            .or_else(|| {
                 bool_value(sheet, "focused")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Focused)
+            })
+            .or_else(|| {
+                bool_value(sheet, "pressed")
+                    .filter(|value| *value)
+                    .map(|_| ButtonInteractionState::Pressed)
             })
             .or_else(|| {
                 bool_value(sheet, "hovered")

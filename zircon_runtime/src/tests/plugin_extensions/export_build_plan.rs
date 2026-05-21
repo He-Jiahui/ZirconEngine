@@ -8,7 +8,7 @@ use crate::{
     plugin::ExportPlatformPluginStrategy, plugin::ExportPlatformResourceStrategy,
     plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
     plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog,
-    RuntimePluginId, RuntimeTargetMode,
+    plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]
@@ -44,6 +44,130 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
     assert!(main_source
         .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
     assert!(main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
+    assert!(plan
+        .runtime_plugin_availability
+        .linked
+        .iter()
+        .any(|entry| entry.id == "sound"));
+}
+
+#[test]
+fn export_plan_treats_missing_required_profile_providers_as_fatal() {
+    let mut manifest = ProjectManifest::new(
+        "Missing Required Provider Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            true,
+        )],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+
+    assert!(availability_contains(
+        &plan.runtime_plugin_availability.externalized_missing,
+        "sound"
+    ));
+    assert!(availability_contains(
+        &plan.runtime_plugin_availability.missing_required,
+        "sound"
+    ));
+    assert!(plan.has_fatal_diagnostics());
+    assert!(plan
+        .effective_fatal_diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic
+            .contains("required runtime plugin sound is unavailable for export profile client")));
+
+    let output_root = temp_dir("zircon_missing_required_provider_export");
+    let report = plan.materialize(&output_root).unwrap();
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("required runtime plugin sound is unavailable for export profile client")));
+}
+
+#[test]
+fn export_plan_uses_explicit_runtime_profile_id_before_name_inference() {
+    let mut manifest = ProjectManifest::new(
+        "Explicit Runtime Profile Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_runtime_profile_id(RuntimeProfileId::Client3d)
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+
+    assert!(plugin_source.contains("runtime_profile_id: Some(RuntimeProfileId::Client3d)"));
+    assert!(availability_contains(
+        &plan.runtime_plugin_availability.externalized_missing,
+        "navigation"
+    ));
+    assert!(!availability_contains(
+        &plan.runtime_plugin_availability.externalized_missing,
+        "tilemap_2d"
+    ));
+}
+
+#[test]
+fn built_in_default_export_profiles_have_explicit_runtime_profile_ids() {
+    let manifest = ProjectManifest::new(
+        "Default Profile Runtime Profile Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+
+    let client = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let server = ExportBuildPlan::from_project_manifest(&manifest, "server").unwrap();
+
+    assert_eq!(
+        client.profile.runtime_profile_id,
+        Some(RuntimeProfileId::Client2d)
+    );
+    assert_eq!(
+        server.profile.runtime_profile_id,
+        Some(RuntimeProfileId::Server)
+    );
+}
+
+#[test]
+fn export_plan_rejects_runtime_profile_id_target_mode_mismatch() {
+    let mut manifest = ProjectManifest::new(
+        "Runtime Profile Target Mismatch Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.export_profiles = vec![ExportProfile::new(
+        "bad-client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_runtime_profile_id(RuntimeProfileId::Server)
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "bad-client").unwrap();
+
+    assert!(plan.has_fatal_diagnostics());
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains(
+        "export profile bad-client selects runtime profile Server with target mode ServerRuntime"
+    )
+    }));
 }
 
 #[test]
@@ -109,6 +233,10 @@ fn export_plan_treats_animation_as_external_native_dynamic_package() {
 
     assert!(plan.linked_runtime_crates.is_empty());
     assert_eq!(plan.native_dynamic_packages, vec!["animation".to_string()]);
+    assert!(availability_contains(
+        &plan.runtime_plugin_availability.native_dynamic,
+        "animation"
+    ));
     assert!(generated_file(&plan, "plugins/native_plugins.toml").contains("id = \"animation\""));
     assert!(plan
         .generated_files
@@ -191,6 +319,14 @@ fn mobile_and_web_targets_reject_native_dynamic_packaging() {
             .generated_files
             .iter()
             .all(|file| file.path != "plugins/native_plugins.toml"));
+        assert!(availability_contains(
+            &plan.runtime_plugin_availability.externalized_missing,
+            "sound"
+        ));
+        assert!(availability_contains(
+            &plan.runtime_plugin_availability.missing_required,
+            "sound"
+        ));
     }
 }
 
@@ -1632,6 +1768,13 @@ fn generated_file<'a>(plan: &'a ExportBuildPlan, path: &str) -> &'a str {
         .find(|file| file.path == path)
         .map(|file| file.contents.as_str())
         .unwrap_or_else(|| panic!("missing generated file {path}"))
+}
+
+fn availability_contains(
+    entries: &[crate::plugin::RuntimePluginAvailabilityEntry],
+    plugin_id: &str,
+) -> bool {
+    entries.iter().any(|entry| entry.id == plugin_id)
 }
 
 fn generated_file_purpose(plan: &ExportBuildPlan, path: &str) -> String {

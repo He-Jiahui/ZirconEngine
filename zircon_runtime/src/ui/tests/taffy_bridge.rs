@@ -1,10 +1,10 @@
-use crate::ui::layout::taffy_style_for_container;
+use crate::ui::layout::{taffy_display_for_family, taffy_style_for_container};
 use taffy::style::{Dimension, Display, FlexDirection, FlexWrap, LengthPercentage};
 use zircon_runtime_interface::ui::layout::{
     AxisConstraint, BoxConstraints, UiContainerKind, UiGridBoxConfig, UiLayoutEngineBackend,
-    UiLayoutEngineCapability, UiLayoutEngineFallbackReason, UiLayoutEngineRequest,
-    UiLayoutEngineSelection, UiLayoutEngineSupport, UiLinearBoxConfig, UiScrollableBoxConfig,
-    UiSizeBoxConfig, UiVirtualListConfig, UiWrapBoxConfig,
+    UiLayoutEngineCapability, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
+    UiLayoutEngineRequest, UiLayoutEngineSelection, UiLayoutEngineSupport, UiLinearBoxConfig,
+    UiScrollableBoxConfig, UiSizeBoxConfig, UiVirtualListConfig, UiWrapBoxConfig,
 };
 
 #[test]
@@ -102,6 +102,33 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
         UiLayoutEngineBackend::LegacyZircon
     );
     assert_eq!(selection.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        selection.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+}
+
+#[test]
+fn taffy_bridge_keeps_block_display_explicit_and_container_zircon_owned() {
+    assert_eq!(
+        taffy_display_for_family(UiLayoutEngineFamily::Block),
+        Some(Display::Block)
+    );
+    assert_eq!(
+        taffy_display_for_family(UiLayoutEngineFamily::Container),
+        None
+    );
+    assert!(taffy_style_for_container(UiContainerKind::Container, sample_constraints()).is_none());
+
+    let selection = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::from_container_kind(UiContainerKind::Container),
+        &UiLayoutEngineCapability::taffy_flex_grid_block(),
+        &UiLayoutEngineCapability::legacy_zircon(),
+    );
+    assert_eq!(
+        selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
     assert_eq!(
         selection.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)

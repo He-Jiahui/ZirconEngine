@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{
-    SoundEffectDescriptor, SoundEffectKind, SoundFilterMode, SoundImpulseResponseId,
-    SoundTrackControls, SoundTrackId, SoundTrackMeter,
+    SoundEffectDescriptor, SoundEffectKind, SoundImpulseResponseId, SoundTrackControls,
+    SoundTrackId, SoundTrackMeter,
 };
 
+use super::filter::apply_biquad_filter_block;
 use super::{SoundEffectRuntimeState, SoundEffectStateKey, SoundTrackRuntimeState};
 
 pub(crate) fn apply_track_effects(
@@ -28,12 +29,12 @@ pub(crate) fn apply_track_effects(
             .or_default();
         match &effect.kind {
             SoundEffectKind::Gain(gain) => multiply(buffer, gain.gain),
-            SoundEffectKind::Filter(filter) => filter_block(
+            SoundEffectKind::Filter(filter) => apply_biquad_filter_block(
                 buffer,
                 channels,
                 sample_rate_hz,
-                filter.mode,
-                filter.cutoff_hz,
+                *filter,
+                &mut state.filter_state,
             ),
             SoundEffectKind::Reverb(reverb) => reverb_block(
                 buffer,
@@ -212,35 +213,6 @@ fn wet_mix(buffer: &mut [f32], dry: &[f32], wet: f32) {
     let dry_amount = 1.0 - wet;
     for (sample, dry_sample) in buffer.iter_mut().zip(dry.iter().copied()) {
         *sample = *sample * wet + dry_sample * dry_amount;
-    }
-}
-
-fn filter_block(
-    buffer: &mut [f32],
-    channels: usize,
-    sample_rate_hz: u32,
-    mode: SoundFilterMode,
-    cutoff_hz: f32,
-) {
-    let rc = 1.0 / (cutoff_hz * std::f32::consts::TAU);
-    let dt = 1.0 / sample_rate_hz.max(1) as f32;
-    let alpha = (dt / (rc + dt)).clamp(0.0, 1.0);
-    for channel in 0..channels {
-        let mut low = 0.0;
-        let mut previous_input = 0.0;
-        for frame in 0..(buffer.len() / channels) {
-            let index = frame * channels + channel;
-            let input = buffer[index];
-            low += alpha * (input - low);
-            let high = alpha * (low + input - previous_input);
-            buffer[index] = match mode {
-                SoundFilterMode::LowPass | SoundFilterMode::LowShelf => low,
-                SoundFilterMode::HighPass | SoundFilterMode::HighShelf => high,
-                SoundFilterMode::BandPass => input - low - high,
-                SoundFilterMode::Notch => low + high,
-            };
-            previous_input = input;
-        }
     }
 }
 

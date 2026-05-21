@@ -1,11 +1,20 @@
 use zircon_runtime_interface::ui::{
+    binding::{
+        UiBindingDirtyDomain, UiBindingSourceKind, UiBindingUpdateReport, UiBindingUpdateStatus,
+    },
     component::{UiValue, UiValueKind},
     event_ui::{UiNodeId, UiPropertyInvalidationReason, UiReflectedPropertySource},
     focus::UiFocusChangeEvent,
     tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
 };
 
-use crate::ui::tree::UiRuntimeTreeAccessExt;
+use crate::ui::{
+    binding::{
+        component_state_value_update, reflected_property_update,
+        reflected_property_update_with_source_kind,
+    },
+    tree::UiRuntimeTreeAccessExt,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiPropertyMutationRequest {
@@ -13,6 +22,7 @@ pub struct UiPropertyMutationRequest {
     pub property: String,
     pub value: UiValue,
     pub source: UiReflectedPropertySource,
+    pub binding_source_kind: Option<UiBindingSourceKind>,
 }
 
 impl UiPropertyMutationRequest {
@@ -22,12 +32,36 @@ impl UiPropertyMutationRequest {
             property: property.into(),
             value,
             source: UiReflectedPropertySource::RuntimeState,
+            binding_source_kind: None,
         }
     }
 
     pub fn with_source(mut self, source: UiReflectedPropertySource) -> Self {
         self.source = source;
         self
+    }
+
+    pub(crate) fn with_binding_source_kind(mut self, kind: UiBindingSourceKind) -> Self {
+        self.binding_source_kind = Some(kind);
+        self
+    }
+
+    pub(crate) fn widget_behavior(
+        node_id: UiNodeId,
+        property: impl Into<String>,
+        value: UiValue,
+    ) -> Self {
+        Self::new(node_id, property, value)
+            .with_binding_source_kind(UiBindingSourceKind::WidgetBehavior)
+    }
+
+    pub(crate) fn accessibility_action(
+        node_id: UiNodeId,
+        property: impl Into<String>,
+        value: UiValue,
+    ) -> Self {
+        Self::new(node_id, property, value)
+            .with_binding_source_kind(UiBindingSourceKind::AccessibilityAction)
     }
 }
 
@@ -45,45 +79,103 @@ pub struct UiPropertyMutationReport {
     pub status: UiPropertyMutationStatus,
     pub source: UiReflectedPropertySource,
     pub invalidation: UiPropertyInvalidationReason,
+    pub binding: UiBindingUpdateReport,
     pub message: Option<String>,
     pub focus_change: Option<UiFocusChangeEvent>,
 }
 
 impl UiPropertyMutationReport {
-    fn accepted(request: &UiPropertyMutationRequest, dirty: UiDirtyFlags) -> Self {
+    fn accepted(
+        request: &UiPropertyMutationRequest,
+        previous: Option<UiValue>,
+        dirty: UiDirtyFlags,
+    ) -> Self {
         Self {
             node_id: request.node_id,
             property: request.property.clone(),
             status: UiPropertyMutationStatus::Accepted,
             source: request.source,
             invalidation: UiPropertyInvalidationReason::with_dirty(dirty),
+            binding: property_binding_report(
+                request,
+                previous,
+                dirty,
+                UiBindingUpdateStatus::Applied,
+                None,
+            ),
             message: None,
             focus_change: None,
         }
     }
 
-    fn unchanged(request: &UiPropertyMutationRequest) -> Self {
+    fn unchanged(request: &UiPropertyMutationRequest, previous: Option<UiValue>) -> Self {
         Self {
             node_id: request.node_id,
             property: request.property.clone(),
             status: UiPropertyMutationStatus::Unchanged,
             source: request.source,
             invalidation: UiPropertyInvalidationReason::none(),
+            binding: property_binding_report(
+                request,
+                previous,
+                UiDirtyFlags::default(),
+                UiBindingUpdateStatus::Unchanged,
+                None,
+            ),
             message: None,
             focus_change: None,
         }
     }
 
     fn rejected(request: &UiPropertyMutationRequest, message: impl Into<String>) -> Self {
+        let message = message.into();
         Self {
             node_id: request.node_id,
             property: request.property.clone(),
             status: UiPropertyMutationStatus::Rejected,
             source: request.source,
             invalidation: UiPropertyInvalidationReason::reflection_only(),
-            message: Some(message.into()),
+            binding: property_binding_report(
+                request,
+                None,
+                UiDirtyFlags::default(),
+                UiBindingUpdateStatus::Rejected,
+                Some(message.clone()),
+            ),
+            message: Some(message),
             focus_change: None,
         }
+    }
+
+    pub(crate) fn mark_render_dirty(&mut self) {
+        self.invalidation.dirty.render = true;
+        self.sync_binding_dirty_from_invalidation();
+    }
+
+    pub(crate) fn record_component_state_value_update(
+        &mut self,
+        node_id: UiNodeId,
+        property: impl Into<String>,
+        previous: Option<UiValue>,
+        value: UiValue,
+    ) {
+        self.binding.updates.push(component_state_value_update(
+            node_id,
+            property,
+            previous,
+            value,
+            self.invalidation.dirty,
+            UiBindingUpdateStatus::Applied,
+        ));
+        self.binding.recompute();
+    }
+
+    fn sync_binding_dirty_from_invalidation(&mut self) {
+        let dirty = UiBindingDirtyDomain::from_dirty_flags(self.invalidation.dirty);
+        for update in &mut self.binding.updates {
+            update.dirty = dirty.clone();
+        }
+        self.binding.recompute();
     }
 }
 
@@ -97,8 +189,11 @@ pub fn mutate_tree_property(
 
     let report = match request.property.as_str() {
         "visibility" => match visibility_value(&request.value) {
-            Some(next) if node.visibility == next => UiPropertyMutationReport::unchanged(&request),
+            Some(next) if node.visibility == next => {
+                UiPropertyMutationReport::unchanged(&request, Some(visibility_ui_value(node.visibility)))
+            }
             Some(next) => {
+                let previous = Some(visibility_ui_value(node.visibility));
                 let dirty = visibility_transition_dirty(
                     node.visibility,
                     next,
@@ -106,7 +201,7 @@ pub fn mutate_tree_property(
                 );
                 node.visibility = next;
                 mark_state_dirty(node, dirty);
-                UiPropertyMutationReport::accepted(&request, dirty)
+                UiPropertyMutationReport::accepted(&request, previous, dirty)
             }
             None => UiPropertyMutationReport::rejected(
                 &request,
@@ -132,11 +227,15 @@ pub fn mutate_tree_property(
             render_dirty(),
         ),
         "input_policy" => match input_policy_value(&request.value) {
-            Some(next) if node.input_policy == next => UiPropertyMutationReport::unchanged(&request),
+            Some(next) if node.input_policy == next => UiPropertyMutationReport::unchanged(
+                &request,
+                Some(input_policy_ui_value(node.input_policy)),
+            ),
             Some(next) => {
+                let previous = Some(input_policy_ui_value(node.input_policy));
                 node.input_policy = next;
                 mark_state_dirty(node, input_dirty());
-                UiPropertyMutationReport::accepted(&request, input_dirty())
+                UiPropertyMutationReport::accepted(&request, previous, input_dirty())
             }
             None => UiPropertyMutationReport::rejected(
                 &request,
@@ -151,14 +250,15 @@ pub fn mutate_tree_property(
                 ));
             };
             let next = request.value.to_toml();
+            let previous = metadata.attributes.get(property).map(UiValue::from_toml);
             if metadata.attributes.get(property) == Some(&next) {
-                UiPropertyMutationReport::unchanged(&request)
+                UiPropertyMutationReport::unchanged(&request, previous)
             } else {
                 metadata.attributes.insert(property.to_string(), next);
                 let dirty =
                     metadata_attribute_dirty(metadata.component.as_str(), property, request.value.kind());
                 mark_dirty(node, dirty);
-                UiPropertyMutationReport::accepted(&request, dirty)
+                UiPropertyMutationReport::accepted(&request, previous, dirty)
             }
         }
     };
@@ -176,11 +276,12 @@ fn mutate_state_bool(
             format!("{} expects a boolean value", request.property),
         );
     };
+    let previous = Some(UiValue::Bool(*current));
     if *current == next {
-        return UiPropertyMutationReport::unchanged(request);
+        return UiPropertyMutationReport::unchanged(request, previous);
     }
     *current = next;
-    UiPropertyMutationReport::accepted(request, dirty)
+    UiPropertyMutationReport::accepted(request, previous, dirty)
 }
 
 fn mutate_node_state_bool(
@@ -211,8 +312,10 @@ fn mutate_node_state_bool_and_optional_attribute(
     };
 
     let mut changed = false;
+    let previous;
     {
         let current = field(node);
+        previous = Some(UiValue::Bool(*current));
         if *current != next {
             *current = next;
             changed = true;
@@ -232,11 +335,43 @@ fn mutate_node_state_bool_and_optional_attribute(
     }
 
     if !changed {
-        return UiPropertyMutationReport::unchanged(request);
+        return UiPropertyMutationReport::unchanged(request, previous);
     }
 
     mark_state_dirty(node, dirty);
-    UiPropertyMutationReport::accepted(request, dirty)
+    UiPropertyMutationReport::accepted(request, previous, dirty)
+}
+
+fn property_binding_report(
+    request: &UiPropertyMutationRequest,
+    previous: Option<UiValue>,
+    dirty: UiDirtyFlags,
+    status: UiBindingUpdateStatus,
+    message: Option<String>,
+) -> UiBindingUpdateReport {
+    let update = match request.binding_source_kind {
+        Some(source_kind) => reflected_property_update_with_source_kind(
+            request.node_id,
+            request.property.clone(),
+            source_kind,
+            previous,
+            request.value.clone(),
+            dirty,
+            status,
+            message,
+        ),
+        None => reflected_property_update(
+            request.node_id,
+            request.property.clone(),
+            request.source,
+            previous,
+            request.value.clone(),
+            dirty,
+            status,
+            message,
+        ),
+    };
+    UiBindingUpdateReport::from_updates(vec![update])
 }
 
 fn bool_value(value: &UiValue) -> Option<bool> {
@@ -270,6 +405,30 @@ fn input_policy_value(value: &UiValue) -> Option<UiInputPolicy> {
         },
         _ => None,
     }
+}
+
+fn visibility_ui_value(visibility: UiVisibility) -> UiValue {
+    UiValue::Enum(
+        match visibility {
+            UiVisibility::Visible => "visible",
+            UiVisibility::Hidden => "hidden",
+            UiVisibility::Collapsed => "collapsed",
+            UiVisibility::HitTestInvisible => "hit_test_invisible",
+            UiVisibility::SelfHitTestInvisible => "self_hit_test_invisible",
+        }
+        .to_string(),
+    )
+}
+
+fn input_policy_ui_value(input_policy: UiInputPolicy) -> UiValue {
+    UiValue::Enum(
+        match input_policy {
+            UiInputPolicy::Inherit => "inherit",
+            UiInputPolicy::Receive => "receive",
+            UiInputPolicy::Ignore => "ignore",
+        }
+        .to_string(),
+    )
 }
 
 fn normalize_token(value: &str) -> String {

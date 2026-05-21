@@ -1,8 +1,12 @@
+mod abi_declarations;
+mod behavior_calls;
+mod behavior_validation;
 mod candidate_from_manifest;
 mod collect_manifests;
 mod discover;
 mod discover_load_manifest;
 mod dynamic_library_name;
+mod host_callbacks;
 mod load_discovered;
 mod loaded_native_plugin;
 mod native_plugin_abi;
@@ -11,13 +15,12 @@ mod native_plugin_live_host;
 mod native_plugin_load_manifest;
 mod native_plugin_load_report;
 mod native_plugin_loader;
+mod native_strings;
 
-pub use loaded_native_plugin::LoadedNativePlugin;
-pub use native_plugin_abi::{
-    NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3, NativePluginBehaviorCallReport,
-    NativePluginBehaviorV2, NativePluginBehaviorV3, NativePluginByteSliceV2,
-    NativePluginByteSliceV3, NativePluginCallbackStatusV2, NativePluginCallbackStatusV3,
-    NativePluginDescriptor, NativePluginEntryReport, NativePluginEntryReportV1,
+pub use abi_declarations::{
+    NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3, NativePluginBehaviorV2,
+    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginByteSliceV3,
+    NativePluginCallbackStatusV2, NativePluginCallbackStatusV3, NativePluginEntryReportV1,
     NativePluginEntryReportV2, NativePluginEntryReportV3, NativePluginHostFunctionTableV2,
     NativePluginHostFunctionTableV3, NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3,
     NativePluginSchemaVersionsV3, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
@@ -28,6 +31,10 @@ pub use native_plugin_abi::{
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
     ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
+pub use behavior_calls::NativePluginBehaviorCallReport;
+pub use behavior_validation::{NativePluginBehaviorHealth, NativePluginBehaviorValidationReport};
+pub use loaded_native_plugin::LoadedNativePlugin;
+pub use native_plugin_abi::{NativePluginDescriptor, NativePluginEntryReport};
 pub use native_plugin_candidate::NativePluginCandidate;
 pub use native_plugin_live_host::{
     NativePluginLiveHost, NativePluginLiveHostCommand, NativePluginLiveHostLoadReport,

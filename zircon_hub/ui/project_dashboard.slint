@@ -1,4 +1,3 @@
-import { ScrollView } from "std-widgets.slint";
 import {
     IconButton,
     MutedText,
@@ -17,11 +16,15 @@ import {
     HubTokens,
     MaterialPalette,
     MaterialStyleMetrics,
+    MaterialText,
     MaterialTypography,
+    PageScrollSurface,
     PanelGrid,
     PanelHeader,
     ResponsiveSlot,
     SearchBox,
+    ScrollView,
+    StateLayerArea,
     ToolbarSelect,
 } from "components.slint";
 
@@ -134,7 +137,11 @@ component ProjectCard inherits HubPanel {
     preferred-width: root.card-width-basis;
     clip: true;
 
-    area := TouchArea {
+    card-state := StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: MaterialPalette.on_surface;
+        border_radius: MaterialStyleMetrics.border_radius_12;
         clicked => {
             root.select(root.project.project-path);
         }
@@ -157,15 +164,14 @@ component ProjectCard inherits HubPanel {
             spacing: MaterialStyleMetrics.spacing_6;
             alignment: stretch;
 
-            Text {
+            MaterialText {
                 text: root.project.title;
                 overflow: elide;
                 color: MaterialPalette.on_surface;
-                font-size: MaterialTypography.title_small.font_size;
-                font-weight: MaterialTypography.title_small.font_weight;
+                style: MaterialTypography.title_small;
                 horizontal-stretch: 1;
                 min-width: 1px;
-                vertical-alignment: center;
+                vertical_alignment: center;
             }
 
             if root.project.pinned: Badge {
@@ -236,13 +242,14 @@ component ProjectFlow inherits Rectangle {
     callback select(string);
     callback open(string);
 
-    private property <length> card-gap-x: max(HubTokens.panel-gap, min(MaterialStyleMetrics.spacing_16 + MaterialStyleMetrics.spacing_4, root.width / 80));
-    private property <length> card-gap-y: max(HubTokens.space-3, min(MaterialStyleMetrics.spacing_16 + MaterialStyleMetrics.spacing_2, root.width / 92));
-    private property <length> card-basis: max(HubTokens.panel-min-sm * 2 / 3, (root.width - root.card-gap-x * 3) / 4);
+    private property <length> card-gap-x: HubTokens.panel-gap;
+    private property <length> card-gap-y: HubTokens.panel-gap;
+    private property <length> card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.width * 23 / 100);
     private property <length> card-height: root.card-height-token;
     private property <length> empty-height: max(root.card-height * 3 / 5, root.card-gap-y * 10);
 
     height: root.project-card-count == 0 ? root.empty-height : (root.expanded ? root.card-height * 2 + root.card-gap-y : root.card-height);
+    horizontal-stretch: 1;
     clip: true;
     background: transparent;
 
@@ -253,9 +260,6 @@ component ProjectFlow inherits Rectangle {
         gap-y: root.card-gap-y;
 
         for card in root.project-cards: ProjectCard {
-            flex-basis: root.card-basis;
-            flex-grow: 1;
-            flex-shrink: 1;
             min-width: min(max(HubTokens.panel-min-sm * 2 / 3, root.card-basis * 4 / 5), root.width);
             card-height: root.card-height;
             cover-height: max(root.card-height * 2 / 5, min(root.card-height * 9 / 20, root.card-basis * 2 / 5));
@@ -281,11 +285,10 @@ component ProjectFlow inherits Rectangle {
             padding: HubTokens.space-6;
             spacing: HubTokens.space-2;
 
-            Text {
+            MaterialText {
                 text: root.ui-text.projects-empty-title;
                 color: MaterialPalette.on_surface;
-                font-size: MaterialTypography.title_medium.font_size;
-                font-weight: 800;
+                style: MaterialTypography.title_medium;
             }
 
             MutedText {
@@ -321,117 +324,120 @@ export component ProjectDashboardPage inherits Rectangle {
     callback show-project-subpage(string);
 
     private property <length> quick-actions-scroll-y: 0px;
-    private property <bool> compact: root.width < HubTokens.breakpoint-compact;
-    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 56));
-    private property <length> page-gap: max(HubTokens.toolbar-gap, min(HubTokens.panel-gap, root.width / 110));
-    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
-    private property <length> dashboard-column-width: root.content-width - root.page-gap;
+    private property <bool> compact: root.content-width < HubTokens.breakpoint-compact - root.page-pad * 2;
+    private property <length> page-pad: HubTokens.page-padding;
+    private property <length> page-gap: HubTokens.panel-gap;
+    private property <length> content-width: page-surface.content-width;
+    private property <length> dashboard-main-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
+    private property <length> dashboard-side-basis: HubTokens.panel-min-md;
     private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.height / 18));
     private property <length> toolbar-control-min-width: root.toolbar-height * 4;
     private property <bool> dashboard-toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.toolbar-height * 2 + root.page-gap * 5;
     private property <length> dashboard-toolbar-height: root.dashboard-toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
-    private property <length> dashboard-toolbar-select-width: root.dashboard-toolbar-wrap ? max(root.toolbar-control-min-width, (root.content-width - root.toolbar-height * 2 - root.page-gap * 5 - HubTokens.border-width) / 2) : max(root.content-width / 9, root.toolbar-control-min-width);
-    private property <length> dashboard-card-basis: max(HubTokens.panel-min-sm * 2 / 3, (root.content-width - root.page-gap * 3) / 4);
+    private property <length> dashboard-toolbar-select-basis: root.dashboard-toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width / 9, root.toolbar-control-min-width);
+    private property <length> dashboard-card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.content-width * 23 / 100);
     private property <length> dashboard-card-height: max(HubTokens.list-row-lg * 3, min(HubTokens.list-row-lg * 7 / 2, root.dashboard-card-basis * 3 / 4));
     private property <length> dashboard-empty-height: max(root.dashboard-card-height * 3 / 5, root.toolbar-height * 3);
     private property <length> dashboard-flow-height: root.project-card-count == 0 ? root.dashboard-empty-height : (root.project-cards-expanded ? root.dashboard-card-height * 2 + root.page-gap : root.dashboard-card-height);
     private property <length> dashboard-show-more-height: root.project-card-count > 4 ? root.toolbar-height : 0px;
-    private property <length> dashboard-lower-height: root.compact ? max(root.height * 3 / 5, root.toolbar-height * 12) : max(root.height * 7 / 20, root.toolbar-height * 7);
+    private property <length> dashboard-lower-height: root.compact ? max(page-surface.viewport-height * 3 / 5, root.toolbar-height * 12) : max(page-surface.viewport-height * 7 / 20, root.toolbar-height * 7);
     private property <length> dashboard-panel-height: root.compact ? max(root.toolbar-height * 5, (root.dashboard-lower-height - root.page-gap) / 2) : root.dashboard-lower-height;
     private property <length> dashboard-table-row-height: max(root.toolbar-height * 3 / 5, min(root.toolbar-height * 7 / 10, root.dashboard-lower-height / 10));
     private property <length> dashboard-table-gap: max(HubTokens.toolbar-gap, min(HubTokens.panel-gap, root.page-gap));
-    private property <length> dashboard-table-width: max(root.toolbar-height * 8, root.dashboard-column-width * 58 / 100);
+    private property <length> dashboard-table-width: max(root.toolbar-height * 8, root.content-width * 58 / 100);
     private property <length> quick-action-row-gap: max(MaterialStyleMetrics.spacing_6, min(HubTokens.space-2, root.dashboard-lower-height / 36));
     private property <length> quick-action-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, (root.dashboard-lower-height - root.toolbar-height * 5 / 2) / 4));
-    private property <length> dashboard-content-height: root.page-pad + root.dashboard-toolbar-height + root.page-gap + root.dashboard-flow-height + (root.project-card-count > 4 ? root.page-gap + root.dashboard-show-more-height : 0px) + root.page-gap + root.dashboard-lower-height + root.page-pad;
-
     background: HubTokens.surface-page;
     clip: true;
 
-    dashboard-scroll := ScrollView {
-        width: root.width;
-        height: root.height;
-        viewport-y <=> root.scroll-y;
-        viewport-width: dashboard-scroll.visible-width;
-        viewport-height: max(dashboard-scroll.visible-height, root.dashboard-content-height);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-        mouse-drag-pan-enabled: true;
-
-        Rectangle {
-            width: dashboard-scroll.visible-width;
-            height: dashboard-scroll.viewport-height;
-            background: HubTokens.surface-page;
-
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding-left: root.page-pad;
-                padding-right: root.page-pad;
-                padding-bottom: root.page-pad;
-                spacing: root.page-gap;
+    page-surface := PageScrollSurface {
+        scroll-y <=> root.scroll-y;
+        page-padding: root.page-pad;
+        bottom-padding: root.page-pad;
+        gap: root.page-gap;
 
                 Flow {
-                    width: root.content-width;
+                    horizontal-stretch: 1;
                     height: root.dashboard-toolbar-height;
                     gap-x: root.page-gap;
                     gap-y: root.page-gap;
 
-                    SearchBox {
-                        flex-basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-shrink: 1;
-                        box-width: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
-                        box-height: root.toolbar-height;
-                        text <=> root.search-query;
-                        placeholder: root.ui-text.search-projects;
-                        edited(query) => { root.search-projects(query); }
+                    ResponsiveSlot {
+                        basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
+                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        shrink: 1;
+                        min-width: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
+                        height: root.toolbar-height;
+
+                        SearchBox {
+                            width: parent.width;
+                            height: parent.height;
+                            box-width: parent.width;
+                            box-height: root.toolbar-height;
+                            text <=> root.search-query;
+                            placeholder: root.ui-text.search-projects;
+                            edited(query) => { root.search-projects(query); }
+                        }
                     }
 
                     if !root.dashboard-toolbar-wrap: Rectangle { horizontal-stretch: 1; min-width: root.page-gap; }
 
-                    ToolbarSelect {
-                        flex-basis: root.dashboard-toolbar-select-width;
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-shrink: 1;
-                        icon-image: @image-url("../assets/icons/ui/folder.svg");
-                        has-icon-image: true;
-                        text: root.project-filter-label;
-                        select-width: root.dashboard-toolbar-select-width;
-                        select-height: root.toolbar-height;
-                        option-count: 3;
-                        menu-items: [
-                            { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
-                            { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
-                            { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
-                        ];
-                        options: [
-                            { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
-                            { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
-                            { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
-                        ];
-                        selected(id) => { root.set-project-filter(id); }
+                    ResponsiveSlot {
+                        basis: root.dashboard-toolbar-select-basis;
+                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        shrink: 1;
+                        min-width: root.dashboard-toolbar-select-basis;
+                        height: root.toolbar-height;
+
+                        ToolbarSelect {
+                            width: parent.width;
+                            height: parent.height;
+                            icon-image: @image-url("../assets/icons/ui/folder.svg");
+                            has-icon-image: true;
+                            text: root.project-filter-label;
+                            select-width: parent.width;
+                            select-height: root.toolbar-height;
+                            option-count: 3;
+                            menu-items: [
+                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
+                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
+                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
+                            ];
+                            options: [
+                                { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
+                                { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
+                                { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
+                            ];
+                            selected(id) => { root.set-project-filter(id); }
+                        }
                     }
 
-                    ToolbarSelect {
-                        flex-basis: root.dashboard-toolbar-select-width;
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-shrink: 1;
-                        icon-image: @image-url("../assets/icons/ui/sort.svg");
-                        has-icon-image: true;
-                        text: root.project-sort-label;
-                        select-width: root.dashboard-toolbar-select-width;
-                        select-height: root.toolbar-height;
-                        option-count: 2;
-                        menu-items: [
-                            { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
-                            { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
-                        ];
-                        options: [
-                            { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
-                            { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
-                        ];
-                        selected(id) => { root.set-project-sort(id); }
+                    ResponsiveSlot {
+                        basis: root.dashboard-toolbar-select-basis;
+                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        shrink: 1;
+                        min-width: root.dashboard-toolbar-select-basis;
+                        height: root.toolbar-height;
+
+                        ToolbarSelect {
+                            width: parent.width;
+                            height: parent.height;
+                            icon-image: @image-url("../assets/icons/ui/sort.svg");
+                            has-icon-image: true;
+                            text: root.project-sort-label;
+                            select-width: parent.width;
+                            select-height: root.toolbar-height;
+                            option-count: 2;
+                            menu-items: [
+                                { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
+                                { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
+                            ];
+                            options: [
+                                { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
+                                { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
+                            ];
+                            selected(id) => { root.set-project-sort(id); }
+                        }
                     }
 
                     Rectangle { width: HubTokens.border-width; height: max(HubTokens.space-6, root.toolbar-height * 2 / 3); background: HubTokens.stroke-muted; }
@@ -490,10 +496,10 @@ export component ProjectDashboardPage inherits Rectangle {
                     row-gap: root.page-gap;
 
                     ResponsiveSlot {
-                        basis: root.compact ? root.content-width : root.dashboard-column-width * 58 / 100;
-                        grow: 1;
+                        basis: root.compact ? root.content-width : root.dashboard-main-basis;
+                        grow: 2;
                         shrink: 1;
-                        min-width: min(max(root.content-width * 3 / 10, root.toolbar-height * 8), root.content-width);
+                        min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
                         height: root.dashboard-panel-height;
 
                         HubPanel {
@@ -541,10 +547,10 @@ export component ProjectDashboardPage inherits Rectangle {
                     }
 
                     ResponsiveSlot {
-                        basis: root.compact ? root.content-width : root.dashboard-column-width * 40 / 100;
+                        basis: root.compact ? root.content-width : root.dashboard-side-basis;
                         grow: 1;
                         shrink: 1;
-                        min-width: min(max(root.content-width / 4, root.toolbar-height * 7), root.content-width);
+                        min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
                         height: root.dashboard-panel-height;
 
                         HubPanel {
@@ -563,14 +569,14 @@ export component ProjectDashboardPage inherits Rectangle {
                                 action-scroll := ScrollView {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
-                                    viewport-y <=> root.quick-actions-scroll-y;
-                                    viewport-width: action-scroll.visible-width;
-                                    viewport-height: max(action-scroll.visible-height, root.quick-action-row-height * 4 + root.quick-action-row-gap * 3);
-                                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                                    viewport_y <=> root.quick-actions-scroll-y;
+                                    viewport_width: action-scroll.visible_width;
+                                    viewport_height: max(action-scroll.visible_height, root.quick-action-row-height * 4 + root.quick-action-row-gap * 3);
+                                    vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
+                                    horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 
                                     VerticalLayout {
-                                        width: action-scroll.visible-width;
+                                        width: action-scroll.visible_width;
                                         spacing: root.quick-action-row-gap;
 
                                         for action in root.quick-actions: ActionRow {
@@ -584,7 +590,5 @@ export component ProjectDashboardPage inherits Rectangle {
                         }
                     }
                 }
-            }
-        }
     }
 }

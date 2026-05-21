@@ -110,6 +110,23 @@ impl World {
                 true,
             );
         }
+        if let Some(light) = self.ambient_lights.get(&entity) {
+            push(
+                "AmbientLight.color",
+                ScenePropertyValue::Vec3(light.color.to_array()),
+                true,
+            );
+            push(
+                "AmbientLight.intensity",
+                ScenePropertyValue::Scalar(light.intensity),
+                true,
+            );
+            push(
+                "AmbientLight.affects_lightmapped_meshes",
+                ScenePropertyValue::Bool(light.affects_lightmapped_meshes),
+                false,
+            );
+        }
         if let Some(light) = self.directional_lights.get(&entity) {
             push(
                 "DirectionalLight.direction",
@@ -141,6 +158,28 @@ impl World {
             push(
                 "PointLight.range",
                 ScenePropertyValue::Scalar(light.range),
+                true,
+            );
+        }
+        if let Some(light) = self.rect_lights.get(&entity) {
+            push(
+                "RectLight.color",
+                ScenePropertyValue::Vec3(light.color.to_array()),
+                true,
+            );
+            push(
+                "RectLight.intensity",
+                ScenePropertyValue::Scalar(light.intensity),
+                true,
+            );
+            push(
+                "RectLight.range",
+                ScenePropertyValue::Scalar(light.range),
+                true,
+            );
+            push(
+                "RectLight.size",
+                ScenePropertyValue::Vec2(light.size.to_array()),
                 true,
             );
         }

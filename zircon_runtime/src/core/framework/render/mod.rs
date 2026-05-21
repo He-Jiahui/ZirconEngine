@@ -8,6 +8,7 @@ mod frame_extract;
 mod framework;
 mod framework_error;
 mod image;
+mod light;
 mod material;
 mod mesh;
 mod overlay;
@@ -69,6 +70,12 @@ pub use image::{
     RenderImageFallbackKind, RenderImageUsage, RenderSamplerAddressMode, RenderSamplerDescriptor,
     RenderSamplerFilter,
 };
+pub use light::{
+    RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,
+    RenderLightFamilyReadiness, RenderLightReadinessReport, RenderPointLightSnapshot,
+    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderSpotLightSnapshot,
+    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT,
+};
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
@@ -102,13 +109,11 @@ pub use profile::{
     RENDER_PROFILE_CONFIG_KEY,
 };
 pub use scene_extract::{
-    PreviewEnvironmentExtract, RenderAmbientLightSnapshot, RenderBakedLightingExtract,
-    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
+    PreviewEnvironmentExtract, RenderBloomSettings, RenderColorGradingSettings,
     RenderExtractPacket, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
     RenderMeshSnapshot, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
-    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderReflectionProbeSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
     RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
 };

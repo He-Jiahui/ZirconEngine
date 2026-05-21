@@ -40,7 +40,9 @@ pub use effects::{
 pub use error::SoundError;
 pub use events::{
     SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventDescriptor,
-    SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
+    SoundDynamicEventExecutionReport, SoundDynamicEventExecutionStatus,
+    SoundDynamicEventHandlerDescriptor, SoundDynamicEventHandlerExecution,
+    SoundDynamicEventInvocation,
 };
 pub use graph::{
     SoundMixerGraph, SoundMixerSnapshot, SoundTrackControls, SoundTrackDescriptor, SoundTrackMeter,
@@ -60,7 +62,8 @@ pub use output::{
 };
 pub use playback::{
     SoundClipInfo, SoundPlaybackCompletionAction, SoundPlaybackFinishReason, SoundPlaybackFinished,
-    SoundPlaybackSettings, SoundPlaybackStatus,
+    SoundPlaybackSettings, SoundPlaybackStatus, SoundSourceFinishReason, SoundSourceFinished,
+    SoundSourceStatus,
 };
 pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};

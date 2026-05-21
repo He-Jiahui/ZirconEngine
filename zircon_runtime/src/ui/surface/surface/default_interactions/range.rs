@@ -1,5 +1,5 @@
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
+    binding::{UiBindingSourceKind, UiBindingUpdateReport, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
@@ -22,6 +22,7 @@ impl UiSurface {
         &mut self,
         route: &UiPointerRoute,
         events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<UiDefaultRangePointerActionReport, UiTreeError> {
         let mut action = UiDefaultRangePointerActionReport::default();
         match route.activation_phase {
@@ -60,6 +61,7 @@ impl UiSurface {
                     &value_property,
                     route.point,
                     events,
+                    binding_reports,
                     UiPointerComponentEventReason::DirectBinding,
                 )? {
                     self.push_pointer_component_events(
@@ -90,6 +92,7 @@ impl UiSurface {
                         &value_property,
                         route.point,
                         events,
+                        binding_reports,
                         UiPointerComponentEventReason::DefaultClick,
                     )?
                     .is_some()
@@ -119,6 +122,7 @@ impl UiSurface {
         property: &str,
         point: UiPoint,
         events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
         reason: UiPointerComponentEventReason,
     ) -> Result<Option<f64>, UiTreeError> {
         let Some(next_value) = self.default_range_click_value(node_id, point)? else {
@@ -127,7 +131,14 @@ impl UiSurface {
         let current_value = self
             .default_range_current_value(node_id)?
             .unwrap_or(next_value);
-        if self.apply_default_range_value(node_id, property, next_value, events, reason)? {
+        if self.apply_default_range_value(
+            node_id,
+            property,
+            next_value,
+            events,
+            binding_reports,
+            reason,
+        )? {
             Ok(Some(next_value - current_value))
         } else {
             Ok(None)
@@ -140,9 +151,10 @@ impl UiSurface {
         property: &str,
         next_value: f64,
         events: &mut Vec<UiPointerComponentEvent>,
+        binding_reports: &mut Vec<UiBindingUpdateReport>,
         reason: UiPointerComponentEventReason,
     ) -> Result<bool, UiTreeError> {
-        let report = self.mutate_property(UiPropertyMutationRequest::new(
+        let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
             node_id,
             property,
             UiValue::Float(next_value),
@@ -150,6 +162,7 @@ impl UiSurface {
         if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
             return Ok(false);
         }
+        binding_reports.push(report.binding);
         self.push_pointer_component_events(
             events,
             node_id,
@@ -214,15 +227,31 @@ impl UiSurface {
         node_id: UiNodeId,
         direction: f64,
     ) -> Result<Option<(UiPropertyMutationReport, f64)>, UiTreeError> {
+        self.mutate_default_range_step_value_with_source_kind(
+            node_id,
+            direction,
+            UiBindingSourceKind::WidgetBehavior,
+        )
+    }
+
+    pub(crate) fn mutate_default_range_step_value_with_source_kind(
+        &mut self,
+        node_id: UiNodeId,
+        direction: f64,
+        source_kind: UiBindingSourceKind,
+    ) -> Result<Option<(UiPropertyMutationReport, f64)>, UiTreeError> {
         let Some(next_value) = self.default_range_step_value(node_id, direction)? else {
             return Ok(None);
         };
         let property = self.default_range_value_property(node_id)?;
-        let report = self.mutate_property(UiPropertyMutationRequest::new(
-            node_id,
-            property,
-            UiValue::Float(next_value),
-        ))?;
+        let report = self.mutate_property(
+            UiPropertyMutationRequest::widget_behavior(
+                node_id,
+                property,
+                UiValue::Float(next_value),
+            )
+            .with_binding_source_kind(source_kind),
+        )?;
         Ok(Some((report, next_value)))
     }
 
@@ -235,7 +264,7 @@ impl UiSurface {
             return Ok(None);
         };
         let property = self.default_range_value_property(node_id)?;
-        let report = self.mutate_property(UiPropertyMutationRequest::new(
+        let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
             node_id,
             property,
             UiValue::Float(next_value),

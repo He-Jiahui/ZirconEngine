@@ -162,8 +162,10 @@ fn node_record_from_scene_node(world: &World, node: SceneNode) -> NodeRecord {
         mesh: node.mesh,
         sprite_2d: node.sprite_2d,
         mesh_2d: node.mesh_2d,
+        ambient_light: node.ambient_light,
         directional_light: node.directional_light,
         point_light: node.point_light,
+        rect_light: node.rect_light,
         spot_light: node.spot_light,
         active: world.active_self(node.id).unwrap_or(true),
         render_layer_mask: world

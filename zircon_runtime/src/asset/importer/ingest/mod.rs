@@ -1,6 +1,8 @@
 mod asset_importer;
 #[cfg(test)]
 mod generate_normals;
+#[cfg(test)]
+mod gltf_labeled_subassets;
 mod import_animation_asset;
 mod import_authoring_asset;
 mod import_data_asset;
@@ -9,6 +11,7 @@ mod import_from_source;
 #[cfg(test)]
 mod import_gltf;
 mod import_material;
+mod import_mesh;
 mod import_model;
 #[cfg(test)]
 mod import_obj;
@@ -25,6 +28,7 @@ mod import_ui_asset;
 #[cfg(test)]
 mod import_ui_v2_asset;
 mod import_ui_zui_asset;
+mod model_mesh_subassets;
 mod primitive_from_indexed_mesh;
 mod validate_wgsl;
 

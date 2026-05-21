@@ -16,8 +16,11 @@ impl QueryAccess {
             return Err(QueryAccessError::ConflictingComponentAccess { component_id });
         }
         insert_id(&mut self.reads, component_id);
-        insert_id(&mut self.with, component_id);
         Ok(())
+    }
+
+    pub fn add_filter_read(&mut self, component_id: ComponentId) {
+        insert_id(&mut self.reads, component_id);
     }
 
     pub fn add_write(&mut self, component_id: ComponentId) -> Result<(), QueryAccessError> {
@@ -26,7 +29,6 @@ impl QueryAccess {
         }
         insert_id(&mut self.reads, component_id);
         insert_id(&mut self.writes, component_id);
-        insert_id(&mut self.with, component_id);
         Ok(())
     }
 
@@ -55,10 +57,19 @@ impl QueryAccess {
     }
 
     pub fn conflicts_with(&self, other: &Self) -> bool {
-        if !self.has_data_conflict(other) {
-            return false;
+        !self.conflicting_components_with(other).is_empty()
+    }
+
+    pub fn conflicting_components_with(&self, other: &Self) -> Vec<ComponentId> {
+        if self.has_disjoint_filter(other) {
+            return Vec::new();
         }
-        !self.has_disjoint_filter(other)
+
+        let mut conflicts = Vec::new();
+        push_intersections(&mut conflicts, &self.writes, &other.reads);
+        push_intersections(&mut conflicts, &self.reads, &other.writes);
+        push_intersections(&mut conflicts, &self.writes, &other.writes);
+        conflicts
     }
 
     pub(crate) fn merge_param_set_unchecked(&mut self, other: &Self) {
@@ -70,14 +81,20 @@ impl QueryAccess {
         }
     }
 
-    fn has_data_conflict(&self, other: &Self) -> bool {
-        intersects(&self.writes, &other.reads)
-            || intersects(&self.reads, &other.writes)
-            || intersects(&self.writes, &other.writes)
-    }
-
     fn has_disjoint_filter(&self, other: &Self) -> bool {
         intersects(&self.with, &other.without) || intersects(&self.without, &other.with)
+    }
+}
+
+fn push_intersections(
+    conflicts: &mut Vec<ComponentId>,
+    left: &[ComponentId],
+    right: &[ComponentId],
+) {
+    for component_id in left {
+        if contains_id(right, *component_id) {
+            insert_id(conflicts, *component_id);
+        }
     }
 }
 

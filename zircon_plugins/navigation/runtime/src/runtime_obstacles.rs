@@ -97,8 +97,10 @@ pub(crate) fn node_intersects_obstacle(
     let node_radius = match node.kind {
         NodeKind::Cube | NodeKind::Mesh => 0.75,
         NodeKind::Camera
+        | NodeKind::AmbientLight
         | NodeKind::DirectionalLight
         | NodeKind::PointLight
+        | NodeKind::RectLight
         | NodeKind::SpotLight => 0.25,
     };
     obstacles.iter().any(|obstacle| {

@@ -15,8 +15,13 @@ related_code:
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_toolbar_state.rs
   - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
+  - zircon_editor/src/ui/workbench/model/menu/selection_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
@@ -46,19 +51,28 @@ implementation_files:
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_toolbar_state.rs
   - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
+  - zircon_editor/src/ui/workbench/model/menu/selection_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy-Style 自研 ECS 与场景编辑模式计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
+  - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
+  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
   - docs/superpowers/plans/2026-05-08-reflection-type-registry-implementation.md
 tests:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
+  - zircon_editor/src/tests/editor_event/runtime.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
   - zircon_runtime/src/scene/tests/editor_projection.rs
   - tests/acceptance/ecs-to-render-chain.md
@@ -101,7 +115,9 @@ The M10 consumer slice now takes inspector fields from `World::editor_projection
 - plugin-owned dynamic JSON components registered through `ComponentTypeDescriptor`,
 - reflected value metadata such as editability, serializability, component type path, display name, field name, value type, and plugin ownership.
 
-The editor mapping layer remains deliberately thin. It translates runtime `ReflectedValue` into the existing `SceneInspectorFieldValue` enum and preserves reflected component type paths plus field names as inspector field ids such as `Name.value`, `LocalTransform.translation`, `MeshRenderer.model`, and `weather.Component.CloudLayer.coverage`.
+The editor mapping layer remains deliberately thin. It translates runtime `ReflectedValue` into the existing `SceneInspectorFieldValue` enum, including `Vec2` for fields such as `RectLight.size`, and preserves reflected component type paths plus field names as inspector field ids such as `Name.value`, `LocalTransform.translation`, `MeshRenderer.model`, `AmbientLight.intensity`, `RectLight.size`, and `weather.Component.CloudLayer.coverage`.
+
+The Bevy rendering completion slice also makes the editor creation surface match the fixed light model. The Selection menu and retained-host menu fallback now expose camera plus ambient, directional, point, rect, and spot light creation actions. These actions resolve through `MenuAction::CreateNode(...)`, stable `CreateNode.*Light` ids, and undoable `Scene.Node.Create*Light` editor operations, while the runtime `World::spawn_node(...)` still owns the actual default component construction.
 
 Resource reference fields are still projected as typed resource strings, and read-only reflected fields remain non-editable in the editor DTO. Inspector edits now route through `EditorCommand::set_reflected_scene_field(...)`, so command capture, undo, and redo write back through `World::reflect_write(...)`; the legacy editor `ComponentPropertyPath` mutation command has been removed. The compact fixed form maps name, parent, and translation to reflected `Name.value`, `Hierarchy.parent`, and `LocalTransform.translation` updates; generic reflected rows can also submit vector, quaternion, and entity text for fields such as `LocalTransform.scale`; plugin-owned dynamic rows use their projected component type paths such as `weather.Component.CloudLayer.coverage`. The editor-side dynamic field gate also checks `World::reflect_schema(...)` and `World::reflect_read(...)` before accepting draft changes, so unloaded schemas and read-only reflected fields remain protected before command capture.
 
@@ -123,7 +139,9 @@ M8.7 intentionally left `zircon_editor/src/scene/viewport/edit_mode_projection/b
 
 Focused tests in `zircon_editor/src/tests/editing/viewport.rs` assert that edit-mode projection derives hierarchy rows, inspector fields, toolbar state, and scene stats from runtime `World`, and that stale editor selection is ignored without polluting runtime render extract overlays or editor render-snapshot overlays.
 
-`zircon_editor/src/tests/editing/editor_projection.rs` adds the M10 consumer coverage: a plugin-owned dynamic `Cloud Layer` component registered in runtime reflection appears in the viewport inspector with command-compatible property paths, reflected editability, and typed values. The same test also keeps legacy fixed paths such as `Name.value`, `Transform.translation`, and `MeshRenderer.model` alive after the runtime projection cutover.
+`zircon_editor/src/tests/editing/editor_projection.rs` adds the M10 consumer coverage: a plugin-owned dynamic `Cloud Layer` component registered in runtime reflection appears in the viewport inspector with command-compatible property paths, reflected editability, and typed values. The same test also keeps legacy fixed paths such as `Name.value`, `Transform.translation`, and `MeshRenderer.model` alive after the runtime projection cutover, and the Bevy light-authoring follow-up verifies `AmbientLight` plus `RectLight` inspector fields, including `RectLight.size` as `Vec2`.
+
+`zircon_editor/src/tests/workbench/view_model/shell_projection.rs` and `zircon_editor/src/tests/editor_event/runtime.rs` cover the menu and operation surface for the light-authoring follow-up: the Selection menu lists the five light kinds, `Create Rect Light` carries `Scene.Node.CreateRectLight`, and invoking that operation dispatches through the same `MenuAction::CreateNode(NodeKind::RectLight)` path as the UI binding layer.
 
 `zircon_editor/src/tests/editing/reflected_command.rs` covers the M10 write/snapshot side: reflected fixed component edits, dynamic plugin component edits, read-only reflected field rejection, reflected editability gating, workbench snapshot projection from loaded reflection schemas, unloaded-schema protection, vector/entity text parsing, and inspector submission undo/redo through `EditorCommand::set_reflected_scene_field(...)`. The inspector submission cases now cover fixed name, hierarchy parent, local translation, generic local scale, generic entity text, and dynamic plugin updates in reflected command batches.
 
@@ -132,5 +150,6 @@ Latest local evidence:
 - `cargo test -p zircon_runtime --lib scene::tests::editor_projection --locked --jobs 1 --message-format short` passed: 2 passed, 0 failed, 1458 filtered out.
 - `cargo test -p zircon_editor --lib viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields --locked --jobs 1 --message-format short` passed: 1 passed, 0 failed, 1341 filtered out.
 - Earlier `cargo test -p zircon_editor --lib reflected_editor_command --locked --jobs 1 --message-format short --color never` evidence passed with 4 tests, 0 failed, 1342 filtered out before the fixed-form cutover. Fresh focused Cargo output is pending after the latest test expansion because the shared checkout's active Cargo/Rust queue kept the command queued with empty stdout/stderr.
-- `git diff --check -- <M10 editor projection touched files>` passed with only repository CRLF conversion warnings.
-- `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short` currently stops in the active rendering lane at `zircon_runtime/src/scene/world/render.rs:425`, where `PostProcessExtract` is missing `graph` and `stack` fields. This document's M10 editor projection slice did not edit that rendering file.
+- 2026-05-20 light-authoring follow-up: `rustfmt --edition 2021 --check` passed on the touched editor files, `git diff --check -- <light-authoring code/docs>` passed with repository CRLF warnings only, and `cargo metadata --locked --format-version 1 --no-deps` passed.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-render-editor-light-authoring-0520 cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` passed. It emitted the existing runtime `scene/world/query.rs` unused-method warning and existing SpriteAtlas unused-item warnings from the active editor asset lane.
+- A focused `cargo test -p zircon_editor --lib rect_light --locked --jobs 1 --message-format short --color never` attempt timed out while compiling/linking the editor test harness and produced no source diagnostics. The follow-up `cargo check -p zircon_editor --lib --tests --locked --jobs 1 --message-format short --color never` reached `zircon_editor` test checking but is blocked outside this slice by `zircon_editor/src/ui/material_editor/projection.rs`, where the active material lane has not yet handled `RenderMaterialValidationError::MissingRequiredProperty`.

@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use crate::asset::project::ProjectManifest;
-use crate::{plugin::ExportPackagingStrategy, plugin::RuntimePluginCatalog};
+use crate::{
+    plugin::ExportPackagingStrategy, plugin::RuntimePluginCatalog, plugin::RuntimePluginDescriptor,
+    plugin::RuntimeProfileDescriptor, plugin::RuntimeProfileId,
+};
 
 use super::cargo_manifest_template::plugin_path_for_runtime_crate;
 use super::default_profile::default_profile;
@@ -31,6 +34,7 @@ impl ExportBuildPlan {
             .collect::<Vec<_>>();
         let project_plugin_selections = manifest.plugins.selections.iter().collect::<Vec<_>>();
         let mut linked_runtime_crate_names = HashSet::new();
+        let mut linked_runtime_package_ids = HashSet::new();
         let mut linked_runtime_crate_links = enabled_plugins
             .iter()
             .filter(|selection| {
@@ -46,6 +50,14 @@ impl ExportBuildPlan {
                 ExportLinkedRuntimeCrate::runtime_plugin(crate_name, path)
             })
             .collect::<Vec<_>>();
+        for selection in enabled_plugins.iter().filter(|selection| {
+            selection.runtime_crate.is_some()
+                && !selection.is_runtime_builtin_domain()
+                && selection.packaging != ExportPackagingStrategy::NativeDynamic
+                && profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+        }) {
+            linked_runtime_package_ids.insert(selection.id.clone());
+        }
         let mut native_dynamic_package_ids = HashSet::new();
         let mut native_dynamic_package_directories = HashSet::new();
         let mut native_dynamic_packages = Vec::new();
@@ -104,6 +116,7 @@ impl ExportBuildPlan {
             }
             let crate_name = feature.runtime_crate_name();
             if linked_runtime_crate_names.insert(crate_name.clone()) {
+                linked_runtime_package_ids.insert(provider_package_id.to_string());
                 linked_runtime_crate_links.push(
                     ExportLinkedRuntimeCrate::runtime_feature_with_provider(
                         crate_name,
@@ -160,6 +173,7 @@ impl ExportBuildPlan {
             {
                 let crate_name = feature.runtime_crate_name();
                 if linked_runtime_crate_names.insert(crate_name.clone()) {
+                    linked_runtime_package_ids.insert(provider_package_id.to_string());
                     linked_runtime_crate_links.push(
                         ExportLinkedRuntimeCrate::runtime_feature_with_provider(
                             crate_name,
@@ -272,6 +286,17 @@ impl ExportBuildPlan {
                     )
                 }),
         );
+        let runtime_profile = runtime_profile_for_export_profile(&profile);
+        if profile.runtime_profile_id.is_some()
+            && runtime_profile.target_mode != profile.target_mode
+        {
+            let diagnostic = format!(
+                "export profile {} selects runtime profile {:?} with target mode {:?}, but export target mode is {:?}",
+                profile.name, runtime_profile.id, runtime_profile.target_mode, profile.target_mode
+            );
+            diagnostics.push(diagnostic.clone());
+            fatal_diagnostics.push(diagnostic);
+        }
         let generated_files = generated_files_for_profile(
             manifest,
             &profile,
@@ -279,17 +304,48 @@ impl ExportBuildPlan {
             &linked_runtime_crate_links,
             &native_dynamic_packages,
         );
+        let runtime_plugin_descriptors = RuntimePluginDescriptor::builtin_catalog();
+        let runtime_plugin_availability = runtime_profile.availability_report_with_providers(
+            runtime_plugin_descriptors.iter(),
+            linked_runtime_package_ids.iter(),
+            native_dynamic_packages.iter(),
+        );
 
         let mut plan = Self::new(
             profile,
             &enabled_plugins,
             linked_runtime_crates,
             native_dynamic_packages,
+            runtime_plugin_availability,
             generated_files,
         );
         plan.diagnostics = diagnostics;
         plan.fatal_diagnostics = fatal_diagnostics;
         Ok(plan)
+    }
+}
+
+fn runtime_profile_for_export_profile(
+    profile: &crate::plugin::ExportProfile,
+) -> RuntimeProfileDescriptor {
+    if let Some(profile_id) = profile.runtime_profile_id {
+        return RuntimeProfileDescriptor::for_id(profile_id);
+    }
+    match profile.target_mode {
+        crate::RuntimeTargetMode::ServerRuntime => {
+            RuntimeProfileDescriptor::for_id(RuntimeProfileId::Server)
+        }
+        crate::RuntimeTargetMode::EditorHost => {
+            RuntimeProfileDescriptor::for_id(RuntimeProfileId::Editor)
+        }
+        crate::RuntimeTargetMode::ClientRuntime
+            if profile.name.to_ascii_lowercase().contains("3d") =>
+        {
+            RuntimeProfileDescriptor::for_id(RuntimeProfileId::Client3d)
+        }
+        crate::RuntimeTargetMode::ClientRuntime => {
+            RuntimeProfileDescriptor::for_id(RuntimeProfileId::Client2d)
+        }
     }
 }
 

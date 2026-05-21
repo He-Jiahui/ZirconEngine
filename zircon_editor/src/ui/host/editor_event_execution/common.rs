@@ -78,6 +78,7 @@ pub(super) fn parse_asset_kind_filter(kind: Option<&str>) -> Result<Option<Resou
         "PhysicsMaterial" => Ok(Some(ResourceKind::PhysicsMaterial)),
         "Scene" => Ok(Some(ResourceKind::Scene)),
         "Model" => Ok(Some(ResourceKind::Model)),
+        "Mesh" => Ok(Some(ResourceKind::Mesh)),
         "AnimationSkeleton" => Ok(Some(ResourceKind::AnimationSkeleton)),
         "AnimationClip" => Ok(Some(ResourceKind::AnimationClip)),
         "AnimationSequence" => Ok(Some(ResourceKind::AnimationSequence)),

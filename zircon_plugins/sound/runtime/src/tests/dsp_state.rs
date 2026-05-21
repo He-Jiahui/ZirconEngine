@@ -22,6 +22,91 @@ fn delay_effect_keeps_tail_across_render_blocks() {
 }
 
 #[test]
+fn low_pass_filter_keeps_state_across_render_blocks() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/stateful-filter.wav", &[1.0]));
+    sound
+        .add_or_update_effect(
+            SoundTrackId::master(),
+            test_effect(SoundEffectKind::Filter(SoundFilterEffect {
+                mode: SoundFilterMode::LowPass,
+                cutoff_hz: 1_000.0,
+                resonance: 0.0,
+                gain_db: 0.0,
+            })),
+        )
+        .unwrap();
+    sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    let first = sound.render_mix(1).unwrap().samples;
+    let second = sound.render_mix(1).unwrap().samples;
+
+    assert!(first[0] > 0.0 && first[0] < 0.05);
+    assert!(second[0] > first[0]);
+    assert_sample_near(first[0], first[1]);
+    assert_sample_near(second[0], second[1]);
+}
+
+#[test]
+fn high_pass_filter_rejects_dc() {
+    let sound = DefaultSoundManager::default();
+    let clip =
+        sound.insert_clip_for_test(test_clip("res://sound/high-pass-dc.wav", &vec![0.5; 128]));
+    sound
+        .add_or_update_effect(
+            SoundTrackId::master(),
+            test_effect(SoundEffectKind::Filter(SoundFilterEffect {
+                mode: SoundFilterMode::HighPass,
+                cutoff_hz: 1_000.0,
+                resonance: 0.0,
+                gain_db: 0.0,
+            })),
+        )
+        .unwrap();
+    sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    let mix = sound.render_mix(128).unwrap().samples;
+    let first_left = mix[0].abs();
+    let last_left = mix[mix.len() - 2].abs();
+
+    assert!(first_left > 0.25);
+    assert!(last_left < first_left * 0.1);
+}
+
+#[test]
+fn shelf_filter_uses_gain_db() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip(
+        "res://sound/low-shelf-gain.wav",
+        &vec![0.25; 512],
+    ));
+    sound
+        .add_or_update_effect(
+            SoundTrackId::master(),
+            test_effect(SoundEffectKind::Filter(SoundFilterEffect {
+                mode: SoundFilterMode::LowShelf,
+                cutoff_hz: 1_000.0,
+                resonance: 0.0,
+                gain_db: 6.0,
+            })),
+        )
+        .unwrap();
+    sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    let mix = sound.render_mix(512).unwrap().samples;
+    let settled_left = mix[mix.len() - 2];
+
+    assert!(settled_left > 0.35);
+    assert_sample_near(settled_left, mix[mix.len() - 1]);
+}
+
+#[test]
 fn convolution_effect_keeps_impulse_tail_across_render_blocks() {
     let sound = DefaultSoundManager::default();
     let clip = sound.insert_clip_for_test(test_clip("res://sound/stateful-ir.wav", &[1.0]));

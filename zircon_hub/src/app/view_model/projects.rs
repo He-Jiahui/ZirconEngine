@@ -134,9 +134,9 @@ pub(in crate::app) fn project_create_engine_label(snapshot: &HubSnapshot) -> Sha
 }
 
 pub(in crate::app) fn project_detail(snapshot: &HubSnapshot) -> ProjectDetailData {
-    let project = selected_recent_project(snapshot)
-        .or_else(|| project_browser_projects(snapshot).into_iter().next())
-        .unwrap_or_default();
+    let Some(project) = selected_recent_project(snapshot) else {
+        return empty_project_detail(snapshot.settings.language);
+    };
     let row = recent_project_row(0, &project, snapshot);
     ProjectDetailData {
         title: row.title,
@@ -164,6 +164,31 @@ pub(in crate::app) fn project_detail(snapshot: &HubSnapshot) -> ProjectDetailDat
             .as_ref()
             .is_some_and(|path| shared_path_eq(path, &project.path)),
         accent: row.accent,
+    }
+}
+
+fn empty_project_detail(language: HubLanguage) -> ProjectDetailData {
+    ProjectDetailData {
+        title: localization::text(language, "No project selected", "未选择项目"),
+        project_path: localization::text(
+            language,
+            "Select a project to package or launch",
+            "选择项目后再打包或启动",
+        ),
+        modified: SharedString::default(),
+        version: localization::text(language, "Unbound", "未绑定"),
+        engine_id: SharedString::default(),
+        engine_label: localization::text(language, "No Source Engine", "无源码引擎"),
+        status: localization::text(language, "Unavailable", "不可用"),
+        cover_image: Default::default(),
+        has_cover: false,
+        selected: false,
+        pinned: false,
+        missing: false,
+        can_open: false,
+        can_delete: false,
+        pending_delete: false,
+        accent: 0,
     }
 }
 

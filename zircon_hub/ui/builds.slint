@@ -1,37 +1,53 @@
-import { MutedText, SourceEngineData, UiTextData } from "shared.slint";
-import { ActionRow, Badge, Divider, HubPanel, HubTokens, InfoRow, MaterialPalette, MaterialTypography, PageScrollSurface, PanelHeader, WorkspacePanelSection } from "components.slint";
+import { MutedText, ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData } from "shared.slint";
+import { ActionRow, Badge, BuildHistoryRow, Divider, HubPanel, HubTokens, InfoRow, MaterialPalette, MaterialText, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
 
 export component BuildsPage inherits Rectangle {
     in-out property <length> scroll-y: 0px;
+    in property <ProjectDetailData> project;
     in property <SourceEngineData> source-engine;
+    in property <[SourceBuildHistoryRowData]> source-build-history;
+    in property <int> source-build-history-count;
     in property <string> status-label;
     in property <string> status-detail;
     in property <UiTextData> ui-text;
     callback build-engine();
     callback open-output();
     callback launch-editor();
-    private property <bool> compact: root.width < HubTokens.breakpoint-medium;
+    callback package-project();
+    callback install-device();
+    private property <length> content-width: page-surface.content-width;
+    private property <length> side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;
+    private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
+    private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
+    private property <length> build-history-scroll-y: 0px;
+    private property <length> build-row-height: HubTokens.list-row-sm;
+    private property <length> build-summary-height: HubTokens.control-md + root.build-row-height * 5 + HubTokens.toolbar-gap * 5 + HubTokens.space-4 * 2;
+    private property <length> build-detail-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
 
     background: HubTokens.surface-page;
     clip: true;
 
-    PageScrollSurface {
+    page-surface := PageScrollSurface {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
 
         WorkspacePanelSection {
             compact: root.compact;
-            row-height: HubTokens.workspace-row-build-summary;
+            row-height: root.build-summary-height;
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
-                HubPanel {
-                    flex-basis: HubTokens.panel-min-md + HubTokens.panel-min-sm / 2;
-                    flex-grow: 1;
-                    flex-shrink: 1;
-                    min-width: HubTokens.panel-min-md;
-                    height: HubTokens.workspace-row-build-summary;
+                ResponsiveSlot {
+                    basis: root.overview-min-width;
+                    grow: 2;
+                    shrink: 1;
+                    min-width: root.compact ? root.content-width : root.overview-min-width;
+                    height: root.build-summary-height;
+
+                    HubPanel {
+                        width: parent.width;
+                        height: parent.height;
 
                         VerticalLayout {
                             width: parent.width;
@@ -41,7 +57,7 @@ export component BuildsPage inherits Rectangle {
 
                             PanelHeader {
                                 title: root.ui-text.source-build;
-                                subtitle: root.source-engine.version + " / " + root.source-engine.status;
+                                subtitle: root.project.title + " / " + root.source-engine.version + " / " + root.source-engine.status;
                                 show-badge: true;
                                 badge-text: root.status-label;
                                 badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
@@ -55,7 +71,7 @@ export component BuildsPage inherits Rectangle {
                             Divider {}
 
                             InfoRow {
-                                row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                                row-height: root.build-row-height;
                                 title: root.ui-text.source-prefix;
                                 detail: root.source-engine.source-path;
                                 meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
@@ -67,7 +83,7 @@ export component BuildsPage inherits Rectangle {
                             }
 
                             InfoRow {
-                                row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                                row-height: root.build-row-height;
                                 title: root.ui-text.output-prefix;
                                 detail: root.source-engine.output-path;
                                 meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
@@ -94,14 +110,19 @@ export component BuildsPage inherits Rectangle {
                                 }
                             }
                         }
+                    }
                 }
 
-                HubPanel {
-                    flex-basis: HubTokens.panel-min-sm;
-                    flex-grow: 0;
-                    flex-shrink: 1;
-                    min-width: HubTokens.panel-min-sm;
-                    height: HubTokens.workspace-row-build-summary;
+                ResponsiveSlot {
+                    basis: root.side-panel-min-width;
+                    grow: 1;
+                    shrink: 1;
+                    min-width: root.compact ? root.content-width : root.side-panel-min-width;
+                    height: root.build-summary-height;
+
+                    HubPanel {
+                        width: parent.width;
+                        height: parent.height;
 
                         VerticalLayout {
                             width: parent.width;
@@ -115,6 +136,7 @@ export component BuildsPage inherits Rectangle {
                             }
 
                             ActionRow {
+                                row-height: root.build-row-height;
                                 action: {
                                     id: "build-editor",
                                     icon: "",
@@ -130,6 +152,7 @@ export component BuildsPage inherits Rectangle {
                             }
 
                             ActionRow {
+                                row-height: root.build-row-height;
                                 action: {
                                     id: "open-output",
                                     icon: "",
@@ -145,41 +168,79 @@ export component BuildsPage inherits Rectangle {
                             }
 
                             ActionRow {
+                                row-height: root.build-row-height;
                                 action: {
                                     id: "open-editor",
                                     icon: "",
                                     icon-image: @image-url("../assets/icons/actions/open-editor.svg"),
                                     has-icon-image: true,
                                     title: root.ui-text.open-editor,
-                                    detail: root.source-engine.title,
-                                    enabled: true,
+                                    detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-opening,
+                                    enabled: root.project.can-open,
                                 };
                                 activate(id) => {
                                     root.launch-editor();
                                 }
                             }
+
+                            ActionRow {
+                                row-height: root.build-row-height;
+                                action: {
+                                    id: "package-project",
+                                    icon: "",
+                                    icon-image: @image-url("../assets/icons/actions/package-project.svg"),
+                                    has-icon-image: true,
+                                    title: root.ui-text.package-project,
+                                    detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-packaging,
+                                    enabled: root.project.can-open,
+                                };
+                                activate(id) => {
+                                    root.package-project();
+                                }
+                            }
+
+                            ActionRow {
+                                row-height: root.build-row-height;
+                                action: {
+                                    id: "install-device",
+                                    icon: "",
+                                    icon-image: @image-url("../assets/icons/actions/install-device.svg"),
+                                    has-icon-image: true,
+                                    title: root.ui-text.install-to-device,
+                                    detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-installing,
+                                    enabled: root.project.can-open,
+                                };
+                                activate(id) => {
+                                    root.install-device();
+                                }
+                            }
                         }
+                    }
                 }
         }
 
         WorkspacePanelSection {
                 compact: root.compact;
-                row-height: HubTokens.workspace-row-build-detail;
+                row-height: root.build-detail-height;
                 spacing-horizontal: HubTokens.panel-gap;
                 spacing-vertical: HubTokens.panel-gap;
 
-                HubPanel {
-                    flex-basis: HubTokens.panel-min-md + HubTokens.panel-min-sm / 2;
-                    flex-grow: 1;
-                    flex-shrink: 1;
-                    min-width: HubTokens.panel-min-md;
-                    height: HubTokens.workspace-row-build-detail;
+                ResponsiveSlot {
+                    basis: root.overview-min-width;
+                    grow: 2;
+                    shrink: 1;
+                    min-width: root.compact ? root.content-width : root.overview-min-width;
+                    height: root.build-detail-height;
 
-                    VerticalLayout {
+                    HubPanel {
                         width: parent.width;
                         height: parent.height;
-                        padding: HubTokens.space-4;
-                        spacing: HubTokens.toolbar-gap;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: HubTokens.space-4;
+                            spacing: HubTokens.toolbar-gap;
 
                         PanelHeader {
                             title: root.ui-text.build-pipeline;
@@ -190,7 +251,7 @@ export component BuildsPage inherits Rectangle {
                         }
 
                         InfoRow {
-                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                            row-height: root.build-row-height;
                             title: root.ui-text.validate-source;
                             detail: root.source-engine.source-path;
                             meta: "";
@@ -202,7 +263,7 @@ export component BuildsPage inherits Rectangle {
                         }
 
                         InfoRow {
-                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                            row-height: root.build-row-height;
                             title: root.ui-text.compile-editor;
                             detail: "tools/zircon_build.py --targets editor,runtime";
                             meta: "";
@@ -214,7 +275,7 @@ export component BuildsPage inherits Rectangle {
                         }
 
                         InfoRow {
-                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                            row-height: root.build-row-height;
                             title: root.ui-text.stage-runtime;
                             detail: root.source-engine.output-path;
                             meta: "";
@@ -226,25 +287,30 @@ export component BuildsPage inherits Rectangle {
                         }
 
                         InfoRow {
-                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
+                            row-height: root.build-row-height;
                             title: root.ui-text.package-project;
-                            detail: root.ui-text.reserved-project-export;
+                            detail: root.project.project-path != "" ? root.project.project-path : root.ui-text.reserved-project-export;
                             meta: "";
                             leading-image: @image-url("../assets/icons/actions/package-project.svg");
                             has-leading-image: true;
-                            trailing-text: root.ui-text.unavailable;
-                            trailing-tone: "warning";
+                            trailing-text: root.project.can-open ? root.project.status : root.ui-text.unavailable;
+                            trailing-tone: root.project.can-open ? "ok" : "warning";
                             show-trailing-badge: true;
                         }
                     }
                 }
+                }
 
-                HubPanel {
-                    flex-basis: HubTokens.panel-min-sm;
-                    flex-grow: 0;
-                    flex-shrink: 1;
-                    min-width: HubTokens.panel-min-sm;
-                    height: HubTokens.workspace-row-build-detail;
+                ResponsiveSlot {
+                    basis: root.side-panel-min-width;
+                    grow: 1;
+                    shrink: 1;
+                    min-width: root.compact ? root.content-width : root.side-panel-min-width;
+                    height: root.build-detail-height;
+
+                    HubPanel {
+                        width: parent.width;
+                        height: parent.height;
 
                     VerticalLayout {
                         width: parent.width;
@@ -260,12 +326,11 @@ export component BuildsPage inherits Rectangle {
                             badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
                         }
 
-                        Text {
+                        MaterialText {
                             text: root.status-label;
                             overflow: elide;
                             color: MaterialPalette.primary;
-                            font-size: MaterialTypography.headline_small.font_size;
-                            font-weight: MaterialTypography.headline_small.font_weight;
+                            style: MaterialTypography.headline_small;
                         }
 
                         MutedText {
@@ -279,22 +344,31 @@ export component BuildsPage inherits Rectangle {
 
                         Divider {}
 
-                        HorizontalLayout {
-                            spacing: HubTokens.toolbar-gap;
+                        PanelHeader {
+                            title: root.ui-text.build-history;
+                            subtitle: "";
+                            show-badge: true;
+                            badge-text: root.source-build-history-count + "";
+                            badge-tone: "info";
+                        }
 
-                            Badge {
-                                text: root.source-engine.build-profile;
-                                tone: "accent";
-                                badge-width: HubTokens.control-md * 2 + HubTokens.space-4;
+                        PanelListViewport {
+                            scroll-y <=> root.build-history-scroll-y;
+                            row-count: root.source-build-history-count;
+                            row-height: root.build-row-height;
+                            vertical-padding: HubTokens.space-0;
+                            empty-height: root.build-row-height;
+
+                            for record in root.source-build-history: BuildHistoryRow {
+                                record: record;
                             }
 
-                            Badge {
-                                text: root.source-engine.jobs + root.ui-text.jobs-suffix;
-                                tone: "neutral";
-                                badge-width: HubTokens.control-md * 2 + HubTokens.space-4;
+                            if root.source-build-history-count == 0: MutedText {
+                                text: root.ui-text.no-build-history;
                             }
                         }
                     }
+                }
                 }
             }
         }

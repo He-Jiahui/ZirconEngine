@@ -21,10 +21,10 @@ pub use locator::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 pub use marker::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
-    ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker, PrefabMarker,
-    ResourceKind, ResourceMarker, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker,
-    TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker,
-    UiWidgetMarker,
+    MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
+    PrefabMarker, ResourceKind, ResourceMarker, SceneMarker, ShaderMarker, SoundMarker,
+    TerrainLayerStackMarker, TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker,
+    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 pub use resource_event::ResourceEvent;
 pub use resource_event_kind::ResourceEventKind;

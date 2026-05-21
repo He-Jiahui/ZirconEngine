@@ -24,7 +24,11 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout(
         2 => vec![
             menu_action("CreateNode.Cube", true),
             menu_action("CreateNode.Camera", true),
+            menu_action("CreateNode.AmbientLight", true),
             menu_action("CreateNode.DirectionalLight", true),
+            menu_action("CreateNode.PointLight", true),
+            menu_action("CreateNode.RectLight", true),
+            menu_action("CreateNode.SpotLight", true),
             menu_action("DeleteSelected", layout.delete_enabled),
         ],
         3 => vec![

@@ -11,7 +11,8 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
-    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimePluginAvailabilityReport, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
     RuntimeProfileDescriptor, RuntimeProfileId,
 };
 #[cfg(feature = "plugin-ui")]
@@ -145,6 +146,7 @@ pub struct RuntimeModuleLoadReport {
     pub modules: Vec<Arc<dyn EngineModule>>,
     pub warnings: Vec<String>,
     pub errors: Vec<String>,
+    pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
     required_missing: Vec<RuntimeRequiredPluginMissing>,
 }
 
@@ -160,17 +162,42 @@ impl RuntimeModuleLoadReport {
             modules,
             warnings: Vec::new(),
             errors: Vec::new(),
+            runtime_plugin_availability: RuntimePluginAvailabilityReport::default(),
             required_missing: Vec::new(),
         }
+    }
+
+    fn with_runtime_plugin_availability(
+        mut self,
+        runtime_plugin_availability: RuntimePluginAvailabilityReport,
+    ) -> Self {
+        self.runtime_plugin_availability = runtime_plugin_availability;
+        self
     }
 
     pub fn required_missing(&self) -> &[RuntimeRequiredPluginMissing] {
         &self.required_missing
     }
 
+    pub fn effective_required_missing(&self) -> Vec<RuntimeRequiredPluginMissing> {
+        let mut missing = self.required_missing.clone();
+        for entry in &self.runtime_plugin_availability.missing_required {
+            let structured_missing = RuntimeRequiredPluginMissing {
+                id: entry.runtime_id,
+                reason: entry.reason.clone(),
+            };
+            if !missing.iter().any(|existing| {
+                existing.id == structured_missing.id && existing.reason == structured_missing.reason
+            }) {
+                missing.push(structured_missing);
+            }
+        }
+        missing
+    }
+
     pub fn required_missing_summary(&self) -> String {
-        self.required_missing
-            .iter()
+        self.effective_required_missing()
+            .into_iter()
             .map(|missing| {
                 format!(
                     "required runtime plugin {} is unavailable: {}",
@@ -180,6 +207,25 @@ impl RuntimeModuleLoadReport {
             })
             .collect::<Vec<_>>()
             .join("; ")
+    }
+
+    pub fn effective_errors(&self) -> Vec<String> {
+        let mut errors = self.errors.clone();
+        for missing in self.effective_required_missing() {
+            let diagnostic = format!(
+                "required runtime plugin {} is unavailable: {}",
+                missing.id.label(),
+                missing.reason
+            );
+            if !errors.iter().any(|existing| existing == &diagnostic) {
+                errors.push(diagnostic);
+            }
+        }
+        errors
+    }
+
+    pub fn has_fatal_diagnostics(&self) -> bool {
+        !self.effective_errors().is_empty()
     }
 }
 
@@ -376,7 +422,9 @@ pub fn runtime_modules_for_runtime_profile(
     profile_id: RuntimeProfileId,
 ) -> RuntimeModuleLoadReport {
     if profile_id == RuntimeProfileId::Minimal {
-        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules());
+        let profile = RuntimeProfileDescriptor::for_id(profile_id);
+        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
+            .with_runtime_plugin_availability(runtime_profile_availability(&profile));
     }
 
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
@@ -393,6 +441,7 @@ pub fn runtime_modules_for_runtime_profile(
         &[],
         &[],
     )
+    .with_runtime_plugin_availability(runtime_profile_availability(&profile))
 }
 
 pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
@@ -401,12 +450,15 @@ pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
 ) -> RuntimeModuleLoadReport {
     if profile_id == RuntimeProfileId::Minimal {
         let _ = registrations;
-        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules());
+        let profile = RuntimeProfileDescriptor::for_id(profile_id);
+        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
+            .with_runtime_plugin_availability(runtime_profile_availability(&profile));
     }
 
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
     let manifest = profile.project_manifest();
     runtime_modules_for_profile_manifest_with_plugin_registration_reports(
+        &profile,
         profile.target_mode,
         &manifest,
         registrations,
@@ -414,6 +466,7 @@ pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
 }
 
 fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
+    profile: &RuntimeProfileDescriptor,
     target: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
@@ -502,7 +555,27 @@ fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
             &virtual_geometry_runtime_providers,
         );
     report.errors.extend(asset_importer_errors);
+    let descriptors = runtime_plugin_descriptors();
+    report.runtime_plugin_availability = profile.availability_report_for_registration_reports(
+        descriptors.iter(),
+        registrations.iter().copied(),
+    );
     report
+}
+
+fn runtime_profile_availability(
+    profile: &RuntimeProfileDescriptor,
+) -> RuntimePluginAvailabilityReport {
+    let descriptors = runtime_plugin_descriptors();
+    profile.availability_report_with_providers(
+        descriptors.iter(),
+        std::iter::empty::<String>(),
+        std::iter::empty::<String>(),
+    )
+}
+
+fn runtime_plugin_descriptors() -> Vec<RuntimePluginDescriptor> {
+    RuntimePluginDescriptor::builtin_catalog()
 }
 
 pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'a>(
@@ -975,8 +1048,8 @@ fn externalized_runtime_plugin_message(plugin_id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_manifest_for_target, manifest_with_mode_baseline, RuntimePluginId,
-        RuntimeTargetMode,
+        default_manifest_for_target, manifest_with_mode_baseline,
+        runtime_modules_for_runtime_profile, RuntimePluginId, RuntimeProfileId, RuntimeTargetMode,
     };
     use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection};
 
@@ -1034,5 +1107,57 @@ mod tests {
         assert!(manifest
             .enabled_for_target(RuntimeTargetMode::ClientRuntime)
             .all(|selection| selection.id != RuntimePluginId::Ui.key()));
+    }
+
+    #[test]
+    fn runtime_profile_load_report_surfaces_structured_availability() {
+        let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
+
+        assert!(availability_contains(
+            &report.runtime_plugin_availability.externalized_missing,
+            RuntimePluginId::Sound
+        ));
+        assert!(availability_contains(
+            &report.runtime_plugin_availability.missing_required,
+            RuntimePluginId::Sound
+        ));
+        assert!(report.has_fatal_diagnostics());
+        assert!(report
+            .effective_errors()
+            .iter()
+            .any(|diagnostic| diagnostic.contains("required runtime plugin Sound is unavailable")));
+        assert!(report
+            .required_missing_summary()
+            .contains("required runtime plugin Sound is unavailable"));
+        assert!(report
+            .required_missing()
+            .iter()
+            .any(|missing| missing.id == RuntimePluginId::Sound));
+        assert!(report
+            .effective_required_missing()
+            .iter()
+            .any(|missing| missing.id == RuntimePluginId::Sound));
+    }
+
+    #[test]
+    fn minimal_runtime_profile_load_report_has_structured_core_availability() {
+        let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal);
+
+        assert!(!report.has_fatal_diagnostics());
+        assert!(report
+            .runtime_plugin_availability
+            .missing_required
+            .is_empty());
+        assert!(report
+            .runtime_plugin_availability
+            .externalized_missing
+            .is_empty());
+    }
+
+    fn availability_contains(
+        entries: &[crate::plugin::RuntimePluginAvailabilityEntry],
+        plugin_id: RuntimePluginId,
+    ) -> bool {
+        entries.iter().any(|entry| entry.runtime_id == plugin_id)
     }
 }

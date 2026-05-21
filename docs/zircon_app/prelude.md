@@ -53,7 +53,7 @@ The app prelude does not re-export editor internals, runtime presenter details, 
 
 ## Validation
 
-`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, module selection diagnostics, base and first-party provider-aware runner-level module selection diagnostics, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
+`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, module selection diagnostics, platform monitor-inventory/window-event/window-lifecycle/window-metrics/IME/keyboard-events/cursor-boundary/cursor-options/mouse-buttons/mouse-wheel/touch-events/pointer-position/raw-mouse-motion/gamepad-events/gamepad-rumble diagnostic lines, base and first-party provider-aware runner-level module selection diagnostics, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
 
 Fresh M2 validation evidence from 2026-05-08:
 

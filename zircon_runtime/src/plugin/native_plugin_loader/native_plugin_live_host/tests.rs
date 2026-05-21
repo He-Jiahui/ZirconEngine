@@ -1,6 +1,12 @@
 use super::*;
 
-use crate::plugin::{NativePluginDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3};
+use crate::plugin::{
+    NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use super::super::behavior_calls::NativePluginBehavior;
 
 #[test]
 fn native_live_host_reports_missing_editor_package_on_hot_reload() {
@@ -57,6 +63,34 @@ fn native_live_host_runtime_behavior_calls_report_unloaded_plugin() {
             .unwrap_err(),
         expected
     );
+}
+
+#[test]
+fn native_live_host_runtime_descriptor_includes_validation_report() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+
+    let descriptor = host
+        .runtime_behavior_descriptor("physics")
+        .expect("loaded test plugin should return a descriptor");
+
+    let validation = descriptor
+        .validation_report
+        .expect("runtime descriptor should carry validation report");
+    assert_eq!(validation.plugin_id, "physics");
+    assert_eq!(validation.module_kind, PluginModuleKind::Runtime);
+    assert!(!validation.diagnostics.is_empty());
+    assert!(validation
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("runtime behavior is missing")));
 }
 
 #[test]
@@ -119,6 +153,7 @@ fn native_live_host_runtime_snapshot_restore_reports_unloaded_plugins() {
     let snapshot = NativePluginRuntimeStateSnapshot {
         plugin_states: vec![NativePluginRuntimePluginState {
             plugin_id: "physics".to_string(),
+            state_schema_version: Some(3),
             state: b"state".to_vec(),
         }],
         diagnostics: Vec::new(),
@@ -139,6 +174,83 @@ fn native_live_host_runtime_snapshot_restore_reports_unloaded_plugins() {
         ]
     );
     assert_eq!(restore.combined_diagnostics(), restore.diagnostics);
+}
+
+#[test]
+fn native_live_host_runtime_snapshot_restore_skips_schema_mismatch() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+    let snapshot = NativePluginRuntimeStateSnapshot {
+        plugin_states: vec![NativePluginRuntimePluginState {
+            plugin_id: "physics".to_string(),
+            state_schema_version: Some(3),
+            state: b"state".to_vec(),
+        }],
+        diagnostics: Vec::new(),
+    };
+
+    let restore = host
+        .restore_runtime_plugin_states(&snapshot)
+        .expect("schema mismatch should be a restore diagnostic, not host failure");
+
+    assert!(restore.calls.is_empty());
+    assert_eq!(restore.skipped_plugin_ids, vec!["physics".to_string()]);
+    assert_eq!(restore.failed_call_count(), 0);
+    assert_eq!(
+        restore.diagnostics,
+        vec![
+            "runtime plugin physics restore-state skipped because snapshot state schema Some(3) does not match loaded state schema None"
+                .to_string()
+        ]
+    );
+    assert!(!restore.is_clean());
+}
+
+#[test]
+fn native_live_host_runtime_command_interior_nul_returns_error_report() {
+    INTERIOR_NUL_INVOKE_COUNT.store(0, Ordering::SeqCst);
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_behavior(
+                "physics",
+                NativePluginBehavior {
+                    is_stateless: true,
+                    state_schema_version: 0,
+                    command_manifest_schema: None,
+                    event_manifest_schema: None,
+                    command_manifest: Some("command=valid;payload=bytes".to_string()),
+                    event_manifest: None,
+                    invoke_command: Some(interior_nul_probe_invoke_command),
+                    save_state: None,
+                    restore_state: None,
+                    unload: None,
+                },
+            ),
+        );
+    }
+
+    let report = host
+        .invoke_runtime_plugin_command("physics", "bad\0name", b"")
+        .expect("loaded plugin should return behavior reports for bad command names");
+
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    assert_eq!(
+        report.diagnostics,
+        vec!["native plugin command name contained an interior NUL".to_string()]
+    );
+    assert!(report.payload.is_none());
+    assert_eq!(INTERIOR_NUL_INVOKE_COUNT.load(Ordering::SeqCst), 0);
 }
 
 #[test]
@@ -308,9 +420,72 @@ fn native_live_host_test_plugin(
         plugin_id: plugin_id.to_string(),
         library_path: std::path::PathBuf::from(format!("{plugin_id}.test.dll")),
         descriptor: Some(descriptor),
-        runtime_entry_report: None,
+        runtime_entry_report: Some(NativePluginEntryReport {
+            plugin_id: plugin_id.to_string(),
+            module_kind: PluginModuleKind::Runtime,
+            package_manifest: None,
+            diagnostics: Vec::new(),
+            negotiated_capabilities: Vec::new(),
+            behavior: None,
+            behavior_validation: NativePluginBehaviorValidationReport::from_behavior(
+                plugin_id,
+                PluginModuleKind::Runtime,
+                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+                None,
+            ),
+        }),
         editor_entry_report: None,
         library: this_process_library(),
+    }
+}
+
+fn native_live_host_test_plugin_with_behavior(
+    plugin_id: &str,
+    behavior: NativePluginBehavior,
+) -> LoadedNativePlugin {
+    let descriptor = NativePluginDescriptor {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        plugin_id: plugin_id.to_string(),
+        package_manifest: None,
+        runtime_entry_name: None,
+        editor_entry_name: None,
+        requested_capabilities: Vec::new(),
+    };
+    let behavior_validation = NativePluginBehaviorValidationReport::from_behavior(
+        plugin_id,
+        PluginModuleKind::Runtime,
+        ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        Some(&behavior),
+    );
+    LoadedNativePlugin {
+        plugin_id: plugin_id.to_string(),
+        library_path: std::path::PathBuf::from(format!("{plugin_id}.test.dll")),
+        descriptor: Some(descriptor),
+        runtime_entry_report: Some(NativePluginEntryReport {
+            plugin_id: plugin_id.to_string(),
+            module_kind: PluginModuleKind::Runtime,
+            package_manifest: None,
+            diagnostics: Vec::new(),
+            negotiated_capabilities: Vec::new(),
+            behavior: Some(behavior),
+            behavior_validation,
+        }),
+        editor_entry_report: None,
+        library: this_process_library(),
+    }
+}
+
+static INTERIOR_NUL_INVOKE_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+unsafe extern "C" fn interior_nul_probe_invoke_command(
+    _command_name: *const std::ffi::c_char,
+    _payload: super::super::abi_declarations::NativePluginByteSliceV2,
+    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    INTERIOR_NUL_INVOKE_COUNT.fetch_add(1, Ordering::SeqCst);
+    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
     }
 }
 

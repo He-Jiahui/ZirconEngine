@@ -74,8 +74,9 @@ where
     }
 
     entries.sort_by(|left, right| {
-        left.source
-            .cmp(&right.source)
+        source_priority(&left.source)
+            .cmp(&source_priority(&right.source))
+            .then_with(|| left.source.cmp(&right.source))
             .then_with(|| left.kind.cmp(&right.kind))
             .then_with(|| left.name.cmp(&right.name))
             .then_with(|| left.path.cmp(&right.path))
@@ -95,6 +96,14 @@ fn collect_project_asset_roots(
         collect_asset_root(source, &root, visited_roots, entries)?;
     }
     Ok(())
+}
+
+fn source_priority(source: &str) -> u8 {
+    match source {
+        SELECTED_PROJECT_ASSET_SOURCE => 0,
+        PROJECT_ASSET_SOURCE => 1,
+        _ => 2,
+    }
 }
 
 fn collect_asset_root(
@@ -256,9 +265,17 @@ mod tests {
         let selected_project_root = temp_dir("asset-selected");
         let other_project_root = temp_dir("asset-other");
         fs::create_dir_all(selected_project_root.join("Assets")).unwrap();
-        fs::write(selected_project_root.join("Assets").join("hero.glb"), "model").unwrap();
+        fs::write(
+            selected_project_root.join("Assets").join("hero.glb"),
+            "model",
+        )
+        .unwrap();
         fs::create_dir_all(other_project_root.join("assets")).unwrap();
-        fs::write(other_project_root.join("assets").join("ambient.ogg"), "audio").unwrap();
+        fs::write(
+            other_project_root.join("assets").join("ambient.ogg"),
+            "audio",
+        )
+        .unwrap();
 
         let entries = discover_asset_catalog_for_scope(
             Some(selected_project_root.clone()),
@@ -278,6 +295,50 @@ mod tests {
         assert!(!entries
             .iter()
             .any(|entry| entry.name == "hero.glb" && entry.source == PROJECT_ASSET_SOURCE));
+    }
+
+    #[test]
+    fn discover_asset_catalog_orders_selected_project_assets_first() {
+        let selected_project_root = temp_dir("asset-selected-first");
+        let other_project_root = temp_dir("asset-other-first");
+        let repo_root = temp_dir("asset-repo-first");
+        fs::create_dir_all(selected_project_root.join("Assets")).unwrap();
+        fs::write(
+            selected_project_root.join("Assets").join("hero.glb"),
+            "model",
+        )
+        .unwrap();
+        fs::create_dir_all(other_project_root.join("assets")).unwrap();
+        fs::write(
+            other_project_root.join("assets").join("ambient.ogg"),
+            "audio",
+        )
+        .unwrap();
+        fs::create_dir_all(repo_root.join("zircon_runtime").join("assets")).unwrap();
+        fs::write(
+            repo_root
+                .join("zircon_runtime")
+                .join("assets")
+                .join("runtime.svg"),
+            "svg",
+        )
+        .unwrap();
+
+        let entries = discover_asset_catalog_for_scope(
+            Some(selected_project_root.clone()),
+            [selected_project_root.clone(), other_project_root.clone()],
+            [repo_root.clone()],
+        )
+        .unwrap();
+        fs::remove_dir_all(selected_project_root).unwrap();
+        fs::remove_dir_all(other_project_root).unwrap();
+        fs::remove_dir_all(repo_root).unwrap();
+
+        assert_eq!(entries[0].source, SELECTED_PROJECT_ASSET_SOURCE);
+        assert_eq!(entries[1].source, PROJECT_ASSET_SOURCE);
+        assert!(entries[2..]
+            .iter()
+            .all(|entry| entry.source != SELECTED_PROJECT_ASSET_SOURCE));
     }
 
     fn temp_dir(label: &str) -> PathBuf {

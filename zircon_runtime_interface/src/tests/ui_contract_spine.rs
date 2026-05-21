@@ -4,13 +4,21 @@ use crate::ui::{
         UiAccessibilityDiagnostic, UiAccessibilityDiagnosticCode,
         UiAccessibilityDiagnosticSeverity, UiAccessibilityNode, UiAccessibilityTreeSnapshot,
     },
+    binding::{
+        UiBindingDirtyDomain, UiBindingSource, UiBindingSourceKind, UiBindingTarget,
+        UiBindingTargetKind, UiBindingUpdate, UiBindingUpdateReport, UiBindingUpdateStatus,
+    },
     component::UiValue,
+    dispatch::{
+        UiDispatchReply, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata,
+        UiNavigationDispatchResult, UiPointerDispatchResult, UiTextInputEvent,
+    },
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     focus::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
         UiFocusedInput, UiFocusedInputKind, UiInputFocus,
     },
-    layout::{UiAxis, UiFrame},
+    layout::{UiAxis, UiFrame, UiPoint},
     navigation::{
         UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationGroup,
         UiNavigationGroupId, UiTabIndex,
@@ -22,12 +30,14 @@ use crate::ui::{
         UiRgbaColor, UiStyleColor,
     },
     surface::{
-        UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
+        UiEditableTextState, UiNavigationEventKind, UiNavigationRoute, UiPointerActivationPhase,
+        UiPointerEventKind, UiPointerRoute, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
         UiRenderExtractKind, UiRenderList, UiRenderStats, UiResolvedStyle, UiTextCaret,
         UiTextEditAction, UiTextSelection,
     },
     template::{UiAssetDocument, UiTemplateDocument, UiTemplateNode},
     text::{UiTextCursorStyle, UiTextEdit, UiTextEditSource},
+    tree::UiDirtyFlags,
     widget::{
         UiWidgetBehavior, UiWidgetContract, UiWidgetEvent, UiWidgetEventKind, UiWidgetEventSource,
     },
@@ -318,6 +328,132 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
     assert!(serde_json::to_string(&round_tripped_events)
         .unwrap()
         .contains("selection_changed"));
+}
+
+#[test]
+fn ui_binding_update_contract_represents_attribute_state_and_ecs_domains() {
+    let node_id = UiNodeId::new(31);
+    let update = UiBindingUpdate::applied(
+        UiBindingSource::retained_attribute(node_id, "selected"),
+        UiBindingTarget::component_state_value(node_id, "selected"),
+        UiValue::Bool(true),
+    )
+    .with_previous(Some(UiValue::Bool(false)))
+    .with_dirty_flags(UiDirtyFlags {
+        render: true,
+        input: true,
+        ..UiDirtyFlags::default()
+    });
+    let ecs_update = UiBindingUpdate::unchanged(
+        UiBindingSource::runtime_ecs("scene.entity:42/Transform.translation"),
+        UiBindingTarget::runtime_ecs("ui.node:31/runtime_position"),
+        UiValue::Vec3([1.0, 2.0, 3.0]),
+    )
+    .with_dirty([UiBindingDirtyDomain::Schedule]);
+    let rejected = UiBindingUpdate::rejected(
+        UiBindingSource::accessibility_action(node_id, "value"),
+        UiBindingTarget::widget_alias(node_id, "value"),
+        UiValue::String("bad".to_string()),
+        "value alias is read-only",
+    );
+    let report =
+        UiBindingUpdateReport::from_updates(vec![update.clone(), ecs_update.clone(), rejected]);
+
+    assert_eq!(round_trip(&update), update);
+    assert_eq!(update.source.kind, UiBindingSourceKind::RetainedAttribute);
+    assert_eq!(update.target.kind, UiBindingTargetKind::ComponentStateValue);
+    assert_eq!(
+        update.dirty,
+        vec![UiBindingDirtyDomain::Render, UiBindingDirtyDomain::Input]
+    );
+    assert_eq!(ecs_update.source.kind, UiBindingSourceKind::RuntimeEcs);
+    assert_eq!(ecs_update.target.kind, UiBindingTargetKind::RuntimeEcs);
+    let runtime_target = UiBindingTarget::runtime_state(node_id, "scroll_offset");
+    assert_eq!(round_trip(&runtime_target), runtime_target);
+    assert_eq!(runtime_target.kind, UiBindingTargetKind::RuntimeState);
+    assert_eq!(report.applied_count, 1);
+    assert_eq!(report.unchanged_count, 1);
+    assert_eq!(report.rejected_count, 1);
+    assert!(report.dirty.contains(&UiBindingDirtyDomain::Render));
+    assert!(report.dirty.contains(&UiBindingDirtyDomain::Schedule));
+    assert!(serde_json::to_string(&report)
+        .unwrap()
+        .contains("component_state_value"));
+    assert_eq!(
+        UiBindingUpdateStatus::default(),
+        UiBindingUpdateStatus::Applied
+    );
+
+    let mut dispatch_result = UiInputDispatchResult::new(
+        UiInputEvent::Text(UiTextInputEvent {
+            metadata: UiInputEventMetadata::default(),
+            text: "commit".to_string(),
+        }),
+        UiDispatchReply::handled(),
+    );
+    dispatch_result.record_binding_report(report.clone());
+    assert_eq!(round_trip(&dispatch_result), dispatch_result);
+    assert_eq!(dispatch_result.binding_reports, vec![report.clone()]);
+
+    let mut legacy_dispatch = serde_json::to_value(&dispatch_result).unwrap();
+    legacy_dispatch
+        .as_object_mut()
+        .unwrap()
+        .remove("binding_reports");
+    let legacy_dispatch: UiInputDispatchResult = serde_json::from_value(legacy_dispatch).unwrap();
+    assert!(legacy_dispatch.binding_reports.is_empty());
+
+    let mut pointer_result = UiPointerDispatchResult::new(UiPointerRoute {
+        kind: UiPointerEventKind::Down,
+        button: None,
+        activation_phase: UiPointerActivationPhase::PrimaryPress,
+        point: UiPoint::default(),
+        scroll_delta: 0.0,
+        target: Some(node_id),
+        hit_path: Default::default(),
+        bubbled: vec![node_id],
+        stacked: vec![node_id],
+        entered: Vec::new(),
+        left: Vec::new(),
+        captured: None,
+        pressed: Some(node_id),
+        click_target: None,
+        release_inside_pressed: false,
+        focused: Some(node_id),
+        fallback_to_root: false,
+        root_targets: Vec::new(),
+    });
+    pointer_result.record_binding_report(report.clone());
+    assert_eq!(round_trip(&pointer_result), pointer_result);
+    assert_eq!(pointer_result.binding_reports, vec![report.clone()]);
+
+    let mut legacy_pointer = serde_json::to_value(&pointer_result).unwrap();
+    legacy_pointer
+        .as_object_mut()
+        .unwrap()
+        .remove("binding_reports");
+    let legacy_pointer: UiPointerDispatchResult = serde_json::from_value(legacy_pointer).unwrap();
+    assert!(legacy_pointer.binding_reports.is_empty());
+
+    let mut navigation_result = UiNavigationDispatchResult::new(UiNavigationRoute {
+        kind: UiNavigationEventKind::Activate,
+        target: Some(node_id),
+        bubbled: vec![node_id],
+        fallback_to_root: false,
+        root_targets: Vec::new(),
+    });
+    navigation_result.record_binding_report(report.clone());
+    assert_eq!(round_trip(&navigation_result), navigation_result);
+    assert_eq!(navigation_result.binding_reports, vec![report]);
+
+    let mut legacy_navigation = serde_json::to_value(&navigation_result).unwrap();
+    legacy_navigation
+        .as_object_mut()
+        .unwrap()
+        .remove("binding_reports");
+    let legacy_navigation: UiNavigationDispatchResult =
+        serde_json::from_value(legacy_navigation).unwrap();
+    assert!(legacy_navigation.binding_reports.is_empty());
 }
 
 #[test]

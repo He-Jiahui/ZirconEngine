@@ -3,10 +3,67 @@ use zircon_runtime_interface::ui::{
     surface::{UiEditableTextState, UiTextEditAction},
 };
 
-pub(super) fn keyboard_text_edit_action(
+use crate::ui::text::{
+    line_end_boundary, line_start_boundary, next_grapheme_boundary, next_line_same_column_boundary,
+    next_word_boundary, previous_grapheme_boundary, previous_line_same_column_boundary,
+    previous_word_boundary,
+};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum KeyboardClipboardAction {
+    Copy,
+    Cut,
+    Paste,
+}
+
+pub(super) fn keyboard_clipboard_action(
+    keyboard: &UiKeyboardInputEvent,
+) -> Option<KeyboardClipboardAction> {
+    if keyboard.state != UiKeyboardInputState::Pressed {
+        return None;
+    }
+    if keyboard.metadata.modifiers.alt {
+        return None;
+    }
+    if !(keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key) {
+        return None;
+    }
+
+    let logical_key = keyboard.logical_key.as_str();
+    if matches!(logical_key, "c" | "C") || keyboard.key_code == 67 {
+        return Some(KeyboardClipboardAction::Copy);
+    }
+    if matches!(logical_key, "x" | "X") || keyboard.key_code == 88 {
+        return Some(KeyboardClipboardAction::Cut);
+    }
+    if matches!(logical_key, "v" | "V") || keyboard.key_code == 86 {
+        return Some(KeyboardClipboardAction::Paste);
+    }
+    None
+}
+
+pub(super) fn keyboard_requests_newline(keyboard: &UiKeyboardInputEvent) -> bool {
+    if !matches!(
+        keyboard.state,
+        UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated
+    ) {
+        return false;
+    }
+    if keyboard.metadata.modifiers.alt
+        || keyboard.metadata.modifiers.control
+        || keyboard.metadata.modifiers.shift
+        || keyboard.metadata.modifiers.super_key
+    {
+        return false;
+    }
+
+    keyboard.logical_key == "Enter" || keyboard.key_code == 13
+}
+
+pub(super) fn keyboard_text_edit_actions(
     keyboard: &UiKeyboardInputEvent,
     state: &UiEditableTextState,
-) -> Option<UiTextEditAction> {
+) -> Option<Vec<UiTextEditAction>> {
     if !matches!(
         keyboard.state,
         UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated
@@ -14,79 +71,202 @@ pub(super) fn keyboard_text_edit_action(
         return None;
     }
 
+    let extend_selection = keyboard.metadata.modifiers.shift;
+    let word_navigation = keyboard.metadata.modifiers.control;
+    let document_navigation =
+        keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key;
     match keyboard.logical_key.as_str() {
-        "Backspace" => Some(UiTextEditAction::Backspace),
-        "Delete" => Some(UiTextEditAction::Delete),
-        "Escape" => Some(UiTextEditAction::CancelComposition),
-        "ArrowLeft" => Some(UiTextEditAction::MoveCaret {
-            offset: previous_text_boundary(&state.text, state.caret.offset),
-            extend_selection: false,
-        }),
-        "ArrowRight" => Some(UiTextEditAction::MoveCaret {
-            offset: next_text_boundary(&state.text, state.caret.offset),
-            extend_selection: false,
-        }),
-        "Home" => Some(UiTextEditAction::MoveCaret {
-            offset: 0,
-            extend_selection: false,
-        }),
-        "End" => Some(UiTextEditAction::MoveCaret {
-            offset: state.text.len(),
-            extend_selection: false,
-        }),
-        _ => keyboard_text_edit_action_from_key_code(keyboard, state),
+        key if keyboard_requests_select_all(keyboard, key) => {
+            Some(single_action(UiTextEditAction::SetSelection {
+                anchor: 0,
+                focus: state.text.len(),
+            }))
+        }
+        "Backspace" if word_navigation => Some(delete_previous_word_actions(state)),
+        "Delete" if word_navigation => Some(delete_next_word_actions(state)),
+        "Backspace" => Some(single_action(UiTextEditAction::Backspace)),
+        "Delete" => Some(single_action(UiTextEditAction::Delete)),
+        "Escape" => Some(single_action(UiTextEditAction::CancelComposition)),
+        "ArrowLeft" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: previous_text_boundary(&state.text, state.caret.offset, word_navigation),
+            extend_selection,
+        })),
+        "ArrowRight" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: next_text_boundary(&state.text, state.caret.offset, word_navigation),
+            extend_selection,
+        })),
+        "ArrowUp" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: previous_line_offset(state, document_navigation),
+            extend_selection,
+        })),
+        "ArrowDown" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: next_line_offset(state, document_navigation),
+            extend_selection,
+        })),
+        "Home" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: home_offset(state, document_navigation),
+            extend_selection,
+        })),
+        "End" => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: end_offset(state, document_navigation),
+            extend_selection,
+        })),
+        _ => keyboard_text_edit_actions_from_key_code(
+            keyboard,
+            state,
+            extend_selection,
+            word_navigation,
+        ),
     }
 }
 
-fn keyboard_text_edit_action_from_key_code(
+fn keyboard_text_edit_actions_from_key_code(
     keyboard: &UiKeyboardInputEvent,
     state: &UiEditableTextState,
-) -> Option<UiTextEditAction> {
+    extend_selection: bool,
+    word_navigation: bool,
+) -> Option<Vec<UiTextEditAction>> {
+    let document_navigation =
+        keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key;
     match keyboard.key_code {
-        8 => Some(UiTextEditAction::Backspace),
-        46 => Some(UiTextEditAction::Delete),
-        27 => Some(UiTextEditAction::CancelComposition),
-        37 => Some(UiTextEditAction::MoveCaret {
-            offset: previous_text_boundary(&state.text, state.caret.offset),
-            extend_selection: false,
-        }),
-        39 => Some(UiTextEditAction::MoveCaret {
-            offset: next_text_boundary(&state.text, state.caret.offset),
-            extend_selection: false,
-        }),
-        36 => Some(UiTextEditAction::MoveCaret {
-            offset: 0,
-            extend_selection: false,
-        }),
-        35 => Some(UiTextEditAction::MoveCaret {
-            offset: state.text.len(),
-            extend_selection: false,
-        }),
+        65 | 97 if keyboard_requests_select_all(keyboard, "") => {
+            Some(single_action(UiTextEditAction::SetSelection {
+                anchor: 0,
+                focus: state.text.len(),
+            }))
+        }
+        8 if word_navigation => Some(delete_previous_word_actions(state)),
+        46 if word_navigation => Some(delete_next_word_actions(state)),
+        8 => Some(single_action(UiTextEditAction::Backspace)),
+        46 => Some(single_action(UiTextEditAction::Delete)),
+        27 => Some(single_action(UiTextEditAction::CancelComposition)),
+        37 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: previous_text_boundary(&state.text, state.caret.offset, word_navigation),
+            extend_selection,
+        })),
+        39 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: next_text_boundary(&state.text, state.caret.offset, word_navigation),
+            extend_selection,
+        })),
+        38 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: previous_line_offset(state, document_navigation),
+            extend_selection,
+        })),
+        40 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: next_line_offset(state, document_navigation),
+            extend_selection,
+        })),
+        36 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: home_offset(state, document_navigation),
+            extend_selection,
+        })),
+        35 => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: end_offset(state, document_navigation),
+            extend_selection,
+        })),
         _ => None,
     }
 }
 
-fn previous_text_boundary(text: &str, offset: usize) -> usize {
-    let offset = clamp_text_boundary(text, offset);
-    text.char_indices()
-        .map(|(index, _)| index)
-        .take_while(|index| *index < offset)
-        .last()
-        .unwrap_or(0)
-}
-
-fn next_text_boundary(text: &str, offset: usize) -> usize {
-    let offset = clamp_text_boundary(text, offset);
-    text.char_indices()
-        .map(|(index, _)| index)
-        .find(|index| *index > offset)
-        .unwrap_or(text.len())
-}
-
-fn clamp_text_boundary(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
+fn delete_previous_word_actions(state: &UiEditableTextState) -> Vec<UiTextEditAction> {
+    if has_active_selection(state) {
+        return single_action(UiTextEditAction::Backspace);
     }
-    offset
+    let caret = state.caret.offset.min(state.text.len());
+    let start = previous_text_boundary(&state.text, caret, true);
+    if start == caret {
+        single_action(UiTextEditAction::Backspace)
+    } else {
+        vec![
+            UiTextEditAction::SetSelection {
+                anchor: start,
+                focus: caret,
+            },
+            UiTextEditAction::Backspace,
+        ]
+    }
+}
+
+fn delete_next_word_actions(state: &UiEditableTextState) -> Vec<UiTextEditAction> {
+    if has_active_selection(state) {
+        return single_action(UiTextEditAction::Delete);
+    }
+    let caret = state.caret.offset.min(state.text.len());
+    let end = next_text_boundary(&state.text, caret, true);
+    if end == caret {
+        single_action(UiTextEditAction::Delete)
+    } else {
+        vec![
+            UiTextEditAction::SetSelection {
+                anchor: caret,
+                focus: end,
+            },
+            UiTextEditAction::Delete,
+        ]
+    }
+}
+
+fn single_action(action: UiTextEditAction) -> Vec<UiTextEditAction> {
+    vec![action]
+}
+
+fn has_active_selection(state: &UiEditableTextState) -> bool {
+    state
+        .selection
+        .as_ref()
+        .is_some_and(|selection| selection.anchor != selection.focus)
+}
+
+fn home_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
+    if document_navigation {
+        0
+    } else {
+        line_start_boundary(&state.text, state.caret.offset)
+    }
+}
+
+fn end_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
+    if document_navigation {
+        state.text.len()
+    } else {
+        line_end_boundary(&state.text, state.caret.offset)
+    }
+}
+
+fn previous_line_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
+    if document_navigation {
+        0
+    } else {
+        previous_line_same_column_boundary(&state.text, state.caret.offset).unwrap_or(0)
+    }
+}
+
+fn next_line_offset(state: &UiEditableTextState, document_navigation: bool) -> usize {
+    if document_navigation {
+        state.text.len()
+    } else {
+        next_line_same_column_boundary(&state.text, state.caret.offset).unwrap_or(state.text.len())
+    }
+}
+
+fn keyboard_requests_select_all(keyboard: &UiKeyboardInputEvent, logical_key: &str) -> bool {
+    (keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key)
+        && !keyboard.metadata.modifiers.alt
+        && matches!(logical_key, "a" | "A" | "")
+}
+
+fn previous_text_boundary(text: &str, offset: usize, word_navigation: bool) -> usize {
+    if word_navigation {
+        previous_word_boundary(text, offset).unwrap_or(0)
+    } else {
+        previous_grapheme_boundary(text, offset).unwrap_or(0)
+    }
+}
+
+fn next_text_boundary(text: &str, offset: usize, word_navigation: bool) -> usize {
+    if word_navigation {
+        next_word_boundary(text, offset).unwrap_or(text.len())
+    } else {
+        next_grapheme_boundary(text, offset).unwrap_or(text.len())
+    }
 }

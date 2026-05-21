@@ -4,6 +4,7 @@ mod data;
 mod font;
 mod imported;
 mod material;
+mod mesh;
 mod model;
 mod navigation;
 mod physics_material;
@@ -35,6 +36,11 @@ pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialTextureSlotValue, ZMaterialDocument,
 };
+pub use mesh::{
+    MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshValidationError,
+    ZMeshDocument, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, ZMESH_DOCUMENT_VERSION,
+};
 pub use model::{
     ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
@@ -47,13 +53,14 @@ pub use navigation::{
 };
 pub use physics_material::PhysicsMaterialAsset;
 pub use scene::{
-    SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
-    SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
-    SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset, SceneColliderShapeAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, ScenePointLightAsset, SceneRigidBodyAsset,
-    SceneRigidBodyTypeAsset, SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset,
-    SceneViewportRectAsset, TransformAsset,
+    SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
+    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
+    SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
+    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
+    SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset, SceneViewportRectAsset,
+    TransformAsset,
 };
 pub use shader::{
     ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
@@ -68,7 +75,8 @@ pub use sprite_atlas::{
 };
 pub use texture::{
     TextureArrayLayout, TextureAsset, TextureAssetDescriptor, TexturePayload,
-    RGBA8_UNORM_SRGB_FORMAT,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset,

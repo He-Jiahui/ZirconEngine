@@ -1,4 +1,6 @@
 use std::cell::RefCell;
+#[cfg(windows)]
+use std::ffi::c_void;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -16,13 +18,19 @@ const TITLE_DOUBLE_CLICK_WINDOW: Duration = Duration::from_millis(420);
 #[derive(Clone, Copy, Debug)]
 struct WindowDragState {
     origin: PhysicalPosition,
-    press_cursor: Option<PhysicalPosition>,
-    press_x: f32,
-    press_y: f32,
+    press_cursor: PhysicalPosition,
 }
 
 #[cfg(windows)]
+const GA_ROOT: u32 = 2;
+#[cfg(windows)]
+const HTCAPTION: usize = 2;
+#[cfg(windows)]
+const WM_NCLBUTTONDOWN: u32 = 0x00A1;
+
+#[cfg(windows)]
 #[repr(C)]
+#[derive(Clone, Copy)]
 struct WinPoint {
     x: i32,
     y: i32,
@@ -32,6 +40,10 @@ struct WinPoint {
 #[link(name = "user32")]
 unsafe extern "system" {
     fn GetCursorPos(point: *mut WinPoint) -> i32;
+    fn GetAncestor(hwnd: *mut c_void, ga_flags: u32) -> *mut c_void;
+    fn ReleaseCapture() -> i32;
+    fn SendMessageW(hwnd: *mut c_void, msg: u32, wparam: usize, lparam: isize) -> isize;
+    fn WindowFromPoint(point: WinPoint) -> *mut c_void;
 }
 
 #[cfg(windows)]
@@ -42,9 +54,36 @@ fn current_cursor_position() -> Option<PhysicalPosition> {
     (ok != 0).then(|| PhysicalPosition::new(point.x, point.y))
 }
 
+#[cfg(windows)]
+fn begin_native_window_drag() -> bool {
+    let mut point = WinPoint { x: 0, y: 0 };
+    let ok = unsafe { GetCursorPos(&mut point as *mut WinPoint) };
+    if ok == 0 {
+        return false;
+    }
+
+    let hwnd = unsafe { WindowFromPoint(point) };
+    if hwnd.is_null() {
+        return false;
+    }
+
+    let root = unsafe { GetAncestor(hwnd, GA_ROOT) };
+    let target = if root.is_null() { hwnd } else { root };
+    unsafe {
+        ReleaseCapture();
+        SendMessageW(target, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    }
+    true
+}
+
 #[cfg(not(windows))]
 fn current_cursor_position() -> Option<PhysicalPosition> {
     None
+}
+
+#[cfg(not(windows))]
+fn begin_native_window_drag() -> bool {
+    false
 }
 
 impl HubRuntime {
@@ -128,7 +167,7 @@ pub(super) fn wire_window_controls(ui: &HubWindow, runtime: Rc<RefCell<HubRuntim
     let drag_for_start = Rc::clone(&drag_state);
     let press_for_start = Rc::clone(&last_title_press);
     let runtime_for_drag_start = Rc::clone(&runtime);
-    ui.on_window_drag_start(move |press_x, press_y| {
+    ui.on_window_drag_start(move |_press_x, _press_y| {
         if let Some(ui) = weak.upgrade() {
             let now = Instant::now();
             let is_double_click = press_for_start
@@ -142,38 +181,35 @@ pub(super) fn wire_window_controls(ui: &HubWindow, runtime: Rc<RefCell<HubRuntim
                     .toggle_window_maximized(&ui);
                 return;
             }
+            if begin_native_window_drag() {
+                *drag_for_start.borrow_mut() = None;
+                return;
+            }
+            let Some(press_cursor) = current_cursor_position() else {
+                return;
+            };
             *drag_for_start.borrow_mut() = Some(WindowDragState {
                 origin: ui.window().position(),
-                press_cursor: current_cursor_position(),
-                press_x,
-                press_y,
+                press_cursor,
             });
         }
     });
 
     let weak = ui.as_weak();
     let drag_for_move = Rc::clone(&drag_state);
-    ui.on_window_drag_move(move |mouse_x, mouse_y| {
+    ui.on_window_drag_move(move |_mouse_x, _mouse_y| {
         let Some(ui) = weak.upgrade() else {
             return;
         };
         let Some(state) = *drag_for_move.borrow() else {
             return;
         };
-        if let (Some(press_cursor), Some(cursor)) = (state.press_cursor, current_cursor_position())
-        {
-            ui.window().set_position(PhysicalPosition::new(
-                state.origin.x + cursor.x - press_cursor.x,
-                state.origin.y + cursor.y - press_cursor.y,
-            ));
+        let Some(cursor) = current_cursor_position() else {
             return;
-        }
-        let scale = ui.window().scale_factor();
-        let delta_x = ((mouse_x - state.press_x) * scale) as i32;
-        let delta_y = ((mouse_y - state.press_y) * scale) as i32;
+        };
         ui.window().set_position(PhysicalPosition::new(
-            state.origin.x + delta_x,
-            state.origin.y + delta_y,
+            state.origin.x + cursor.x - state.press_cursor.x,
+            state.origin.y + cursor.y - state.press_cursor.y,
         ));
     });
 

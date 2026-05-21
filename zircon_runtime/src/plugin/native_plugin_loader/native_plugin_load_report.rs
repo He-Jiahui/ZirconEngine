@@ -126,6 +126,21 @@ impl NativePluginLoadReport {
                             })
                         })
                 })
+                .chain(self.loaded.iter().flat_map(|plugin| {
+                    plugin
+                        .runtime_entry_report
+                        .iter()
+                        .chain(plugin.editor_entry_report.iter())
+                        .flat_map(|report| {
+                            report
+                                .behavior_validation
+                                .diagnostics
+                                .iter()
+                                .map(|message| {
+                                    format!("native plugin {}: {message}", plugin.plugin_id)
+                                })
+                        })
+                }))
                 .collect(),
         )
     }
@@ -196,6 +211,27 @@ impl NativePluginLoadReport {
                             report.diagnostics.iter().map(|message| {
                                 format!("native plugin {}: {message}", plugin.plugin_id)
                             })
+                        })
+                }),
+        );
+        diagnostics.extend(
+            self.loaded
+                .iter()
+                .filter(|plugin| plugin.plugin_id == plugin_id)
+                .flat_map(|plugin| {
+                    plugin
+                        .runtime_entry_report
+                        .iter()
+                        .chain(plugin.editor_entry_report.iter())
+                        .filter(|report| module_kinds.contains(&report.module_kind))
+                        .flat_map(|report| {
+                            report
+                                .behavior_validation
+                                .diagnostics
+                                .iter()
+                                .map(|message| {
+                                    format!("native plugin {}: {message}", plugin.plugin_id)
+                                })
                         })
                 }),
         );

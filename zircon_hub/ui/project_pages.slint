@@ -1,4 +1,3 @@
-import { ScrollView } from "std-widgets.slint";
 import {
     MutedText,
     PillButton,
@@ -15,9 +14,13 @@ import {
     HubTokens,
     MaterialPalette,
     MaterialStyleMetrics,
+    MaterialText,
     MaterialTypography,
+    PageScrollSurface,
     PanelHeader,
+    ResponsiveSlot,
     SearchBox,
+    ScrollView,
     ToolbarSelect,
 } from "components.slint";
 
@@ -47,42 +50,29 @@ export component ProjectNewPage inherits Rectangle {
     callback select-engine(string);
 
     private property <length> scroll-y: 0px;
-    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
-    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
+    private property <length> page-pad: HubTokens.page-padding;
+    private property <length> page-gap: HubTokens.panel-gap;
     private property <length> field-height: HubTokens.input-field;
     private property <length> header-height: max(root.field-height * 11 / 10, min(root.field-height * 3 / 2, root.height / 13));
     private property <length> choice-row-height: max(root.field-height * 4 / 3, min(MaterialStyleMetrics.size_64, root.height / 14));
     private property <length> template-row-height: max(root.choice-row-height * 6 / 5, min(MaterialStyleMetrics.size_80, root.height / 11));
-    private property <length> summary-row-height: max(root.field-height * 9 / 10, min(root.field-height * 11 / 10, root.flow-height / 12));
-    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
+    private property <length> summary-row-height: max(HubTokens.control-sm, min(root.field-height, root.flow-height / 14));
+    private property <length> section-label-height: MaterialTypography.body_small.font_size * 3 / 2;
+    private property <int> engine-visible-count: root.engine-count > 0 ? root.engine-count : 1;
+    private property <length> engine-section-height: root.section-label-height + MaterialStyleMetrics.spacing_8 + root.choice-row-height * root.engine-visible-count + MaterialStyleMetrics.spacing_8 * (root.engine-visible-count - 1);
+    private property <length> summary-section-height: HubTokens.list-row-sm + root.summary-row-height * 2 + root.page-gap;
+    private property <length> content-width: page-surface.content-width;
     private property <bool> narrow-flow: root.content-width < HubTokens.panel-min-md + HubTokens.panel-min-sm + root.page-gap;
-    private property <length> column-width: root.content-width - root.page-gap * 2;
-    private property <length> flow-height: max(page-scroll.visible-height - root.page-pad - root.header-height - root.page-gap, root.narrow-flow ? root.field-height * 22 : root.field-height * 12);
+    private property <length> flow-height: max(page-surface.viewport-height - root.page-pad - root.page-pad - root.header-height - root.page-gap, root.narrow-flow ? root.field-height * 22 : root.field-height * 12);
 
     background: HubTokens.surface-page;
     clip: true;
 
-    page-scroll := ScrollView {
-        width: root.width;
-        height: root.height;
-        viewport-y <=> root.scroll-y;
-        viewport-width: page-scroll.visible-width;
-        viewport-height: max(page-scroll.visible-height, root.flow-height + root.page-pad + root.header-height + root.page-gap);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-
-        Rectangle {
-            width: page-scroll.visible-width;
-            height: page-scroll.viewport-height;
-            background: HubTokens.surface-page;
-
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding-left: root.page-pad;
-                padding-right: root.page-pad;
-                padding-bottom: root.page-pad;
-                spacing: root.page-gap;
+    page-surface := PageScrollSurface {
+        scroll-y <=> root.scroll-y;
+        page-padding: root.page-pad;
+        bottom-padding: root.page-pad;
+        gap: root.page-gap;
 
                 PageHeader {
                     header-height: root.header-height;
@@ -101,19 +91,23 @@ export component ProjectNewPage inherits Rectangle {
                     spacing-horizontal: root.page-gap;
                     spacing-vertical: root.page-gap;
 
-                    HubPanel {
-                        width: root.narrow-flow ? root.content-width : root.column-width * 13 / 20;
-                        flex-basis: root.narrow-flow ? root.content-width : root.column-width * 13 / 20;
-                        flex-grow: root.narrow-flow ? 1 : 0;
-                        flex-shrink: 1;
+                    ResponsiveSlot {
+                        basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-lg + HubTokens.control-lg;
+                        grow: root.narrow-flow ? 1 : 2;
+                        shrink: 1;
+                        min-width: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
                         height: root.narrow-flow ? max(root.field-height * 12, root.flow-height * 3 / 5) : root.flow-height;
 
-                        VerticalLayout {
+                        HubPanel {
                             width: parent.width;
                             height: parent.height;
-                            padding: max(MaterialStyleMetrics.padding_16, min(MaterialStyleMetrics.padding_20, root.width / 60));
-                            spacing: root.page-gap;
-                            alignment: stretch;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: HubTokens.space-4;
+                                spacing: root.page-gap;
+                                alignment: stretch;
 
                             PanelHeader {
                                 title: root.ui-text.project-settings-title;
@@ -150,11 +144,15 @@ export component ProjectNewPage inherits Rectangle {
                             }
 
                             VerticalLayout {
+                                height: root.engine-section-height;
+                                vertical-stretch: 0;
                                 spacing: MaterialStyleMetrics.spacing_8;
-                                Text {
+                                MaterialText {
+                                    height: root.section-label-height;
                                     text: root.ui-text.source-engine;
                                     color: MaterialPalette.on_surface_variant;
-                                    font-size: MaterialTypography.body_small.font_size;
+                                    style: MaterialTypography.body_small;
+                                    vertical_alignment: center;
                                 }
                                 for engine in root.engines: EngineChoiceRow {
                                     row-height: root.choice-row-height;
@@ -170,6 +168,7 @@ export component ProjectNewPage inherits Rectangle {
 
                             HorizontalLayout {
                                 height: root.field-height;
+                                vertical-stretch: 0;
                                 alignment: end;
                                 spacing: root.page-gap;
                                 Rectangle { horizontal-stretch: 1; }
@@ -184,6 +183,8 @@ export component ProjectNewPage inherits Rectangle {
                             }
 
                             VerticalLayout {
+                                height: root.summary-section-height;
+                                vertical-stretch: 0;
                                 spacing: max(MaterialStyleMetrics.spacing_4, root.page-gap / 2);
 
                                 PanelHeader {
@@ -199,18 +200,6 @@ export component ProjectNewPage inherits Rectangle {
 
                                 ProjectSettingSummaryRow {
                                     row-height: root.summary-row-height;
-                                    label: root.ui-text.source-engine;
-                                    value: root.selected-engine-label;
-                                }
-
-                                ProjectSettingSummaryRow {
-                                    row-height: root.summary-row-height;
-                                    label: root.ui-text.selected-template;
-                                    value: root.selected-template-label;
-                                }
-
-                                ProjectSettingSummaryRow {
-                                    row-height: root.summary-row-height;
                                     label: root.ui-text.create;
                                     value: root.create-enabled ? root.ui-text.ready-to-create : root.ui-text.complete-project-settings;
                                     badge-value: true;
@@ -219,19 +208,24 @@ export component ProjectNewPage inherits Rectangle {
                             }
                         }
                     }
+                    }
 
-                    HubPanel {
-                        width: root.narrow-flow ? root.content-width : root.column-width * 7 / 20;
-                        flex-basis: root.narrow-flow ? root.content-width : root.column-width * 7 / 20;
-                        flex-grow: root.narrow-flow ? 1 : 0;
-                        flex-shrink: 1;
+                    ResponsiveSlot {
+                        basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
+                        grow: 1;
+                        shrink: 1;
+                        min-width: root.narrow-flow ? root.content-width : HubTokens.panel-min-sm;
                         height: root.narrow-flow ? max(root.template-row-height * (root.template-count + 1), root.flow-height * 2 / 5 - root.page-gap) : root.flow-height;
 
-                        VerticalLayout {
+                        HubPanel {
                             width: parent.width;
                             height: parent.height;
-                            padding: max(MaterialStyleMetrics.padding_14, min(MaterialStyleMetrics.padding_20, root.width / 80));
-                            spacing: root.page-gap;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: HubTokens.space-4;
+                                spacing: root.page-gap;
 
                             PanelHeader {
                                 title: root.ui-text.templates-title;
@@ -249,9 +243,8 @@ export component ProjectNewPage inherits Rectangle {
                         }
                     }
                 }
-            }
-        }
     }
+}
 }
 
 
@@ -271,27 +264,27 @@ export component ProjectBrowserPage inherits Rectangle {
     callback open-detail(string);
 
     private property <length> scroll-y: 0px;
-    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
-    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
-    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
+    private property <length> page-scroll-y: 0px;
+    private property <length> page-pad: HubTokens.page-padding;
+    private property <length> page-gap: HubTokens.panel-gap;
+    private property <length> content-width: page-surface.content-width;
     private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.height / 18));
     private property <length> toolbar-control-min-width: root.toolbar-height * 18 / 5;
     private property <bool> toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.page-gap * 3;
     private property <length> browser-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg + MaterialStyleMetrics.spacing_16, root.height / 11));
     private property <length> browser-row-gap: max(MaterialStyleMetrics.spacing_6, min(MaterialStyleMetrics.spacing_12, root.height / 90));
     private property <length> toolbar-row-height: root.toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
-    private property <length> toolbar-select-width: root.toolbar-wrap ? (root.content-width - root.page-gap) / 2 : max(root.content-width / 8, root.toolbar-control-min-width);
+    private property <length> toolbar-select-basis: root.toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width / 8, root.toolbar-control-min-width);
+    private property <length> browser-panel-height: max(root.browser-row-height * 4, page-surface.viewport-height - root.page-pad * 2 - root.toolbar-height * 6 / 5 - root.toolbar-row-height - root.page-gap * 2);
 
     background: HubTokens.surface-page;
     clip: true;
 
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: root.page-pad;
-        padding-right: root.page-pad;
-        padding-bottom: root.page-pad;
-        spacing: root.page-gap;
+    page-surface := PageScrollSurface {
+        scroll-y <=> root.page-scroll-y;
+        page-padding: root.page-pad;
+        bottom-padding: root.page-pad;
+        gap: root.page-gap;
 
         PageHeader {
             header-height: root.toolbar-height * 6 / 5;
@@ -309,65 +302,86 @@ export component ProjectBrowserPage inherits Rectangle {
             spacing-horizontal: root.page-gap;
             spacing-vertical: root.page-gap;
 
-            SearchBox {
-                flex-basis: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
-                flex-grow: 1;
-                flex-shrink: 1;
-                box-width: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
-                box-height: root.toolbar-height;
-                text <=> root.search-query;
-                placeholder: root.ui-text.search-projects;
-                edited(query) => { root.search-projects(query); }
+            ResponsiveSlot {
+                basis: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
+                grow: 1;
+                shrink: 1;
+                min-width: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
+                height: root.toolbar-height;
+
+                SearchBox {
+                    width: parent.width;
+                    height: parent.height;
+                    box-width: parent.width;
+                    box-height: root.toolbar-height;
+                    text <=> root.search-query;
+                    placeholder: root.ui-text.search-projects;
+                    edited(query) => { root.search-projects(query); }
+                }
             }
 
-            ToolbarSelect {
-                flex-basis: root.toolbar-select-width;
-                flex-grow: 1;
-                flex-shrink: 1;
-                icon-image: @image-url("../assets/icons/ui/folder.svg");
-                has-icon-image: true;
-                text: root.project-filter-label;
-                select-width: root.toolbar-select-width;
-                select-height: root.toolbar-height;
-                option-count: 3;
-                menu-items: [
-                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
-                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
-                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
-                ];
-                options: [
-                    { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
-                    { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
-                    { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
-                ];
-                selected(id) => { root.set-project-filter(id); }
+            ResponsiveSlot {
+                basis: root.toolbar-select-basis;
+                grow: 1;
+                shrink: 1;
+                min-width: root.toolbar-select-basis;
+                height: root.toolbar-height;
+
+                ToolbarSelect {
+                    width: parent.width;
+                    height: parent.height;
+                    icon-image: @image-url("../assets/icons/ui/folder.svg");
+                    has-icon-image: true;
+                    text: root.project-filter-label;
+                    select-width: parent.width;
+                    select-height: root.toolbar-height;
+                    option-count: 3;
+                    menu-items: [
+                        { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
+                        { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
+                        { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
+                    ];
+                    options: [
+                        { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
+                        { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
+                        { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
+                    ];
+                    selected(id) => { root.set-project-filter(id); }
+                }
             }
 
-            ToolbarSelect {
-                flex-basis: root.toolbar-select-width;
-                flex-grow: 1;
-                flex-shrink: 1;
-                icon-image: @image-url("../assets/icons/ui/sort.svg");
-                has-icon-image: true;
-                text: root.project-sort-label;
-                select-width: root.toolbar-select-width;
-                select-height: root.toolbar-height;
-                option-count: 2;
-                menu-items: [
-                    { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
-                    { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
-                ];
-                options: [
-                    { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
-                    { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
-                ];
-                selected(id) => { root.set-project-sort(id); }
+            ResponsiveSlot {
+                basis: root.toolbar-select-basis;
+                grow: 1;
+                shrink: 1;
+                min-width: root.toolbar-select-basis;
+                height: root.toolbar-height;
+
+                ToolbarSelect {
+                    width: parent.width;
+                    height: parent.height;
+                    icon-image: @image-url("../assets/icons/ui/sort.svg");
+                    has-icon-image: true;
+                    text: root.project-sort-label;
+                    select-width: parent.width;
+                    select-height: root.toolbar-height;
+                    option-count: 2;
+                    menu-items: [
+                        { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
+                        { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
+                    ];
+                    options: [
+                        { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
+                        { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
+                    ];
+                    selected(id) => { root.set-project-sort(id); }
+                }
             }
         }
 
         HubPanel {
             horizontal-stretch: 1;
-            vertical-stretch: 1;
+            height: root.browser-panel-height;
 
             VerticalLayout {
                 width: parent.width;
@@ -385,15 +399,15 @@ export component ProjectBrowserPage inherits Rectangle {
                 browser-scroll := ScrollView {
                     horizontal-stretch: 1;
                     vertical-stretch: 1;
-                    viewport-y <=> root.scroll-y;
-                    viewport-width: browser-scroll.visible-width;
-                    viewport-height: max(browser-scroll.visible-height, root.row-count * (root.browser-row-height + root.browser-row-gap) + root.browser-row-gap);
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                    viewport_y <=> root.scroll-y;
+                    viewport_width: browser-scroll.visible_width;
+                    viewport_height: max(browser-scroll.visible_height, root.row-count * (root.browser-row-height + root.browser-row-gap) + root.browser-row-gap);
+                    vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
+                    horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 
                     Rectangle {
-                        width: browser-scroll.visible-width;
-                        height: browser-scroll.viewport-height;
+                        width: browser-scroll.visible_width;
+                        height: browser-scroll.viewport_height;
                         background: transparent;
 
                         VerticalLayout {
@@ -403,13 +417,13 @@ export component ProjectBrowserPage inherits Rectangle {
                             alignment: stretch;
 
                             for row in root.rows: ProjectBrowserRow {
-                                row-width: browser-scroll.visible-width;
+                                row-width: browser-scroll.visible_width;
                                 row-height: root.browser-row-height;
                                 project: row;
                                 pinned-label: root.ui-text.pinned-label;
                                 missing-label: root.ui-text.missing-label;
                                 select(path) => { root.select-project(path); }
-                                detail(path) => { root.open-detail(path); }
+                                open-detail(path) => { root.open-detail(path); }
                             }
 
                             if root.row-count == 0: MutedText {
@@ -418,12 +432,12 @@ export component ProjectBrowserPage inherits Rectangle {
                         }
                     }
                 }
-            }
-        }
+    }
+                }
     }
 }
-
 export component ProjectDetailPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
     in property <ProjectDetailData> project;
     in property <[SourceEngineRowData]> engines;
     in property <int> engine-count;
@@ -437,10 +451,10 @@ export component ProjectDetailPage inherits Rectangle {
     callback cancel-delete;
     callback confirm-delete;
 
-    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
-    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
-    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
-    private property <bool> narrow-flow: root.content-width < root.action-row-height * 25;
+    private property <length> page-pad: HubTokens.page-padding;
+    private property <length> page-gap: HubTokens.panel-gap;
+    private property <length> content-width: page-surface.content-width;
+    private property <bool> narrow-flow: root.content-width < HubTokens.panel-min-lg + HubTokens.panel-min-md + root.page-gap;
     private property <length> cover-height: max(root.action-row-height * 5 / 2, min(root.action-row-height * 7 / 2, root.content-height / 4));
     private property <length> detail-choice-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-md + MaterialStyleMetrics.spacing_8, root.height / 13));
     private property <length> action-row-height: max(HubTokens.control-sm, min(HubTokens.control-lg, root.height / 20));
@@ -449,51 +463,56 @@ export component ProjectDetailPage inherits Rectangle {
     private property <length> info-row-height: max(root.action-row-height * 7 / 10, min(root.action-row-height * 9 / 10, root.content-height / 20));
     private property <length> version-badge-width: max(root.action-row-height * 3, root.content-width / 10);
     private property <length> pin-badge-width: max(root.action-row-height * 2, root.content-width / 14);
-    private property <length> column-width: root.content-width - root.page-gap * 2;
     private property <length> main-panel-min-width: min(max(root.content-width / 2, root.action-row-height * 13), root.content-width);
     private property <length> action-panel-min-width: min(max(root.content-width / 4, root.action-row-height * 15 / 2), root.content-width);
-    private property <length> content-height: max(root.height - root.page-pad - root.page-pad - root.action-row-height * 2, root.narrow-flow ? root.action-row-height * 22 : root.action-row-height * 13);
-
+    private property <length> content-height: max(page-surface.viewport-height - root.page-pad - root.page-pad - root.action-row-height * 2, root.narrow-flow ? root.action-row-height * 22 : root.action-row-height * 13);
+    private property <length> detail-header-height: root.action-row-height * 6 / 5;
+    private property <length> detail-main-min-height: root.action-row-height * 15;
+    private property <length> detail-main-height: root.narrow-flow ? max(root.content-height * 3 / 5, root.detail-main-min-height) : root.content-height;
+    private property <length> detail-action-height: root.narrow-flow ? max(root.action-row-height * 6, root.content-height * 2 / 5 - root.page-gap) : root.content-height;
+    private property <length> detail-flow-height: root.narrow-flow ? root.detail-main-height + root.page-gap + root.detail-action-height : root.content-height;
     background: HubTokens.surface-page;
     clip: true;
 
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: root.page-pad;
-        padding-right: root.page-pad;
-        padding-bottom: root.page-pad;
-        spacing: root.page-gap;
+    page-surface := PageScrollSurface {
+        scroll-y <=> root.scroll-y;
+        page-padding: root.page-pad;
+        bottom-padding: root.page-pad;
+        gap: root.page-gap;
 
-        PageHeader {
-            header-height: root.action-row-height * 6 / 5;
-            title: root.ui-text.project-detail-title;
-            subtitle: root.project.title;
-            back => { root.back(); }
-        }
+                PageHeader {
+                    header-height: root.detail-header-height;
+                    title: root.ui-text.project-detail-title;
+                    subtitle: root.project.title;
+                    back => { root.back(); }
+                }
 
-        FlexboxLayout {
-            horizontal-stretch: 1;
-            height: root.content-height;
-            flex-direction: FlexboxLayoutDirection.row;
-            flex-wrap: FlexboxLayoutWrap.wrap;
-            align-content: FlexboxLayoutAlignContent.start;
-            align-items: FlexboxLayoutAlignItems.start;
-            spacing-horizontal: root.page-gap;
-            spacing-vertical: root.page-gap;
+                FlexboxLayout {
+                    horizontal-stretch: 1;
+                    height: root.detail-flow-height;
+                    flex-direction: FlexboxLayoutDirection.row;
+                    flex-wrap: root.narrow-flow ? FlexboxLayoutWrap.wrap : FlexboxLayoutWrap.no-wrap;
+                    align-content: FlexboxLayoutAlignContent.start;
+                    align-items: FlexboxLayoutAlignItems.start;
+                    spacing-horizontal: root.page-gap;
+                    spacing-vertical: root.page-gap;
 
-            HubPanel {
-                flex-basis: root.narrow-flow ? root.content-width : root.column-width * 7 / 10;
-                flex-grow: 2;
-                flex-shrink: 1;
-                min-width: root.main-panel-min-width;
-                height: root.narrow-flow ? root.content-height * 3 / 5 : root.content-height;
+                    ResponsiveSlot {
+                        basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-lg;
+                        grow: 2;
+                        shrink: 1;
+                        min-width: root.main-panel-min-width;
+                        height: root.detail-main-height;
 
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    padding: max(MaterialStyleMetrics.padding_16, min(MaterialStyleMetrics.padding_20, root.width / 60));
-                    spacing: root.page-gap;
+                        HubPanel {
+                            width: parent.width;
+                            height: parent.height;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: HubTokens.space-4;
+                                spacing: root.page-gap;
 
                     Rectangle {
                         horizontal-stretch: 1;
@@ -522,11 +541,11 @@ export component ProjectDetailPage inherits Rectangle {
                         spacing: root.status-gap;
                         Badge { text: root.project.version; tone: "accent"; badge-width: root.version-badge-width; }
                         Badge { text: root.project.pinned ? root.ui-text.pinned-label : root.ui-text.not-pinned-label; tone: root.project.pinned ? "accent" : "neutral"; badge-width: root.pin-badge-width; }
-                        Text {
+                        MaterialText {
                             text: root.ui-text.modified-prefix + root.project.modified;
                             color: MaterialPalette.on_surface_variant;
-                            font-size: MaterialTypography.body_small.font_size;
-                            vertical-alignment: center;
+                            style: MaterialTypography.body_small;
+                            vertical_alignment: center;
                         }
                     }
 
@@ -572,21 +591,26 @@ export component ProjectDetailPage inherits Rectangle {
                     }
 
                     Rectangle { vertical-stretch: 1; }
-                }
-            }
+                            }
+                        }
+                    }
 
-            HubPanel {
-                flex-basis: root.narrow-flow ? root.content-width : root.column-width * 3 / 10;
-                flex-grow: 1;
-                flex-shrink: 1;
-                min-width: root.action-panel-min-width;
-                height: root.narrow-flow ? max(root.action-row-height * 6, root.content-height * 2 / 5 - root.page-gap) : root.content-height;
+                    ResponsiveSlot {
+                        basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
+                        grow: 1;
+                        shrink: 1;
+                        min-width: root.action-panel-min-width;
+                        height: root.detail-action-height;
 
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    padding: max(MaterialStyleMetrics.padding_14, min(MaterialStyleMetrics.padding_20, root.width / 80));
-                    spacing: root.page-gap;
+                        HubPanel {
+                            width: parent.width;
+                            height: parent.height;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: HubTokens.space-4;
+                                spacing: root.page-gap;
 
                     PanelHeader { title: root.ui-text.project-actions-title; }
 
@@ -665,8 +689,9 @@ export component ProjectDetailPage inherits Rectangle {
 
                     if root.engine-count == 0: MutedText {
                         text: root.ui-text.no-source-engine-available;
-                    }
-                }
+        }
+    }
+}
             }
         }
     }

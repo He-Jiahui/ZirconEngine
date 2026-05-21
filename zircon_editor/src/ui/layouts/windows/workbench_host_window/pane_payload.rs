@@ -102,6 +102,7 @@ pub struct RuntimeDiagnosticsPanePayload {
     pub ui_debug_reflector_summary: String,
     pub ui_debug_reflector_nodes: Vec<String>,
     pub ui_debug_reflector_details: Vec<String>,
+    pub ui_debug_reflector_sections: Vec<String>,
     pub ui_debug_reflector_export_status: String,
     pub ui_debug_reflector_overlay_primitives: Vec<UiDebugOverlayPrimitive>,
     pub ui_debug_reflector_has_active_snapshot: bool,
