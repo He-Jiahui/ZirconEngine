@@ -12,7 +12,7 @@ This supersedes the earlier `Zircon Coresmith` automaton concept for the active 
 
 Name: Zircon Neko
 
-Concept: A non-sexual chibi anime blonde catgirl architect mascot with cat ears, a fluffy tail, blue-purple eyes, a white/blue/gold outfit, and a small zircon-blue engineer accessory.
+Concept: A non-sexual chibi anime blonde catgirl architect mascot with cat ears, a fluffy tail, blue-purple eyes, a sailor-uniform-led white/blue/gold outfit, and a small zircon-blue engineer accessory.
 
 Style: Japanese anime chibi, thick clean outline, rounded proportions, bright eyes, soft blush, polished sticker-like rendering, 2.5-head body ratio, high readability at pet size.
 
@@ -20,14 +20,15 @@ Reference handling: The user-provided image is a style reference for chibi propo
 
 ## Visual Identity
 
-Zircon Neko has light blonde hair, visible cat ears, a fluffy blonde tail, blue-purple eyes, and a cheerful but focused expression. She wears a compact white engineer-magician coat or short cape with blue and gold trim, plus small dark-gray work accents so she still reads as an engine-building companion.
+Zircon Neko has light blonde hair, visible cat ears, a fluffy blonde tail, blue-purple eyes, and a cheerful but focused expression. Her outfit is primarily a sailor uniform: a compact white sailor blouse, blue sailor collar, blue neck ribbon or tie, pleated blue-and-white skirt, gold trim, and small dark-gray work accents so she still reads as an engine-building companion.
 
 Identity locks:
 
 - light blonde hair, cat ears, and fluffy tail
 - blue-purple eyes with a calm focused expression
-- white, blue, and gold outfit palette with small dark-gray engineering accents
+- white, blue, and gold sailor-uniform palette with small dark-gray engineering accents
 - small blue-cyan zircon crystal brooch or badge
+- sailor collar, neck ribbon/tie, and pleated skirt as the main outfit read
 - compact chibi full-body silhouette, safe inside 192x208 cells
 - no readable text, logos, UI screenshots, code snippets, copied reference props, or copied reference companion creature
 
@@ -51,7 +52,7 @@ Rows:
 
 ## Generation Approach
 
-Use the hatch-pet workflow with the image generation skill as the only visual generation layer. Prepare a fresh run from text, using the approved concept as `pet-notes`, style preset `sticker`, and style notes that specify chibi anime rendering. Do not reuse the earlier `Zircon Coresmith` automaton base or row outputs.
+Use the hatch-pet workflow with the image generation skill as the only visual generation layer. Prepare a fresh run from text, using the approved concept as `pet-notes`, style preset `sticker`, and style notes that specify chibi anime rendering. Do not reuse the earlier `Zircon Coresmith` automaton base or row outputs. Do not reuse the first `Zircon Neko` engineer-coat base if it does not read primarily as a sailor uniform.
 
 Data flow:
 
@@ -71,7 +72,7 @@ For this pet, also reject rows where:
 
 - cat ears, tail, hair color, eye color, outfit palette, or zircon brooch disappear
 - the character becomes too tall, too detailed, or unreadable at 192x208
-- the outfit becomes sexualized or no longer reads as a coding/engine companion
+- the outfit becomes sexualized, stops reading primarily as a sailor uniform, or no longer reads as a coding/engine companion
 - the model copies the provided reference image's exact hat, staff, companion creature, or costume silhouette
 
 If deterministic extraction produces size popping while the source strip is stable, rerun extraction with the hatch-pet stable-slot method before regenerating art.

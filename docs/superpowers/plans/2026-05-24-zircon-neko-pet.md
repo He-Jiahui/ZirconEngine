@@ -39,11 +39,11 @@ No ZirconEngine Rust, Slint, Cargo, editor, runtime, hub, or plugin source files
     ```powershell
     python "C:/Users/HeJiahui/.codex/skills/hatch-pet/scripts/prepare_pet_run.py" `
       --pet-name "Zircon Neko" `
-      --description "A focused Japanese anime chibi blonde catgirl architect mascot with a small zircon-blue engineer accessory." `
+      --description "A focused Japanese anime chibi blonde catgirl architect mascot in a sailor-uniform-led outfit with a small zircon-blue engineer accessory." `
       --output-dir "C:/Users/HeJiahui/.codex/tmp/hatch-pet/zircon-neko" `
-      --pet-notes "Non-sexual Japanese anime chibi blonde catgirl architect mascot; light blonde hair, visible cat ears, fluffy blonde tail, blue-purple eyes, cheerful but focused expression, compact white engineer-magician coat or short cape with blue and gold trim, small dark-gray work accents, small blue-cyan zircon crystal brooch or badge; no copied reference hat, staff, companion creature, exact costume silhouette, text, or logos." `
+      --pet-notes "Non-sexual Japanese anime chibi blonde catgirl architect mascot; light blonde hair, visible cat ears, fluffy blonde tail, blue-purple eyes, cheerful but focused expression, sailor-uniform-led outfit with compact white sailor blouse, blue sailor collar, blue neck ribbon or tie, pleated blue-and-white skirt, gold trim, small dark-gray work accents, small blue-cyan zircon crystal brooch or badge; no copied reference hat, staff, companion creature, exact costume silhouette, text, or logos." `
       --style-preset "sticker" `
-      --style-notes "Chibi anime sticker rendering, 2.5-head proportions, thick clean outline, bright eyes, soft blush, white/blue/gold palette, readable inside 192x208 cells, family-friendly and non-sexual." `
+      --style-notes "Chibi anime sticker rendering, 2.5-head proportions, thick clean outline, bright eyes, soft blush, white/blue/gold sailor-uniform palette, readable inside 192x208 cells, family-friendly and non-sexual." `
       --force
     ```
 
@@ -61,19 +61,19 @@ No ZirconEngine Rust, Slint, Cargo, editor, runtime, hub, or plugin source files
 
 ## Milestone 2: Generate The Canonical Anime Catgirl Base
 
-- Goal: Create the canonical full-body Zircon Neko image that locks the final identity.
-- In-scope behaviors: one centered chibi catgirl, flat chroma background, readable full-body silhouette, cat ears, tail, blue-purple eyes, white/blue/gold outfit, zircon-blue accessory, no copied reference-specific props, no sexualized styling, no text, no scenery, no shadows, no detached effects.
+- Goal: Create the canonical full-body Zircon Neko sailor-uniform image that locks the final identity.
+- In-scope behaviors: one centered chibi catgirl, flat chroma background, readable full-body silhouette, cat ears, tail, blue-purple eyes, white/blue/gold sailor uniform, zircon-blue accessory, no copied reference-specific props, no sexualized styling, no text, no scenery, no shadows, no detached effects.
 - Dependencies: Milestone 1 run directory and `prompts/base-pet.md`.
 - Implementation slices:
   - [ ] Use the image generation skill with the base prompt from `C:/Users/HeJiahui/.codex/tmp/hatch-pet/zircon-neko/prompts/base-pet.md`.
   - [ ] Use the user-provided image only as broad style reference for chibi proportions, polished anime sticker rendering, bright eyes, and white/blue/gold palette.
-  - [ ] Select the strongest generated source where the face, hair, cat ears, tail, outfit palette, zircon brooch, and compact silhouette match the approved design.
+  - [ ] Select the strongest generated source where the face, hair, cat ears, tail, sailor collar, neck ribbon/tie, pleated skirt, zircon brooch, and compact silhouette match the approved design.
   - [ ] Copy the selected source into the base job's decoded `output_path`.
   - [ ] Copy the decoded base to `C:/Users/HeJiahui/.codex/tmp/hatch-pet/zircon-neko/references/canonical-base.png`.
   - [ ] Mark the `base` job complete in `imagegen-jobs.json` with the selected source path and completion timestamp.
 - Testing stage:
   - [ ] Verify `references/canonical-base.png` exists.
-  - [ ] Visually check the base image for one centered full-body pet, clear chroma background, no copied reference hat/staff/companion, no sexualized styling, no text, no shadows, no scenery, and no disconnected decorative pieces.
+  - [ ] Visually check the base image for one centered full-body pet, clear chroma background, primary sailor-uniform read, no copied reference hat/staff/companion, no sexualized styling, no text, no shadows, no scenery, and no disconnected decorative pieces.
   - [ ] If the base fails visual identity, regenerate only the base before producing any row strips.
 - Lightweight checks:
   - [ ] Confirm row jobs remain incomplete after marking only `base` complete.
@@ -213,7 +213,7 @@ No ZirconEngine Rust, Slint, Cargo, editor, runtime, hub, or plugin source files
     {
       "id": "zircon-neko",
       "displayName": "Zircon Neko",
-      "description": "A focused Japanese anime chibi blonde catgirl architect mascot with a small zircon-blue engineer accessory.",
+      "description": "A focused Japanese anime chibi blonde catgirl architect mascot in a sailor-uniform-led outfit with a small zircon-blue engineer accessory.",
       "spritesheetPath": "spritesheet.webp"
     }
     ```
