@@ -24,7 +24,6 @@ impl ResourceManager {
                 .expect("resource registry lock poisoned");
             let previous = registry.get(record.id).cloned();
             record.state = ResourceState::Ready;
-            record.diagnostics.clear();
             record.revision = previous
                 .as_ref()
                 .map_or(1, |current| next_ready_revision(current, &record));

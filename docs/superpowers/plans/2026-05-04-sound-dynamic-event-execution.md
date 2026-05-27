@@ -130,3 +130,26 @@ git diff --check -- "zircon_runtime\src\core\framework\sound" "zircon_plugins\so
 - Missing executors and failing executors are reported per handler.
 - Descriptor cleanup removes executors.
 - Docs narrow the remaining gap to ABI/dynamic-library plugin callback execution and editor routing.
+
+## 2026-05-24 ABI Follow-Up
+
+- [x] Add generic plugin-event callback ABI contracts to `zircon_runtime_interface/src/plugin_events.rs`.
+- [x] Append optional `ZrPluginApiV1::invoke_event` to the plugin API table.
+- [x] Add interface contract tests for plugin API table layout and callback request/result payloads.
+- [x] Add `zircon_plugins/sound/runtime/src/dynamic_event_abi.rs` so the sound runtime can adapt `SoundDynamicEventDelivery` to `ZrPluginEventCallbackFnV1` without moving function pointers into the neutral sound framework.
+- [x] Add sound runtime tests for projected ABI callback delivery and callback-level failure reporting.
+- [x] Run focused formatting and validation for `zircon_runtime_interface` and `zircon_plugin_sound_runtime`.
+- [x] Record final validation evidence in this plan, `docs/engine-architecture/runtime-sound-extension.md`, `docs/engine-architecture/runtime-interface-cdylib-loader.md`, and `.codex/sessions/20260523-0748-sound-sequential-milestones.md`.
+
+Validation evidence:
+
+- `rustfmt --edition 2021 --check zircon_runtime_interface\src\plugin_events.rs zircon_runtime_interface\src\plugin_api.rs zircon_runtime_interface\src\lib.rs zircon_runtime_interface\src\tests\contracts.rs zircon_plugins\sound\runtime\src\dynamic_event_abi.rs zircon_plugins\sound\runtime\src\tests\dynamic_events.rs` passed.
+- `cargo fmt --check --manifest-path Cargo.toml -p zircon_runtime_interface` passed.
+- `cargo fmt --check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sound_runtime` passed.
+- `cargo test -p zircon_runtime_interface plugin_ --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sound-dynamic-event-abi-interface --message-format short --color never` passed: 2 passed, 0 failed, 110 filtered out.
+- `cargo test --manifest-path zircon_plugins\sound\runtime\Cargo.toml dynamic_event_abi --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sound-dynamic-event-abi-runtime --message-format short --color never` first required updating `zircon_plugins\Cargo.lock` with the new sound-runtime `zircon_runtime_interface` dependency entry, then timed out once during dependency compilation without Rust diagnostics, and passed on the warmed retry: 2 passed, 0 failed, 89 filtered out.
+- `cargo metadata --manifest-path zircon_runtime_interface\Cargo.toml --locked --offline --no-deps --format-version 1` passed.
+- `cargo metadata --manifest-path zircon_plugins\sound\runtime\Cargo.toml --locked --offline --no-deps --format-version 1` passed.
+- `git diff --check -- ...` across the ABI Rust files, manifests/lockfile, docs, plan, and session note passed with LF-to-CRLF warnings only.
+
+Remaining after this ABI follow-up: generic native-dynamic plugin loader discovery/attachment for `ZrPluginApiV1::invoke_event`, plus editor-host operation routing.

@@ -116,6 +116,91 @@ material_font_size_body = 12.0
 material_font_size_meta = 11.0
 material_font_size_title = 15.0
 
+mui_web_source_version = "9.0.1"
+mui_web_source_package = "dev/material-ui"
+mui_web_palette_default_mode = "light"
+mui_web_palette_primary_main = "#1976d2"
+mui_web_palette_primary_light = "#42a5f5"
+mui_web_palette_primary_dark = "#1565c0"
+mui_web_palette_primary_dark_mode_main = "#90caf9"
+mui_web_palette_secondary_main = "#9c27b0"
+mui_web_palette_secondary_light = "#ba68c8"
+mui_web_palette_secondary_dark = "#7b1fa2"
+mui_web_palette_secondary_dark_mode_main = "#ce93d8"
+mui_web_palette_error_main = "#d32f2f"
+mui_web_palette_error_dark_mode_main = "#f44336"
+mui_web_palette_warning_main = "#ed6c02"
+mui_web_palette_warning_dark_mode_main = "#ffa726"
+mui_web_palette_info_main = "#0288d1"
+mui_web_palette_info_dark_mode_main = "#29b6f6"
+mui_web_palette_success_main = "#2e7d32"
+mui_web_palette_success_dark_mode_main = "#66bb6a"
+mui_web_palette_light_background_default = "#ffffff"
+mui_web_palette_light_background_paper = "#ffffff"
+mui_web_palette_light_text_primary = "rgba(0, 0, 0, 0.87)"
+mui_web_palette_light_text_secondary = "rgba(0, 0, 0, 0.6)"
+mui_web_palette_light_text_disabled = "rgba(0, 0, 0, 0.38)"
+mui_web_palette_light_divider = "rgba(0, 0, 0, 0.12)"
+mui_web_palette_dark_background_default = "#121212"
+mui_web_palette_dark_background_paper = "#121212"
+mui_web_palette_dark_text_primary = "#ffffff"
+mui_web_palette_dark_text_secondary = "rgba(255, 255, 255, 0.7)"
+mui_web_palette_dark_text_disabled = "rgba(255, 255, 255, 0.5)"
+mui_web_palette_dark_divider = "rgba(255, 255, 255, 0.12)"
+mui_web_action_light_hover_opacity = 0.04
+mui_web_action_light_selected_opacity = 0.08
+mui_web_action_light_focus_opacity = 0.12
+mui_web_action_light_activated_opacity = 0.12
+mui_web_action_dark_hover_opacity = 0.08
+mui_web_action_dark_selected_opacity = 0.16
+mui_web_action_dark_focus_opacity = 0.12
+mui_web_action_dark_activated_opacity = 0.24
+mui_web_action_disabled_opacity = 0.38
+mui_web_shape_border_radius = 4.0
+mui_web_spacing_unit = 8.0
+mui_web_typography_font_family = "\"Roboto\", \"Helvetica\", \"Arial\", sans-serif"
+mui_web_typography_font_size = 14.0
+mui_web_typography_html_font_size = 16.0
+mui_web_typography_font_weight_light = 300.0
+mui_web_typography_font_weight_regular = 400.0
+mui_web_typography_font_weight_medium = 500.0
+mui_web_typography_font_weight_bold = 700.0
+mui_web_typography_h1_size = 96.0
+mui_web_typography_h2_size = 60.0
+mui_web_typography_h3_size = 48.0
+mui_web_typography_h4_size = 34.0
+mui_web_typography_h5_size = 24.0
+mui_web_typography_h6_size = 20.0
+mui_web_typography_body1_size = 16.0
+mui_web_typography_body2_size = 14.0
+mui_web_typography_button_size = 14.0
+mui_web_typography_caption_size = 12.0
+mui_web_shadow_key_umbra_opacity = 0.20
+mui_web_shadow_key_penumbra_opacity = 0.14
+mui_web_shadow_ambient_opacity = 0.12
+mui_web_shadow_0 = "none"
+mui_web_shadow_1 = "0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)"
+mui_web_shadow_24 = "0px 11px 15px -7px rgba(0,0,0,0.2),0px 24px 38px 3px rgba(0,0,0,0.14),0px 9px 46px 8px rgba(0,0,0,0.12)"
+mui_web_z_index_mobile_stepper = 1000.0
+mui_web_z_index_fab = 1050.0
+mui_web_z_index_speed_dial = 1050.0
+mui_web_z_index_app_bar = 1100.0
+mui_web_z_index_drawer = 1200.0
+mui_web_z_index_modal = 1300.0
+mui_web_z_index_snackbar = 1400.0
+mui_web_z_index_tooltip = 1500.0
+mui_web_transition_ease_in_out = "cubic-bezier(0.4, 0, 0.2, 1)"
+mui_web_transition_ease_out = "cubic-bezier(0.0, 0, 0.2, 1)"
+mui_web_transition_ease_in = "cubic-bezier(0.4, 0, 1, 1)"
+mui_web_transition_sharp = "cubic-bezier(0.4, 0, 0.6, 1)"
+mui_web_transition_duration_shortest = 150.0
+mui_web_transition_duration_shorter = 200.0
+mui_web_transition_duration_short = 250.0
+mui_web_transition_duration_standard = 300.0
+mui_web_transition_duration_complex = 375.0
+mui_web_transition_duration_entering_screen = 225.0
+mui_web_transition_duration_leaving_screen = 195.0
+
 slint_material_scheme = "dark"
 slint_material_primary = "#adc6ff"
 slint_material_surface_tint = "$slint_material_primary"
@@ -1111,6 +1196,94 @@ selector = ".material-autocomplete"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
+selector = ".MuiAutocomplete-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-root.MuiAutocomplete-expanded.MuiAutocomplete-focused.MuiAutocomplete-fullWidth.MuiAutocomplete-hasClearIcon.MuiAutocomplete-hasPopupIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-inputRoot"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-inputRoot.MuiAutocomplete-hasClearIcon.MuiAutocomplete-hasPopupIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-input"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-input.MuiAutocomplete-inputFocused"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-tag"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-tag.MuiAutocomplete-tagSizeSmall"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-endAdornment"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-clearIndicator"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popupIndicator"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popupIndicator.MuiAutocomplete-popupIndicatorOpen"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popper.MuiAutocomplete-popperDisablePortal"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-paper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-listbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-loading"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-noOptions"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-option"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-option.MuiAutocomplete-focused.MuiAutocomplete-focusVisible"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-groupLabel"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-groupUl"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
 selector = ".material-autocomplete:hover"
 set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
 
@@ -1147,6 +1320,90 @@ selector = ".material-autocomplete-disabled"
 set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
 
 [[stylesheets.rules]]
+selector = ".material-autocomplete-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-input-root"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-input"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-tag"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-popup-indicator"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-paper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-listbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-option"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-root.MuiTransferList-hasSourceItems.MuiTransferList-hasTargetItems.MuiTransferList-hasSelectedItems.MuiTransferList-hasDisabledItems.MuiTransferList-hasDisabledActions"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-source"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-source.MuiTransferList-sourcePopulated.MuiTransferList-sourceSelected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-target"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-target.MuiTransferList-targetPopulated.MuiTransferList-targetSelected"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-actions"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-actions.MuiTransferList-actionsDisabled"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_warning", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-sample"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-source"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-target"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-actions"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_warning", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
 selector = ".material-runtime-dialog"
 set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_medium" } } }
 
@@ -1169,3 +1426,1631 @@ set = { self = { foreground = { color = "$material_text" }, font = { size = "$ma
 [[stylesheets.rules]]
 selector = ".material-meta"
 set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-autoHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityCompact"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityStandard"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityComfortable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-checkboxSelection.MuiDataGrid-disableColumnMenu.MuiDataGrid-disableRowSelectionOnClick"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-sortingModeServer.MuiDataGrid-filterModeServer.MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasSortModel.MuiDataGrid-hasFilterModel.MuiDataGrid-hasPaginationModel.MuiDataGrid-hasQuickFilter"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-showToolbar.MuiDataGrid-hideFooterPagination.MuiDataGrid-hideFooterSelectedRowCount.MuiDataGrid-withVerticalBorder.MuiDataGrid-showCellVerticalBorder.MuiDataGrid-rowSpacingBorder.MuiDataGrid-hasScrollbarSize.MuiDataGrid-hasLabel"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-emptyRows.MuiDataGrid-emptyColumns.MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasRows.MuiDataGrid-hasColumns.MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasPage.MuiDataGrid-hasPageSize"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasRowCount.MuiDataGrid-hasRowHeight.MuiDataGrid-hasOverscan.MuiDataGrid-disableVirtualization"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasViewportRange.MuiDataGrid-hasRequestedRange.MuiDataGrid-hasScrollOffset"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-editModeRow.MuiDataGrid-hasCellModes.MuiDataGrid-hasRowModes.MuiDataGrid-hasColumnVisibilityModel.MuiDataGrid-hasPinnedColumns"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-autoHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityCompact"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityStandard"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityComfortable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-withBorderColor"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRows"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasColumns"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-emptyRows"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-emptyColumns"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-checkboxSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableColumnMenu"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableRowSelectionOnClick"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-sortingModeClient"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-sortingModeServer"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-filterModeClient"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-filterModeServer"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasSortModel"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasFilterModel"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPaginationModel"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasQuickFilter"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-showToolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooter"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooterPagination"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooterSelectedRowCount"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-withVerticalBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-showCellVerticalBorder"
+set = { self = { border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSpacingBorder"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSpacingMargin"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasScrollbarSize"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasLabel"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPage"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPageSize"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowCount"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasOverscan"
+set = { self = { foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableVirtualization"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasViewportRange"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRequestedRange"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasScrollOffset"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-editModeRow"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-editModeCell"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasCellModes"
+set = { self = { foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowModes"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasColumnVisibilityModel"
+set = { self = { border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPinnedColumns"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--sortable"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--sorted"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--withRightBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--editable"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--editing"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--withRightBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeaders"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-row"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-row.MuiDataGrid-row--loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-Toolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-Footer"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-LoadingOverlay"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-NoRowsOverlay"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-row"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-column-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-cell"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMaterialTreeView-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-multiSelect"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-checkboxSelection.MuiTreeView-disabledItemsFocusable.MuiTreeView-editable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-hasExpandedItems.MuiTreeView-hasSelectedItems.MuiTreeView-hasItemIndentation"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-multiSelect"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-checkboxSelection"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-disabledItemsFocusable"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-editable"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasExpandedItems"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasSelectedItems"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasItemIndentation"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-item"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-label"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-icon"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-checkbox"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-root"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-root.MuiTreeItem-expanded.MuiTreeItem-selected.MuiTreeItem-editable.MuiTreeItem-disabledItemsFocusable"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-content.MuiTreeItem-expanded.MuiTreeItem-selected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-label"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-labelInput"
+set = { self = { border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-label.MuiTreeItem-labelInput"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-iconContainer"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkbox"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkbox.MuiTreeItem-checkboxSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-expanded"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-selected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-editable"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-disabledItemsFocusable"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkboxSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePickers-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDatePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-readOnly"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-hasFormat"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField.MuiPickersField-readOnly.MuiPickersField-hasValue.MuiPickersField-hasFormat"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-hasViews"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Desktop"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout.MuiPickersLayout-Desktop.MuiPickersLayout-hasViews"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Mobile"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Static"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickersLayout-Desktop"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDatePicker-root.MuiPickersLayout-Mobile"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimePicker-root.MuiPickersLayout-Static"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickers-readOnly.MuiPickers-ampm.MuiPickers-hasDateBounds.MuiPickers-hasViews"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickers-hasValue.MuiPickers-hasView.MuiPickers-hasFormat"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-readOnly"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-ampm"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasDateBounds"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasViews"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasView"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasFormat"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar-ampm"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar-hasViews"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar.MuiPickersToolbar-ampm.MuiPickersToolbar-hasViews"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper-open"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper-hasDateBounds"
+set = { self = { border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper.MuiPickersPopper-open.MuiPickersPopper-hasDateBounds"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-layout"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-toolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsSurface-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsSurface-root.MuiCharts-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasAxes"
+set = { self = { border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_high" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiLineChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBarChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_success_main" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPieChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSparkLineChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-root.MuiChartsSurface-root.MuiGauge-hasValue.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiLineChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBarChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPieChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSparkLineChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-root"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-loading"
+set = { self = { foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend.MuiChartsLegend-hasSeries.MuiChartsLegend-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasAxes"
+set = { self = { border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasMargin"
+set = { self = { background = { color = "$material_popup" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-interactionHover"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip.MuiChartsTooltip-loading.MuiChartsTooltip-hasSeries.MuiChartsTooltip-hasAxes.MuiChartsTooltip-hasMargin.MuiChartsTooltip-interactionHover"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip.MuiChartsTooltip-hasValue.MuiChartsTooltip-hasMargin"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-legend"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tooltip"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-hasMessages.MuiAgentChat-hasComposerText"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-hasMessages"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-hasComposerText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root.MuiChatComposer-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root.MuiChatComposer-streaming.MuiChatComposer-hasText"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-hasText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-root.MuiChatConversationList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-root.MuiChatMessageList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messages"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesPopulated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesStreaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messages.MuiAgentChat-messagesPopulated.MuiAgentChat-messagesStreaming.MuiAgentChat-messagesError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composer"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerStreaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerHasText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composer.MuiAgentChat-composerStreaming.MuiAgentChat-composerError.MuiAgentChat-composerHasText"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-root.MuiChatMessage-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-messages"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-composer"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-columnsConfigured"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-spacingConfigured"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-sequential"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-ssrDefaults"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-root.MuiMasonry-columnsConfigured.MuiMasonry-spacingConfigured.MuiMasonry-sequential.MuiMasonry-ssrDefaults"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-masonry-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-item"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-masonry-tile"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-positionAlternateReverse"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-root.MuiTimeline-positionAlternateReverse"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-positionAlternateReverse"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-missingOppositeContent"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-root.MuiTimelineItem-positionAlternateReverse.MuiTimelineItem-missingOppositeContent"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-root"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-positionRight"
+set = { self = { text_align = "left", foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-root.MuiTimelineContent-positionRight"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineOppositeContent-root"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineOppositeContent-positionLeft"
+set = { self = { text_align = "right", foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineSeparator-root"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineConnector-root"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-root"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-outlinedSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-root.MuiTimelineDot-outlined.MuiTimelineDot-outlinedSecondary"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-item"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-content"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-separator"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-connector"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-dot"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$mui_web_typography_body1_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-h6"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$mui_web_typography_h6_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-alignCenter"
+set = { self = { text_align = "center", foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-gutterBottom"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-noWrap"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-root.MuiTypography-h6.MuiTypography-alignCenter.MuiTypography-gutterBottom.MuiTypography-noWrap"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$mui_web_typography_h6_size" } } }
+
+[[stylesheets.rules]]
+selector = ".material-typography-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-root"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-rounded"
+set = { self = { border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-outlined"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$mui_web_palette_light_divider", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$material_shadow_soft", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation0"
+set = { self = { border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation1"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_shadow_soft", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation3"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_shadow", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation3"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_shadow", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".material-paper-sample"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_shadow", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".material-paper-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-standard"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-filled"
+set = { self = { background = { color = "$mui_web_palette_success_main" }, foreground = { color = "$material_on_success" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-outlined"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorSuccess"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorInfo"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$mui_web_palette_error_main" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-root.MuiAlert-outlined.MuiAlert-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-icon"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-message"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-action"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-sample"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-icon"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-message"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-action"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorPrimary"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorAction"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorError"
+set = { self = { foreground = { color = "$mui_web_palette_error_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorDisabled"
+set = { self = { foreground = { color = "$material_text_disabled" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeInherit"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeSmall"
+set = { self = { font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeMedium"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeLarge"
+set = { self = { font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-root.MuiIcon-colorPrimary.MuiIcon-fontSizeLarge"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorPrimary"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorAction"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorError"
+set = { self = { foreground = { color = "$mui_web_palette_error_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorDisabled"
+set = { self = { foreground = { color = "$material_text_disabled" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeInherit"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeSmall"
+set = { self = { font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeMedium"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeLarge"
+set = { self = { font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-root.MuiSvgIcon-colorSecondary.MuiSvgIcon-fontSizeLarge"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-material-icon-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-filled"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_container_high", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-sizeSmall"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-sizeMedium"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorDefault"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorPrimary"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorSecondary"
+set = { self = { background = { color = "$mui_web_palette_secondary_main" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-clickable"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-deletable"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-focusVisible"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-label"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-deleteIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-icon"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-avatar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-root.MuiChip-outlined.MuiChip-sizeSmall.MuiChip-colorWarning.MuiChip-clickable.MuiChip-deletable"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-label"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-delete-icon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-root"
+set = { self = { background = { color = "$material_outline_variant" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-middle"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-vertical"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-flexItem"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-withChildren"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-root.MuiDivider-middle.MuiDivider-vertical.MuiDivider-flexItem.MuiDivider-withChildren"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-wrapper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-wrapperVertical"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-divider-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-divider-wrapper"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-stickyHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-root.MuiTable-stickyHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".material-table-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-table-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-masonry"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-quilted"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-standard"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-woven"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-root.MuiImageList-masonry"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-image-list-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-image-list-item"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-padding"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-dense"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-root.MuiList-padding.MuiList-dense.MuiList-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-colorDefault"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-circular"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = 999.0 } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-rounded"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-square"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-img"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-fallback"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-root.MuiAvatar-rounded.MuiAvatar-colorDefault"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-avatar-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-avatar-fallback"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-badge"
+set = { self = { background = { color = "$material_error" }, foreground = { color = "$material_on_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" }, z_index = 1 } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-standard"
+set = { self = { border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-dot"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-invisible"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-overlapCircular"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-overlapRectangular"
+set = { self = { border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginTopRight"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginBottomLeft"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginBottomLeftCircular"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorPrimary"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorSecondary"
+set = { self = { background = { color = "$mui_web_palette_secondary_main" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorError"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorInfo"
+set = { self = { background = { color = "$mui_web_palette_info_main" }, foreground = { color = "$material_on_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorSuccess"
+set = { self = { background = { color = "$mui_web_palette_success_main" }, foreground = { color = "$material_on_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorWarning"
+set = { self = { background = { color = "$mui_web_palette_warning_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-badge.MuiBadge-standard.MuiBadge-anchorOriginBottomLeft.MuiBadge-anchorOriginBottomLeftCircular.MuiBadge-overlapCircular.MuiBadge-colorError"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".material-badge-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-badge-slot"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-text"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-rectangular"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-rounded"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-circular"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-pulse"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-wave"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-withChildren"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-fitContent"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-heightAuto"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-root.MuiSkeleton-rounded.MuiSkeleton-wave"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text_muted" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-skeleton-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-skeleton-child"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_meta" } } }

@@ -1,15 +1,12 @@
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::plugin::{SceneRuntimeHookContext, SceneRuntimeHookRegistration};
-use crate::scene::ecs::{InternalSceneSystem, SceneSystemDescriptor, SystemStage};
+use crate::scene::ecs::{
+    InternalSceneSystem, SceneSystemDescriptor, ScheduledSceneStep, SystemStage,
+};
 use crate::scene::LevelSystem;
 
 pub(crate) struct SceneScheduleRunner;
-
-enum SceneScheduleStep {
-    Internal(SceneSystemDescriptor),
-    Hook(SceneRuntimeHookRegistration),
-}
 
 impl SceneScheduleRunner {
     pub(crate) fn run_stage(
@@ -21,22 +18,15 @@ impl SceneScheduleRunner {
         hooks: Vec<SceneRuntimeHookRegistration>,
     ) -> Result<(), CoreError> {
         level.with_world_mut(|world| world.set_scene_system_flush_deferred(true));
-        let mut steps = internal_systems
-            .into_iter()
-            .filter(|system| system.stage == stage)
-            .map(SceneScheduleStep::Internal)
-            .chain(hooks.into_iter().map(SceneScheduleStep::Hook))
-            .collect::<Vec<_>>();
-        steps.sort_by(|left, right| {
-            left.order()
-                .cmp(&right.order())
-                .then(left.id().cmp(right.id()))
-        });
+        let native_steps =
+            level.with_world(|world| world.scheduled_native_system_steps_for_stage(stage));
+        let steps =
+            ScheduledSceneStep::sorted_for_stage(stage, internal_systems, native_steps, hooks);
 
         let result = (|| {
             for step in steps {
                 match step {
-                    SceneScheduleStep::Internal(system) => {
+                    ScheduledSceneStep::Internal(system) => {
                         level.with_world_mut(|world| {
                             world.run_internal_scene_system(system.system())
                         });
@@ -44,7 +34,13 @@ impl SceneScheduleRunner {
                             level.with_world_mut(|world| world.apply_deferred());
                         }
                     }
-                    SceneScheduleStep::Hook(hook) => {
+                    ScheduledSceneStep::Native { id, .. } => {
+                        level.with_world_mut(|world| world.run_native_scene_system(&id));
+                    }
+                    ScheduledSceneStep::ApplyDeferred { .. } => {
+                        level.with_world_mut(|world| world.apply_deferred());
+                    }
+                    ScheduledSceneStep::Hook(hook) => {
                         hook.run(SceneRuntimeHookContext::new(core, level, delta_seconds))?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
@@ -60,21 +56,5 @@ impl SceneScheduleRunner {
             }
         });
         result
-    }
-}
-
-impl SceneScheduleStep {
-    fn order(&self) -> i32 {
-        match self {
-            Self::Internal(system) => system.order,
-            Self::Hook(hook) => hook.descriptor().order,
-        }
-    }
-
-    fn id(&self) -> &str {
-        match self {
-            Self::Internal(system) => system.id.as_str(),
-            Self::Hook(hook) => hook.descriptor().id.as_str(),
-        }
     }
 }

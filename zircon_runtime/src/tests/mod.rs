@@ -1,3 +1,4 @@
+mod camera_controller;
 mod extensions;
 mod gizmos;
 mod graphics_surface;

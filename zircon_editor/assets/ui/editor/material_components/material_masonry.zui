@@ -55,14 +55,80 @@ layout = { width = { min = 122, preferred = 122, max = 122, stretch = "Fixed" },
 component = "Label"
 control_id = "masonry_MetaLayout"
 classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
-props = { text = "container grid", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "container grid", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+props = { text = "masonry flow", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "masonry flow", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 102, preferred = 102, max = 102, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "GridBox"
+component = "Masonry"
 control_id = "masonry_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Masonry", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+classes = ["material-control", "material-lab-sample", "MuiMasonry-root"]
+props = { text = "Masonry", className = "material-masonry-sample", component = "div", columns = 4, spacing = "1", sequential = true, defaultColumns = 4, defaultHeight = "180", defaultSpacing = "1", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, container = { kind = "Masonry", columns = 4, gap = 8.0, sequential = true } }
+children = [
+  { node = "tile_alpha" },
+  { node = "tile_beta" },
+  { node = "tile_gamma" },
+  { node = "tile_delta" },
+  { node = "tile_epsilon" },
+  { node = "tile_zeta" },
+  { node = "tile_eta" },
+  { node = "tile_theta" },
+]
+
+[nodes.tile_alpha]
+component = "Label"
+control_id = "masonry_TileAlpha"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "1", text_tone = "primary", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+
+[nodes.tile_beta]
+component = "Label"
+control_id = "masonry_TileBeta"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "2", text_tone = "secondary", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
+
+[nodes.tile_gamma]
+component = "Label"
+control_id = "masonry_TileGamma"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "3", text_tone = "success", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+
+[nodes.tile_delta]
+component = "Label"
+control_id = "masonry_TileDelta"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "4", text_tone = "warning", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.tile_epsilon]
+component = "Label"
+control_id = "masonry_TileEpsilon"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "5", text_tone = "primary", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.tile_zeta]
+component = "Label"
+control_id = "masonry_TileZeta"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "6", text_tone = "info", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.tile_eta]
+component = "Label"
+control_id = "masonry_TileEta"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "7", text_tone = "primary", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.tile_theta]
+component = "Label"
+control_id = "masonry_TileTheta"
+classes = ["material-lab-state-pill", "material-masonry-tile", "MuiMasonry-item"]
+props = { text = "8", text_tone = "error", font_size = 11.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"
@@ -131,7 +197,7 @@ layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed"
 component = "VerticalBox"
 control_id = "masonry_Root"
 classes = ["material-lab-card", "material-surface", "material-masonry"]
-layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 120.0, max = 140.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6.0 } }
+layout = { width = { stretch = "Stretch" }, height = { min = 260.0, preferred = 268.0, max = 292.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6.0 } }
 children = [
   { node = "title" },
   { node = "meta" },

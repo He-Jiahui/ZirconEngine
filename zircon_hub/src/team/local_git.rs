@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::error::HubError;
+use crate::projects::project_filesystem_path_key;
 
 const GIT_COMMAND: &str = "git";
 const RECENT_AUTHOR_LIMIT: usize = 8;
@@ -49,7 +50,7 @@ where
         if repo_root.as_os_str().is_empty() {
             continue;
         }
-        let key = normalized_path_key(&repo_root);
+        let key = project_filesystem_path_key(&repo_root);
         if !visited.insert(key) {
             continue;
         }
@@ -153,19 +154,6 @@ fn parse_git_log_authors(output: &str) -> Vec<TeamMemberEntry> {
     });
     members.truncate(RECENT_AUTHOR_LIMIT);
     members
-}
-
-fn normalized_path_key(path: &Path) -> String {
-    let value = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-        .to_string_lossy()
-        .replace('\\', "/");
-    if cfg!(target_os = "windows") {
-        value.to_ascii_lowercase()
-    } else {
-        value
-    }
 }
 
 #[cfg(test)]

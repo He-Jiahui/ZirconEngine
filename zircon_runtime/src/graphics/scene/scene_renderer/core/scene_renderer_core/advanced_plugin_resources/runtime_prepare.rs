@@ -353,7 +353,7 @@ mod tests {
                 },
             ],
         });
-        let streamer = ResourceStreamer::new(
+        let streamer = ResourceStreamer::new_for_test(
             std::sync::Arc::new(crate::asset::pipeline::manager::ProjectAssetManager::default()),
             &device,
             &queue,

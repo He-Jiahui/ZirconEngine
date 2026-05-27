@@ -135,6 +135,7 @@ fn target_platform_expr(platform: ExportTargetPlatform) -> &'static str {
         ExportTargetPlatform::Ios => "ExportTargetPlatform::Ios",
         ExportTargetPlatform::WebGpu => "ExportTargetPlatform::WebGpu",
         ExportTargetPlatform::Wasm => "ExportTargetPlatform::Wasm",
+        ExportTargetPlatform::Headless => "ExportTargetPlatform::Headless",
     }
 }
 

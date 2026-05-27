@@ -2,6 +2,9 @@ mod candidates;
 mod constants;
 mod overlay_router;
 mod precision;
+mod runtime_picking_adapter;
+#[cfg(test)]
+mod tests;
 mod viewport_pointer_dispatch;
 mod viewport_pointer_layout;
 mod viewport_pointer_route;

@@ -145,18 +145,24 @@ pub(super) fn build_region_frames(
 
 pub(crate) fn compact_bottom_height_limit(available_height: f32) -> Option<f32> {
     if available_height <= ULTRA_COMPACT_BOTTOM_AVAILABLE_HEIGHT {
-        return Some(
+        return Some(round_to_layout_pixel(
             (available_height * ULTRA_COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION)
                 .min(ULTRA_COMPACT_BOTTOM_MAX_HEIGHT)
                 .max(ULTRA_COMPACT_BOTTOM_MIN_HEIGHT),
-        );
+        ));
     }
 
     (available_height <= COMPACT_BOTTOM_AVAILABLE_HEIGHT).then(|| {
-        (available_height * COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION)
-            .min(COMPACT_BOTTOM_MAX_HEIGHT)
-            .max(COMPACT_BOTTOM_MIN_HEIGHT)
+        round_to_layout_pixel(
+            (available_height * COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION)
+                .min(COMPACT_BOTTOM_MAX_HEIGHT)
+                .max(COMPACT_BOTTOM_MIN_HEIGHT),
+        )
     })
+}
+
+fn round_to_layout_pixel(value: f32) -> f32 {
+    value.round()
 }
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {

@@ -34,12 +34,10 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
         snapshot,
     )));
     let project_cards = view_model::project_cards(snapshot);
-    let project_list_rows = view_model::project_list_rows(snapshot);
     let project_browser_rows = view_model::project_browser_rows(snapshot);
     let dashboard_project_rows = view_model::dashboard_project_rows(snapshot);
     let project_templates = view_model::project_templates(snapshot);
     let project_engine_rows = view_model::project_engine_rows(snapshot);
-    let recent_project_rows = view_model::recent_project_rows(snapshot);
     let asset_items = view_model::asset_items(snapshot);
     let learn_items = view_model::learn_items(snapshot);
     let plugin_items = view_model::plugin_items(snapshot);
@@ -53,8 +51,6 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_nav_items(view_model::model_from(nav_items));
     ui.set_project_card_count(project_cards.len() as i32);
     ui.set_project_cards(view_model::model_from(project_cards));
-    ui.set_project_list_row_count(project_list_rows.len() as i32);
-    ui.set_project_list_rows(view_model::model_from(project_list_rows));
     ui.set_project_browser_row_count(project_browser_rows.len() as i32);
     ui.set_project_browser_rows(view_model::model_from(project_browser_rows));
     ui.set_dashboard_project_title(view_model::dashboard_project_title(snapshot, language));
@@ -65,11 +61,16 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_project_create_enabled(view_model::project_create_enabled(snapshot));
     ui.set_project_create_template_label(view_model::project_create_template_label(snapshot));
     ui.set_project_create_engine_label(view_model::project_create_engine_label(snapshot));
+    ui.set_new_project_location(
+        snapshot
+            .new_project_location
+            .to_string_lossy()
+            .into_owned()
+            .into(),
+    );
     ui.set_project_engine_count(project_engine_rows.len() as i32);
     ui.set_project_engine_rows(view_model::model_from(project_engine_rows));
     ui.set_project_detail(view_model::project_detail(snapshot));
-    ui.set_recent_project_row_count(recent_project_rows.len() as i32);
-    ui.set_recent_project_rows(view_model::model_from(recent_project_rows));
     ui.set_quick_actions(view_model::model_from(view_model::quick_actions(
         snapshot, language,
     )));
@@ -94,11 +95,7 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_settings_statuses(view_model::model_from(view_model::settings_statuses(
         &snapshot.settings,
     )));
-    let source_engine = view_model::source_engine_data(
-        &snapshot.engines,
-        &snapshot.settings,
-        snapshot.active_engine_id.as_deref(),
-    );
+    let source_engine = view_model::source_engine_data(snapshot);
     ui.set_active_engine_name(source_engine.title.clone());
     ui.set_source_engine(source_engine);
     apply_settings(ui, &snapshot.settings);

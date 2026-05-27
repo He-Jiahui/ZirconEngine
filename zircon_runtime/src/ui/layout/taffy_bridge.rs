@@ -1,6 +1,6 @@
 use taffy::style::{Dimension, Display, FlexDirection, LengthPercentage, Style};
 use zircon_runtime_interface::ui::layout::{
-    BoxConstraints, UiContainerKind, UiLayoutEngineFamily, UiLayoutEngineRequest,
+    AxisConstraint, BoxConstraints, UiContainerKind, UiLayoutEngineFamily, UiLayoutEngineRequest,
 };
 
 /// Converts the subset of Zircon-owned layout contracts that can be solved by Taffy.
@@ -11,6 +11,7 @@ pub fn taffy_style_for_container(
 ) -> Option<Style> {
     let request = UiLayoutEngineRequest::from_container_kind(container);
     taffy_owned_family(request.family)?;
+    taffy_style_inputs_are_finite(container, constraints)?;
 
     let mut style = Style {
         display: taffy_display_for_family(request.family)?,
@@ -63,6 +64,37 @@ pub fn taffy_style_for_container(
     }
 
     Some(style)
+}
+
+fn taffy_style_inputs_are_finite(
+    container: UiContainerKind,
+    constraints: BoxConstraints,
+) -> Option<()> {
+    (axis_input_values_are_finite(constraints.width)
+        && axis_input_values_are_finite(constraints.height)
+        && container_style_values_are_finite(container))
+    .then_some(())
+}
+
+fn axis_input_values_are_finite(constraint: AxisConstraint) -> bool {
+    constraint.min.is_finite() && constraint.max.is_finite() && constraint.preferred.is_finite()
+}
+
+fn container_style_values_are_finite(container: UiContainerKind) -> bool {
+    match container {
+        UiContainerKind::HorizontalBox(config) | UiContainerKind::VerticalBox(config) => {
+            config.gap.is_finite()
+        }
+        UiContainerKind::WrapBox(config) => {
+            config.horizontal_gap.is_finite()
+                && config.vertical_gap.is_finite()
+                && config.item_min_width.is_finite()
+        }
+        UiContainerKind::GridBox(config) => {
+            config.column_gap.is_finite() && config.row_gap.is_finite()
+        }
+        _ => true,
+    }
 }
 
 pub fn taffy_display_for_family(family: UiLayoutEngineFamily) -> Option<Display> {

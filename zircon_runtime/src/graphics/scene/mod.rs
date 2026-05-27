@@ -1,7 +1,11 @@
 //! Scene rasterization and resource streaming.
 
 #[cfg(test)]
+mod render_product_material_property_tests;
+#[cfg(test)]
 mod render_product_streamer_tests;
+#[cfg(test)]
+mod render_product_zshader_import_tests;
 mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;

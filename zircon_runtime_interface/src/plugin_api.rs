@@ -1,6 +1,7 @@
 use crate::buffer::ZrByteSlice;
 use crate::handles::ZrRuntimePluginHandle;
 use crate::manifest::ZrPluginModuleDescriptorV1;
+use crate::plugin_events::ZrPluginEventCallbackFnV1;
 use crate::runtime_api::ZrHostApiV1;
 use crate::status::ZrStatus;
 
@@ -16,6 +17,7 @@ pub struct ZrPluginApiV1 {
     pub abi_version: u32,
     pub size_bytes: usize,
     pub unload: Option<ZrPluginUnloadFnV1>,
+    pub invoke_event: Option<ZrPluginEventCallbackFnV1>,
 }
 
 impl ZrPluginApiV1 {
@@ -24,6 +26,7 @@ impl ZrPluginApiV1 {
             abi_version,
             size_bytes: core::mem::size_of::<Self>(),
             unload: None,
+            invoke_event: None,
         }
     }
 }

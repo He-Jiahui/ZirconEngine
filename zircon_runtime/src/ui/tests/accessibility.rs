@@ -5,8 +5,8 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yCheckedState, UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
-        UiAccessibilityContract, UiAccessibilityDiagnosticCode,
+        UiA11yCheckedState, UiA11yRole, UiA11yTextSelection, UiAccessibilityAction,
+        UiAccessibilityActionRequest, UiAccessibilityContract, UiAccessibilityDiagnosticCode,
     },
     binding::UiBindingSourceKind,
     component::{UiComponentEvent, UiValue},
@@ -1404,6 +1404,7 @@ fn accessibility_activate_emits_default_commit_component_event() {
                     value: UiValue::Bool(true),
                 },
                 delivered: true,
+                drag: None,
             }
         ]
     );
@@ -1927,6 +1928,7 @@ fn accessibility_set_value_uses_widget_value_property_alias() {
                     value: UiValue::Float(0.75),
                 },
                 delivered: true,
+                drag: None,
             }
         ]
     );
@@ -2065,7 +2067,10 @@ fn accessibility_set_value_updates_editable_text_property() {
                 .with_state_flags(state(false, true))
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "TextField".to_string(),
-                    attributes: toml::from_str("text = 'Old value'").unwrap(),
+                    attributes: toml::from_str(
+                        "text = 'Old value'\ncaret_offset = 3\nselection_anchor = 1\nselection_focus = 3\ncomposition_start = 1\ncomposition_end = 3\ncomposition_text = 'ld'\ncomposition_restore_text = 'ld'",
+                    )
+                    .unwrap(),
                     a11y: UiAccessibilityContract {
                         role: UiA11yRole::TextInput,
                         actions: vec![
@@ -2099,7 +2104,49 @@ fn accessibility_set_value_updates_editable_text_property() {
         Some("accessibility.set_value")
     );
     assert!(has_note(&result, "status=accepted"));
-    assert_accessibility_binding_report(&result, 2);
+    assert_eq!(result.binding_reports.len(), 8);
+    assert_eq!(
+        result
+            .binding_reports
+            .iter()
+            .map(|report| report.applied_count)
+            .sum::<u64>(),
+        16
+    );
+    assert!(result
+        .binding_reports
+        .iter()
+        .all(|report| report.rejected_count == 0
+            && report.updates.first().map(|update| update.source.kind)
+                == Some(UiBindingSourceKind::AccessibilityAction)));
+    assert!(has_note(
+        &result,
+        "accessibility_text_selection_changed:caret_offset"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_selection_changed:selection_anchor"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_selection_changed:selection_focus"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_composition_changed:composition_start"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_composition_changed:composition_end"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_composition_changed:composition_text"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_composition_changed:composition_restore_text"
+    ));
     assert_eq!(
         result.component_events,
         vec![
@@ -2110,6 +2157,7 @@ fn accessibility_set_value_updates_editable_text_property() {
                     value: UiValue::String("New value".to_string()),
                 },
                 delivered: true,
+                drag: None,
             }
         ]
     );
@@ -2121,6 +2169,30 @@ fn accessibility_set_value_updates_editable_text_property() {
         .as_ref()
         .unwrap();
     assert_eq!(metadata.attributes["text"].as_str(), Some("New value"));
+    assert_eq!(metadata.attributes["caret_offset"].as_integer(), Some(9));
+    assert_eq!(
+        metadata.attributes["selection_anchor"].as_integer(),
+        Some(9)
+    );
+    assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(9));
+    assert_eq!(
+        metadata.attributes["composition_start"].as_integer(),
+        Some(9)
+    );
+    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(9));
+    assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
+    assert_eq!(
+        metadata.attributes["composition_restore_text"].as_str(),
+        Some("")
+    );
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("updated text input remains exposed");
+    assert_eq!(
+        node.state.text_selection,
+        Some(UiA11yTextSelection::collapsed(9))
+    );
 }
 
 #[test]

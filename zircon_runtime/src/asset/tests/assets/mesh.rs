@@ -4,9 +4,9 @@ use std::fs;
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
     AssetImporter, AssetUri, ImportedAsset, MeshAsset, MeshAttributeValues, MeshIndices,
-    MeshValidationError, MeshVertex, ModelPrimitiveAsset, VirtualGeometryAsset, ZMeshDocument,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    MeshMorphTargetAsset, MeshSkinAsset, MeshValidationError, MeshVertex, ModelPrimitiveAsset,
+    VirtualGeometryAsset, ZMeshDocument, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::{Vec2, Vec3};
@@ -39,6 +39,42 @@ fn zmesh_document_roundtrip_preserves_mesh_payload() {
 }
 
 #[test]
+fn zmesh_document_roundtrip_preserves_morph_targets_and_skin_inverse_bindposes() {
+    let mut document = sample_zmesh_document(MeshIndices::U16(vec![0, 1, 2]));
+    document.morph_targets = vec![MeshMorphTargetAsset {
+        name: Some("Smile".to_string()),
+        attributes: BTreeMap::from([(
+            MESH_ATTRIBUTE_TANGENT.to_string(),
+            MeshAttributeValues::Float32x4(vec![[1.0, 0.0, 0.0, 1.0]; 3]),
+        )]),
+    }];
+    document.skin = Some(MeshSkinAsset {
+        inverse_bind_matrices: vec![identity_matrix()],
+    });
+
+    let encoded = document.to_toml_string().unwrap();
+    let decoded = ZMeshDocument::from_toml_str(&encoded).unwrap();
+    let mesh = decoded
+        .into_mesh_asset(AssetUri::parse("res://meshes/skinned.zmesh").unwrap())
+        .unwrap();
+
+    assert_eq!(mesh.morph_targets.len(), 1);
+    assert_eq!(mesh.morph_targets[0].name.as_deref(), Some("Smile"));
+    assert_eq!(
+        mesh.morph_targets[0]
+            .attributes
+            .get(MESH_ATTRIBUTE_TANGENT)
+            .unwrap()
+            .len(),
+        3
+    );
+    assert_eq!(
+        mesh.skin.as_ref().unwrap().inverse_bind_matrices,
+        vec![identity_matrix()]
+    );
+}
+
+#[test]
 fn mesh_asset_rejects_missing_position_attribute() {
     let mesh = MeshAsset {
         uri: AssetUri::parse("res://meshes/no-position.zmesh").unwrap(),
@@ -46,6 +82,8 @@ fn mesh_asset_rejects_missing_position_attribute() {
         attributes: BTreeMap::new(),
         indices: None,
         asset_usage: Default::default(),
+        morph_targets: Vec::new(),
+        skin: None,
         virtual_geometry: None,
     };
 
@@ -68,6 +106,8 @@ fn mesh_asset_rejects_attribute_length_mismatch() {
         attributes,
         indices: Some(MeshIndices::U32(vec![0, 1, 2])),
         asset_usage: Default::default(),
+        morph_targets: Vec::new(),
+        skin: None,
         virtual_geometry: None,
     };
 
@@ -77,6 +117,52 @@ fn mesh_asset_rejects_attribute_length_mismatch() {
             attribute: MESH_ATTRIBUTE_NORMAL.to_string(),
             expected: 3,
             actual: 1,
+        }
+    );
+}
+
+#[test]
+fn mesh_asset_rejects_morph_target_attribute_length_mismatch() {
+    let mut mesh = sample_zmesh_document(MeshIndices::U32(vec![0, 1, 2]))
+        .into_mesh_asset(AssetUri::parse("res://meshes/bad-morph.zmesh").unwrap())
+        .unwrap();
+    mesh.morph_targets = vec![MeshMorphTargetAsset {
+        name: Some("Short".to_string()),
+        attributes: BTreeMap::from([(
+            MESH_ATTRIBUTE_POSITION.to_string(),
+            MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 0.1]]),
+        )]),
+    }];
+
+    assert_eq!(
+        mesh.validate().unwrap_err(),
+        MeshValidationError::MorphTargetAttributeLengthMismatch {
+            target_index: 0,
+            attribute: MESH_ATTRIBUTE_POSITION.to_string(),
+            expected: 3,
+            actual: 1,
+        }
+    );
+}
+
+#[test]
+fn mesh_asset_rejects_out_of_range_indices() {
+    let mesh = MeshAsset {
+        uri: AssetUri::parse("res://meshes/bad-index.zmesh").unwrap(),
+        topology: RenderMeshTopology::TriangleList,
+        attributes: triangle_attributes(),
+        indices: Some(MeshIndices::U32(vec![0, 1, 3])),
+        asset_usage: Default::default(),
+        morph_targets: Vec::new(),
+        skin: None,
+        virtual_geometry: None,
+    };
+
+    assert_eq!(
+        mesh.validate().unwrap_err(),
+        MeshValidationError::IndexOutOfRange {
+            max_index: 3,
+            vertex_count: 3,
         }
     );
 }
@@ -165,6 +251,8 @@ fn sample_zmesh_document(indices: MeshIndices) -> ZMeshDocument {
         attributes: triangle_attributes(),
         indices: Some(indices),
         asset_usage: Default::default(),
+        morph_targets: Vec::new(),
+        skin: None,
         virtual_geometry: Some(sample_virtual_geometry()),
     }
 }
@@ -195,4 +283,13 @@ fn sample_virtual_geometry() -> VirtualGeometryAsset {
         },
         ..Default::default()
     }
+}
+
+fn identity_matrix() -> [[f32; 4]; 4] {
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
 }

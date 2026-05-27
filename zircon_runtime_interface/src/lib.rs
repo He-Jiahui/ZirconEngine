@@ -5,6 +5,7 @@ pub mod handles;
 pub mod manifest;
 pub mod math;
 pub mod plugin_api;
+pub mod plugin_events;
 pub mod profiling;
 pub mod reflect;
 pub mod resource;
@@ -19,6 +20,9 @@ pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTarg
 pub use plugin_api::{
     ZrPluginApiV1, ZrPluginEntryFnV1, ZrPluginEntryReportV1, ZR_PLUGIN_ENTRY_SYMBOL_V1,
 };
+pub use plugin_events::{
+    ZrPluginEventCallbackFnV1, ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1,
+};
 pub use profiling::{
     HotspotEntry, HotspotReport, ProfileCaptureConfig, ProfileControlCommand,
     ProfileControlRequest, ProfileControlResponse, ProfileCounterSnapshot, ProfileFrameSnapshot,
@@ -32,7 +36,8 @@ pub use runtime_api::{
     ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV1,
     ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeCaptureAccessibilityTreeFnV1, ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeGetApiFnV1, ZrRuntimeHostFetchFnV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1,
+    ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV1, ZrRuntimeHostFetchFnV1,
     ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimePresentViewportFnV1,

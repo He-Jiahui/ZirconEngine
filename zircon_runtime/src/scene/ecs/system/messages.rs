@@ -38,8 +38,16 @@ where
         self.cursor.unread_count(self.messages)
     }
 
+    pub fn len(&self) -> usize {
+        self.unread_count()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.unread_count() == 0
+    }
+
+    pub fn clear(&mut self) {
+        self.cursor.clear(self.messages);
     }
 }
 
@@ -49,6 +57,16 @@ where
 {
     pub fn write(&mut self, message: T) -> MessageId<T> {
         self.store.write(message)
+    }
+
+    pub fn write_batch<I>(&mut self, messages: I) -> Vec<MessageId<T>>
+    where
+        I: IntoIterator<Item = T>,
+    {
+        messages
+            .into_iter()
+            .map(|message| self.write(message))
+            .collect()
     }
 }
 

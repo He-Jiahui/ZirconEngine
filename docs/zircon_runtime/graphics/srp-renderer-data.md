@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_runtime/src/asset/assets/shader/shader_asset.rs
+  - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_reference.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs
@@ -30,7 +32,9 @@ implementation_files:
   - zircon_runtime/src/lib.rs
 plan_sources:
   - user: 2026-05-18 continue SRP RendererData workflow with zshader/zmaterial contract validation
+  - user: 2026-05-25 continue material shader renderer functionality
   - docs/superpowers/plans/2026-05-18-srp-rendererdata-zmaterial-workflow.md
+  - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
 tests:
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/mod.rs
@@ -38,6 +42,7 @@ tests:
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
+  - zircon_runtime/src/graphics/tests/renderer_data_asset.rs::asset_aware_compile_reports_shader_payload_readiness_gaps
 doc_type: module-detail
 ---
 
@@ -77,7 +82,9 @@ M1 runtime data validation passed on 2026-05-20 with `CARGO_TARGET_DIR=F:\cargo-
 
 The compile context is abstracted as `RenderPipelineAssetContext`, which can load `ShaderAsset` and `MaterialAsset` by `AssetReference`. This keeps `graphics::pipeline` independent of `ProjectAssetManager` internals and lets tests use a small in-memory context.
 
-M2 diagnostics cover missing shader/material assets, feature shader versus material shader mismatch, required shader entry points, expected shader properties, expected shader texture slots, existing material-local validation errors, stored material validation diagnostics, material shader-contract diagnostics, and shader validation diagnostics captured on `ShaderAsset`. Material validation errors are wrapped as `RendererFeatureContractDiagnostic::MaterialValidation`, stored material diagnostic strings are wrapped as `MaterialDiagnostic`, and shader validation strings are wrapped as `ShaderValidation`.
+M2 diagnostics cover missing shader/material assets, feature shader versus material shader mismatch, required shader entry points, expected shader properties, expected shader texture slots, existing material-local validation errors, stored material validation diagnostics, material shader-contract diagnostics, and shader payload readiness diagnostics. Material validation errors are wrapped as `RendererFeatureContractDiagnostic::MaterialValidation`, stored material diagnostic strings are wrapped as `MaterialDiagnostic`, and shader diagnostics are wrapped as `ShaderValidation`.
+
+The shader side now consumes `ShaderAsset::readiness_report()` instead of forwarding only `shader.validation_diagnostics`. RendererData therefore reports asset-owned shader readiness gaps before GPU preparation: missing runtime WGSL for non-WGSL sources without emitted WGSL, invalid entry-point stage tokens, empty or duplicate shader definition names, and copied shader validation diagnostics. This is still a compile-report diagnostic surface only. It does not compose WGSL imports, create shader modules, specialize typed shader definitions, allocate bind group layouts, or prewarm renderer pipelines.
 
 M2 asset-aware compile validation passed on 2026-05-20 with `CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1`: `cargo test -p zircon_runtime --locked renderer_data_asset --jobs 1 --message-format short --color never` ran 10 focused tests, 10 passed after review added material-local validation diagnostics to the SRP report; `cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never` ran 39 focused tests, 39 passed; `cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never` ran 75 runtime lib tests plus 1 matching integration test, all passed; and `cargo check -p zircon_runtime --lib --locked --jobs 1 --color never` completed successfully. All commands emitted only the pre-existing `entity_ids_matching_query_archetypes` dead-code warning outside this SRP lane.
 

@@ -4,7 +4,7 @@ use super::World;
 use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
 use crate::scene::ecs::{
     ArchetypeId, Component, ComponentId, ComponentStorageLocation, ComponentTicks, InternalEntity,
-    QueryAccess, Schedule, StableEntityLocation,
+    QueryAccess, StableEntityLocation,
 };
 use crate::scene::EntityId;
 
@@ -19,20 +19,6 @@ impl World {
 
     pub(crate) fn archetype_generation(&self) -> u64 {
         self.archetype_index.generation()
-    }
-
-    pub(crate) fn entity_ids_matching_query_archetypes(
-        &self,
-        access: &QueryAccess,
-    ) -> (Vec<ArchetypeId>, Vec<EntityId>) {
-        let (archetypes, locations) = self.entity_locations_matching_query_archetypes(access);
-        (
-            archetypes,
-            locations
-                .into_iter()
-                .map(|location| location.stable_id)
-                .collect(),
-        )
     }
 
     pub(crate) fn entity_locations_matching_query_archetypes(
@@ -75,10 +61,6 @@ impl World {
     {
         self.component_storage
             .get_with_ticks_at_location::<T>(location)
-    }
-
-    pub fn schedule(&self) -> &Schedule {
-        &self.schedule
     }
 
     pub fn contains_entity(&self, entity: EntityId) -> bool {

@@ -1,9 +1,10 @@
 use std::time::Duration;
 
 use crate::asset::{
-    AlphaMode, AssetEvent, AssetLoadState, AssetReference, AssetUri, Assets, Handle, MaterialAsset,
-    MeshAsset, ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset,
-    ShaderEntryPointAsset, ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
+    AlphaMode, AssetDependencyReadiness, AssetEvent, AssetLoadState, AssetLoadStates,
+    AssetReference, AssetUri, Assets, DependencyLoadState, Handle, MaterialAsset, MeshAsset,
+    ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset, ShaderEntryPointAsset,
+    ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
 };
 use crate::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind, ResourceManager, ResourceRecord,
@@ -29,6 +30,7 @@ fn shader_asset(uri: &str) -> ShaderAsset {
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() {}".to_string(),
         wgsl_source: "@fragment fn fs_main() {}".to_string(),
+        import_path: None,
         entry_points: vec![ShaderEntryPointAsset {
             name: "fs_main".to_string(),
             stage: "fragment".to_string(),
@@ -36,6 +38,7 @@ fn shader_asset(uri: &str) -> ShaderAsset {
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: Vec::new(),
         texture_slots: Vec::new(),
         editor: Default::default(),
@@ -63,6 +66,19 @@ fn material_asset(shader_uri: &str) -> MaterialAsset {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     }
+}
+
+fn diagnostic_messages(diagnostics: &[ResourceDiagnostic]) -> Vec<&str> {
+    diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.message.as_str())
+        .collect()
+}
+
+fn dependency_row(rows: &[AssetDependencyReadiness], id: ResourceId) -> &AssetDependencyReadiness {
+    rows.iter()
+        .find(|row| row.id == id)
+        .expect("dependency row")
 }
 
 #[test]
@@ -269,6 +285,134 @@ fn asset_load_state_requires_typed_payload_not_just_matching_record_kind() {
 }
 
 #[test]
+fn load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let missing = Handle::<TextureAsset>::new(ResourceId::new());
+
+    assert_eq!(
+        manager.load_states(missing),
+        AssetLoadStates {
+            load_state: AssetLoadState::NotLoaded,
+            dependency_load_state: DependencyLoadState::NotLoaded,
+            recursive_dependency_load_state: RecursiveDependencyLoadState::NotLoaded,
+        }
+    );
+
+    let material_record = record(
+        "res://materials/wrong-kind.zmaterial",
+        ResourceKind::Material,
+    );
+    let wrong_kind = Handle::<TextureAsset>::new(material_record.id);
+    resource_manager.register_ready(
+        material_record,
+        material_asset("res://shaders/wrong-kind.wgsl"),
+    );
+    assert_eq!(
+        manager.load_states(wrong_kind),
+        AssetLoadStates {
+            load_state: AssetLoadState::NotLoaded,
+            dependency_load_state: DependencyLoadState::NotLoaded,
+            recursive_dependency_load_state: RecursiveDependencyLoadState::NotLoaded,
+        }
+    );
+
+    let texture_record = record("res://textures/non-resident.png", ResourceKind::Texture);
+    let non_resident = manager
+        .assets::<TextureAsset>()
+        .insert(
+            texture_record,
+            texture_asset("res://textures/non-resident.png"),
+        )
+        .expect("texture handle");
+    let lease = manager
+        .assets::<TextureAsset>()
+        .acquire(non_resident)
+        .expect("resident lease");
+    drop(lease);
+
+    assert_eq!(manager.load_state(non_resident), AssetLoadState::NotLoaded);
+    assert_eq!(
+        manager.load_states(non_resident),
+        AssetLoadStates {
+            load_state: AssetLoadState::NotLoaded,
+            dependency_load_state: DependencyLoadState::Loaded,
+            recursive_dependency_load_state: RecursiveDependencyLoadState::NotLoaded,
+        }
+    );
+    assert!(!manager.is_loaded(non_resident));
+    assert!(!manager.is_loaded_with_direct_dependencies(non_resident));
+    assert!(!manager.is_loaded_with_dependencies(non_resident));
+    assert!(resource_manager.get_untyped(non_resident.id()).is_none());
+}
+
+#[test]
+fn readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payloads() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let missing = Handle::<TextureAsset>::new(ResourceId::new());
+
+    let missing_report = manager.readiness_report(missing);
+    assert_eq!(missing_report.root.id, missing.id());
+    assert_eq!(missing_report.root.load_state, AssetLoadState::NotLoaded);
+    assert_eq!(missing_report.load_states, manager.load_states(missing));
+    assert!(missing_report.dependencies.is_empty());
+    assert!(diagnostic_messages(&missing_report.root.diagnostics)
+        .iter()
+        .any(|message| message.contains("missing asset record")));
+
+    let material_record = record(
+        "res://materials/report-wrong-kind.zmaterial",
+        ResourceKind::Material,
+    );
+    let wrong_kind = Handle::<TextureAsset>::new(material_record.id);
+    resource_manager.register_ready(
+        material_record,
+        material_asset("res://shaders/report-wrong-kind.wgsl"),
+    );
+    let wrong_kind_report = manager.readiness_report(wrong_kind);
+
+    assert_eq!(wrong_kind_report.root.kind, Some(ResourceKind::Material));
+    assert_eq!(wrong_kind_report.root.load_state, AssetLoadState::NotLoaded);
+    assert_eq!(
+        wrong_kind_report.load_states,
+        manager.load_states(wrong_kind)
+    );
+    assert!(wrong_kind_report.dependencies.is_empty());
+    assert!(diagnostic_messages(&wrong_kind_report.root.diagnostics)
+        .iter()
+        .any(|message| message.contains("not Texture")));
+
+    let texture_record = record(
+        "res://textures/report-non-resident.png",
+        ResourceKind::Texture,
+    );
+    let non_resident = manager
+        .assets::<TextureAsset>()
+        .insert(
+            texture_record,
+            texture_asset("res://textures/report-non-resident.png"),
+        )
+        .expect("texture handle");
+    let lease = manager
+        .assets::<TextureAsset>()
+        .acquire(non_resident)
+        .expect("resident lease");
+    drop(lease);
+
+    let non_resident_report = manager.readiness_report(non_resident);
+    assert_eq!(
+        non_resident_report.root.load_state,
+        AssetLoadState::NotLoaded
+    );
+    assert_eq!(
+        non_resident_report.load_states,
+        manager.load_states(non_resident)
+    );
+    assert!(resource_manager.get_untyped(non_resident.id()).is_none());
+}
+
+#[test]
 fn assets_insert_remove_and_project_manager_helpers_use_typed_facade() {
     let manager = ProjectAssetManager::default();
     let resource_manager = manager.resource_manager();
@@ -409,14 +553,14 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         RecursiveDependencyLoadState::Loaded
     );
     assert_eq!(
-        manager.direct_dependency_load_state(material_handle),
-        RecursiveDependencyLoadState::Loaded
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Loaded
     );
 
     resource_manager.start_reload(texture_id, Vec::new());
     assert_eq!(
-        manager.direct_dependency_load_state(material_handle),
-        RecursiveDependencyLoadState::Loaded,
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Loaded,
         "direct dependency state should not include nested texture dependencies"
     );
     assert_eq!(
@@ -446,7 +590,201 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
 }
 
 #[test]
-fn direct_dependency_load_state_reports_first_level_dependency_changes() {
+fn load_states_separate_root_direct_and_recursive_dependency_state() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let texture = record("res://textures/nested.png", ResourceKind::Texture);
+    let texture_id = texture.id;
+    let texture_handle = manager
+        .assets::<TextureAsset>()
+        .insert(texture, texture_asset("res://textures/nested.png"))
+        .expect("texture handle");
+    let mut shader = record("res://shaders/nested.wgsl", ResourceKind::Shader);
+    shader.dependency_ids = vec![texture_id];
+    let shader_id = shader.id;
+    manager
+        .assets::<ShaderAsset>()
+        .insert(shader, shader_asset("res://shaders/nested.wgsl"))
+        .expect("shader handle");
+    let mut material = record("res://materials/nested.zmaterial", ResourceKind::Material);
+    material.dependency_ids = vec![shader_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(material, material_asset("res://shaders/nested.wgsl"))
+        .expect("material handle");
+
+    assert_eq!(
+        manager.load_states(material_handle),
+        AssetLoadStates {
+            load_state: AssetLoadState::Loaded,
+            dependency_load_state: DependencyLoadState::Loaded,
+            recursive_dependency_load_state: RecursiveDependencyLoadState::Loaded,
+        }
+    );
+    assert!(manager.is_loaded(material_handle));
+    assert!(manager.is_loaded_with_direct_dependencies(material_handle));
+    assert!(manager.is_loaded_with_dependencies(material_handle));
+
+    resource_manager.start_reload(texture_id, Vec::new());
+    assert_eq!(
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Loaded,
+        "direct dependency stays loaded when only nested dependency reloads"
+    );
+    assert_eq!(
+        manager.recursive_dependency_load_state(material_handle),
+        RecursiveDependencyLoadState::Reloading
+    );
+    assert!(manager.is_loaded_with_direct_dependencies(material_handle));
+    assert!(!manager.is_loaded_with_dependencies(material_handle));
+
+    let texture_payload = manager
+        .assets::<TextureAsset>()
+        .acquire(texture_handle)
+        .expect("texture payload");
+    drop(texture_payload);
+    assert_eq!(
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Loaded,
+        "direct dependency aggregation does not walk grandchildren"
+    );
+}
+
+#[test]
+fn readiness_report_exposes_loaded_dependency_rows_and_record_diagnostics() {
+    let manager = ProjectAssetManager::default();
+    let texture_diagnostic = ResourceDiagnostic::error("texture importer warning");
+    let texture = record("res://textures/report.png", ResourceKind::Texture)
+        .with_diagnostics(vec![texture_diagnostic.clone()]);
+    let texture_id = texture.id;
+    manager
+        .assets::<TextureAsset>()
+        .insert(texture, texture_asset("res://textures/report.png"))
+        .expect("texture handle");
+
+    let shader = record("res://shaders/report.wgsl", ResourceKind::Shader);
+    let shader_id = shader.id;
+    manager
+        .assets::<ShaderAsset>()
+        .insert(shader, shader_asset("res://shaders/report.wgsl"))
+        .expect("shader handle");
+
+    let root_diagnostic = ResourceDiagnostic::error("material shader contract warning");
+    let mut material = record("res://materials/report.zmaterial", ResourceKind::Material)
+        .with_diagnostics(vec![root_diagnostic.clone()]);
+    material.dependency_ids = vec![shader_id, texture_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(material, material_asset("res://shaders/report.wgsl"))
+        .expect("material handle");
+
+    let report = manager.readiness_report(material_handle);
+
+    assert_eq!(report.load_states.load_state, AssetLoadState::Loaded);
+    assert!(report.is_loaded_with_dependencies());
+    assert_eq!(report.root.diagnostics, vec![root_diagnostic]);
+    assert_eq!(report.dependencies.len(), 2);
+    let texture_row = report
+        .dependencies
+        .iter()
+        .find(|row| row.id == texture_id)
+        .expect("texture dependency row");
+    assert_eq!(texture_row.depth, 1);
+    assert!(texture_row.direct);
+    assert_eq!(texture_row.load_state, AssetLoadState::Loaded);
+    assert_eq!(texture_row.diagnostics, vec![texture_diagnostic]);
+}
+
+#[test]
+fn readiness_report_and_load_states_roundtrip_for_tooling_snapshots() {
+    let manager = ProjectAssetManager::default();
+    let texture_diagnostic = ResourceDiagnostic::error("texture importer warning");
+    let texture = record(
+        "res://textures/report-serializable.png",
+        ResourceKind::Texture,
+    )
+    .with_diagnostics(vec![texture_diagnostic]);
+    let texture_id = texture.id;
+    manager
+        .assets::<TextureAsset>()
+        .insert(
+            texture,
+            texture_asset("res://textures/report-serializable.png"),
+        )
+        .expect("texture handle");
+
+    let root_diagnostic = ResourceDiagnostic::error("material shader contract warning");
+    let mut material = record(
+        "res://materials/report-serializable.zmaterial",
+        ResourceKind::Material,
+    )
+    .with_diagnostics(vec![root_diagnostic]);
+    material.dependency_ids = vec![texture_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(
+            material,
+            material_asset("res://shaders/report-serializable.wgsl"),
+        )
+        .expect("material handle");
+
+    let report = manager.readiness_report(material_handle);
+    let json = serde_json::to_string(&report).expect("serializable readiness report");
+    let decoded: crate::asset::AssetReadinessReport =
+        serde_json::from_str(&json).expect("deserializable readiness report");
+
+    assert_eq!(decoded, report);
+    assert!(json.contains("\"load_state\":\"loaded\""));
+    assert!(json.contains("\"dependency_load_state\":\"loaded\""));
+    assert!(json.contains("\"recursive_dependency_load_state\":\"loaded\""));
+}
+
+#[test]
+fn readiness_report_keeps_shallowest_direct_dependency_row_and_terminates_cycles() {
+    let manager = ProjectAssetManager::default();
+
+    let mut texture = record("res://textures/report-cycle.png", ResourceKind::Texture);
+    let texture_id = texture.id;
+    let mut shader = record("res://shaders/report-cycle.wgsl", ResourceKind::Shader);
+    let shader_id = shader.id;
+    texture.dependency_ids = vec![shader_id];
+    shader.dependency_ids = vec![texture_id];
+
+    manager
+        .assets::<TextureAsset>()
+        .insert(texture, texture_asset("res://textures/report-cycle.png"))
+        .expect("texture handle");
+    manager
+        .assets::<ShaderAsset>()
+        .insert(shader, shader_asset("res://shaders/report-cycle.wgsl"))
+        .expect("shader handle");
+
+    let mut material = record(
+        "res://materials/report-cycle.zmaterial",
+        ResourceKind::Material,
+    );
+    material.dependency_ids = vec![shader_id, texture_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(material, material_asset("res://shaders/report-cycle.wgsl"))
+        .expect("material handle");
+
+    let report = manager.readiness_report(material_handle);
+
+    assert_eq!(report.dependencies.len(), 2);
+    let shader_row = dependency_row(&report.dependencies, shader_id);
+    assert_eq!(shader_row.depth, 1);
+    assert!(shader_row.direct);
+    let texture_row = dependency_row(&report.dependencies, texture_id);
+    assert_eq!(
+        texture_row.depth, 1,
+        "direct edge must win over nested cycle path"
+    );
+    assert!(texture_row.direct);
+}
+
+#[test]
+fn dependency_load_state_reports_first_level_dependency_changes() {
     let manager = ProjectAssetManager::default();
     let resource_manager = manager.resource_manager();
     let texture = record("res://textures/checker.png", ResourceKind::Texture);
@@ -472,8 +810,8 @@ fn direct_dependency_load_state_reports_first_level_dependency_changes() {
     resource_manager.start_reload(shader_id, Vec::new());
 
     assert_eq!(
-        manager.direct_dependency_load_state(material_handle),
-        RecursiveDependencyLoadState::Reloading
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Reloading
     );
 }
 
@@ -514,5 +852,162 @@ fn recursive_dependency_load_state_marks_missing_dependency_as_failed() {
     assert_eq!(
         manager.recursive_dependency_load_state(material_handle),
         RecursiveDependencyLoadState::Failed
+    );
+}
+
+#[test]
+fn readiness_report_marks_missing_dependency_records_as_failed_rows() {
+    let manager = ProjectAssetManager::default();
+    let missing_id = ResourceId::from_stable_label("readiness missing dependency");
+    let mut material = record(
+        "res://materials/report-missing.zmaterial",
+        ResourceKind::Material,
+    );
+    material.dependency_ids = vec![missing_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(
+            material,
+            material_asset("res://shaders/report-missing-dependency.wgsl"),
+        )
+        .expect("material handle");
+
+    let report = manager.readiness_report(material_handle);
+
+    assert_eq!(
+        report.load_states.dependency_load_state,
+        DependencyLoadState::Failed
+    );
+    assert_eq!(
+        report.load_states.recursive_dependency_load_state,
+        RecursiveDependencyLoadState::Failed
+    );
+    assert_eq!(report.dependencies.len(), 1);
+    let row = &report.dependencies[0];
+    assert_eq!(row.id, missing_id);
+    assert_eq!(row.locator, None);
+    assert_eq!(row.kind, None);
+    assert_eq!(row.revision, None);
+    assert_eq!(row.depth, 1);
+    assert!(row.direct);
+    assert_eq!(row.load_state, AssetLoadState::Failed);
+    assert!(diagnostic_messages(&row.diagnostics)
+        .iter()
+        .any(|message| message.contains("missing asset dependency record")));
+}
+
+#[test]
+fn dependency_load_state_applies_direct_precedence_and_missing_records() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let loaded_texture = record("res://textures/direct-loaded.png", ResourceKind::Texture);
+    let loaded_id = loaded_texture.id;
+    manager
+        .assets::<TextureAsset>()
+        .insert(
+            loaded_texture,
+            texture_asset("res://textures/direct-loaded.png"),
+        )
+        .expect("loaded texture handle");
+    let non_resident_texture = record(
+        "res://textures/direct-non-resident.png",
+        ResourceKind::Texture,
+    );
+    let non_resident_id = non_resident_texture.id;
+    let non_resident_handle = manager
+        .assets::<TextureAsset>()
+        .insert(
+            non_resident_texture,
+            texture_asset("res://textures/direct-non-resident.png"),
+        )
+        .expect("non-resident texture handle");
+    let non_resident_lease = manager
+        .assets::<TextureAsset>()
+        .acquire(non_resident_handle)
+        .expect("non-resident texture lease");
+    drop(non_resident_lease);
+    let pending = record("res://textures/direct-pending.png", ResourceKind::Texture)
+        .with_state(ResourceState::Pending);
+    let pending_id = pending.id;
+    resource_manager.register_record(pending);
+    let reloading = record("res://textures/direct-reloading.png", ResourceKind::Texture);
+    let reloading_id = reloading.id;
+    manager
+        .assets::<TextureAsset>()
+        .insert(
+            reloading,
+            texture_asset("res://textures/direct-reloading.png"),
+        )
+        .expect("reloading texture handle");
+    resource_manager.start_reload(reloading_id, Vec::new());
+    let missing_id = ResourceId::from_stable_label("direct missing dependency");
+    let mut material = record("res://materials/direct.zmaterial", ResourceKind::Material);
+    material.dependency_ids = vec![loaded_id, pending_id, reloading_id, missing_id];
+    let material_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(material, material_asset("res://shaders/direct.wgsl"))
+        .expect("material handle");
+
+    assert_eq!(
+        manager.dependency_load_state(material_handle),
+        DependencyLoadState::Failed,
+        "missing direct dependencies outrank loading and reloading states"
+    );
+
+    let mut material_without_missing = record(
+        "res://materials/direct-no-missing.zmaterial",
+        ResourceKind::Material,
+    );
+    material_without_missing.dependency_ids = vec![loaded_id, pending_id, reloading_id];
+    let material_without_missing_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(
+            material_without_missing,
+            material_asset("res://shaders/direct.wgsl"),
+        )
+        .expect("material handle");
+
+    assert_eq!(
+        manager.dependency_load_state(material_without_missing_handle),
+        DependencyLoadState::Reloading,
+        "reloading outranks pending/loading when no dependency failed"
+    );
+
+    let mut material_with_loading = record(
+        "res://materials/direct-loading.zmaterial",
+        ResourceKind::Material,
+    );
+    material_with_loading.dependency_ids = vec![loaded_id, non_resident_id, pending_id];
+    let material_with_loading_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(
+            material_with_loading,
+            material_asset("res://shaders/direct.wgsl"),
+        )
+        .expect("material handle");
+
+    assert_eq!(
+        manager.dependency_load_state(material_with_loading_handle),
+        DependencyLoadState::Loading,
+        "loading outranks not-loaded and loaded direct dependencies"
+    );
+
+    let mut material_with_not_loaded = record(
+        "res://materials/direct-not-loaded.zmaterial",
+        ResourceKind::Material,
+    );
+    material_with_not_loaded.dependency_ids = vec![loaded_id, non_resident_id];
+    let material_with_not_loaded_handle = manager
+        .assets::<MaterialAsset>()
+        .insert(
+            material_with_not_loaded,
+            material_asset("res://shaders/direct.wgsl"),
+        )
+        .expect("material handle");
+
+    assert_eq!(
+        manager.dependency_load_state(material_with_not_loaded_handle),
+        DependencyLoadState::NotLoaded,
+        "not-loaded direct dependencies outrank loaded dependencies"
     );
 }

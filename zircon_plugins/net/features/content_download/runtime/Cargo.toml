@@ -6,5 +6,9 @@ license.workspace = true
 description = "Content download runtime feature package for Zircon."
 
 [dependencies]
+ring = "0.17"
 zircon_plugin_net_runtime = { path = "../../../runtime" }
 zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+zircon_plugin_net_http_runtime = { path = "../../http/runtime" }

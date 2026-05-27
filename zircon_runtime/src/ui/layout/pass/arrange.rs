@@ -2,8 +2,8 @@ use crate::ui::{layout::virtual_window_for_scrollable_box, tree::UiRuntimeTreeAc
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
-        DesiredSize, UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiScrollState,
-        UiScrollableBoxConfig, UiSize, UiVirtualListWindow, UiWrapBoxConfig,
+        DesiredSize, UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiMasonryBoxConfig,
+        UiScrollState, UiScrollableBoxConfig, UiSize, UiVirtualListWindow, UiWrapBoxConfig,
     },
     tree::{UiTree, UiTreeError},
 };
@@ -180,6 +180,22 @@ pub(crate) fn arrange_node(
                     engine_context,
                 )?;
             }
+        }
+        UiContainerKind::MasonryBox(config) => {
+            record_zircon_owned_container(engine_context, node_id, container, &children);
+            let content_size = arrange_masonry_children(
+                tree,
+                node_id,
+                &children,
+                frame,
+                next_clip,
+                config,
+                engine_context,
+            )?;
+            let node = tree
+                .node_mut(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            node.layout_cache.content_size = content_size;
         }
     }
 
@@ -509,6 +525,60 @@ fn arrange_grid_children(
     Ok(())
 }
 
+fn arrange_masonry_children(
+    tree: &mut UiTree,
+    parent_id: UiNodeId,
+    children: &[UiNodeId],
+    frame: UiFrame,
+    inherited_clip: Option<UiFrame>,
+    config: UiMasonryBoxConfig,
+    engine_context: &mut UiLayoutPassEngineContext,
+) -> Result<UiSize, UiTreeError> {
+    let container = UiContainerKind::MasonryBox(config);
+    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let columns = config.columns.max(1);
+    let gap = config.gap.max(0.0);
+    let column_width =
+        ((frame.width - gap * columns.saturating_sub(1) as f32) / columns as f32).max(0.0);
+    let mut column_heights = vec![0.0_f32; columns];
+    let mut column_counts = vec![0usize; columns];
+    let mut visible_index = 0usize;
+
+    for child_id in children {
+        let Some(node) = tree.node(child_id) else {
+            return Err(UiTreeError::MissingNode(child_id));
+        };
+        if !node.effective_visibility().occupies_layout() {
+            hide_subtree_layout(tree, child_id)?;
+            continue;
+        }
+
+        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let outer_height = masonry_child_outer_height(tree, child_id, slot)?;
+        let column = masonry_target_column(visible_index, config.sequential, &column_heights);
+        if column_counts[column] > 0 {
+            column_heights[column] += gap;
+        }
+        let cell_frame = UiFrame::new(
+            frame.x + column as f32 * (column_width + gap),
+            frame.y + column_heights[column],
+            column_width,
+            outer_height,
+        );
+        let child_frame = free_child_frame(tree, child_id, cell_frame, slot)?;
+        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+
+        column_heights[column] += outer_height;
+        column_counts[column] += 1;
+        visible_index += 1;
+    }
+
+    Ok(UiSize::new(
+        frame.width.max(0.0),
+        column_heights.iter().copied().fold(0.0_f32, f32::max),
+    ))
+}
+
 fn wrap_item_outer_size(
     tree: &UiTree,
     parent_id: UiNodeId,
@@ -540,6 +610,31 @@ fn wrap_item_outer_size_from_desired(
         desired.width.max(config.item_min_width) + padding.horizontal(),
         desired.height + padding.vertical(),
     )
+}
+
+fn masonry_child_outer_height(
+    tree: &UiTree,
+    child_id: UiNodeId,
+    slot: Option<&zircon_runtime_interface::ui::layout::UiSlot>,
+) -> Result<f32, UiTreeError> {
+    let node = tree
+        .node(child_id)
+        .ok_or(UiTreeError::MissingNode(child_id))?;
+    Ok((node.layout_cache.desired_size.height + slot_padding(slot).vertical()).max(0.0))
+}
+
+fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32]) -> usize {
+    if sequential {
+        return index % column_heights.len().max(1);
+    }
+
+    column_heights
+        .iter()
+        .copied()
+        .enumerate()
+        .min_by(|(_, left), (_, right)| left.total_cmp(right))
+        .map(|(column, _)| column)
+        .unwrap_or(0)
 }
 
 fn arrange_wrap_row(

@@ -8,6 +8,11 @@ use crate::asset::{
     ProjectManifest, ProjectPaths, ShaderAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
     ShaderTextureSlotAsset, ZShaderDocument,
 };
+use crate::core::framework::render::{
+    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
+    RenderShaderBindingResourceType, RenderShaderDefinitionValue,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+};
 use crate::core::resource::ResourceState;
 use crate::plugin::PluginPackageManifest;
 
@@ -393,7 +398,44 @@ fn project_manager_imports_compound_zshader_package_with_subassets() {
         shader_dir.join("unlit.zshader"),
         r#"
 version = 1
+import_path = "zircon::unlit"
 wgsl_files = ["unlit.wgsl"]
+shader_defs = ["USE_UNLIT", "ALPHA_CLIP"]
+
+[[shader_def_values]]
+name = "TONEMAPPING_LUT_TEXTURE_BINDING_INDEX"
+kind = "uint"
+value = 2
+
+[[shader_def_values]]
+name = "ENABLE_FOG"
+kind = "bool"
+value = false
+
+[[shader_def_values]]
+name = "DEBUG_MODE"
+kind = "int"
+value = -1
+
+[pipeline_layout]
+push_constant_ranges = ["draw_index:0..4"]
+
+[[pipeline_layout.bind_groups]]
+group = 3
+label = "material"
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 0
+label = "material_uniforms"
+resource_type = "uniform_buffer"
+visibility = ["vertex", "fragment"]
+
+[[imports]]
+source = "zircon::lighting"
+redirect = { uuid = "22222222-2222-4222-8222-222222222222", url = "res://shaders/shared_lighting" }
+
+[[imports]]
+source = "naga_oil::math"
 
 [[entry_points]]
 name = "vs_main"
@@ -482,13 +524,87 @@ fn fs_main() -> @location(0) vec4f {
         ImportedAsset::Shader(shader) => {
             assert_eq!(shader.source_files.len(), 1);
             assert_eq!(shader.source_files[0].path, "unlit.wgsl");
+            assert_eq!(shader.import_path.as_deref(), Some("zircon::unlit"));
+            assert_eq!(shader.imports.len(), 2);
+            assert_eq!(shader.imports[0].source, "zircon::lighting");
+            assert_eq!(
+                shader.imports[0]
+                    .redirect
+                    .as_ref()
+                    .expect("redirected shader import")
+                    .locator,
+                AssetUri::parse("res://shaders/shared_lighting").unwrap()
+            );
+            assert_eq!(shader.imports[1].source, "naga_oil::math");
+            assert!(shader.imports[1].redirect.is_none());
+            assert_eq!(shader.dependencies.len(), 1);
+            assert_eq!(
+                shader.dependencies()[0].reference.locator,
+                AssetUri::parse("res://shaders/shared_lighting").unwrap()
+            );
             assert_eq!(shader.entry_points.len(), 2);
+            assert_eq!(
+                shader.shader_defs,
+                vec![
+                    RenderShaderDefinitionValue::from("USE_UNLIT"),
+                    RenderShaderDefinitionValue::from("ALPHA_CLIP"),
+                    RenderShaderDefinitionValue::uint("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 2),
+                    RenderShaderDefinitionValue::bool("ENABLE_FOG", false),
+                    RenderShaderDefinitionValue::int("DEBUG_MODE", -1),
+                ]
+            );
+            assert_eq!(shader.variant_keys()[0].defines, shader.shader_defs);
             assert_eq!(shader.property_schema.len(), 1);
             assert_eq!(shader.property_schema[0].name, "base_color");
             assert_eq!(shader.texture_slots.len(), 1);
             assert_eq!(shader.texture_slots[0].name, "base_color");
             assert_eq!(shader.texture_slots[0].default.as_deref(), Some("white"));
+            assert_eq!(
+                shader.pipeline_layout,
+                RenderShaderPipelineLayoutDescriptor {
+                    bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
+                        group: 3,
+                        label: Some("material".to_string()),
+                        bindings: vec![RenderShaderBindingDescriptor {
+                            binding: 0,
+                            label: Some("material_uniforms".to_string()),
+                            resource_type: RenderShaderBindingResourceType::UniformBuffer,
+                            visibility: vec![
+                                RenderShaderStage::Vertex,
+                                RenderShaderStage::Fragment,
+                            ],
+                        }],
+                    }],
+                    push_constant_ranges: vec!["draw_index:0..4".to_string()],
+                }
+            );
             assert!(shader.validation_diagnostics.is_empty());
+
+            let readiness = shader.readiness_report();
+            assert!(readiness.is_ready());
+            assert!(readiness.uses_runtime_wgsl());
+            assert!(readiness.has_pipeline_layout);
+            assert!(readiness.has_redirected_import_dependencies());
+            assert_eq!(readiness.dependency_count, 1);
+            assert_eq!(readiness.imports.len(), 2);
+            assert_eq!(readiness.imports[0].source, "zircon::lighting");
+            assert!(readiness.imports[0].contributes_dependency);
+            assert_eq!(readiness.imports[1].source, "naga_oil::math");
+            assert!(!readiness.imports[1].contributes_dependency);
+            assert_eq!(readiness.entry_points.len(), 2);
+            assert!(readiness
+                .entry_points
+                .iter()
+                .all(|entry| entry.diagnostic.is_none()));
+            assert_eq!(readiness.shader_defs.len(), 5);
+            assert!(readiness
+                .shader_defs
+                .iter()
+                .all(|definition| definition.diagnostic.is_none()));
+            assert_eq!(readiness.shader_defs[2].value.value_as_string(), "2");
+            assert_eq!(readiness.shader_defs[3].value.value_as_string(), "false");
+            assert_eq!(readiness.shader_defs[4].value.value_as_string(), "-1");
+            assert!(readiness.validation_diagnostics.is_empty());
 
             let mut material = material_for_shader(&shader_uri);
             material.property_values.insert(
@@ -586,11 +702,104 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
                 .iter()
                 .any(|diagnostic| diagnostic
                     .contains("wgsl_capture texture slot `albedo` was not found")));
+            let readiness = shader.readiness_report();
+            assert!(!readiness.is_ready());
+            assert!(readiness.uses_runtime_wgsl());
+            assert_eq!(
+                readiness.validation_diagnostics,
+                shader.validation_diagnostics
+            );
+            assert!(readiness
+                .validation_diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("wgsl_capture property `base_color`")));
+            assert!(readiness
+                .validation_diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("wgsl_capture texture slot `albedo`")));
         }
         other => panic!("unexpected compound shader artifact: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn zshader_typed_shader_definition_rows_validate_kind_and_value() {
+    let document = ZShaderDocument::from_toml_str(
+        r#"
+version = 1
+shader_defs = ["LEGACY_FLAG"]
+
+[[shader_def_values]]
+name = "ENABLE_FOG"
+kind = "bool"
+value = false
+
+[[shader_def_values]]
+name = "BINDING_INDEX"
+kind = "uint"
+value = 4
+
+[[shader_def_values]]
+name = "DEBUG_MODE"
+kind = "int"
+value = -1
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        document.shader_definition_values().unwrap(),
+        vec![
+            RenderShaderDefinitionValue::from("LEGACY_FLAG"),
+            RenderShaderDefinitionValue::bool("ENABLE_FOG", false),
+            RenderShaderDefinitionValue::uint("BINDING_INDEX", 4),
+            RenderShaderDefinitionValue::int("DEBUG_MODE", -1),
+        ]
+    );
+
+    let unknown_kind = ZShaderDocument::from_toml_str(
+        r#"
+[[shader_def_values]]
+name = "BAD_KIND"
+kind = "float"
+value = 1.0
+"#,
+    )
+    .unwrap();
+    assert!(unknown_kind
+        .shader_definition_values()
+        .unwrap_err()
+        .contains("unsupported kind `float`"));
+
+    let non_bool = ZShaderDocument::from_toml_str(
+        r#"
+[[shader_def_values]]
+name = "ENABLE_FOG"
+kind = "bool"
+value = 1
+"#,
+    )
+    .unwrap();
+    assert!(non_bool
+        .shader_definition_values()
+        .unwrap_err()
+        .contains("value is not a boolean"));
+
+    let negative_uint = ZShaderDocument::from_toml_str(
+        r#"
+[[shader_def_values]]
+name = "BINDING_INDEX"
+kind = "uint"
+value = -1
+"#,
+    )
+    .unwrap();
+    assert!(negative_uint
+        .shader_definition_values()
+        .unwrap_err()
+        .contains("value is not a u32 integer"));
 }
 
 #[test]
@@ -634,6 +843,12 @@ fn documented_zmeta_shader_material_fixture_parses() {
     )
     .unwrap();
     assert_eq!(zshader.wgsl_files, vec!["unlit.wgsl"]);
+    assert_eq!(zshader.import_path.as_deref(), Some("zircon::unlit"));
+    assert_eq!(zshader.shader_defs, vec!["USE_UNLIT"]);
+    assert_eq!(
+        zshader.shader_definition_values().unwrap(),
+        vec![RenderShaderDefinitionValue::from("USE_UNLIT")]
+    );
     assert_eq!(zshader.entry_points.len(), 2);
     assert_eq!(zshader.properties[0].name, "base_color");
     let fixture_wgsl = fs::read_to_string(
@@ -648,6 +863,7 @@ fn documented_zmeta_shader_material_fixture_parses() {
         source_language: ShaderSourceLanguage::Wgsl,
         source: fixture_wgsl.clone(),
         wgsl_source: fixture_wgsl,
+        import_path: zshader.import_path.clone(),
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: vec![ShaderSourceFileAsset {
@@ -655,6 +871,7 @@ fn documented_zmeta_shader_material_fixture_parses() {
             url: AssetUri::parse("res://shaders/unlit_shader/unlit.wgsl").unwrap(),
         }],
         imports: Vec::new(),
+        shader_defs: zshader.shader_definition_values().unwrap(),
         property_schema: zshader.properties.clone(),
         texture_slots: zshader
             .texture_slots
@@ -662,7 +879,7 @@ fn documented_zmeta_shader_material_fixture_parses() {
             .map(ShaderTextureSlotAsset::from)
             .collect(),
         editor: zshader.editor.clone(),
-        pipeline_layout: Default::default(),
+        pipeline_layout: zshader.pipeline_layout.clone(),
         validation_diagnostics: Vec::new(),
     };
     assert!(

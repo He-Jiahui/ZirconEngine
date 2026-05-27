@@ -1,7 +1,12 @@
 mod catalog;
 mod feedback;
+mod icon_theme;
 mod inputs;
 mod inventory;
+mod lab_theme;
+mod layout_theme;
+mod mui_x_theme;
 mod projection;
 mod shell;
 mod support;
+mod surface_feedback_theme;

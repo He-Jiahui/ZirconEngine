@@ -1,10 +1,9 @@
 use crate::scene::viewport::{ProjectionMode, ViewOrientation};
-use zircon_runtime_interface::math::{Transform, Vec2, Vec3};
+use zircon_runtime::core::framework::camera_controller::OrbitCameraInput;
+use zircon_runtime_interface::math::Vec2;
 
-use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
+use super::SceneViewportController;
 
-const ORBIT_SENSITIVITY: f32 = 0.01;
-const PAN_PERSPECTIVE_FACTOR: f32 = 0.0015;
 const ORTHO_SCROLL_FACTOR: f32 = 0.1;
 const MIN_ORTHO_SIZE: f32 = 0.25;
 
@@ -18,30 +17,16 @@ impl SceneViewportController {
             return false;
         };
 
-        let delta = (current - previous) * ORBIT_SENSITIVITY;
-        let offset = camera.transform.translation - self.state.orbit_target;
-        let distance = offset.length().max(MIN_CAMERA_DISTANCE);
-        let mut yaw = offset.x.atan2(offset.z);
-        let horizontal = (offset.x * offset.x + offset.z * offset.z)
-            .sqrt()
-            .max(0.001);
-        let mut pitch = offset.y.atan2(horizontal);
-
-        yaw -= delta.x;
-        pitch = (pitch + delta.y).clamp(-1.4, 1.4);
-
-        let next_offset = Vec3::new(
-            distance * pitch.cos() * yaw.sin(),
-            distance * pitch.sin(),
-            distance * pitch.cos() * yaw.cos(),
+        self.state
+            .orbit_controller
+            .set_target(self.state.orbit_target);
+        let output = self.state.orbit_controller.update(
+            camera.transform,
+            OrbitCameraInput::orbit(previous, current).with_viewport_size(self.state.viewport.size),
         );
-        camera.transform = Transform::looking_at(
-            self.state.orbit_target + next_offset,
-            self.state.orbit_target,
-            Vec3::Y,
-        );
+        camera.transform = output.transform;
         self.state.settings.view_orientation = ViewOrientation::User;
-        true
+        output.changed
     }
 
     pub(in crate::scene::viewport::controller) fn apply_pan(
@@ -54,27 +39,37 @@ impl SceneViewportController {
         };
 
         let delta = current - previous;
-        let translation = match camera.projection_mode {
+        let changed = match camera.projection_mode {
             ProjectionMode::Perspective => {
-                let distance = (camera.transform.translation - self.state.orbit_target)
-                    .length()
-                    .max(0.5);
-                let world_per_pixel = distance * PAN_PERSPECTIVE_FACTOR;
-                (-camera.transform.right() * delta.x + camera.transform.up() * delta.y)
-                    * world_per_pixel
+                self.state
+                    .orbit_controller
+                    .set_target(self.state.orbit_target);
+                let output = self.state.orbit_controller.update(
+                    camera.transform,
+                    OrbitCameraInput::pan(previous, current)
+                        .with_viewport_size(self.state.viewport.size),
+                );
+                camera.transform = output.transform;
+                self.state.orbit_target = self.state.orbit_controller.target();
+                output.changed
             }
             ProjectionMode::Orthographic => {
                 let world_per_pixel = camera.ortho_size.max(MIN_ORTHO_SIZE) * 2.0
                     / self.state.viewport.size.y.max(1) as f32;
-                (-camera.transform.right() * delta.x + camera.transform.up() * delta.y)
-                    * world_per_pixel
+                let translation = (-camera.transform.right() * delta.x
+                    + camera.transform.up() * delta.y)
+                    * world_per_pixel;
+                camera.transform.translation += translation;
+                self.state.orbit_target += translation;
+                self.state
+                    .orbit_controller
+                    .set_target(self.state.orbit_target);
+                delta != Vec2::ZERO
             }
         };
 
-        camera.transform.translation += translation;
-        self.state.orbit_target += translation;
         self.state.settings.view_orientation = ViewOrientation::User;
-        true
+        changed
     }
 
     pub(in crate::scene::viewport::controller) fn apply_zoom(&mut self, delta: f32) -> bool {
@@ -84,12 +79,17 @@ impl SceneViewportController {
 
         match camera.projection_mode {
             ProjectionMode::Perspective => {
-                let direction = camera.transform.forward();
-                let distance = (camera.transform.translation - self.state.orbit_target)
-                    .length()
-                    .max(MIN_CAMERA_DISTANCE);
-                let step = (distance * 0.15 * delta.signum()).min(distance - MIN_CAMERA_DISTANCE);
-                camera.transform.translation += direction * step;
+                self.state
+                    .orbit_controller
+                    .set_target(self.state.orbit_target);
+                let output = self.state.orbit_controller.update(
+                    camera.transform,
+                    OrbitCameraInput::zoom(delta).with_viewport_size(self.state.viewport.size),
+                );
+                camera.transform = output.transform;
+                if !output.changed {
+                    return false;
+                }
             }
             ProjectionMode::Orthographic => {
                 let scale = 1.0 - delta.signum() * ORTHO_SCROLL_FACTOR;

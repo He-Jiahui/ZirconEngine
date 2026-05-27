@@ -4,6 +4,7 @@ import { CatalogPage, HubTokens, InfoRow } from "components.slint";
 component AssetRow inherits InfoRow {
     in property <AssetData> asset;
     in property <UiTextData> ui-text;
+    in property <bool> collapse-label: false;
 
     title: root.asset.name;
     detail: root.asset.path;
@@ -13,37 +14,29 @@ component AssetRow inherits InfoRow {
     trailing-text: root.asset.kind;
     trailing-tone: "accent";
     show-trailing-badge: true;
-    row-height: HubTokens.list-row-lg;
+    collapse-trailing-label: root.collapse-label;
+    row-height: HubTokens.list-row-lg + HubTokens.space-6;
 }
 
-export component AssetsPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+export component AssetsPage inherits CatalogPage {
     in property <[AssetData]> assets;
     in property <int> asset-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <length> list-scroll-y: 0px;
     private property <string> catalog-title: root.has-selected-project ? root.ui-text.asset-catalog-selected : root.ui-text.asset-catalog;
     private property <string> assets-empty-detail: root.has-selected-project ? root.ui-text.asset-empty-selected-detail : root.ui-text.asset-empty-global-detail;
 
-    background: HubTokens.surface-page;
+    title: root.catalog-title;
+    badge-text: root.asset-count + " " + root.ui-text.assets-found;
+    badge-tone: "accent";
+    empty-title: root.ui-text.no-assets-found;
+    empty-detail: root.assets-empty-detail;
+    row-count: root.asset-count;
+    row-height: HubTokens.list-row-lg + HubTokens.space-6;
 
-    CatalogPage {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
-        list-scroll-y <=> root.list-scroll-y;
-        title: root.catalog-title;
-        badge-text: root.asset-count + " " + root.ui-text.assets-found;
-        badge-tone: "accent";
-        empty-title: root.ui-text.no-assets-found;
-        empty-detail: root.assets-empty-detail;
-        row-count: root.asset-count;
-        row-height: HubTokens.list-row-lg;
-
-        for asset in root.assets: AssetRow {
-            asset: asset;
-            ui-text: root.ui-text;
-        }
+    for asset in root.assets: AssetRow {
+        asset: asset;
+        ui-text: root.ui-text;
+        collapse-label: root.content-width < HubTokens.breakpoint-medium;
     }
 }

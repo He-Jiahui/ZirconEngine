@@ -9,9 +9,9 @@ use crate::core::framework::render::{
 
 use super::super::model::{ModelPrimitiveAsset, VirtualGeometryAsset};
 use super::{
-    MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshValidationError,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset,
+    MeshValidationError, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 
 const DEFAULT_NORMAL: [f32; 3] = [0.0, 0.0, 1.0];
@@ -30,6 +30,10 @@ pub struct MeshAsset {
     pub indices: Option<MeshIndices>,
     #[serde(default)]
     pub asset_usage: MeshAssetUsage,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub morph_targets: Vec<MeshMorphTargetAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skin: Option<MeshSkinAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub virtual_geometry: Option<VirtualGeometryAsset>,
 }
@@ -47,6 +51,8 @@ impl MeshAsset {
             attributes,
             indices,
             asset_usage: MeshAssetUsage::default(),
+            morph_targets: Vec::new(),
+            skin: None,
             virtual_geometry: None,
         };
         asset.validate()?;
@@ -116,6 +122,8 @@ impl MeshAsset {
             attributes,
             indices: Some(MeshIndices::U32(primitive.indices.clone())),
             asset_usage: MeshAssetUsage::default(),
+            morph_targets: Vec::new(),
+            skin: None,
             virtual_geometry: primitive.virtual_geometry.clone(),
         }
     }
@@ -158,6 +166,26 @@ impl MeshAsset {
                     attribute: name.clone(),
                     expected: vertex_count,
                     actual: values.len(),
+                });
+            }
+        }
+        for (target_index, target) in self.morph_targets.iter().enumerate() {
+            for (name, values) in &target.attributes {
+                if values.len() != vertex_count {
+                    return Err(MeshValidationError::MorphTargetAttributeLengthMismatch {
+                        target_index,
+                        attribute: name.clone(),
+                        expected: vertex_count,
+                        actual: values.len(),
+                    });
+                }
+            }
+        }
+        if let Some(max_index) = self.indices.as_ref().and_then(MeshIndices::max_index) {
+            if max_index as usize >= vertex_count {
+                return Err(MeshValidationError::IndexOutOfRange {
+                    max_index,
+                    vertex_count,
                 });
             }
         }

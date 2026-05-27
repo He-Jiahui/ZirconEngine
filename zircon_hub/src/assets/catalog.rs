@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::HubError;
+use crate::projects::project_filesystem_path_key;
 
 const ASSET_CATALOG_LIMIT: usize = 256;
 const PROJECT_ASSET_DIRS: &[&str] = &["Assets", "assets"];
@@ -115,7 +116,7 @@ fn collect_asset_root(
     if !root.is_dir() {
         return Ok(());
     }
-    let root_key = normalized_path_key(root);
+    let root_key = project_filesystem_path_key(root);
     if !visited_roots.insert(root_key) {
         return Ok(());
     }
@@ -186,19 +187,6 @@ fn asset_kind(path: &Path) -> String {
         other => other,
     }
     .to_string()
-}
-
-fn normalized_path_key(path: &Path) -> String {
-    let value = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-        .to_string_lossy()
-        .replace('\\', "/");
-    if cfg!(target_os = "windows") {
-        value.to_ascii_lowercase()
-    } else {
-        value
-    }
 }
 
 #[cfg(test)]

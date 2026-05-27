@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::{
     binding::UiEventKind,
-    component::{UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope},
+    component::{
+        UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiDragMetrics,
+    },
     event_ui::{UiNodeId, UiTreeId},
 };
 
@@ -29,6 +31,8 @@ pub struct UiPointerComponentEvent {
     pub event_kind: UiEventKind,
     pub reason: UiPointerComponentEventReason,
     pub envelope: UiComponentEventEnvelope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag: Option<UiDragMetrics>,
 }
 
 impl UiPointerComponentEvent {
@@ -53,6 +57,12 @@ impl UiPointerComponentEvent {
                 UiComponentBindingTarget::showcase(control_id.as_str()),
                 event,
             ),
+            drag: None,
         }
+    }
+
+    pub fn with_drag_metrics(mut self, drag: UiDragMetrics) -> Self {
+        self.drag = Some(drag);
+        self
     }
 }

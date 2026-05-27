@@ -51,7 +51,8 @@ pub(crate) fn refresh_runtime_diagnostics_debug_reflector_from_body_surface(
     let reflector =
         crate::ui::workbench::debug_reflector::EditorUiDebugReflectorModel::from_snapshot(
             &snapshot,
-        );
+        )
+        .with_schedule_sections(&snapshot);
     let template_nodes = runtime_diagnostics_existing_template_nodes(&pane.runtime_diagnostics);
     let nodes = runtime_debug_reflector_nodes_from_model(&template_nodes, &reflector, content_size);
 

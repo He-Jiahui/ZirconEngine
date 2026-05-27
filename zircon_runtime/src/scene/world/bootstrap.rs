@@ -61,6 +61,7 @@ impl World {
             command_queue: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
+            last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
             derived_state_dirty: Default::default(),

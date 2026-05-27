@@ -63,11 +63,15 @@ pub enum UiDispatchEffect {
     Popup {
         kind: UiPopupEffectKind,
         popup_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        owner: Option<UiNodeId>,
         anchor: Option<UiPoint>,
     },
     Tooltip {
         kind: UiTooltipEffectKind,
         tooltip_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        owner: Option<UiNodeId>,
     },
     RequestInputMethod {
         request: UiInputMethodRequest,

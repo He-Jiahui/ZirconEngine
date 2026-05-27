@@ -124,6 +124,7 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     let file_event = FileDragDropEvent::Hovered {
         path: "C:/tmp/asset.png".to_string(),
     };
+    let gamepad_rumble = GamepadRumbleRequest::add(GamepadId(7), GamepadRumbleIntensity::MAX, 100);
     let ime_request = ImeHostRequest::SetSurroundingText(ImeSurroundingText::new("search", 6, 0));
     let window_descriptor = WindowDescriptor::default()
         .with_primary_window(PrimaryWindowHandle::new(7))
@@ -214,9 +215,7 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     );
     assert_eq!(
         report.gamepad_rumble,
-        CapabilityStatus::Unavailable {
-            reason: "desktop gamepad rumble host backend is not implemented yet"
-        }
+        CapabilityStatus::Supported(GamepadRumbleBackend::GilrsForceFeedback)
     );
     assert_eq!(
         report.file_drag_drop,
@@ -224,6 +223,31 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     );
     assert!(matches!(input_event, InputEvent::ButtonPressed(_)));
     assert!(matches!(file_event, FileDragDropEvent::Hovered { .. }));
+    assert_eq!(gamepad_rumble.gamepad(), GamepadId(7));
+    assert_eq!(
+        GamepadButtonSettings::default().press_threshold,
+        GAMEPAD_BUTTON_PRESS_THRESHOLD
+    );
+    assert_eq!(
+        GamepadButtonAxisSettings::default().change_threshold,
+        GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD
+    );
+    assert_eq!(
+        GamepadAxisSettings::default().deadzone_lowerbound,
+        GAMEPAD_AXIS_DEADZONE_LOWER
+    );
+    assert_eq!(
+        GamepadAxisSettings::default().deadzone_upperbound,
+        GAMEPAD_AXIS_DEADZONE_UPPER
+    );
+    assert_eq!(
+        GamepadAxisSettings::default().livezone_lowerbound,
+        GAMEPAD_AXIS_LIVEZONE_LOWER
+    );
+    assert_eq!(
+        GamepadAxisSettings::default().livezone_upperbound,
+        GAMEPAD_AXIS_LIVEZONE_UPPER
+    );
     assert!(matches!(ime_request, ImeHostRequest::SetSurroundingText(_)));
     assert_eq!(DEFAULT_WINDOW_TITLE, "Zircon Runtime");
     assert_eq!(window_descriptor.title, "Prelude Window");

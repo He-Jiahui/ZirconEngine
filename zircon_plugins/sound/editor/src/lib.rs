@@ -3,11 +3,16 @@ use zircon_plugin_editor_support::{
 };
 
 mod authoring_bindings;
+mod live_output;
 
 pub use authoring_bindings::{
     register_sound_authoring_bindings, sound_editor_operation_descriptors,
     SOUND_AUDIO_LISTENER_OPERATION_PATHS, SOUND_AUDIO_SOURCE_OPERATION_PATHS,
     SOUND_AUDIO_VOLUME_OPERATION_PATHS, SOUND_MIXER_OPERATION_PATHS,
+};
+pub use live_output::{
+    SoundEditorLiveOutputController, SoundEditorOutputAction, SoundEditorOutputActionReport,
+    SoundEditorOutputDeviceRow, SoundEditorOutputSnapshot, SoundEditorOutputStatusModel,
 };
 
 pub const PLUGIN_ID: &str = zircon_plugin_sound_runtime::PLUGIN_ID;

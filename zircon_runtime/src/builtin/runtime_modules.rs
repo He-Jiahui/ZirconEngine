@@ -186,9 +186,10 @@ impl RuntimeModuleLoadReport {
                 id: entry.runtime_id,
                 reason: entry.reason.clone(),
             };
-            if !missing.iter().any(|existing| {
-                existing.id == structured_missing.id && existing.reason == structured_missing.reason
-            }) {
+            if !missing
+                .iter()
+                .any(|existing| existing.id == structured_missing.id)
+            {
                 missing.push(structured_missing);
             }
         }
@@ -415,6 +416,8 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
             &virtual_geometry_runtime_providers,
         );
     report.errors.extend(asset_importer_errors);
+    report.runtime_plugin_availability =
+        target_manifest_availability_for_registration_reports(target, &manifest, registrations);
     report
 }
 
@@ -448,21 +451,84 @@ pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
     profile_id: RuntimeProfileId,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
+    runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports(
+        profile_id,
+        &profile.project_manifest(),
+        registrations,
+    )
+}
+
+pub fn runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports<'a>(
+    profile_id: RuntimeProfileId,
+    manifest: &ProjectPluginManifest,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let registrations = registrations.into_iter().collect::<Vec<_>>();
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
     if profile_id == RuntimeProfileId::Minimal {
-        let _ = registrations;
-        let profile = RuntimeProfileDescriptor::for_id(profile_id);
         return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
-            .with_runtime_plugin_availability(runtime_profile_availability(&profile));
+            .with_runtime_plugin_availability(runtime_profile_manifest_availability(
+                &profile,
+                manifest,
+                registrations.iter().copied(),
+            ));
     }
 
-    let profile = RuntimeProfileDescriptor::for_id(profile_id);
-    let manifest = profile.project_manifest();
     runtime_modules_for_profile_manifest_with_plugin_registration_reports(
         &profile,
         profile.target_mode,
-        &manifest,
-        registrations,
+        manifest,
+        registrations.iter().copied(),
     )
+}
+
+pub fn runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports<'a>(
+    profile_id: RuntimeProfileId,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+    feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
+    runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
+        profile_id,
+        &profile.project_manifest(),
+        registrations,
+        feature_registrations,
+    )
+}
+
+pub fn runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports<
+    'a,
+>(
+    profile_id: RuntimeProfileId,
+    manifest: &ProjectPluginManifest,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+    feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let registrations = registrations.into_iter().cloned().collect::<Vec<_>>();
+    let feature_registrations = feature_registrations
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
+    if profile_id == RuntimeProfileId::Minimal {
+        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
+            .with_runtime_plugin_availability(runtime_profile_manifest_availability(
+                &profile,
+                manifest,
+                registrations.iter(),
+            ));
+    }
+
+    let mut report = runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+        profile.target_mode,
+        Some(manifest),
+        registrations.iter(),
+        feature_registrations.iter(),
+    );
+    report.runtime_plugin_availability =
+        runtime_profile_manifest_availability(&profile, manifest, registrations.iter());
+    report
 }
 
 fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
@@ -555,11 +621,8 @@ fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
             &virtual_geometry_runtime_providers,
         );
     report.errors.extend(asset_importer_errors);
-    let descriptors = runtime_plugin_descriptors();
-    report.runtime_plugin_availability = profile.availability_report_for_registration_reports(
-        descriptors.iter(),
-        registrations.iter().copied(),
-    );
+    report.runtime_plugin_availability =
+        runtime_profile_manifest_availability(profile, manifest, registrations.iter().copied());
     report
 }
 
@@ -572,6 +635,64 @@ fn runtime_profile_availability(
         std::iter::empty::<String>(),
         std::iter::empty::<String>(),
     )
+}
+
+fn runtime_profile_manifest_availability<'a>(
+    profile: &RuntimeProfileDescriptor,
+    manifest: &ProjectPluginManifest,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+) -> RuntimePluginAvailabilityReport {
+    let descriptors = runtime_plugin_descriptors();
+    profile.availability_report_for_manifest_and_registration_reports(
+        descriptors.iter(),
+        manifest,
+        registrations,
+    )
+}
+
+fn target_manifest_availability<'a>(
+    target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+    linked_plugin_ids: impl IntoIterator<Item = &'a String>,
+) -> RuntimePluginAvailabilityReport {
+    let profile = RuntimeProfileDescriptor::new(
+        runtime_profile_id_for_target_availability(target),
+        "target module selection",
+        target,
+    );
+    let descriptors = runtime_plugin_descriptors();
+    profile.availability_report_for_manifest_with_providers(
+        descriptors.iter(),
+        manifest,
+        linked_plugin_ids,
+        std::iter::empty::<String>(),
+    )
+}
+
+fn target_manifest_availability_for_registration_reports<'a>(
+    target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+) -> RuntimePluginAvailabilityReport {
+    let profile = RuntimeProfileDescriptor::new(
+        runtime_profile_id_for_target_availability(target),
+        "target module selection",
+        target,
+    );
+    let descriptors = runtime_plugin_descriptors();
+    profile.availability_report_for_manifest_and_registration_reports(
+        descriptors.iter(),
+        manifest,
+        registrations,
+    )
+}
+
+fn runtime_profile_id_for_target_availability(target: RuntimeTargetMode) -> RuntimeProfileId {
+    match target {
+        RuntimeTargetMode::ClientRuntime => RuntimeProfileId::Client2d,
+        RuntimeTargetMode::ServerRuntime => RuntimeProfileId::Server,
+        RuntimeTargetMode::EditorHost => RuntimeProfileId::Editor,
+    }
 }
 
 fn runtime_plugin_descriptors() -> Vec<RuntimePluginDescriptor> {
@@ -760,6 +881,11 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
     }
     report.errors.extend(feature_report.diagnostics);
     report.errors.extend(asset_importer_errors);
+    report.runtime_plugin_availability = target_manifest_availability_for_registration_reports(
+        target,
+        &manifest,
+        registrations.iter(),
+    );
     report
 }
 
@@ -817,6 +943,8 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features_for_manife
             solari_runtime_providers,
             virtual_geometry_runtime_providers,
         ));
+    report.runtime_plugin_availability =
+        target_manifest_availability(target, manifest, linked_plugin_ids.iter());
 
     for selection in manifest.enabled_for_target(target) {
         let Some(runtime_id) = selection.runtime_id() else {
@@ -1049,9 +1177,18 @@ fn externalized_runtime_plugin_message(plugin_id: &str) -> String {
 mod tests {
     use super::{
         default_manifest_for_target, manifest_with_mode_baseline,
-        runtime_modules_for_runtime_profile, RuntimePluginId, RuntimeProfileId, RuntimeTargetMode,
+        runtime_modules_for_runtime_profile,
+        runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
+        runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports,
+        runtime_modules_for_target_with_linked_plugins,
+        runtime_modules_for_target_with_plugin_and_feature_registration_reports, RuntimePluginId,
+        RuntimeProfileId, RuntimeTargetMode,
     };
-    use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection};
+    use crate::{
+        plugin::PluginModuleManifest, plugin::PluginPackageManifest, plugin::ProjectPluginManifest,
+        plugin::ProjectPluginSelection, plugin::RuntimeExtensionRegistry,
+        plugin::RuntimePluginAvailabilityCategory, plugin::RuntimePluginRegistrationReport,
+    };
 
     #[test]
     fn default_server_manifest_avoids_ui() {
@@ -1152,6 +1289,194 @@ mod tests {
             .runtime_plugin_availability
             .externalized_missing
             .is_empty());
+    }
+
+    #[test]
+    fn target_linked_plugin_report_surfaces_structured_availability() {
+        let manifest = ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::VirtualGeometry,
+                true,
+                true,
+            )],
+        };
+        let report = runtime_modules_for_target_with_linked_plugins(
+            RuntimeTargetMode::ClientRuntime,
+            Some(&manifest),
+            [RuntimePluginId::VirtualGeometry.key()],
+        );
+
+        assert!(availability_contains(
+            &report.runtime_plugin_availability.linked,
+            RuntimePluginId::VirtualGeometry
+        ));
+        assert!(report.runtime_plugin_availability.contains(
+            RuntimePluginAvailabilityCategory::Linked,
+            RuntimePluginId::VirtualGeometry
+        ));
+        assert_eq!(
+            report
+                .runtime_plugin_availability
+                .category_count(RuntimePluginAvailabilityCategory::Linked),
+            1
+        );
+        assert_eq!(
+            report
+                .runtime_plugin_availability
+                .entry_for(
+                    RuntimePluginAvailabilityCategory::Linked,
+                    RuntimePluginId::VirtualGeometry
+                )
+                .map(|entry| entry.id.as_str()),
+            Some(RuntimePluginId::VirtualGeometry.key())
+        );
+        let diagnostic_lines = report.runtime_plugin_availability.diagnostic_lines();
+        assert!(diagnostic_lines
+            .iter()
+            .any(|line| line == "runtime_plugin_availability.linked.count=1"));
+        assert!(diagnostic_lines
+            .iter()
+            .any(|line| line.contains("runtime_plugin_availability.linked=virtual_geometry")));
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability.missing_required,
+            RuntimePluginId::VirtualGeometry
+        ));
+        assert!(!report.runtime_plugin_availability.has_missing_required());
+        assert!(report.effective_required_missing().is_empty());
+    }
+
+    #[test]
+    fn target_native_dynamic_registration_report_preserves_availability_category() {
+        let manifest = ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::VirtualGeometry,
+                true,
+                true,
+            )],
+        };
+        let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+            PluginPackageManifest::new("virtual_geometry", "Virtual Geometry").with_runtime_module(
+                PluginModuleManifest::runtime(
+                    "virtual_geometry.runtime",
+                    "zircon_plugin_virtual_geometry_runtime",
+                )
+                .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+            ),
+        );
+
+        let report = runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+            RuntimeTargetMode::ClientRuntime,
+            Some(&manifest),
+            [&registration],
+            std::iter::empty(),
+        );
+
+        assert!(report.runtime_plugin_availability.contains(
+            RuntimePluginAvailabilityCategory::NativeDynamic,
+            RuntimePluginId::VirtualGeometry
+        ));
+        assert!(!report.runtime_plugin_availability.contains(
+            RuntimePluginAvailabilityCategory::Linked,
+            RuntimePluginId::VirtualGeometry
+        ));
+        assert!(report.effective_required_missing().is_empty());
+    }
+
+    #[test]
+    fn target_required_missing_is_deduped_between_legacy_and_structured_reports() {
+        let manifest = ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::VirtualGeometry,
+                true,
+                true,
+            )],
+        };
+        let report = runtime_modules_for_target_with_linked_plugins(
+            RuntimeTargetMode::ClientRuntime,
+            Some(&manifest),
+            std::iter::empty::<String>(),
+        );
+        let missing = report.effective_required_missing();
+
+        assert_eq!(
+            missing
+                .iter()
+                .filter(|entry| entry.id == RuntimePluginId::VirtualGeometry)
+                .count(),
+            1
+        );
+        assert!(report
+            .effective_errors()
+            .iter()
+            .any(|diagnostic| diagnostic.contains("required runtime plugin VirtualGeometry")));
+    }
+
+    #[test]
+    fn runtime_profile_plugin_and_feature_bootstrap_uses_profile_availability() {
+        let sound_registration = linked_runtime_registration(RuntimePluginId::Sound);
+        let report =
+            runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports(
+                RuntimeProfileId::Client2d,
+                [&sound_registration],
+                std::iter::empty::<&crate::plugin::RuntimePluginFeatureRegistrationReport>(),
+            );
+
+        assert!(availability_contains(
+            &report.runtime_plugin_availability.linked,
+            RuntimePluginId::Sound
+        ));
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability.missing_required,
+            RuntimePluginId::Sound
+        ));
+        assert!(!report
+            .effective_required_missing()
+            .iter()
+            .any(|missing| missing.id == RuntimePluginId::Sound));
+    }
+
+    #[test]
+    fn runtime_profile_manifest_bootstrap_reports_manifest_optional_provider_availability() {
+        let profile = crate::plugin::RuntimeProfileDescriptor::for_id(RuntimeProfileId::Client3d);
+        let mut manifest = profile.project_manifest();
+        manifest
+            .selections
+            .push(ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Animation,
+                true,
+                false,
+            ));
+        let animation_registration = linked_runtime_registration(RuntimePluginId::Animation);
+
+        let report =
+            runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
+                RuntimeProfileId::Client3d,
+                &manifest,
+                [&animation_registration],
+                std::iter::empty::<&crate::plugin::RuntimePluginFeatureRegistrationReport>(),
+            );
+
+        assert!(availability_contains(
+            &report.runtime_plugin_availability.linked,
+            RuntimePluginId::Animation
+        ));
+        assert!(!availability_contains(
+            &report.runtime_plugin_availability.externalized_missing,
+            RuntimePluginId::Animation
+        ));
+    }
+
+    fn linked_runtime_registration(plugin_id: RuntimePluginId) -> RuntimePluginRegistrationReport {
+        RuntimePluginRegistrationReport {
+            package_manifest: PluginPackageManifest::new(
+                plugin_id.key(),
+                format!("{} runtime", plugin_id.key()),
+            )
+            .with_runtime_crate(format!("zircon_plugin_{}_runtime", plugin_id.key())),
+            project_selection: ProjectPluginSelection::runtime_plugin(plugin_id, true, true),
+            extensions: RuntimeExtensionRegistry::default(),
+            diagnostics: Vec::new(),
+        }
     }
 
     fn availability_contains(

@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::error::HubError;
 
+use super::metadata::project_metadata_key;
 use super::recent_project::{RecentProject, RECENT_PROJECT_LIMIT};
 
 const EDITOR_STARTUP_SESSION_KEY: &str = "editor.startup.session";
@@ -25,27 +26,42 @@ struct EditorRecentProjectEntry {
     pub last_opened_unix_ms: u64,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EditorRecentProjectSession {
+    pub last_project_path: Option<PathBuf>,
+    pub recent_projects: Vec<RecentProject>,
+}
+
 pub fn load_editor_recent_projects(path: impl AsRef<Path>) -> Result<Vec<RecentProject>, HubError> {
+    Ok(load_editor_recent_project_session(path)?.recent_projects)
+}
+
+pub fn load_editor_recent_project_session(
+    path: impl AsRef<Path>,
+) -> Result<EditorRecentProjectSession, HubError> {
     let path = path.as_ref();
     if !path.exists() {
-        return Ok(Vec::new());
+        return Ok(EditorRecentProjectSession::default());
     }
 
     let text = fs::read_to_string(path)?;
     let values = serde_json::from_str::<HashMap<String, Value>>(&text)?;
     let Some(value) = values.get(EDITOR_STARTUP_SESSION_KEY) else {
-        return Ok(Vec::new());
+        return Ok(EditorRecentProjectSession::default());
     };
     let session = serde_json::from_value::<EditorStartupSession>(value.clone())?;
-    Ok(session
-        .recent_projects
-        .into_iter()
-        .map(|entry| RecentProject {
-            display_name: entry.display_name,
-            path: PathBuf::from(entry.path),
-            last_opened_unix_ms: entry.last_opened_unix_ms,
-        })
-        .collect())
+    Ok(EditorRecentProjectSession {
+        last_project_path: session.last_project_path.map(PathBuf::from),
+        recent_projects: session
+            .recent_projects
+            .into_iter()
+            .map(|entry| RecentProject {
+                display_name: entry.display_name,
+                path: PathBuf::from(entry.path),
+                last_opened_unix_ms: entry.last_opened_unix_ms,
+            })
+            .collect(),
+    })
 }
 
 pub fn save_editor_recent_projects(
@@ -106,7 +122,7 @@ where
 {
     let mut by_path: HashMap<String, RecentProject> = HashMap::new();
     for entry in hub.into_iter().chain(editor) {
-        let key = recent_project_key(&entry.path);
+        let key = project_metadata_key(&entry.path);
         match by_path.get(&key) {
             Some(existing) if existing.last_opened_unix_ms > entry.last_opened_unix_ms => {}
             Some(existing)
@@ -126,18 +142,6 @@ where
     });
     merged.truncate(RECENT_PROJECT_LIMIT);
     merged
-}
-
-fn recent_project_key(path: &Path) -> String {
-    let mut value = path.to_string_lossy().replace('\\', "/");
-    while value.ends_with('/') && value.len() > 1 {
-        value.pop();
-    }
-    if cfg!(target_os = "windows") {
-        value.to_ascii_lowercase()
-    } else {
-        value
-    }
 }
 
 #[cfg(test)]
@@ -194,6 +198,32 @@ mod tests {
             values[EDITOR_STARTUP_SESSION_KEY]["recent_projects"][0]["path"],
             Value::String("E:/Projects/Game".to_string())
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn editor_recent_loader_returns_recent_projects_and_last_project() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_hub_recent_loader_last_project_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("config.json");
+        fs::write(
+            &path,
+            r#"{"editor.startup.session":{"last_project_path":"E:/Projects/Game","recent_projects":[{"display_name":"Game","path":"E:/Projects/Game","last_opened_unix_ms":42}]}}"#,
+        )
+        .unwrap();
+
+        let session = load_editor_recent_project_session(&path).unwrap();
+
+        assert_eq!(
+            session.last_project_path,
+            Some(PathBuf::from("E:/Projects/Game"))
+        );
+        assert_eq!(session.recent_projects.len(), 1);
+        assert_eq!(session.recent_projects[0].display_name, "Game");
         let _ = fs::remove_dir_all(root);
     }
 

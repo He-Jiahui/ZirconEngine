@@ -37,9 +37,10 @@ pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialTextureSlotValue, ZMaterialDocument,
 };
 pub use mesh::{
-    MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshValidationError,
-    ZMeshDocument, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, ZMESH_DOCUMENT_VERSION,
+    MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MeshSkinAsset, MeshValidationError, ZMeshDocument, MESH_ATTRIBUTE_COLOR,
+    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, ZMESH_DOCUMENT_VERSION,
 };
 pub use model::{
     ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
@@ -63,10 +64,13 @@ pub use scene::{
     TransformAsset,
 };
 pub use shader::{
-    ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
-    ShaderMaterialPropertyAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset, ZShaderDocument, ZShaderEntryPointDocument, ZShaderImportDocument,
-    ZShaderTextureSlotDocument,
+    ShaderAsset, ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness,
+    ShaderDefinitionReadiness, ShaderDependencyAsset, ShaderEntryPointAsset,
+    ShaderEntryPointReadiness, ShaderImportReadiness, ShaderImportRedirectAsset,
+    ShaderMaterialPropertyAsset, ShaderPipelineLayoutReadiness, ShaderReadinessReport,
+    ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness, ShaderSourceFileAsset,
+    ShaderSourceLanguage, ShaderTextureSlotAsset, ZShaderDefinitionValueDocument, ZShaderDocument,
+    ZShaderEntryPointDocument, ZShaderImportDocument, ZShaderTextureSlotDocument,
 };
 pub use sound::SoundAsset;
 pub use sprite_atlas::{

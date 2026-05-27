@@ -26,6 +26,7 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
@@ -83,10 +84,35 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
-  - zircon_app/src/entry/tests/runtime_entry_device_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_input_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_source_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/dispatch.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/structure.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/file_drag_drop.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/ime.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/keyboard.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/pointer.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/application_handler.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/config.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/converters.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/event_loop_policy.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/frame_loop.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/runtime_session.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/viewport.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/window_attributes.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/window_events.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/dynamic_api.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/fallback.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/resize_redraw.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/structure.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/runtime_presenter.rs
   - zircon_runtime_interface/src/runtime_api.rs
@@ -119,6 +145,7 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
@@ -221,6 +248,7 @@ tests:
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/ime_input/mod.rs
   - zircon_app/src/entry/runtime_entry_app/ime_input/composition.rs
   - zircon_app/src/entry/runtime_entry_app/ime_input/deletion.rs
@@ -257,11 +285,42 @@ tests:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
-  - zircon_app/src/entry/tests/runtime_entry_device_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_input_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_source_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards.rs
-  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/dispatch.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_device_guards/structure.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/file_drag_drop.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/ime.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/keyboard.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/pointer.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/application_handler.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/config.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/converters.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/event_loop_policy.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/frame_loop.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/runtime_session.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/viewport.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/window_attributes.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/window_events.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/dynamic_api.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/fallback.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/resize_redraw.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/structure.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/mod.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/close.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/focus.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/scale_factor.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/status.rs
+  - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards/structure.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - cargo test -p zircon_app runtime_entry_keeps_window_lifecycle_policy_source_visible --lib --no-default-features --features platform-x11,platform-wayland,input-mouse,input-keyboard,input-touch --locked
   - cargo test -p zircon_app --locked --verbose runtime_entry
@@ -295,7 +354,7 @@ Frame-loop pumping is kept in `runtime_entry_app/frame_loop.rs`: `ApplicationHan
 
 Raw device-event dispatch is folder-backed under `runtime_entry_app/device_events/`. `ApplicationHandler::device_event()` still only profiles and delegates, root `mod.rs` is structural, and `dispatch.rs` owns the narrow handoff into `pointer_input/device.rs`. This follows Bevy's source boundary where `bevy_winit/src/state.rs` matches `DeviceEvent::MouseMotion` and emits the stable `bevy_input::mouse::MouseMotion` vocabulary; Zircon keeps runtime ABI construction in the pointer-input module and does not introduce UI picking, camera control, or render ownership in the dispatcher.
 
-The optional gilrs host is folder-backed under `runtime_entry_app/gamepad/`, following Bevy's split between `bevy_gilrs/src/lib.rs`, `bevy_gilrs/src/gilrs_system.rs`, and `bevy_gilrs/src/rumble.rs`. The root `gamepad/mod.rs` is structural; `host.rs` owns `GilrsBuilder` startup and warning output, `polling.rs` owns connection announcement plus per-frame `EventType` draining, `events.rs` owns `ZrRuntimeEventV1::gamepad_connection_with_ids` / `gamepad_button` / `gamepad_axis` construction, and `codes.rs` owns gilrs button/axis to runtime ABI code mapping. This keeps the app-host backend polling distinct from the neutral runtime gamepad ABI and from higher-level UI picking or input-focus ownership.
+The optional gilrs host is folder-backed under `runtime_entry_app/gamepad/`, following Bevy's split between `bevy_gilrs/src/lib.rs`, `bevy_gilrs/src/gilrs_system.rs`, and `bevy_gilrs/src/rumble.rs`. The root `gamepad/mod.rs` is structural; `host.rs` owns `GilrsBuilder` startup and warning output, `polling.rs` owns connection announcement plus per-frame `EventType` draining, `events.rs` owns `ZrRuntimeEventV1::gamepad_connection_with_ids` / `gamepad_button` / `gamepad_axis` construction, `codes.rs` owns gilrs button/axis to runtime ABI code mapping, and `rumble.rs` owns gilrs force-feedback effect construction, error classification, lifetime tracking, disconnect cleanup, and shutdown cleanup. This keeps the app-host backend polling distinct from the neutral runtime gamepad ABI and from higher-level UI picking or input-focus ownership.
 
 After resize, `surface_present/binding.rs` calls `runtime_native_surface_target(window)` to convert the winit window and display handles into a `ZrRuntimeNativeSurfaceTargetV1`. The current app-side extractor emits only Win32 descriptors from `window_surface/native_target.rs`. This mirrors Bevy's separation where `bevy_window/src/raw_handle.rs` wraps raw window/display handles and `bevy_render/src/renderer/mod.rs` consumes the wrapper through `Instance::create_surface(...)`: Zircon keeps the app host responsible only for opaque ABI target extraction, while concrete WGPU surface creation stays inside the dynamic runtime. If extraction fails, or if the loaded runtime does not expose a coherent optional bind/unbind/present ABI set, the app skips native present and `surface_present/fallback.rs` creates `SoftbufferRuntimePresenter` for the existing CPU readback path.
 
@@ -346,7 +405,7 @@ The runtime-entry host-config slice adds `RuntimeEntryAppConfig` unit coverage, 
 
 The runtime-entry converter split first moved pure scalar conversion out of `application_handler.rs`, then the converter-family split converted the old umbrella `converters.rs` into `runtime_entry_app/converters/`. Module-local tests now sit beside the focused helper families for button/key state constants, touch ID preservation, mouse button and wheel units, theme/key-code mapping, byte-slice construction, and usize saturation. App entry source guards read the converter root plus all child modules when checking the full winit-to-runtime event translation surface.
 
-The runtime host-request split moves native IME request application from `application_handler.rs` into `runtime_entry_app/host_requests/`. The host-request family is now folder-backed: `mod.rs` is structural, `drain.rs` owns `RuntimeSession::drain_host_requests()` and the window-presence gate, `routing.rs` owns `ZrRuntimeHostRequestV1` family dispatch and warning emission, `ime/request.rs` owns IME host-request kind mapping, `ime/enable.rs` owns enable capabilities plus default IME data, `ime/geometry.rs` owns cursor-area logical conversion, and `ime/surrounding_text.rs` owns surrounding-text construction and validation. Source guards require the folder wiring, reject returning to `runtime_entry_app/host_requests.rs`, and keep `drain_host_requests`, `ZrRuntimeHostRequestV1`, `request_ime_update`, `ImeCapabilities`, and `ImeSurroundingText` source-visible in focused child modules without letting the winit `ApplicationHandler` file grow another behavior family.
+The runtime host-request split moves native IME request application from `application_handler.rs` into `runtime_entry_app/host_requests/`. The host-request family is now folder-backed: `mod.rs` is structural, `drain.rs` owns `RuntimeSession::drain_host_requests()` and request iteration, `routing.rs` owns `ZrRuntimeHostRequestV1` family dispatch and warning emission, `ime/request.rs` owns IME host-request kind mapping, `ime/enable.rs` owns enable capabilities plus default IME data, `ime/geometry.rs` owns cursor-area logical conversion, and `ime/surrounding_text.rs` owns surrounding-text construction and validation. Gamepad rumble requests now route through the same `ZrRuntimeHostRequestV1` dispatch surface as `GamepadRumble`, and the native preview host executes them through gilrs force-feedback effects (with per-gamepad effect lifetime tracking plus stop, disconnect, and shutdown cleanup). Source guards require the folder wiring, reject returning to `runtime_entry_app/host_requests.rs`, and keep `drain_host_requests`, `ZrRuntimeHostRequestV1`, `request_ime_update`, `ImeCapabilities`, and `ImeSurroundingText` source-visible in focused child modules without letting the winit `ApplicationHandler` file grow another behavior family.
 
 The runtime surface-present split first moved native surface binding, optional ABI bind/unbind, resize-time viewport/surface/presenter synchronization, redraw-time `present_viewport()` / `capture_frame()` selection, surface-present diagnostics, and softbuffer presenter creation from `application_handler.rs` into a child module. The surface-present family is now folder-backed under `runtime_entry_app/surface_present/`: `mod.rs` is structural, `binding.rs` owns optional ABI bind setup, `lifecycle.rs` owns enable/fallback/failure/unbind diagnostics plus Drop cleanup, `fallback.rs` owns softbuffer presenter construction, `redraw.rs` owns redraw-time native present versus capture fallback, and `resize.rs` owns resize-time viewport/native/presenter synchronization. Source guards now require the folder wiring, reject returning to `runtime_entry_app/surface_present.rs`, verify that the handler no longer owns `fn bind_window_surface`, and keep the resize, bind, present, failure, unbind, diagnostic, and fallback paths source-visible while `window_events/dispatch.rs` owns winit resize/redraw event routing.
 
@@ -354,17 +413,17 @@ The native window-surface target split moves the raw-window/display-handle extra
 
 The runtime window-creation split moves the concrete `ActiveEventLoop::create_window(...)` startup path from `application_handler.rs` into `runtime_entry_app/window_creation.rs`. Source guards now require `mod window_creation;`, verify that `ApplicationHandler::can_create_surfaces()` delegates to `create_primary_window_surface(...)`, and keep no-primary-window policy, monitor-aware attribute creation, initial nonzero viewport sizing, resize-before-bind ordering, and fallback presenter seeding source-visible in the child module.
 
-The window lifecycle policy guard adds source-visible coverage for no-primary-window creation skip, close-before-policy-exit ordering, destroyed/moved/occluded/theme forwarding, backend-before-logical scale-factor forwarding, and focus-to-lifecycle mapping. It now reads the `window_lifecycle/` subtree directly so those policy and status transitions stay covered after leaving `application_handler.rs`, while source guards reject returning to an umbrella `window_lifecycle.rs` file. `RuntimeEntryAppConfig` unit coverage also guards the default `WindowLifecyclePolicy`, disabled close requests, full policy override, and headless `WindowExitCondition::DontExit` projection. It cites Bevy `WindowPlugin`/window events and `bevy_winit` state handling as the parity anchors; focused Cargo execution is still scheduled for the M3 testing stage when current concurrent workspace builds are quiet.
+The window lifecycle policy guard adds source-visible coverage for no-primary-window creation skip, close-before-policy-exit ordering, destroyed/moved/occluded/theme forwarding, backend-before-logical scale-factor forwarding, and focus-to-lifecycle mapping. It is now folder-backed under `runtime_entry_window_lifecycle_guards/`: `mod.rs` stays structural, `sources.rs` centralizes source fixtures, and focused child files own close, status, scale-factor, focus, and lifecycle structure assertions. The guards read the `window_lifecycle/` subtree directly so those policy and status transitions stay covered after leaving `application_handler.rs`, while source guards reject returning to umbrella `runtime_entry_window_lifecycle_guards.rs` or `runtime_entry_app/window_lifecycle.rs` files. `RuntimeEntryAppConfig` unit coverage also guards the default `WindowLifecyclePolicy`, disabled close requests, full policy override, and headless `WindowExitCondition::DontExit` projection. It cites Bevy `WindowPlugin`/window events and `bevy_winit` state handling as the parity anchors.
 
 The pointer/mouse input split first moved cursor boundary forwarding, pointer moved forwarding, touch move/cancel conversion, mouse button conversion, wheel unit conversion, and raw pointer device motion from `application_handler.rs` into a child module. The pointer-family split now keeps that child module folder-backed under `runtime_entry_app/pointer_input/`: `mod.rs` is structural, `cursor.rs` owns cursor enter/leave plus touch cancellation, `motion.rs` owns pointer move/touch move forwarding, `button.rs` owns touch and mouse button forwarding, `wheel.rs` owns line/pixel wheel forwarding, and `device.rs` owns raw pointer device motion. Source guards require the folder wiring, reject returning to `runtime_entry_app/pointer_input.rs`, verify `window_events/dispatch.rs` delegates pointer/mouse winit arms and the handler delegates device events to helper methods, and keep the runtime event constructors plus converter calls source-visible in focused child modules. This mirrors the Bevy split where concrete winit pointer and mouse events are translated in `bevy_winit/src/state.rs` while stable input vocabulary lives in `bevy_window` cursor events and `bevy_input` mouse/touch modules.
 
-The device-event dispatcher split moves the final raw-device routing wrapper from the flat `runtime_entry_app/device_events.rs` file into folder-backed `runtime_entry_app/device_events/`. Source guards reject returning to `runtime_entry_app/device_events.rs`, require structural root wiring, and keep the `handle_device_event(...)` to `handle_pointer_device_event(...)` handoff visible without moving raw pointer-motion ABI construction out of `pointer_input/device.rs`.
+The device-event dispatcher split moves the final raw-device routing wrapper from the flat `runtime_entry_app/device_events.rs` file into folder-backed `runtime_entry_app/device_events/`. Source guards reject returning to `runtime_entry_app/device_events.rs`, require structural root wiring, and keep the `handle_device_event(...)` to `handle_pointer_device_event(...)` handoff visible without moving raw pointer-motion ABI construction out of `pointer_input/device.rs`. The device-event guard suite is also folder-backed under `runtime_entry_device_guards/`: `mod.rs` stays structural, `sources.rs` centralizes include fixtures, `structure.rs` owns path/absent-file assertions, and `dispatch.rs` owns hook-to-pointer dispatch assertions.
 
 The file drag/drop split first moved `WindowEvent::DragEntered`, `DragDropped`, and `DragLeft` forwarding out of `application_handler.rs`. The file-drag/drop family split now keeps that child module folder-backed under `runtime_entry_app/file_drag_drop/`: `mod.rs` is structural, `hovered.rs` owns hovered path string conversion and `file_hovered`, `dropped.rs` owns dropped path string conversion and `file_dropped`, and `cancelled.rs` owns `file_drag_cancelled`. Source guards require the folder wiring, reject returning to `runtime_entry_app/file_drag_drop.rs`, verify `window_events/dispatch.rs` delegates those arms, and keep `file_hovered`, `file_dropped`, `file_drag_cancelled`, path string conversion, and `byte_slice(...)` source-visible in focused child modules. This remains an app-host input forwarding boundary only; asset import and hot-reload behavior stay in the asset milestones.
 
 The keyboard and IME input splits move `WindowEvent::KeyboardInput` forwarding into `runtime_entry_app/keyboard_input/` and `WindowEvent::Ime` forwarding into `runtime_entry_app/ime_input/`. The keyboard family is now folder-backed: `event.rs` owns the winit `KeyEvent` forwarding path, runtime `keyboard` event construction, key action conversion, physical key-code conversion, and session submission, while `payload.rs` owns text byte-slice construction. The IME family is also folder-backed: `routing.rs` owns the winit `Ime` match, `lifecycle.rs` owns enabled/disabled forwarding, `composition.rs` owns preedit/commit byte-slice and cursor sentinel handling, and `deletion.rs` owns delete-surrounding byte-count clamping. Source guards now require `mod keyboard_input;` and `mod ime_input;`, reject returning to `runtime_entry_app/keyboard_input.rs` or `runtime_entry_app/ime_input.rs`, verify `window_events/dispatch.rs` delegates both arms, and keep `keyboard`, IME event construction, text byte-slice handling, physical key-code conversion, and byte-count clamping source-visible in focused child modules. This keeps the event routing aligned with Bevy's `bevy_winit` shape while leaving UI focus, text-edit widget semantics, and accessibility ownership to later milestones.
 
-The frame-loop split moves `about_to_wait()` pump behavior into `runtime_entry_app/frame_loop.rs`. Source guards now require `mod frame_loop;`, verify the handler delegates the hook, and keep event-loop policy application, optional gilrs polling, dynamic runtime `tick_frame()`, host-request drain, and redraw scheduling source-visible in the child module. The runtime-entry app source guards are split under `zircon_app/src/entry/tests/` so `tests/mod.rs` stays structural while input/event translation checks live in `runtime_entry_input_guards.rs`, surface-present and native window-surface ownership checks live in `runtime_entry_surface_present_guards.rs`, and broader runtime-entry ownership checks live in `runtime_entry_source_guards.rs`.
+The frame-loop split moves `about_to_wait()` pump behavior into `runtime_entry_app/frame_loop.rs`. Source guards now require `mod frame_loop;`, verify the handler delegates the hook, and keep event-loop policy application, optional gilrs polling, dynamic runtime `tick_frame()`, host-request drain, and redraw scheduling source-visible in the child module. The runtime-entry app source guards are split under `zircon_app/src/entry/tests/` so `tests/mod.rs` stays structural while input/event translation checks live in the folder-backed `runtime_entry_input_guards/` suite, surface-present and native window-surface ownership checks live in the folder-backed `runtime_entry_surface_present_guards/` suite, window lifecycle policy/status checks live in the folder-backed `runtime_entry_window_lifecycle_guards/` suite, and broader runtime-entry ownership checks live in the folder-backed `runtime_entry_source_guards/` suite. The input guard suite keeps `mod.rs` structural, centralizes source fixtures in `sources.rs`, and moves pointer, file drag/drop, keyboard, IME, and cross-protocol translation guards into focused child files. The surface-present guard suite also keeps `mod.rs` structural, centralizes source fixtures in `sources.rs`, and moves dynamic-API ownership, softbuffer fallback, folder-backed surface structure, and resize/redraw/teardown ordering guards into focused child files. The broader source guard suite keeps `mod.rs` structural and moves broad guards into focused child files for application-handler hooks, config/profile projection, converter-family structure, entry-tree structure, event-loop policy mapping, frame-loop order, runtime-session profile forwarding, viewport ownership, monitor-aware window attributes, and concrete window-event dispatch.
 
 The gamepad-family split keeps optional desktop gamepad polling source-visible without leaving a broad `gamepad.rs` file. Source guards now read `gamepad/mod.rs`, `codes.rs`, `events.rs`, `host.rs`, and `polling.rs`; require root structural wiring; reject returning to `runtime_entry_app/gamepad.rs`; and preserve gilrs startup, connection announcement, button/axis event forwarding, and runtime ABI code mapping as separate helper families.
 

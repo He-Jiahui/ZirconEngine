@@ -18,8 +18,8 @@ use crate::process::{
     open_folder, preferred_editor_executable, preferred_editor_executable_exists, OpenFolderCommand,
 };
 use crate::projects::{
-    load_editor_recent_projects, merge_recent_projects, save_editor_recent_projects,
-    save_editor_recent_projects_with_last_project, ProjectTemplate,
+    load_editor_recent_project_session, merge_recent_projects, project_paths_match,
+    save_editor_recent_projects, save_editor_recent_projects_with_last_project, ProjectTemplate,
 };
 use crate::settings::{default_hub_config_path, editor_config_path, HubConfig};
 use crate::state::{
@@ -28,6 +28,9 @@ use crate::state::{
 };
 use crate::team::TeamOverview;
 
+use self::source_engine_paths::{
+    same_source_engine_path, source_engine_display_name, source_engine_id,
+};
 use super::binding;
 use super::quick_action::HubQuickAction;
 use super::HubWindow;
@@ -37,6 +40,9 @@ mod folder_picker;
 mod learn_catalog;
 mod plugin_catalog;
 mod project_workspace;
+mod root_paths;
+mod source_engine_paths;
+mod source_scoped_views;
 mod team_overview;
 mod window_controls;
 
@@ -62,6 +68,7 @@ struct HubRuntime {
     search_query: String,
     selected_project_path: Option<PathBuf>,
     selected_template_id: String,
+    new_project_location: PathBuf,
     new_project_engine_id: Option<String>,
     pending_delete_project_path: Option<PathBuf>,
     task_status: TaskStatus,
@@ -76,8 +83,13 @@ impl HubRuntime {
         let config_path = default_hub_config_path();
         let editor_config_path = editor_config_path();
         let mut config = HubConfig::load(&config_path)?;
-        let editor_recent = load_editor_recent_projects(&editor_config_path)?;
-        config.recent_projects = merge_recent_projects(config.recent_projects, editor_recent);
+        let editor_recent = load_editor_recent_project_session(&editor_config_path)?;
+        let last_project_path = editor_recent.last_project_path;
+        config.recent_projects =
+            merge_recent_projects(config.recent_projects, editor_recent.recent_projects);
+        let selected_project_path =
+            startup_selected_project_path(last_project_path.as_deref(), &config.recent_projects);
+        let new_project_location = config.settings.default_project_dir.clone();
         let mut runtime = Self {
             config_path,
             editor_config_path,
@@ -88,8 +100,9 @@ impl HubRuntime {
             project_view_mode: ProjectViewMode::Grid,
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
-            selected_project_path: None,
+            selected_project_path,
             selected_template_id: ProjectTemplate::RenderableEmpty.id().to_string(),
+            new_project_location,
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -99,11 +112,11 @@ impl HubRuntime {
             team_overview: TeamOverview::empty(),
         };
         runtime.register_source_engine_from_settings();
+        if let Some(path) = runtime.selected_project_path.clone() {
+            runtime.activate_project_engine_for_path(&path);
+        }
         runtime.ensure_new_project_engine_selection();
-        runtime.refresh_asset_catalog()?;
-        runtime.refresh_learn_catalog()?;
-        runtime.refresh_plugin_catalog()?;
-        runtime.refresh_team_overview()?;
+        runtime.refresh_source_scoped_views()?;
         runtime.persist()?;
         Ok(runtime)
     }
@@ -118,6 +131,7 @@ impl HubRuntime {
             search_query: self.search_query.clone(),
             selected_project_path: self.selected_project_path.clone(),
             selected_template_id: self.selected_template_id.clone(),
+            new_project_location: self.new_project_location.clone(),
             new_project_engine_id: self.new_project_engine_id.clone(),
             pending_delete_project_path: self.pending_delete_project_path.clone(),
             task_status: self.task_status.clone(),
@@ -147,6 +161,7 @@ impl HubRuntime {
 
     fn select_engine_by_id(&mut self, ui: &HubWindow, engine_id: &str) -> Result<(), HubError> {
         self.sync_from_ui(ui);
+        let active_engine_before = self.config.active_engine_id.clone();
         let Some(engine) = self
             .config
             .engines
@@ -161,11 +176,8 @@ impl HubRuntime {
         self.config.active_engine_id = Some(engine.id.clone());
         self.config.settings.default_source_dir = engine.source_dir.clone();
         self.config.settings.default_build_output_dir = engine.output_dir.clone();
-        self.ensure_new_project_engine_selection();
-        self.refresh_asset_catalog()?;
-        self.refresh_learn_catalog()?;
-        self.refresh_plugin_catalog()?;
-        self.refresh_team_overview()?;
+        self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
+        self.refresh_source_scoped_views()?;
         self.persist_hub_config()?;
         self.task_status = TaskStatus {
             label: "Engine selected".to_string(),
@@ -209,6 +221,7 @@ impl HubRuntime {
 
     fn remove_engine_by_id(&mut self, ui: &HubWindow, engine_id: &str) -> Result<(), HubError> {
         self.sync_from_ui(ui);
+        let active_engine_before = self.config.active_engine_id.clone();
         let Some(removed) = remove_source_engine(
             &mut self.config.engines,
             &mut self.config.active_engine_id,
@@ -219,10 +232,8 @@ impl HubRuntime {
             )));
         };
         self.sync_settings_from_active_engine();
-        self.refresh_asset_catalog()?;
-        self.refresh_learn_catalog()?;
-        self.refresh_plugin_catalog()?;
-        self.refresh_team_overview()?;
+        self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
+        self.refresh_source_scoped_views()?;
         self.persist_hub_config()?;
         self.task_status = TaskStatus {
             label: "Engine removed".to_string(),
@@ -260,16 +271,14 @@ impl HubRuntime {
 
     fn sync_from_ui(&mut self, ui: &HubWindow) {
         self.search_query = ui.get_search_query().to_string();
+        self.new_project_location = PathBuf::from(ui.get_new_project_location().to_string());
         self.config.settings = binding::read_settings(ui, self.config.settings.clone());
     }
 
     fn save_settings(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
         self.register_source_engine_from_settings();
-        self.refresh_asset_catalog()?;
-        self.refresh_learn_catalog()?;
-        self.refresh_plugin_catalog()?;
-        self.refresh_team_overview()?;
+        self.refresh_source_scoped_views()?;
         self.persist()?;
         self.task_status = TaskStatus {
             label: "Settings saved".to_string(),
@@ -293,9 +302,13 @@ impl HubRuntime {
 
     fn build_selected_project_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        let Some(_project) = self.selected_or_latest_recent_project_for_action()? else {
-            return Err(HubError::message("No recent project is available to build"));
-        };
+        self.selected_or_latest_recent_project_with_engine_for_action()?;
+        self.build_editor_runtime_after_sync(ui)
+    }
+
+    fn build_selected_project_engine_only(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.selected_project_with_engine_for_action()?;
         self.build_editor_runtime_after_sync(ui)
     }
 
@@ -306,6 +319,7 @@ impl HubRuntime {
 
     fn build_editor_runtime_after_sync(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.register_source_engine_from_settings();
+        self.refresh_source_scoped_views()?;
         let validation = validate_source_engine(&self.config.settings.default_source_dir);
         if validation != SourceEngineValidation::Valid {
             return Err(HubError::message(format!(
@@ -394,6 +408,7 @@ impl HubRuntime {
         if source_dir.as_os_str().is_empty() {
             return;
         }
+        let active_engine_before = self.config.active_engine_id.clone();
         let engine_id = source_engine_id(&source_dir);
         let existing_index = self.config.engines.iter().position(|engine| {
             engine.id == engine_id || same_source_engine_path(&engine.source_dir, &source_dir)
@@ -426,6 +441,7 @@ impl HubRuntime {
         upsert_source_engine(&mut self.config.engines, engine);
         self.config.active_engine_id = Some(engine_id);
         ensure_active_source_engine(&self.config.engines, &mut self.config.active_engine_id);
+        self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
     }
 
     fn migrate_project_engine_metadata(&mut self, old_engine_id: &str, new_engine_id: &str) {
@@ -510,37 +526,6 @@ impl HubRuntime {
     }
 }
 
-fn source_engine_id(source_dir: &std::path::Path) -> String {
-    const FNV_OFFSET: u64 = 0xcbf29ce484222325;
-    const FNV_PRIME: u64 = 0x100000001b3;
-    let mut hash = FNV_OFFSET;
-    for byte in source_dir.to_string_lossy().to_ascii_lowercase().bytes() {
-        hash ^= u64::from(byte);
-        hash = hash.wrapping_mul(FNV_PRIME);
-    }
-    format!("source-{hash:016x}")
-}
-
-fn same_source_engine_path(left: &Path, right: &Path) -> bool {
-    source_engine_path_key(left) == source_engine_path_key(right)
-}
-
-fn source_engine_path_key(path: &Path) -> String {
-    path.to_string_lossy()
-        .replace('\\', "/")
-        .trim_end_matches('/')
-        .to_ascii_lowercase()
-}
-
-fn source_engine_display_name(source_dir: &std::path::Path) -> String {
-    source_dir
-        .file_name()
-        .and_then(|name| name.to_str())
-        .filter(|name| !name.trim().is_empty())
-        .map(|name| format!("{name} Source"))
-        .unwrap_or_else(|| "Local Source".to_string())
-}
-
 fn build_failure_detail(report: &BuildExecutionReport) -> String {
     report
         .stderr
@@ -549,6 +534,17 @@ fn build_failure_detail(report: &BuildExecutionReport) -> String {
         .or_else(|| report.stdout.lines().last())
         .unwrap_or("build failed")
         .to_string()
+}
+
+fn startup_selected_project_path(
+    last_project_path: Option<&Path>,
+    recent_projects: &[crate::projects::RecentProject],
+) -> Option<PathBuf> {
+    let last_project_path = last_project_path?;
+    recent_projects
+        .iter()
+        .find(|project| project_paths_match(&project.path, last_project_path))
+        .map(|project| project.path.clone())
 }
 
 fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
@@ -565,6 +561,14 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     ui.on_save_settings(move || {
         with_runtime(&weak, &runtime_for_save, |runtime, ui| {
             runtime.save_settings(ui)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_import = Rc::clone(&runtime);
+    ui.on_import_project(move || {
+        with_runtime(&weak, &runtime_for_import, |runtime, ui| {
+            runtime.import_project(ui)
         })
     });
 
@@ -772,6 +776,14 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     });
 
     let weak = ui.as_weak();
+    let runtime_for_selected_build = Rc::clone(&runtime);
+    ui.on_build_selected_project_engine(move || {
+        with_runtime(&weak, &runtime_for_selected_build, |runtime, ui| {
+            runtime.build_selected_project_engine_only(ui)
+        })
+    });
+
+    let weak = ui.as_weak();
     let runtime_for_open_output = Rc::clone(&runtime);
     ui.on_open_output(move || {
         with_runtime(&weak, &runtime_for_open_output, |runtime, ui| {
@@ -784,6 +796,30 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     ui.on_launch_editor(move || {
         with_runtime(&weak, &runtime_for_launch, |runtime, ui| {
             runtime.open_selected_project_or_editor(ui)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_selected_launch = Rc::clone(&runtime);
+    ui.on_launch_selected_project(move || {
+        with_runtime(&weak, &runtime_for_selected_launch, |runtime, ui| {
+            runtime.open_selected_project_in_editor(ui)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_selected_package = Rc::clone(&runtime);
+    ui.on_package_selected_project(move || {
+        with_runtime(&weak, &runtime_for_selected_package, |runtime, ui| {
+            runtime.package_selected_project(ui)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_selected_install = Rc::clone(&runtime);
+    ui.on_install_selected_project(move || {
+        with_runtime(&weak, &runtime_for_selected_install, |runtime, ui| {
+            runtime.install_selected_project_to_device(ui)
         })
     });
 
@@ -849,6 +885,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: ProjectTemplate::RenderableEmpty.id().to_string(),
+            new_project_location: HubConfig::default().settings.default_project_dir,
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -880,12 +917,32 @@ mod tests {
     }
 
     #[test]
+    fn startup_selection_restores_editor_last_project_when_it_matches_recent_projects() {
+        let recent_projects = vec![
+            RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
+            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
+        ];
+
+        let selected = startup_selected_project_path(
+            Some(Path::new("E:\\Projects\\StellarOutpost\\")),
+            &recent_projects,
+        );
+
+        assert_eq!(selected, Some(PathBuf::from("E:/Projects/StellarOutpost")));
+        assert!(startup_selected_project_path(
+            Some(Path::new("E:/Projects/Missing")),
+            &recent_projects,
+        )
+        .is_none());
+    }
+
+    #[test]
     fn quick_action_target_prefers_selected_project_over_latest_recent() {
         let mut runtime = runtime_with_projects(vec![
             RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
             RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
         ]);
-        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/StellarOutpost"));
+        runtime.selected_project_path = Some(PathBuf::from("E:\\Projects\\StellarOutpost\\"));
 
         let project = runtime.selected_or_latest_recent_project().unwrap();
 
@@ -913,6 +970,39 @@ mod tests {
     }
 
     #[test]
+    fn quick_action_target_does_not_fallback_when_selected_project_is_stale() {
+        let mut runtime = runtime_with_projects(vec![
+            RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
+            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
+        ]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Missing"));
+
+        let project = runtime.selected_or_latest_recent_project();
+
+        assert!(project.is_none());
+        assert!(runtime.selected_project_path.is_none());
+    }
+
+    #[test]
+    fn quick_action_build_reports_stale_selected_project() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Elysium",
+            "E:/Projects/Elysium",
+            30,
+        )]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Missing"));
+
+        let error = runtime
+            .selected_or_latest_recent_project_with_engine_for_action()
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "Selected project is no longer available to build"
+        );
+    }
+
+    #[test]
     fn view_all_projects_resets_filter_search_and_view_mode() {
         let mut runtime = runtime_with_projects(Vec::new());
         runtime.search_query = "stellar".to_string();
@@ -926,6 +1016,24 @@ mod tests {
         assert_eq!(runtime.project_view_mode, ProjectViewMode::List);
         assert_eq!(runtime.project_subpage, ProjectSubpage::ProjectBrowser);
         assert_eq!(runtime.task_status.label, "All projects");
+    }
+
+    #[test]
+    fn new_project_location_is_tracked_independently_from_settings_default() {
+        let mut runtime = runtime_with_projects(Vec::new());
+        runtime.config.settings.default_project_dir = PathBuf::from("E:/Projects/Default");
+        runtime.new_project_location = PathBuf::from("D:/Drafts/Zircon");
+
+        let snapshot = runtime.snapshot();
+
+        assert_eq!(
+            snapshot.new_project_location,
+            PathBuf::from("D:/Drafts/Zircon")
+        );
+        assert_eq!(
+            runtime.config.settings.default_project_dir,
+            PathBuf::from("E:/Projects/Default")
+        );
     }
 
     #[test]
@@ -966,7 +1074,11 @@ mod tests {
         ));
         std::fs::create_dir_all(&root).unwrap();
         let mut runtime = runtime_with_projects(vec![RecentProject::new("Game", root.clone(), 1)]);
-        runtime.selected_project_path = Some(root.clone());
+        let alias = PathBuf::from(format!("{}/", root.to_string_lossy().replace('\\', "/")));
+        let remove_alias =
+            PathBuf::from(format!("{}\\", root.to_string_lossy().replace('/', "\\")));
+        runtime.selected_project_path = Some(alias.clone());
+        runtime.pending_delete_project_path = Some(alias);
         runtime.config.project_metadata.insert(
             crate::projects::project_metadata_key(&root),
             crate::projects::ProjectMetadata {
@@ -976,11 +1088,13 @@ mod tests {
             },
         );
 
-        runtime.remove_project_from_hub_path(&root);
+        runtime.remove_project_from_hub_path(&remove_alias);
 
         assert!(root.exists());
         assert!(runtime.config.recent_projects.is_empty());
         assert!(runtime.config.project_metadata.is_empty());
+        assert!(runtime.selected_project_path.is_none());
+        assert!(runtime.pending_delete_project_path.is_none());
         std::fs::remove_dir_all(root).unwrap();
     }
 

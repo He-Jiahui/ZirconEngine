@@ -12,6 +12,7 @@ use zircon_runtime_interface::ui::{
 pub trait UiRuntimeTreeFocusExt {
     fn first_focusable_in_route(&self, route: &[UiNodeId])
         -> Result<Option<UiNodeId>, UiTreeError>;
+    fn first_focusable_in_subtree(&self, root: UiNodeId) -> Result<Option<UiNodeId>, UiTreeError>;
     fn focusable_nodes_in_navigation_order(&self) -> Result<Vec<UiNodeId>, UiTreeError>;
     fn next_focusable_target(
         &self,
@@ -24,6 +25,8 @@ pub trait UiRuntimeTreeFocusExt {
         current: Option<UiNodeId>,
         kind: UiNavigationEventKind,
     ) -> Result<Option<UiNodeId>, UiTreeError>;
+    fn active_mui_modal_root(&self, current: Option<UiNodeId>) -> Option<UiNodeId>;
+    fn node_is_descendant_of(&self, root: UiNodeId, node_id: UiNodeId) -> bool;
 }
 
 impl UiRuntimeTreeFocusExt for UiTree {
@@ -41,6 +44,10 @@ impl UiRuntimeTreeFocusExt for UiTree {
             }
         }
         Ok(None)
+    }
+
+    fn first_focusable_in_subtree(&self, root: UiNodeId) -> Result<Option<UiNodeId>, UiTreeError> {
+        first_focusable_in_subtree(self, root)
     }
 
     fn focusable_nodes_in_navigation_order(&self) -> Result<Vec<UiNodeId>, UiTreeError> {
@@ -131,6 +138,17 @@ impl UiRuntimeTreeFocusExt for UiTree {
             | UiNavigationEventKind::End => Ok(None),
         }
     }
+
+    fn active_mui_modal_root(&self, current: Option<UiNodeId>) -> Option<UiNodeId> {
+        active_modal_scope_for(self, current).and_then(|scope| match scope {
+            ActiveModalScope::NavigationGroup(_) => None,
+            ActiveModalScope::MuiOverlay(root) => Some(root),
+        })
+    }
+
+    fn node_is_descendant_of(&self, root: UiNodeId, node_id: UiNodeId) -> bool {
+        node_is_descendant_of(self, root, node_id)
+    }
 }
 
 fn next_tab_target(
@@ -166,9 +184,9 @@ fn next_directional_target(
     let Some(current) = current else {
         return spatial_direction_target(tree, current, kind);
     };
-    let modal_group = modal_group_for(tree, current);
+    let modal_scope = active_modal_scope_for(tree, Some(current));
     if let Some(target) = manual_direction_target(tree, current, kind)? {
-        return Ok(filter_modal_target(tree, target, modal_group.as_ref()));
+        return Ok(filter_modal_target(tree, target, modal_scope.as_ref()));
     }
     spatial_direction_target(tree, Some(current), kind)
 }
@@ -227,15 +245,18 @@ fn tab_candidates(
     tree: &UiTree,
     current: Option<UiNodeId>,
 ) -> Result<Vec<NavigationCandidate>, UiTreeError> {
-    let modal_group = current.and_then(|current| modal_group_for(tree, current));
+    let modal_scope = active_modal_scope_for(tree, current);
     let mut candidates = navigation_candidates(tree)?;
     candidates.retain(|candidate| {
         if !candidate.tabbable {
             return false;
         }
-        match modal_group.as_ref() {
-            Some(group_id) => candidate.group_id.as_ref() == Some(group_id),
-            None => !candidate.modal,
+        match modal_scope.as_ref() {
+            Some(ActiveModalScope::NavigationGroup(group_id)) => {
+                candidate.group_id.as_ref() == Some(group_id)
+            }
+            Some(ActiveModalScope::MuiOverlay(root)) => candidate.mui_modal_root == Some(*root),
+            None => !candidate.modal && candidate.mui_modal_root.is_none(),
         }
     });
     candidates.sort_by(compare_tab_candidates);
@@ -246,11 +267,14 @@ fn spatial_candidates(
     tree: &UiTree,
     current: Option<UiNodeId>,
 ) -> Result<Vec<NavigationCandidate>, UiTreeError> {
-    let modal_group = current.and_then(|current| modal_group_for(tree, current));
+    let modal_scope = active_modal_scope_for(tree, current);
     let mut candidates = navigation_candidates(tree)?;
     candidates.retain(|candidate| {
-        modal_group.as_ref().map_or(true, |group_id| {
-            candidate.group_id.as_ref() == Some(group_id)
+        modal_scope.as_ref().map_or(true, |scope| match scope {
+            ActiveModalScope::NavigationGroup(group_id) => {
+                candidate.group_id.as_ref() == Some(group_id)
+            }
+            ActiveModalScope::MuiOverlay(root) => candidate.mui_modal_root == Some(*root),
         })
     });
     candidates.sort_by(compare_tree_candidates);
@@ -287,6 +311,7 @@ fn collect_navigation_candidates(
             group_order: group.map_or(0, |group| group.order),
             group_id: group.map(|group| group.group_id.clone()),
             modal: group.is_some_and(|group| group.modal),
+            mui_modal_root: active_mui_modal_root_for_node(tree, node_id),
             paint_order: node.paint_order,
         });
     }
@@ -308,6 +333,38 @@ fn modal_group_for(tree: &UiTree, node_id: UiNodeId) -> Option<UiNavigationGroup
     None
 }
 
+fn active_modal_scope_for(tree: &UiTree, current: Option<UiNodeId>) -> Option<ActiveModalScope> {
+    if let Some(current) = current {
+        if let Some(group) = modal_group_for(tree, current) {
+            return Some(ActiveModalScope::NavigationGroup(group));
+        }
+        if let Some(root) = active_mui_modal_root_for_node(tree, current) {
+            return Some(ActiveModalScope::MuiOverlay(root));
+        }
+    }
+    topmost_active_mui_modal_root(tree).map(ActiveModalScope::MuiOverlay)
+}
+
+fn active_mui_modal_root_for_node(tree: &UiTree, node_id: UiNodeId) -> Option<UiNodeId> {
+    let mut current = Some(node_id);
+    while let Some(node_id) = current {
+        let node = tree.nodes.get(&node_id)?;
+        if is_active_mui_modal_focus_scope(node) {
+            return Some(node_id);
+        }
+        current = node.parent;
+    }
+    None
+}
+
+fn topmost_active_mui_modal_root(tree: &UiTree) -> Option<UiNodeId> {
+    tree.nodes
+        .values()
+        .filter(|node| is_active_mui_modal_focus_scope(node))
+        .max_by_key(|node| (node.z_index, node.paint_order, node.node_id))
+        .map(|node| node.node_id)
+}
+
 fn first_candidate_in_group(tree: &UiTree, group_id: &UiNavigationGroupId) -> Option<UiNodeId> {
     let mut candidates = navigation_candidates(tree).ok()?;
     candidates.retain(|candidate| candidate.group_id.as_ref() == Some(group_id));
@@ -318,12 +375,23 @@ fn first_candidate_in_group(tree: &UiTree, group_id: &UiNavigationGroupId) -> Op
 fn filter_modal_target(
     tree: &UiTree,
     target: Option<UiNodeId>,
-    modal_group: Option<&UiNavigationGroupId>,
+    modal_scope: Option<&ActiveModalScope>,
 ) -> Option<UiNodeId> {
-    let Some(modal_group) = modal_group else {
+    let Some(modal_scope) = modal_scope else {
         return target;
     };
-    target.filter(|target| modal_group_for(tree, *target).as_ref() == Some(modal_group))
+    target.filter(|target| match modal_scope {
+        ActiveModalScope::NavigationGroup(group_id) => {
+            modal_group_for(tree, *target).as_ref() == Some(group_id)
+        }
+        ActiveModalScope::MuiOverlay(root) => node_is_descendant_of(tree, *root, *target),
+    })
+}
+
+#[derive(Clone)]
+enum ActiveModalScope {
+    NavigationGroup(UiNavigationGroupId),
+    MuiOverlay(UiNodeId),
 }
 
 #[derive(Clone)]
@@ -334,6 +402,7 @@ struct NavigationCandidate {
     group_order: i32,
     group_id: Option<UiNavigationGroupId>,
     modal: bool,
+    mui_modal_root: Option<UiNodeId>,
     paint_order: u64,
 }
 
@@ -385,6 +454,62 @@ fn collect_focusable_nodes(
         collect_focusable_nodes(tree, *child_id, focusable)?;
     }
     Ok(())
+}
+
+fn first_focusable_in_subtree(
+    tree: &UiTree,
+    root: UiNodeId,
+) -> Result<Option<UiNodeId>, UiTreeError> {
+    let node = tree
+        .nodes
+        .get(&root)
+        .ok_or(UiTreeError::MissingNode(root))?;
+    if node.is_focus_candidate() {
+        return Ok(Some(root));
+    }
+    for child_id in &node.children {
+        if let Some(target) = first_focusable_in_subtree(tree, *child_id)? {
+            return Ok(Some(target));
+        }
+    }
+    Ok(None)
+}
+
+fn node_is_descendant_of(tree: &UiTree, root: UiNodeId, node_id: UiNodeId) -> bool {
+    let mut current = Some(node_id);
+    while let Some(current_id) = current {
+        if current_id == root {
+            return true;
+        }
+        current = tree.nodes.get(&current_id).and_then(|node| node.parent);
+    }
+    false
+}
+
+fn is_active_mui_modal_focus_scope(node: &zircon_runtime_interface::ui::tree::UiTreeNode) -> bool {
+    let Some(metadata) = node.template_metadata.as_ref() else {
+        return false;
+    };
+    is_mui_modal_focus_component(metadata.component.as_str())
+        && node.state_flags.enabled
+        && node.is_render_visible()
+        && (bool_attribute(metadata, "open") || bool_attribute(metadata, "popup_open"))
+        && !bool_attribute(metadata, "disable_enforce_focus")
+}
+
+fn is_mui_modal_focus_component(component: &str) -> bool {
+    matches!(component, "Dialog" | "Modal" | "Popover" | "Menu")
+}
+
+fn bool_attribute(
+    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+    key: &str,
+) -> bool {
+    metadata
+        .attributes
+        .get(key)
+        .and_then(toml::Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn nearest_focusable_in_direction(

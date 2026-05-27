@@ -13,7 +13,7 @@ fn global_material_surface_assets_follow_responsive_contracts() {
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        42,
+        41,
         "Milestone 3 inventory changed; update the acceptance inventory and this conformance test together"
     );
 

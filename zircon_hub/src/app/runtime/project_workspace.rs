@@ -4,9 +4,9 @@ use crate::error::HubError;
 use crate::process::{launch_editor, EditorLaunchCommand, EditorLaunchRequest};
 use crate::projects::{
     install_package_to_device, metadata_for_path, metadata_for_path_mut, project_metadata_key,
-    prune_empty_metadata, recycle_delete_project, validate_project_root, CreateProjectRequest,
-    DeviceInstallRequest, ProjectPackageReport, ProjectPackageRequest, ProjectTemplate,
-    ProjectValidation, RecentProject,
+    project_paths_match, prune_empty_metadata, recycle_delete_project, validate_project_root,
+    CreateProjectRequest, DeviceInstallRequest, ProjectPackageReport, ProjectPackageRequest,
+    ProjectTemplate, ProjectValidation, RecentProject,
 };
 use crate::state::{
     ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
@@ -30,6 +30,26 @@ impl HubRuntime {
             .clone()
             .filter(|id| self.config.engines.iter().any(|engine| engine.id == *id))
             .or_else(|| self.config.engines.first().map(|engine| engine.id.clone()));
+    }
+
+    pub(super) fn sync_new_project_engine_after_active_engine_change(
+        &mut self,
+        previous_active_engine_id: Option<&str>,
+    ) {
+        let active_engine_id = self
+            .config
+            .active_engine_id
+            .clone()
+            .filter(|id| self.config.engines.iter().any(|engine| engine.id == *id));
+        let current = self.new_project_engine_id.clone();
+        let current_is_valid = current
+            .as_deref()
+            .is_some_and(|id| self.config.engines.iter().any(|engine| engine.id == id));
+        let followed_previous_active =
+            current.as_deref().is_some() && current.as_deref() == previous_active_engine_id;
+        if current.is_none() || !current_is_valid || followed_previous_active {
+            self.new_project_engine_id = active_engine_id;
+        }
     }
 
     pub(super) fn show_project_subpage_by_id(&mut self, subpage_id: &str) -> Result<(), HubError> {
@@ -59,7 +79,7 @@ impl HubRuntime {
             .config
             .recent_projects
             .iter()
-            .find(|project| project.path == path)
+            .find(|project| project_paths_match(&project.path, &path))
             .cloned()
         else {
             return Err(HubError::message(format!(
@@ -67,7 +87,12 @@ impl HubRuntime {
             )));
         };
         self.selected_project_path = Some(project.path.clone());
-        self.refresh_selected_project_scoped_views()?;
+        let active_engine_before = self.config.active_engine_id.clone();
+        self.activate_project_engine_for_path(&project.path);
+        self.refresh_project_context_views(
+            true,
+            self.config.active_engine_id != active_engine_before,
+        )?;
         self.task_status = TaskStatus {
             label: "Project selected".to_string(),
             detail: recent_project_display_name(&project),
@@ -179,7 +204,7 @@ impl HubRuntime {
             .config
             .recent_projects
             .iter()
-            .find(|project| project.path == project_path)
+            .find(|project| project_paths_match(&project.path, &project_path))
             .map(|project| project.display_name.clone());
         self.open_project_path(ui, project_path, display_name)
     }
@@ -215,11 +240,6 @@ impl HubRuntime {
             },
         );
         launch_editor(&command)?;
-        self.remember_project_metadata_for_path(
-            &project_path,
-            self.config.active_engine_id.clone(),
-            None,
-        );
         self.remember_project(RecentProject::with_now(display_name.clone(), project_path))?;
         self.task_status = TaskStatus {
             label: "Editor launched".to_string(),
@@ -229,11 +249,70 @@ impl HubRuntime {
         Ok(())
     }
 
+    pub(super) fn import_project_path(&mut self, project_path: PathBuf) -> Result<(), HubError> {
+        if project_path.as_os_str().is_empty() {
+            return Err(HubError::message("Project path is required"));
+        }
+        if validate_project_root(&project_path) != ProjectValidation::Valid {
+            return Err(HubError::message(format!(
+                "Project root is not valid: {}",
+                project_path.to_string_lossy()
+            )));
+        }
+        let display_name = project_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Zircon Project")
+            .to_string();
+        self.remember_project(RecentProject::with_now(
+            display_name.clone(),
+            project_path.clone(),
+        ))?;
+        self.project_filter = ProjectFilterMode::All;
+        self.project_view_mode = ProjectViewMode::List;
+        self.project_subpage = ProjectSubpage::ProjectDetail;
+        self.pending_delete_project_path = None;
+        self.search_query.clear();
+        self.task_status = TaskStatus {
+            label: "Project imported".to_string(),
+            detail: format!("Added {display_name} to Hub"),
+            running: false,
+        };
+        Ok(())
+    }
+
     pub(super) fn install_recent_project_to_device(
         &mut self,
         ui: &HubWindow,
     ) -> Result<(), HubError> {
-        let package_report = self.package_recent_project_to_output(ui)?;
+        let package_report = self.package_recent_project_to_output_with_messages(
+            ui,
+            "No recent project is available to install",
+            "Selected project is no longer available to install",
+        )?;
+        let project_name = self.selected_project_label();
+        let install_report = install_package_to_device(&DeviceInstallRequest::new(
+            package_report.package_dir,
+            self.config.settings.default_device_install_dir.clone(),
+        ))?;
+        self.task_status = TaskStatus {
+            label: "Installed to device".to_string(),
+            detail: format!(
+                "{} -> {} ({} files)",
+                project_name,
+                install_report.install_dir.to_string_lossy(),
+                install_report.files_copied
+            ),
+            running: false,
+        };
+        Ok(())
+    }
+
+    pub(super) fn install_selected_project_to_device(
+        &mut self,
+        ui: &HubWindow,
+    ) -> Result<(), HubError> {
+        let package_report = self.package_selected_project_to_output(ui)?;
         let project_name = self.selected_project_label();
         let install_report = install_package_to_device(&DeviceInstallRequest::new(
             package_report.package_dir,
@@ -268,16 +347,60 @@ impl HubRuntime {
         Ok(())
     }
 
+    pub(super) fn package_selected_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        let report = self.package_selected_project_to_output(ui)?;
+        let project_name = self.selected_project_label();
+        self.task_status = TaskStatus {
+            label: "Package created".to_string(),
+            detail: format!(
+                "{} -> {} ({} files)",
+                project_name,
+                report.package_dir.to_string_lossy(),
+                report.files_copied
+            ),
+            running: false,
+        };
+        Ok(())
+    }
+
     pub(super) fn package_recent_project_to_output(
         &mut self,
         ui: &HubWindow,
     ) -> Result<ProjectPackageReport, HubError> {
+        self.package_recent_project_to_output_with_messages(
+            ui,
+            "No recent project is available to package",
+            "Selected project is no longer available to package",
+        )
+    }
+
+    fn package_recent_project_to_output_with_messages(
+        &mut self,
+        ui: &HubWindow,
+        missing_project_message: &str,
+        stale_project_message: &str,
+    ) -> Result<ProjectPackageReport, HubError> {
         self.sync_from_ui(ui);
-        let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
-            return Err(HubError::message(
-                "No recent project is available to package",
-            ));
-        };
+        let project = self.selected_or_latest_recent_project_for_named_action(
+            missing_project_message,
+            stale_project_message,
+        )?;
+        self.package_project_to_output(project)
+    }
+
+    pub(super) fn package_selected_project_to_output(
+        &mut self,
+        ui: &HubWindow,
+    ) -> Result<ProjectPackageReport, HubError> {
+        self.sync_from_ui(ui);
+        let project = self.selected_project_for_action()?;
+        self.package_project_to_output(project)
+    }
+
+    fn package_project_to_output(
+        &mut self,
+        project: RecentProject,
+    ) -> Result<ProjectPackageReport, HubError> {
         if validate_project_root(&project.path) != ProjectValidation::Valid {
             return Err(HubError::message(format!(
                 "Project root is not valid: {}",
@@ -291,6 +414,16 @@ impl HubRuntime {
             self.config.settings.default_build_output_dir.clone(),
         );
         crate::projects::package_project(&request)
+    }
+
+    pub(super) fn open_selected_project_in_editor(
+        &mut self,
+        ui: &HubWindow,
+    ) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let project = self.selected_project_for_action()?;
+        let display_name = recent_project_display_name(&project);
+        self.open_project_path(ui, project.path, Some(display_name))
     }
 
     pub(super) fn open_selected_project_or_editor(
@@ -309,7 +442,7 @@ impl HubRuntime {
         self.sync_from_ui(ui);
         let request = CreateProjectRequest::new(
             ui.get_project_name().to_string(),
-            PathBuf::from(ui.get_project_location().to_string()),
+            self.new_project_location.clone(),
             self.selected_template_for_create()?,
         );
         if request.project_name.trim().is_empty() {
@@ -320,11 +453,13 @@ impl HubRuntime {
         }
         let root = request.location.join(&request.project_name);
         let display_name = request.project_name.clone();
-        let engine_id = self.new_project_engine_id.clone();
-        if let Some(engine_id) = engine_id.clone() {
-            self.config.active_engine_id = Some(engine_id);
-            self.sync_settings_from_active_engine();
-        }
+        let engine_id = self
+            .new_project_engine_id
+            .clone()
+            .ok_or_else(|| HubError::message("No Source Engine selected for new project"))?;
+        self.require_engine(&engine_id)?;
+        self.config.active_engine_id = Some(engine_id.clone());
+        self.sync_settings_from_active_engine();
         self.ensure_editor_available(ui)?;
         let command = EditorLaunchCommand::from_preferred_engine(
             self.staged_engine_dir(),
@@ -333,7 +468,7 @@ impl HubRuntime {
         launch_editor(&command)?;
         self.remember_project_metadata_for_path(
             &root,
-            engine_id,
+            Some(engine_id),
             Some(self.selected_template_id.clone()),
         );
         self.remember_project(RecentProject::with_now(display_name, root))?;
@@ -360,8 +495,16 @@ impl HubRuntime {
     ) -> Result<(), HubError> {
         self.require_engine(engine_id)?;
         let path = self.selected_project_path_required()?;
+        let active_engine_before = self.config.active_engine_id.clone();
         metadata_for_path_mut(&mut self.config.project_metadata, &path).engine_id =
             Some(engine_id.to_string());
+        self.config.active_engine_id = Some(engine_id.to_string());
+        self.sync_settings_from_active_engine();
+        self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
+        self.refresh_project_context_views(
+            true,
+            self.config.active_engine_id != active_engine_before,
+        )?;
         self.persist_hub_config()?;
         self.task_status = TaskStatus {
             label: "Project engine updated".to_string(),
@@ -455,6 +598,7 @@ impl HubRuntime {
     }
 
     pub(super) fn activate_project_engine_for_path(&mut self, path: &Path) {
+        let active_engine_before = self.config.active_engine_id.clone();
         let Some(engine_id) = metadata_for_path(&self.config.project_metadata, path)
             .and_then(|metadata| metadata.engine_id.clone())
         else {
@@ -468,6 +612,9 @@ impl HubRuntime {
         {
             self.config.active_engine_id = Some(engine_id);
             self.sync_settings_from_active_engine();
+            self.sync_new_project_engine_after_active_engine_change(
+                active_engine_before.as_deref(),
+            );
         }
     }
 
@@ -489,19 +636,39 @@ impl HubRuntime {
 
     pub(super) fn remember_project(&mut self, project: RecentProject) -> Result<(), HubError> {
         let last_project_path = project.path.clone();
+        let active_engine_before = self.config.active_engine_id.clone();
         self.selected_project_path = Some(last_project_path.clone());
         self.config.recent_projects = crate::projects::merge_recent_projects(
             std::iter::once(project),
             self.config.recent_projects.clone(),
         );
-        self.refresh_selected_project_scoped_views()?;
+        self.activate_project_engine_for_path(&last_project_path);
+        self.refresh_project_context_views(
+            true,
+            self.config.active_engine_id != active_engine_before,
+        )?;
         self.persist_with_last_project(Some(&last_project_path))
     }
 
     fn refresh_selected_project_scoped_views(&mut self) -> Result<(), HubError> {
         self.refresh_asset_catalog()?;
+        self.refresh_learn_catalog()?;
         self.refresh_plugin_catalog()?;
         self.refresh_team_overview()
+    }
+
+    fn refresh_project_context_views(
+        &mut self,
+        selected_project_changed: bool,
+        active_engine_changed: bool,
+    ) -> Result<(), HubError> {
+        if active_engine_changed {
+            self.refresh_source_scoped_views()
+        } else if selected_project_changed {
+            self.refresh_selected_project_scoped_views()
+        } else {
+            Ok(())
+        }
     }
 
     pub(super) fn selected_recent_project(&mut self) -> Option<RecentProject> {
@@ -510,17 +677,29 @@ impl HubRuntime {
             .config
             .recent_projects
             .iter()
-            .find(|project| project.path == selected_path)
+            .find(|project| project_paths_match(&project.path, &selected_path))
             .cloned();
-        if project.is_none() {
+        if let Some(project) = &project {
+            if self
+                .selected_project_path
+                .as_ref()
+                .is_some_and(|selected| selected != &project.path)
+            {
+                self.selected_project_path = Some(project.path.clone());
+            }
+        } else {
             self.selected_project_path = None;
         }
         project
     }
 
     pub(super) fn selected_or_latest_recent_project(&mut self) -> Option<RecentProject> {
+        let had_selected_project = self.selected_project_path.is_some();
         if let Some(project) = self.selected_recent_project() {
             return Some(project);
+        }
+        if had_selected_project {
+            return None;
         }
         let project = self
             .config
@@ -543,12 +722,97 @@ impl HubRuntime {
         if let Some(project) = &project {
             self.activate_project_engine_for_path(&project.path);
         }
-        if self.selected_project_path != selected_before
-            || self.config.active_engine_id != active_engine_before
-        {
-            self.refresh_selected_project_scoped_views()?;
-        }
+        let selected_project_changed = selected_project_path_changed(
+            selected_before.as_deref(),
+            self.selected_project_path.as_deref(),
+        );
+        self.refresh_project_context_views(
+            selected_project_changed,
+            self.config.active_engine_id != active_engine_before,
+        )?;
         Ok(project)
+    }
+
+    pub(super) fn selected_or_latest_recent_project_with_engine_for_action(
+        &mut self,
+    ) -> Result<RecentProject, HubError> {
+        let project = self.selected_or_latest_recent_project_for_named_action(
+            "No recent project is available to build",
+            "Selected project is no longer available to build",
+        )?;
+        self.require_project_bound_engine(&project)?;
+        Ok(project)
+    }
+
+    fn selected_or_latest_recent_project_for_named_action(
+        &mut self,
+        missing_project_message: &str,
+        stale_project_message: &str,
+    ) -> Result<RecentProject, HubError> {
+        let had_selected_project = self.selected_project_path.is_some();
+        let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
+            return Err(HubError::message(if had_selected_project {
+                stale_project_message
+            } else {
+                missing_project_message
+            }));
+        };
+        Ok(project)
+    }
+
+    pub(super) fn selected_project_for_action(&mut self) -> Result<RecentProject, HubError> {
+        let selected_before = self.selected_project_path.clone();
+        let active_engine_before = self.config.active_engine_id.clone();
+        let Some(project) = self.selected_recent_project() else {
+            let selected_project_changed = selected_project_path_changed(
+                selected_before.as_deref(),
+                self.selected_project_path.as_deref(),
+            );
+            self.refresh_project_context_views(selected_project_changed, false)?;
+            return Err(HubError::message("No project is selected"));
+        };
+        self.activate_project_engine_for_path(&project.path);
+        let selected_project_changed = selected_project_path_changed(
+            selected_before.as_deref(),
+            self.selected_project_path.as_deref(),
+        );
+        self.refresh_project_context_views(
+            selected_project_changed,
+            self.config.active_engine_id != active_engine_before,
+        )?;
+        Ok(project)
+    }
+
+    pub(super) fn selected_project_with_engine_for_action(
+        &mut self,
+    ) -> Result<RecentProject, HubError> {
+        let project = self.selected_project_for_action()?;
+        self.require_project_bound_engine(&project)?;
+        Ok(project)
+    }
+
+    fn require_project_bound_engine(&self, project: &RecentProject) -> Result<(), HubError> {
+        let Some(engine_id) = metadata_for_path(&self.config.project_metadata, &project.path)
+            .and_then(|metadata| metadata.engine_id.as_deref())
+        else {
+            return Err(HubError::message(format!(
+                "Project has no bound Source Engine: {}",
+                recent_project_display_name(project)
+            )));
+        };
+        if self
+            .config
+            .engines
+            .iter()
+            .any(|engine| engine.id == engine_id)
+        {
+            return Ok(());
+        }
+        Err(HubError::message(format!(
+            "Project bound Source Engine is unavailable: {} -> {}",
+            recent_project_display_name(project),
+            engine_id
+        )))
     }
 
     pub(super) fn selected_project_label(&mut self) -> String {
@@ -566,21 +830,21 @@ impl HubRuntime {
     pub(super) fn remove_project_from_hub_path(&mut self, path: &Path) {
         self.config
             .recent_projects
-            .retain(|project| project.path != path);
+            .retain(|project| !project_paths_match(&project.path, path));
         self.config
             .project_metadata
             .remove(&project_metadata_key(path));
         if self
             .pending_delete_project_path
             .as_ref()
-            .is_some_and(|pending| pending == path)
+            .is_some_and(|pending| project_paths_match(pending, path))
         {
             self.pending_delete_project_path = None;
         }
         if self
             .selected_project_path
             .as_ref()
-            .is_some_and(|selected| selected == path)
+            .is_some_and(|selected| project_paths_match(selected, path))
         {
             self.selected_project_path = None;
         }
@@ -607,6 +871,14 @@ impl HubRuntime {
             .find(|engine| engine.id == engine_id)
             .map(|engine| engine.display_name.clone())
             .unwrap_or_else(|| engine_id.to_string())
+    }
+}
+
+fn selected_project_path_changed(before: Option<&Path>, after: Option<&Path>) -> bool {
+    match (before, after) {
+        (Some(before), Some(after)) => !project_paths_match(before, after),
+        (None, None) => false,
+        _ => true,
     }
 }
 

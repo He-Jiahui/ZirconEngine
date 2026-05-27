@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yCheckedState, UiA11yRole, UiA11yState, UiAccessibilityAction,
+        UiA11yCheckedState, UiA11yRole, UiA11yState, UiA11yTextSelection, UiAccessibilityAction,
         UiAccessibilityDiagnostic, UiAccessibilityDiagnosticCode,
         UiAccessibilityDiagnosticSeverity, UiAccessibilityNode, UiAccessibilityTreeSnapshot,
     },
@@ -13,7 +13,10 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::{
+    surface::{ui_surface_effective_disabled, UiSurface},
+    tree::UiRuntimeTreeAccessExt,
+};
 
 use super::{diagnostics::validate_snapshot, name};
 
@@ -194,7 +197,9 @@ fn build_node(
     let disabled = disabled_state_for(surface, node, metadata);
     let focused = surface.focus.focused == Some(node.node_id) && !disabled && !effectively_hidden;
     let role = role_for(node, metadata);
-    let (actions, mut diagnostics) = actions_for(node, metadata, disabled);
+    let (actions, mut diagnostics) = actions_for(surface, node, metadata, disabled);
+    let value = value_state_for(surface, node, metadata, role);
+    let text_selection = text_selection_state_for(surface, node, metadata, role, value.as_deref());
     let labelled_by = parse_optional_reference(
         node.node_id,
         metadata.and_then(|metadata| metadata.a11y.labelled_by.as_deref()),
@@ -228,7 +233,8 @@ fn build_node(
                 expanded: expanded_state_for(surface, node, metadata),
                 checked: checked_state_for(surface, node, metadata, role),
                 pressed: pressed_state_for(surface, node, metadata),
-                value: value_state_for(surface, node, metadata, role),
+                value,
+                text_selection,
             },
             actions,
             children: Vec::new(),
@@ -586,21 +592,7 @@ fn disabled_state_for(
     node: &UiTreeNode,
     metadata: Option<&UiTemplateNodeMetadata>,
 ) -> bool {
-    let component_state = surface.component_states.get(node.node_id);
-    !node.state_flags.enabled
-        || component_state
-            .and_then(disabled_component_state_value)
-            .unwrap_or(false)
-        || metadata.is_some_and(|metadata| {
-            metadata.widget.disabled
-                || bool_attribute_value(&metadata.attributes, "disabled") == Some(true)
-        })
-}
-
-fn disabled_component_state_value(state: &UiComponentState) -> Option<bool> {
-    bool_component_state_value(state, "disabled")
-        .or_else(|| bool_component_state_value(state, "enabled").map(|enabled| !enabled))
-        .or_else(|| state.flags.disabled.then_some(true))
+    ui_surface_effective_disabled(surface, node.node_id, node, metadata)
 }
 
 fn selected_state_for(
@@ -736,6 +728,75 @@ fn value_attribute_text(metadata: &UiTemplateNodeMetadata, role: UiA11yRole) -> 
         })
 }
 
+fn text_selection_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+    role: UiA11yRole,
+    value_text: Option<&str>,
+) -> Option<UiA11yTextSelection> {
+    if role != UiA11yRole::TextInput {
+        return None;
+    }
+    let metadata = metadata?;
+    let value_text = value_text.unwrap_or_default();
+    let component_state = surface.component_states.get(node.node_id);
+    let caret = usize_attribute_or_component_state_value(metadata, component_state, "caret_offset")
+        .unwrap_or_else(|| value_text.len());
+    let anchor =
+        usize_attribute_or_component_state_value(metadata, component_state, "selection_anchor")
+            .unwrap_or(caret);
+    let focus =
+        usize_attribute_or_component_state_value(metadata, component_state, "selection_focus")
+            .unwrap_or(caret);
+
+    Some(UiA11yTextSelection {
+        caret: clamp_text_byte_offset(value_text, caret),
+        anchor: clamp_text_byte_offset(value_text, anchor),
+        focus: clamp_text_byte_offset(value_text, focus),
+    })
+}
+
+fn usize_attribute_or_component_state_value(
+    metadata: &UiTemplateNodeMetadata,
+    component_state: Option<&UiComponentState>,
+    property: &str,
+) -> Option<usize> {
+    usize_attribute_value(&metadata.attributes, property)
+        .or_else(|| component_state.and_then(|state| usize_component_state_value(state, property)))
+}
+
+fn usize_attribute_value(
+    attributes: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Option<usize> {
+    attributes
+        .get(property)
+        .and_then(toml::Value::as_integer)
+        .and_then(|value| usize::try_from(value).ok())
+}
+
+fn usize_component_state_value(state: &UiComponentState, property: &str) -> Option<usize> {
+    match state.value(property) {
+        Some(UiValue::Int(value)) => usize::try_from(*value).ok(),
+        Some(UiValue::Float(value))
+            if value.is_finite() && *value >= 0.0 && value.fract() == 0.0 =>
+        {
+            Some(*value as usize)
+        }
+        Some(UiValue::String(value)) => value.parse::<usize>().ok(),
+        _ => None,
+    }
+}
+
+fn clamp_text_byte_offset(text: &str, offset: usize) -> usize {
+    let mut offset = offset.min(text.len());
+    while offset > 0 && !text.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    offset
+}
+
 fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {
     match state.value(property) {
         Some(UiValue::Bool(value)) => Some(*value),
@@ -764,17 +825,21 @@ fn component_state_value_text(
 }
 
 fn actions_for(
+    surface: &UiSurface,
     node: &UiTreeNode,
     metadata: Option<&UiTemplateNodeMetadata>,
     disabled: bool,
 ) -> (Vec<UiAccessibilityAction>, Vec<UiAccessibilityDiagnostic>) {
+    let role = role_for(node, metadata);
     let mut actions = metadata
         .map(|metadata| metadata.a11y.actions.clone())
         .unwrap_or_default();
     let headless_scrollbar = is_headless_scrollbar_widget(metadata);
     if actions.is_empty() && !headless_scrollbar {
         if let Some(metadata) = metadata {
-            actions.extend(default_actions_for_widget_behavior(metadata));
+            actions.extend(default_actions_for_widget_behavior(
+                surface, node, metadata, role,
+            ));
         }
     }
     if actions.is_empty()
@@ -788,6 +853,9 @@ fn actions_for(
     }
     if node.container.is_scrollable() {
         actions.push(UiAccessibilityAction::ScrollTo);
+    }
+    if role == UiA11yRole::Tooltip {
+        actions.push(UiAccessibilityAction::Dismiss);
     }
     actions.sort();
     actions.dedup();
@@ -807,21 +875,51 @@ fn actions_for(
 }
 
 fn default_actions_for_widget_behavior(
+    surface: &UiSurface,
+    node: &UiTreeNode,
     metadata: &UiTemplateNodeMetadata,
+    role: UiA11yRole,
 ) -> Vec<UiAccessibilityAction> {
     match widget_behavior(metadata) {
         UiWidgetBehavior::Button
         | UiWidgetBehavior::MenuItem
         | UiWidgetBehavior::Toggle
-        | UiWidgetBehavior::Radio
-        | UiWidgetBehavior::Disclosure
-        | UiWidgetBehavior::Popup => vec![UiAccessibilityAction::Activate],
+        | UiWidgetBehavior::Radio => vec![UiAccessibilityAction::Activate],
+        UiWidgetBehavior::Popup if role == UiA11yRole::Dialog => {
+            if expanded_state_for(surface, node, Some(metadata)).unwrap_or(false) {
+                vec![UiAccessibilityAction::Dismiss]
+            } else {
+                Vec::new()
+            }
+        }
+        UiWidgetBehavior::Popup if role == UiA11yRole::Menu => {
+            if expanded_state_for(surface, node, Some(metadata)).unwrap_or(false) {
+                vec![UiAccessibilityAction::Collapse]
+            } else {
+                vec![UiAccessibilityAction::Expand]
+            }
+        }
+        UiWidgetBehavior::Disclosure | UiWidgetBehavior::Popup => {
+            let mut actions = vec![UiAccessibilityAction::Activate];
+            actions.push(
+                if expanded_state_for(surface, node, Some(metadata)).unwrap_or(false) {
+                    UiAccessibilityAction::Collapse
+                } else {
+                    UiAccessibilityAction::Expand
+                },
+            );
+            actions
+        }
         UiWidgetBehavior::Range => vec![
             UiAccessibilityAction::Increment,
             UiAccessibilityAction::Decrement,
             UiAccessibilityAction::SetValue,
         ],
-        UiWidgetBehavior::TextInput => vec![UiAccessibilityAction::SetValue],
+        UiWidgetBehavior::TextInput => vec![
+            UiAccessibilityAction::SetValue,
+            UiAccessibilityAction::ReplaceSelectedText,
+            UiAccessibilityAction::SetTextSelection,
+        ],
         UiWidgetBehavior::Auto
         | UiWidgetBehavior::Passive
         | UiWidgetBehavior::RadioGroup

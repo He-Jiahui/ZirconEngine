@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{SoundMixBlock, SoundOutputDeviceId};
 
+/// Default output latency target for descriptor builders that do not expose backend tuning yet.
+pub const DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS: usize = 2;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundBackendCapability {
     pub backend: String,
@@ -46,6 +49,15 @@ pub struct SoundOutputDeviceDescriptor {
     pub latency_blocks: usize,
 }
 
+/// Picker-ready output device row that stays backend-neutral across runtime/editor boundaries.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundOutputDeviceInfo {
+    pub descriptor: SoundOutputDeviceDescriptor,
+    pub is_default: bool,
+    pub available: bool,
+    pub diagnostic: Option<String>,
+}
+
 impl SoundOutputDeviceDescriptor {
     pub fn software(
         backend: impl Into<String>,
@@ -60,9 +72,19 @@ impl SoundOutputDeviceDescriptor {
             sample_rate_hz,
             channel_count,
             block_size_frames,
-            latency_blocks: 2,
+            latency_blocks: DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS,
         }
     }
+}
+
+/// Estimated output latency plus optional backend queue diagnostics.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundOutputLatencyStatus {
+    pub requested_latency_blocks: usize,
+    pub estimated_latency_frames: usize,
+    pub estimated_latency_seconds: f64,
+    pub queued_samples: Option<usize>,
+    pub capacity_samples: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,10 +97,12 @@ pub enum SoundOutputDeviceState {
 pub struct SoundOutputDeviceStatus {
     pub descriptor: SoundOutputDeviceDescriptor,
     pub state: SoundOutputDeviceState,
+    pub latency: SoundOutputLatencyStatus,
     pub rendered_blocks: u64,
     pub rendered_frames: u64,
     pub callback_count: u64,
     pub last_callback_sequence: Option<u64>,
     pub underrun_count: u64,
     pub last_error: Option<String>,
+    pub diagnostics: Vec<String>,
 }

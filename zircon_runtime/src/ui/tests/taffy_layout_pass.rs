@@ -2,14 +2,14 @@ use crate::ui::{layout::compute_layout_tree, surface::UiSurface, tree::UiRuntime
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
-        AxisConstraint, BoxConstraints, StretchMode, UiAlignment, UiAlignment2D,
+        Anchor, AxisConstraint, BoxConstraints, Position, StretchMode, UiAlignment, UiAlignment2D,
         UiCanvasSlotPlacement, UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement,
         UiLayoutEngineBackend, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
         UiLayoutEngineSupport, UiLinearBoxConfig, UiLinearSlotSizeRule, UiLinearSlotSizing,
         UiMargin, UiScrollableBoxConfig, UiSize, UiSizeBoxConfig, UiSlot, UiSlotKind,
         UiVirtualListConfig, UiWrapBoxConfig,
     },
-    tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
+    tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode, UiVisibility},
 };
 
 #[test]
@@ -30,9 +30,12 @@ fn layout_pass_routes_supported_containers_through_taffy_arrange() {
     assert!(taffy_arrange.contains("UiContainerKind::WrapBox(_)"));
     assert!(taffy_arrange.contains("UiContainerKind::GridBox(_)"));
     assert!(!taffy_arrange.contains("template_metadata.is_some()"));
+    assert!(!taffy_arrange.contains("UiLayoutEngineFamily::Block"));
+    assert!(!taffy_arrange.contains("Display::Block"));
     assert!(!taffy_arrange.contains("UiContainerKind::Overlay"));
     assert!(!taffy_arrange.contains("UiContainerKind::ScrollableBox"));
     assert!(!taffy_arrange.contains("UiContainerKind::SizeBox"));
+    assert!(!taffy_arrange.contains("UiContainerKind::Container =>"));
 }
 
 #[test]
@@ -229,6 +232,152 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
 }
 
 #[test]
+fn taffy_layout_pass_aggregates_fallback_reason_counts() {
+    let mut tree = tree_with_root(
+        500,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(
+        &mut tree,
+        500,
+        fixed_node(501, Some(60.0), Some(40.0)).with_container(UiContainerKind::Overlay),
+    );
+    insert_child(&mut tree, 501, fixed_node(511, Some(20.0), Some(10.0)));
+    insert_child(
+        &mut tree,
+        500,
+        fixed_node(502, Some(60.0), Some(40.0)).with_container(UiContainerKind::SizeBox(
+            UiSizeBoxConfig { aspect_ratio: 1.0 },
+        )),
+    );
+    insert_child(&mut tree, 502, fixed_node(512, Some(20.0), Some(10.0)));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(120.0, 40.0)).unwrap();
+
+    assert_taffy_native_family(&report, 500, UiLayoutEngineFamily::Flex);
+    assert_zircon_owned_route(&report, 501, UiLayoutEngineFamily::Overlay);
+    assert_zircon_owned_route(&report, 502, UiLayoutEngineFamily::Container);
+    assert_eq!(report.fallback_reason_counts.len(), 1);
+    assert_eq!(
+        report.fallback_reason_counts[0].reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+    assert_eq!(report.fallback_reason_counts[0].count, 2);
+}
+
+#[test]
+fn taffy_layout_pass_aggregates_distinct_fallback_reason_counts() {
+    let mut tree = tree_with_root(510, UiContainerKind::Free);
+    insert_child(
+        &mut tree,
+        510,
+        fixed_node(520, Some(80.0), Some(24.0)).with_container(UiContainerKind::HorizontalBox(
+            UiLinearBoxConfig { gap: 0.0 },
+        )),
+    );
+    insert_child(
+        &mut tree,
+        520,
+        fixed_node(521, Some(20.0), Some(10.0)).with_visibility(UiVisibility::Collapsed),
+    );
+    insert_child(
+        &mut tree,
+        510,
+        fixed_node(530, Some(80.0), Some(24.0)).with_container(UiContainerKind::HorizontalBox(
+            UiLinearBoxConfig { gap: 0.0 },
+        )),
+    );
+    insert_child(
+        &mut tree,
+        530,
+        fixed_node(531, Some(20.0), Some(10.0))
+            .with_anchor(Anchor::new(0.5, 0.0))
+            .with_position(Position::new(4.0, 0.0)),
+    );
+    insert_child(
+        &mut tree,
+        510,
+        fixed_node(540, Some(80.0), Some(24.0)).with_container(UiContainerKind::HorizontalBox(
+            UiLinearBoxConfig { gap: 0.0 },
+        )),
+    );
+    insert_child(&mut tree, 540, fixed_node(541, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(540), UiNodeId::new(541), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(-1.0, 0.0, 0.0, 0.0)),
+    );
+    insert_child(
+        &mut tree,
+        510,
+        fixed_node(550, Some(80.0), Some(24.0)).with_container(UiContainerKind::HorizontalBox(
+            UiLinearBoxConfig { gap: 0.0 },
+        )),
+    );
+    insert_child(&mut tree, 550, fixed_node(551, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(550), UiNodeId::new(551), UiSlotKind::Linear)
+            .with_canvas_placement(UiCanvasSlotPlacement::default()),
+    );
+    insert_child(
+        &mut tree,
+        510,
+        fixed_node(560, Some(80.0), Some(24.0)).with_container(UiContainerKind::Overlay),
+    );
+    insert_child(&mut tree, 560, fixed_node(561, Some(20.0), Some(10.0)));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(120.0, 80.0)).unwrap();
+
+    assert_zircon_owned_route(&report, 510, UiLayoutEngineFamily::Free);
+    assert_fallback_route_reason(
+        &report,
+        520,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::UnsupportedChildVisibility,
+    );
+    assert_fallback_route_reason(
+        &report,
+        530,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::ChildPlacementPolicy,
+    );
+    assert_fallback_route_reason(
+        &report,
+        540,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::SlotFramePolicy,
+    );
+    assert_fallback_route_reason(
+        &report,
+        550,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::SlotCanvasPlacement,
+    );
+    assert_zircon_owned_route(&report, 560, UiLayoutEngineFamily::Overlay);
+    assert_eq!(report.fallback_reason_counts.len(), 5);
+    assert_fallback_reason_count(
+        &report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        2,
+    );
+    assert_fallback_reason_count(
+        &report,
+        UiLayoutEngineFallbackReason::UnsupportedChildVisibility,
+        1,
+    );
+    assert_fallback_reason_count(
+        &report,
+        UiLayoutEngineFallbackReason::ChildPlacementPolicy,
+        1,
+    );
+    assert_fallback_reason_count(&report, UiLayoutEngineFallbackReason::SlotFramePolicy, 1);
+    assert_fallback_reason_count(
+        &report,
+        UiLayoutEngineFallbackReason::SlotCanvasPlacement,
+        1,
+    );
+}
+
+#[test]
 fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     let mut linear = tree_with_root(
         1,
@@ -368,6 +517,99 @@ fn taffy_layout_pass_maps_linear_slot_padding_without_fallback() {
 }
 
 #[test]
+fn taffy_layout_pass_maps_linear_slot_padding_and_cross_axis_alignment_without_fallback() {
+    let mut tree = tree_with_root(
+        182,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 182, fixed_node(183, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(182), UiNodeId::new(183), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0))
+            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    assert_eq!(frame(&tree, 183), UiFrame::new(5.0, 17.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 182, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_vertical_linear_slot_padding_and_cross_axis_alignment_without_fallback() {
+    let mut tree = tree_with_root(
+        184,
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 184, fixed_node(185, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(184), UiNodeId::new(185), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0))
+            .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::Start)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 40.0)).unwrap();
+
+    assert_eq!(frame(&tree, 185), UiFrame::new(53.0, 2.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 184, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_wrap_slot_padding_and_cross_axis_alignment_without_fallback() {
+    let mut tree = tree_with_root(
+        186,
+        UiContainerKind::WrapBox(UiWrapBoxConfig {
+            horizontal_gap: 0.0,
+            vertical_gap: 6.0,
+            item_min_width: 1.0,
+        }),
+    );
+    insert_child(&mut tree, 186, fixed_node(187, Some(30.0), Some(30.0)));
+    insert_child(&mut tree, 186, fixed_node(188, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(186), UiNodeId::new(188), UiSlotKind::Flow)
+            .with_padding(UiMargin::new(5.0, 2.0, 3.0, 4.0))
+            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(100.0, 40.0)).unwrap();
+
+    assert_eq!(frame(&tree, 187), UiFrame::new(0.0, 0.0, 30.0, 30.0));
+    assert_eq!(frame(&tree, 188), UiFrame::new(35.0, 16.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 186, UiLayoutEngineFamily::Wrap);
+}
+
+#[test]
+fn taffy_layout_pass_ignores_flow_slot_linear_sizing_without_fallback() {
+    let mut tree = tree_with_root(
+        460,
+        UiContainerKind::WrapBox(UiWrapBoxConfig {
+            horizontal_gap: 0.0,
+            vertical_gap: 0.0,
+            item_min_width: 1.0,
+        }),
+    );
+    insert_child(&mut tree, 460, fixed_node(461, Some(20.0), Some(10.0)));
+    insert_child(&mut tree, 460, fixed_node(462, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(460), UiNodeId::new(461), UiSlotKind::Flow).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(3.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(460), UiNodeId::new(462), UiSlotKind::Flow).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(100.0, 20.0)).unwrap();
+
+    assert_eq!(frame(&tree, 461), UiFrame::new(0.0, 0.0, 20.0, 10.0));
+    assert_eq!(frame(&tree, 462), UiFrame::new(20.0, 0.0, 20.0, 10.0));
+    assert_taffy_native_family(&report, 460, UiLayoutEngineFamily::Wrap);
+}
+
+#[test]
 fn taffy_layout_pass_rejects_unsupported_slot_padding_values() {
     let mut tree = tree_with_root(
         190,
@@ -385,6 +627,213 @@ fn taffy_layout_pass_rejects_unsupported_slot_padding_values() {
     assert_eq!(
         root.fallback_reason,
         Some(UiLayoutEngineFallbackReason::SlotFramePolicy)
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_non_finite_slot_padding_fallback() {
+    let mut tree = tree_with_root(
+        189,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 189, fixed_node(188, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(189), UiNodeId::new(188), UiSlotKind::Linear)
+            .with_padding(UiMargin::new(f32::INFINITY, 0.0, 0.0, 0.0)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    assert_fallback_route_reason(
+        &report,
+        189,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::SlotFramePolicy,
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_linear_main_axis_slot_alignment_fallback() {
+    let mut tree = tree_with_root(
+        196,
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 196, fixed_node(197, Some(20.0), Some(10.0)));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(196), UiNodeId::new(197), UiSlotKind::Linear)
+            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Center)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let root = selection_for_node(&report, 196);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::SlotFramePolicy)
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_cross_axis_slot_alignment_without_fixed_extent_fallback() {
+    let mut tree = tree_with_root(
+        198,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 198, fixed_node(199, Some(20.0), None));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(198), UiNodeId::new(199), UiSlotKind::Linear)
+            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let root = selection_for_node(&report, 198);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::SlotFramePolicy)
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_axis_constraint_priority_fallback() {
+    let mut tree = tree_with_root(
+        470,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 470, priority_stretch_node(471, 1));
+    insert_child(&mut tree, 470, priority_stretch_node(472, 0));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(100.0, 20.0)).unwrap();
+
+    assert_eq!(frame(&tree, 471), UiFrame::new(0.0, 0.0, 100.0, 10.0));
+    assert_eq!(frame(&tree, 472), UiFrame::new(100.0, 0.0, 0.0, 10.0));
+    assert_fallback_route_reason(
+        &report,
+        470,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::AxisConstraintPriority,
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_non_finite_axis_constraint_fallback() {
+    let mut tree = tree_with_root(
+        480,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 480, fixed_node_with_axis_max(481, f32::INFINITY));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 20.0)).unwrap();
+
+    assert_eq!(frame(&tree, 481), UiFrame::new(0.0, 0.0, 20.0, 10.0));
+    assert_fallback_route_reason(
+        &report,
+        480,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::InvalidLayoutValue,
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_non_finite_linear_slot_sizing_fallback() {
+    let mut tree = tree_with_root(
+        490,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 490, node(491));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(490), UiNodeId::new(491), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
+                .with_value(1.0)
+                .with_max(f32::INFINITY),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 20.0)).unwrap();
+
+    assert_eq!(frame(&tree, 491), UiFrame::new(0.0, 0.0, 80.0, 20.0));
+    assert_fallback_route_reason(
+        &report,
+        490,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::InvalidLayoutValue,
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_non_finite_container_config_fallback() {
+    let mut tree = tree_with_root(
+        495,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: f32::NAN }),
+    );
+    insert_child(&mut tree, 495, fixed_node(496, Some(20.0), Some(10.0)));
+    insert_child(&mut tree, 495, fixed_node(497, Some(20.0), Some(10.0)));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 20.0)).unwrap();
+
+    assert_eq!(frame(&tree, 496), UiFrame::new(0.0, 0.0, 20.0, 10.0));
+    assert_eq!(frame(&tree, 497), UiFrame::new(20.0, 0.0, 20.0, 10.0));
+    assert_fallback_route_reason(
+        &report,
+        495,
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFallbackReason::InvalidLayoutValue,
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_collapsed_child_visibility_fallback() {
+    let mut tree = tree_with_root(
+        192,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(
+        &mut tree,
+        192,
+        fixed_node(193, Some(20.0), Some(10.0)).with_visibility(UiVisibility::Collapsed),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let root = selection_for_node(&report, 192);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::UnsupportedChildVisibility)
+    );
+}
+
+#[test]
+fn taffy_layout_pass_reports_child_placement_policy_fallback() {
+    let mut tree = tree_with_root(
+        194,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(
+        &mut tree,
+        194,
+        fixed_node(195, Some(20.0), Some(10.0))
+            .with_anchor(Anchor::new(0.5, 0.0))
+            .with_position(Position::new(4.0, 0.0)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    let root = selection_for_node(&report, 194);
+    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        root.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ChildPlacementPolicy)
     );
 }
 
@@ -441,6 +890,58 @@ fn taffy_layout_pass_maps_grid_slot_placement_without_fallback() {
 }
 
 #[test]
+fn taffy_layout_pass_maps_grid_slot_span_without_fallback() {
+    let mut tree = tree_with_root(
+        320,
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 3,
+            rows: 2,
+            column_gap: 6.0,
+            row_gap: 4.0,
+        }),
+    );
+    insert_child(&mut tree, 320, node(321));
+    insert_child(&mut tree, 320, node(322));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(320), UiNodeId::new(321), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(0, 0)),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(320), UiNodeId::new(322), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(1, 0).with_span(2, 2)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(156.0, 64.0)).unwrap();
+
+    assert_eq!(frame(&tree, 321), UiFrame::new(0.0, 0.0, 48.0, 30.0));
+    assert_eq!(frame(&tree, 322), UiFrame::new(54.0, 0.0, 102.0, 64.0));
+    assert_taffy_native_family(&report, 320, UiLayoutEngineFamily::Grid);
+}
+
+#[test]
+fn taffy_layout_pass_expands_grid_tracks_for_out_of_bounds_slot_span_without_fallback() {
+    let mut tree = tree_with_root(
+        330,
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 1,
+            rows: 1,
+            column_gap: 6.0,
+            row_gap: 5.0,
+        }),
+    );
+    insert_child(&mut tree, 330, node(331));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(330), UiNodeId::new(331), UiSlotKind::Grid)
+            .with_grid_placement(UiGridSlotPlacement::new(1, 1).with_span(2, 2)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(156.0, 100.0)).unwrap();
+
+    assert_eq!(frame(&tree, 331), UiFrame::new(54.0, 35.0, 102.0, 65.0));
+    assert_taffy_native_family(&report, 330, UiLayoutEngineFamily::Grid);
+}
+
+#[test]
 fn taffy_layout_pass_maps_grid_slot_padding_and_alignment_without_fallback() {
     let mut tree = tree_with_root(
         350,
@@ -463,6 +964,33 @@ fn taffy_layout_pass_maps_grid_slot_padding_and_alignment_without_fallback() {
 
     assert_eq!(frame(&tree, 351), UiFrame::new(83.0, 67.0, 20.0, 10.0));
     assert_taffy_native_family(&report, 350, UiLayoutEngineFamily::Grid);
+}
+
+#[test]
+fn taffy_layout_pass_reports_grid_slot_alignment_without_fixed_extent_fallback() {
+    let mut tree = tree_with_root(
+        360,
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 1,
+            rows: 1,
+            column_gap: 0.0,
+            row_gap: 0.0,
+        }),
+    );
+    insert_child(&mut tree, 360, node(361));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(360), UiNodeId::new(361), UiSlotKind::Grid)
+            .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Start)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
+
+    assert_fallback_route_reason(
+        &report,
+        360,
+        UiLayoutEngineFamily::Grid,
+        UiLayoutEngineFallbackReason::SlotFramePolicy,
+    );
 }
 
 #[test]
@@ -493,6 +1021,202 @@ fn taffy_layout_pass_maps_linear_slot_sizing_without_fallback() {
     assert_eq!(root.support, UiLayoutEngineSupport::Native);
 }
 
+#[test]
+fn taffy_layout_pass_maps_vertical_linear_slot_sizing_without_fallback() {
+    let mut tree = tree_with_root(
+        440,
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 440, node(441));
+    insert_child(&mut tree, 440, node(442));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(440), UiNodeId::new(441), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(440), UiNodeId::new(442), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(60.0, 300.0)).unwrap();
+
+    assert_eq!(frame(&tree, 441), UiFrame::new(0.0, 0.0, 60.0, 200.0));
+    assert_eq!(frame(&tree, 442), UiFrame::new(0.0, 200.0, 60.0, 100.0));
+    assert_taffy_native_family(&report, 440, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_linear_auto_slot_sizing_without_fallback() {
+    let mut tree = tree_with_root(
+        410,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(
+        &mut tree,
+        410,
+        node(411).with_template_metadata(metadata_with_attributes(
+            "Label",
+            r#"
+text = "Hello"
+font_size = 10.0
+line_height = 12.0
+"#,
+        )),
+    );
+    insert_child(
+        &mut tree,
+        410,
+        node(412).with_template_metadata(metadata_with_attributes(
+            "Label",
+            r#"
+text = "Go"
+font_size = 10.0
+line_height = 12.0
+"#,
+        )),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(410), UiNodeId::new(411), UiSlotKind::Linear)
+            .with_linear_sizing(UiLinearSlotSizing::new(UiLinearSlotSizeRule::Auto)),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(410), UiNodeId::new(412), UiSlotKind::Linear)
+            .with_linear_sizing(UiLinearSlotSizing::new(UiLinearSlotSizeRule::Auto)),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(100.0, 30.0)).unwrap();
+
+    let first = tree.node(UiNodeId::new(411)).expect("first auto node");
+    assert_eq!(first.layout_cache.desired_size.width, 25.0);
+    assert_eq!(first.layout_cache.frame, UiFrame::new(0.0, 0.0, 25.0, 30.0));
+    let second = tree.node(UiNodeId::new(412)).expect("second auto node");
+    assert_eq!(second.layout_cache.desired_size.width, 10.0);
+    assert_eq!(
+        second.layout_cache.frame,
+        UiFrame::new(25.0, 0.0, 10.0, 30.0)
+    );
+    assert_taffy_native_family(&report, 410, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_linear_stretch_content_slot_sizing_without_fallback() {
+    let mut tree = tree_with_root(
+        420,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(
+        &mut tree,
+        420,
+        node(421).with_template_metadata(metadata_with_attributes(
+            "Label",
+            r#"
+text = "Hello"
+font_size = 10.0
+line_height = 12.0
+"#,
+        )),
+    );
+    insert_child(
+        &mut tree,
+        420,
+        node(422).with_template_metadata(metadata_with_attributes(
+            "Label",
+            r#"
+text = "Go"
+font_size = 10.0
+line_height = 12.0
+"#,
+        )),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(420), UiNodeId::new(421), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::StretchContent).with_value(1.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(420), UiNodeId::new(422), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::StretchContent).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(95.0, 30.0)).unwrap();
+
+    let first = tree
+        .node(UiNodeId::new(421))
+        .expect("first stretch-content node");
+    assert_eq!(first.layout_cache.desired_size.width, 25.0);
+    assert_eq!(first.layout_cache.frame, UiFrame::new(0.0, 0.0, 55.0, 30.0));
+    let second = tree
+        .node(UiNodeId::new(422))
+        .expect("second stretch-content node");
+    assert_eq!(second.layout_cache.desired_size.width, 10.0);
+    assert_eq!(
+        second.layout_cache.frame,
+        UiFrame::new(55.0, 0.0, 40.0, 30.0)
+    );
+    assert_taffy_native_family(&report, 420, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_linear_slot_sizing_bounds_without_fallback() {
+    let mut tree = tree_with_root(
+        430,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 430, node(431));
+    insert_child(&mut tree, 430, node(432));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(430), UiNodeId::new(431), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
+                .with_value(1.0)
+                .with_min(80.0)
+                .with_max(90.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(430), UiNodeId::new(432), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(200.0, 30.0)).unwrap();
+
+    assert_eq!(frame(&tree, 431), UiFrame::new(0.0, 0.0, 90.0, 30.0));
+    assert_eq!(frame(&tree, 432), UiFrame::new(90.0, 0.0, 110.0, 30.0));
+    assert_taffy_native_family(&report, 430, UiLayoutEngineFamily::Flex);
+}
+
+#[test]
+fn taffy_layout_pass_maps_vertical_linear_slot_sizing_bounds_without_fallback() {
+    let mut tree = tree_with_root(
+        450,
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 450, node(451));
+    insert_child(&mut tree, 450, node(452));
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(450), UiNodeId::new(451), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
+                .with_value(1.0)
+                .with_min(80.0)
+                .with_max(90.0),
+        ),
+    );
+    tree.slots.push(
+        UiSlot::new(UiNodeId::new(450), UiNodeId::new(452), UiSlotKind::Linear).with_linear_sizing(
+            UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
+        ),
+    );
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(60.0, 200.0)).unwrap();
+
+    assert_eq!(frame(&tree, 451), UiFrame::new(0.0, 0.0, 60.0, 90.0));
+    assert_eq!(frame(&tree, 452), UiFrame::new(0.0, 90.0, 60.0, 110.0));
+    assert_taffy_native_family(&report, 450, UiLayoutEngineFamily::Flex);
+}
+
 fn tree_with_root(root_id: u64, container: UiContainerKind) -> UiTree {
     let mut tree = UiTree::new(UiTreeId::new(format!("taffy.layout.{root_id}")));
     tree.insert_root(node(root_id).with_container(container));
@@ -516,6 +1240,34 @@ fn fixed_node(id: u64, width: Option<f32>, height: Option<f32>) -> UiTreeNode {
     if let Some(height) = height {
         constraints.height = fixed_axis(height);
     }
+    node(id).with_constraints(constraints)
+}
+
+fn priority_stretch_node(id: u64, width_priority: i32) -> UiTreeNode {
+    let mut constraints = BoxConstraints::default();
+    constraints.width = AxisConstraint {
+        min: 0.0,
+        max: -1.0,
+        preferred: 0.0,
+        priority: width_priority,
+        weight: 1.0,
+        stretch_mode: StretchMode::Stretch,
+    };
+    constraints.height = fixed_axis(10.0);
+    node(id).with_constraints(constraints)
+}
+
+fn fixed_node_with_axis_max(id: u64, max: f32) -> UiTreeNode {
+    let mut constraints = BoxConstraints::default();
+    constraints.width = AxisConstraint {
+        min: 0.0,
+        max,
+        preferred: 20.0,
+        priority: 0,
+        weight: 1.0,
+        stretch_mode: StretchMode::Fixed,
+    };
+    constraints.height = fixed_axis(10.0);
     node(id).with_constraints(constraints)
 }
 
@@ -573,4 +1325,46 @@ fn assert_taffy_native_family(
     assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Taffy);
     assert_eq!(selection.support, UiLayoutEngineSupport::Native);
     assert_eq!(selection.fallback_reason, None);
+}
+
+fn assert_zircon_owned_route(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+    node_id: u64,
+    family: UiLayoutEngineFamily,
+) {
+    assert_fallback_route_reason(
+        report,
+        node_id,
+        family,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+    );
+}
+
+fn assert_fallback_route_reason(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+    node_id: u64,
+    family: UiLayoutEngineFamily,
+    reason: UiLayoutEngineFallbackReason,
+) {
+    let selection = selection_for_node(report, node_id);
+    assert_eq!(selection.request.family, family);
+    assert_eq!(
+        selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(selection.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(selection.fallback_reason, Some(reason));
+}
+
+fn assert_fallback_reason_count(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+    reason: UiLayoutEngineFallbackReason,
+    count: u64,
+) {
+    let reason_count = report
+        .fallback_reason_counts
+        .iter()
+        .find(|reason_count| reason_count.reason == Some(reason))
+        .expect("fallback reason count");
+    assert_eq!(reason_count.count, count);
 }

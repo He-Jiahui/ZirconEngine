@@ -14,7 +14,10 @@ use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
 };
-use super::super::layouts::{create_model_bind_group_layout, create_texture_bind_group_layout};
+use super::super::layouts::{
+    create_material_bind_group_layout, create_model_bind_group_layout,
+    create_texture_bind_group_layout,
+};
 use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
 impl SceneRendererCore {
@@ -30,6 +33,7 @@ impl SceneRendererCore {
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
         let model_bind_group_layout = create_model_bind_group_layout(device);
         let texture_bind_group_layout = create_texture_bind_group_layout(device);
+        let material_bind_group_layout = create_material_bind_group_layout(device);
 
         let mesh_pipelines = MeshPipelineCache::new(
             device,
@@ -37,6 +41,7 @@ impl SceneRendererCore {
             &scene_bind_group_bundle.layout,
             &model_bind_group_layout,
             &texture_bind_group_layout,
+            &material_bind_group_layout,
         );
         let normal_prepass = NormalPrepassPipeline::new(
             device,
@@ -48,6 +53,7 @@ impl SceneRendererCore {
             &scene_bind_group_bundle.layout,
             &model_bind_group_layout,
             &texture_bind_group_layout,
+            &material_bind_group_layout,
             target_format,
         );
         let particle_renderer =
@@ -79,6 +85,7 @@ impl SceneRendererCore {
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
             scene_bind_group: scene_bind_group_bundle.bind_group,
             model_bind_group_layout,
+            material_bind_group_layout,
             mesh_pipelines,
             normal_prepass,
             deferred,

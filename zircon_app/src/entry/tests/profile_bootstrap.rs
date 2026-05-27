@@ -40,10 +40,12 @@ use zircon_runtime::{
     scene::create_default_level,
 };
 use zircon_runtime::{
-    plugin::PluginModuleKind, plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
+    plugin::CapabilityStatus, plugin::PluginMaturity, plugin::PluginModuleKind,
+    plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
 };
 use zircon_runtime::{
-    plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin, plugin::RuntimePluginDescriptor,
+    plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin,
+    plugin::RuntimePluginAvailabilityCategory, plugin::RuntimePluginDescriptor,
     plugin::RuntimePluginRegistrationReport,
 };
 
@@ -171,6 +173,67 @@ fn runtime_profile_bootstrap_uses_linked_first_party_provider_registrations() {
 
 #[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
 #[test]
+fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status() {
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+    let sound = registrations
+        .iter()
+        .find(|registration| registration.package_manifest.id == "sound")
+        .expect("client_2d linked providers should include sound");
+
+    assert_eq!(sound.package_manifest.maturity, PluginMaturity::Beta);
+    assert!(sound
+        .package_manifest
+        .capability_statuses
+        .iter()
+        .any(|status| {
+            status.capability == "runtime.plugin.sound"
+                && status.status == CapabilityStatus::Partial
+        }));
+    assert!(sound
+        .extensions
+        .modules()
+        .iter()
+        .any(|module| { module.name == "SoundModule" }));
+    assert!(sound
+        .extensions
+        .plugin_options()
+        .iter()
+        .any(|option| option.key == "sound.global_volume_gain"));
+    assert!(sound
+        .extensions
+        .plugin_event_catalogs()
+        .iter()
+        .any(|catalog| catalog.namespace == "sound.dynamic_events"));
+}
+
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[test]
+fn runtime_profile_feature_bootstrap_uses_profile_level_provider_availability() {
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+
+    let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+        &config,
+        registrations,
+        std::iter::empty::<zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport>(),
+    )
+    .expect("client_2d profile should use linked providers during feature-aware bootstrap");
+
+    let descriptors = entry.module_descriptors();
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "SoundModule"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "RenderingPluginModule"));
+    assert!(descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "TextureModule"));
+}
+
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[test]
 fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
         .with_optional_runtime_plugins([
@@ -212,6 +275,40 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
     assert!(descriptors
         .iter()
         .any(|descriptor| descriptor.name == "ParticlesModule"));
+
+    let feature_aware_entry =
+        BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+            &config,
+            registrations,
+            std::iter::empty::<zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport>(),
+        )
+        .expect("feature-aware bootstrap should preserve profile manifest optional providers");
+    let feature_aware_descriptors = feature_aware_entry.module_descriptors();
+    let feature_aware_report = feature_aware_entry.module_selection_report();
+
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "AnimationModule"));
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "NetModule"));
+    assert!(feature_aware_descriptors
+        .iter()
+        .any(|descriptor| descriptor.name == "ParticlesModule"));
+    for expected in [
+        RuntimePluginId::Animation,
+        RuntimePluginId::Net,
+        RuntimePluginId::Particles,
+    ] {
+        assert!(
+            feature_aware_report
+                .runtime_plugin_availability
+                .linked
+                .iter()
+                .any(|entry| entry.runtime_id == expected),
+            "feature-aware report should surface linked {expected:?}"
+        );
+    }
 }
 
 #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
@@ -696,6 +793,21 @@ target_modes = ["client_runtime"]
     assert!(ManagerResolver::new(bootstrap.clone_core())
         .rendering()
         .is_ok());
+    assert!(bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .contains(
+            RuntimePluginAvailabilityCategory::NativeDynamic,
+            RuntimePluginId::VirtualGeometry
+        ));
+    assert!(!bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .has_missing_required());
+    assert!(bootstrap
+        .module_selection_report()
+        .module_keys()
+        .contains(&"virtual_geometry.runtime"));
     assert!(bootstrap
         .native_plugin_host()
         .loaded_plugin_ids(PluginModuleKind::Runtime)

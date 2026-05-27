@@ -255,10 +255,10 @@ fn runtime_disabled_button_suppresses_pointer_press_and_activation() {
 fn runtime_disabled_button_suppresses_keyboard_activation() {
     let mut surface =
         bound_button_surface(vec![binding("MaterialButton/Activate", UiEventKind::Click)]);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
     surface
         .component_states
         .set_value(UiNodeId::new(2), "disabled", UiValue::Bool(true));
-    surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = surface
         .dispatch_input_event(
@@ -275,6 +275,7 @@ fn runtime_disabled_button_suppresses_keyboard_activation() {
 #[test]
 fn runtime_disabled_toggle_suppresses_pointer_and_keyboard_mutation() {
     let mut surface = authored_toggle_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
     surface
         .component_states
         .set_value(UiNodeId::new(2), "disabled", UiValue::Bool(true));
@@ -304,7 +305,6 @@ fn runtime_disabled_toggle_suppresses_pointer_and_keyboard_mutation() {
     assert_eq!(metadata.attributes["selected"].as_bool(), Some(false));
     assert!(pointer_result.component_events.is_empty());
 
-    surface.focus_node(UiNodeId::new(2)).unwrap();
     let keyboard_result = surface
         .dispatch_input_event(
             &UiPointerDispatcher::default(),

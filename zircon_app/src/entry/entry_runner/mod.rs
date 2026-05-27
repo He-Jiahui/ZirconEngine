@@ -7,7 +7,7 @@ mod runtime;
 #[cfg(feature = "platform-winit")]
 mod runtime_session_args;
 
-pub use bootstrap::NativePluginRuntimeBootstrap;
+pub use bootstrap::{EntryRuntimeBootstrap, NativePluginRuntimeBootstrap};
 
 #[derive(Debug, Default)]
 pub struct EntryRunner;

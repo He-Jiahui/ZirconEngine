@@ -58,11 +58,21 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "overlay / inline", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "overlay / inline", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 112, preferred = 112, max = 112, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Container"
+component = "Skeleton"
 control_id = "skeleton_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Skeleton", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiSkeleton-root"]
+props = { text = "", className = "material-skeleton-sample", component = "span", variant = "rounded", animation = "wave", width = 144.0, height = 20.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "skeleton_child" },
+]
+
+[nodes.skeleton_child]
+component = "Label"
+control_id = "skeleton_Child"
+classes = ["material-skeleton-child"]
+props = { text = "Loading", text_tone = "secondary", surface_variant = "elevated", validation_level = "normal", corner_radius = 8.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 70.0, preferred = 84.0, max = 96.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

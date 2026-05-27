@@ -7,7 +7,7 @@ import {
 } from "shared.slint";
 import { HubTokens } from "tokens.slint";
 import { PageScrollSurface } from "layout.slint";
-import { HubPanel, PanelHeader, StatusBadge } from "surfaces.slint";
+import { EmptyStateBlock, HubPanel, PanelHeader, StatusBadge } from "surfaces.slint";
 import {
     ListTile,
     MaterialPalette,
@@ -28,13 +28,14 @@ export component InfoRow inherits Rectangle {
     in property <string> trailing-text;
     in property <string> trailing-tone: "neutral";
     in property <bool> show-trailing-badge: false;
+    in property <bool> collapse-trailing-label: false;
     in property <bool> show-arrow: false;
     in property <bool> enabled: true;
     in property <bool> selected: false;
     in property <length> row-height: HubTokens.list-row-md;
     callback clicked;
 
-    private property <length> trailing-slot-width: root.show-trailing-badge ? (root.show-arrow ? HubTokens.control-md * 4 : HubTokens.control-md * 3) : (root.show-arrow ? HubTokens.control-md : 0px);
+    private property <length> trailing-slot-width: root.show-trailing-badge ? (root.collapse-trailing-label ? (root.show-arrow ? HubTokens.control-md : 0px) : (root.show-arrow ? HubTokens.control-md * 4 : HubTokens.control-md * 3)) : (root.show-arrow ? HubTokens.control-md : 0px);
     private property <length> trailing-icon-size: max(MaterialStyleMetrics.size_32, min(HubTokens.control-md, root.row-height * 7 / 12));
     private property <color> avatar-background: root.accent == 0 ? MaterialPalette.primary_container : (root.accent == 1 ? MaterialPalette.secondary_container : (root.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_highest));
     private property <color> avatar-foreground: root.accent == 0 ? MaterialPalette.primary : (root.accent == 1 ? MaterialPalette.secondary : (root.accent == 2 ? MaterialPalette.tertiary : MaterialPalette.on_surface_variant));
@@ -82,7 +83,7 @@ export component InfoRow inherits Rectangle {
                     spacing: HubTokens.space-2;
                     alignment: end;
 
-                    if root.show-trailing-badge: StatusBadge {
+                    if root.show-trailing-badge && !root.collapse-trailing-label: StatusBadge {
                         text: root.trailing-text;
                         tone: root.trailing-tone;
                     }
@@ -172,8 +173,46 @@ export component ActionRow inherits Rectangle {
     }
 }
 
+export component MetricCard inherits HubPanel {
+    in property <string> label;
+    in property <string> primary;
+    in property <string> secondary;
+    in property <bool> compact: false;
+
+    min-height: root.compact ? HubTokens.list-row-md + HubTokens.space-2 : HubTokens.list-row-md;
+    horizontal-stretch: 1;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_16;
+        padding-top: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_16;
+        padding-bottom: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_16;
+        spacing: root.compact ? HubTokens.space-1 : MaterialStyleMetrics.spacing_6;
+
+        MutedText {
+            text: root.label;
+            overflow: elide;
+        }
+
+        MaterialText {
+            text: root.primary;
+            overflow: elide;
+            color: MaterialPalette.on_surface;
+            style: MaterialTypography.title_small;
+        }
+
+        MutedText {
+            text: root.secondary;
+            overflow: elide;
+        }
+    }
+}
+
 export component BuildHistoryRow inherits InfoRow {
     in property <SourceBuildHistoryRowData> record;
+    in property <bool> collapse-label: false;
 
     row-height: HubTokens.list-row-md;
     title: root.record.detail;
@@ -184,6 +223,7 @@ export component BuildHistoryRow inherits InfoRow {
     trailing-text: root.record.status;
     trailing-tone: root.record.success ? "ok" : "error";
     show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
 }
 
 export component TableColumnHeader inherits Rectangle {
@@ -235,7 +275,7 @@ export component ProjectTableRow inherits Rectangle {
         color: root.project.selected ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
         border_radius: MaterialStyleMetrics.border_radius_8;
         clicked => {
-            root.select(root.project.project-path);
+            root.select(root.project.open-path);
         }
     }
 
@@ -323,10 +363,10 @@ export component ProjectTableRow inherits Rectangle {
         IconButton {
             width: root.action-size;
             height: root.action-size;
-            icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
+            icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
             has-icon-image: true;
             clicked => {
-                root.open(root.project.project-path);
+                root.open(root.project.open-path);
             }
         }
     }
@@ -356,6 +396,7 @@ export component DataTable inherits Rectangle {
     in property <length> location-min-width: HubTokens.control-md * 3;
 
     private property <length> scroll-y: 0px;
+    private property <length> table-content-height: root.row-count == 0 ? root.row-height + root.row-gap * 4 : root.row-count * root.row-height + (root.row-count - 1) * root.row-gap + root.row-gap * 4;
 
     clip: true;
     background: transparent;
@@ -411,7 +452,7 @@ export component DataTable inherits Rectangle {
             vertical-stretch: 1;
             viewport_y <=> root.scroll-y;
             viewport_width: table-scroll.visible_width;
-            viewport_height: max(table-scroll.visible_height, root.row-count * (root.row-height + root.row-gap) + root.row-gap * 4);
+            viewport_height: max(table-scroll.visible_height, root.table-content-height);
             vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
             horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 
@@ -447,8 +488,12 @@ export component DataTable inherits Rectangle {
                         }
                     }
 
-                    if root.row-count == 0: MutedText {
-                        text: root.empty-text;
+                    if root.row-count == 0: EmptyStateBlock {
+                        horizontal-stretch: 1;
+                        height: max(root.row-height, table-scroll.visible_height);
+                        title: root.empty-text;
+                        body-padding: root.row-gap;
+                        center-content: true;
                     }
                 }
             }
@@ -467,7 +512,8 @@ export component CatalogListPanel inherits HubPanel {
     in property <length> row-height: HubTokens.list-row-lg;
     horizontal-stretch: 1;
     vertical-stretch: 1;
-    min-height: HubTokens.list-row-lg * 4;
+    min-height: root.row-height * 4;
+    private property <length> catalog-content-height: root.row-count == 0 ? root.row-height + HubTokens.space-4 : root.row-count * root.row-height + (root.row-count - 1) * HubTokens.space-2 + HubTokens.space-2;
 
     VerticalLayout {
         width: parent.width;
@@ -487,7 +533,7 @@ export component CatalogListPanel inherits HubPanel {
             vertical-stretch: 1;
             viewport_y <=> root.scroll-y;
             viewport_width: catalog-scroll.visible_width;
-            viewport_height: max(catalog-scroll.visible_height, (root.row-count == 0 ? HubTokens.list-row-lg + HubTokens.space-4 : root.row-count * (root.row-height + HubTokens.space-2) + HubTokens.space-2));
+            viewport_height: max(catalog-scroll.visible_height, root.catalog-content-height);
             vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
             horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 
@@ -503,28 +549,14 @@ export component CatalogListPanel inherits HubPanel {
                     padding-bottom: HubTokens.space-1;
                     spacing: HubTokens.space-2;
 
-                    if root.row-count == 0: Rectangle {
+                    if root.row-count == 0: EmptyStateBlock {
                         horizontal-stretch: 1;
-                        height: HubTokens.list-row-lg + HubTokens.space-2;
-
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding: MaterialStyleMetrics.padding_14;
-                            spacing: MaterialStyleMetrics.spacing_6;
-
-                            MaterialText {
-                                text: root.empty-title;
-                                overflow: elide;
-                                color: MaterialPalette.on_surface;
-                                style: MaterialTypography.label_large;
-                            }
-
-                            if root.empty-detail != "": MutedText {
-                                text: root.empty-detail;
-                                overflow: elide;
-                            }
-                        }
+                        height: max(root.row-height + HubTokens.space-2, catalog-scroll.visible_height);
+                        title: root.empty-title;
+                        detail: root.empty-detail;
+                        body-padding: MaterialStyleMetrics.padding_14;
+                        body-spacing: MaterialStyleMetrics.spacing_6;
+                        center-content: true;
                     }
 
                     @children
@@ -534,8 +566,7 @@ export component CatalogListPanel inherits HubPanel {
     }
 }
 
-export component CatalogPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+export component CatalogPage inherits PageScrollSurface {
     in-out property <length> list-scroll-y: 0px;
     in property <string> title;
     in property <string> badge-text;
@@ -544,29 +575,28 @@ export component CatalogPage inherits Rectangle {
     in property <string> empty-detail;
     in property <int> row-count;
     in property <length> row-height: HubTokens.list-row-lg;
-    private property <length> content-height: page-surface.content-height;
-    private property <length> panel-height: max(HubTokens.list-row-lg * 4, root.content-height);
+    private property <length> row-slot-height: root.row-height + HubTokens.space-2;
+    private property <length> panel-chrome-height: HubTokens.space-4 * 2 + HubTokens.control-md + HubTokens.toolbar-gap;
+    private property <length> fit-list-height: max(root.row-slot-height, root.content-height - root.panel-chrome-height);
+    private property <int> fit-row-count: Math.floor(root.fit-list-height / root.row-slot-height);
+    private property <int> visible-row-count: root.fit-row-count < 1 ? 1 : root.fit-row-count;
+    private property <length> fitted-panel-height: root.panel-chrome-height + root.visible-row-count * root.row-slot-height;
+    private property <length> panel-height: root.row-count > root.visible-row-count ? root.fitted-panel-height : root.content-height;
 
     background: HubTokens.surface-page;
 
-    page-surface := PageScrollSurface {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
+    CatalogListPanel {
+        scroll-y <=> root.list-scroll-y;
+        height: root.panel-height;
+        title: root.title;
+        badge-text: root.badge-text;
+        badge-tone: root.badge-tone;
+        empty-title: root.empty-title;
+        empty-detail: root.empty-detail;
+        row-count: root.row-count;
+        row-height: root.row-height;
 
-        CatalogListPanel {
-            scroll-y <=> root.list-scroll-y;
-            height: root.panel-height;
-            title: root.title;
-            badge-text: root.badge-text;
-            badge-tone: root.badge-tone;
-            empty-title: root.empty-title;
-            empty-detail: root.empty-detail;
-            row-count: root.row-count;
-            row-height: root.row-height;
-
-            @children
-        }
+        @children
     }
 }
 
@@ -578,14 +608,13 @@ export component PanelListViewport inherits ScrollView {
     in property <length> vertical-padding: HubTokens.space-1;
     in property <length> empty-height: HubTokens.list-row-lg + HubTokens.space-4;
 
+    private property <length> list-content-height: root.row-count == 0 ? root.empty-height : root.row-count * root.row-height + (root.row-count - 1) * root.row-spacing + root.vertical-padding * 2;
+
     horizontal-stretch: 1;
     vertical-stretch: 1;
     viewport_y <=> root.scroll-y;
     viewport_width: root.visible_width;
-    viewport_height: max(
-        root.visible_height,
-        root.row-count == 0 ? root.empty-height : root.row-count * (root.row-height + root.row-spacing) + root.vertical-padding * 2,
-    );
+    viewport_height: max(root.visible_height, root.list-content-height);
     vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
     horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 

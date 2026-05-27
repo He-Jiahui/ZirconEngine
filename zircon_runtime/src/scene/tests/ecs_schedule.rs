@@ -198,6 +198,52 @@ fn schedule_rejects_duplicate_and_blank_system_ids() {
 }
 
 #[test]
+fn schedule_rejects_duplicate_native_and_builtin_system_ids() {
+    let mut world = crate::scene::World::empty();
+    let duplicate_builtin = world
+        .register_native_system::<(), _>("zircon.scene.node_cache", SystemStage::Update, 0, |_| {})
+        .unwrap_err();
+    assert!(duplicate_builtin
+        .to_string()
+        .contains("system zircon.scene.node_cache already registered"));
+
+    world
+        .register_native_system::<(), _>("gameplay.first", SystemStage::Update, 0, |_| {})
+        .unwrap();
+    let duplicate_native = world
+        .register_native_system::<(), _>("gameplay.first", SystemStage::Update, 1, |_| {})
+        .unwrap_err();
+    assert!(duplicate_native
+        .to_string()
+        .contains("system gameplay.first already registered"));
+}
+
+#[test]
+fn native_system_registration_reports_missing_required_resources() {
+    let mut world = crate::scene::World::empty();
+    let error = world
+        .register_native_system::<crate::scene::ecs::ResParam<MissingScheduleResource>, _>(
+            "gameplay.requires_missing_resource",
+            SystemStage::Update,
+            0,
+            |_: crate::scene::ecs::Res<'_, MissingScheduleResource>| {},
+        )
+        .unwrap_err();
+
+    assert!(error
+        .to_string()
+        .contains("system gameplay.requires_missing_resource failed to initialize params"));
+    assert!(error
+        .to_string()
+        .contains(std::any::type_name::<MissingScheduleResource>()));
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct MissingScheduleResource;
+
+impl crate::scene::ecs::Resource for MissingScheduleResource {}
+
+#[test]
 fn schedule_conflict_graph_reports_component_write_conflicts_in_same_stage() {
     let mut world = World::empty();
     world.spawn((ScheduleHealth(1), SchedulePlayer)).unwrap();
@@ -1001,6 +1047,70 @@ fn world_driver_runs_native_render_extract_system_before_render_extract_hooks() 
     assert!(!level.with_world(|world| world.has_pending_scene_systems()));
 }
 
+#[test]
+fn world_driver_orders_native_systems_with_plugin_hooks() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+
+    {
+        let events = events.clone();
+        level
+            .with_world_mut(|world| {
+                world.register_native_system::<(), _>(
+                    "gameplay.native.before-hook",
+                    SystemStage::Update,
+                    -1,
+                    move |()| {
+                        events
+                            .lock()
+                            .unwrap()
+                            .push("native-before-hook".to_string())
+                    },
+                )
+            })
+            .unwrap();
+    }
+    {
+        let events = events.clone();
+        level
+            .with_world_mut(|world| {
+                world.register_native_system::<(), _>(
+                    "gameplay.native.after-hook",
+                    SystemStage::Update,
+                    1,
+                    move |()| events.lock().unwrap().push("native-after-hook".to_string()),
+                )
+            })
+            .unwrap();
+    }
+
+    let mut registry = RuntimeExtensionRegistry::default();
+    registry
+        .register_scene_hook(SceneRuntimeHookRegistration::new(
+            SceneRuntimeHookDescriptor::new("weather.scene.update", "weather", SystemStage::Update)
+                .with_order(0),
+            RecordingUpdateHook {
+                events: events.clone(),
+            },
+        ))
+        .unwrap();
+    runtime.install_scene_runtime_hooks(&registry).unwrap();
+
+    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec![
+            "native-before-hook".to_string(),
+            "hook".to_string(),
+            "native-after-hook".to_string(),
+        ]
+    );
+}
+
 #[derive(Debug)]
 struct RecordingPostUpdateHook {
     cube: u64,
@@ -1010,6 +1120,20 @@ struct RecordingPostUpdateHook {
 #[derive(Debug)]
 struct RecordingRenderExtractHook {
     events: Arc<Mutex<Vec<String>>>,
+}
+
+#[derive(Debug)]
+struct RecordingUpdateHook {
+    events: Arc<Mutex<Vec<String>>>,
+}
+
+impl SceneRuntimeHook for RecordingUpdateHook {
+    fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
+        context.level.with_world_mut(|_| {
+            self.events.lock().unwrap().push("hook".to_string());
+        });
+        Ok(())
+    }
 }
 
 impl SceneRuntimeHook for RecordingRenderExtractHook {

@@ -260,6 +260,42 @@ fn register_ready_is_idempotent_for_unchanged_records() {
 }
 
 #[test]
+fn register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://materials/diagnostic.zmaterial");
+    let id = ResourceId::from_locator(&locator);
+    let diagnostic = ResourceDiagnostic::error("shader contract warning");
+    let record = ResourceRecord::new(id, ResourceKind::Material, locator.clone())
+        .with_diagnostics(vec![diagnostic.clone()]);
+
+    manager.register_ready(record, TestPayload { name: "material" });
+
+    assert_eq!(
+        manager
+            .registry()
+            .get(id)
+            .expect("record exists")
+            .diagnostics,
+        vec![diagnostic]
+    );
+
+    manager.register_ready(
+        ResourceRecord::new(id, ResourceKind::Material, locator),
+        TestPayload { name: "material" },
+    );
+
+    assert!(
+        manager
+            .registry()
+            .get(id)
+            .expect("record exists")
+            .diagnostics
+            .is_empty(),
+        "a clean ready record must replace stale diagnostics"
+    );
+}
+
+#[test]
 fn register_ready_bumps_revision_when_dependency_ids_change() {
     let manager = ResourceManager::new();
     let events = manager.subscribe();

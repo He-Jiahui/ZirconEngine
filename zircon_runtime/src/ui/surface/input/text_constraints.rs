@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
 use super::super::surface::UiSurface;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct TextInputConstraints {
+pub(crate) struct TextInputConstraints {
     max_graphemes: Option<usize>,
     filter: TextInputFilter,
     multiline: bool,
@@ -23,11 +23,11 @@ impl Default for TextInputConstraints {
 }
 
 impl TextInputConstraints {
-    pub(super) fn allows_multiline(self) -> bool {
+    pub(crate) fn allows_multiline(self) -> bool {
         self.multiline
     }
 
-    pub(super) fn sanitize_replacement(
+    pub(crate) fn sanitize_replacement(
         self,
         current_text: &str,
         replaced_range: UiTextRange,
@@ -82,7 +82,7 @@ impl TextInputFilter {
     }
 }
 
-pub(super) fn text_input_constraints_for_node(
+pub(crate) fn text_input_constraints_for_node(
     surface: &UiSurface,
     target: UiNodeId,
 ) -> TextInputConstraints {

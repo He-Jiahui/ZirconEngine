@@ -50,6 +50,18 @@ value_type = "integer"
 default_value = "2"
 
 [[options]]
+key = "sound.global_volume_gain"
+display_name = "Global Volume"
+value_type = "number"
+default_value = "1.0"
+
+[[options]]
+key = "sound.default_spatial_scale"
+display_name = "Default Spatial Scale"
+value_type = "number"
+default_value = "1.0"
+
+[[options]]
 key = "sound.block_size_frames"
 display_name = "Block Size"
 value_type = "integer"

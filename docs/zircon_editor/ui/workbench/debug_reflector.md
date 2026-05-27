@@ -1,11 +1,14 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/ecs.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
   - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
@@ -31,11 +34,14 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/tests.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/ecs.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
   - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
@@ -65,17 +71,22 @@ plan_sources:
   - docs/superpowers/plans/2026-05-07-debug-observatory-m0-m1.md
   - docs/superpowers/specs/2026-05-06-ui-debug-reflector-full-closure-design.md
   - docs/superpowers/plans/2026-05-06-ui-debug-reflector-full-closure.md
+  - .codex/plans/ZirconEngine UITextInputA11y 缺口收束计划.md
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
   - user: 2026-05-08 register the debug window tool in the Window/window surface
   - user: 2026-05-06 continue UI Debug Reflector full closure milestone
 tests:
   - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections_tests.rs
   - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_overlays --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib ui_debug_reflector_model_flattens_sections_for_runtime_diagnostics_display --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
+  - cargo test -p zircon_editor --lib ui_debug_reflector_model --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-route-payload-20260521 --message-format short --color never (2026-05-22: passed, 6 passed after fallback-reason summary display update; lock restored)
+  - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260523 --message-format short --color never (2026-05-23: deferred after per-route Taffy tree-build display because unrelated active Cargo/rustc processes remain present)
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/host/pane_template_descriptor.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
@@ -100,9 +111,13 @@ The editor debug reflector is the workbench-side consumer for `UiSurfaceDebugSna
 
 ## Model
 
-`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives all values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, layout engine selection, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status. `section_display_lines()` is the single formatter for section titles and indented lines used by both pane payload construction and retained-host live refresh, so Runtime Diagnostics cannot drift between the active-snapshot and body-surface paths.
+`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives base values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, layout engine selection, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status. `with_schedule_sections(...)` prepends the runtime-owned pipeline and UI ECS projection sections when a caller wants M5/M7 schedule diagnostics displayed in Runtime Diagnostics. `section_display_lines()` is the single formatter for section titles and indented lines used by both pane payload construction and retained-host live refresh, so Runtime Diagnostics cannot drift between the active-snapshot and body-surface paths.
 
-The layout engine section consumes `UiSurfaceDebugSnapshot.layout_engine_report`. It reports total requests, Taffy-selected containers, Zircon-selected containers, fallback count, unsupported count, and a bounded per-node preview with family, requested backend, selected backend, support state, and fallback reason. Editor code only displays the runtime-owned report; it does not rerun layout or infer backend ownership from arranged coordinates.
+The schedule extension consumes only carried fields from the shared snapshot. The `Pipeline` section reports the active M7 stage rows from `UiPipelineFrameReport`: frame index, completed stage count, ordering completeness, missing required stages, elapsed time, dirty reasons, and non-zero counters such as input, pointer move, widget behavior, text, layout, picking, a11y, render extraction, and batch preparation. The editor does not infer stage activity from host events.
+
+The `ECS Projection` section reports the read-only `UiEcsProjectionSnapshot` added for the M5 bridge. It exposes projection totals, dirty-domain totals, interaction totals, render/hit facts, the derived schedule mask, schedule-impact rows, and dirty-domain-impact rows. This gives editor diagnostics a direct answer to which runtime nodes require `TextMeasure`, `Layout`, `A11yExtract`, `RenderExtract`, or `BatchPrepare` without allowing editor authoring state to write back into runtime UI truth.
+
+The layout engine section consumes `UiSurfaceDebugSnapshot.layout_engine_report`. It reports total requests, Taffy-selected containers, Zircon-selected containers, fallback count, unsupported count, aggregated fallback-reason counts, aggregate Taffy tree-build totals, and a bounded per-node preview with family, requested backend, selected backend, support state, fallback reason, and per-route Taffy tree-build/node counts. Editor code only displays the runtime-owned report; it does not rerun layout or infer backend ownership from arranged coordinates.
 
 The M7 render visualizer section consumes `UiSurfaceDebugSnapshot.render_batches.visualizer`. It exposes paint element count, batch groups, draw calls, visualizer overlay count, overdraw regions, resource binding count, text backend/glyph/decorator counters, and paint-cache reuse/rebuild counters. The renderer parity section consumes `render_batches.parity` and reports the canonical paint/batch row counts that runtime and editor renderers can compare without reading backend-private draw commands.
 
@@ -126,7 +141,7 @@ Debug Observatory M2 adds a runtime-owned bounded snapshot timeline. `zircon_run
 
 The editor timeline model is deliberately read-only. `EditorUiDebugTimelineModel::from_timeline(...)` derives retention text, latest/selected labels, previous/next frame handles, frame rows, and a selected-frame `EditorUiDebugReflectorModel` from the shared timeline snapshot. If the selected handle is missing, the model falls back to the latest retained frame; if the timeline is empty, it reuses `EditorUiDebugReflectorModel::no_active_surface()`. Historical selection never calls runtime layout, hit-test, mutation, or rebuild APIs.
 
-The retained host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details, subsystem sections, and node rows. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
+The retained host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details, subsystem sections, and node rows. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. Active-snapshot payloads and the live body-surface refresh path both opt into `with_schedule_sections(...)`, so the `Pipeline` and `ECS Projection` sections are visible through the same Runtime Diagnostics text/list area as layout, render, hit, invalidation, and damage facts. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
 
 The host-scene conversion seam is part of the reflector acceptance boundary because Runtime Diagnostics eventually travels through `apply_presentation.rs::to_host_contract_pane(...)` like every other workbench pane. That conversion must be payload-driven, not string-only. A host-scene pane may use a synthetic pane kind while carrying a real host-owned native-body payload; non-empty native-body buckets are therefore preserved even when `kind` is not the canonical editor pane label. The regression `host_scene_projection_converts_host_owned_panes_to_host_contract_panes` locks this boundary so Debug Reflector and other native panes do not lose their template nodes before the host contract rebuilds `body_surface_frame`.
 
@@ -161,3 +176,9 @@ The 2026-05-20 layout-engine reflector extension passed `cargo test -p zircon_ed
 The Runtime Diagnostics payload/display continuation on 2026-05-20 passed the focused payload, template-attribute, payload-host, and live-body refresh tests listed above. The first payload rerun passed with `1 passed; 0 failed; 1402 filtered out` after a `12m 23s` rebuild; warmed follow-up tests each passed with `1 passed; 0 failed; 1402 filtered out`. These runs reported the same existing `zircon_runtime` dead-code warning and `zircon_editor` sprite-atlas unused-import warnings.
 
 The section-display convergence added `ui_debug_reflector_model_flattens_sections_for_runtime_diagnostics_display` to lock the shared formatter that feeds Runtime Diagnostics payloads and retained-host live refresh. The first focused editor rerun on 2026-05-20 timed out after 20 minutes without producing pass/fail output while many unrelated Cargo/rustc processes were active. A background rerun of the same command then completed with `1 passed; 0 failed; 1413 filtered out` after `19m 34s` and exposed a local unused re-export warning, which was removed. The final warmed rerun passed with `1 passed; 0 failed; 1413 filtered out` after `12m 05s`, leaving only the existing runtime reflection/system and editor sprite-atlas warning noise.
+
+The 2026-05-22 layout-engine fallback-reason summary continuation passed `cargo test -p zircon_editor --lib ui_debug_reflector_model --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-route-payload-20260521 --message-format short --color never` with `6 passed; 0 failed; 1416 filtered out`. This verifies that the `Layout Engine` section shows `fallback reasons: none` for native-only reports and grouped `Reason=count` rows for fallback/unsupported reports while retaining the per-node route preview. A `--locked` run remains blocked by unrelated lockfile sound/cpal drift, so this validation used an offline rerun with temporary lockfile backup and restore.
+
+The 2026-05-23 Taffy tree-build display continuation updates the same model path so native routes show `taffy_tree_builds` and `taffy_tree_nodes` beside backend/support/fallback fields, while Zircon fallback and unsupported routes show zeroes. Focused editor validation is deferred until shared Cargo/rustc jobs clear.
+
+The 2026-05-27 schedule/projection continuation adds `schedule_sections.rs` so Runtime Diagnostics displays `UiPipelineFrameReport` and `UiEcsProjectionSnapshot` facts already carried by `UiSurfaceDebugSnapshot`. Focused coverage lives in `schedule_sections_tests.rs`, and `pane_presentation.rs` asserts active Runtime Diagnostics payloads now include `Pipeline:` and `ECS Projection:` section headers. This slice deliberately avoids `.zui` governance files because a concurrent active session owns that area.

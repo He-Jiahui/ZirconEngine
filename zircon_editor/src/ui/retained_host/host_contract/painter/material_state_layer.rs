@@ -17,6 +17,7 @@ pub(super) fn push_state_layer_commands(
     clip: &FrameRect,
     corner_radius: f32,
     order: i32,
+    opacity_multiplier: f32,
 ) {
     let color = state_layer_color(node);
     if let Some(opacity) = state_layer_opacity(node) {
@@ -28,7 +29,7 @@ pub(super) fn push_state_layer_commands(
             None,
             0.0,
             corner_radius,
-            opacity,
+            opacity * opacity_multiplier,
         ));
     }
 
@@ -41,7 +42,7 @@ pub(super) fn push_state_layer_commands(
             None,
             0.0,
             ripple_radius(rect),
-            MATERIAL_STATE_LAYER_OPACITY_PRESS,
+            MATERIAL_STATE_LAYER_OPACITY_PRESS * opacity_multiplier,
         ));
     }
 }
@@ -161,7 +162,7 @@ mod tests {
         let clip = rect.clone();
         let mut commands = Vec::new();
 
-        push_state_layer_commands(&mut commands, &node, &rect, &clip, 4.0, 0);
+        push_state_layer_commands(&mut commands, &node, &rect, &clip, 4.0, 0, 1.0);
 
         assert_eq!(commands.len(), 1);
     }

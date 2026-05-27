@@ -42,6 +42,11 @@ pub enum RenderMaterialValidationError {
         path: String,
         name: String,
     },
+    MissingRequiredTextureSlot {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        slot: String,
+    },
     UnknownTextureSlot {
         source: RenderMaterialDiagnosticSource,
         path: String,
@@ -51,5 +56,10 @@ pub enum RenderMaterialValidationError {
         source: RenderMaterialDiagnosticSource,
         path: String,
         name: String,
+    },
+    ShaderReadinessDiagnostic {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        diagnostic: String,
     },
 }

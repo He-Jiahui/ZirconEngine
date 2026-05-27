@@ -48,7 +48,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
 implementation_files:
@@ -88,7 +88,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
 plan_sources:
@@ -126,6 +126,13 @@ tests:
   - cargo test -p zircon_editor --lib retained_viewport_toolbar_pointer -- --nocapture (2026-05-11: passed, 6 passed)
   - cargo test -p zircon_editor workbench_projection_cutover -- --nocapture (2026-05-11: passed, 9 passed)
   - cargo test -p zircon_editor boundary -- --nocapture (2026-05-11: passed, 72 passed)
+  - cargo test -p zircon_editor fallback_page_chrome_preserves_clickable_tab_and_project_path_frames --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-editor-visual-20260521-hostonly --message-format short --color never (2026-05-22: passed)
+  - cargo test -p zircon_editor page_and_dock_tabs_project_svg_icons_and_close_button_icon --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-editor-visual-20260521-hostonly --message-format short --color never (2026-05-22: passed)
+  - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-editor-visual-20260521-hostonly --message-format short --color never (2026-05-22: passed)
+  - real-window screenshots: target/editor-visual-check/editor-default-after-20260522-034247.png and target/editor-visual-check/editor-material-lab-after-20260522-034247.png
+  - real-window screenshots: target/editor-visual-check/editor-default-moveonly-20260522-042143.png and target/editor-visual-check/editor-material-lab-topmost2-20260522-035453.png
+  - temporary stack probe screenshot: target/editor-visual-check/editor-default-960x640-stack8m-20260522-043217.png
+  - rebuilt stack validation screenshot: target/editor-visual-check/editor-default-960x640-rebuilt-stack8m-20260522-043929.png
 doc_type: module-detail
 ---
 
@@ -153,7 +160,7 @@ This document records the current accepted entry map for the M3 host cutover wor
 
 ## Behavior Model
 
-`chrome_template_projection.rs` is the current template projection boundary for shared workbench chrome. It loads the root chrome assets with `build_view_template_nodes(...)`, applies current labels, tab state, icon names, and disabled/selected state, then returns `ViewTemplateNodeData` rows. Fallback nodes are allowed only as resilience for missing template metrics; they are not a new business UI source.
+`chrome_template_projection.rs` is the current template projection boundary for shared workbench chrome. It loads the root chrome assets with `build_view_template_nodes(...)`, applies current labels, tab state, icon names, and disabled/selected state, then returns `ViewTemplateNodeData` rows. Fallback nodes are allowed only as resilience for missing template metrics; they are not a new business UI source. The fallback page chrome must preserve the same row split as the retained shell: menu bar first, page bar below `MENU_TOP_BAR_HEIGHT_PX`, then document/content tabs. Fallback icon nodes publish `icons/ionicons/*.svg` media sources so the retained painter and runtime asset resolver agree with the crate-local icon directory.
 
 `shell_presentation.rs` creates one `HostWindowSurfaceData` value from `WorkbenchViewModel`, `EditorChromeSnapshot`, and current geometry. The DTO contains the host tabs, drawer tabs, document tabs, floating windows, side panes, bottom pane, and document pane in one place, so later host rendering consumes a single projected surface packet instead of reaching back into workbench state from separate widgets.
 
@@ -206,6 +213,10 @@ M3.3 adds the screenshot gate `capture_m3_gui_acceptance_visual_artifacts`. It w
 The label leak is covered by `render_extract_uses_label_when_schema_text_default_is_placeholder` and `project_overview_projection_maps_bootstrap_asset_into_template_nodes`. Runtime render extraction now prefers visible authored labels for text-bearing controls and keeps `IconButton` labels accessibility-only. The editor projection layer follows the same rule when building host template node data.
 
 The final M3.T batch reruns the editor focused gates plus SVG target-size and tint regressions: `svg_icon_pixels_follow_requested_target_size`, `template_icon_tint_uses_material_state_priority`, workbench entry/pointer projection tests, and `workbench_projection` all passed with the refreshed screenshots. Existing runtime/editor warning noise is not caused by this module.
+
+The 2026-05-22 visual validation pass reproduced a real-window overlap in the procedural page-chrome fallback: page tabs started at `y = 0`, so they occupied the same vertical band as the top menu. `fallback_page_chrome_preserves_clickable_tab_and_project_path_frames` now locks the fallback page bar below `MENU_TOP_BAR_HEIGHT_PX`, verifies tab/project-path frames stay inside that bar, and `page_and_dock_tabs_project_svg_icons_and_close_button_icon` verifies projected tab icons still resolve through `icons/ionicons/*.svg`. The acceptance artifacts are the real-window default and Material-lab screenshots listed in the document header; both were sampled as nonblank and showed menu/page/content rows separated.
+
+The same pass exposed a Windows/MSVC host process stack-budget issue outside the chrome projection itself: the default UI Component Showcase stayed stable at the initial 1280 x 720 size, but the unmodified binary exited during a real 960 x 640 resize before committing the second presentation. A temporary PE-header probe with an 8 MB `zircon_editor` stack survived the same resize and produced the listed 960 x 640 screenshot. The durable fix is documented in `docs/zircon_app/editor-host-entry.md` and implemented by `zircon_app/build.rs`; the rebuilt source binary reports `800000 size of stack reserve` and survived the same 960 x 640 default resize screenshot probe.
 
 ## Plan Sources
 

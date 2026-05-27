@@ -1,6 +1,6 @@
 use crate::ui::{
     accessibility::{
-        UiA11yCheckedState, UiA11yRole, UiA11yState, UiAccessibilityAction,
+        UiA11yCheckedState, UiA11yRole, UiA11yState, UiA11yTextSelection, UiAccessibilityAction,
         UiAccessibilityDiagnostic, UiAccessibilityDiagnosticCode,
         UiAccessibilityDiagnosticSeverity, UiAccessibilityNode, UiAccessibilityTreeSnapshot,
     },
@@ -214,6 +214,78 @@ fn ui_accessibility_snapshot_represents_roles_states_actions_and_diagnostics() {
     let empty_node: UiAccessibilityNode = serde_json::from_str("{\"node_id\":13}").unwrap();
     assert_eq!(empty_node.role, UiA11yRole::Generic);
     assert!(empty_node.actions.is_empty());
+
+    let text_selection = UiA11yTextSelection {
+        caret: 2,
+        anchor: 1,
+        focus: 2,
+    };
+    let text_state = UiA11yState {
+        value: Some("abc".to_string()),
+        text_selection: Some(text_selection.clone()),
+        ..UiA11yState::default()
+    };
+    assert_eq!(
+        UiA11yTextSelection::collapsed(4),
+        UiA11yTextSelection {
+            caret: 4,
+            anchor: 4,
+            focus: 4
+        }
+    );
+    assert_eq!(round_trip(&text_state).text_selection, Some(text_selection));
+    assert_eq!(
+        serde_json::from_str::<UiA11yState>("{}")
+            .unwrap()
+            .text_selection,
+        None
+    );
+    assert_eq!(
+        serde_json::to_string(&UiAccessibilityAction::ReplaceSelectedText).unwrap(),
+        "\"replace_selected_text\""
+    );
+    assert_eq!(
+        serde_json::from_str::<UiAccessibilityAction>("\"replace_selected_text\"").unwrap(),
+        UiAccessibilityAction::ReplaceSelectedText
+    );
+    assert_eq!(
+        serde_json::to_string(&UiAccessibilityAction::SetTextSelection).unwrap(),
+        "\"set_text_selection\""
+    );
+    assert_eq!(
+        serde_json::to_string(&UiAccessibilityAction::Expand).unwrap(),
+        "\"expand\""
+    );
+    assert_eq!(
+        serde_json::from_str::<UiAccessibilityAction>("\"collapse\"").unwrap(),
+        UiAccessibilityAction::Collapse
+    );
+    let set_selection = crate::ui::accessibility::UiAccessibilityActionRequest {
+        target: UiNodeId::new(18),
+        action: UiAccessibilityAction::SetTextSelection,
+        text_selection: Some(UiA11yTextSelection {
+            caret: 3,
+            anchor: 1,
+            focus: 3,
+        }),
+        ..crate::ui::accessibility::UiAccessibilityActionRequest::default()
+    };
+    let set_selection_round_trip = round_trip(&set_selection);
+    assert_eq!(set_selection_round_trip, set_selection);
+    assert!(serde_json::to_string(&set_selection)
+        .unwrap()
+        .contains("text_selection"));
+    let scroll_offset_request = crate::ui::accessibility::UiAccessibilityActionRequest {
+        target: UiNodeId::new(19),
+        action: UiAccessibilityAction::ScrollTo,
+        scroll_offset: Some(UiPoint::new(12.0, 48.0)),
+        ..crate::ui::accessibility::UiAccessibilityActionRequest::default()
+    };
+    let scroll_offset_round_trip = round_trip(&scroll_offset_request);
+    assert_eq!(scroll_offset_round_trip, scroll_offset_request);
+    assert!(serde_json::to_string(&scroll_offset_request)
+        .unwrap()
+        .contains("scroll_offset"));
 }
 
 #[test]

@@ -98,6 +98,8 @@ fn missing_shader_readiness_report(reference: &AssetReference) -> RenderMaterial
             },
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }],
+        uniform_summary: None,
+        diagnostics: Vec::new(),
     }
 }
 
@@ -115,5 +117,7 @@ fn missing_runtime_shader_readiness_report(
             },
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }],
+        uniform_summary: None,
+        diagnostics: Vec::new(),
     }
 }

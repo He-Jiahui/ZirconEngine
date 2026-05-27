@@ -250,9 +250,14 @@ fn layout_engine_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugRefl
             report.taffy_selected_count, report.legacy_selected_count
         ),
         format!(
+            "taffy tree builds: {} nodes={}",
+            report.taffy_tree_build_count, report.taffy_tree_node_count
+        ),
+        format!(
             "fallbacks: {} unsupported: {}",
             report.fallback_count, report.unsupported_count
         ),
+        layout_engine_fallback_reason_summary(snapshot),
     ];
 
     if report.selections.is_empty() {
@@ -271,14 +276,20 @@ fn layout_engine_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugRefl
                 .fallback_reason
                 .map(|reason| format!("{:?}", reason))
                 .unwrap_or_else(|| "none".to_string());
+            let (taffy_tree_builds, taffy_tree_nodes) = selection
+                .taffy_tree_build
+                .map(|stats| (stats.build_count, stats.node_count))
+                .unwrap_or((0, 0));
             lines.push(format!(
-                "node={} family={:?} requested={:?} selected={:?} support={:?} reason={}",
+                "node={} family={:?} requested={:?} selected={:?} support={:?} reason={} taffy_tree_builds={} taffy_tree_nodes={}",
                 node_id,
                 selection.request.family,
                 selection.requested_backend,
                 selection.selected_backend,
                 selection.support,
-                reason
+                reason,
+                taffy_tree_builds,
+                taffy_tree_nodes
             ));
         }
         if report.selections.len() > LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT {
@@ -294,6 +305,27 @@ fn layout_engine_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugRefl
         title: "Layout Engine".to_string(),
         lines,
     }
+}
+
+fn layout_engine_fallback_reason_summary(snapshot: &UiSurfaceDebugSnapshot) -> String {
+    let report = &snapshot.layout_engine_report;
+    if report.fallback_reason_counts.is_empty() {
+        return "fallback reasons: none".to_string();
+    }
+
+    let reasons = report
+        .fallback_reason_counts
+        .iter()
+        .map(|reason_count| {
+            let reason = reason_count
+                .reason
+                .map(|reason| format!("{reason:?}"))
+                .unwrap_or_else(|| "none".to_string());
+            format!("{reason}={}", reason_count.count)
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("fallback reasons: {reasons}")
 }
 
 fn render_visualizer_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugReflectorSection {

@@ -18,7 +18,8 @@ pub(super) fn cargo_manifest_template(
         ));
     }
     match profile.target_platform.policy().host_kind {
-        crate::plugin::ExportPlatformHostKind::Desktop => {}
+        crate::plugin::ExportPlatformHostKind::Desktop
+        | crate::plugin::ExportPlatformHostKind::Headless => {}
         crate::plugin::ExportPlatformHostKind::MobileApp => {
             contents.push_str("\n[lib]\ncrate-type = [\"cdylib\", \"staticlib\"]\n");
         }

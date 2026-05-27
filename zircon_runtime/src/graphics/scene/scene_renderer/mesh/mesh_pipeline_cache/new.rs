@@ -9,10 +9,16 @@ impl MeshPipelineCache {
         scene_layout: &wgpu::BindGroupLayout,
         model_layout: &wgpu::BindGroupLayout,
         texture_layout: &wgpu::BindGroupLayout,
+        material_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         let mesh_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-mesh-layout"),
-            bind_group_layouts: &[Some(scene_layout), Some(model_layout), Some(texture_layout)],
+            bind_group_layouts: &[
+                Some(scene_layout),
+                Some(model_layout),
+                Some(texture_layout),
+                Some(material_layout),
+            ],
             immediate_size: 0,
         });
         Self {

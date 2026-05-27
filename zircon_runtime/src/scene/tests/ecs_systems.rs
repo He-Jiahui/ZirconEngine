@@ -1,8 +1,9 @@
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    Added, Changed, CommandsParam, Component, EventReaderParam, EventWriterParam, LocalParam,
-    ParamSet, QueryEntityError, QuerySingleError, QueryState, RemovedComponentsParam, ResMutParam,
-    ResParam, Resource, SystemParamError, SystemState, With,
+    Added, Changed, CommandsParam, Component, EventReaderParam, EventWriterParam, Local,
+    LocalParam, ParamSet, QueryEntityError, QuerySingleError, QueryState, RemovedComponentsParam,
+    ResMutParam, ResParam, Resource, SystemParamError, SystemStage, SystemState, UniqueEntityArray,
+    With,
 };
 use crate::scene::{EntityId, World};
 
@@ -391,16 +392,124 @@ fn event_reader_and_writer_use_current_and_next_queues() {
     writer.run(&mut world, |mut events| events.send(HitEvent(3)));
 
     let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
-    let before_update = reader.run(&mut world, |events| {
+    let before_update = reader.run(&mut world, |mut events| {
         events.iter().map(|event| event.0).collect::<Vec<_>>()
     });
     assert!(before_update.is_empty());
 
     world.update_events::<HitEvent>();
-    let after_update = reader.run(&mut world, |events| {
+    let after_update = reader.run(&mut world, |mut events| {
         events.iter().map(|event| event.0).collect::<Vec<_>>()
     });
     assert_eq!(after_update, vec![3]);
+}
+
+#[test]
+fn event_writer_batch_preserves_next_queue_order() {
+    let mut world = World::empty();
+    type Writer = EventWriterParam<HitEvent>;
+    type Reader = EventReaderParam<HitEvent>;
+
+    let mut writer = SystemState::<Writer>::new(&mut world).unwrap();
+    let first_count = writer.run(&mut world, |mut events| {
+        events.send_batch([HitEvent(1), HitEvent(2), HitEvent(3)])
+    });
+    let second_count = writer.run(&mut world, |mut events| {
+        events.send_batch([HitEvent(4), HitEvent(5)])
+    });
+    assert_eq!((first_count, second_count), (3, 2));
+
+    let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
+    let before_update = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert!(before_update.is_empty());
+
+    world.update_events::<HitEvent>();
+    let observed = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert_eq!(observed, vec![1, 2, 3, 4, 5]);
+}
+
+#[test]
+fn event_reader_param_keeps_cursor_between_system_runs() {
+    let mut world = World::empty();
+    type Writer = EventWriterParam<HitEvent>;
+    type Reader = EventReaderParam<HitEvent>;
+
+    let mut writer = SystemState::<Writer>::new(&mut world).unwrap();
+    let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
+
+    writer.run(&mut world, |mut events| {
+        events.send(HitEvent(1));
+        events.send(HitEvent(2));
+    });
+    world.update_events::<HitEvent>();
+
+    let first = reader.run(&mut world, |mut events| {
+        assert_eq!(events.unread_count(), 2);
+        assert_eq!(events.len(), 2);
+        assert!(!events.is_empty());
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    let repeated = reader.run(&mut world, |mut events| {
+        assert_eq!(events.unread_count(), 0);
+        assert_eq!(events.len(), 0);
+        assert!(events.is_empty());
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+
+    writer.run(&mut world, |mut events| events.send(HitEvent(3)));
+    world.update_events::<HitEvent>();
+    let next_frame = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+
+    writer.run(&mut world, |mut events| events.send(HitEvent(4)));
+    world.update_events::<HitEvent>();
+    let cleared = reader.run(&mut world, |mut events| {
+        assert_eq!(events.unread_count(), 1);
+        events.clear();
+        assert!(events.is_empty());
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+
+    assert_eq!(first, vec![1, 2]);
+    assert!(repeated.is_empty());
+    assert_eq!(next_frame, vec![3]);
+    assert!(cleared.is_empty());
+}
+
+#[test]
+fn event_reader_param_observes_events_after_global_clear() {
+    let mut world = World::empty();
+    type Writer = EventWriterParam<HitEvent>;
+    type Reader = EventReaderParam<HitEvent>;
+
+    let mut writer = SystemState::<Writer>::new(&mut world).unwrap();
+    let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
+
+    writer.run(&mut world, |mut events| {
+        events.send(HitEvent(1));
+        events.send(HitEvent(2));
+    });
+    world.update_events::<HitEvent>();
+
+    let first = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert_eq!(first, vec![1, 2]);
+
+    world.clear_events::<HitEvent>();
+    writer.run(&mut world, |mut events| events.send(HitEvent(3)));
+    world.update_events::<HitEvent>();
+
+    let after_clear = reader.run(&mut world, |mut events| {
+        assert_eq!(events.unread_count(), 1);
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert_eq!(after_clear, vec![3]);
 }
 
 #[test]
@@ -742,6 +851,7 @@ fn system_query_get_many_helpers_preserve_order_duplicates_and_run_window_filter
 
     type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+    let unique_first = UniqueEntityArray::new([first]).unwrap();
 
     let baseline = system.run(&mut world, |mut query| {
         (
@@ -757,6 +867,12 @@ fn system_query_get_many_helpers_preserve_order_duplicates_and_run_window_filter
             query
                 .get_many_cached_direct([first, first])
                 .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            query
+                .get_many_unique(unique_first)
+                .map(|items| items.map(|(entity, health)| (entity, health.0))),
+            UniqueEntityArray::new([first, first]),
+            UniqueEntityArray::new([first, first]),
+            UniqueEntityArray::new([first, first]),
         )
     });
     assert_eq!(
@@ -766,6 +882,10 @@ fn system_query_get_many_helpers_preserve_order_duplicates_and_run_window_filter
             Err(QueryEntityError::QueryDoesNotMatch(marker_only)),
             Ok([(first, 10), (first, 10)]),
             Ok([(first, 10), (first, 10)]),
+            Ok([(first, 10)]),
+            Err(QueryEntityError::DuplicateEntity(first)),
+            Err(QueryEntityError::DuplicateEntity(first)),
+            Err(QueryEntityError::DuplicateEntity(first)),
         )
     );
     assert_eq!(system.state().cache_rebuilds(), 1);
@@ -825,6 +945,7 @@ fn system_query_iter_many_preserves_order_duplicates_and_run_window_filters() {
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
 
     let requested = vec![marker_only, first, 999, first];
+    let unique_first = UniqueEntityArray::new([first]).unwrap();
     let baseline = system.run(&mut world, |mut query| {
         (
             query
@@ -835,13 +956,23 @@ fn system_query_iter_many_preserves_order_duplicates_and_run_window_filters() {
                 .iter_many_cached(&requested)
                 .map(|(entity, health)| (entity, health.0))
                 .collect::<Vec<_>>(),
+            query
+                .iter_many_unique(unique_first)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+            query
+                .iter_many_unique_cached(unique_first)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
         )
     });
     assert_eq!(
         baseline,
         (
             vec![(first, 10), (first, 10)],
-            vec![(first, 10), (first, 10)]
+            vec![(first, 10), (first, 10)],
+            vec![(first, 10)],
+            vec![(first, 10)]
         )
     );
 
@@ -970,4 +1101,29 @@ fn local_param_state_persists_between_system_runs() {
 
     assert_eq!(first, 1);
     assert_eq!(second, 2);
+}
+
+#[test]
+fn scheduled_native_system_keeps_local_state_between_ticks() {
+    use std::sync::{Arc, Mutex};
+
+    let mut world = World::empty();
+    let observed = Arc::new(Mutex::new(Vec::new()));
+    let system_observed = observed.clone();
+    world
+        .register_native_system::<LocalParam<LocalCounter>, _>(
+            "gameplay.local-counter",
+            SystemStage::Update,
+            0,
+            move |mut counter: Local<'_, LocalCounter>| {
+                counter.0 += 1;
+                system_observed.lock().unwrap().push(counter.0);
+            },
+        )
+        .unwrap();
+
+    world.run_native_scene_systems_for_stage(SystemStage::Update);
+    world.run_native_scene_systems_for_stage(SystemStage::Update);
+
+    assert_eq!(*observed.lock().unwrap(), vec![1, 2]);
 }

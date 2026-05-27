@@ -58,11 +58,37 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "overlay / inline", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "overlay / inline", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 112, preferred = 112, max = 112, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Label"
+component = "Alert"
 control_id = "alert_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Alert", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiAlert-root"]
+props = { text = "Warning", className = "material-alert-sample", severity = "warning", variant = "outlined", color = "warning", icon = "warning", show_icon = true, closeText = "Dismiss", role = "alert", slotProps = { icon = { className = "material-alert-icon" }, message = { className = "material-alert-message" }, action = { className = "material-alert-action" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "warning", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "alert_icon", slot = { name = "icon" } },
+  { node = "alert_message", slot = { name = "message" } },
+  { node = "alert_action", slot = { name = "action" } },
+]
+
+[nodes.alert_icon]
+component = "Icon"
+control_id = "alert_Icon"
+classes = ["material-alert-icon", "MuiAlert-icon"]
+props = { text = "!", icon = "warning", color = "warning", fontSize = "small", text_tone = "warning", surface_variant = "elevated", validation_level = "warning", corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.alert_message]
+component = "Label"
+control_id = "alert_Message"
+classes = ["material-alert-message", "MuiAlert-message"]
+props = { text = "Warning state", text_tone = "warning", surface_variant = "elevated", validation_level = "warning", corner_radius = 8.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 86.0, preferred = 104.0, max = 132.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 26.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.alert_action]
+component = "Button"
+control_id = "alert_Action"
+classes = ["material-alert-action", "MuiAlert-action"]
+props = { text = "Fix", button_variant = "text", button_color = "warning", text_tone = "warning", surface_variant = "elevated", validation_level = "warning", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 38.0, preferred = 44.0, max = 56.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 26.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

@@ -34,6 +34,8 @@ pub use zircon_runtime_reflection_macros::{
 pub use builtin::{
     builtin_runtime_modules, default_manifest_for_target, manifest_for_runtime_profile,
     manifest_with_mode_baseline, runtime_core_modules, runtime_modules_for_runtime_profile,
+    runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
+    runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
     runtime_modules_for_runtime_profile_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,

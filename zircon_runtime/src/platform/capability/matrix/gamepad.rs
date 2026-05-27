@@ -124,9 +124,7 @@ impl PlatformCapabilityMatrix {
         match target {
             PlatformTarget::Windows | PlatformTarget::Linux | PlatformTarget::Macos => {
                 if self.features.gamepad_gilrs {
-                    CapabilityStatus::Unavailable {
-                        reason: "desktop gamepad rumble host backend is not implemented yet",
-                    }
+                    CapabilityStatus::Supported(GamepadRumbleBackend::GilrsForceFeedback)
                 } else {
                     CapabilityStatus::FeatureDisabled {
                         feature: "gamepad-gilrs",

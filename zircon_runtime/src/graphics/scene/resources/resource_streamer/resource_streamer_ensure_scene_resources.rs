@@ -14,6 +14,7 @@ impl ResourceStreamer {
         self.last_material_ready_count = 0;
         self.last_material_fallback_count = 0;
         self.last_material_validation_error_count = 0;
+        self.last_material_diagnostic_count = 0;
         self.last_sprite_count = 0;
         self.last_sprite_ready_count = 0;
         self.last_sprite_texture_fallback_count = 0;
@@ -25,6 +26,7 @@ impl ResourceStreamer {
                 let is_ready = report.is_ready();
                 let uses_fallback = report.uses_fallback();
                 let validation_error_count = report.validation_errors.len();
+                let diagnostic_count = report.diagnostics.len();
                 if is_ready {
                     self.last_material_ready_count += 1;
                 }
@@ -32,6 +34,7 @@ impl ResourceStreamer {
                     self.last_material_fallback_count += 1;
                 }
                 self.last_material_validation_error_count += validation_error_count;
+                self.last_material_diagnostic_count += diagnostic_count;
             }
         }
         for sprite in frame.sprites() {

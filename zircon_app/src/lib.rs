@@ -14,7 +14,9 @@ pub use entry::{
 pub use entry::{
     BuiltinEngineEntry, EngineEntry, EntryModuleSelection, EntryModuleSelectionReport, EntryRunMode,
 };
-pub use entry::{EntryConfig, EntryProfile, EntryRunner, NativePluginRuntimeBootstrap};
+pub use entry::{
+    EntryConfig, EntryProfile, EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap,
+};
 pub use plugins::{
     DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,
     PluginGroupError, ResolvedPluginGroup,

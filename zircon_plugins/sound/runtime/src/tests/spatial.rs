@@ -231,3 +231,184 @@ fn hrtf_profile_applies_ear_delay_for_lateral_source() {
         .fold(0.0_f32, f32::max);
     assert!(delayed_left_peak > 0.25);
 }
+
+#[test]
+fn default_spatial_scale_controls_listener_source_distance() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial-scale.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    assert_eq!(sound.default_spatial_scale().unwrap(), 1.0);
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 0.75);
+
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial-scale-half.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    sound.set_default_spatial_scale(0.5).unwrap();
+    assert_eq!(sound.default_spatial_scale().unwrap(), 0.5);
+    assert!(sound.set_default_spatial_scale(f32::NAN).is_err());
+    assert!(sound.set_default_spatial_scale(-0.1).is_err());
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 1.0);
+}
+
+#[test]
+fn source_spatial_scale_overrides_default_spatial_scale() {
+    let sound = DefaultSoundManager::default();
+    let clip =
+        sound.insert_clip_for_test(test_clip("res://sound/source-spatial-scale.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    sound.set_default_spatial_scale(0.5).unwrap();
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        spatial_scale: Some(1.0),
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 0.75);
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.spatial.spatial_scale = Some(f32::NAN);
+    assert!(sound.create_source(invalid).is_err());
+
+    let mut invalid = SoundSourceDescriptor::clip(clip);
+    invalid.spatial.spatial_scale = Some(-0.1);
+    assert!(sound.create_source(invalid).is_err());
+}
+
+#[test]
+fn spatial_source_uses_active_listener_for_attenuation_pan_and_occlusion() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [3.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        occlusion_enabled: true,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 0.35);
+}
+
+#[test]
+fn audio_volume_priority_and_crossfade_apply_to_source_output() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/volume.wav", &[1.0]));
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    sound.create_source(source).unwrap();
+    sound
+        .update_volume(SoundVolumeDescriptor {
+            id: SoundVolumeId::new(1),
+            shape: SoundVolumeShape::Sphere {
+                center: [0.0, 0.0, 0.0],
+                radius: 5.0,
+            },
+            priority: 0,
+            interior_gain: 0.1,
+            exterior_gain: 1.0,
+            low_pass_cutoff_hz: None,
+            reverb_send: 0.0,
+            convolution_send: None,
+            crossfade_distance: 0.0,
+        })
+        .unwrap();
+    sound
+        .update_volume(SoundVolumeDescriptor {
+            id: SoundVolumeId::new(2),
+            shape: SoundVolumeShape::Sphere {
+                center: [0.0, 0.0, 0.0],
+                radius: 1.0,
+            },
+            priority: 10,
+            interior_gain: 0.25,
+            exterior_gain: 1.0,
+            low_pass_cutoff_hz: None,
+            reverb_send: 0.0,
+            convolution_send: None,
+            crossfade_distance: 3.0,
+        })
+        .unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+
+    assert_sample_near(mix.samples[0], 0.5);
+    assert_sample_near(mix.samples[1], 0.5);
+}
+
+#[test]
+fn source_sends_can_tap_pre_spatial_signal() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/pre-spatial.wav", &[0.5]));
+    let room = SoundTrackId::new(2);
+    sound
+        .add_or_update_track(SoundTrackDescriptor::child(room, "Room"))
+        .unwrap();
+    sound.update_listener(test_listener()).unwrap();
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [3.0, 0.0, 0.0];
+    source.sends.push(SoundSourceSend {
+        target: room,
+        gain: 1.0,
+        pre_spatial: true,
+    });
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+
+    assert_sample_near(mix.samples[0], 0.5);
+    assert_sample_near(mix.samples[1], 0.75);
+}

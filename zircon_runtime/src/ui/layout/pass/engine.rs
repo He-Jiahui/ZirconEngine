@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     layout::{
         UiContainerKind, UiLayoutEngineBackend, UiLayoutEngineCapability,
         UiLayoutEngineFallbackReason, UiLayoutEngineRequest, UiLayoutEngineSelection,
-        UiLayoutEngineSelectionReport, UiLayoutEngineSupport,
+        UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiLayoutEngineTaffyTreeBuildStats,
     },
 };
 
@@ -13,14 +13,20 @@ pub(super) struct UiLayoutPassEngineContext {
 }
 
 impl UiLayoutPassEngineContext {
-    pub(super) fn record_taffy_native(&mut self, node_id: UiNodeId, container: UiContainerKind) {
+    pub(super) fn record_taffy_native(
+        &mut self,
+        node_id: UiNodeId,
+        container: UiContainerKind,
+        taffy_tree_build: UiLayoutEngineTaffyTreeBuildStats,
+    ) {
         self.selections.push(
             UiLayoutEngineSelection::select(
                 &UiLayoutEngineRequest::from_container_kind(container),
                 &UiLayoutEngineCapability::taffy_flex_grid_block(),
                 &UiLayoutEngineCapability::legacy_zircon(),
             )
-            .with_node_id(node_id),
+            .with_node_id(node_id)
+            .with_taffy_tree_build(taffy_tree_build),
         );
     }
 
@@ -29,6 +35,7 @@ impl UiLayoutPassEngineContext {
         node_id: UiNodeId,
         container: UiContainerKind,
         reason: UiLayoutEngineFallbackReason,
+        taffy_tree_build: Option<UiLayoutEngineTaffyTreeBuildStats>,
     ) {
         self.selections.push(UiLayoutEngineSelection {
             node_id: Some(node_id),
@@ -37,6 +44,7 @@ impl UiLayoutPassEngineContext {
             selected_backend: UiLayoutEngineBackend::LegacyZircon,
             support: UiLayoutEngineSupport::Fallback,
             fallback_reason: Some(reason),
+            taffy_tree_build,
         });
     }
 

@@ -35,6 +35,7 @@ pub const SOUND_MIXER_OPERATION_PATHS: &[&str] = &[
     "Sound.Mixer.Automation.Bind",
     "Sound.Mixer.Automation.Unbind",
     "Sound.DynamicEvent.Registry.Open",
+    "Sound.Output.Device.Refresh",
     "Sound.Output.Device.Configure",
     "Sound.Output.Device.Start",
     "Sound.Output.Device.Stop",
@@ -161,6 +162,11 @@ fn sound_editor_operation_specs() -> Vec<SoundOperationSpec> {
         mixer_spec(
             "Sound.DynamicEvent.Registry.Open",
             "Open Sound Dynamic Event Registry",
+            false,
+        ),
+        mixer_spec(
+            "Sound.Output.Device.Refresh",
+            "Refresh Sound Outputs",
             false,
         ),
         mixer_spec(
@@ -300,6 +306,7 @@ fn schema_id(path: &'static str) -> &'static str {
         "Sound.Mixer.Automation.Bind" => "sound.mixer.automation.bind.v1",
         "Sound.Mixer.Automation.Unbind" => "sound.mixer.automation.unbind.v1",
         "Sound.DynamicEvent.Registry.Open" => "sound.dynamic_event.registry.open.v1",
+        "Sound.Output.Device.Refresh" => "sound.output.device.refresh.v1",
         "Sound.Output.Device.Configure" => "sound.output.device.configure.v1",
         "Sound.Output.Device.Start" => "sound.output.device.start.v1",
         "Sound.Output.Device.Stop" => "sound.output.device.stop.v1",

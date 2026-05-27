@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::binding::UiBindingUpdateReport;
-use crate::ui::component::UiComponentEvent;
+use crate::ui::component::{UiComponentEvent, UiDragMetrics};
 use crate::ui::event_ui::UiNodeId;
 
 use super::{
@@ -72,6 +72,8 @@ pub struct UiComponentEventReport {
     pub target: UiNodeId,
     pub event: UiComponentEvent,
     pub delivered: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag: Option<UiDragMetrics>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -90,6 +92,8 @@ pub struct UiInputDispatchResult {
     pub component_events: Vec<UiComponentEventReport>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub binding_reports: Vec<UiBindingUpdateReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag: Option<UiDragMetrics>,
 }
 
 impl UiInputDispatchResult {
@@ -103,6 +107,7 @@ impl UiInputDispatchResult {
             host_requests: Vec::new(),
             component_events: Vec::new(),
             binding_reports: Vec::new(),
+            drag: None,
         }
     }
 

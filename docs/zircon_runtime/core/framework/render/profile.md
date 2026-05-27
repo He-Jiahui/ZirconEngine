@@ -50,6 +50,7 @@ implementation_files:
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
 plan_sources:
+  - user: 2026-05-21 continue M10 profile freeze acceptance checklist
   - user: 2026-05-21 continue Bevy default render profile completion gates
   - user: 2026-05-08 continue ZirconEngine Bevy-Level Rendering Completion Plan M1
   - user: 2026-05-20 Bevy rendering completion plan continuation
@@ -154,6 +155,21 @@ The Zircon promotion gate for `RenderProfileBundle::default_render()` is now:
 | Advanced separation | `AdvancedRender` and `SolariExperimental` may depend on `DefaultRender`, but their success cannot be cited as evidence that 2D, 3D, UI, presentation, or diagnostics are complete. | Any acceptance statement that uses Virtual Geometry, Hybrid GI, or Solari to replace missing default product behavior. |
 
 This gate turns the original product concern into a repeatable milestone rule: every future M10 acceptance entry must name which `DefaultRender` slice it advances, which Bevy source surface it follows, and which remaining gaps stay outside the accepted claim.
+
+## M10O Profile Freeze Acceptance Checklist
+
+Profile freeze is the first M10 dependency gate. It does not mean the renderer is complete; it means the product vocabulary, default bundle, advanced separation, and app-level storage are fixed enough that later M10 slices can target stable names.
+
+| Requirement | Bevy source pressure | Zircon source evidence | Completion gate |
+| --- | --- | --- | --- |
+| `DefaultRender` is a default-rendering bundle, not the whole engine default. | `dev/bevy/docs/cargo_features.md:22-52` separates Bevy `default`, `2d`, `3d`, `ui`, `common_api`, and renderer collections. | `zircon_runtime/src/core/framework/render/profile.rs:78-87` builds `DefaultRender` from `CommonRenderApi`, `Render2d`, `Render3d`, and `Ui`. | Keep audio, platform, input, scene, and UI widget/picking ownership outside this profile gate. |
+| `DefaultRender` excludes advanced products. | Bevy default plugin order includes normal render/PBR slices before optional advanced tooling in `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`. | `zircon_runtime/src/core/framework/tests.rs:1050-1063` asserts no `AdvancedRender`, `SolariExperimental`, `VirtualGeometry`, `HybridGlobalIllumination`, or `Solari` feature in default render. | No M10 acceptance statement may cite VG/HGI/Solari as default 2D/3D/UI proof. |
+| Required feature validation stays explicit. | Bevy collections split API and renderer collections, so renderer readiness must be named rather than implied. | `profile.rs:149-176` validates required profiles and backend capabilities; `framework/tests.rs:1066-1106` rejects missing 2D sprite, 3D PBR, and UI render target dependencies. | Later M10 slices must add or update tests when they change required feature sets. |
+| App bootstrap stores the selected profile before runtime modules depend on it. | Bevy plugin groups are configured before app execution. | `zircon_app/src/entry/entry_config.rs:203-207` defaults runtime/editor to `DefaultRender` and headless to `Headless`; `zircon_app/src/entry/tests/profile_bootstrap.rs:446-473` covers runtime default and explicit headless storage under `RENDER_PROFILE_CONFIG_KEY`. | `cargo check -p zircon_app --locked --all-targets` remains the app-profile promotion check. |
+| Advanced provider registration is opt-in. | Bevy Cargo features and plugin groups make optional renderer products explicit. | `profile_bootstrap.rs:219-300` covers default render not linking VG/HGI providers and advanced/Solari profiles linking their providers only when selected. | Feature-gated advanced-provider tests stay separate from default profile acceptance. |
+| Backend capability gates are not silently bypassed. | Bevy render features are gated by renderer/platform support. | `profile.rs:194-219` maps advanced, AA, and Solari features to backend capabilities; profile module tests cover default AA and Solari capability failures. | Missing capability must be structured `RenderProfileValidationError`, not a fallback renderer success. |
+
+M10.1 can be called profile-frozen only when fresh validation has run for `cargo test -p zircon_runtime render_profile --locked` and `cargo check -p zircon_app --locked --all-targets`, or when a docs-only slice explicitly states that it has not promoted the gate. This document currently records the gate and prior evidence; it does not by itself claim fresh Cargo validation.
 
 ## Validation
 

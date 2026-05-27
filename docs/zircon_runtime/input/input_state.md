@@ -19,8 +19,14 @@ related_code:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/gamepad.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
   - zircon_runtime/src/prelude.rs
 implementation_files:
   - zircon_runtime/src/core/framework/input/button_input_state.rs
@@ -39,8 +45,14 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/gamepad.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
+  - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
 plan_sources:
   - user: 2026-05-16 Bevy-style platform/window/winit/gilrs/input parity plan
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
@@ -78,7 +90,7 @@ The design follows Bevy's input split:
 
 - `ButtonInputState<T>` mirrors Bevy `ButtonInput<T>` semantics with durable `pressed` state plus per-frame `just_pressed` and `just_released` transitions.
 - `InputEvent` remains the append-only neutral event stream, now covering cursor position, cursor enter/leave, file drag/drop, window status, mouse motion, Bevy-style wheel x/y/unit events, keyboard, IME composition/delete requests, outgoing IME host requests, focus loss, touch, gamepad connection, gamepad button, and gamepad axis events.
-- `InputFrameSnapshot` is the new full-frame state view for systems that need transitions, cursor-in-window state, current-frame file drag/drop and window status events, active touches, connected gamepads, axes, IME preedit/commit/delete-surrounding/host-request state, precise wheel events, and motion accumulators.
+- `InputFrameSnapshot` is the new full-frame state view for systems that need transitions, cursor-in-window state, current-frame file drag/drop and window status events, active touches, connected gamepads, processed gamepad axes, processed analog button values, current-frame gamepad rumble requests, IME preedit/commit/delete-surrounding/host-request state, precise wheel events, and motion accumulators.
 - `InputSnapshot` remains the compatibility view: cursor, pressed buttons, and scalar wheel accumulator.
 
 ## Runtime Manager Behavior
@@ -101,13 +113,25 @@ IME events update a separate composition state. `ImeEvent::Enabled` and `Disable
 
 Touch events keep a map of active touches. Started and moved phases update the active point; ended and cancelled phases remove it.
 
-Gamepad connection events track connected gamepad ids. Disconnect clears that gamepad's axes and releases its pressed gamepad buttons. Gamepad button events update `ButtonInputState` using `InputButton::Gamepad`, and gamepad axis events update the latest axis value.
+Gamepad connection events track connected gamepad ids. Disconnect clears that gamepad's axes, clears its analog button values, and releases its pressed gamepad buttons. This keeps stale physical-device state from surviving device removal while leaving keyboard focus-loss behavior window-scoped.
+
+Gamepad button and axis values intentionally enter the runtime as raw host readings. `GamepadButtonAxisSettings` clamps analog button values into `[0.0, 1.0]`, applies a low zone of `0.05`, a high zone of `0.95`, and ignores processed changes below `0.01`. `GamepadButtonSettings` then applies Bevy-style digital hysteresis: a gamepad button presses at `0.75` and releases at `0.65`. `GamepadAxisSettings` applies an axis deadzone of `[-0.05, 0.05]`, livezone bounds of `[-1.0, 1.0]`, and a processed-value change threshold of `0.01`. These defaults mirror Bevy's split where the gilrs backend emits raw events and `bevy_input::gamepad::GamepadSettings` owns filtering.
+
+Gamepad rumble requests are runtime-to-host requests. Runtime systems submit `InputEvent::GamepadRumbleRequest`; `InputFrameSnapshot::gamepad_rumble_requests` exposes the current-frame view, and `InputManager::drain_gamepad_rumble_requests()` is the one-shot handoff used by the dynamic runtime host-request ABI. The request intensity is clamped when converted to the stable ABI so invalid caller values cannot leak to a native backend.
 
 ## Compatibility
 
 Existing callers can continue to call `snapshot()` and inspect `pressed_buttons`. New code should call `frame_snapshot()` when it needs Bevy-style transitions, mouse motion, touch, or gamepad state.
 
 The stable runtime prelude now exposes the neutral input contracts, the default input manager, and the `InputModule` descriptor alongside the platform capability matrix. Runtime modules can therefore depend on Bevy-style input vocabulary without reaching through the concrete input module path.
+
+## Event Log Harness
+
+M6 adds a hardware-free log harness in `zircon_runtime/src/input/tests/input_manager.rs`: `input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad`. The test submits one mixed frame through `DefaultInputManager` only: window status, keyboard, cursor, raw mouse motion, mouse wheel, mouse button, touch, gamepad connection, gamepad button, and gamepad axis events all enter as `InputEvent` values.
+
+The harness then builds its log from `InputFrameSnapshot`, not from the submitted fixture list. Window messages come from `window_status_events`; keyboard, mouse button, and gamepad button entries come from `ButtonInputState::just_pressed_inputs()`; mouse cursor, motion, and wheel entries come from the frame accumulators; touch entries come from `active_touches`; and gamepad connection/axis entries come from `connected_gamepads` and `gamepad_axes`. The same test drains `InputEventRecord` sequence numbers and checks they are contiguous from `1..=12`, so the example verifies both state reduction and append-only event recording on the normal runtime input manager path.
+
+This is intentionally a test harness rather than a native desktop example binary. It gives CI the M6 example coverage without depending on a physical window, keyboard, mouse, touch device, or controller. Real winit/gilrs smoke testing remains optional because hardware availability cannot be a workspace gate.
 
 ## Runtime Preview Host Translation
 
@@ -136,6 +160,7 @@ M3 wires the runtime preview host through the existing `ZrRuntimeEventV1` ABI in
 - Keyboard ABI events submit `InputEvent::KeyboardInput` so `DefaultInputManager` owns physical key state, text payload, and frame transitions. Text is not used as a logical key identity because text is usually absent on release events.
 - IME ABI events submit `InputEvent::Ime` so composition and delete-surrounding requests are available to text widgets without being confused with physical key presses.
 - Outgoing IME host requests are drained through optional `ZrRuntimeApiV1::drain_host_requests` as a JSON `ZrRuntimeHostRequestBatchV1`. `zircon_app::entry::runtime_library::RuntimeSession` decodes the batch, and the native preview host applies enable, disable, cursor-area, and surrounding-text requests to winit `Window::request_ime_update`. This follows Bevy's window-owned `ime_enabled` / `ime_position` configuration surface in `dev/bevy/crates/bevy_window/src/window.rs`, while using the richer local winit 0.31 `ImeRequest`, `ImeCapabilities`, `ImeRequestData`, and `ImeSurroundingText` API for native host application.
+- Outgoing gamepad rumble requests are drained through the same optional host-request API as `ZrRuntimeHostRequestV1::GamepadRumble`. On desktop `gamepad-gilrs`, the native preview host now maps requests to gilrs force-feedback effects (`Strong`/`Weak`) and tracks active effect lifetimes so `Stop` requests, gamepad disconnects, and app shutdown clear playback handles deterministically. Missing gamepads, disconnected pads, unsupported force-feedback capability, and gilrs force-feedback channel failures are reported as host warnings; the ABI and runtime queue contract remain unchanged.
 - Background, suspended, and low-memory lifecycle states submit `InputEvent::KeyboardFocusLost`.
 - Mouse-motion ABI events submit `InputEvent::MouseMotion`, which is accumulated into `InputFrameSnapshot::mouse_motion_accumulator` and reset by `begin_frame()`. This follows Bevy's split between raw `MouseMotion` events and frame-local `AccumulatedMouseMotion`.
 - Mouse-wheel ABI events with a Line/Pixel unit submit `InputEvent::MouseWheel`; legacy unit-less ABI events still submit `WheelScrolled` so older hosts keep working. The dynamic session validates wheel x/y values as finite before appending precise current-frame wheel state.
@@ -191,9 +216,9 @@ M4 adds the first native gamepad backend in the runtime preview host. This follo
 Each winit wait cycle polls gilrs and translates events through the ABI instead of importing runtime input state into the app:
 
 - `Connected` and `Disconnected` become `ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1`, carrying gamepad id, name, vendor id, and product id.
-- `ButtonPressed`, `ButtonRepeated`, `ButtonReleased`, and `ButtonChanged` become `ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1`, carrying stable Zircon button codes and the analog value.
+- `ButtonPressed`, `ButtonRepeated`, `ButtonReleased`, and `ButtonChanged` become `ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1`, carrying stable Zircon button codes and the analog value. `ButtonChanged` forwards the raw analog value without an app-side `value >= 0.5` threshold; runtime input state applies the Bevy-style button axis and digital hysteresis settings described above.
 - `AxisChanged` becomes `ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1`, carrying stable Zircon axis codes and value.
 
-`zircon_runtime::dynamic_api::session` reduces those ABI events into `InputEvent::GamepadConnection`, `InputEvent::GamepadButton`, and `InputEvent::GamepadAxis`. The runtime keeps Bevy-style durable gamepad state in `InputFrameSnapshot`: connected gamepads, pressed gamepad buttons, per-frame transitions, and latest axis values. Disconnect still clears that gamepad's axes and releases its pressed buttons.
+`zircon_runtime::dynamic_api::session` reduces those ABI events into `InputEvent::GamepadConnection`, `InputEvent::GamepadButton`, and `InputEvent::GamepadAxis`. The runtime keeps Bevy-style durable gamepad state in `InputFrameSnapshot`: connected gamepads, pressed gamepad buttons, per-frame transitions, processed analog button values, and processed latest axis values. Disconnect still clears that gamepad's axes, analog button values, and pressed buttons.
 
-Current intentional gaps are browser Gamepad API support, force feedback/rumble, Bevy-like gamepad deadzone/livezone settings, native host consumption of input-method host requests, additional non-mouse device events, and editor/native host convergence. Browser gamepad must remain a separate backend instead of being treated as a gilrs alias.
+Current intentional gaps are browser Gamepad API support, additional non-mouse device events, and editor/native host convergence. Browser gamepad must remain a separate backend instead of being treated as a gilrs alias.

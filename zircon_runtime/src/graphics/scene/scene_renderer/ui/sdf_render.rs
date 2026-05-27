@@ -7,8 +7,13 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextAlign;
 
 use super::render::ScreenSpaceUiTextBatch;
-use super::sdf_atlas::{SdfAtlasPlan, SdfAtlasRect};
-use super::sdf_font_bake::{SdfAtlasBake, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics};
+use super::sdf_atlas::{SdfAtlasCacheReport, SdfAtlasPlan, SdfAtlasRect};
+use super::sdf_font_bake::{
+    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+};
+#[cfg(test)]
+use super::sdf_upload::SdfAtlasUploadMode;
+use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadReport};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/sdf_text.wgsl");
 const SDF_ATLAS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
@@ -24,6 +29,20 @@ pub(super) struct ScreenSpaceUiSdfRenderer {
     atlas_size: UVec2,
     vertex_buffer: Option<wgpu::Buffer>,
     vertex_count: u32,
+    last_report: ScreenSpaceUiSdfPrepareReport,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ScreenSpaceUiSdfPrepareReport {
+    pub(super) text_batch_count: usize,
+    pub(super) atlas_slot_count: usize,
+    pub(super) atlas_size: UVec2,
+    pub(super) atlas_resized: bool,
+    pub(super) bake: SdfAtlasBakeReport,
+    pub(super) atlas_upload_byte_len: usize,
+    pub(super) atlas_upload_full_texture: bool,
+    pub(super) atlas_upload: SdfAtlasUploadReport,
+    pub(super) vertex_count: u32,
 }
 
 #[repr(C)]
@@ -142,6 +161,7 @@ impl ScreenSpaceUiSdfRenderer {
             atlas_size,
             vertex_buffer: None,
             vertex_count: 0,
+            last_report: ScreenSpaceUiSdfPrepareReport::default(),
         }
     }
 
@@ -152,9 +172,11 @@ impl ScreenSpaceUiSdfRenderer {
         viewport_size: UVec2,
         texts: &[ScreenSpaceUiTextBatch],
         atlas_plan: &SdfAtlasPlan,
+        atlas_cache: SdfAtlasCacheReport,
         asset_manager: &ProjectAssetManager,
     ) {
-        if atlas_plan.atlas_size != self.atlas_size {
+        let atlas_resized = atlas_plan.atlas_size != self.atlas_size;
+        if atlas_resized {
             let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
                 device,
                 &self.bind_group_layout,
@@ -199,6 +221,20 @@ impl ScreenSpaceUiSdfRenderer {
                 usage: wgpu::BufferUsages::VERTEX,
             })
         });
+        self.last_report = sdf_prepare_report(
+            texts.len(),
+            atlas_plan,
+            atlas_cache,
+            atlas_resized,
+            atlas_bake.report,
+            atlas_bake.pixels.len(),
+            true,
+            self.vertex_count,
+        );
+    }
+
+    pub(super) fn prepare_report(&self) -> ScreenSpaceUiSdfPrepareReport {
+        self.last_report
     }
 
     pub(super) fn render<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
@@ -213,6 +249,35 @@ impl ScreenSpaceUiSdfRenderer {
         pass.set_bind_group(0, &self.bind_group, &[]);
         pass.set_vertex_buffer(0, vertex_buffer.slice(..));
         pass.draw(0..self.vertex_count, 0..1);
+    }
+}
+
+fn sdf_prepare_report(
+    text_batch_count: usize,
+    atlas_plan: &SdfAtlasPlan,
+    atlas_cache: SdfAtlasCacheReport,
+    atlas_resized: bool,
+    bake: SdfAtlasBakeReport,
+    atlas_upload_byte_len: usize,
+    atlas_upload_full_texture: bool,
+    vertex_count: u32,
+) -> ScreenSpaceUiSdfPrepareReport {
+    ScreenSpaceUiSdfPrepareReport {
+        text_batch_count,
+        atlas_slot_count: atlas_plan.slots.len(),
+        atlas_size: atlas_plan.atlas_size,
+        atlas_resized,
+        bake,
+        atlas_upload_byte_len,
+        atlas_upload_full_texture,
+        atlas_upload: sdf_atlas_upload_report(
+            atlas_plan,
+            atlas_cache,
+            atlas_resized,
+            atlas_upload_byte_len,
+            atlas_upload_full_texture,
+        ),
+        vertex_count,
     }
 }
 
@@ -650,6 +715,62 @@ mod tests {
         assert!(
             (right_vertices[0].position[0] - pixel_to_ndc_x(expected_right_x, 128.0)).abs()
                 < 0.0001
+        );
+    }
+
+    #[test]
+    fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
+        let plan = plan_sdf_atlas(&[text_batch("AB", UiFrame::new(8.0, 12.0, 64.0, 20.0))]);
+        let bake_report = super::SdfAtlasBakeReport {
+            slot_count: 2,
+            visible_glyph_count: 2,
+            empty_glyph_count: 0,
+            atlas_byte_len: 512 * 512,
+            nonzero_pixel_count: 64,
+            loaded_font_count: 1,
+        };
+
+        let cache_report = SdfAtlasCacheReport {
+            previous_slot_count: 0,
+            current_slot_count: 2,
+            retained_slot_count: 0,
+            stable_slot_count: 0,
+            relocated_slot_count: 0,
+            added_slot_count: 2,
+            evicted_slot_count: 0,
+            atlas_resized: true,
+        };
+
+        let report = sdf_prepare_report(
+            1,
+            &plan,
+            cache_report,
+            true,
+            bake_report,
+            512 * 512,
+            true,
+            12,
+        );
+
+        assert_eq!(
+            report,
+            ScreenSpaceUiSdfPrepareReport {
+                text_batch_count: 1,
+                atlas_slot_count: 2,
+                atlas_size: plan.atlas_size,
+                atlas_resized: true,
+                bake: bake_report,
+                atlas_upload_byte_len: 512 * 512,
+                atlas_upload_full_texture: true,
+                atlas_upload: SdfAtlasUploadReport {
+                    mode: SdfAtlasUploadMode::FullTexture,
+                    byte_len: 512 * 512,
+                    full_texture: true,
+                    dirty_slot_count: 2,
+                    dirty_byte_len: 512 * 512,
+                },
+                vertex_count: 12,
+            }
         );
     }
 

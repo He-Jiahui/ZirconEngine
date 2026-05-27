@@ -1,6 +1,10 @@
 ---
 related_code:
+  - dev/bevy/docs/cargo_features.md
+  - dev/bevy/docs/profiling.md
   - dev/bevy/crates/bevy_camera/src/camera.rs
+  - dev/bevy/crates/bevy_sprite/src/sprite.rs
+  - dev/bevy/crates/bevy_sprite_render/src/lib.rs
   - dev/bevy/crates/bevy_render/src/lib.rs
   - dev/bevy/crates/bevy_render/src/camera.rs
   - dev/bevy/crates/bevy_render/src/pipelined_rendering.rs
@@ -24,6 +28,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/surface.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/mod.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
@@ -33,6 +38,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/framework_error.rs
+  - zircon_runtime/src/core/diagnostics/render.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/config.rs
@@ -46,6 +54,8 @@ related_code:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/runtime/history/validation_key.rs
   - zircon_runtime/src/graphics/runtime/history/is_compatible.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
@@ -89,6 +99,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/surface.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
@@ -96,6 +107,9 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
   - zircon_runtime/src/core/framework/render/framework.rs
+  - zircon_runtime/src/core/diagnostics/render.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/config.rs
@@ -107,6 +121,8 @@ implementation_files:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/runtime/history/validation_key.rs
   - zircon_runtime/src/graphics/runtime/history/is_compatible.rs
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/graphics_debugger_state.rs
@@ -147,6 +163,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
 plan_sources:
+  - user: 2026-05-22 continue M10 render diagnostics and profiling bridge checklist
+  - user: 2026-05-21 continue M10 default 3D PBR and light acceptance checklist
+  - user: 2026-05-21 continue M10 default 2D and presentation base acceptance checklist
   - user: 2026-05-21 continue Bevy PBR material and lighting evidence mapping
   - user: 2026-05-21 continue Bevy presentation surface evidence mapping
   - user: 2026-05-21 continue Bevy render diagnostics evidence mapping
@@ -159,7 +178,12 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_profiling.rs
   - zircon_runtime/src/graphics/tests/render_debugger_and_history.rs
+  - cargo test -p zircon_runtime --locked render_product_sprite
+  - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
+  - cargo test -p zircon_runtime --locked camera_target
+  - cargo test -p zircon_runtime --locked surface_targets
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::scene_uniform_uses_authored_ambient_light_when_lighting_is_enabled
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_pbr_submit_reports_material_fallback_and_light_stats
@@ -201,6 +225,35 @@ The existing debug marker and RenderDoc path is adjacent but not equivalent to B
 | Mesh allocator diagnostics | Current docs track mesh/material readiness and graph execution; there is no Bevy-style mesh allocator slab/byte/allocation diagnostic. | Add allocator-level mesh memory diagnostics once Zircon's mesh allocator has stable slab/residency ownership. |
 | Pipelined rendering visibility | Zircon's runtime framework submit path is synchronous from the caller's perspective; no Bevy-like render thread/sub-app overlap diagnostics exist. | Keep this as a future scheduling milestone; do not conflate current submit stats with pipelined rendering telemetry. |
 
+## M10U Render Diagnostics And Profiling Bridge Gate
+
+M10U uses this document as the render-product side of the M10.8 gate. The current product state is useful, but narrower than Bevy's `RenderDiagnosticsPlugin`: `RenderStats` is a frame submit snapshot, not a render graph diagnostics recorder with begin/resolve/finish lifecycle, GPU timestamp query buffers, pipeline statistics, or generic render-asset diagnostics.
+
+The runtime diagnostics bridge is intentionally small today. `zircon_runtime/src/core/diagnostics/render.rs` wraps the last queried `RenderStats` in `RuntimeRenderDiagnostics`, and `collect_runtime_diagnostics(...)` copies only `render.submitted_frames`, `render.active_viewports`, and `render.last_graph_executed_pass_count` into the runtime-owned `DiagnosticStore`. That is enough for tools to see that render diagnostics exist, but not enough to claim Bevy-style render diagnostics parity.
+
+The profiling feature is adjacent evidence, not a substitute. It can record CPU spans for submit, present, capture, lock waits, graph stages, and graph passes, then export native/perfetto/hotspot artifacts. It does not record GPU timestamp queries, shader invocation/primitive pipeline statistics, render-asset residency counts, mesh allocator slab bytes, or render-thread overlap telemetry. RenderDoc markers stay in the debugging lane; Bevy's profiling docs explicitly separate RenderDoc from GPU profilers.
+
+| M10.8 evidence family | Current Zircon state | Promotion requirement |
+| --- | --- | --- |
+| Product readiness | `RenderStats` records product counters, fallback/readiness reports, graph counts, and advanced status. | Preserve these counters as product diagnostics and keep them visible through `RuntimeDiagnosticsSnapshot`. |
+| DiagnosticStore bridge | `collect_runtime_diagnostics(...)` records three render paths into `DiagnosticStore`. | Add stable paths for pass timing, pipeline/cache status, present/capture failures, and resource residency before overlay/log consumers treat render diagnostics as complete. |
+| CPU pass timing | profiling spans cover submit/present/capture and graph stage/pass CPU work in profiling builds. | Make pass-level timing visible as diagnostics or clearly link profiling artifacts to the diagnostics snapshot during promotion. |
+| GPU timing and pipeline statistics | no timestamp-query recorder or pipeline-stat query rows exist. | Gate GPU rows by backend capability, report unavailable states, and keep CPU-only fallback explicit. |
+| Render assets and mesh allocator | material/sprite/light readiness stats exist; no generic render-asset or mesh allocator diagnostic family exists. | Add generic render-asset residency/counts and mesh allocator byte/allocation diagnostics only after storage ownership is stable. |
+| Pipelined telemetry | submit remains synchronous. | Future render-thread handoff, overlap timing, and shutdown telemetry must be separate from synchronous submit stats. |
+
+Promotion requires focused render diagnostics snapshot tests, `DiagnosticStore` log schedule tests, profiling artifact smoke, profiling-build render graph span tests, and `cargo check -p zircon_runtime --lib --locked` in a quiet build window.
+
+2026-05-26 M10W validation evidence:
+
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked runtime_diagnostics --jobs 1 --message-format short --color never`: PASS, 2 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked diagnostic_store --jobs 1 --message-format short --color never`: PASS, 5 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --lib profiling --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS, 20 matching profiling tests passed after an initial cold profiling-profile compile timed out before test execution.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.
+
+This promotes the current `RuntimeDiagnosticsSnapshot` / `DiagnosticStore` bridge and CPU profiling artifacts only. It does not claim GPU timestamp queries, pipeline-statistics rows, generic render-asset diagnostics, mesh allocator diagnostics, or pipelined render-thread telemetry.
+
 ## Bevy Presentation Surface Evidence
 
 Bevy keeps camera targets and window presentation explicit instead of treating all rendered output as one swapchain path. `dev/bevy/crates/bevy_camera/src/camera.rs:22-58` defines `Viewport` as a physical rectangle inside a render target and clamps it to the target size. `camera.rs:814-855` defines `RenderTarget::{Window, Image, TextureView, None}` and normalizes them to concrete target keys; the `None { size }` target represents a camera with no color target, useful for prepass-only rendering. `dev/bevy/crates/bevy_render/src/camera.rs:263-300` resolves the normalized target into `RenderTargetInfo` from a window, image, manual texture view, or explicit no-color size, and reports missing window/image/texture-view targets as structured errors at `camera.rs:322-331`.
@@ -227,6 +280,14 @@ The focused surface-target tests document this product boundary. `zircon_runtime
 | Screenshot and capture workflow | Bevy has an async screenshot component, per-target preparation, GPU copy-to-buffer, row-padding cleanup, and image callback. Zircon exposes viewport `capture_frame(...)` and RenderDoc capture hooks, but no Bevy-like screenshot request/result pipeline. | Add a screenshot/capture request API that can target primary, headless, and future texture targets, return structured async results, and integrate with dev/CI artifact paths. |
 | Present-mode and surface diagnostics | Zircon chooses an advertised present mode internally and records present failures as framework errors; Bevy exposes present-mode fallback decisions in the window render path. | Add surface-format/present-mode/fallback diagnostics to `RenderStats` or `DiagnosticStore` once the platform/window session's surface lifecycle stabilizes. |
 
+## M10R Default 2D And Presentation Base Gate
+
+M10R ties the default 2D and presentation milestones together only at the acceptance boundary. Bevy keeps the same separation: `2d_bevy_render` is the renderer collection for 2D apps, while camera targets and screenshots are target-aware render output contracts. A sprite draw can prove renderer product state only when Core2d extraction, queueing, graph pass execution, resource fallback, and stats are visible; a screenshot or headless capture can prove presentation only when the target and readback path are explicit.
+
+The Zircon side follows that split. [Render Sprite Contracts](../core/framework/render/sprite.md) owns the default Core2d sprite base: `Sprite2dComponent` projects into `RenderSpriteSnapshot`, `SpriteExtract` stays separate from particles, `default_core2d()` exposes sprite graph passes, and sprite stats report ready/fallback counts. This document owns the presentation base: `PrimarySurface` uses the bound viewport surface, `Headless { size }` uses offscreen capture size, `Texture(handle)` is still explicit unsupported, and headless surface-present is rejected before it can fall back to the primary surface.
+
+The promotion evidence must include both sides. `render_product_sprite` and the default Core2d pipeline compile test cover the current 2D base; `camera_target` and `surface_targets` cover target routing, offscreen capture size, missing target errors, and swapchain present rather than readback fallback. Mesh2d/SpriteMesh, slice/tile sprites, binned batching, per-view 2D pipeline specialization, target-aware async screenshot requests, render-to-texture, and manual texture views remain open after M10R.
+
 ## Bevy PBR Material And Lighting Evidence
 
 Bevy's PBR baseline is a product family, not just a shader. `dev/bevy/crates/bevy_pbr/src/lib.rs:130-156` defines `PbrPlugin` with prepass, deferred lighting, GPU instance buffer building, and glTF StandardMaterial defaults. The plugin loads the PBR shader library set at `lib.rs:179-198`, registers `StandardMaterial` and `MaterialPlugin::<StandardMaterial>` at `lib.rs:203-216`, adds SSAO, fog, lightmap, light probes, volumetric fog, SSR, transmission, clustered decals, and contact shadows at `lib.rs:217-230`, syncs directional/point/spot/rect/ambient lights at `lib.rs:232-239`, adds atmosphere and GPU clustering at `lib.rs:240-244`, and conditionally adds deferred PBR lighting at `lib.rs:251-252`.
@@ -241,7 +302,7 @@ The shader side confirms why PBR parity must include both forward and deferred l
 
 Zircon's current baseline intentionally lands below Bevy's full PBR plugin breadth. The neutral material descriptor in `zircon_runtime/src/core/framework/render/material/standard_material.rs:8-23` carries name, dependency set, base color, base-color/normal/metallic-roughness/occlusion/emissive textures, metallic, roughness, emissive, alpha mode, unlit, double-sided, and fallback policy. `render/material/readiness_report.rs:31-58` records validation errors and fallback usage so runtime stats can distinguish usable material rows from fallback-dependent rows.
 
-Concrete GPU preparation currently projects that descriptor into a smaller runtime material. `resource_streamer_ensure_material.rs:18-84` loads the material, optional shader contract, and readiness report; `resource_streamer_ensure_material.rs:89-119` resolves standard texture slots; `resource_streamer_ensure_material.rs:150-195` merges shader readiness, handles blocking validation, and constructs `MaterialRuntime`. `material_runtime.rs:27-42` stores the runtime scalar/texture fields, `PipelineKey`, and readiness report; `pipeline_key.rs:4-17` keys shader revision, double-sided, alpha blend/mask/cutoff, unlit, and standard texture-slot presence.
+Concrete GPU preparation currently projects that descriptor into a smaller runtime material. `resource_streamer_ensure_material.rs:18-84` loads the material, optional shader contract, and readiness report; `resource_streamer_ensure_material.rs:89-119` resolves standard texture slots; `resource_streamer_ensure_material.rs:150-195` merges shader readiness, handles blocking validation, and constructs `MaterialRuntime`. The material report now includes asset-owned shader payload readiness rows from `ShaderAsset::readiness_report()`, so invalid shader entry stages and duplicate or empty shader definitions are visible beside schema, WGSL capture, texture fallback, and missing runtime WGSL diagnostics. `material_runtime.rs:27-42` stores the runtime scalar/texture fields, `PipelineKey`, and readiness report; `pipeline_key.rs:4-17` keys shader revision, double-sided, alpha blend/mask/cutoff, unlit, and standard texture-slot presence.
 
 Zircon has real renderer hooks, but they are still narrower than Bevy's PBR path. `deferred_scene_resources/record_gbuffer_geometry.rs:5-45` records the deferred geometry pass by binding scene/model/texture/geometry data for each mesh draw. `deferred_scene_resources/execute_lighting.rs:4-52` runs a fullscreen deferred lighting pass over albedo, normal, background, and scene-color targets. `execute_clustered_lighting.rs:14-87` writes directional-light data into a fixed clustered-light buffer and dispatches a compute culling pass, but it currently operates on `RenderDirectionalLightSnapshot` only; Bevy-style point/spot clustered light shading, rect area-light shading, shadow maps, probes, transmission, and advanced material lobes remain outside the accepted baseline.
 
@@ -255,6 +316,14 @@ Zircon has real renderer hooks, but they are still narrower than Bevy's PBR path
 | Physically based lighting | Zircon consumes authored ambient light and one basic directional slot, plus a limited directional clustered-light compute path. | Implement point/spot clustered lighting, rect/area lights, shadows, contact shadows, lightmaps, probes/IBL, SSAO/SSR coupling, clearcoat/anisotropy/transmission lighting, and per-view light visibility before marking full PBR lighting complete. |
 | Deferred parity | Zircon records a G-buffer geometry pass and fullscreen lighting pass. | Align the G-buffer contract with material flags, normal/motion/depth prepasses, deferred lighting pass IDs, SSAO/specular occlusion, and fallback handling for unlit and unsupported material modes. |
 | Authoring and assets | Zircon has runtime descriptors and asset-side material files, but this docs slice does not enter `.zmaterial` or material editor implementation. | Sequence `.zmaterial`, material editor projection, shader-contract authoring, and asset hot-reload with the active asset/material lane rather than folding it into render submit docs. |
+
+## M10S Default 3D PBR And Light Gate
+
+M10S uses this document as the default 3D/PBR/light side of the M10.5 gate. The current Zircon state is a foundation, not parity: material descriptors and readiness reports are typed, runtime materials carry a compact `PipelineKey`, ambient light can feed the shared scene uniform, light readiness splits ready/degraded families, the renderer records a G-buffer pass, fullscreen deferred lighting pass, and a limited directional clustered-light compute pass.
+
+The gate remains explicit about what is missing. Bevy's PBR product includes StandardMaterial lobes for transmission, clearcoat, anisotropy, parallax, specular/reflectance, UV channel variants, material bind-group generation, phase specialization, point/spot clusterable lights, rect lights, shadows, contact shadows, probes, lightmaps, SSAO, SSR, fog, volumetrics, and deferred/forward coupling. Zircon must preserve those as open gaps instead of letting an ambient uniform, one directional slot, a G-buffer skeleton, or advanced GI provider close the default 3D milestone.
+
+Promotion evidence must be family-based. Material tests need to distinguish covered descriptor fields from missing Bevy families; light tests need ready/degraded evidence for ambient, directional, point, spot, rect, probe, and baked light families; submit tests need material fallback and light stats; renderer tests need forward/deferred phase and pipeline coverage. `.zmaterial`, material editor projection, shader import resolution, and asset hot-reload remain owned by the active asset/material lane.
 
 The basic forward and deferred mesh shaders share `SceneUniform`. When preview lighting is enabled, `SceneUniform::from_frame(...)` now reads active authored ambient lights from `RenderFrameExtract::lighting.ambient_lights`, accumulates `color * intensity`, and writes that value to `ambient_color`. If no ambient light is authored, the renderer keeps the existing preview fallback ambient value. This closes the first concrete ambient-light consumption step without changing `.zshader` / `.zmaterial` ownership or adding a new material pipeline.
 

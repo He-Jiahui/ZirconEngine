@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::num::NonZeroIsize;
 
 use wgpu::util::DeviceExt;
@@ -268,6 +268,7 @@ impl WgpuUiSurfaceRenderer {
     }
 
     fn prepare_image_resources(&mut self, draw_list: &UiSurfaceDrawList) {
+        let mut uploaded_resource_keys = HashSet::new();
         for command in &draw_list.commands {
             let UiSurfaceCommandKind::Image { payload } = &command.kind else {
                 continue;
@@ -292,6 +293,12 @@ impl WgpuUiSurfaceRenderer {
                 continue;
             }
             let cache_key = payload.resource_key.clone();
+            if !uploaded_resource_keys.insert(cache_key.clone()) {
+                if let Some(resource) = self.image_cache.get_mut(&cache_key) {
+                    resource.last_touched_present = self.present_index;
+                }
+                continue;
+            }
             let replace = self
                 .image_cache
                 .get(&cache_key)
@@ -854,7 +861,7 @@ fn optional_nonzero_isize(value: Option<u64>) -> Result<Option<NonZeroIsize>, Rh
 mod tests {
     use crate::rhi::{
         UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
-        UiSurfaceRect,
+        UiSurfaceImageUvRect, UiSurfaceRect,
     };
 
     use super::*;
@@ -1044,6 +1051,43 @@ mod tests {
     }
 
     #[test]
+    fn wgpu_ui_surface_headless_stats_batch_atlas_images_by_resource_key() {
+        let mut presenter = WgpuUiSurfacePresenter::new_headless(100, 100);
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                atlas_image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
+                    UiSurfaceImageUvRect {
+                        min: [0.0, 0.0],
+                        max: [0.5, 0.5],
+                    },
+                ),
+                atlas_image(
+                    1,
+                    UiSurfaceRect::new(20.0, 0.0, 10.0, 10.0),
+                    UiSurfaceImageUvRect {
+                        min: [0.5, 0.0],
+                        max: [1.0, 0.5],
+                    },
+                ),
+            ],
+        );
+
+        let stats = presenter.present(&draw_list).unwrap();
+
+        assert_eq!(stats.visible_command_count, 2);
+        assert_eq!(stats.visible_draw_item_count, 2);
+        assert_eq!(stats.image_count, 2);
+        assert_eq!(stats.image_upload_bytes, 64);
+        assert_eq!(stats.draw_calls, 1);
+        assert_eq!(stats.batch_layer_count, 1);
+        assert_eq!(stats.batch_dependency_count, 0);
+    }
+
+    #[test]
     fn wgpu_ui_surface_image_cache_prune_keeps_recent_entries() {
         let prune = image_cache_keys_to_prune(
             [("oldest", 1), ("recent", 10), ("middle", 5), ("newest", 20)].into_iter(),
@@ -1066,5 +1110,27 @@ mod tests {
         let prune = image_cache_keys_to_prune([("one", 1), ("two", 2)].into_iter(), 2);
 
         assert!(prune.is_empty());
+    }
+
+    fn atlas_image(
+        z_index: i32,
+        frame: UiSurfaceRect,
+        atlas_uv: UiSurfaceImageUvRect,
+    ) -> UiSurfaceCommand {
+        UiSurfaceCommand {
+            z_index,
+            frame,
+            clip: None,
+            kind: UiSurfaceCommandKind::Image {
+                payload: UiSurfaceImagePayload {
+                    resource_key: "atlas://editor/icons".to_string(),
+                    width: 4,
+                    height: 4,
+                    upload_bytes: 64,
+                    rgba: Some(vec![255; 64]),
+                    atlas_uv: Some(atlas_uv),
+                },
+            },
+        }
     }
 }

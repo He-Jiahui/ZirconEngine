@@ -32,7 +32,8 @@ use super::{
     debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
     input::{
-        apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event, UiSurfaceInputState,
+        apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event,
+        is_valid_input_owner, UiSurfaceInputState,
     },
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
     property_mutation::{
@@ -205,6 +206,8 @@ impl UiSurface {
             focus_state: self.focus.clone(),
             last_rebuild: self.last_rebuild_report.debug_stats(),
             layout_engine_report: self.layout_engine_report.clone(),
+            pipeline_report: self.last_rebuild_report.pipeline_report(0),
+            ecs_projection: self.ui_ecs_projection(),
         }
     }
 
@@ -292,11 +295,18 @@ impl UiSurface {
         if matches!(report.status, UiPropertyMutationStatus::Accepted)
             && matches!(
                 property.as_str(),
-                "enabled" | "visible" | "visibility" | "focusable"
+                "disabled" | "enabled" | "visible" | "visibility" | "focusable"
             )
         {
             let reason = focus_reconcile_reason(&property, &self.tree, node_id);
             report.focus_change = self.reconcile_focus_after_tree_change(reason);
+        }
+        if matches!(report.status, UiPropertyMutationStatus::Accepted)
+            && matches!(property.as_str(), "open" | "popup_open")
+        {
+            if let UiValue::Bool(open) = value {
+                report.focus_change = self.apply_mui_modal_focus_transition(node_id, open)?;
+            }
         }
         Ok(report)
     }
@@ -371,6 +381,7 @@ impl UiSurface {
         let released = self.focus.captured.take();
         if let Some(owner) = released {
             self.input.clear_pointer_capture_for(owner);
+            self.input.clear_pointer_drag_for(owner);
         } else {
             self.input.clear_pointer_capture();
         }
@@ -885,6 +896,20 @@ impl UiSurface {
         event: UiComponentEvent,
         reason: UiPointerComponentEventReason,
     ) -> Result<(), UiTreeError> {
+        self.push_pointer_component_events_with_drag_metrics(
+            events, node_id, event_kind, event, reason, None,
+        )
+    }
+
+    fn push_pointer_component_events_with_drag_metrics(
+        &self,
+        events: &mut Vec<UiPointerComponentEvent>,
+        node_id: UiNodeId,
+        event_kind: UiEventKind,
+        event: UiComponentEvent,
+        reason: UiPointerComponentEventReason,
+        drag: Option<zircon_runtime_interface::ui::component::UiDragMetrics>,
+    ) -> Result<(), UiTreeError> {
         let node = self
             .tree
             .node(node_id)
@@ -901,7 +926,7 @@ impl UiSurface {
             .iter()
             .filter(|binding| binding.event == event_kind)
         {
-            events.push(UiPointerComponentEvent::new(
+            let mut component_event = UiPointerComponentEvent::new(
                 &self.tree.tree_id,
                 node_id,
                 control_id,
@@ -909,7 +934,11 @@ impl UiSurface {
                 event_kind,
                 event.clone(),
                 reason,
-            ));
+            );
+            if let Some(drag) = drag {
+                component_event = component_event.with_drag_metrics(drag);
+            }
+            events.push(component_event);
         }
         Ok(())
     }
@@ -935,7 +964,11 @@ impl UiSurface {
         self.focus.hovered = hit.stacked.clone();
         if matches!(kind, UiPointerEventKind::Down) {
             self.focus.pressed = target;
-            if let Some(focus_target) = self.tree.first_focusable_in_route(&bubbled)? {
+            if let Some(focus_target) = self
+                .tree
+                .first_focusable_in_route(&bubbled)?
+                .filter(|focus_target| is_valid_input_owner(self, *focus_target))
+            {
                 self.focus_node_with_reason(
                     focus_target,
                     UiFocusChangeReason::Input,
@@ -1073,7 +1106,7 @@ fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key:
 
 fn focus_reconcile_reason(property: &str, tree: &UiTree, node_id: UiNodeId) -> UiFocusChangeReason {
     match property {
-        "enabled" | "focusable" => UiFocusChangeReason::Disabled,
+        "disabled" | "enabled" | "focusable" => UiFocusChangeReason::Disabled,
         "visible" => UiFocusChangeReason::Hidden,
         "visibility" => tree
             .nodes

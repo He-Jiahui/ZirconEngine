@@ -205,12 +205,14 @@ fn surface_debug_snapshot_json_exports_layout_engine_route_report() {
         .debug_snapshot_json(&UiSurfaceDebugOptions::default())
         .expect("debug snapshot json");
     assert!(json.contains("\"layout_engine_report\""));
+    assert!(json.contains("\"fallback_reason_counts\": []"));
 
     let snapshot: UiSurfaceDebugSnapshot = serde_json::from_str(&json).expect("roundtrip snapshot");
     let report = &snapshot.layout_engine_report;
     assert_eq!(report.request_count, 1);
     assert_eq!(report.taffy_selected_count, 1);
     assert_eq!(report.legacy_selected_count, 0);
+    assert!(report.fallback_reason_counts.is_empty());
 
     let root = report
         .selections
@@ -243,6 +245,9 @@ fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
         .expect("debug snapshot json");
     assert!(json.contains("\"selected_backend\": \"legacy_zircon\""));
     assert!(json.contains("\"fallback_reason\": \"zircon_owned_semantics\""));
+    assert!(json.contains("\"fallback_reason_counts\""));
+    assert!(json.contains("\"reason\": \"zircon_owned_semantics\""));
+    assert!(json.contains("\"count\": 1"));
 
     let snapshot: UiSurfaceDebugSnapshot = serde_json::from_str(&json).expect("roundtrip snapshot");
     let report = &snapshot.layout_engine_report;
@@ -250,6 +255,12 @@ fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
     assert_eq!(report.taffy_selected_count, 0);
     assert_eq!(report.legacy_selected_count, 1);
     assert_eq!(report.fallback_count, 1);
+    assert_eq!(report.fallback_reason_counts.len(), 1);
+    assert_eq!(
+        report.fallback_reason_counts[0].reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+    assert_eq!(report.fallback_reason_counts[0].count, 1);
 
     let root = report
         .selections

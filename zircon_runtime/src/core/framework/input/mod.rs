@@ -15,7 +15,14 @@ mod window_status;
 
 pub use button_input_state::ButtonInputState;
 pub use file_drag_drop::FileDragDropEvent;
-pub use gamepad::{GamepadAxis, GamepadAxisState, GamepadButton, GamepadConnectionInfo, GamepadId};
+pub use gamepad::{
+    GamepadAxis, GamepadAxisSettings, GamepadAxisState, GamepadButton, GamepadButtonAxisSettings,
+    GamepadButtonSettings, GamepadButtonValueState, GamepadConnectionInfo, GamepadId,
+    GamepadRumbleIntensity, GamepadRumbleRequest, GAMEPAD_AXIS_CHANGE_THRESHOLD,
+    GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER, GAMEPAD_AXIS_LIVEZONE_LOWER,
+    GAMEPAD_AXIS_LIVEZONE_UPPER, GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD, GAMEPAD_BUTTON_AXIS_HIGH,
+    GAMEPAD_BUTTON_AXIS_LOW, GAMEPAD_BUTTON_PRESS_THRESHOLD, GAMEPAD_BUTTON_RELEASE_THRESHOLD,
+};
 pub use ime::{
     ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit,
     ImeSurroundingText,
@@ -50,6 +57,9 @@ pub trait InputManager: Send + Sync {
         }
     }
     fn drain_ime_host_requests(&self) -> Vec<ImeHostRequest> {
+        Vec::new()
+    }
+    fn drain_gamepad_rumble_requests(&self) -> Vec<GamepadRumbleRequest> {
         Vec::new()
     }
     fn drain_events(&self) -> Vec<InputEvent>;

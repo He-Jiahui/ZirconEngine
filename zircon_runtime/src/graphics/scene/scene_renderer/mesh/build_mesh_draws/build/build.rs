@@ -131,6 +131,7 @@ pub(crate) fn build_mesh_draws(
                         model_layout,
                         mesh,
                         pending_draw.texture,
+                        pending_draw.material_uniform,
                         pending_draw.pipeline_key,
                         pending_draw.model_matrix,
                         pending_draw.draw_tint,

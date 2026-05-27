@@ -1,16 +1,21 @@
-use std::{marker::PhantomData, mem::MaybeUninit};
+use std::{array, marker::PhantomData, mem::MaybeUninit};
 
 use crate::scene::ecs::{
     ArchetypeId, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter,
-    ChangeTickWindow, ComponentStorageLocation, QueryAccess, QueryAccessError, QueryData,
-    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter, QueryManyIter,
-    QueryManyMutIter, QueryMutData, QuerySingleError, StableEntityLocation, SystemParam,
-    SystemParamAccess, SystemParamError,
+    ChangeTickWindow, ComponentStorageLocation, QueryAccess, QueryAccessError,
+    QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryDataAccess, QueryEntityError,
+    QueryEntityItem, QueryFilter, QueryIter, QueryManyIter, QueryManyMutIter,
+    QueryManyUniqueMutIter, QueryMutData, QuerySingleError, StableEntityLocation, SystemParam,
+    SystemParamAccess, SystemParamError, UniqueEntityArray,
 };
 use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::single_from_iter;
+use super::{
+    cached_query_iter::{cached_query_entity_index, cached_query_many_indices},
+    single_from_iter,
+    unique_entities::first_duplicate_entity,
+};
 
 #[derive(Clone, Debug)]
 pub struct QueryState<D, F = ()> {
@@ -18,6 +23,7 @@ pub struct QueryState<D, F = ()> {
     cached_archetypes: Vec<ArchetypeId>,
     cached_archetype_generation: u64,
     cached_entities: Vec<EntityId>,
+    cached_entity_indices: Vec<(EntityId, usize)>,
     cached_locations: Vec<StableEntityLocation>,
     cached_component_locations: Vec<Vec<ComponentStorageLocation>>,
     cached_revision: u64,
@@ -43,6 +49,7 @@ where
             cached_archetypes: Vec::new(),
             cached_archetype_generation: 0,
             cached_entities: Vec::new(),
+            cached_entity_indices: Vec::new(),
             cached_locations: Vec::new(),
             cached_component_locations: Vec::new(),
             cached_revision: u64::MAX,
@@ -67,6 +74,7 @@ where
             return;
         }
         self.cached_entities.clear();
+        self.cached_entity_indices.clear();
         self.cached_locations.clear();
         self.cached_component_locations.clear();
         let mut cached_component_ids = self.access.reads().to_vec();
@@ -83,11 +91,16 @@ where
             let component_locations = world
                 .component_storage_locations_for_internal(location.internal, &cached_component_ids);
             if D::matches_component_locations(world, location.stable_id, &component_locations) {
+                let cache_index = self.cached_entities.len();
                 self.cached_entities.push(location.stable_id);
+                self.cached_entity_indices
+                    .push((location.stable_id, cache_index));
                 self.cached_locations.push(location);
                 self.cached_component_locations.push(component_locations);
             }
         }
+        self.cached_entity_indices
+            .sort_unstable_by_key(|(entity, _)| *entity);
         self.cached_revision = revision;
         self.cache_rebuilds = self.cache_rebuilds.saturating_add(1);
     }
@@ -102,6 +115,10 @@ where
 
     pub fn cached_entity_count(&self) -> usize {
         self.cached_entities.len()
+    }
+
+    pub(crate) fn cached_entity_index(&self, entity: EntityId) -> Option<usize> {
+        cached_query_entity_index(&self.cached_entity_indices, entity)
     }
 
     pub fn cached_location_count(&self) -> usize {
@@ -160,6 +177,18 @@ where
         )
     }
 
+    pub fn iter_many_unique_cached_direct<'world, 'state, const N: usize>(
+        &'state mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> CachedQueryManyIter<'world, 'state, D, F> {
+        self.iter_many_unique_cached_direct_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
     pub fn get_cached_direct<'world>(
         &mut self,
         world: &'world World,
@@ -178,6 +207,18 @@ where
         entities: [EntityId; N],
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
         self.get_many_cached_direct_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn get_many_unique_cached_direct<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_unique_cached_direct_with_ticks(
             world,
             entities,
             ChangeTickWindow::all(world.read_change_tick()),
@@ -229,8 +270,7 @@ where
         EntityList::Item: QueryEntityItem,
     {
         self.update_cache(world);
-        let indices =
-            super::cached_query_iter::cached_query_many_indices(&self.cached_entities, entities);
+        let indices = cached_query_many_indices(&self.cached_entity_indices, entities);
         CachedQueryManyIter::new(
             world,
             &self.cached_entities,
@@ -239,6 +279,15 @@ where
             indices,
             ticks,
         )
+    }
+
+    pub(crate) fn iter_many_unique_cached_direct_with_ticks<'world, 'state, const N: usize>(
+        &'state mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> CachedQueryManyIter<'world, 'state, D, F> {
+        self.iter_many_cached_direct_with_ticks(world, entities, ticks)
     }
 
     pub(crate) fn is_empty_cached_direct_with_ticks(
@@ -266,11 +315,7 @@ where
         ticks: ChangeTickWindow,
     ) -> bool {
         self.update_cache(world);
-        let Some(index) = self
-            .cached_entities
-            .iter()
-            .position(|candidate| *candidate == entity)
-        else {
+        let Some(index) = self.cached_entity_index(entity) else {
             return false;
         };
         let component_locations = &self.cached_component_locations[index];
@@ -288,11 +333,7 @@ where
             return Err(QueryEntityError::NotSpawned(entity));
         }
         self.update_cache(world);
-        let Some(index) = self
-            .cached_entities
-            .iter()
-            .position(|candidate| *candidate == entity)
-        else {
+        let Some(index) = self.cached_entity_index(entity) else {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
         let stable_location = self.cached_locations[index];
@@ -318,6 +359,15 @@ where
         })
     }
 
+    pub(crate) fn get_many_unique_cached_direct_with_ticks<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_cached_direct_with_ticks(world, entities.into_inner(), ticks)
+    }
+
     fn get_cached_direct_after_update_with_ticks<'world>(
         &self,
         world: &'world World,
@@ -327,11 +377,7 @@ where
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        let Some(index) = self
-            .cached_entities
-            .iter()
-            .position(|candidate| *candidate == entity)
-        else {
+        let Some(index) = self.cached_entity_index(entity) else {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
         let stable_location = self.cached_locations[index];
@@ -382,6 +428,18 @@ where
         )
     }
 
+    pub fn iter_many_unique<'world, const N: usize>(
+        &self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> QueryManyIter<'world, D, F, array::IntoIter<EntityId, N>> {
+        self.iter_many_unique_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
     pub fn iter_many_cached<'world, EntityList>(
         &mut self,
         world: &'world World,
@@ -394,6 +452,35 @@ where
         self.iter_many_cached_with_ticks(
             world,
             entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn iter_many_unique_cached<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> QueryManyIter<'world, D, F> {
+        self.iter_many_unique_cached_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn iter_combinations<'world, const K: usize>(
+        &self,
+        world: &'world World,
+    ) -> QueryCombinationIter<'world, D, F, K> {
+        self.iter_combinations_with_ticks(world, ChangeTickWindow::all(world.read_change_tick()))
+    }
+
+    pub fn iter_combinations_cached<'world, const K: usize>(
+        &mut self,
+        world: &'world World,
+    ) -> QueryCombinationIter<'world, D, F, K> {
+        self.iter_combinations_cached_with_ticks(
+            world,
             ChangeTickWindow::all(world.read_change_tick()),
         )
     }
@@ -416,6 +503,18 @@ where
         entities: [EntityId; N],
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
         self.get_many_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn get_many_unique<'world, const N: usize>(
+        &self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_unique_with_ticks(
             world,
             entities,
             ChangeTickWindow::all(world.read_change_tick()),
@@ -451,7 +550,13 @@ where
         ticks: ChangeTickWindow,
     ) -> QueryIter<'world, 'state, D, F> {
         self.update_cache(world);
-        QueryIter::new(world, &self.cached_entities, ticks)
+        QueryIter::new_cached_locations(
+            world,
+            &self.cached_entities,
+            &self.cached_locations,
+            &self.cached_component_locations,
+            ticks,
+        )
     }
 
     pub fn single_cached<'world>(
@@ -479,6 +584,18 @@ where
         entities: [EntityId; N],
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
         self.get_many_cached_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn get_many_unique_cached<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_unique_cached_with_ticks(
             world,
             entities,
             ChangeTickWindow::all(world.read_change_tick()),
@@ -536,6 +653,24 @@ where
         collect_many_query_items(entities, |entity| self.get_with_ticks(world, entity, ticks))
     }
 
+    pub(crate) fn get_many_unique_with_ticks<'world, const N: usize>(
+        &self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_with_ticks(world, entities.into_inner(), ticks)
+    }
+
+    pub(crate) fn iter_many_unique_with_ticks<'world, const N: usize>(
+        &self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> QueryManyIter<'world, D, F, array::IntoIter<EntityId, N>> {
+        self.iter_many_with_ticks(world, entities, ticks)
+    }
+
     pub(crate) fn iter_many_with_ticks<'world, EntityList>(
         &self,
         world: &'world World,
@@ -549,6 +684,32 @@ where
         QueryManyIter::new(world, entities, ticks)
     }
 
+    pub(crate) fn iter_many_unique_cached_with_ticks<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> QueryManyIter<'world, D, F> {
+        self.iter_many_cached_with_ticks(world, entities, ticks)
+    }
+
+    pub(crate) fn iter_combinations_with_ticks<'world, const K: usize>(
+        &self,
+        world: &'world World,
+        ticks: ChangeTickWindow,
+    ) -> QueryCombinationIter<'world, D, F, K> {
+        QueryCombinationIter::new(world, world.entity_ids_for_query().iter().copied(), ticks)
+    }
+
+    pub(crate) fn iter_combinations_cached_with_ticks<'world, const K: usize>(
+        &mut self,
+        world: &'world World,
+        ticks: ChangeTickWindow,
+    ) -> QueryCombinationIter<'world, D, F, K> {
+        self.update_cache(world);
+        QueryCombinationIter::new(world, self.cached_entities.iter().copied(), ticks)
+    }
+
     pub(crate) fn iter_many_cached_with_ticks<'world, EntityList>(
         &mut self,
         world: &'world World,
@@ -560,7 +721,7 @@ where
         EntityList::Item: QueryEntityItem,
     {
         self.update_cache(world);
-        let entities = cached_many_entities(&self.cached_entities, entities);
+        let entities = cached_many_entities(&self.cached_entity_indices, entities);
         QueryManyIter::new(world, entities, ticks)
     }
 
@@ -587,7 +748,7 @@ where
         ticks: ChangeTickWindow,
     ) -> bool {
         self.update_cache(world);
-        self.cached_entities.contains(&entity) && F::matches(world, entity, ticks)
+        self.cached_entity_index(entity).is_some() && F::matches(world, entity, ticks)
     }
 
     pub(crate) fn get_cached_with_ticks<'world>(
@@ -600,7 +761,7 @@ where
             return Err(QueryEntityError::NotSpawned(entity));
         }
         self.update_cache(world);
-        if !self.cached_entities.contains(&entity) || !F::matches(world, entity, ticks) {
+        if self.cached_entity_index(entity).is_none() || !F::matches(world, entity, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         D::fetch_with_ticks(world, entity, ticks).ok_or(QueryEntityError::QueryDoesNotMatch(entity))
@@ -618,6 +779,15 @@ where
         })
     }
 
+    pub(crate) fn get_many_unique_cached_with_ticks<'world, const N: usize>(
+        &mut self,
+        world: &'world World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_cached_with_ticks(world, entities.into_inner(), ticks)
+    }
+
     fn get_cached_after_update_with_ticks<'world>(
         &self,
         world: &'world World,
@@ -627,7 +797,7 @@ where
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        if !self.cached_entities.contains(&entity) || !F::matches(world, entity, ticks) {
+        if self.cached_entity_index(entity).is_none() || !F::matches(world, entity, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         D::fetch_with_ticks(world, entity, ticks).ok_or(QueryEntityError::QueryDoesNotMatch(entity))
@@ -635,7 +805,7 @@ where
 }
 
 fn cached_many_entities<EntityList>(
-    cached_entities: &[EntityId],
+    cached_entity_indices: &[(EntityId, usize)],
     entities: EntityList,
 ) -> Vec<EntityId>
 where
@@ -645,7 +815,7 @@ where
     entities
         .into_iter()
         .map(QueryEntityItem::entity_id)
-        .filter(|entity| cached_entities.contains(entity))
+        .filter(|entity| cached_query_entity_index(cached_entity_indices, *entity).is_some())
         .collect()
 }
 
@@ -697,12 +867,31 @@ where
         )
     }
 
+    pub fn single_mut<'world>(
+        &mut self,
+        world: &'world mut World,
+    ) -> Result<D::Item<'world>, QuerySingleError> {
+        self.single_mut_with_ticks(world, ChangeTickWindow::all(world.read_change_tick()))
+    }
+
     pub fn get_many_mut<'world, const N: usize>(
         &mut self,
         world: &'world mut World,
         entities: [EntityId; N],
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
         self.get_many_mut_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn get_many_unique_mut<'world, const N: usize>(
+        &mut self,
+        world: &'world mut World,
+        entities: UniqueEntityArray<N>,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_unique_mut_with_ticks(
             world,
             entities,
             ChangeTickWindow::all(world.read_change_tick()),
@@ -725,6 +914,28 @@ where
         )
     }
 
+    pub fn iter_many_unique_mut<'world, const N: usize>(
+        &mut self,
+        world: &'world mut World,
+        entities: UniqueEntityArray<N>,
+    ) -> QueryManyUniqueMutIter<'world, D, F, array::IntoIter<EntityId, N>> {
+        self.iter_many_unique_mut_with_ticks(
+            world,
+            entities,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    pub fn iter_combinations_mut<'world, const K: usize>(
+        &mut self,
+        world: &'world mut World,
+    ) -> QueryCombinationMutIter<'world, D, F, K> {
+        self.iter_combinations_mut_with_ticks(
+            world,
+            ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
     pub fn for_each_mut(&mut self, world: &mut World, f: impl FnMut(D::Item<'_>)) {
         let ticks = ChangeTickWindow::all(world.read_change_tick());
         self.for_each_mut_with_ticks(world, ticks, f);
@@ -740,6 +951,25 @@ where
         self.validate_mut_after_update_with_ticks(world, entity, ticks)?;
         D::fetch_mut_with_ticks(world, entity, ticks)
             .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+    }
+
+    pub(crate) fn single_mut_with_ticks<'world>(
+        &mut self,
+        world: &'world mut World,
+        ticks: ChangeTickWindow,
+    ) -> Result<D::Item<'world>, QuerySingleError> {
+        self.update_cache(world);
+        let mut matched = None;
+        for entity in self.cached_entities.iter().copied() {
+            if D::matches_data(world, entity) && F::matches(world, entity, ticks) {
+                if matched.replace(entity).is_some() {
+                    return Err(QuerySingleError::MultipleEntities);
+                }
+            }
+        }
+
+        let entity = matched.ok_or(QuerySingleError::NoEntities)?;
+        D::fetch_mut_with_ticks(world, entity, ticks).ok_or(QuerySingleError::NoEntities)
     }
 
     pub(crate) fn get_many_mut_with_ticks<'world, const N: usize>(
@@ -765,6 +995,15 @@ where
         })
     }
 
+    pub(crate) fn get_many_unique_mut_with_ticks<'world, const N: usize>(
+        &mut self,
+        world: &'world mut World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> Result<[D::Item<'world>; N], QueryEntityError> {
+        self.get_many_mut_with_ticks(world, entities.into_inner(), ticks)
+    }
+
     pub(crate) fn iter_many_mut_with_ticks<'world, EntityList>(
         &mut self,
         world: &'world mut World,
@@ -777,6 +1016,25 @@ where
     {
         self.update_cache(world);
         QueryManyMutIter::new(world, self.cached_entities.clone(), entities, ticks)
+    }
+
+    pub(crate) fn iter_many_unique_mut_with_ticks<'world, const N: usize>(
+        &mut self,
+        world: &'world mut World,
+        entities: UniqueEntityArray<N>,
+        ticks: ChangeTickWindow,
+    ) -> QueryManyUniqueMutIter<'world, D, F, array::IntoIter<EntityId, N>> {
+        self.update_cache(world);
+        QueryManyUniqueMutIter::new(world, self.cached_entities.clone(), entities, ticks)
+    }
+
+    pub(crate) fn iter_combinations_mut_with_ticks<'world, const K: usize>(
+        &mut self,
+        world: &'world mut World,
+        ticks: ChangeTickWindow,
+    ) -> QueryCombinationMutIter<'world, D, F, K> {
+        self.update_cache(world);
+        QueryCombinationMutIter::new(world, self.cached_entities.iter().copied(), ticks)
     }
 
     pub(crate) fn for_each_mut_with_ticks(
@@ -805,7 +1063,7 @@ where
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        if !self.cached_entities.contains(&entity)
+        if self.cached_entity_index(entity).is_none()
             || !D::matches_data(world, entity)
             || !F::matches(world, entity, ticks)
         {
@@ -813,17 +1071,6 @@ where
         }
         Ok(())
     }
-}
-
-fn first_duplicate_entity<const N: usize>(entities: &[EntityId; N]) -> Option<EntityId> {
-    for current in 0..N {
-        for previous in 0..current {
-            if entities[current] == entities[previous] {
-                return Some(entities[current]);
-            }
-        }
-    }
-    None
 }
 
 unsafe fn fetch_mut_after_validation_unchecked<'world, D>(

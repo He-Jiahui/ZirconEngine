@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::accessibility::UiAccessibilityActionRequest;
 use crate::ui::component::UiDragPayload;
 use crate::ui::dispatch::UiPointerEvent;
+use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::UiPoint;
 use crate::ui::surface::UiNavigationEventKind;
 
@@ -166,6 +167,8 @@ pub struct UiPopupInputEvent {
     pub kind: UiPopupInputEventKind,
     pub popup_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<UiNodeId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<UiPoint>,
 }
 
@@ -181,6 +184,8 @@ pub struct UiTooltipTimerInputEvent {
     pub metadata: UiInputEventMetadata,
     pub kind: UiTooltipTimerInputEventKind,
     pub tooltip_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<UiNodeId>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

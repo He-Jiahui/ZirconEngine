@@ -1,4 +1,5 @@
 mod fallback;
+mod gpu_material_uniform;
 mod gpu_mesh;
 mod gpu_model;
 mod gpu_texture;
@@ -8,6 +9,7 @@ mod resource_streamer;
 mod runtime;
 
 pub(crate) use fallback::fallback_shader_uri;
+pub(crate) use gpu_material_uniform::{GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE};
 pub(crate) use gpu_mesh::{GpuMeshResource, GpuMeshVertex};
 pub(crate) use gpu_model::GpuModelResource;
 pub(crate) use gpu_texture::{texture_upload_support_from_device, GpuTextureResource};

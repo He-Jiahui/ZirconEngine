@@ -47,4 +47,6 @@ pub(super) struct RuntimeEntryApp {
     gamepads: Option<gilrs::Gilrs>,
     #[cfg(feature = "gamepad-gilrs")]
     gamepad_connections_announced: bool,
+    #[cfg(feature = "gamepad-gilrs")]
+    gamepad_rumble_effects: Option<gamepad::RunningRumbleEffects>,
 }

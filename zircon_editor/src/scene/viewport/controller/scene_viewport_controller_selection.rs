@@ -30,6 +30,7 @@ impl SceneViewportController {
         self.set_selected_node(node_id);
         if let Some(target) = Self::selected_world_position(scene, node_id) {
             self.state.orbit_target = target;
+            self.state.orbit_controller.set_target(target);
         }
         true
     }

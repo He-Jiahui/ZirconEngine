@@ -73,21 +73,60 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
         .expect("Autocomplete descriptor");
     for prop in [
         "query",
+        "inputValue",
         "value",
         "value_text",
         "selected_options",
+        "selectedOptions",
         "options",
         "filtered_options",
+        "filteredOptions",
         "disabled_options",
+        "disabledOptions",
         "focused_options",
+        "focusedOptions",
         "hovered_options",
+        "hoveredOptions",
         "pressed_options",
+        "pressedOptions",
         "matched_options",
+        "matchedOptions",
+        "size",
         "multiple",
         "free_solo",
+        "freeSolo",
         "popup_open",
+        "popupOpen",
+        "fullWidth",
+        "disableClearable",
+        "disablePortal",
+        "inputFocused",
+        "loading",
+        "readOnly",
+        "forcePopupIcon",
     ] {
         assert_has_prop(autocomplete, prop);
+    }
+    for slot_name in [
+        "inputRoot",
+        "input",
+        "tag",
+        "endAdornment",
+        "clearIndicator",
+        "popupIndicator",
+        "popper",
+        "paper",
+        "listbox",
+        "loading",
+        "noOptions",
+        "option",
+        "groupLabel",
+        "groupUl",
+    ] {
+        assert!(
+            autocomplete.slot_schema(slot_name).is_some(),
+            "Autocomplete should declare local MUI slot `{slot_name}`"
+        );
     }
     assert_eq!(
         autocomplete
@@ -112,7 +151,15 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     for (prop, expected) in [
         ("multiple", false),
         ("free_solo", false),
+        ("freeSolo", false),
         ("popup_open", false),
+        ("popupOpen", false),
+        ("fullWidth", false),
+        ("disableClearable", false),
+        ("disablePortal", false),
+        ("inputFocused", false),
+        ("loading", false),
+        ("readOnly", false),
     ] {
         assert_eq!(
             autocomplete

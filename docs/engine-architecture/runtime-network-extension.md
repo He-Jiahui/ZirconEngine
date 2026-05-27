@@ -251,7 +251,7 @@ The ownership split is fixed:
   - `NetHttpRuntimeFeature`
   - `HyperReqwestHttpBackend`
   - `NetHttpFeatureModule.Manager.NetHttpManager`
-  - `reqwest` rustls client and `hyper` HTTP/1 route listener implementation
+  - `reqwest` rustls client and `hyper` HTTP/1 route listener implementation, including route-first body handling and a bounded buffered body handoff for synchronous route handlers
 - `zircon_plugin_net_websocket_runtime`
   - `NetWebSocketRuntimeFeature`
   - `TungsteniteWebSocketBackend`
@@ -334,6 +334,7 @@ The M2 HTTP/WebSocket slice now has base local paths plus optional real protocol
 - Base `listen_http` and explicit-port/network `send_http_request` return `ProtocolUnavailable { capability: "runtime.feature.net.http" }` unless `net.http` injects `HyperReqwestHttpBackend`.
 - `net.http` binds a real Tokio TCP listener, serves registered routes through `hyper` HTTP/1, and uses a `reqwest` rustls client for outbound requests.
 - `NetHttpRequestDescriptor::max_retry_attempts` lets callers opt into bounded retry for transient HTTP failures/status codes; the default is zero retries, preserving one-attempt behavior.
+- Feature-backed HTTP listeners match method/path before collecting request bodies, return not-found responses for unmatched routes without body buffering, and cap matched route bodies before dispatching synchronous route handlers.
 - `net.http` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-HTTPS requests unless insecure loopback is explicitly allowed, and certificate pinning requires a configured `NetCertificatePin` for the request host before network I/O proceeds.
 - WebSocket loopback pairs use `NetConnectionId` handles, `NetWebSocketFrame` values, peer queues, close frames, and frame poll budgets.
 - Base `listen_websocket` and `connect_websocket` return `ProtocolUnavailable { capability: "runtime.feature.net.websocket" }` unless `net.websocket` injects `TungsteniteWebSocketBackend`.
@@ -389,12 +390,12 @@ free of upper-layer state:
 
 - `zircon_plugin_net_replication_runtime` registers `net.replication`, stores `SyncComponentDescriptor` entries, publishes `SyncObjectSnapshot` values, emits dirty-only `SyncDelta` reports, filters visible snapshots through `SyncInterestDescriptor` groups, serves late-join snapshot lists, removes object snapshots through explicit despawn lifecycle calls, and selects scheduled snapshots deterministically by interest, update frequency, priority, per-session last-send time, max-snapshot budget, and max-byte budget.
 - `zircon_plugin_net_reliable_udp_runtime` registers `net.reliable_udp`, assigns reliable datagram sequence numbers, fragments payloads according to `ReliableDatagramConfig::mtu_bytes`, tracks pending packets, removes pending fragments by `ReliableDatagramAck`, exposes immediate resend batches and deterministic timeout-driven resend ticks, disconnects after `ReliableDatagramConfig::max_resend_attempts`, reassembles received fragments, applies deterministic loss/reorder simulation profiles, and records copied recovery diagnostics for connected/recovering/disconnected state.
-- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, validates `NetDownloadManifest` chunk shape before queueing, tracks chunk progress through `NetDownloadProgress`, builds primary/mirror candidate URLs, records cache-hit completion, builds resumable `NetDownloadAttemptDescriptor` values for chunk fetch attempts, advances mirror failover after failed attempts, records per-chunk failure diagnostics, supports explicit cancellation, and fails closed on chunk hash mismatch.
+- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, depends on the feature-backed `net.http` manager for transport, validates `NetDownloadManifest` chunk shape before queueing, tracks chunk progress through `NetDownloadProgress`, builds primary/mirror candidate URLs, records cache-hit completion, builds resumable `NetDownloadAttemptDescriptor` values for chunk fetch attempts, fetches full or ranged chunk bytes through the shared `NetManager`, advances mirror failover after failed attempts, records per-chunk failure diagnostics, preserves partial prefixes until hash validation succeeds, supports explicit cancellation, and fails closed on chunk hash mismatch.
 
 These crates are contract-level stepping stones. They do not yet provide KCP/tokio-kcp transport I/O,
-real socket-backed reliable datagram transport, real HTTP range downloading, CDN mirror retry/failover
-transport execution, persistent cache storage, ECS/entity integration for replication, or a production
-spatial replication graph.
+real socket-backed reliable datagram transport, persistent content cache storage, ECS/entity integration
+for replication, or a production spatial replication graph. Content-download HTTP transfer now exists only
+through the shared `NetManager` and still relies on later cache, scheduling, and CDN production hardening.
 
 ## Optional Features
 
@@ -408,9 +409,10 @@ these feature bundles:
 - `net.reliable_udp` -> `runtime.feature.net.reliable_udp`
 - `net.content_download` -> `runtime.feature.net.cdn_download`
 
-Each feature depends on `net/runtime.plugin.net` as its primary owner dependency. `net.http`,
-`net.websocket`, `net.rpc`, `net.replication`, `net.reliable_udp`, and `net.content_download` now
-have runtime crates in the plugin workspace. The base plugin declares and gates all features but only
+Each feature depends on `net/runtime.plugin.net` as its primary owner dependency. `net.content_download`
+also declares a required dependency on `runtime.feature.net.http` because chunk transfer must pass through
+the shared HTTP-capable `NetManager` instead of owning a second client stack. `net.http`, `net.websocket`,
+`net.rpc`, `net.replication`, `net.reliable_udp`, and `net.content_download` now have runtime crates in the plugin workspace. The base plugin declares and gates all features but only
 advertises the base `runtime.plugin.net` capability from `runtime_capabilities()`.
 
 ## Reference Alignment
@@ -440,7 +442,7 @@ Unit-test coverage now spans the base runtime and optional net feature crates:
 - TCP listen/connect/accept/send/poll echo behavior
 - base HTTP route-table dispatch without an explicit network backend
 - disabled-base `ProtocolUnavailable` errors for real HTTP/WebSocket protocol calls
-- `net.http` feature registration plus real HTTP socket route serving through `hyper` and `reqwest`, including bounded retry of transient HTTP responses
+- `net.http` feature registration plus real HTTP socket route serving through `hyper` and `reqwest`, including bounded retry of transient HTTP responses, route matching before body buffering, route body size rejection, and header/body forwarding to matched route handlers
 - `net.http` client-side TLS rejection, missing-pin rejection, and configured-pin admission before network I/O
 - `net.websocket` feature registration plus real WebSocket client/server handshake and text frame exchange through `tokio-tungstenite`
 - `net.websocket` client-side WSS rejection, missing-pin rejection, and configured-pin admission before network I/O
@@ -450,7 +452,7 @@ Unit-test coverage now spans the base runtime and optional net feature crates:
 - `net.rpc` request correlation, pending request completion/expiry, bounded queue admission, priority-ordered queue draining, zero-timeout/expired-queue/pending-expiry/slow-handler timeout diagnostics, and no-double-count quota behavior for queued dispatch
 - `net.replication` feature registration, dirty-field delta reporting, interest-group snapshot filtering, late-join snapshot copyout, despawn lifecycle removal, update-frequency scheduling, priority ordering, per-session snapshot/byte budgets, and budget deferral diagnostics
 - `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, ack removal, resend batch copyout, deterministic resend-timeout ticks, resend attempt-cap disconnect, deterministic loss/reorder simulation, out-of-order fragment reassembly, recovery/disconnect state reporting, dropped-packet accounting, and RTT stats
-- `net.content_download` feature registration, manifest progress accounting, invalid/partial manifest rejection, primary/mirror candidate URLs, cache-hit completion, range-resume attempt descriptors, mirror failover state, cancellation, and chunk hash mismatch failure diagnostics
+- `net.content_download` feature registration, HTTP feature dependency declaration, manifest progress accounting, invalid/partial manifest rejection, primary/mirror candidate URLs, cache-hit completion, range-resume attempt descriptors, shared-`NetManager` full/range chunk fetch, mirror failover state, cancellation, partial-prefix preservation, and chunk hash mismatch failure diagnostics
 - base runtime state extraction into `runtime_state.rs`, reducing `service_types.rs` from 1045 lines to 910 lines in this continuation
 - listener shutdown for TCP listeners through `close_listener`, with HTTP/WebSocket listener-map removal sharing the same manager contract
 - runtime mode diagnostics and listener events

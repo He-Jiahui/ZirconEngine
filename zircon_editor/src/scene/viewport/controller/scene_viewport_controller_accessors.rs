@@ -38,6 +38,7 @@ impl SceneViewportController {
 
     pub(crate) fn set_orbit_target(&mut self, target: Vec3) {
         self.state.orbit_target = target;
+        self.state.orbit_controller.set_target(target);
     }
 
     pub(crate) fn is_handle_drag_active(&self) -> bool {

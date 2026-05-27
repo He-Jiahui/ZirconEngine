@@ -78,6 +78,40 @@ impl World {
             .is_some_and(|internal| self.component_storage.contains(component_id, internal))
     }
 
+    pub fn contains_component<T>(&self, entity: EntityId) -> bool
+    where
+        T: Component,
+    {
+        self.registered_component_id::<T>()
+            .is_some_and(|component_id| self.contains_component_id(entity, component_id))
+    }
+
+    pub fn is_component_added<T>(&self, entity: EntityId) -> bool
+    where
+        T: Component,
+    {
+        self.component_change_ticks::<T>(entity)
+            .is_some_and(|ticks| {
+                ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
+                    self.last_change_tick(),
+                    self.read_change_tick(),
+                ))
+            })
+    }
+
+    pub fn is_component_changed<T>(&self, entity: EntityId) -> bool
+    where
+        T: Component,
+    {
+        self.component_change_ticks::<T>(entity)
+            .is_some_and(|ticks| {
+                ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
+                    self.last_change_tick(),
+                    self.read_change_tick(),
+                ))
+            })
+    }
+
     pub fn insert<T>(&mut self, entity: EntityId, component: T) -> Result<Option<T>, String>
     where
         T: Component,
@@ -216,6 +250,37 @@ impl World {
         T: Resource,
     {
         self.resource_registry.registered_resource_id::<T>()
+    }
+
+    pub fn contains_resource<T>(&self) -> bool
+    where
+        T: Resource,
+    {
+        self.resources.contains::<T>()
+    }
+
+    pub fn is_resource_added<T>(&self) -> bool
+    where
+        T: Resource,
+    {
+        self.resource_change_ticks::<T>().is_some_and(|ticks| {
+            ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
+                self.last_change_tick(),
+                self.read_change_tick(),
+            ))
+        })
+    }
+
+    pub fn is_resource_changed<T>(&self) -> bool
+    where
+        T: Resource,
+    {
+        self.resource_change_ticks::<T>().is_some_and(|ticks| {
+            ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
+                self.last_change_tick(),
+                self.read_change_tick(),
+            ))
+        })
     }
 
     pub fn insert_resource<T>(&mut self, resource: T) -> Option<T>

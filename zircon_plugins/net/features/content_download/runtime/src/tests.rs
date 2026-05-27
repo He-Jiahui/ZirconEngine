@@ -1,11 +1,16 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::net::{
-    NetDownloadChunk, NetDownloadId, NetDownloadManifest, NetDownloadStatus,
+    NetDownloadChunk, NetDownloadId, NetDownloadManifest, NetDownloadStatus, NetEndpoint,
+    NetHttpMethod, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId,
 };
 
 use super::{
     net_content_download_runtime_manager, plugin_feature_registration,
-    NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY, NET_CONTENT_DOWNLOAD_FEATURE_ID,
-    NET_CONTENT_DOWNLOAD_FEATURE_MANAGER_NAME, NET_CONTENT_DOWNLOAD_FEATURE_MODULE_NAME,
+    NetContentDownloadRuntimeManager, NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY,
+    NET_CONTENT_DOWNLOAD_FEATURE_ID, NET_CONTENT_DOWNLOAD_FEATURE_MANAGER_NAME,
+    NET_CONTENT_DOWNLOAD_FEATURE_MODULE_NAME,
 };
 
 #[test]
@@ -19,6 +24,10 @@ fn content_download_feature_registration_contributes_runtime_module_and_manager(
         .capabilities
         .iter()
         .any(|capability| capability == NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY));
+    assert!(report.manifest.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == zircon_plugin_net_runtime::PLUGIN_ID
+            && dependency.capability == "runtime.feature.net.http"
+    }));
     let module = report
         .extensions
         .modules()
@@ -246,4 +255,181 @@ fn content_download_manager_rejects_invalid_chunk_fields_before_queueing() {
         Some("download chunk has empty URL: chunk-invalid")
     );
     assert!(manager.progress(download).is_none());
+}
+
+#[test]
+fn content_download_manager_fetches_http_chunk_and_marks_complete_after_hash_match() {
+    let http = zircon_plugin_net_http_runtime::http_runtime_manager();
+    http.register_http_route(
+        NetHttpRouteDescriptor::new("/chunks/full", [NetHttpMethod::Get]),
+        NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"chunk-bytes".to_vec()),
+    )
+    .unwrap();
+    let listener = http.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = http.listener_endpoint(listener).unwrap();
+
+    let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
+    let download = NetDownloadId::new(12);
+    let manifest = NetDownloadManifest::new(download, "asset://download/full").with_chunk(
+        NetDownloadChunk::new(
+            "chunk-full",
+            format!("http://{}:{}/chunks/full", endpoint.host, endpoint.port),
+            0,
+            11,
+            sha256_hex(b"chunk-bytes"),
+        ),
+    );
+
+    manager.queue_manifest(manifest);
+    let fetched = manager.fetch_next_chunk(download, "chunk-full").unwrap();
+
+    assert_eq!(fetched.status, NetDownloadStatus::Complete);
+    assert_eq!(fetched.downloaded_bytes, 11);
+    assert_eq!(fetched.completed_chunks, vec!["chunk-full".to_string()]);
+}
+
+#[test]
+fn content_download_manager_fetches_resumed_http_range_with_existing_prefix() {
+    let http = zircon_plugin_net_http_runtime::http_runtime_manager();
+    let saw_range = Arc::new(AtomicBool::new(false));
+    let saw_range_for_handler = saw_range.clone();
+    http.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/chunks/range", [NetHttpMethod::Get]),
+        move |request| {
+            saw_range_for_handler.store(
+                request.headers.iter().any(|(name, value)| {
+                    name.eq_ignore_ascii_case("range") && value == "bytes=6-11"
+                }),
+                Ordering::SeqCst,
+            );
+            NetHttpResponseDescriptor::new(request.request, 206, b"suffix".to_vec())
+                .with_header("content-range", "bytes 6-11/12")
+        },
+    )
+    .unwrap();
+    let listener = http.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = http.listener_endpoint(listener).unwrap();
+
+    let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
+    let download = NetDownloadId::new(13);
+    let manifest = NetDownloadManifest::new(download, "asset://download/range").with_chunk(
+        NetDownloadChunk::new(
+            "chunk-range",
+            format!("http://{}:{}/chunks/range", endpoint.host, endpoint.port),
+            0,
+            12,
+            sha256_hex(b"prefixsuffix"),
+        )
+        .with_resume_from_byte(6),
+    );
+
+    manager.queue_manifest(manifest);
+    manager.store_partial_chunk(download, "chunk-range", b"prefix".to_vec());
+    let fetched = manager.fetch_next_chunk(download, "chunk-range").unwrap();
+
+    assert_eq!(fetched.status, NetDownloadStatus::Complete);
+    assert_eq!(fetched.downloaded_bytes, 12);
+    assert!(saw_range.load(Ordering::SeqCst));
+}
+
+#[test]
+fn content_download_manager_fails_resumed_http_range_without_existing_prefix() {
+    let manager = net_content_download_runtime_manager();
+    let download = NetDownloadId::new(14);
+    let manifest = NetDownloadManifest::new(download, "asset://download/no-prefix").with_chunk(
+        NetDownloadChunk::new(
+            "chunk-no-prefix",
+            "http://127.0.0.1:9/missing",
+            0,
+            8,
+            "hash",
+        )
+        .with_resume_from_byte(4),
+    );
+
+    manager.queue_manifest(manifest);
+    let failed = manager
+        .fetch_next_chunk(download, "chunk-no-prefix")
+        .unwrap();
+
+    assert_eq!(failed.status, NetDownloadStatus::Failed);
+    assert_eq!(
+        failed.diagnostic.as_deref(),
+        Some("chunk resume requires existing partial bytes: chunk-no-prefix")
+    );
+}
+
+#[test]
+fn content_download_manager_rejects_resume_offsets_before_chunk_start() {
+    let manager = net_content_download_runtime_manager();
+    let download = NetDownloadId::new(15);
+    let manifest = NetDownloadManifest::new(download, "asset://download/bad-resume").with_chunk(
+        NetDownloadChunk::new(
+            "chunk-bad-resume",
+            "https://cdn.example/chunk",
+            4,
+            8,
+            "hash",
+        )
+        .with_resume_from_byte(3),
+    );
+
+    let rejected = manager.queue_manifest(manifest);
+
+    assert_eq!(rejected.status, NetDownloadStatus::Failed);
+    assert_eq!(
+        rejected.diagnostic.as_deref(),
+        Some("download chunk resume offset outside range: chunk-bad-resume")
+    );
+}
+
+#[test]
+fn content_download_manager_preserves_partial_prefix_after_corrupt_resume() {
+    let http = zircon_plugin_net_http_runtime::http_runtime_manager();
+    http.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/chunks/corrupt", [NetHttpMethod::Get]),
+        move |request| {
+            NetHttpResponseDescriptor::new(request.request, 206, b"corrupt".to_vec())
+                .with_header("content-range", "bytes 6-12/13")
+        },
+    )
+    .unwrap();
+    let listener = http.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = http.listener_endpoint(listener).unwrap();
+
+    let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
+    let download = NetDownloadId::new(16);
+    let manifest = NetDownloadManifest::new(download, "asset://download/corrupt").with_chunk(
+        NetDownloadChunk::new(
+            "chunk-corrupt",
+            format!("http://{}:{}/chunks/corrupt", endpoint.host, endpoint.port),
+            0,
+            13,
+            sha256_hex(b"prefixsuffix!"),
+        )
+        .with_resume_from_byte(6),
+    );
+
+    manager.queue_manifest(manifest);
+    manager.store_partial_chunk(download, "chunk-corrupt", b"prefix".to_vec());
+    let failed = manager.fetch_next_chunk(download, "chunk-corrupt").unwrap();
+
+    assert_eq!(failed.status, NetDownloadStatus::Failed);
+    assert_eq!(
+        failed.diagnostic.as_deref(),
+        Some("chunk hash mismatch: chunk-corrupt")
+    );
+    assert_eq!(
+        manager.partial_chunk_bytes(download, "chunk-corrupt"),
+        b"prefix"
+    );
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = ring::digest::digest(&ring::digest::SHA256, bytes);
+    digest
+        .as_ref()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
 }

@@ -60,9 +60,19 @@ layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, he
 [nodes.sample]
 component = "Badge"
 control_id = "badges_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Badges", value_text = "8", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiBadge-root"]
+props = { text = "Notifications", className = "material-badge-sample", component = "span", badgeContent = "12", value_text = "12", max = 99, showZero = false, invisible = false, variant = "standard", color = "error", overlap = "circular", anchorOrigin = { vertical = "bottom", horizontal = "left" }, slotProps = { badge = { className = "material-badge-slot" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "badge_slot", slot = { name = "badge" } },
+]
+
+[nodes.badge_slot]
+component = "Label"
+control_id = "badges_BadgeSlot"
+classes = ["material-badge-slot", "MuiBadge-badge"]
+props = { text = "12", text_tone = "error", surface_variant = "elevated", validation_level = "error", corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 24.0, preferred = 28.0, max = 34.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

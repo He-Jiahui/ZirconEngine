@@ -40,6 +40,8 @@ impl RuntimeEntryApp {
 
 impl Drop for RuntimeEntryApp {
     fn drop(&mut self) {
+        #[cfg(feature = "gamepad-gilrs")]
+        super::super::gamepad::clear_gamepad_rumble_effects(&mut self.gamepad_rumble_effects);
         self.disable_surface_present();
     }
 }

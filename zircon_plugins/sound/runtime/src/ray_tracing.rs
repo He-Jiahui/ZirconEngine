@@ -89,6 +89,14 @@ fn validate_ray_traced_impulse_response(
                 .to_string(),
         ));
     }
+    if descriptor
+        .occlusion_gain
+        .is_some_and(|gain| !gain.is_finite() || !(0.0..=1.0).contains(&gain))
+    {
+        return Err(SoundError::InvalidParameter(
+            "ray-traced occlusion gain must be finite and between 0.0 and 1.0".to_string(),
+        ));
+    }
     if let Some(source_id) = descriptor.source {
         if !state.sources.contains_key(&source_id) {
             return Err(SoundError::UnknownSource { source_id });

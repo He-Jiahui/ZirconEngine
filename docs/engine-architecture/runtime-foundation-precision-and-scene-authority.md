@@ -3,18 +3,21 @@ related_code:
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
   - zircon_runtime/tests/math_transform_helpers.rs
-  - zircon_math/src/lib.rs
-  - zircon_math/tests/precision_contract.rs
-  - zircon_asset/src/assets/scene.rs
-  - zircon_asset/src/tests/assets/scene.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/components/scene.rs
+  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/ecs/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
-  - zircon_framework/src/render/camera.rs
-  - zircon_framework/src/render/scene_extract.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
+  - zircon_runtime/src/scene/dynamic_scene/document.rs
+  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_scene/src/lib.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/mod.rs
@@ -25,35 +28,38 @@ related_code:
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/module/world_driver.rs
-  - zircon_scene/src/world.rs
-  - zircon_scene/src/world/world.rs
-  - zircon_scene/src/world/bootstrap.rs
-  - zircon_scene/src/world/derived_state.rs
-  - zircon_scene/src/world/hierarchy.rs
-  - zircon_scene/src/world/project_io.rs
-  - zircon_scene/src/world/query.rs
-  - zircon_scene/src/world/records.rs
-  - zircon_scene/src/world/render.rs
-  - zircon_scene/tests/runtime_foundation.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - zircon_graphics/src/tests/scene_overlay.rs
+  - zircon_runtime/src/scene/world/mod.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/world/bootstrap.rs
+  - zircon_runtime/src/scene/world/derived_state.rs
+  - zircon_runtime/src/scene/world/hierarchy.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/query.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/typed_api.rs
+  - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/serializer/mod.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
 implementation_files:
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
-  - zircon_math/src/lib.rs
-  - zircon_asset/src/assets/scene.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/components/scene.rs
+  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/ecs/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
-  - zircon_framework/src/render/camera.rs
-  - zircon_framework/src/render/scene_extract.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
+  - zircon_runtime/src/scene/dynamic_scene/document.rs
+  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -65,41 +71,38 @@ implementation_files:
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/module/world_driver.rs
-  - zircon_scene/src/world.rs
-  - zircon_scene/src/world/world.rs
-  - zircon_scene/src/world/bootstrap.rs
-  - zircon_scene/src/world/derived_state.rs
-  - zircon_scene/src/world/hierarchy.rs
-  - zircon_scene/src/world/project_io.rs
-  - zircon_scene/src/world/query.rs
-  - zircon_scene/src/world/records.rs
-  - zircon_scene/src/world/render.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/scene/world/mod.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/world/bootstrap.rs
+  - zircon_runtime/src/scene/world/derived_state.rs
+  - zircon_runtime/src/scene/world/hierarchy.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/query.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/typed_api.rs
+  - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/serializer/mod.rs
 plan_sources:
   - user: 2026-05-07 继续推进里程碑
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
   - user: 2026-04-15 implement the f64-ready runtime foundation plan with math/scene/asset/graphics boundaries
   - user: 2026-04-16 全仓库模块边界拆分与根入口去逻辑化
   - .codex/plans/全系统重构方案.md
+  - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation
+  - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
 tests:
   - zircon_runtime/tests/math_transform_helpers.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/core/math/mod.rs zircon_runtime_interface/src/math.rs
   - cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never
-  - zircon_math/tests/precision_contract.rs
-  - zircon_scene/tests/runtime_foundation.rs
-  - zircon_asset/src/tests/assets/scene.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - zircon_graphics/src/tests/scene_overlay.rs
-  - cargo test -p zircon_scene --offline
-  - cargo test -p zircon_math --locked
-  - cargo test -p zircon_asset --locked
-  - cargo test -p zircon_scene --locked
-  - cargo test -p zircon_graphics --locked
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
+  - cargo check -p zircon_runtime --lib --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never
+  - cargo test -p zircon_runtime --lib scene::tests::ecs --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib scene::tests --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --locked
   - cargo test --workspace --locked
 doc_type: module-detail
@@ -144,7 +147,7 @@ runtime-interface 收敛后，数学 DTO 与 helper 的中立定义已经在 `zi
 
 ## Scene Runtime Authority
 
-`zircon_scene::world::World` 现在把运行时 authority 固定为下列组件集合：
+`zircon_runtime::scene::World` 现在把运行时 authority 固定为下列组件集合：
 
 - `LocalTransform`
 - `WorldMatrix`
@@ -172,11 +175,22 @@ runtime-interface 收敛后，数学 DTO 与 helper 的中立定义已经在 `zi
 
 这里的 “hierarchy validity” 负责在 derived rebuild 前清掉缺失父节点、自指和环路链。
 
-为了让这套 authority 在工程规模继续扩大时不再退化成单文件实现，当前代码树还新增了两个边界约束：
+为了让这套 authority 在工程规模继续扩大时不再退化成单文件实现，当前代码树还新增了三个边界约束：
 
-- `zircon_scene/src/world.rs` 现在只作为 world 子系统入口；`World` 结构定义独立放到 `zircon_scene/src/world/world.rs`
+- `zircon_runtime/src/scene/world/mod.rs` 只作为 world 子系统入口；`World` 结构定义独立放到 `zircon_runtime/src/scene/world/world.rs`
 - `zircon_runtime/src/scene/mod.rs` 现在只作为 runtime scene 吸收层导出层；`LevelSystem`、`DefaultLevelManager` 生命周期、project I/O、framework service contract 实现和 world driver 组装拆到 `zircon_runtime/src/scene/` 与 `zircon_runtime/src/scene/module/`
-- `zircon_scene/src/components/` 现在只保留 `schedule`、`scene` 与 scene-domain `Mobility`；viewport request/render packet/overlay DTO 已经固定分别归 `zircon_framework::render` 与 `zircon_editor::scene::viewport::render_packet`
+- `zircon_runtime/src/scene/components/` 保留 scene-domain 组件与 `Mobility` glue；viewport request/render packet/overlay DTO 分别归运行时 framework render 类型与 `zircon_editor::scene::viewport::render_packet`
+
+## 2026-05-25 M12 Scene Storage Cutover
+
+M12 的目标是删掉不再拥有行为的重复路径，而不是把所有固定 `World` map 一次性清空。当前所有权边界是：
+
+- 固定 `World` map 仍然拥有持久化 scene product：稳定实体列表、`NodeRecord` 兼容投影、serde/project load state、asset import/export、editor hierarchy 行、固定组件的 reflection 适配，以及 render extract 所需的产品数据。
+- 派生 map 只作为 runtime cache：`world_matrices`、`active_in_hierarchy` 和 `node_cache` 由 hierarchy/local transform/active 输入重建，不作为独立 truth 落盘。
+- typed ECS storage 拥有运行期 component identity/presence、change ticks、query/cache metadata、systems、resources、events/messages/observers 和 schedule conflict detection；新系统行为应走 typed API，不再增加新的固定 map 直读写路径。
+- reflection 只拥有 editor/remote 字段路由，`WorldReflection` 必须调用正常 `World` API，不能成为第二套存储。
+
+这也是本轮 M12 先删除 plain entity-id 查询 cache helper、把测试 introspection 收到 `#[cfg(test)]`，但暂不删除固定组件 map 的原因。`DynamicScene` 旧文档迁移、`WorldReflection` DTO 路由、render-layer legacy mask 和 fixed component maps 都还有明确产品责任；后续只有在替代所有权落地后才能硬删。
 
 ## Compatibility Layer
 
@@ -198,7 +212,7 @@ editor 当前还没有完成 hierarchy inspector/runtime 分离，所以兼容�
 
 ## Asset Boundary
 
-`zircon_asset::SceneAsset` 的数值字段现在统一走 `zircon_math::Real`：
+`zircon_runtime::asset::assets::SceneAsset` 的数值字段现在统一走 `zircon_runtime::core::math::Real`：
 
 - `TransformAsset`
 - `SceneCameraAsset`
@@ -224,19 +238,13 @@ editor 当前还没有完成 hierarchy inspector/runtime 分离，所以兼容�
 
 ## Graphics Precision Seam
 
-`zircon_graphics` 现在显式把 renderer 当作精度降级边界处理：
+runtime framework render 现在显式把 renderer 当作精度降级边界处理：
 
 - scene extract 继续使用 runtime alias 类型
 - uniform、clear color、overlay line vertex、model matrix 打包前统一调用 `to_render_*`
 - GPU/WGSL 侧继续固定 `f32`
 
-renderer 现在也已经从单文件实现整理成目录化子树：
-
-- `scene/resources/mod.rs` 负责 scene 资源入口，具体 streamer / GPU resource / fallback 逻辑下沉到 `scene/resources/*`
-- `scene_renderer/core/mod.rs` 负责 render core 入口，具体 scene uniform / history / target / render orchestration 下沉到 `scene_renderer/core/*`
-- `scene_renderer/mesh.rs` 负责 mesh draw 构建与 pipeline cache
-- `scene_renderer/overlay.rs` 负责 grid、selection、scene gizmo、icon overlay pass
-- `scene_renderer/primitives/mod.rs` 负责 primitive 入口，具体 packing / vertex / fallback / geometry helper 下沉到 `scene_renderer/primitives/*`
+scene/runtime 到 renderer 的当前入口由 `zircon_runtime/src/scene/render_extract/mod.rs` 和 `zircon_runtime/src/core/framework/render/*` 承担。`World::to_render_frame_extract()` 会通过 `RenderExtractProducer` 构建 frame extract，renderer-facing DTO 保留在 framework render 边界，避免 scene world 直接依赖具体 GPU 后端。
 
 这意味着未来 runtime 升成 `f64` 时：
 
@@ -252,23 +260,21 @@ renderer 现在也已经从单文件实现整理成目录化子树：
   - runtime 公开入口继续通过 `zircon_runtime::core::math` 提供 `Transform`、glam alias 和 TRS helper
   - helper 由 `zircon_runtime_interface::math` 拥有，runtime 不保留重复私有实现
   - 2026-05-07 focused 验证通过：`cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never`，3 passed；编译输出剩余 warning 位于 graphics/ui 等既有区域，不再包含已删除的 runtime-local math owner warning 组
-- `zircon_math/tests/precision_contract.rs`（历史吸收前来源）
-  - precision alias
-  - TRS helper
-  - affine inverse
-  - finite / render conversion
-- `zircon_scene/tests/runtime_foundation.rs`
+- `zircon_runtime/src/asset/tests/assets/scene.rs`
+  - scene asset roundtrip
+  - active/render layer/mobility 缺省字段回退
+- `zircon_runtime/src/scene/tests/world_basics.rs` 与 broader `scene::tests`
   - runtime default components
   - active propagation
   - world matrix rebuild
   - static mutation constraints
   - render layer + mobility roundtrip
-- `zircon_asset` scene tests
-  - scene asset roundtrip
-  - 旧文档缺省字段回退
-- `zircon_graphics` render tests
-  - nested viewport packet 继续可消费
-  - wire-only 与 shaded 输出继续可区分
+- `zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs`
+  - M11/M12 前置 hot path cache rebuild gate
+  - transform projection 稳定性
+  - changed-filter run-window 行为
+
+2026-05-25 M11/M12 gate 已在当前 dirty workspace 下通过：`cargo test -p zircon_runtime --lib scene::tests::ecs --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture` 报告 `145 passed; 0 failed`，`cargo test -p zircon_runtime --lib scene::tests --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture` 报告 `179 passed; 0 failed`，`cargo check -p zircon_runtime --lib --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never` 通过。该证据只接受 scene/ECS gate，不代表全 workspace CI 已在当前脏工作区通过。
 
 ## Future f64 Switch Boundary
 

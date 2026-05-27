@@ -22,8 +22,13 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     for required in [
         "ButtonInputState",
         "InputFrameSnapshot",
+        "GamepadAxisSettings",
+        "GamepadButtonAxisSettings",
+        "GamepadButtonSettings",
         "GamepadButton",
         "GamepadAxis",
+        "GamepadButtonValueState",
+        "GamepadRumbleRequest",
         "TouchPhase",
         "InputButton",
         "InputEvent",

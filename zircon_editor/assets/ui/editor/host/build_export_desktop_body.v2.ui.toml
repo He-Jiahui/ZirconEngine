@@ -23,7 +23,7 @@ children = [{ node = "focus" }]
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusBuildExport"
-props = { label = "Focus Export", icon = "download-outline" }
+props = { label = "Focus Export", icon = "editor_pages/build_plugins/package/package.svg" }
 layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "BuildExportPaneBody/FocusBuildExport", event = "Click", route = "DockCommand.FocusView" }]
 

@@ -89,7 +89,8 @@ impl UiSurface {
             return Ok(UiDefaultScrollbarPointerActionReport::default());
         }
         self.capture_pointer(thumb_id)?;
-        self.push_pointer_component_events(
+        let drag = self.input.begin_pointer_drag(thumb_id, route.point);
+        self.push_pointer_component_events_with_drag_metrics(
             events,
             thumb_id,
             UiEventKind::DragBegin,
@@ -97,6 +98,7 @@ impl UiSurface {
                 property: "scroll_offset".to_string(),
             },
             UiPointerComponentEventReason::PressBegin,
+            Some(drag),
         )?;
         Ok(UiDefaultScrollbarPointerActionReport {
             handled_by: Some(thumb_id),
@@ -139,7 +141,8 @@ impl UiSurface {
             context.scroll_state.offset,
             next_offset,
         );
-        self.push_pointer_component_events(
+        let drag = self.input.update_pointer_drag(thumb_id, route.point);
+        self.push_pointer_component_events_with_drag_metrics(
             events,
             thumb_id,
             UiEventKind::DragUpdate,
@@ -148,6 +151,7 @@ impl UiSurface {
                 delta: f64::from(next_offset - context.scroll_state.offset),
             },
             UiPointerComponentEventReason::DirectBinding,
+            Some(drag),
         )?;
         Ok(UiDefaultScrollbarPointerActionReport {
             handled_by: Some(thumb_id),
@@ -167,7 +171,8 @@ impl UiSurface {
         if self.default_scrollbar_thumb(thumb_id)?.is_none() {
             return Ok(None);
         }
-        self.push_pointer_component_events(
+        let drag = self.input.end_pointer_drag(thumb_id, route.point);
+        self.push_pointer_component_events_with_drag_metrics(
             events,
             thumb_id,
             UiEventKind::DragEnd,
@@ -175,6 +180,7 @@ impl UiSurface {
                 property: "scroll_offset".to_string(),
             },
             UiPointerComponentEventReason::PressEnd,
+            Some(drag),
         )?;
         Ok(Some(UiDefaultScrollbarPointerActionReport {
             handled_by: Some(thumb_id),

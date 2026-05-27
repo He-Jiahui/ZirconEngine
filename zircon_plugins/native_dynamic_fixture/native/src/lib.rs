@@ -105,7 +105,8 @@ const STATUS_STATE_RESTORE_DIAGNOSTICS: &[u8] = b"state restore accepted\0";
 const STATUS_STATE_RESTORE_INVALID_DIAGNOSTICS: &[u8] = b"state restore rejected invalid blob\0";
 const STATUS_UNLOAD_DIAGNOSTICS: &[u8] = b"unload callback reached\0";
 const STATUS_STATELESS_UNLOAD_DIAGNOSTICS: &[u8] = b"stateless unload callback reached\0";
-const STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS: &[u8] = b"stateless editor command dispatch has no commands\0";
+const STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS: &[u8] =
+    b"stateless editor command dispatch has no commands\0";
 const STATUS_FREE_MISMATCH_DIAGNOSTICS: &[u8] = b"allocation/free owner mismatch\0";
 const RUNTIME_STATE_BLOB: &[u8] = b"state:v2:native_dynamic_fixture";
 
@@ -667,6 +668,11 @@ fn encode_import_response(
                         "text": text,
                         "canonical_json": canonical_json,
                     }
+                },
+                "migration_report": {
+                    "source_schema_version": 1,
+                    "target_schema_version": 2,
+                    "summary": format!("native fixture migrated {}", metadata.source_path),
                 },
                 "diagnostics": [
                     format!("native fixture imported {}", metadata.source_path),

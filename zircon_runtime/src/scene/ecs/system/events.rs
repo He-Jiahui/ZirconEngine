@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, EventStore, Events, SystemParam, SystemParamAccess, SystemParamError,
+    ChangeTickWindow, EventCursor, EventReadIter, EventStore, Events, SystemParam,
+    SystemParamAccess, SystemParamError,
 };
 use crate::scene::World;
 
@@ -10,6 +11,7 @@ pub struct EventReaderParam<T>(PhantomData<fn() -> T>);
 pub struct EventWriterParam<T>(PhantomData<fn() -> T>);
 
 pub struct EventReader<'world, T> {
+    cursor: &'world mut EventCursor<T>,
     events: Option<&'world Events<T>>,
 }
 
@@ -19,16 +21,24 @@ pub struct EventWriter<'world, T> {
 }
 
 impl<'world, T> EventReader<'world, T> {
-    pub fn iter(&self) -> impl Iterator<Item = &'world T> {
-        self.events.into_iter().flat_map(Events::iter)
+    pub fn iter(&mut self) -> EventReadIter<'world, T> {
+        self.cursor.read(self.events)
     }
 
     pub fn len(&self) -> usize {
-        self.events.map_or(0, Events::len)
+        self.unread_count()
+    }
+
+    pub fn unread_count(&self) -> usize {
+        self.cursor.unread_count(self.events)
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn clear(&mut self) {
+        self.cursor.clear(self.events);
     }
 }
 
@@ -39,13 +49,20 @@ where
     pub fn send(&mut self, event: T) {
         self.store.send(event);
     }
+
+    pub fn send_batch<I>(&mut self, events: I) -> usize
+    where
+        I: IntoIterator<Item = T>,
+    {
+        self.store.send_batch::<T, I>(events)
+    }
 }
 
 impl<T> SystemParam for EventReaderParam<T>
 where
     T: 'static + Send + Sync,
 {
-    type State = ();
+    type State = EventCursor<T>;
     type Item<'world> = EventReader<'world, T>;
 
     fn init_state(
@@ -53,16 +70,17 @@ where
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         access.add_event_read::<T>()?;
-        Ok(())
+        Ok(EventCursor::default())
     }
 
     unsafe fn get_param<'world>(
         world: *mut World,
-        _state: &'world mut Self::State,
+        state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
         let world = &*world;
         EventReader {
+            cursor: state,
             events: world.events::<T>(),
         }
     }

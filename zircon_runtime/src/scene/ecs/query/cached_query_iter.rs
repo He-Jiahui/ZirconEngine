@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::query_filter::{Added, Changed, QueryFilter, With, Without};
 use crate::scene::ecs::{
-    ChangeTickWindow, Component, ComponentId, ComponentStorageLocation, QueryDataAccess,
+    ChangeTickWindow, Component, ComponentId, ComponentStorageLocation, Mut, QueryDataAccess,
     QueryEntityItem, Ref, StableEntityLocation,
 };
 use crate::scene::{EntityId, World};
@@ -181,8 +181,18 @@ where
     }
 }
 
+pub(crate) fn cached_query_entity_index(
+    cached_entity_indices: &[(EntityId, usize)],
+    entity: EntityId,
+) -> Option<usize> {
+    let entry = cached_entity_indices
+        .binary_search_by_key(&entity, |(candidate, _)| *candidate)
+        .ok()?;
+    Some(cached_entity_indices[entry].1)
+}
+
 pub(crate) fn cached_query_many_indices<EntityList>(
-    cached_entities: &[EntityId],
+    cached_entity_indices: &[(EntityId, usize)],
     entities: EntityList,
 ) -> Vec<usize>
 where
@@ -191,12 +201,7 @@ where
 {
     entities
         .into_iter()
-        .filter_map(|entity| {
-            let entity = entity.entity_id();
-            cached_entities
-                .iter()
-                .position(|candidate| *candidate == entity)
-        })
+        .filter_map(|entity| cached_query_entity_index(cached_entity_indices, entity.entity_id()))
         .collect()
 }
 
@@ -334,7 +339,73 @@ where
     }
 }
 
+impl<'query, T> CachedQueryData for &'query mut T
+where
+    T: Component,
+{
+    type Item<'world> = &'world T;
+
+    fn matches_cached_data(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        world
+            .registered_component_id::<T>()
+            .is_some_and(|component_id| {
+                component_location(component_locations, component_id).is_some()
+            })
+    }
+
+    fn fetch_cached<'world>(
+        world: &'world World,
+        _entity: EntityId,
+        _stable_location: StableEntityLocation,
+        component_locations: &[ComponentStorageLocation],
+        _ticks: ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let component_id = world.registered_component_id::<T>()?;
+        let location = component_location(component_locations, component_id)?;
+        world
+            .component_ref_with_ticks_at_location::<T>(*location)
+            .map(|(value, _)| value)
+    }
+}
+
 impl<'query, T> CachedQueryData for Ref<'query, T>
+where
+    T: Component,
+{
+    type Item<'world> = Ref<'world, T>;
+
+    fn matches_cached_data(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        world
+            .registered_component_id::<T>()
+            .is_some_and(|component_id| {
+                component_location(component_locations, component_id).is_some()
+            })
+    }
+
+    fn fetch_cached<'world>(
+        world: &'world World,
+        _entity: EntityId,
+        _stable_location: StableEntityLocation,
+        component_locations: &[ComponentStorageLocation],
+        ticks: ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let component_id = world.registered_component_id::<T>()?;
+        let location = component_location(component_locations, component_id)?;
+        let (value, component_ticks) =
+            world.component_ref_with_ticks_at_location::<T>(*location)?;
+        Some(Ref::new(value, component_ticks, ticks))
+    }
+}
+
+impl<'query, T> CachedQueryData for Mut<'query, T>
 where
     T: Component,
 {

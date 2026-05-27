@@ -58,61 +58,80 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "HorizontalBox"
+component = "Autocomplete"
 control_id = "autocomplete_Sample"
-classes = ["material-control", "material-lab-sample", "material-autocomplete-row"]
-props = { query = "at", value = "atlas", value_text = "Atlas", selected_options = ["atlas"], options = ["atlas", "asset", "disabled"], filtered_options = ["atlas", "asset"], disabled_options = ["disabled"], focused_options = ["atlas"], hovered_options = ["atlas"], pressed_options = [], matched_options = ["atlas", "asset"], multiple = false, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+classes = ["material-control", "material-lab-sample", "MuiAutocomplete-root"]
+props = { query = "at", inputValue = "at", value = "atlas", value_text = "Atlas", selected_options = ["atlas"], selectedOptions = ["atlas"], options = ["atlas", "asset", "disabled"], filtered_options = ["atlas", "asset"], filteredOptions = ["atlas", "asset"], disabled_options = ["disabled"], disabledOptions = ["disabled"], focused_options = ["atlas"], focusedOptions = ["atlas"], hovered_options = ["atlas"], hoveredOptions = ["atlas"], pressed_options = [], pressedOptions = [], matched_options = ["atlas", "asset"], matchedOptions = ["atlas", "asset"], size = "small", multiple = true, free_solo = false, freeSolo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, popupOpen = true, fullWidth = true, disableClearable = false, disablePortal = true, inputFocused = true, loading = false, readOnly = false, forcePopupIcon = "auto", className = "material-autocomplete-sample", slotProps = { inputRoot = { className = "material-autocomplete-input-root" }, input = { className = "material-autocomplete-input" }, tag = { className = "material-autocomplete-tag" }, popupIndicator = { className = "material-autocomplete-popup-indicator" }, popper = { className = "material-autocomplete-popper" }, paper = { className = "material-autocomplete-paper" }, listbox = { className = "material-autocomplete-listbox" }, option = { className = "material-autocomplete-option" } }, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
 children = [
-  { node = "autocomplete_query" },
-  { node = "autocomplete_open" },
-  { node = "autocomplete_selected" },
-  { node = "autocomplete_multi_chip" },
-  { node = "autocomplete_disabled" },
+  { node = "autocomplete_input_root", slot = { name = "inputRoot" } },
+  { node = "autocomplete_input", slot = { name = "input" } },
+  { node = "autocomplete_tag", slot = { name = "tag" } },
+  { node = "autocomplete_popup_indicator", slot = { name = "popupIndicator" } },
+  { node = "autocomplete_popper", slot = { name = "popper" } },
+  { node = "autocomplete_paper", slot = { name = "paper" } },
+  { node = "autocomplete_listbox", slot = { name = "listbox" } },
+  { node = "autocomplete_option", slot = { name = "option" } },
 ]
 events = [
   { id = "MaterialLab/Autocomplete/Change", event = "Change", route = "MaterialLab.Autocomplete.Change" },
 ]
 
-[nodes.autocomplete_query]
-component = "Autocomplete"
-control_id = "autocomplete_Query"
-classes = ["material-control", "material-autocomplete", "material-autocomplete-query"]
-props = { query = "at", value = "", value_text = "", selected_options = [], options = ["atlas", "asset", "disabled"], filtered_options = ["atlas", "asset"], disabled_options = ["disabled"], focused_options = ["atlas"], hovered_options = ["atlas"], pressed_options = [], matched_options = ["atlas", "asset"], multiple = false, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-style = { self = { background = { color = "material.surface_container_high" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
-layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.autocomplete_input_root]
+component = "HorizontalBox"
+control_id = "autocomplete_InputRoot"
+classes = ["material-control", "material-autocomplete-input-root"]
+props = { text = "Search", surface_variant = "elevated", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 56.0, preferred = 66.0, max = 76.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[nodes.autocomplete_open]
-component = "Autocomplete"
-control_id = "autocomplete_Open"
-classes = ["material-control", "material-autocomplete", "material-autocomplete-open"]
-props = { query = "as", value = "", value_text = "", selected_options = [], options = ["atlas", "asset", "disabled"], filtered_options = ["asset"], disabled_options = ["disabled"], focused_options = ["asset"], hovered_options = ["asset"], pressed_options = [], matched_options = ["asset"], multiple = false, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-style = { self = { background = { color = "material.surface_container_high" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
-layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.autocomplete_input]
+component = "Label"
+control_id = "autocomplete_Input"
+classes = ["material-control", "material-autocomplete-input"]
+props = { text = "at", surface_variant = "elevated", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 32.0, preferred = 36.0, max = 44.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[nodes.autocomplete_selected]
-component = "Autocomplete"
-control_id = "autocomplete_Selected"
-classes = ["material-control", "material-autocomplete", "material-autocomplete-selected"]
-props = { query = "", value = "atlas", value_text = "Atlas", selected_options = ["atlas"], options = ["atlas", "asset", "disabled"], filtered_options = ["atlas", "asset"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], matched_options = [], multiple = false, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-style = { self = { background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
-layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.autocomplete_tag]
+component = "Label"
+control_id = "autocomplete_Tag"
+classes = ["material-control", "material-autocomplete-tag"]
+props = { text = "Atlas", surface_variant = "elevated", text_tone = "success", validation_level = "success", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 44.0, preferred = 52.0, max = 62.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[nodes.autocomplete_multi_chip]
-component = "Autocomplete"
-control_id = "autocomplete_MultiChip"
-classes = ["material-control", "material-autocomplete", "material-autocomplete-multiple"]
-props = { query = "a", value = "atlas,asset", value_text = "Atlas, Asset", selected_options = ["atlas", "asset"], options = ["atlas", "asset", "disabled"], filtered_options = ["atlas", "asset"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], matched_options = ["atlas", "asset"], multiple = true, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-style = { self = { background = { color = "material.surface_selected" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 1.0, radius = 999.0 } } }
-layout = { width = { min = 72.0, preferred = 84.0, max = 100.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.autocomplete_popup_indicator]
+component = "Label"
+control_id = "autocomplete_PopupIndicator"
+classes = ["material-control", "material-autocomplete-popup-indicator"]
+props = { text = "Open", surface_variant = "elevated", text_tone = "info", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 38.0, preferred = 44.0, max = 50.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[nodes.autocomplete_disabled]
-component = "Autocomplete"
-control_id = "autocomplete_Disabled"
-classes = ["material-control", "material-autocomplete", "material-autocomplete-disabled"]
-props = { query = "disabled", value = "disabled", value_text = "Disabled", selected_options = ["disabled"], options = ["atlas", "asset", "disabled"], filtered_options = ["disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], matched_options = ["disabled"], multiple = false, free_solo = false, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
-layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.autocomplete_popper]
+component = "Label"
+control_id = "autocomplete_Popper"
+classes = ["material-control", "material-autocomplete-popper"]
+props = { text = "Panel", surface_variant = "elevated", text_tone = "warning", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 44.0, preferred = 52.0, max = 62.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.autocomplete_paper]
+component = "Label"
+control_id = "autocomplete_Paper"
+classes = ["material-control", "material-autocomplete-paper"]
+props = { text = "Paper", surface_variant = "elevated", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 44.0, preferred = 52.0, max = 62.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.autocomplete_listbox]
+component = "Label"
+control_id = "autocomplete_Listbox"
+classes = ["material-control", "material-autocomplete-listbox"]
+props = { text = "List", surface_variant = "elevated", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 34.0, preferred = 42.0, max = 50.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.autocomplete_option]
+component = "Label"
+control_id = "autocomplete_Option"
+classes = ["material-control", "material-autocomplete-option"]
+props = { text = "Option", surface_variant = "elevated", text_tone = "info", validation_level = "normal", hovered = true, pressed = false, focused = true, focusVisible = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 46.0, preferred = 54.0, max = 64.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

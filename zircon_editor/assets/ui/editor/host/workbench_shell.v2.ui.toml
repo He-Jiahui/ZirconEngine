@@ -41,21 +41,21 @@ children = [{ node = "open_project" }, { node = "save_project" }, { node = "rese
 [nodes.open_project]
 component = "IconButton"
 control_id = "OpenProject"
-props = { icon = "folder-open-outline", label = "Open", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
 
 [nodes.save_project]
 component = "IconButton"
 control_id = "SaveProject"
-props = { icon = "save-outline", label = "Save", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
 
 [nodes.reset_layout]
 component = "IconButton"
 control_id = "ResetLayout"
-props = { icon = "grid-outline", label = "Reset Layout", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/workbench/dock/reset-layout.svg", label = "Reset Layout", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "MenuAction.ResetLayout" }]
 
@@ -84,21 +84,21 @@ children = [{ node = "hierarchy_toggle" }, { node = "assets_toggle" }, { node = 
 [nodes.assets_toggle]
 component = "IconButton"
 control_id = "AssetsToggle"
-props = { icon = "albums-outline", label = "Assets", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/asset_browser/navigation/folder.svg", label = "Assets", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/AssetsToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 
 [nodes.hierarchy_toggle]
 component = "IconButton"
 control_id = "HierarchyToggle"
-props = { icon = "layers-outline", label = "Hierarchy", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/hierarchy/entity/scene.svg", label = "Hierarchy", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/HierarchyToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 
 [nodes.console_toggle]
 component = "IconButton"
 control_id = "ConsoleToggle"
-props = { icon = "terminal-outline", label = "Console", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/console_profiler/logs/log-info.svg", label = "Console", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/ConsoleToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 

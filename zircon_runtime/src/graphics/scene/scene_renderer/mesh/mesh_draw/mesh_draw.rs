@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::graphics::scene::resources::{GpuMeshResource, GpuTextureResource, PipelineKey};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, GpuTextureResource, PipelineKey,
+};
 
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
 
@@ -15,6 +17,7 @@ pub(crate) struct MeshDraw {
     #[allow(dead_code)]
     pub(super) virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
     pub(super) texture: Arc<GpuTextureResource>,
+    pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
     #[allow(dead_code)]
     pub(super) model_buffer: wgpu::Buffer,
@@ -31,6 +34,7 @@ impl MeshDraw {
         indirect_args_offset: u64,
         virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
         texture: Arc<GpuTextureResource>,
+        material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
         model_buffer: wgpu::Buffer,
         model_bind_group: wgpu::BindGroup,
@@ -45,6 +49,7 @@ impl MeshDraw {
                 .map(|detail| (detail.entity(), detail.page_id())),
             virtual_geometry_submission_detail,
             texture,
+            material_uniform,
             pipeline_key,
             model_buffer,
             model_bind_group,

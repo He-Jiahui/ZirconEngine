@@ -72,6 +72,8 @@ where
 {
     messages: Vec<MessageInstance<T>>,
     next_id: usize,
+    // Cursor reset marker for explicit retention boundaries such as clear_messages.
+    generation: u64,
 }
 
 impl<T> Default for Messages<T>
@@ -82,6 +84,7 @@ where
         Self {
             messages: Vec::new(),
             next_id: 0,
+            generation: 0,
         }
     }
 }
@@ -111,6 +114,11 @@ where
 
     pub fn clear(&mut self) {
         self.messages.clear();
+        self.generation = self.generation.saturating_add(1);
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.generation
     }
 }
 
@@ -119,6 +127,7 @@ where
     T: Message,
 {
     cursor: usize,
+    generation: u64,
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -129,6 +138,7 @@ where
     fn default() -> Self {
         Self {
             cursor: 0,
+            generation: 0,
             _marker: PhantomData,
         }
     }
@@ -140,21 +150,43 @@ where
 {
     pub fn read<'a>(&mut self, messages: Option<&'a Messages<T>>) -> MessageReadIter<'a, T> {
         let Some(messages) = messages else {
+            self.cursor = 0;
+            self.generation = 0;
             return MessageReadIter::empty();
         };
-        let start = self.cursor.min(messages.messages.len());
+        let start = if self.generation == messages.generation() {
+            self.cursor.min(messages.messages.len())
+        } else {
+            0
+        };
         self.cursor = messages.messages.len();
+        self.generation = messages.generation();
         MessageReadIter::new(messages.messages[start..].iter())
     }
 
     pub fn unread_count(&self, messages: Option<&Messages<T>>) -> usize {
         messages
-            .map(|messages| messages.messages.len().saturating_sub(self.cursor))
+            .map(|messages| {
+                if self.generation == messages.generation() {
+                    messages
+                        .messages
+                        .len()
+                        .saturating_sub(self.cursor.min(messages.messages.len()))
+                } else {
+                    messages.messages.len()
+                }
+            })
             .unwrap_or_default()
     }
 
     pub fn clear(&mut self, messages: Option<&Messages<T>>) {
-        self.cursor = messages.map(Messages::len).unwrap_or_default();
+        if let Some(messages) = messages {
+            self.cursor = messages.len();
+            self.generation = messages.generation();
+        } else {
+            self.cursor = 0;
+            self.generation = 0;
+        }
     }
 }
 

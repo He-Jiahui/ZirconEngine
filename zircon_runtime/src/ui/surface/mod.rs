@@ -1,9 +1,11 @@
 mod arranged;
 mod component_state;
 mod diagnostics;
+mod ecs_projection;
 mod focus;
 mod frame_hit_test;
 mod input;
+mod interaction_gate;
 mod node_pool;
 mod property_mutation;
 mod reflection_snapshot;
@@ -25,7 +27,9 @@ pub use frame_hit_test::{
     debug_hit_test_surface_frame, debug_hit_test_surface_frame_with_query, hit_test_surface_frame,
     hit_test_surface_frame_with_query,
 };
+pub(crate) use input::text_input_constraints_for_node;
 pub use input::UiSurfaceInputState;
+pub(crate) use interaction_gate::{ui_surface_effective_disabled, ui_surface_node_disabled};
 pub use node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport};
 pub use property_mutation::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,

@@ -60,6 +60,7 @@ pub(crate) fn apply_dispatch_reply(
                         target,
                         event,
                         delivered: true,
+                        drag: None,
                     });
                 }
             }
@@ -208,6 +209,7 @@ fn apply_effect(
                     Ok(Some(*target))
                 }
                 UiDragDropEffectKind::Update => {
+                    require_valid_input_owner(surface, *target)?;
                     surface.input.update_drag_drop(
                         *target,
                         *pointer_id,
@@ -218,12 +220,14 @@ fn apply_effect(
                     Ok(Some(*target))
                 }
                 UiDragDropEffectKind::Accept => {
+                    require_valid_input_owner(surface, *target)?;
                     surface
                         .input
                         .accept_drag_drop(*target, *pointer_id, *session_id)?;
                     Ok(Some(*target))
                 }
                 UiDragDropEffectKind::Reject => {
+                    require_valid_input_owner(surface, *target)?;
                     surface
                         .input
                         .reject_drag_drop(*target, *pointer_id, *session_id)?;
@@ -264,8 +268,12 @@ fn apply_effect(
         UiDispatchEffect::Popup {
             kind,
             popup_id,
+            owner,
             anchor,
         } => {
+            if let Some(owner) = owner {
+                require_valid_input_owner(surface, *owner)?;
+            }
             match kind {
                 zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Open => {
                     surface.input.open_popup(popup_id.clone(), *anchor);
@@ -277,9 +285,16 @@ fn apply_effect(
                     surface.input.toggle_popup(popup_id.clone(), *anchor);
                 }
             }
-            Ok(None)
+            Ok(*owner)
         }
-        UiDispatchEffect::Tooltip { kind, tooltip_id } => {
+        UiDispatchEffect::Tooltip {
+            kind,
+            tooltip_id,
+            owner,
+        } => {
+            if let Some(owner) = owner {
+                require_valid_input_owner(surface, *owner)?;
+            }
             match kind {
                 zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Arm => {
                     surface.input.arm_tooltip(tooltip_id.clone());
@@ -292,7 +307,7 @@ fn apply_effect(
                     surface.input.clear_tooltip(tooltip_id.as_str());
                 }
             }
-            Ok(None)
+            Ok(*owner)
         }
         UiDispatchEffect::RequestInputMethod { request } => {
             apply_input_method_request(surface, request)
@@ -394,13 +409,18 @@ fn host_request_for_effect(
         UiDispatchEffect::Popup {
             kind,
             popup_id,
+            owner: _,
             anchor,
         } => UiDispatchHostRequestKind::Popup {
             kind: *kind,
             popup_id: popup_id.clone(),
             anchor: *anchor,
         },
-        UiDispatchEffect::Tooltip { kind, tooltip_id } => UiDispatchHostRequestKind::Tooltip {
+        UiDispatchEffect::Tooltip {
+            kind,
+            tooltip_id,
+            owner: _,
+        } => UiDispatchHostRequestKind::Tooltip {
             kind: *kind,
             tooltip_id: tooltip_id.clone(),
         },
@@ -435,9 +455,8 @@ fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
         | UiDispatchEffect::EmitComponentEvent { target, .. } => Some(*target),
         UiDispatchEffect::RequestInputMethod { request } => Some(request.owner),
         UiDispatchEffect::RequestClipboard { request } => Some(request.owner),
-        UiDispatchEffect::RequestNavigation { .. }
-        | UiDispatchEffect::Popup { .. }
-        | UiDispatchEffect::Tooltip { .. } => None,
+        UiDispatchEffect::Popup { owner, .. } | UiDispatchEffect::Tooltip { owner, .. } => *owner,
+        UiDispatchEffect::RequestNavigation { .. } => None,
     }
 }
 

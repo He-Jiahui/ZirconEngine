@@ -7,7 +7,6 @@ use zircon_runtime::diagnostic_log::{
 
 pub(crate) const UI_HOST_WINDOW_DOCUMENT_ID: &str = "ui.host_window";
 pub(crate) const EDITOR_MAIN_FRAME_DOCUMENT_ID: &str = "editor.host.editor_main_frame";
-pub(crate) const ACTIVITY_DRAWER_WINDOW_DOCUMENT_ID: &str = "editor.host.activity_drawer_window";
 pub(crate) const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
 pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
 pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
@@ -57,15 +56,11 @@ fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 25] {
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
     let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
             builtin_host_template_path("editor_main_frame.v2.ui.toml"),
-        ),
-        (
-            ACTIVITY_DRAWER_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("activity_drawer_window.v2.ui.toml"),
         ),
         (
             WORKBENCH_WINDOW_DOCUMENT_ID,

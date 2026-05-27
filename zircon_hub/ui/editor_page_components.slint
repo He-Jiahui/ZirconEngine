@@ -1,0 +1,182 @@
+import {
+    IconButton,
+    PillButton,
+    SourceEngineRowData,
+} from "shared.slint";
+import {
+    ActionRow,
+    Badge,
+    HubPanel,
+    HubTextField,
+    HubTokens,
+    InfoRow,
+    ListTile,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    PanelHeader,
+    PanelListViewport,
+} from "components.slint";
+
+export component SourceEngineRow inherits Rectangle {
+    in property <SourceEngineRowData> engine;
+    in property <bool> collapse-label: false;
+    callback selected(string);
+    callback remove(string);
+
+    private property <length> remove-size: min(HubTokens.icon-lg, HubTokens.list-row-md - MaterialStyleMetrics.spacing_16);
+
+    height: HubTokens.list-row-md;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: HubTokens.border-width;
+    border-color: root.engine.active ? MaterialPalette.primary : MaterialPalette.outline_variant;
+    background: root.engine.active ? MaterialPalette.secondary_container : MaterialPalette.surface_container_low;
+    clip: true;
+
+    ListTile {
+        width: parent.width;
+        height: parent.height;
+        text: root.engine.title;
+        supporting_text: root.engine.version + " / " + root.engine.source-path + " / " + root.engine.last-build;
+        avatar_icon: @image-url("../assets/brand/zircon-mark.svg");
+        avatar_background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
+        avatar_foreground: root.engine.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
+        clicked => {
+            root.selected(root.engine.id);
+        }
+
+        HorizontalLayout {
+            spacing: HubTokens.space-2;
+            alignment: center;
+
+            if !root.collapse-label: Badge {
+                text: root.engine.status;
+                tone: root.engine.active ? "accent" : "neutral";
+                badge-width: HubTokens.control-md * 3;
+            }
+
+            IconButton {
+                width: root.remove-size;
+                height: root.remove-size;
+                icon-image: @image-url("../assets/icons/ui/close.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.remove(root.engine.id);
+                }
+            }
+        }
+    }
+}
+
+export component EditorSideListPanel inherits HubPanel {
+    in property <string> panel-title;
+    in property <string> badge-text;
+    in property <int> row-count;
+    in property <length> row-height: HubTokens.list-row-md;
+    in property <length> empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    in-out property <length> list-scroll-y: 0px;
+
+    vertical-stretch: 1;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: HubTokens.space-4;
+        spacing: HubTokens.toolbar-gap;
+
+        PanelHeader {
+            title: root.panel-title;
+            subtitle: "";
+            show-badge: true;
+            badge-text: root.badge-text;
+            badge-tone: "info";
+        }
+
+        PanelListViewport {
+            scroll-y <=> root.list-scroll-y;
+            row-count: root.row-count;
+            row-height: root.row-height;
+            empty-height: root.empty-height;
+
+            @children
+        }
+    }
+}
+
+export component EditorPathFieldRow inherits Rectangle {
+    in property <string> field-label;
+    in property <string> button-text;
+    in property <image> button-icon;
+    in property <bool> has-button-icon: true;
+    in-out property <string> field-text;
+    callback button-clicked();
+
+    horizontal-stretch: 1;
+    height: HubTokens.input-field;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.toolbar-gap;
+        alignment: stretch;
+
+        HubTextField {
+            horizontal-stretch: 1;
+            label: root.field-label;
+            placeholder: root.field-label;
+            text <=> root.field-text;
+        }
+
+        PillButton {
+            height: HubTokens.control-md;
+            text: root.button-text;
+            icon-image: root.button-icon;
+            has-icon-image: root.has-button-icon;
+            clicked => {
+                root.button-clicked();
+            }
+        }
+    }
+}
+
+export component EditorActionRow inherits ActionRow {
+    in property <string> action-id;
+    in property <image> action-icon;
+    in property <string> action-title;
+    in property <string> action-detail;
+    in property <bool> action-enabled: true;
+    callback triggered(string);
+
+    action: {
+        id: root.action-id,
+        icon: "",
+        icon-image: root.action-icon,
+        has-icon-image: true,
+        title: root.action-title,
+        detail: root.action-detail,
+        enabled: root.action-enabled,
+    };
+
+    activate(id) => {
+        root.triggered(id);
+    }
+}
+
+export component EditorSourceSummaryRow inherits InfoRow {
+    in property <image> summary-icon;
+    in property <string> summary-title;
+    in property <string> summary-detail;
+    in property <string> summary-meta;
+    in property <string> summary-status;
+    in property <string> summary-tone: "neutral";
+    in property <bool> collapse-label: false;
+
+    title: root.summary-title;
+    detail: root.summary-detail;
+    meta: root.summary-meta;
+    leading-image: root.summary-icon;
+    has-leading-image: true;
+    trailing-text: root.summary-status;
+    trailing-tone: root.summary-tone;
+    show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
+}

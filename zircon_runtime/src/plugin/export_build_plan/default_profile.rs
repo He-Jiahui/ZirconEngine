@@ -10,7 +10,7 @@ pub(super) fn default_profile(profile_name: &str) -> Option<ExportProfile> {
             ExportProfile::new(
                 "server",
                 RuntimeTargetMode::ServerRuntime,
-                ExportTargetPlatform::Linux,
+                ExportTargetPlatform::Headless,
             )
             .with_runtime_profile_id(RuntimeProfileId::Server),
         ),

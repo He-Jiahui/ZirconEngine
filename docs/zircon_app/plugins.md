@@ -11,6 +11,7 @@ related_code:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
+  - zircon_runtime/src/lib.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
@@ -38,8 +39,10 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
+  - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
+  - zircon_runtime/src/lib.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/virtual_geometry/plugin.toml
@@ -73,6 +76,7 @@ tests:
   - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
   - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
+  - cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
   - .github/workflows/ci.yml
 doc_type: module-detail
 ---
@@ -126,6 +130,8 @@ For default, dev, editor, runtime, and headless groups, modules returned by proj
 
 The provider-aware runner diagnostics mirror the provider-aware bootstrap surface: first-party, linked runtime-plugin, and linked runtime-plugin-plus-feature registration variants all construct the same `BuiltinEngineEntry` variant that their bootstrap sibling would use, but stop at the immutable report. This closes the diagnostic gap where a tool could previously inspect the base profile while the real startup path would also include linked first-party, embedded, native, or feature registration modules.
 
+The editor-host live validation reran the provider-aware bootstrap build on 2026-05-25 with `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation`; it passed with existing warning noise only.
+
 Bootstrap also stores `PlatformConfig` under `PLATFORM_CONFIG_KEY` before activation. Runtime/editor entries use the current host target and compiled platform feature snapshot, headless entries store a headless target/features selection, and `RuntimeProfileId::Minimal` stores the config as disabled because the minimal group deliberately excludes `PlatformModule`. The formatted entry diagnostics include the same platform capability lines as `zircon_runtime::platform`, including `platform.monitor_inventory`, `platform.window_events`, `platform.window_lifecycle`, `platform.window_metrics`, `platform.ime`, `platform.keyboard_events`, `platform.cursor_boundary`, `platform.cursor_options`, `platform.mouse_buttons`, `platform.mouse_wheel`, `platform.touch_events`, `platform.pointer_position`, `platform.raw_mouse_motion`, `platform.gamepad_events`, and `platform.gamepad_rumble`, so app tools can see whether the selected profile has winit monitor handles/window events/lifecycle events/window metrics/IME/keyboard events/cursor boundary/cursor-options control/mouse-button states/mouse-wheel units/touch events/pointer position/raw motion/gamepad event polling/gamepad rumble events, future browser host paths, or no physical monitor/window/metrics/text-input/keyboard-event/pointer-boundary/cursor-options/mouse-button/mouse-wheel/touch-event/pointer-position/device-motion/gamepad-event/rumble backend.
 
 The same diagnostics also include `platform.gesture_events`, which keeps Bevy-style gesture event support visible even before Zircon has a gesture runtime ABI or winit forwarding path. App tooling can distinguish the default `input-gestures` feature gate from future macOS/iOS winit gesture hosts, browser gesture hosts, and headless/server unavailable topology without entering UI gesture-recognition ownership.
@@ -157,6 +163,8 @@ The runtime-preview binary has a second, narrower profile surface for dynamic cd
 The advanced render provider feature is intentionally separate: `first-party-advanced-render-runtime-plugins` links the `virtual_geometry`, `hybrid_gi`, and `solari` runtime provider crates. `first_party_runtime_plugin_registrations_for_config(...)` first builds the config's project manifest, then adds transient render-provider selections from `EntryConfig::render_profile` when the selected bundle contains `RenderProductFeature::VirtualGeometry`, `RenderProductFeature::HybridGlobalIllumination`, or `RenderProductFeature::Solari`. `DefaultRender` therefore does not link advanced providers, `AdvancedRender` can collect VG/HGI, and `SolariExperimental` can collect the Solari provider contract. Existing explicit manifest selections win; the render-profile helper only appends missing target-scoped selections before the normal provider-aware bootstrap path runs.
 
 `BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations` and `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations` feed those reports into the existing provider-aware bootstrap path. The matching runner diagnostics method feeds the same reports into `BuiltinEngineEntry` without bootstrapping, so command-line tools, tests, and dev diagnostics can show the real first-party/runtime-provider module set before `CoreRuntime` registration. This keeps the dependency direction explicit: `zircon_app` may link `zircon_plugins`, but `zircon_runtime` receives only `RuntimePluginRegistrationReport` values and never imports plugin implementation crates.
+
+The editor-host live build uses the same provider-aware profile boundary. `zircon_runtime/src/lib.rs` exposes the manifest-specific runtime-profile module helper APIs from the crate root, and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` preserves the optional project manifest while deriving a profile fallback manifest for the runtime resolver. The feature dependency report therefore still sees the caller manifest when one exists, while the module resolver stays profile-aware instead of falling back to target-only defaults.
 
 ## Validation Coverage
 

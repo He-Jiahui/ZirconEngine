@@ -32,6 +32,7 @@ related_code:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/plugin_api.rs
+  - zircon_runtime_interface/src/plugin_events.rs
   - zircon_runtime_interface/src/manifest.rs
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -73,6 +74,7 @@ implementation_files:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/plugin_api.rs
+  - zircon_runtime_interface/src/plugin_events.rs
   - zircon_runtime_interface/src/manifest.rs
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -85,6 +87,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
   - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
+  - docs/superpowers/plans/2026-05-04-sound-dynamic-event-execution.md
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/dynamic_api/tests.rs
@@ -104,6 +107,7 @@ tests:
   - cargo test -p zircon_runtime_interface --locked --verbose
   - cargo test -p zircon_app --locked --verbose
   - cargo test -p zircon_app --locked --verbose (2026-05-11 blocker rerun: passed once after Cargo generated unrelated `taffy` lock entries; final clean-lock rerun is blocked before compile by the unrelated `zircon_runtime/Cargo.toml` / `Cargo.lock` mismatch)
+  - cargo test -p zircon_runtime_interface plugin_event --locked --offline --jobs 1
 doc_type: module-detail
 ---
 
@@ -131,7 +135,8 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 - `status.rs` defines raw status codes and diagnostic byte payload attachment.
 - `buffer.rs` defines borrowed byte slices and plugin/runtime-owned byte buffers with explicit free callbacks.
 - `runtime_api.rs` defines the runtime dynamic library symbol, the v1 runtime function table shape, fixed event records, viewport sizing records, native surface binding requests, frame requests, and typed captured-frame results.
-- `plugin_api.rs` defines the future plugin entry symbol and v1 plugin entry report shape.
+- `plugin_api.rs` defines the plugin entry symbol, v1 plugin entry report shape, and optional plugin-side callback slots.
+- `plugin_events.rs` defines the generic v1 plugin event callback ABI. Subsystems such as sound project their own neutral event DTOs into namespace-tagged byte-slice requests instead of passing Rust trait objects or subsystem-owned runtime state across dynamic-library boundaries.
 - `manifest.rs` defines target mode, module kind, and module descriptor DTO seeds for later runtime/plugin adapters.
 - `ui/mod.rs` exposes the shared neutral Runtime UI contract namespace for editor-facing UI DTOs: `binding`, `component`, `dispatch`, `event_ui`, `layout`, `surface`, `template`, and `tree`. The UI namespace is now backed by real `zircon_runtime_interface/src/ui/**` files instead of path-including `zircon_runtime/src/ui/**`. Runtime-only behavior such as component registries, event managers, dispatchers, layout passes, render extraction, text layout, tree mutation, template loading, compiling, and validation remains owned by `zircon_runtime`.
 
@@ -173,3 +178,13 @@ The Bevy-style time continuation adds focused coverage for the appended `tick_fr
 Milestone 2 first-slice validation is scoped to the shared UI contract namespace and editor library type checking. The interface crate check proves the real interface-owned UI contract modules compile without depending on `zircon_runtime`, `zircon_editor`, Slint, wgpu, or plugin crates. The editor library check proves the current editor UI host can type-check after the interface tree split, but it does not prove the editor import cutover is complete: a 2026-05-02 audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits in `zircon_editor/src`. The residual runtime hits must be split by role: neutral DTOs should move to `zircon_runtime_interface::ui`, while concrete services such as `UiSurface`, `UiEventManager`, `UiDocumentCompiler`, `UiAssetLoader`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, and `UiPointerDispatcher` remain runtime behavior dependencies. An earlier `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never` passed with existing warnings, and the 2026-05-02 19:44 current-worktree rerun `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` also passed with existing runtime graphics warnings and 3 editor warnings. `cargo tree -p zircon_editor --locked --depth 1` still lists direct `zircon_runtime` and `zircon_runtime_interface` dependencies for the documented service/contract split.
 
 The `UiSurface` and `UiTree` storage identity has now converged. `zircon_runtime_interface::ui::tree` owns serializable tree contract DTOs, and `zircon_runtime::ui::surface::UiSurface` stores the interface `UiTree` directly. Runtime still owns insertion, mutation, focus, hit-test, scroll, render-order, and routing behavior through `zircon_runtime::ui::tree::UiRuntimeTree*Ext` traits and helper services, so editor surface builders import tree DTOs from the interface crate and import runtime extension traits only when they call behavior methods.
+
+The 2026-05-24 plugin-event ABI slice was validated with scoped interface evidence: `rustfmt --edition 2021 --check zircon_runtime_interface\src\plugin_events.rs zircon_runtime_interface\src\plugin_api.rs zircon_runtime_interface\src\lib.rs zircon_runtime_interface\src\tests\contracts.rs ...` passed for the interface files, `cargo fmt --check --manifest-path Cargo.toml -p zircon_runtime_interface` passed, `cargo metadata --manifest-path zircon_runtime_interface\Cargo.toml --locked --offline --no-deps --format-version 1` passed, and `cargo test -p zircon_runtime_interface plugin_ --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sound-dynamic-event-abi-interface --message-format short --color never` passed with 2 tests and 110 filtered out.
+
+## Plugin Event Callback ABI
+
+`ZrPluginApiV1` now reserves an optional trailing `invoke_event` function pointer. The field is appended after `unload`, and contract tests pin the table size and offset on the current target so existing prefix readers can continue to gate optional slots by `size_bytes`.
+
+`ZrPluginEventCallbackRequestV1` is intentionally generic. It carries an ABI version, subsystem namespace, plugin ID, handler ID, event ID, optional source path, event time, payload schema, and opaque payload bytes as borrowed `ZrByteSlice` values. The callback writes `ZrPluginEventCallbackResultV1`, whose status and diagnostics capture handler-level acceptance or rejection without letting a subsystem pass Rust closures, runtime managers, scene state, or editor objects across the boundary.
+
+The first concrete consumer is the sound runtime adapter: sound projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace. The interface crate does not know sound semantics, and the sound framework DTOs still do not own dynamic-library function pointers. Generic native plugin discovery and attachment of `ZrPluginApiV1::invoke_event` to subsystem handler descriptors remains loader/runtime integration work outside this interface DTO slice.

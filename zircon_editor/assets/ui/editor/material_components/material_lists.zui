@@ -58,10 +58,10 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "row / grid", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "row / grid", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "ListRow"
+component = "List"
 control_id = "lists_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Lists row", value = "selected", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+classes = ["material-control", "material-lab-sample", "MuiList-root"]
+props = { text = "Lists row", value = "selected", className = "material-list-sample", component = "ul", dense = true, disablePadding = false, subheader = "Scene Layers", items = ["Camera", "Key Light", "Material Preview"], slotProps = { subheader = { className = "material-list-subheader" }, items = { className = "material-list-item" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "MaterialLab/Lists/Click", event = "Click", route = "MaterialLab.Lists.Click" },

@@ -13,30 +13,26 @@ import {
     ProjectDetailPage,
     ProjectNewPage,
 } from "project_pages.slint";
-import { HubTokens } from "tokens.slint";
+import { Fill, HubTokens } from "components.slint";
 
-export component ProjectsPage inherits Rectangle {
+export component ProjectsPage inherits Fill {
     in-out property <string> project-subpage: "dashboard";
-    in-out property <string> project-entry-mode: "none";
+    in-out property <string> project-detail-return-subpage: "dashboard";
     in-out property <string> search-query;
     in-out property <string> project-path;
     in-out property <string> project-name;
-    in-out property <string> project-location;
+    in-out property <string> new-project-location;
     in property <string> project-filter-label;
     in property <string> project-sort-label;
     in-out property <string> project-view-mode;
     in-out property <bool> project-cards-expanded: false;
     in property <[ProjectCardData]> project-cards;
     in property <int> project-card-count;
-    in property <[RecentProjectRowData]> project-list-rows;
-    in property <int> project-list-row-count;
     in property <[RecentProjectRowData]> project-browser-rows;
     in property <int> project-browser-row-count;
     in property <[RecentProjectRowData]> dashboard-project-rows;
     in property <int> dashboard-project-row-count;
     in property <string> dashboard-project-title;
-    in property <[RecentProjectRowData]> recent-project-rows;
-    in property <int> recent-project-row-count;
     in property <[ProjectTemplateData]> project-templates;
     in property <int> project-template-count;
     in property <bool> project-create-enabled: true;
@@ -46,6 +42,7 @@ export component ProjectsPage inherits Rectangle {
     in property <int> project-engine-count;
     in property <ProjectDetailData> project-detail;
     in property <[QuickActionData]> quick-actions;
+    in property <bool> viewport-compact: false;
     in property <UiTextData> ui-text;
     callback open-project();
     callback create-project();
@@ -73,8 +70,10 @@ export component ProjectsPage inherits Rectangle {
     clip: true;
 
     if root.project-subpage == "dashboard": ProjectDashboardPage {
-        width: parent.width;
-        height: parent.height;
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        min-width: 1px;
+        min-height: 0px;
         search-query <=> root.search-query;
         project-cards-expanded <=> root.project-cards-expanded;
         project-filter-label: root.project-filter-label;
@@ -88,21 +87,37 @@ export component ProjectsPage inherits Rectangle {
         quick-actions: root.quick-actions;
         ui-text: root.ui-text;
         select-project(path) => { root.select-project(path); }
-        open-project-detail(path) => { root.open-project-detail(path); }
+        open-project-detail(path) => {
+            root.project-detail-return-subpage = "dashboard";
+            root.project-subpage = "project-detail";
+            root.open-project-detail(path);
+        }
         quick-action(id) => { root.quick-action(id); }
         search-projects(query) => { root.search-projects(query); }
-        view-all-projects => { root.view-all-projects(); }
+        view-all-projects => {
+            root.project-view-mode = "list";
+            root.project-subpage = "project-browser";
+            root.view-all-projects();
+        }
         set-project-filter(id) => { root.set-project-filter(id); }
         set-project-sort(id) => { root.set-project-sort(id); }
-        set-project-view-mode(id) => { root.set-project-view-mode(id); }
-        show-project-subpage(id) => { root.show-project-subpage(id); }
+        set-project-view-mode(id) => {
+            root.project-view-mode = id;
+            root.set-project-view-mode(id);
+        }
+        show-project-subpage(id) => {
+            root.project-subpage = id;
+            root.show-project-subpage(id);
+        }
     }
 
     if root.project-subpage == "new-project": ProjectNewPage {
-        width: parent.width;
-        height: parent.height;
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        min-width: 1px;
+        min-height: 0px;
         project-name <=> root.project-name;
-        project-location <=> root.project-location;
+        project-location <=> root.new-project-location;
         templates: root.project-templates;
         template-count: root.project-template-count;
         create-enabled: root.project-create-enabled;
@@ -110,8 +125,12 @@ export component ProjectsPage inherits Rectangle {
         selected-engine-label: root.project-create-engine-label;
         engines: root.project-engine-rows;
         engine-count: root.project-engine-count;
+        viewport-compact: root.viewport-compact;
         ui-text: root.ui-text;
-        back => { root.show-project-subpage("dashboard"); }
+        back => {
+            root.project-subpage = "dashboard";
+            root.show-project-subpage("dashboard");
+        }
         browse-folder(target) => { root.browse-folder(target); }
         create-project => { root.create-project(); }
         select-template(id) => { root.select-project-template(id); }
@@ -119,16 +138,21 @@ export component ProjectsPage inherits Rectangle {
     }
 
     if root.project-subpage == "project-browser": ProjectBrowserPage {
-        width: parent.width;
-        height: parent.height;
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        min-width: 1px;
+        min-height: 0px;
         search-query <=> root.search-query;
         project-filter-label: root.project-filter-label;
         project-sort-label: root.project-sort-label;
         list-title: root.dashboard-project-title;
         rows: root.project-browser-rows;
         row-count: root.project-browser-row-count;
+        viewport-compact: root.viewport-compact;
         ui-text: root.ui-text;
         back => {
+            root.project-view-mode = "grid";
+            root.project-subpage = "dashboard";
             root.set-project-view-mode("grid");
             root.show-project-subpage("dashboard");
         }
@@ -136,17 +160,31 @@ export component ProjectsPage inherits Rectangle {
         set-project-filter(id) => { root.set-project-filter(id); }
         set-project-sort(id) => { root.set-project-sort(id); }
         select-project(path) => { root.select-project(path); }
-        open-detail(path) => { root.open-project-detail(path); }
+        open-detail(path) => {
+            root.project-detail-return-subpage = "project-browser";
+            root.project-subpage = "project-detail";
+            root.open-project-detail(path);
+        }
     }
 
     if root.project-subpage == "project-detail": ProjectDetailPage {
-        width: parent.width;
-        height: parent.height;
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        min-width: 1px;
+        min-height: 0px;
         project: root.project-detail;
         engines: root.project-engine-rows;
         engine-count: root.project-engine-count;
+        viewport-compact: root.viewport-compact;
         ui-text: root.ui-text;
-        back => { root.show-project-subpage("project-browser"); }
+        back => {
+            root.project-subpage = root.project-detail-return-subpage;
+            if (root.project-detail-return-subpage == "dashboard") {
+                root.project-view-mode = "grid";
+                root.set-project-view-mode("grid");
+            }
+            root.show-project-subpage(root.project-detail-return-subpage);
+        }
         open-project(path) => { root.open-recent-project(path); }
         select-engine(id) => { root.select-project-detail-engine(id); }
         toggle-pin => { root.toggle-project-pin(); }

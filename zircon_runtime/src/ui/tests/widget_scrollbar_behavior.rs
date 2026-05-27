@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
         UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityContract,
     },
     binding::{UiBindingDirtyDomain, UiBindingSourceKind, UiBindingTargetKind, UiEventKind},
-    component::{UiComponentEvent, UiValue},
+    component::{UiComponentEvent, UiDragPhase, UiValue},
     dispatch::{
         UiAccessibilityInputEvent, UiDispatchDisposition, UiInputEvent, UiInputEventMetadata,
         UiPointerDispatchResult, UiPointerEvent,
@@ -245,6 +245,13 @@ fn scrollbar_thumb_drag_updates_target_scroll_container_offset() {
     assert!(down.component_events.iter().any(|event| {
         event.node_id == id(4)
             && event.binding_id == "ScrollbarThumb/DragBegin"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::Begin
+                    && drag.start == UiPoint::new(126.0, 10.0)
+                    && drag.current == UiPoint::new(126.0, 10.0)
+                    && drag.delta == UiPoint::new(0.0, 0.0)
+                    && drag.distance == 0.0
+            })
             && matches!(
                 &event.envelope.event,
                 UiComponentEvent::BeginDrag { property } if property == "scroll_offset"
@@ -258,6 +265,13 @@ fn scrollbar_thumb_drag_updates_target_scroll_container_offset() {
     assert!(drag.component_events.iter().any(|event| {
         event.node_id == id(4)
             && event.binding_id == "ScrollbarThumb/DragUpdate"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::Update
+                    && drag.start == UiPoint::new(126.0, 10.0)
+                    && drag.current == UiPoint::new(126.0, 70.0)
+                    && drag.delta == UiPoint::new(0.0, 60.0)
+                    && (drag.distance - 60.0).abs() < f32::EPSILON
+            })
             && matches!(
                 &event.envelope.event,
                 UiComponentEvent::DragDelta { property, delta }
@@ -284,6 +298,13 @@ fn scrollbar_thumb_drag_updates_target_scroll_container_offset() {
     assert!(up.component_events.iter().any(|event| {
         event.node_id == id(4)
             && event.binding_id == "ScrollbarThumb/DragEnd"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::End
+                    && drag.start == UiPoint::new(126.0, 10.0)
+                    && drag.current == UiPoint::new(126.0, 70.0)
+                    && drag.delta == UiPoint::new(0.0, 60.0)
+                    && (drag.distance - 60.0).abs() < f32::EPSILON
+            })
             && matches!(
                 &event.envelope.event,
                 UiComponentEvent::EndDrag { property } if property == "scroll_offset"
@@ -437,6 +458,79 @@ fn accessibility_scroll_to_mutates_scrollable_container_offset() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.scroll_to")
     );
+    assert_accessibility_scroll_binding_report(&result.binding_reports);
+    assert_eq!(
+        surface
+            .tree
+            .node(id(2))
+            .unwrap()
+            .scroll_state
+            .unwrap()
+            .offset,
+        64.0
+    );
+}
+
+#[test]
+fn accessibility_scroll_to_consumes_neutral_scroll_offset_point() {
+    let mut surface = scrollbar_surface(false);
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &crate::ui::dispatch::UiNavigationDispatcher::default(),
+            UiInputEvent::Accessibility(UiAccessibilityInputEvent {
+                metadata: UiInputEventMetadata::default(),
+                request: UiAccessibilityActionRequest {
+                    target: id(2),
+                    action: UiAccessibilityAction::ScrollTo,
+                    scroll_offset: Some(UiPoint::new(8.0, 64.0)),
+                    ..UiAccessibilityActionRequest::default()
+                },
+            }),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_accessibility_scroll_binding_report(&result.binding_reports);
+    assert_eq!(
+        surface
+            .tree
+            .node(id(2))
+            .unwrap()
+            .scroll_state
+            .unwrap()
+            .offset,
+        64.0
+    );
+}
+
+#[test]
+fn accessibility_scroll_to_uses_horizontal_scroll_offset_axis() {
+    let mut surface = scrollbar_surface(false);
+    let scrollable = surface.tree.nodes.get_mut(&id(2)).unwrap();
+    scrollable.container = UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+        axis: UiAxis::Horizontal,
+        ..UiScrollableBoxConfig::default()
+    });
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &crate::ui::dispatch::UiNavigationDispatcher::default(),
+            UiInputEvent::Accessibility(UiAccessibilityInputEvent {
+                metadata: UiInputEventMetadata::default(),
+                request: UiAccessibilityActionRequest {
+                    target: id(2),
+                    action: UiAccessibilityAction::ScrollTo,
+                    scroll_offset: Some(UiPoint::new(64.0, 8.0)),
+                    ..UiAccessibilityActionRequest::default()
+                },
+            }),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_accessibility_scroll_binding_report(&result.binding_reports);
     assert_eq!(
         surface

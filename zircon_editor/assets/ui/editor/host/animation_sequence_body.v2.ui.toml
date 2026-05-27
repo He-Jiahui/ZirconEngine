@@ -41,7 +41,7 @@ layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fix
 [nodes.scrub]
 component = "IconButton"
 control_id = "ScrubTimeline"
-props = { label = "Scrub Timeline", icon = "play-circle-outline" }
+props = { label = "Scrub Timeline", icon = "editor_pages/animation_timeline/transport/timeline-play.svg" }
 layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AnimationSequencePaneBody/ScrubTimeline", event = "Click", route = "AnimationCommand.ScrubTimeline" }]
 

@@ -64,6 +64,7 @@ plan_sources:
   - user: 2026-05-16 continue Render M4B postprocess pass graph productization
   - user: 2026-05-18 continue Render M8A anti-alias product surface
   - user: 2026-05-20 continue Bevy-level render postprocess evidence mapping
+  - user: 2026-05-22 continue M10 post-process and anti-alias breadth checklist
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs
@@ -150,6 +151,26 @@ Zircon currently covers the neutral product graph, bloom/color-grading/history/f
 Zircon is not yet Bevy-complete for post-processing. Motion blur is not implemented because the required motion-vector prepass contract has not been productized. Depth of field is not implemented because the camera focus/lens model and auxiliary blur resources are not exposed through `render::camera` or `render::post_process`. Chromatic aberration and vignette are not implemented as authorable camera components. MSAA writeback is represented only indirectly through camera MSAA settings and anti-alias fallback reporting; there is no Bevy-style sorted-camera MSAA writeback blit path yet.
 
 The next Bevy-parity implementation milestone should add typed post-process authoring descriptors before adding more shader passes. The safe order is: camera-facing post-process settings, neutral graph nodes/resources, validation and stats, then concrete WGPU execution. This keeps advanced effects from bypassing the basic DefaultRender product contract.
+
+## M10.6 Promotion Gate
+
+M10.6 is the post-process side of the post-process/AA breadth gate. It does not treat the existing bloom, color grading, history resolve, final composite, or FXAA nodes as full Bevy post-process parity. Bevy's `PostProcessPlugin` installs MSAA writeback, bloom, motion blur, depth of field, and the chromatic-aberration/vignette effect stack as separate products, so Zircon promotion has to prove each family independently.
+
+| Check | Current evidence | Promotion requirement |
+| --- | --- | --- |
+| Product graph stays family-aware. | `PostProcessStackDescriptor` and `PostProcessPassGraph` expose bloom, color grading, history resolve, final composite, and FXAA nodes with graph validation and stats. | New effects must first add typed authoring descriptors, stable resource names, validation rules, skipped/executed stats, and pass-order diagnostics before renderer pixels are accepted. |
+| Motion blur is not hidden behind post-process success. | Zircon has no productized motion-vector prepass contract for motion blur. | Add camera-facing motion-blur settings, depth/motion-vector prepass ownership, Core3d ordering before bloom, missing-prepass diagnostics, and focused tests. |
+| Depth of field is not hidden behind bloom. | Zircon has no camera focus/lens model or auxiliary DoF texture resources in this contract. | Add focal/lens settings, Gaussian/bokeh mode vocabulary or an intentional narrower subset, auxiliary resource validation, and pass ordering after bloom before tonemapping-equivalent output. |
+| Effect stack remains explicit. | Chromatic aberration and vignette are documented gaps, not disabled graph nodes today. | Add camera components or descriptors, LUT/resource fallback policy, extract/prepare diagnostics, and graph stats before claiming the effect-stack family. |
+| MSAA writeback remains a target/AA boundary. | Camera MSAA can request an AA mode and unsupported sample counts degrade through `AntiAliasFallbackReport`; no sorted-camera MSAA writeback blit exists. | Add multisampled target ownership, sorted-camera writeback policy, resolve/writeback graph node, and target-aware diagnostics before calling MSAA writeback complete. |
+| Validation is focused and not full Bevy parity. | Existing graph tests cover disabled effects, missing resources, duplicate outputs, missing dependencies, and cycles. | Current-checkout M10W validation passed the focused post-process graph tests, AA fallback tests, pipeline/pass-order tests, and `cargo check -p zircon_runtime --lib --locked`; this still does not promote missing effect families. |
+
+2026-05-26 M10W validation evidence:
+
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked render_product_post_process --jobs 1 --message-format short --color never`: PASS, 9 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked runtime_ui_graph_pass_order --jobs 1 --message-format short --color never`: PASS, 2 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never`: PASS, 39 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.
 
 ## Test Coverage
 

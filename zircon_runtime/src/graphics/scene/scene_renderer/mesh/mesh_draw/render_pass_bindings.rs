@@ -15,6 +15,10 @@ impl MeshDraw {
         pass.set_bind_group(2, &self.texture.bind_group, &[]);
     }
 
+    pub(crate) fn bind_material<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
+        pass.set_bind_group(3, &self.material_uniform.bind_group, &[]);
+    }
+
     pub(crate) fn bind_geometry_buffers<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
         pass.set_vertex_buffer(0, self.mesh.vertex_buffer.slice(..));
         pass.set_index_buffer(self.mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);

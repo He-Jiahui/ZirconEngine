@@ -181,33 +181,57 @@ fn register_host_modules(
     Ok(registrations)
 }
 
+fn native_function_label(module_name: &str, function_name: &str) -> String {
+    format!("{module_name}.{function_name}")
+}
+
+fn validate_native_function_arity(
+    module_name: &str,
+    function: &ScriptHostFunctionDescriptor,
+) -> Result<(u16, u16), VmError> {
+    let label = native_function_label(module_name, &function.name);
+    let min = u16::try_from(function.min_argument_count)
+        .map_err(|_| VmError::Operation(format!("zr_vm function {label} min arity exceeds u16")))?;
+    let max = u16::try_from(function.max_argument_count)
+        .map_err(|_| VmError::Operation(format!("zr_vm function {label} max arity exceeds u16")))?;
+    if function.min_argument_count > function.max_argument_count {
+        return Err(VmError::Operation(format!(
+            "zr_vm function {label} min arity {} exceeds max arity {}",
+            function.min_argument_count, function.max_argument_count
+        )));
+    }
+    if function.parameters.len() > function.max_argument_count {
+        return Err(VmError::Operation(format!(
+            "zr_vm function {label} declares {} parameters but max arity is {}",
+            function.parameters.len(),
+            function.max_argument_count
+        )));
+    }
+    Ok((min, max))
+}
+
 fn build_native_function(
     module_name: &str,
     function: &ScriptHostFunctionDescriptor,
     exports: zircon_runtime::script::HostExportRegistry,
     capabilities: CapabilitySet,
 ) -> Result<zrvm::FunctionBuilder, VmError> {
-    let module_name = module_name.to_string();
     let function_name = function.name.clone();
-    let min = u16::try_from(function.min_argument_count).map_err(|_| {
-        VmError::Operation(format!(
-            "zr_vm function {}.{} min arity exceeds u16",
-            module_name, function_name
-        ))
-    })?;
-    let max = u16::try_from(function.max_argument_count).map_err(|_| {
-        VmError::Operation(format!(
-            "zr_vm function {}.{} max arity exceeds u16",
-            module_name, function_name
-        ))
-    })?;
+    let label = native_function_label(module_name, &function_name);
+    let (min, max) = validate_native_function_arity(module_name, function)?;
+    let module_name = module_name.to_string();
 
+    let callback_label = label.clone();
     let mut builder = zrvm::FunctionBuilder::new(&function.name, min, max, move |context| {
-        let arguments = read_host_arguments(context)?;
+        let arguments = read_host_arguments_for_function(context, &callback_label)?;
         let value = exports
             .call_with_capabilities(&module_name, &function_name, arguments, &capabilities)
-            .map_err(|error| zr_error(error.to_string()))?;
-        to_zr_value(value)
+            .map_err(|error| {
+                zr_error(format!(
+                    "zr_vm host callback {callback_label} failed: {error}"
+                ))
+            })?;
+        to_zr_value_for_function(value, &callback_label)
     })
     .return_type(&function.return_type.type_name);
     if let Some(documentation) = &function.documentation {
@@ -223,19 +247,32 @@ fn build_native_function(
     Ok(builder)
 }
 
-fn read_host_arguments(
+fn read_host_arguments_for_function(
     context: &zrvm::NativeCallContext,
+    function_label: &str,
 ) -> Result<Vec<ScriptHostValue>, zrvm::Error> {
-    let count = context.argument_count()?;
+    let count = context.argument_count().map_err(|error| {
+        zr_error(format!(
+            "failed to read argument count for {function_label}: {error}"
+        ))
+    })?;
     let mut arguments = Vec::with_capacity(count);
     for index in 0..count {
-        let value = context.argument(index)?;
-        arguments.push(from_zr_value(&value)?);
+        let value = context.argument(index).map_err(|error| {
+            zr_error(format!(
+                "failed to read argument {index} for {function_label}: {error}"
+            ))
+        })?;
+        arguments.push(from_zr_value_for_function(&value, function_label, index)?);
     }
     Ok(arguments)
 }
 
-fn from_zr_value(value: &zrvm::Value) -> Result<ScriptHostValue, zrvm::Error> {
+fn from_zr_value_for_function(
+    value: &zrvm::Value,
+    function_label: &str,
+    index: usize,
+) -> Result<ScriptHostValue, zrvm::Error> {
     match value.kind() {
         zrvm::ValueKind::Null => Ok(ScriptHostValue::Null),
         zrvm::ValueKind::Bool => Ok(ScriptHostValue::Bool(value.as_bool()?)),
@@ -243,9 +280,20 @@ fn from_zr_value(value: &zrvm::Value) -> Result<ScriptHostValue, zrvm::Error> {
         zrvm::ValueKind::Float => Ok(ScriptHostValue::Float(value.as_float()?)),
         zrvm::ValueKind::String => Ok(ScriptHostValue::String(value.as_string()?)),
         other => Err(zr_error(format!(
-            "unsupported zr_vm native argument kind {other:?}"
+            "unsupported zr_vm native argument kind {other:?} at {function_label} argument {index}"
         ))),
     }
+}
+
+fn to_zr_value_for_function(
+    value: ScriptHostValue,
+    function_label: &str,
+) -> Result<zrvm::Value, zrvm::Error> {
+    to_zr_value(value).map_err(|error| {
+        zr_error(format!(
+            "failed to lower host return value for {function_label}: {error}"
+        ))
+    })
 }
 
 fn to_zr_value(value: ScriptHostValue) -> Result<zrvm::Value, zrvm::Error> {
@@ -293,4 +341,172 @@ fn acquire_zr_vm_lock() -> MutexGuard<'static, ()> {
     LOCK.get_or_init(|| Mutex::new(()))
         .lock()
         .expect("zr_vm runtime lock should not be poisoned")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime::core::framework::script::{
+        ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor, ScriptHostParameterDescriptor,
+        ScriptHostValueKind,
+    };
+    use zircon_runtime::script::{CapabilitySet, HostExportFunction, HostExportRegistry};
+
+    fn descriptor_with_arity(min: usize, max: usize) -> ScriptHostFunctionDescriptor {
+        ScriptHostFunctionDescriptor::new("bad", min, max, ScriptHostValueKind::Null)
+    }
+
+    #[test]
+    fn validate_native_function_arity_rejects_min_overflow() {
+        let descriptor =
+            descriptor_with_arity(usize::from(u16::MAX) + 1, usize::from(u16::MAX) + 1);
+        let error = validate_native_function_arity("example", &descriptor).unwrap_err();
+
+        assert!(error.to_string().contains("example.bad"));
+        assert!(error.to_string().contains("min arity exceeds u16"));
+    }
+
+    #[test]
+    fn validate_native_function_arity_rejects_max_overflow() {
+        let descriptor = descriptor_with_arity(0, usize::from(u16::MAX) + 1);
+        let error = validate_native_function_arity("example", &descriptor).unwrap_err();
+
+        assert!(error.to_string().contains("example.bad"));
+        assert!(error.to_string().contains("max arity exceeds u16"));
+    }
+
+    #[test]
+    fn validate_native_function_arity_rejects_min_greater_than_max() {
+        let descriptor = descriptor_with_arity(3, 2);
+        let error = validate_native_function_arity("example", &descriptor).unwrap_err();
+
+        assert!(error.to_string().contains("example.bad"));
+        assert!(error
+            .to_string()
+            .contains("min arity 3 exceeds max arity 2"));
+    }
+
+    #[test]
+    fn validate_native_function_arity_rejects_parameter_count_above_max() {
+        let descriptor = descriptor_with_arity(0, 1)
+            .with_parameter(ScriptHostParameterDescriptor::new(
+                "left",
+                ScriptHostValueKind::Float,
+            ))
+            .with_parameter(ScriptHostParameterDescriptor::new(
+                "right",
+                ScriptHostValueKind::Float,
+            ));
+        let error = validate_native_function_arity("example", &descriptor).unwrap_err();
+
+        assert!(error.to_string().contains("example.bad"));
+        assert!(error
+            .to_string()
+            .contains("declares 2 parameters but max arity is 1"));
+    }
+
+    #[test]
+    fn to_zr_value_lowers_supported_host_values() {
+        assert!(matches!(
+            to_zr_value(ScriptHostValue::Null).unwrap().kind(),
+            zrvm::ValueKind::Null
+        ));
+        assert!(to_zr_value(ScriptHostValue::Bool(true))
+            .unwrap()
+            .as_bool()
+            .unwrap());
+        assert_eq!(
+            to_zr_value(ScriptHostValue::Int(7))
+                .unwrap()
+                .as_int()
+                .unwrap(),
+            7
+        );
+        assert_eq!(
+            to_zr_value(ScriptHostValue::Float(1.5))
+                .unwrap()
+                .as_float()
+                .unwrap(),
+            1.5
+        );
+        assert_eq!(
+            to_zr_value(ScriptHostValue::String("ok".to_string()))
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            "ok"
+        );
+        assert_eq!(
+            to_zr_value(ScriptHostValue::Bytes(vec![104, 105]))
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            "hi"
+        );
+        assert_eq!(
+            to_zr_value(ScriptHostValue::HostHandle(42))
+                .unwrap()
+                .as_int()
+                .unwrap(),
+            42
+        );
+    }
+
+    #[test]
+    fn from_zr_value_for_function_rejects_unsupported_argument_kind_with_context() {
+        let value = zrvm::Value::new_array().unwrap();
+        let error = from_zr_value_for_function(&value, "example.unsupported", 2).unwrap_err();
+
+        assert!(error.message.contains("example.unsupported"));
+        assert!(error.message.contains("argument 2"));
+        assert!(error.message.contains("Array"));
+    }
+
+    #[test]
+    fn to_zr_value_for_function_wraps_return_lowering_errors_with_context() {
+        let error = match to_zr_value_for_function(
+            ScriptHostValue::String("bad\0value".to_string()),
+            "example.return_value",
+        ) {
+            Ok(_) => panic!("expected return lowering to reject interior NUL strings"),
+            Err(error) => error,
+        };
+
+        assert!(error
+            .message
+            .contains("failed to lower host return value for example.return_value"));
+        assert!(error.message.contains("string contains interior NUL"));
+    }
+
+    #[test]
+    fn callback_dispatch_errors_include_function_context() {
+        let exports = HostExportRegistry::default();
+        exports
+            .register_module(
+                ScriptHostModuleDescriptor::new("example", "0.1.0")
+                    .with_capability("allowed")
+                    .with_function(
+                        ScriptHostFunctionDescriptor::new(
+                            "secure",
+                            0,
+                            0,
+                            ScriptHostValueKind::Null,
+                        )
+                        .with_required_capability("allowed"),
+                    ),
+                [HostExportFunction::new("secure", |_| {
+                    Ok(ScriptHostValue::Null)
+                })],
+            )
+            .unwrap();
+
+        let label = native_function_label("example", "secure");
+        let error = exports
+            .call_with_capabilities("example", "secure", Vec::new(), &CapabilitySet::default())
+            .map_err(|error| zr_error(format!("zr_vm host callback {label} failed: {error}")))
+            .unwrap_err();
+
+        assert!(error.message.contains("example.secure"));
+        assert!(error.message.contains("capability"));
+    }
 }

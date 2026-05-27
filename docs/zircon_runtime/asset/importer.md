@@ -24,6 +24,7 @@ related_code:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
@@ -103,6 +104,7 @@ implementation_files:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
@@ -163,6 +165,16 @@ tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
+  - zircon_runtime/src/asset/importer/native.rs::native_import_response_preserves_schema_migration_report
+  - zircon_runtime/src/asset/importer/native.rs::native_import_command_errors_preserve_status_diagnostics_without_payload
+  - zircon_runtime/src/asset/importer/native.rs::native_import_command_requires_payload_only_after_ok_status
+  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs::native_loader_fixture_can_import_data_asset_through_native_importer_handler
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/importer/native.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs (2026-05-26 NativeDynamic migration report DTO: passed after applying standard formatting)
+  - git diff --check -- zircon_runtime/src/asset/importer/native.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs docs/zircon_runtime/asset/importer.md .codex/sessions/20260526-1820-asset-system-continuation.md (2026-05-26 NativeDynamic migration report DTO: passed with LF-to-CRLF warnings only)
+  - cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir F:\cargo-targets\zircon-native-fixture-migration-0526 --message-format short --color never (2026-05-26 NativeDynamic migration report DTO: passed)
+  - cargo test -p zircon_runtime --lib native_loader_fixture_can_import_data_asset_through_native_importer_handler --locked --jobs 1 --target-dir F:\cargo-targets\zircon-native-loader-migration-0526 --message-format short --color never -- --test-threads=1 (2026-05-26 NativeDynamic migration report DTO: timed out after 304s during Windows runtime test compilation before Rust diagnostics; matching residual processes for this target dir were stopped)
+  - cargo test -p zircon_runtime --lib native_import_command_errors_preserve_status_diagnostics_without_payload --locked --jobs 1 --target-dir F:\cargo-targets\zircon-native-command-status-0526 --message-format short --color never -- --test-threads=1 (2026-05-26 NativeDynamic command status handling: timed out after 304s during Windows runtime test compilation before Rust diagnostics; no matching residual target-dir process remained)
   - cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing warnings only)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing runtime warning only)
   - cargo test -p zircon_runtime --lib importer_capability_report_marks_diagnostic_only_backends --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 asset parity implementation: timed out during Windows test build/link before Rust test diagnostics)
@@ -374,7 +386,7 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 `AssetImportContext` carries the source path, normalized asset URI, source bytes, and per-asset import settings from meta. `AssetImportOutcome` is now a labeled entry list rather than a single imported asset. Each `ImportedAssetEntry` owns its locator, asset payload, dependency URIs, optional schema migration report, and diagnostics. The root entry uses the unlabeled source locator, and subassets use the same source path with a label such as `res://model/character.gltf#Mesh0`. The registry validates duplicate importer ids and duplicate matchers at the same priority before a plugin contribution is accepted.
 
-`AssetImporterCapabilityReport` is the public diagnostic view of a registered importer. It pairs the routing descriptor with `AssetImporterCapabilityStatus::Available` or `DiagnosticOnly { message }`. Function-backed and plugin-backed handlers report `Available`; `DiagnosticOnlyAssetImporter` reports the stable reason that a format is recognized but cannot currently produce runtime assets. `AssetImporterRegistry`, the ingest-level `AssetImporter`, and `ProjectAssetManager` expose source-specific and full capability reports so editor UI can present importer availability without running a scan or creating error artifacts.
+`AssetImporterCapabilityReport` is the public diagnostic view of a registered importer. It pairs the routing descriptor with `AssetImporterCapabilityStatus::Available` or `DiagnosticOnly { message }`. Function-backed and plugin-backed handlers report `Available`; `DiagnosticOnlyAssetImporter` reports the stable reason that a format is recognized but cannot currently produce runtime assets. `AssetImporterRegistry`, the ingest-level `AssetImporter`, `ProjectAssetManager`, and the public `AssetManager` service trait expose source-specific and full capability reports so editor UI can present importer availability without running a scan or creating error artifacts.
 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
@@ -397,9 +409,12 @@ primitives with generated virtual-geometry metadata and labeled `MeshAsset` suba
 `ModelAsset.primitives` path stays in place for the current renderer, while each primitive also
 receives a label such as `Mesh0/Primitive0` and is emitted through `ImportedAsset::Mesh`. The same
 compatibility subasset path is used by the split OBJ and glTF plugins and by built-in `.model.toml`
-imports. Current STL/PLY/DXF and OBJ plugin tests assert both the root dependency edge and the
-labeled `Mesh0/Primitive0` `MeshAsset` payload, including vertex count, indices, and preserved
-virtual-geometry metadata. The DXF importer implementation is isolated in
+imports. glTF primitive subassets additionally carry morph target displacement maps and node-linked
+skin inverse bind matrices when the source file provides them. Current STL/PLY/DXF and OBJ plugin
+tests assert both the root dependency edge and the labeled `Mesh0/Primitive0` `MeshAsset` payload,
+including vertex count, indices, and preserved virtual-geometry metadata. The glTF fixture tests now
+also assert morph target position deltas and inverse bind matrix propagation. The DXF importer
+implementation is isolated in
 `asset_importers/model/runtime/src/cad.rs`, while the package root keeps descriptor and registration
 wiring. The split `texture_importer` package decodes common image formats to RGBA8 through the shared
 `zircon_runtime::asset::decode_texture_source_image` helper, delegates DDS, KTX, KTX2, and ASTC
@@ -427,7 +442,9 @@ and fixture descriptors declare additional output kinds for mesh, scene, materia
 `Texture{n}` as `TextureAsset`, `Material{n}` and `DefaultMaterial` as `MaterialAsset`,
 `Mesh{n}` as a mesh-local `ModelAsset`, `Mesh{m}/Primitive{p}` as first-class `MeshAsset`,
 `Node{n}` and `Scene{n}` as `SceneAsset`, and diagnostic placeholder `DataAsset` rows for
-`Animation{n}`, `Skin{n}`, and `Skin{n}/InverseBindMatrices`. The labels intentionally match
+`Animation{n}`, `Skin{n}`, and `Skin{n}/InverseBindMatrices`. The primitive `MeshAsset` payloads
+preserve glTF morph target position/normal/tangent displacement channels and attach node skin
+inverse bind matrices while standalone skin and animation labels stay diagnostic placeholders. The labels intentionally match
 Bevy's glTF label vocabulary (`dev/bevy/crates/bevy_gltf/src/label.rs` and
 `dev/bevy/crates/bevy_gltf/src/assets.rs`) while using Zircon's existing neutral asset payloads
 instead of introducing Bevy-specific glTF wrapper types.
@@ -526,9 +543,11 @@ registration; the plugin no longer depends on `serde_json` or `bincode` for UI d
 `ProjectAssetManager` keeps a host-owned importer registry for plugin contributions that arrive
 before a project is open. `RuntimeExtensionRegistry::apply_asset_importers_to_project_asset_manager`
 installs those handlers into that pending registry, and `open_project` applies the registry to the
-fresh `ProjectManager` before `scan_and_import` runs. This gives linked plugin importers the same
-first-scan authority as built-in importers without making `zircon_runtime` depend on
-`zircon_plugins`.
+fresh `ProjectManager` before `scan_and_import` runs. The `AssetManager` service trait now forwards
+the same importer capability report helpers, so host/editor tools can ask the service boundary which
+importer will handle a source both before a project is opened and after the pending registry is
+installed into the active project. This gives linked plugin importers the same first-scan authority
+as built-in importers without making `zircon_runtime` depend on `zircon_plugins`.
 
 The built-in `AssetModule` can also carry an `AssetImporterRegistry`. Runtime module load from
 plugin registration reports merges active plugin and feature importer handlers into that registry
@@ -546,17 +565,21 @@ open, the manager preflights the active project registry before accepting the ha
 pending registry, then installs it into the current project so manual reimport and watcher-driven
 reimport can use it immediately.
 
-NativeDynamic importers use the `runtime.asset.importer.native` capability and the `asset.import/<importer_id>` command. The ABI payload is a `ZRIMP001` request envelope containing metadata JSON and raw source bytes. Native code returns a `ZRIMO001` response envelope with a neutral import DTO and diagnostics. The host validates status, importer id, output kind, and malformed buffers before writing artifacts.
+NativeDynamic importers use the `runtime.asset.importer.native` capability and the `asset.import/<importer_id>` command. The ABI payload is a `ZRIMP001` request envelope containing metadata JSON and raw source bytes. Native code returns a `ZRIMO001` response envelope with a neutral import DTO, dependency locators, optional schema migration reports, and diagnostics. The host validates command status before reading a success payload, so denied, panic, and error statuses preserve native diagnostics even when no output payload is returned. Successful responses then validate importer id, output kind, and malformed buffers before mapping dependency locators, migration reports, and diagnostics into `ImportedAssetEntry` and writing artifacts.
 
 The response validation path is factored separately from dynamic-library invocation, so envelope
 decode tests can cover malformed magic, reserved artifact bytes, mismatched importer id, wrong
-output kind, and diagnostic conversion without requiring a native DLL fixture.
+output kind, command status diagnostics, missing success payloads, declared dependency preservation,
+schema migration report propagation, and diagnostic conversion without requiring a native DLL
+fixture.
 
 The `native_dynamic_fixture` cdylib now also exposes
 `asset.import/native_dynamic_fixture.data_json` in its command manifest. The fixture decodes the
 same `ZRIMP001` envelope that production NativeDynamic importers receive, validates the requested
 importer id, parses JSON source bytes, and returns a `ZRIMO001` response carrying a neutral
-`DataAsset`. `zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs` contains the
-host-side fixture test that loads the real DLL and routes it through `NativeAssetImporterHandler`;
-the source is in place, while full runtime type/test validation is currently blocked by unrelated
-plugin catalog compile errors from adjacent optional-feature work.
+`DataAsset`, a per-entry schema migration report, and diagnostics.
+`zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs` contains the host-side fixture
+test that loads the real DLL, routes it through `NativeAssetImporterHandler`, and asserts that the
+native response migration report survives as `ImportedAssetEntry::migration_report`; the source is in
+place, while full runtime type/test validation is currently blocked by unrelated plugin catalog
+compile errors from adjacent optional-feature work.

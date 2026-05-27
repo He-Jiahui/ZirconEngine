@@ -3,6 +3,7 @@ use std::path::Path;
 
 use slint::SharedString;
 
+use crate::projects::project_paths_match;
 use crate::settings::HubLanguage;
 use crate::state::HubSnapshot;
 
@@ -14,11 +15,22 @@ const PACKAGE_SOURCE_PROJECT_KEY: &str = "source_project";
 
 pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
     let language = snapshot.settings.language;
-    let package_root = snapshot.settings.default_build_output_dir.join("packages");
+    let package_root = if snapshot
+        .settings
+        .default_build_output_dir
+        .as_os_str()
+        .is_empty()
+    {
+        None
+    } else {
+        Some(snapshot.settings.default_build_output_dir.join("packages"))
+    };
+    let package_path = package_root.as_deref().unwrap_or_else(|| Path::new(""));
 
     CloudSummaryData {
         status: localization::text(language, "Offline local mode", "离线本地模式"),
-        account_status: localization::text(language, "Not connected", "未连接"),
+        account_status: localization::text(language, "Local only", "仅本地"),
+        local_mode_status: localization::text(language, "Local only", "仅本地"),
         output_path: shared(path_text(
             &snapshot.settings.default_build_output_dir,
             language,
@@ -33,15 +45,14 @@ pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
             &snapshot.settings.default_device_install_dir,
             language,
         )),
-        device_status: directory_state(
+        device_status: install_state(
             &snapshot.settings.default_device_install_dir,
             language,
-            localization::text(language, "Ready", "就绪"),
-            localization::text(language, "Created by local install", "由本地安装创建"),
+            snapshot.selected_project_path.as_deref(),
         ),
-        package_path: shared(path_text(&package_root, language)),
+        package_path: shared(path_text(package_path, language)),
         package_status: package_state(
-            &package_root,
+            package_path,
             language,
             snapshot.selected_project_path.as_deref(),
         ),
@@ -51,16 +62,16 @@ pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
 pub(super) fn cloud_services(language: HubLanguage) -> Vec<CloudServiceData> {
     [
         (
-            localization::text(language, "Account Sync", "账号同步"),
+            localization::text(language, "Profile Sync Slot", "资料同步槽位"),
             localization::text(
                 language,
-                "Reserved for sign-in, license, and profile synchronization.",
-                "预留给登录、授权和资料同步。",
+                "Reserved for optional profile synchronization after local workflows are stable.",
+                "本地工作流稳定后预留给可选资料同步。",
             ),
-            localization::text(language, "Not connected", "未连接"),
+            localization::text(language, "Reserved", "预留"),
         ),
         (
-            localization::text(language, "Remote Build", "远程构建"),
+            localization::text(language, "Remote Build Slot", "远程构建槽位"),
             localization::text(
                 language,
                 "Reserved for hosted build workers after local packaging is stable.",
@@ -69,7 +80,7 @@ pub(super) fn cloud_services(language: HubLanguage) -> Vec<CloudServiceData> {
             localization::text(language, "Local only", "仅本地"),
         ),
         (
-            localization::text(language, "Package Upload", "包上传"),
+            localization::text(language, "Artifact Upload Slot", "产物上传槽位"),
             localization::text(
                 language,
                 "Reserved for artifact upload from the local package directory.",
@@ -160,6 +171,51 @@ fn package_state(
     }
 }
 
+fn install_state(
+    install_root: &Path,
+    language: HubLanguage,
+    selected_project_path: Option<&Path>,
+) -> SharedString {
+    let Some(selected_project) = selected_project_path.filter(|path| !path.as_os_str().is_empty())
+    else {
+        return directory_state(
+            install_root,
+            language,
+            localization::text(language, "Ready", "就绪"),
+            localization::text(language, "Created by local install", "由本地安装创建"),
+        );
+    };
+    if install_root.as_os_str().is_empty() {
+        return localization::text(language, "Not configured", "未配置");
+    }
+    if !install_root.is_dir() {
+        return localization::text(
+            language,
+            "No local install for selected project yet",
+            "选中项目尚无本地安装",
+        );
+    }
+    let install_count = selected_project_install_count(install_root, selected_project);
+    if install_count == 0 {
+        return localization::text(
+            language,
+            "No local install for selected project yet",
+            "选中项目尚无本地安装",
+        );
+    }
+    match language {
+        HubLanguage::English => {
+            let noun = if install_count == 1 {
+                "install"
+            } else {
+                "installs"
+            };
+            SharedString::from(format!("{install_count} local {noun} for selected project"))
+        }
+        HubLanguage::Chinese => SharedString::from(format!("选中项目 {install_count} 个本地安装")),
+    }
+}
+
 fn package_directory_count(package_root: &Path) -> usize {
     fs::read_dir(package_root)
         .map(|entries| {
@@ -184,6 +240,10 @@ fn selected_project_package_count(package_root: &Path, selected_project_path: &P
         .unwrap_or_default()
 }
 
+fn selected_project_install_count(install_root: &Path, selected_project_path: &Path) -> usize {
+    selected_project_package_count(install_root, selected_project_path)
+}
+
 fn package_matches_selected_project(package_dir: &Path, selected_project_path: &Path) -> bool {
     if !package_dir.is_dir() {
         return false;
@@ -203,28 +263,7 @@ fn package_matches_selected_project(package_dir: &Path, selected_project_path: &
         return false;
     };
 
-    paths_match_for_summary(Path::new(source_project), selected_project_path)
-}
-
-fn paths_match_for_summary(left: &Path, right: &Path) -> bool {
-    if let (Ok(left), Ok(right)) = (left.canonicalize(), right.canonicalize()) {
-        return left == right;
-    }
-
-    normalized_path_key(left) == normalized_path_key(right)
-}
-
-fn normalized_path_key(path: &Path) -> String {
-    let normalized = path
-        .to_string_lossy()
-        .replace('\\', "/")
-        .trim_end_matches('/')
-        .to_string();
-    if cfg!(windows) {
-        normalized.to_ascii_lowercase()
-    } else {
-        normalized
-    }
+    project_paths_match(Path::new(source_project), selected_project_path)
 }
 
 fn path_text(path: &Path, language: HubLanguage) -> String {
@@ -320,8 +359,21 @@ mod tests {
         let services = cloud_services(HubLanguage::English);
 
         assert_eq!(services.len(), 3);
-        assert_eq!(services[0].title, SharedString::from("Account Sync"));
+        assert_eq!(services[0].title, SharedString::from("Profile Sync Slot"));
+        assert_eq!(services[0].status, SharedString::from("Reserved"));
         assert_eq!(services[2].status, SharedString::from("Offline"));
+    }
+
+    #[test]
+    fn cloud_summary_reports_package_not_configured_without_output_root() {
+        let mut settings = HubSettings::default();
+        settings.default_build_output_dir = PathBuf::new();
+        let snapshot = cloud_snapshot(settings, None);
+
+        let summary = cloud_summary(&snapshot);
+
+        assert_eq!(summary.package_path, SharedString::from("Not configured"));
+        assert_eq!(summary.package_status, SharedString::from("Not configured"));
     }
 
     #[test]
@@ -391,6 +443,59 @@ mod tests {
         assert_eq!(
             summary.package_status,
             SharedString::from("No local packages for selected project yet")
+        );
+    }
+
+    #[test]
+    fn cloud_summary_counts_only_selected_project_installs() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-hub-cloud-selected-installs-{}",
+            crate::projects::now_unix_ms()
+        ));
+        let installs = root.join("device");
+        let selected_project = root.join("selected-project");
+        let other_project = root.join("other-project");
+        fs::create_dir_all(&selected_project).unwrap();
+        fs::create_dir_all(&other_project).unwrap();
+        write_package_manifest(&installs.join("selected-42"), &selected_project);
+        write_package_manifest(&installs.join("other-42"), &other_project);
+
+        let mut settings = HubSettings::default();
+        settings.default_device_install_dir = installs;
+        let snapshot = cloud_snapshot(settings, Some(selected_project));
+
+        let summary = cloud_summary(&snapshot);
+        fs::remove_dir_all(root).unwrap();
+
+        assert_eq!(
+            summary.device_status,
+            SharedString::from("1 local install for selected project")
+        );
+    }
+
+    #[test]
+    fn cloud_summary_ignores_other_project_installs_when_project_selected() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-hub-cloud-other-installs-{}",
+            crate::projects::now_unix_ms()
+        ));
+        let installs = root.join("device");
+        let selected_project = root.join("selected-project");
+        let other_project = root.join("other-project");
+        fs::create_dir_all(&selected_project).unwrap();
+        fs::create_dir_all(&other_project).unwrap();
+        write_package_manifest(&installs.join("other-42"), &other_project);
+
+        let mut settings = HubSettings::default();
+        settings.default_device_install_dir = installs;
+        let snapshot = cloud_snapshot(settings, Some(selected_project));
+
+        let summary = cloud_summary(&snapshot);
+        fs::remove_dir_all(root).unwrap();
+
+        assert_eq!(
+            summary.device_status,
+            SharedString::from("No local install for selected project yet")
         );
     }
 }

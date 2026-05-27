@@ -53,7 +53,7 @@ pub use despawned_entity::DespawnedEntity;
 pub use entity_location::EntityLocation;
 pub use entity_registry::EntityRegistry;
 pub use entity_registry_error::EntityRegistryError;
-pub use events::{EventStore, Events};
+pub use events::{EventCursor, EventReadIter, EventStore, Events};
 pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
@@ -61,9 +61,10 @@ pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageSt
 pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
-    QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryEntityError, QueryEntityItem,
-    QueryFilter, QueryIter, QueryManyIter, QueryManyMutIter, QueryMutData, QuerySingleError,
-    QueryState, With, Without,
+    QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
+    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter, QueryManyIter,
+    QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError,
+    QueryState, UniqueEntityArray, With, Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
@@ -74,7 +75,8 @@ pub use scene_system_descriptor::SceneSystemDescriptor;
 pub use scene_system_registry::SceneSystemRegistry;
 pub use schedule::Schedule;
 pub use schedule_conflict_graph::{
-    ScheduleConflictEdge, ScheduleConflictGraph, ScheduleConflictNode, ScheduleParallelBatch,
+    ScheduleConflictEdge, ScheduleConflictGraph, ScheduleConflictNode, ScheduleConflictNodeKind,
+    ScheduleParallelBatch,
 };
 pub use schedule_error::ScheduleError;
 pub use schedule_parallel_executor::{
@@ -86,12 +88,15 @@ pub use storage::{
 };
 pub use storage_type::StorageType;
 pub use system::{
-    EventReader, EventReaderParam, EventWriter, EventWriterParam, Local, LocalParam, MessageReader,
-    MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam,
-    Query, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam,
-    SystemParam, SystemParamAccess, SystemParamConflictKind, SystemParamError, SystemState,
+    BoxedSceneSystem, EventReader, EventReaderParam, EventWriter, EventWriterParam,
+    FunctionSceneSystem, IntoSceneSystem, Local, LocalParam, MessageReader, MessageReaderParam,
+    MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam, Query,
+    RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam, SceneSystem,
+    SceneSystemMetadata, SystemParam, SystemParamAccess, SystemParamConflictKind, SystemParamError,
+    SystemState,
 };
 pub use system_stage::SystemStage;
 
 pub(crate) use query::single_from_iter;
 pub(crate) use schedule_runner::SceneScheduleRunner;
+pub(crate) use system::ScheduledSceneStep;

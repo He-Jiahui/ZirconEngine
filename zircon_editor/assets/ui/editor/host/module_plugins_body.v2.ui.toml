@@ -23,7 +23,7 @@ children = [{ node = "focus" }]
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusModulePlugins"
-props = { label = "Focus Plugins", icon = "extension-outline" }
+props = { label = "Focus Plugins", icon = "editor_pages/build_plugins/plugins/plugin.svg" }
 layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "DockCommand.FocusView" }]
 

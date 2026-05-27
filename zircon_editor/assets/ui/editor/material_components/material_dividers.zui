@@ -58,10 +58,10 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "row / grid", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "row / grid", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Separator"
+component = "Divider"
 control_id = "dividers_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Dividers", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+classes = ["material-control", "material-lab-sample", "MuiDivider-root"]
+props = { text = "Dividers", className = "material-divider-sample", component = "div", orientation = "vertical", variant = "middle", flexItem = true, textAlign = "right", slotProps = { wrapper = { className = "material-divider-wrapper" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 
 [nodes.state_strip]

@@ -33,6 +33,8 @@ fn accessibility_action_dtos_round_trip_with_defaults() {
         source: UiAccessibilityActionSource::AssistiveTechnology,
         value: Some("42%".to_string()),
         numeric_value: Some(0.42),
+        text_selection: None,
+        scroll_offset: None,
     };
     let result = UiAccessibilityActionResult {
         target: request.target,
@@ -132,6 +134,8 @@ fn accessibility_input_event_payload_round_trips() {
             source: UiAccessibilityActionSource::Keyboard,
             value: None,
             numeric_value: None,
+            text_selection: None,
+            scroll_offset: None,
         },
     });
 
@@ -222,6 +226,8 @@ fn runtime_event_accessibility_action_carries_serialized_payload_bytes() {
         source: UiAccessibilityActionSource::Pointer,
         value: None,
         numeric_value: None,
+        text_selection: None,
+        scroll_offset: None,
     };
     let bytes = serde_json::to_vec(&request).unwrap();
     let event = ZrRuntimeEventV1::accessibility_action(

@@ -58,6 +58,24 @@ pub struct UiGridBoxConfig {
     pub row_gap: f32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiMasonryBoxConfig {
+    pub columns: usize,
+    pub gap: f32,
+    pub sequential: bool,
+}
+
+impl Default for UiMasonryBoxConfig {
+    fn default() -> Self {
+        Self {
+            columns: 4,
+            gap: 0.0,
+            sequential: false,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSizeBoxConfig {
     pub aspect_ratio: f32,
@@ -76,6 +94,7 @@ pub enum UiContainerKind {
     ScrollableBox(UiScrollableBoxConfig),
     WrapBox(UiWrapBoxConfig),
     GridBox(UiGridBoxConfig),
+    MasonryBox(UiMasonryBoxConfig),
 }
 
 impl UiContainerKind {
@@ -96,6 +115,7 @@ impl UiContainerKind {
                 | Self::ScrollableBox(_)
                 | Self::WrapBox(_)
                 | Self::GridBox(_)
+                | Self::MasonryBox(_)
         )
     }
 }

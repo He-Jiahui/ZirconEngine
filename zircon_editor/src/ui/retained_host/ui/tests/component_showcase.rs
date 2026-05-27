@@ -82,6 +82,7 @@ fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
     let showcase_asset = component_showcase_contract_source();
 
     for required in [
+        "pub component_variant: SharedString",
         "pub value_number: f32",
         "pub value_percent: f32",
         "pub value_color: Color",

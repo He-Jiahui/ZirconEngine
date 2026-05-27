@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use http_body_util::Full;
+use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
 use hyper::body::{Bytes, Incoming};
 use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
@@ -18,6 +18,8 @@ use zircon_runtime::core::framework::net::{
 
 #[derive(Clone, Debug, Default)]
 pub struct HyperReqwestHttpBackend;
+
+pub(crate) const HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES: usize = 1024 * 1024;
 
 pub fn http_runtime_backend() -> Arc<dyn HttpRuntimeBackend> {
     Arc::new(HyperReqwestHttpBackend)
@@ -204,34 +206,77 @@ async fn handle_route_request(
             .expect("net HTTP routes mutex poisoned")
             .values()
             .find(|entry| entry.route.path == path && entry.route.methods.contains(&method))
-            .map(|entry| {
-                let request =
-                    NetHttpRequestDescriptor::new(NetRequestId::new(0), method, path.clone());
-                entry
-                    .handler
-                    .as_ref()
-                    .map(|handler| handler(request.clone()))
-                    .unwrap_or_else(|| entry.response.clone().for_request(request.request))
-            })
+            .map(|entry| (method, entry.response.clone(), entry.handler.clone()))
     });
-
-    let response = match matched {
-        Some(response) => {
-            let mut builder = Response::builder().status(response.status_code);
-            for (name, value) in response.headers {
-                builder = builder.header(name, value);
-            }
-            builder
-                .body(Full::new(Bytes::from(response.body)))
-                .unwrap_or_else(|_| internal_server_error())
-        }
-        None => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Full::new(Bytes::from_static(b"route not found")))
-            .unwrap_or_else(|_| internal_server_error()),
+    let Some((method, route_response, route_handler)) = matched else {
+        return Ok(route_not_found());
     };
 
+    let headers = request
+        .headers()
+        .iter()
+        .filter_map(|(name, value)| {
+            value
+                .to_str()
+                .ok()
+                .map(|value| (name.to_string(), value.to_string()))
+        })
+        .collect::<Vec<_>>();
+    let body = match collect_route_request_body(request.into_body()).await {
+        Ok(body) => body,
+        Err(RouteBodyError::TooLarge) => return Ok(payload_too_large()),
+        Err(RouteBodyError::ReadFailed) => return Ok(internal_server_error()),
+    };
+    let mut request = NetHttpRequestDescriptor::new(NetRequestId::new(0), method, path);
+    request.headers = headers;
+    request.body = body;
+    let response = route_handler
+        .as_ref()
+        .map(|handler| handler(request.clone()))
+        .unwrap_or_else(|| route_response.for_request(request.request));
+
+    let mut builder = Response::builder().status(response.status_code);
+    for (name, value) in response.headers {
+        builder = builder.header(name, value);
+    }
+    let response = builder
+        .body(Full::new(Bytes::from(response.body)))
+        .unwrap_or_else(|_| internal_server_error());
+
     Ok(response)
+}
+
+enum RouteBodyError {
+    TooLarge,
+    ReadFailed,
+}
+
+async fn collect_route_request_body(body: Incoming) -> Result<Vec<u8>, RouteBodyError> {
+    Limited::new(body, HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES)
+        .collect()
+        .await
+        .map(|collected| collected.to_bytes().to_vec())
+        .map_err(|error| {
+            if error.downcast_ref::<LengthLimitError>().is_some() {
+                RouteBodyError::TooLarge
+            } else {
+                RouteBodyError::ReadFailed
+            }
+        })
+}
+
+fn route_not_found() -> Response<Full<Bytes>> {
+    Response::builder()
+        .status(StatusCode::NOT_FOUND)
+        .body(Full::new(Bytes::from_static(b"route not found")))
+        .expect("static HTTP response should build")
+}
+
+fn payload_too_large() -> Response<Full<Bytes>> {
+    Response::builder()
+        .status(StatusCode::PAYLOAD_TOO_LARGE)
+        .body(Full::new(Bytes::from_static(b"request body too large")))
+        .expect("static HTTP response should build")
 }
 
 fn internal_server_error() -> Response<Full<Bytes>> {

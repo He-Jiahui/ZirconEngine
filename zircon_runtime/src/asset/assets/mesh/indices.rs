@@ -19,6 +19,13 @@ impl MeshIndices {
         self.len() == 0
     }
 
+    pub fn max_index(&self) -> Option<u32> {
+        match self {
+            Self::U16(values) => values.iter().map(|index| u32::from(*index)).max(),
+            Self::U32(values) => values.iter().copied().max(),
+        }
+    }
+
     pub fn to_u32_vec(&self) -> Vec<u32> {
         match self {
             Self::U16(values) => values.iter().map(|index| u32::from(*index)).collect(),

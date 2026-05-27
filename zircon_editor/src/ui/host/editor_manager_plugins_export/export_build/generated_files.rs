@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use zircon_runtime::plugin::{ExportBuildPlan, ExportPlatformHostKind};
 
 pub(super) fn should_invoke_cargo(plan: &ExportBuildPlan, generated_files: &[PathBuf]) -> bool {
-    if plan.platform_policy.host_kind != ExportPlatformHostKind::Desktop {
+    if !matches!(
+        plan.platform_policy.host_kind,
+        ExportPlatformHostKind::Desktop | ExportPlatformHostKind::Headless
+    ) {
         return false;
     }
     generated_files

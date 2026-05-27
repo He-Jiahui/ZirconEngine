@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use std::process::Command;
 
 use crate::error::HubError;
 
@@ -40,9 +40,31 @@ impl RecycleDeleteCommand {
     }
 }
 
-pub fn recycle_delete_project(path: impl Into<PathBuf>) -> Result<Child, HubError> {
+pub fn recycle_delete_project(path: impl Into<PathBuf>) -> Result<(), HubError> {
     let command = RecycleDeleteCommand::for_project(path.into())?;
-    Ok(Command::new(&command.program).args(&command.args).spawn()?)
+    let output = Command::new(&command.program)
+        .args(&command.args)
+        .output()?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let detail = if !stderr.is_empty() {
+        stderr
+    } else if !stdout.is_empty() {
+        stdout
+    } else {
+        format!(
+            "Recycle Bin deletion failed with status {}",
+            output
+                .status
+                .code()
+                .map(|code| code.to_string())
+                .unwrap_or_else(|| "unknown".to_string())
+        )
+    };
+    Err(HubError::message(detail))
 }
 
 #[cfg(test)]

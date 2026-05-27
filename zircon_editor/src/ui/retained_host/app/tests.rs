@@ -34,6 +34,7 @@ use zircon_runtime_interface::math::UVec2;
 mod close_prompt;
 mod drag_sources;
 mod floating_window_projection;
+mod runtime_diagnostics_drawer;
 
 use super::*;
 

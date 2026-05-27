@@ -2,7 +2,10 @@ use std::path::Path;
 
 use slint::SharedString;
 
-use crate::projects::{metadata_for_path, now_unix_ms, project_template_catalog, RecentProject};
+use crate::engines::SourceEngineInstall;
+use crate::projects::{
+    metadata_for_path, now_unix_ms, project_paths_match, project_template_catalog, RecentProject,
+};
 use crate::settings::HubLanguage;
 use crate::state::{HubSnapshot, ProjectSubpage};
 
@@ -11,8 +14,7 @@ use super::super::{
     SourceEngineRowData,
 };
 use super::{
-    localization, media, path_text, relative_time, shared, PROJECT_CARD_LIMIT,
-    PROJECT_LIST_ROW_LIMIT, RECENT_ROW_LIMIT,
+    localization, media, path_text, relative_time, shared, PROJECT_CARD_LIMIT, RECENT_ROW_LIMIT,
 };
 
 pub(in crate::app) fn project_cards(snapshot: &HubSnapshot) -> Vec<ProjectCardData> {
@@ -22,26 +24,6 @@ pub(in crate::app) fn project_cards(snapshot: &HubSnapshot) -> Vec<ProjectCardDa
         .take(PROJECT_CARD_LIMIT)
         .enumerate()
         .map(|(index, project)| project_card(index, &project, snapshot))
-        .collect()
-}
-
-pub(in crate::app) fn recent_project_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData> {
-    snapshot
-        .filtered_recent_projects()
-        .into_iter()
-        .take(RECENT_ROW_LIMIT)
-        .enumerate()
-        .map(|(index, project)| recent_project_row(index, &project, snapshot))
-        .collect()
-}
-
-pub(in crate::app) fn project_list_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData> {
-    snapshot
-        .filtered_recent_projects()
-        .into_iter()
-        .take(PROJECT_LIST_ROW_LIMIT)
-        .enumerate()
-        .map(|(index, project)| recent_project_row(index, &project, snapshot))
         .collect()
 }
 
@@ -93,7 +75,10 @@ pub(in crate::app) fn project_templates(snapshot: &HubSnapshot) -> Vec<ProjectTe
 
 pub(in crate::app) fn project_create_enabled(snapshot: &HubSnapshot) -> bool {
     crate::projects::ProjectTemplate::from_enabled_id(&snapshot.selected_template_id).is_some()
-        && snapshot.new_project_engine_id.is_some()
+        && snapshot
+            .new_project_engine_id
+            .as_deref()
+            .is_some_and(|engine_id| snapshot.engines.iter().any(|engine| engine.id == engine_id))
 }
 
 pub(in crate::app) fn project_create_template_label(snapshot: &HubSnapshot) -> SharedString {
@@ -137,33 +122,48 @@ pub(in crate::app) fn project_detail(snapshot: &HubSnapshot) -> ProjectDetailDat
     let Some(project) = selected_recent_project(snapshot) else {
         return empty_project_detail(snapshot.settings.language);
     };
+    let language = snapshot.settings.language;
     let row = recent_project_row(0, &project, snapshot);
     ProjectDetailData {
         title: row.title,
         project_path: row.project_path,
+        open_path: row.open_path,
         modified: row.modified,
         version: row.version,
         engine_id: row.engine_id,
         engine_label: row.engine_label,
-        status: if row.missing {
-            shared("Missing")
-        } else if row.can_open {
-            shared("Ready")
-        } else {
-            shared("Invalid")
-        },
+        status: project_detail_status_label(row.missing, row.can_open, language),
         cover_image: row.cover_image,
         has_cover: row.has_cover,
         selected: row.selected,
         pinned: row.pinned,
         missing: row.missing,
         can_open: row.can_open,
+        can_build: row.can_build,
         can_delete: row.can_delete,
         pending_delete: snapshot
             .pending_delete_project_path
             .as_ref()
             .is_some_and(|path| shared_path_eq(path, &project.path)),
         accent: row.accent,
+    }
+}
+
+fn project_can_build(project: &RecentProject, can_open: bool, snapshot: &HubSnapshot) -> bool {
+    can_open && project_engine(project, snapshot).is_some()
+}
+
+fn project_detail_status_label(
+    missing: bool,
+    can_open: bool,
+    language: HubLanguage,
+) -> SharedString {
+    if missing {
+        localization::text(language, "Missing", "缺失")
+    } else if can_open {
+        localization::text(language, "Ready", "就绪")
+    } else {
+        localization::text(language, "Invalid", "无效")
     }
 }
 
@@ -175,6 +175,7 @@ fn empty_project_detail(language: HubLanguage) -> ProjectDetailData {
             "Select a project to package or launch",
             "选择项目后再打包或启动",
         ),
+        open_path: SharedString::default(),
         modified: SharedString::default(),
         version: localization::text(language, "Unbound", "未绑定"),
         engine_id: SharedString::default(),
@@ -186,6 +187,7 @@ fn empty_project_detail(language: HubLanguage) -> ProjectDetailData {
         pinned: false,
         missing: false,
         can_open: false,
+        can_build: false,
         can_delete: false,
         pending_delete: false,
         accent: 0,
@@ -213,17 +215,17 @@ fn project_card(index: usize, project: &RecentProject, snapshot: &HubSnapshot) -
     let cover_image = media::project_cover(index, project);
     let has_cover = cover_image.is_some();
     let engine_id = project_engine_id(project, snapshot).unwrap_or_default();
+    let engine_available = project_engine(project, snapshot).is_some();
     let engine_label = project_engine_label(project, snapshot);
     let missing = !project.path.exists();
+    let modified = relative_time(now_unix_ms(), project.last_opened_unix_ms, language);
     ProjectCardData {
         title: shared(display_name(project)),
         project_path: shared(path_text(&project.path, language)),
-        modified: shared(relative_time(
-            now_unix_ms(),
-            project.last_opened_unix_ms,
-            language,
-        )),
-        version: shared(project_version_label(engine_id)),
+        open_path: shared(project.path.to_string_lossy().into_owned()),
+        modified: shared(modified.clone()),
+        modified_label: shared(project_card_modified_label(&modified, language)),
+        version: shared(project_version_label(engine_id, engine_available, language)),
         engine_id: shared(engine_id),
         engine_label: shared(engine_label),
         platform: shared(platform_label()),
@@ -231,9 +233,19 @@ fn project_card(index: usize, project: &RecentProject, snapshot: &HubSnapshot) -
         has_cover,
         selected: project_is_selected(project, snapshot),
         pinned: project_is_pinned(project, snapshot),
+        pinned_label: localization::text(language, "Pinned", "置顶"),
         missing,
+        missing_label: localization::text(language, "Missing", "缺失"),
         accent: index as i32,
     }
+}
+
+fn project_card_modified_label(modified: &str, language: HubLanguage) -> String {
+    format!(
+        "{}{}",
+        localization::text(language, "Modified ", "修改于"),
+        modified
+    )
 }
 
 fn recent_project_row(
@@ -245,18 +257,21 @@ fn recent_project_row(
     let cover_image = media::project_cover(index, project);
     let has_cover = cover_image.is_some();
     let engine_id = project_engine_id(project, snapshot).unwrap_or_default();
+    let engine_available = project_engine(project, snapshot).is_some();
     let engine_label = project_engine_label(project, snapshot);
     let validation = crate::projects::validate_project_root(&project.path);
+    let can_open = validation == crate::projects::ProjectValidation::Valid;
     let missing = !project.path.exists();
     RecentProjectRowData {
         title: shared(display_name(project)),
         project_path: shared(path_text(&project.path, language)),
+        open_path: shared(project.path.to_string_lossy().into_owned()),
         modified: shared(relative_time(
             now_unix_ms(),
             project.last_opened_unix_ms,
             language,
         )),
-        version: shared(project_version_label(engine_id)),
+        version: shared(project_version_label(engine_id, engine_available, language)),
         engine_id: shared(engine_id),
         engine_label: shared(engine_label),
         cover_image: cover_image.unwrap_or_default(),
@@ -264,7 +279,8 @@ fn recent_project_row(
         selected: project_is_selected(project, snapshot),
         pinned: project_is_pinned(project, snapshot),
         missing,
-        can_open: validation == crate::projects::ProjectValidation::Valid,
+        can_open,
+        can_build: project_can_build(project, can_open, snapshot),
         can_delete: cfg!(target_os = "windows") && !missing,
         accent: index as i32,
     }
@@ -274,7 +290,7 @@ fn project_is_selected(project: &RecentProject, snapshot: &HubSnapshot) -> bool 
     snapshot
         .selected_project_path
         .as_ref()
-        .is_some_and(|selected| selected == &project.path)
+        .is_some_and(|selected| project_paths_match(selected, &project.path))
 }
 
 fn project_is_pinned(project: &RecentProject, snapshot: &HubSnapshot) -> bool {
@@ -285,24 +301,42 @@ fn project_is_pinned(project: &RecentProject, snapshot: &HubSnapshot) -> bool {
 fn project_engine_id<'a>(project: &RecentProject, snapshot: &'a HubSnapshot) -> Option<&'a str> {
     metadata_for_path(&snapshot.project_metadata, &project.path)
         .and_then(|metadata| metadata.engine_id.as_deref())
-        .or(snapshot.active_engine_id.as_deref())
+}
+
+fn project_engine<'a>(
+    project: &RecentProject,
+    snapshot: &'a HubSnapshot,
+) -> Option<&'a SourceEngineInstall> {
+    let engine_id = project_engine_id(project, snapshot)?;
+    snapshot
+        .engines
+        .iter()
+        .find(|engine| engine.id == engine_id)
 }
 
 fn project_engine_label(project: &RecentProject, snapshot: &HubSnapshot) -> String {
-    project_engine_id(project, snapshot)
-        .and_then(|id| {
-            snapshot
-                .engines
-                .iter()
-                .find(|engine| engine.id == id)
-                .map(|engine| engine.display_name.clone())
+    if project_engine_id(project, snapshot).is_none() {
+        return localization::text(snapshot.settings.language, "No Source Engine", "无源码引擎")
+            .to_string();
+    }
+
+    project_engine(project, snapshot)
+        .map(|engine| engine.display_name.clone())
+        .unwrap_or_else(|| {
+            localization::text(
+                snapshot.settings.language,
+                "Source Engine unavailable",
+                "源码引擎不可用",
+            )
+            .to_string()
         })
-        .unwrap_or_else(|| "No Source Engine".to_string())
 }
 
-fn project_version_label(engine_id: &str) -> String {
+fn project_version_label(engine_id: &str, engine_available: bool, language: HubLanguage) -> String {
     if engine_id.trim().is_empty() {
-        "Unbound".to_string()
+        localization::text(language, "Unbound", "未绑定").to_string()
+    } else if !engine_available {
+        localization::text(language, "Unavailable", "不可用").to_string()
     } else {
         format!("Zircon Engine {}", env!("CARGO_PKG_VERSION"))
     }
@@ -327,7 +361,7 @@ fn selected_recent_project(snapshot: &HubSnapshot) -> Option<RecentProject> {
     snapshot
         .recent_projects
         .iter()
-        .find(|project| &project.path == selected_path)
+        .find(|project| project_paths_match(&project.path, selected_path))
         .cloned()
 }
 
@@ -370,7 +404,7 @@ fn source_engine_rows_for_selection(
 }
 
 fn shared_path_eq(left: &Path, right: &Path) -> bool {
-    left == right
+    project_paths_match(left, right)
 }
 
 fn display_name(project: &RecentProject) -> String {

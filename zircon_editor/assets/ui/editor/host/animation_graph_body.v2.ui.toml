@@ -41,7 +41,7 @@ layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fix
 [nodes.add_node]
 component = "IconButton"
 control_id = "AddNode"
-props = { label = "Add Node", icon = "plus-circle-outline" }
+props = { label = "Add Node", icon = "editor_pages/graph_editor/nodes/state-node.svg" }
 layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AnimationGraphPaneBody/AddNode", event = "Click", route = "AnimationCommand.AddGraphNode" }]
 

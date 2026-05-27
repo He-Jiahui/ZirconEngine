@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::core::math::UVec2;
 use crate::ui::{
     dispatch::UiPointerDispatcher,
@@ -174,6 +176,11 @@ fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurfac
     assert_eq!(report.legacy_selected_count, legacy_count, "{report:#?}");
     assert_eq!(report.fallback_count, fallback_count, "{report:#?}");
     assert_eq!(report.unsupported_count, unsupported_count, "{report:#?}");
+    assert_eq!(
+        fallback_reason_counts(report),
+        expected_fallback_reason_counts(report),
+        "{report:#?}"
+    );
 
     for selection in &report.selections {
         assert!(
@@ -211,6 +218,28 @@ fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurfac
             }
         }
     }
+}
+
+fn expected_fallback_reason_counts(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+) -> BTreeMap<Option<UiLayoutEngineFallbackReason>, u64> {
+    let mut counts = BTreeMap::new();
+    for selection in &report.selections {
+        if let Some(reason) = selection.fallback_reason {
+            *counts.entry(Some(reason)).or_default() += 1;
+        }
+    }
+    counts
+}
+
+fn fallback_reason_counts(
+    report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
+) -> BTreeMap<Option<UiLayoutEngineFallbackReason>, u64> {
+    report
+        .fallback_reason_counts
+        .iter()
+        .map(|reason_count| (reason_count.reason, reason_count.count))
+        .collect()
 }
 
 fn assert_control_surface_frame_authority(surface: &UiSurface, control_id: &str) {

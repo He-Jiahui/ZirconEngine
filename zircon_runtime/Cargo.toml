@@ -32,6 +32,7 @@ default-platform = [
     "input-keyboard",
     "input-touch",
     "input-gamepad",
+    "gamepad-gilrs",
 ]
 platform-window = []
 platform-winit = ["platform-window", "dep:winit"]

@@ -4,9 +4,11 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
         AxisConstraint, BoxConstraints, DesiredSize, StretchMode, UiAlignment, UiAlignment2D,
-        UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement, UiLinearBoxConfig,
-        UiMargin, UiPoint, UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize,
-        UiSlot, UiSlotKind, UiVirtualListConfig, UiVirtualListWindow,
+        UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement,
+        UiLayoutEngineBackend, UiLayoutEngineFamily, UiLayoutEngineSupport, UiLinearBoxConfig,
+        UiMargin, UiMasonryBoxConfig, UiPoint, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility, UiSize, UiSlot, UiSlotKind, UiVirtualListConfig,
+        UiVirtualListWindow,
     },
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -516,6 +518,164 @@ fn grid_slot_cell_placement_feeds_arranged_render_hit_from_one_surface_frame() {
 
     let hit = hit_test_surface_frame(&frame, UiPoint::new(70.0, 50.0));
     assert_eq!(hit.top_hit, Some(UiNodeId::new(3)));
+}
+
+#[test]
+fn masonry_shortest_column_layout_feeds_arranged_render_hit_from_one_surface_frame() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.slot.masonry.frame"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root")).with_container(
+            UiContainerKind::MasonryBox(UiMasonryBoxConfig {
+                columns: 2,
+                gap: 4.0,
+                sequential: false,
+            }),
+        ),
+    );
+    for (id, height) in [(2, 20.0), (3, 40.0), (4, 30.0), (5, 10.0)] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                pointer_node(
+                    id,
+                    format!("root/masonry_{id}"),
+                    format!("masonry.{id}"),
+                    BoxConstraints {
+                        width: fixed_constraint(48.0),
+                        height: fixed_constraint(height),
+                    },
+                    id as i32,
+                ),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(100.0, 80.0)).unwrap();
+    let frame = surface.surface_frame();
+    let report = &frame.layout_engine_report;
+    let masonry_selection = report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(UiNodeId::new(1)))
+        .expect("masonry route should be reported");
+
+    assert_eq!(
+        masonry_selection.request.family,
+        UiLayoutEngineFamily::Masonry
+    );
+    assert_eq!(
+        masonry_selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(masonry_selection.support, UiLayoutEngineSupport::Fallback);
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(1))
+            .unwrap()
+            .layout_cache
+            .content_size,
+        UiSize::new(100.0, 54.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 0.0, 48.0, 20.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(3))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(52.0, 0.0, 48.0, 40.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 24.0, 48.0, 30.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(5))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(52.0, 44.0, 48.0, 10.0)
+    );
+    assert_eq!(
+        render_frame_for(&frame, UiNodeId::new(5)),
+        Some(UiFrame::new(52.0, 44.0, 48.0, 10.0))
+    );
+    assert_eq!(
+        hit_frame_for(&frame, UiNodeId::new(5)),
+        Some(UiFrame::new(52.0, 44.0, 48.0, 10.0))
+    );
+
+    let hit = hit_test_surface_frame(&frame, UiPoint::new(54.0, 45.0));
+    assert_eq!(hit.top_hit, Some(UiNodeId::new(5)));
+}
+
+#[test]
+fn masonry_sequential_layout_preserves_ordered_column_assignment() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.slot.masonry.sequential"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root")).with_container(
+            UiContainerKind::MasonryBox(UiMasonryBoxConfig {
+                columns: 2,
+                gap: 4.0,
+                sequential: true,
+            }),
+        ),
+    );
+    for (id, height) in [(2, 60.0), (3, 10.0), (4, 10.0)] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(
+                    UiNodeId::new(id),
+                    UiNodePath::new(format!("root/item_{id}")),
+                )
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(48.0),
+                    height: fixed_constraint(height),
+                }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(100.0, 100.0)).unwrap();
+
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 64.0, 48.0, 10.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(1))
+            .unwrap()
+            .layout_cache
+            .content_size,
+        UiSize::new(100.0, 74.0)
+    );
 }
 
 fn fixed_constraint(size: f32) -> AxisConstraint {

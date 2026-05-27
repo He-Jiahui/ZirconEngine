@@ -962,7 +962,8 @@ fn fallback_page_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let bar_height = height.max(PAGE_BAR_HEIGHT_PX);
+    let page_bar_y = MENU_TOP_BAR_HEIGHT_PX + 1.0;
+    let bar_height = (height - page_bar_y).max(PAGE_BAR_HEIGHT_PX);
     let mut nodes = Vec::with_capacity(tabs.row_count() + 2);
     nodes.push(ViewTemplateNodeData {
         node_id: "FallbackWorkbenchPageBar".into(),
@@ -971,7 +972,7 @@ fn fallback_page_chrome_nodes(
         surface_variant: "panel".into(),
         frame: ViewTemplateFrameData {
             x: 0.0,
-            y: 0.0,
+            y: page_bar_y,
             width: width.max(1.0),
             height: bar_height,
         },
@@ -1004,7 +1005,7 @@ fn fallback_page_chrome_nodes(
             focused: tab.active,
             frame: ViewTemplateFrameData {
                 x,
-                y: CHROME_TAB_HEIGHT_INSET_PX,
+                y: page_bar_y + CHROME_TAB_HEIGHT_INSET_PX,
                 width: draw_width,
                 height: (bar_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
             },
@@ -1028,7 +1029,7 @@ fn fallback_page_chrome_nodes(
         font_size: 11.0,
         frame: ViewTemplateFrameData {
             x: (width - right_label_width - 12.0).max(12.0),
-            y: 6.0,
+            y: page_bar_y + 6.0,
             width: right_label_width,
             height: (bar_height - 12.0).max(16.0),
         },
@@ -1220,7 +1221,7 @@ fn tab_node_with_state(
 
 fn apply_template_icon(node: &mut ViewTemplateNodeData, icon_name: &str) {
     node.icon_name = icon_name.into();
-    node.media_source = format!("ionicons/{icon_name}.svg").into();
+    node.media_source = format!("icons/ionicons/{icon_name}.svg").into();
     node.preview_image = load_preview_image("", icon_name);
     let preview_size = node.preview_image.size();
     node.has_preview_image = preview_size.width > 0 && preview_size.height > 0;
@@ -1531,6 +1532,10 @@ mod tests {
         let page_assets = node(&page_nodes, "PageTab1");
 
         assert_eq!(page_scene.icon_name.as_str(), "cube-outline");
+        assert_eq!(
+            page_scene.media_source.as_str(),
+            "icons/ionicons/cube-outline.svg"
+        );
         assert!(page_scene.has_preview_image);
         assert!(page_scene.selected);
         assert_eq!(page_scene.text_tone.as_str(), "default");
@@ -1588,9 +1593,21 @@ mod tests {
         let project_path = node(&nodes, PAGE_PROJECT_PATH_CONTROL_ID);
 
         assert!(bar.frame.height >= PAGE_BAR_HEIGHT_PX);
+        assert_eq!(bar.frame.y, MENU_TOP_BAR_HEIGHT_PX + 1.0);
         assert!(
             first_tab.frame.width > 0.0 && first_tab.frame.height > 0.0,
             "fallback page tabs must stay hit-testable when the template projection is unavailable"
+        );
+        assert!(
+            first_tab.frame.y >= bar.frame.y
+                && first_tab.frame.y + first_tab.frame.height <= bar.frame.y + bar.frame.height,
+            "fallback page tabs must stay inside the host page bar instead of overlapping the menu bar"
+        );
+        assert!(
+            project_path.frame.y >= bar.frame.y
+                && project_path.frame.y + project_path.frame.height
+                    <= bar.frame.y + bar.frame.height,
+            "fallback project path text must stay inside the host page bar"
         );
         assert_eq!(first_tab.surface_variant.as_str(), "inset");
         assert_eq!(second_tab.text_tone.as_str(), "subtle");

@@ -3,6 +3,9 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{AssetReference, AssetUri};
+use crate::core::framework::render::{
+    RenderShaderDefinitionValue, RenderShaderPipelineLayoutDescriptor,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ZShaderDocument {
@@ -10,6 +13,8 @@ pub struct ZShaderDocument {
     pub version: u32,
     #[serde(default)]
     pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_path: Option<String>,
     #[serde(default)]
     pub wgsl_files: Vec<String>,
     #[serde(default)]
@@ -17,9 +22,15 @@ pub struct ZShaderDocument {
     #[serde(default)]
     pub imports: Vec<ZShaderImportDocument>,
     #[serde(default)]
+    pub shader_defs: Vec<String>,
+    #[serde(default)]
+    pub shader_def_values: Vec<ZShaderDefinitionValueDocument>,
+    #[serde(default)]
     pub properties: Vec<ShaderMaterialPropertyAsset>,
     #[serde(default)]
     pub texture_slots: Vec<ZShaderTextureSlotDocument>,
+    #[serde(default)]
+    pub pipeline_layout: RenderShaderPipelineLayoutDescriptor,
     #[serde(default)]
     pub editor: toml::Table,
 }
@@ -31,6 +42,19 @@ impl ZShaderDocument {
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(self)
+    }
+
+    pub fn shader_definition_values(&self) -> Result<Vec<RenderShaderDefinitionValue>, String> {
+        let mut definitions = self
+            .shader_defs
+            .iter()
+            .cloned()
+            .map(RenderShaderDefinitionValue::from)
+            .collect::<Vec<_>>();
+        for definition in &self.shader_def_values {
+            definitions.push(definition.to_render_definition()?);
+        }
+        Ok(definitions)
     }
 }
 
@@ -49,6 +73,56 @@ pub struct ZShaderImportDocument {
     pub redirect: Option<AssetReference>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZShaderDefinitionValueDocument {
+    pub name: String,
+    pub kind: String,
+    pub value: toml::Value,
+}
+
+impl ZShaderDefinitionValueDocument {
+    pub fn to_render_definition(&self) -> Result<RenderShaderDefinitionValue, String> {
+        match self.kind.trim().to_ascii_lowercase().as_str() {
+            "bool" | "boolean" => self
+                .value
+                .as_bool()
+                .map(|value| RenderShaderDefinitionValue::bool(self.name.clone(), value))
+                .ok_or_else(|| {
+                    format!(
+                        "shader definition `{}` uses kind `bool` but value is not a boolean",
+                        self.name
+                    )
+                }),
+            "int" | "i32" | "integer" => self
+                .value
+                .as_integer()
+                .and_then(|value| i32::try_from(value).ok())
+                .map(|value| RenderShaderDefinitionValue::int(self.name.clone(), value))
+                .ok_or_else(|| {
+                    format!(
+                        "shader definition `{}` uses kind `int` but value is not an i32 integer",
+                        self.name
+                    )
+                }),
+            "uint" | "u32" => self
+                .value
+                .as_integer()
+                .and_then(|value| u32::try_from(value).ok())
+                .map(|value| RenderShaderDefinitionValue::uint(self.name.clone(), value))
+                .ok_or_else(|| {
+                    format!(
+                        "shader definition `{}` uses kind `uint` but value is not a u32 integer",
+                        self.name
+                    )
+                }),
+            other => Err(format!(
+                "shader definition `{}` uses unsupported kind `{other}`",
+                self.name
+            )),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderSourceFileAsset {
     pub path: String,
@@ -58,7 +132,8 @@ pub struct ShaderSourceFileAsset {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderImportRedirectAsset {
     pub source: String,
-    pub redirect: AssetReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect: Option<AssetReference>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -77,6 +152,8 @@ pub struct ShaderMaterialPropertyAsset {
 pub struct ZShaderTextureSlotDocument {
     pub name: String,
     pub kind: String,
+    #[serde(default)]
+    pub required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -93,6 +170,8 @@ pub struct ZShaderTextureSlotDocument {
 pub struct ShaderTextureSlotAsset {
     pub name: String,
     pub kind: String,
+    #[serde(default)]
+    pub required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,6 +189,7 @@ impl From<&ZShaderTextureSlotDocument> for ShaderTextureSlotAsset {
         Self {
             name: slot.name.clone(),
             kind: slot.kind.clone(),
+            required: slot.required,
             default: slot.default.clone(),
             sampler: slot.sampler.clone(),
             group: slot.group.clone(),

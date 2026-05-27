@@ -27,6 +27,8 @@ impl RuntimeEntryApp {
             gamepads: super::gamepad::create_gilrs(),
             #[cfg(feature = "gamepad-gilrs")]
             gamepad_connections_announced: false,
+            #[cfg(feature = "gamepad-gilrs")]
+            gamepad_rumble_effects: None,
         }
     }
 

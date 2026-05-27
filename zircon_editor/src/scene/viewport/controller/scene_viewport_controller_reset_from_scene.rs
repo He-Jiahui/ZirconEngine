@@ -11,6 +11,9 @@ impl SceneViewportController {
         self.state.orbit_target = scene
             .and_then(|scene| Self::selected_world_position(scene, self.selected_node()))
             .unwrap_or(Vec3::ZERO);
+        self.state
+            .orbit_controller
+            .set_target(self.state.orbit_target);
         self.state.hover = ViewportHoverState::default();
         self.state.drag = None;
         self.pointer_bridge = ViewportOverlayPointerRouter::new();

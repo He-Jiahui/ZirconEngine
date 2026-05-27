@@ -26,8 +26,10 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     let Some(model) = streamer.model(&mesh_instance.model.id()) else {
         return;
     };
-    let material = streamer.material(&mesh_instance.material.id());
+    let material_id = mesh_instance.material.id();
+    let material = streamer.material(&material_id);
     let texture = streamer.texture(material.and_then(|material| material.base_color_texture));
+    let material_uniform = streamer.material_uniform(&material_id);
     let material_tint = material
         .map(|material| material.base_color)
         .unwrap_or(Vec4::ONE);
@@ -73,6 +75,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 pending_draws.push(PendingMeshDraw {
                     mesh: PendingMeshGeometry::Skinned(skinned_primitive.clone()),
                     texture: texture.clone(),
+                    material_uniform: material_uniform.clone(),
                     pipeline_key: pipeline_key.clone(),
                     model_matrix,
                     draw_tint,
@@ -93,6 +96,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
                 texture: texture.clone(),
+                material_uniform: material_uniform.clone(),
                 pipeline_key: pipeline_key.clone(),
                 model_matrix,
                 draw_tint,

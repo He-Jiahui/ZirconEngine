@@ -2,6 +2,7 @@ use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::data::FrameRect;
 use super::geometry::intersect;
+use super::sprite_atlas::HostPaintAtlasImage;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) enum HostRecordedPaintKind {
@@ -26,6 +27,7 @@ pub(in crate::ui::retained_host::host_contract) enum HostRecordedPaintKind {
         width: u32,
         height: u32,
         rgba: Option<Vec<u8>>,
+        atlas: Option<HostPaintAtlasImage>,
     },
 }
 
@@ -183,6 +185,7 @@ impl HostRgbaFrame {
         width: u32,
         height: u32,
         rgba: Option<Vec<u8>>,
+        atlas: Option<HostPaintAtlasImage>,
     ) {
         self.record_command(
             frame,
@@ -192,6 +195,7 @@ impl HostRgbaFrame {
                 width,
                 height,
                 rgba,
+                atlas,
             },
         );
     }

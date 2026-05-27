@@ -57,3 +57,13 @@ Validation should run sound runtime formatting, neutral sound rustfmt, focused d
 ## Remaining Follow-Up After This Slice
 
 After this slice, dynamic events have local runtime code execution. The remaining dynamic event gap becomes ABI/dynamic-library plugin callback execution and editor-host operation routing.
+
+## 2026-05-24 ABI Follow-Up Addendum
+
+The ABI follow-up keeps the original ownership rule: `zircon_runtime::core::framework::sound` remains a neutral DTO and trait layer, and callback storage/execution stays in the concrete sound runtime. The stable boundary is generic rather than sound-specific:
+
+- `zircon_runtime_interface::plugin_events` defines `ZrPluginEventCallbackFnV1`, `ZrPluginEventCallbackRequestV1`, and `ZrPluginEventCallbackResultV1`.
+- `ZrPluginApiV1` gains an optional trailing `invoke_event` callback slot so older prefix-gated table readers can ignore it by advertised `size_bytes`.
+- `zircon_plugins/sound/runtime/src/dynamic_event_abi.rs` projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace and maps callback/result status into the existing per-handler execution report.
+
+This resolves the stable ABI shape and sound runtime adapter portion of the follow-up. Generic native-dynamic plugin loader discovery and automatic attachment of `invoke_event` to handler descriptors remains separate loader integration work. Editor-host operation routing also remains separate.

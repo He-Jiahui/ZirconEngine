@@ -5,8 +5,8 @@ use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowResolution};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport, RuntimeProfileId,
+    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
+    RuntimePluginDescriptor, RuntimePluginRegistrationReport, RuntimeProfileId,
 };
 use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
 
@@ -256,15 +256,25 @@ fn entry_runner_exposes_first_party_module_selection_diagnostics_without_bootstr
 fn entry_runner_module_selection_diagnostics_include_linked_runtime_plugin_registrations() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
-    let diagnostics = EntryRunner::module_selection_diagnostics_with_runtime_plugin_registrations(
-        config,
+    let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
+        &config,
         [linked_virtual_geometry_registration()],
     )
     .unwrap();
+    let availability = entry.runtime_plugin_availability();
+    let diagnostics = entry.module_selection_report().format_diagnostics();
+
+    assert!(availability.contains(
+        RuntimePluginAvailabilityCategory::Linked,
+        RuntimePluginId::VirtualGeometry
+    ));
+    assert!(!availability.has_missing_required());
 
     for expected in [
         "entry.profile=Runtime",
         "entry.plugin_group=DefaultPlugins",
+        "runtime_plugin_availability.linked=virtual_geometry",
+        "runtime_plugin_availability.missing_required.count=0",
         "module=VirtualGeometryPlugin",
         "description=Linked virtual geometry plugin module",
     ] {
@@ -273,6 +283,32 @@ fn entry_runner_module_selection_diagnostics_include_linked_runtime_plugin_regis
             "linked runtime plugin diagnostics should contain `{expected}`"
         );
     }
+}
+
+#[test]
+fn entry_runner_bootstrap_with_report_preserves_runtime_plugin_availability() {
+    let config = EntryConfig::new(EntryProfile::Runtime)
+        .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
+    let bootstrap = EntryRunner::bootstrap_with_runtime_plugin_registrations_and_report(
+        config,
+        [linked_virtual_geometry_registration()],
+    )
+    .unwrap();
+
+    assert!(bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .contains(
+            RuntimePluginAvailabilityCategory::Linked,
+            RuntimePluginId::VirtualGeometry
+        ));
+    assert!(!bootstrap
+        .module_selection_report()
+        .runtime_plugin_availability
+        .has_missing_required());
+
+    let (_core, report) = bootstrap.into_parts();
+    assert!(report.module_keys().contains(&"VirtualGeometryPlugin"));
 }
 
 #[test]
@@ -288,6 +324,8 @@ fn entry_runner_feature_aware_module_selection_diagnostics_accept_linked_plugin_
         .unwrap();
 
     assert!(diagnostics.contains("module=VirtualGeometryPlugin"));
+    assert!(diagnostics.contains("runtime_plugin_availability.linked=virtual_geometry"));
+    assert!(diagnostics.contains("runtime_plugin_availability.missing_required.count=0"));
 }
 
 fn linked_virtual_geometry_registration() -> RuntimePluginRegistrationReport {

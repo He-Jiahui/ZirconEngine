@@ -64,6 +64,20 @@ pub fn validate_shader_contract(
             });
         }
     }
+    for schema in &shader.texture_slots {
+        let missing_reference = material
+            .texture_slots
+            .get(&schema.name)
+            .and_then(|slot| slot.reference.as_ref())
+            .is_none();
+        if schema.required && missing_reference {
+            errors.push(RenderMaterialValidationError::MissingRequiredTextureSlot {
+                source: RenderMaterialDiagnosticSource::ShaderSchema,
+                path: format!("textures.{}", schema.name),
+                slot: schema.name.clone(),
+            });
+        }
+    }
     errors
 }
 

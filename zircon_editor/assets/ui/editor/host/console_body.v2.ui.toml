@@ -23,7 +23,7 @@ children = [{ node = "focus" }]
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusConsole"
-props = { label = "Focus Console", icon = "terminal-outline" }
+props = { label = "Focus Console", icon = "editor_pages/console_profiler/logs/log-info.svg" }
 layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ConsolePaneBody/FocusConsole", event = "Click", route = "DockCommand.FocusView" }]
 

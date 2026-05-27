@@ -54,6 +54,7 @@ impl BaseScenePass {
             pass.set_pipeline(pipeline);
             draw.bind_model(&mut pass);
             draw.bind_texture(&mut pass);
+            draw.bind_material(&mut pass);
             draw.bind_geometry_buffers(&mut pass);
             draw.record_indexed_draw(&mut pass);
         }

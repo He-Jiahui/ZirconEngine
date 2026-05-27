@@ -1,12 +1,14 @@
 import { HubTokens } from "tokens.slint";
 import {
     MenuItem,
+    Icon,
     OutlineButton,
     PopupMenu,
     SearchBar,
     SegmentedButton,
     TextField,
     TonalButton,
+    MaterialPalette,
     MaterialStyleMetrics,
 } from "material_bridge.slint";
 
@@ -92,13 +94,17 @@ export component ToolbarSelect inherits Rectangle {
     in property <[MenuItem]> menu-items: [];
     in property <[SelectOptionData]> options: [];
     in property <int> option-count: 0;
-    callback clicked;
     callback selected(string);
     callback selected-index(int);
 
+    private property <length> menu-width: max(root.select-width, HubTokens.input-width / 2);
+    private property <length> menu-offset-x: min(0px, root.select-width - root.menu-width);
+    private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));
+    private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);
+
     width: root.select-width;
     height: root.select-height;
-    clip: true;
+    clip: false;
 
     trigger := OutlineButton {
         width: parent.width;
@@ -108,16 +114,23 @@ export component ToolbarSelect inherits Rectangle {
         clicked => {
             if (root.menu-items.length > 0) {
                 menu.show();
-            } else {
-                root.clicked();
             }
         }
     }
 
+    trailing-chevron := Icon {
+        width: root.trailing-icon-size;
+        height: root.trailing-icon-size;
+        x: parent.width - root.trailing-icon-inset - self.width;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/chevron-down.svg");
+        colorize: MaterialPalette.on_surface_variant;
+    }
+
     menu := PopupMenu {
-        x: 0px;
+        x: root.menu-offset-x;
         y: root.height + MaterialStyleMetrics.spacing_6;
-        width: max(root.select-width, HubTokens.input-width / 2);
+        width: root.menu-width;
         items: root.menu-items;
 
         activated(index) => {

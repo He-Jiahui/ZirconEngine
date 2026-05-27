@@ -272,6 +272,16 @@ fn material_validation_diagnostic_row(
                 message: format!("required shader property `{name}` needs a material override"),
             }
         }
+        RenderMaterialValidationError::MissingRequiredTextureSlot { source, path, slot } => {
+            RendererDataDiagnosticRow {
+                feature: feature.to_string(),
+                source: Some(*source),
+                path: path.clone(),
+                message: format!(
+                    "required texture slot `{slot}` needs a material texture reference"
+                ),
+            }
+        }
         RenderMaterialValidationError::UnknownTextureSlot { source, path, slot } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
@@ -288,6 +298,16 @@ fn material_validation_diagnostic_row(
                 message: format!("shader WGSL does not appear to capture `{name}`"),
             }
         }
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            source: Some(*source),
+            path: path.clone(),
+            message: diagnostic.clone(),
+        },
     }
 }
 

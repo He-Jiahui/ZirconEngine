@@ -333,7 +333,6 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
 
     for document_id in [
         "editor.host.editor_main_frame",
-        "editor.host.activity_drawer_window",
         "editor.window.workbench",
         "editor.window.asset",
         "editor.window.ui_layout_editor",
@@ -344,13 +343,6 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
             .project_document(document_id)
             .unwrap_or_else(|error| panic!("failed to project `{document_id}`: {error}"));
         assert_eq!(projection.document_id, document_id);
-        if projection.root.component.is_empty() {
-            assert_eq!(
-                document_id, "editor.host.activity_drawer_window",
-                "only component-library builtin documents may project an empty view root"
-            );
-            continue;
-        }
         assert!(
             matches!(
                 projection.root.component.as_str(),

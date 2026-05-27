@@ -79,6 +79,9 @@ impl SceneViewportController {
         camera.projection_mode = self.state.settings.projection_mode;
         camera.apply_viewport_size(self.state.viewport.size);
         self.state.camera = Some(camera);
+        self.state
+            .orbit_controller
+            .set_target(self.state.orbit_target);
     }
 
     pub(in crate::scene::viewport::controller) fn camera_distance(&self) -> f32 {

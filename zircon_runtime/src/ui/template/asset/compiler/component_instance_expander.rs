@@ -86,6 +86,10 @@ pub(super) fn apply_child_mount(
     params: &BTreeMap<String, Value>,
 ) -> Vec<UiTemplateNode> {
     let mut slot = resolve_value_map(&child.slot, tokens, params);
+    if let Some(mount) = child.mount.as_deref().filter(|mount| !mount.is_empty()) {
+        slot.entry("mui_slot".to_string())
+            .or_insert_with(|| Value::String(mount.to_string()));
+    }
     normalize_layout(&mut slot);
     nodes
         .into_iter()

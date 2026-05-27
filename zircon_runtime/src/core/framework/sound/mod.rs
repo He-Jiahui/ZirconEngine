@@ -58,7 +58,8 @@ pub use mix::SoundMixBlock;
 pub use options::{SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality};
 pub use output::{
     SoundBackendCallbackBlock, SoundBackendCallbackReport, SoundBackendCapability,
-    SoundOutputDeviceDescriptor, SoundOutputDeviceState, SoundOutputDeviceStatus,
+    SoundOutputDeviceDescriptor, SoundOutputDeviceInfo, SoundOutputDeviceState,
+    SoundOutputDeviceStatus, SoundOutputLatencyStatus, DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS,
 };
 pub use playback::{
     SoundClipInfo, SoundPlaybackCompletionAction, SoundPlaybackFinishReason, SoundPlaybackFinished,

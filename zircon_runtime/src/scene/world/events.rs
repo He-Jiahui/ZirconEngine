@@ -17,6 +17,13 @@ impl World {
         self.events.update::<T>();
     }
 
+    pub fn clear_events<T>(&mut self)
+    where
+        T: 'static + Send + Sync,
+    {
+        self.events.events_mut::<T>().clear();
+    }
+
     pub fn events<T>(&self) -> Option<&Events<T>>
     where
         T: 'static + Send + Sync,

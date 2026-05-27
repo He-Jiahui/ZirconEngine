@@ -123,7 +123,10 @@ pub(crate) struct ViewTemplateNodeData {
     pub role: SharedString,
     pub text: SharedString,
     pub component_role: SharedString,
+    pub component_variant: SharedString,
     pub value_text: SharedString,
+    pub value_number: f32,
+    pub value_percent: f32,
     pub dispatch_kind: SharedString,
     pub action_id: SharedString,
     pub binding_id: SharedString,
@@ -139,7 +142,16 @@ pub(crate) struct ViewTemplateNodeData {
     pub overflow: SharedString,
     pub corner_radius: f32,
     pub border_width: f32,
+    pub z_index: i32,
+    pub transition_kind: SharedString,
+    pub transition_in: bool,
+    pub transition_entered: bool,
+    pub transition_progress: f32,
+    pub transition_duration_ms: i32,
+    pub transition_easing: SharedString,
+    pub transition_direction: SharedString,
     pub selected: bool,
+    pub popup_open: bool,
     pub focused: bool,
     pub hovered: bool,
     pub pressed: bool,
@@ -161,7 +173,10 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("role", &self.role)
             .field("text", &self.text)
             .field("component_role", &self.component_role)
+            .field("component_variant", &self.component_variant)
             .field("value_text", &self.value_text)
+            .field("value_number", &self.value_number)
+            .field("value_percent", &self.value_percent)
             .field("dispatch_kind", &self.dispatch_kind)
             .field("action_id", &self.action_id)
             .field("binding_id", &self.binding_id)
@@ -177,7 +192,16 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("overflow", &self.overflow)
             .field("corner_radius", &self.corner_radius)
             .field("border_width", &self.border_width)
+            .field("z_index", &self.z_index)
+            .field("transition_kind", &self.transition_kind)
+            .field("transition_in", &self.transition_in)
+            .field("transition_entered", &self.transition_entered)
+            .field("transition_progress", &self.transition_progress)
+            .field("transition_duration_ms", &self.transition_duration_ms)
+            .field("transition_easing", &self.transition_easing)
+            .field("transition_direction", &self.transition_direction)
             .field("selected", &self.selected)
+            .field("popup_open", &self.popup_open)
             .field("focused", &self.focused)
             .field("hovered", &self.hovered)
             .field("pressed", &self.pressed)
@@ -203,7 +227,10 @@ impl PartialEq for ViewTemplateNodeData {
             && self.role == other.role
             && self.text == other.text
             && self.component_role == other.component_role
+            && self.component_variant == other.component_variant
             && self.value_text == other.value_text
+            && self.value_number == other.value_number
+            && self.value_percent == other.value_percent
             && self.dispatch_kind == other.dispatch_kind
             && self.action_id == other.action_id
             && self.binding_id == other.binding_id
@@ -219,7 +246,16 @@ impl PartialEq for ViewTemplateNodeData {
             && self.overflow == other.overflow
             && self.corner_radius == other.corner_radius
             && self.border_width == other.border_width
+            && self.z_index == other.z_index
+            && self.transition_kind == other.transition_kind
+            && self.transition_in == other.transition_in
+            && self.transition_entered == other.transition_entered
+            && self.transition_progress == other.transition_progress
+            && self.transition_duration_ms == other.transition_duration_ms
+            && self.transition_easing == other.transition_easing
+            && self.transition_direction == other.transition_direction
             && self.selected == other.selected
+            && self.popup_open == other.popup_open
             && self.focused == other.focused
             && self.hovered == other.hovered
             && self.pressed == other.pressed
@@ -241,7 +277,10 @@ impl Default for ViewTemplateNodeData {
             role: SharedString::default(),
             text: SharedString::default(),
             component_role: SharedString::default(),
+            component_variant: SharedString::default(),
             value_text: SharedString::default(),
+            value_number: 0.0,
+            value_percent: 0.0,
             dispatch_kind: SharedString::default(),
             action_id: SharedString::default(),
             binding_id: SharedString::default(),
@@ -257,7 +296,16 @@ impl Default for ViewTemplateNodeData {
             overflow: SharedString::default(),
             corner_radius: 0.0,
             border_width: 0.0,
+            z_index: 0,
+            transition_kind: SharedString::default(),
+            transition_in: true,
+            transition_entered: true,
+            transition_progress: 1.0,
+            transition_duration_ms: 0,
+            transition_easing: SharedString::default(),
+            transition_direction: SharedString::default(),
             selected: false,
+            popup_open: false,
             focused: false,
             hovered: false,
             pressed: false,

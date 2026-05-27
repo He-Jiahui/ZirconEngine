@@ -333,19 +333,63 @@ fn apply_visible_range(
     start: i64,
     count: i64,
 ) -> Result<(), UiComponentEventError> {
-    let total_count = int_value(state, "total_count", 0).max(0);
-    let viewport_start = start.clamp(0, total_count);
+    let total_count = int_value_any(
+        state,
+        &[
+            "total_count",
+            "row_count",
+            "rowCount",
+            "item_count",
+            "itemCount",
+            "rows",
+            "items",
+        ],
+        0,
+    )
+    .max(0);
+    let virtualization_disabled = bool_value_any(
+        state,
+        &["disable_virtualization", "disableVirtualization"],
+        false,
+    );
+    let viewport_start = if virtualization_disabled {
+        0
+    } else {
+        start.clamp(0, total_count)
+    };
     let available_count = total_count.saturating_sub(viewport_start);
-    let viewport_count = count.max(0).min(available_count);
+    let viewport_count = if virtualization_disabled {
+        total_count
+    } else {
+        count.max(0).min(available_count)
+    };
     let visible_end = viewport_start
         .saturating_add(viewport_count)
         .min(total_count);
-    let overscan = int_value(state, "overscan", 0).max(0);
+    let overscan = if virtualization_disabled {
+        0
+    } else {
+        int_value_any(state, &["overscan", "overscan_count", "overscanCount"], 0).max(0)
+    };
     let requested_start = viewport_start.saturating_sub(overscan);
     let requested_end = visible_end.saturating_add(overscan).min(total_count);
     let requested_count = requested_end.saturating_sub(requested_start);
-    let item_extent = float_value(state, "item_extent", 0.0).max(0.0);
+    let item_extent = float_value_any(
+        state,
+        &["item_extent", "itemSize", "row_height", "rowHeight"],
+        0.0,
+    )
+    .max(0.0);
 
+    for property in [
+        "total_count",
+        "row_count",
+        "rowCount",
+        "item_count",
+        "itemCount",
+    ] {
+        set_value(state, property.to_string(), UiValue::Int(total_count));
+    }
     set_value(
         state,
         "viewport_start".to_string(),
@@ -357,6 +401,7 @@ fn apply_visible_range(
         UiValue::Int(viewport_count),
     );
     set_value(state, "visible_end".to_string(), UiValue::Int(visible_end));
+    set_value(state, "visibleEnd".to_string(), UiValue::Int(visible_end));
     set_value(
         state,
         "requested_start".to_string(),
@@ -364,13 +409,29 @@ fn apply_visible_range(
     );
     set_value(
         state,
+        "requestedStart".to_string(),
+        UiValue::Int(requested_start),
+    );
+    set_value(
+        state,
         "requested_count".to_string(),
         UiValue::Int(requested_count),
     );
+    set_value(
+        state,
+        "requestedCount".to_string(),
+        UiValue::Int(requested_count),
+    );
     set_value(state, "overscan".to_string(), UiValue::Int(overscan));
+    set_value(state, "overscanCount".to_string(), UiValue::Int(overscan));
     set_value(
         state,
         "scroll_offset".to_string(),
+        UiValue::Float(viewport_start as f64 * item_extent),
+    );
+    set_value(
+        state,
+        "scrollTop".to_string(),
         UiValue::Float(viewport_start as f64 * item_extent),
     );
     Ok(())
@@ -722,6 +783,7 @@ fn numeric_value(kind: UiValueKind, value: f64) -> UiValue {
 fn int_value(state: &UiComponentState, property: &str, default: i64) -> i64 {
     match state.values.get(property) {
         Some(UiValue::Int(value)) => *value,
+        Some(UiValue::Array(value)) => value.len() as i64,
         Some(value) => value
             .as_f64()
             .map(|value| value.round() as i64)
@@ -730,11 +792,32 @@ fn int_value(state: &UiComponentState, property: &str, default: i64) -> i64 {
     }
 }
 
-fn float_value(state: &UiComponentState, property: &str, default: f64) -> f64 {
-    state
-        .values
-        .get(property)
-        .and_then(UiValue::as_f64)
+fn int_value_any(state: &UiComponentState, properties: &[&str], default: i64) -> i64 {
+    properties
+        .iter()
+        .find_map(|property| match state.values.get(*property) {
+            Some(UiValue::Int(value)) => Some(*value),
+            Some(UiValue::Array(value)) => Some(value.len() as i64),
+            Some(value) => value.as_f64().map(|value| value.round() as i64),
+            None => None,
+        })
+        .unwrap_or(default)
+}
+
+fn float_value_any(state: &UiComponentState, properties: &[&str], default: f64) -> f64 {
+    properties
+        .iter()
+        .find_map(|property| state.values.get(*property).and_then(UiValue::as_f64))
+        .unwrap_or(default)
+}
+
+fn bool_value_any(state: &UiComponentState, properties: &[&str], default: bool) -> bool {
+    properties
+        .iter()
+        .find_map(|property| match state.values.get(*property) {
+            Some(UiValue::Bool(value)) => Some(*value),
+            _ => None,
+        })
         .unwrap_or(default)
 }
 

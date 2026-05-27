@@ -6,7 +6,10 @@ use crate::asset::AssetUri;
 use crate::core::framework::render::RenderMeshTopology;
 
 use super::super::model::VirtualGeometryAsset;
-use super::{MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshValidationError};
+use super::{
+    MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MeshSkinAsset, MeshValidationError,
+};
 
 pub const ZMESH_DOCUMENT_VERSION: u32 = 1;
 
@@ -24,6 +27,10 @@ pub struct ZMeshDocument {
     pub indices: Option<MeshIndices>,
     #[serde(default)]
     pub asset_usage: MeshAssetUsage,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub morph_targets: Vec<MeshMorphTargetAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skin: Option<MeshSkinAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub virtual_geometry: Option<VirtualGeometryAsset>,
 }
@@ -44,6 +51,8 @@ impl ZMeshDocument {
             attributes: self.attributes,
             indices: self.indices,
             asset_usage: self.asset_usage,
+            morph_targets: self.morph_targets,
+            skin: self.skin,
             virtual_geometry: self.virtual_geometry,
         };
         asset.validate()?;
@@ -60,6 +69,8 @@ impl From<&MeshAsset> for ZMeshDocument {
             attributes: asset.attributes.clone(),
             indices: asset.indices.clone(),
             asset_usage: asset.asset_usage,
+            morph_targets: asset.morph_targets.clone(),
+            skin: asset.skin.clone(),
             virtual_geometry: asset.virtual_geometry.clone(),
         }
     }

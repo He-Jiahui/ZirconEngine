@@ -7,13 +7,17 @@ pub struct UiPipelineStageCounters {
     pub input_event_count: u64,
     pub pointer_move_count: u64,
     pub focus_change_count: u64,
+    pub widget_behavior_count: u64,
+    pub text_measure_count: u64,
     pub content_measure_count: u64,
     pub template_reload_count: u64,
     pub layout_node_count: u64,
     pub full_layout_count: u64,
     pub incremental_layout_count: u64,
     pub stack_node_count: u64,
+    pub picking_candidate_count: u64,
     pub hit_grid_rebuild_count: u64,
+    pub accessibility_node_count: u64,
     pub render_extract_command_count: u64,
     pub render_command_reuse_count: u64,
     pub render_command_rebuild_count: u64,
@@ -27,13 +31,17 @@ impl UiPipelineStageCounters {
         self.input_event_count += other.input_event_count;
         self.pointer_move_count += other.pointer_move_count;
         self.focus_change_count += other.focus_change_count;
+        self.widget_behavior_count += other.widget_behavior_count;
+        self.text_measure_count += other.text_measure_count;
         self.content_measure_count += other.content_measure_count;
         self.template_reload_count += other.template_reload_count;
         self.layout_node_count += other.layout_node_count;
         self.full_layout_count += other.full_layout_count;
         self.incremental_layout_count += other.incremental_layout_count;
         self.stack_node_count += other.stack_node_count;
+        self.picking_candidate_count += other.picking_candidate_count;
         self.hit_grid_rebuild_count += other.hit_grid_rebuild_count;
+        self.accessibility_node_count += other.accessibility_node_count;
         self.render_extract_command_count += other.render_extract_command_count;
         self.render_command_reuse_count += other.render_command_reuse_count;
         self.render_command_rebuild_count += other.render_command_rebuild_count;

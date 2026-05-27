@@ -25,11 +25,30 @@ pub(super) fn keyboard_clipboard_action(
     if keyboard.metadata.modifiers.alt {
         return None;
     }
+
+    let logical_key = keyboard.logical_key.as_str();
+    if !keyboard.metadata.modifiers.control
+        && !keyboard.metadata.modifiers.shift
+        && !keyboard.metadata.modifiers.super_key
+    {
+        match logical_key {
+            "Copy" | "copy" => return Some(KeyboardClipboardAction::Copy),
+            "Cut" | "cut" => return Some(KeyboardClipboardAction::Cut),
+            "Paste" | "paste" => return Some(KeyboardClipboardAction::Paste),
+            _ => {}
+        }
+    }
+    if keyboard.metadata.modifiers.shift
+        && !keyboard.metadata.modifiers.control
+        && !keyboard.metadata.modifiers.super_key
+        && (logical_key == "Delete" || keyboard.key_code == 46)
+    {
+        return Some(KeyboardClipboardAction::Cut);
+    }
     if !(keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key) {
         return None;
     }
 
-    let logical_key = keyboard.logical_key.as_str();
     if matches!(logical_key, "c" | "C") || keyboard.key_code == 67 {
         return Some(KeyboardClipboardAction::Copy);
     }
@@ -60,6 +79,30 @@ pub(super) fn keyboard_requests_newline(keyboard: &UiKeyboardInputEvent) -> bool
     keyboard.logical_key == "Enter" || keyboard.key_code == 13
 }
 
+pub(super) fn keyboard_text_payload(keyboard: &UiKeyboardInputEvent) -> Option<&str> {
+    if !matches!(
+        keyboard.state,
+        UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated
+    ) {
+        return None;
+    }
+    if keyboard.metadata.modifiers.alt
+        || keyboard.metadata.modifiers.control
+        || keyboard.metadata.modifiers.super_key
+    {
+        return None;
+    }
+    if keyboard.logical_key == "Tab" || keyboard.key_code == 9 {
+        return None;
+    }
+
+    let text = keyboard.text.as_deref()?;
+    if text.is_empty() || text.chars().any(char::is_control) {
+        return None;
+    }
+    Some(text)
+}
+
 pub(super) fn keyboard_text_edit_actions(
     keyboard: &UiKeyboardInputEvent,
     state: &UiEditableTextState,
@@ -75,6 +118,9 @@ pub(super) fn keyboard_text_edit_actions(
     let word_navigation = keyboard.metadata.modifiers.control;
     let document_navigation =
         keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key;
+    let hard_line_navigation = keyboard.metadata.modifiers.super_key
+        && !keyboard.metadata.modifiers.control
+        && !keyboard.metadata.modifiers.alt;
     match keyboard.logical_key.as_str() {
         key if keyboard_requests_select_all(keyboard, key) => {
             Some(single_action(UiTextEditAction::SetSelection {
@@ -86,7 +132,15 @@ pub(super) fn keyboard_text_edit_actions(
         "Delete" if word_navigation => Some(delete_next_word_actions(state)),
         "Backspace" => Some(single_action(UiTextEditAction::Backspace)),
         "Delete" => Some(single_action(UiTextEditAction::Delete)),
-        "Escape" => Some(single_action(UiTextEditAction::CancelComposition)),
+        "Escape" => Some(escape_actions(state)),
+        "ArrowLeft" if hard_line_navigation => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: line_start_boundary(&state.text, state.caret.offset),
+            extend_selection,
+        })),
+        "ArrowRight" if hard_line_navigation => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: line_end_boundary(&state.text, state.caret.offset),
+            extend_selection,
+        })),
         "ArrowLeft" => Some(single_action(UiTextEditAction::MoveCaret {
             offset: previous_text_boundary(&state.text, state.caret.offset, word_navigation),
             extend_selection,
@@ -128,6 +182,9 @@ fn keyboard_text_edit_actions_from_key_code(
 ) -> Option<Vec<UiTextEditAction>> {
     let document_navigation =
         keyboard.metadata.modifiers.control || keyboard.metadata.modifiers.super_key;
+    let hard_line_navigation = keyboard.metadata.modifiers.super_key
+        && !keyboard.metadata.modifiers.control
+        && !keyboard.metadata.modifiers.alt;
     match keyboard.key_code {
         65 | 97 if keyboard_requests_select_all(keyboard, "") => {
             Some(single_action(UiTextEditAction::SetSelection {
@@ -139,7 +196,15 @@ fn keyboard_text_edit_actions_from_key_code(
         46 if word_navigation => Some(delete_next_word_actions(state)),
         8 => Some(single_action(UiTextEditAction::Backspace)),
         46 => Some(single_action(UiTextEditAction::Delete)),
-        27 => Some(single_action(UiTextEditAction::CancelComposition)),
+        27 => Some(escape_actions(state)),
+        37 if hard_line_navigation => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: line_start_boundary(&state.text, state.caret.offset),
+            extend_selection,
+        })),
+        39 if hard_line_navigation => Some(single_action(UiTextEditAction::MoveCaret {
+            offset: line_end_boundary(&state.text, state.caret.offset),
+            extend_selection,
+        })),
         37 => Some(single_action(UiTextEditAction::MoveCaret {
             offset: previous_text_boundary(&state.text, state.caret.offset, word_navigation),
             extend_selection,
@@ -203,6 +268,17 @@ fn delete_next_word_actions(state: &UiEditableTextState) -> Vec<UiTextEditAction
             },
             UiTextEditAction::Delete,
         ]
+    }
+}
+
+fn escape_actions(state: &UiEditableTextState) -> Vec<UiTextEditAction> {
+    if state.composition.is_some() {
+        single_action(UiTextEditAction::CancelComposition)
+    } else {
+        single_action(UiTextEditAction::MoveCaret {
+            offset: state.caret.offset,
+            extend_selection: false,
+        })
     }
 }
 

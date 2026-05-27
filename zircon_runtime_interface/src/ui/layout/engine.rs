@@ -1,4 +1,6 @@
-use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
 
@@ -22,6 +24,7 @@ pub enum UiLayoutEngineFamily {
     Block,
     Scrollable,
     Wrap,
+    Masonry,
     VirtualizedList,
 }
 
@@ -29,7 +32,12 @@ impl UiLayoutEngineFamily {
     pub const fn is_zircon_owned(self) -> bool {
         matches!(
             self,
-            Self::Free | Self::Container | Self::Overlay | Self::Scrollable | Self::VirtualizedList
+            Self::Free
+                | Self::Container
+                | Self::Overlay
+                | Self::Scrollable
+                | Self::VirtualizedList
+                | Self::Masonry
         )
     }
 }
@@ -61,6 +69,7 @@ impl UiLayoutEngineCapability {
                 UiLayoutEngineFamily::Grid,
                 UiLayoutEngineFamily::Scrollable,
                 UiLayoutEngineFamily::Wrap,
+                UiLayoutEngineFamily::Masonry,
                 UiLayoutEngineFamily::VirtualizedList,
             ],
             supports_content_measure: true,
@@ -133,6 +142,7 @@ impl UiLayoutEngineRequest {
             }
             UiContainerKind::WrapBox(_) => UiLayoutEngineFamily::Wrap,
             UiContainerKind::GridBox(_) => UiLayoutEngineFamily::Grid,
+            UiContainerKind::MasonryBox(_) => UiLayoutEngineFamily::Masonry,
         };
         Self::new(family)
     }
@@ -155,11 +165,36 @@ pub enum UiLayoutEngineFallbackReason {
     ZirconOwnedSemantics,
     UnsupportedChildVisibility,
     ChildPlacementPolicy,
+    AxisConstraintPriority,
+    InvalidLayoutValue,
     SlotFramePolicy,
     SlotCanvasPlacement,
     TaffyStyleUnavailable,
     TaffyTreeBuildFailed,
     TaffyComputeFailed,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiLayoutEngineFallbackReasonCount {
+    pub reason: Option<UiLayoutEngineFallbackReason>,
+    pub count: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiLayoutEngineTaffyTreeBuildStats {
+    pub build_count: u64,
+    pub node_count: u64,
+}
+
+impl UiLayoutEngineTaffyTreeBuildStats {
+    pub const fn new(node_count: u64) -> Self {
+        Self {
+            build_count: 1,
+            node_count,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -171,6 +206,8 @@ pub struct UiLayoutEngineSelection {
     pub selected_backend: UiLayoutEngineBackend,
     pub support: UiLayoutEngineSupport,
     pub fallback_reason: Option<UiLayoutEngineFallbackReason>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub taffy_tree_build: Option<UiLayoutEngineTaffyTreeBuildStats>,
 }
 
 impl Default for UiLayoutEngineSelection {
@@ -183,6 +220,7 @@ impl Default for UiLayoutEngineSelection {
             selected_backend: UiLayoutEngineBackend::LegacyZircon,
             support: UiLayoutEngineSupport::Native,
             fallback_reason: None,
+            taffy_tree_build: None,
         }
     }
 }
@@ -205,6 +243,7 @@ impl UiLayoutEngineSelection {
                     UiLayoutEngineSupport::Unsupported
                 },
                 fallback_reason: Some(reason),
+                taffy_tree_build: None,
             };
         }
 
@@ -215,6 +254,7 @@ impl UiLayoutEngineSelection {
             selected_backend: preferred.backend,
             support: UiLayoutEngineSupport::Native,
             fallback_reason: None,
+            taffy_tree_build: None,
         }
     }
 
@@ -222,10 +262,14 @@ impl UiLayoutEngineSelection {
         self.node_id = Some(node_id);
         self
     }
+
+    pub fn with_taffy_tree_build(mut self, stats: UiLayoutEngineTaffyTreeBuildStats) -> Self {
+        self.taffy_tree_build = Some(stats);
+        self
+    }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct UiLayoutEngineSelectionReport {
     pub selections: Vec<UiLayoutEngineSelection>,
     pub request_count: u64,
@@ -233,6 +277,45 @@ pub struct UiLayoutEngineSelectionReport {
     pub legacy_selected_count: u64,
     pub fallback_count: u64,
     pub unsupported_count: u64,
+    pub fallback_reason_counts: Vec<UiLayoutEngineFallbackReasonCount>,
+    pub taffy_tree_build_count: u64,
+    pub taffy_tree_node_count: u64,
+}
+
+impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Default, Deserialize)]
+        #[serde(default)]
+        struct WireReport {
+            selections: Vec<UiLayoutEngineSelection>,
+            request_count: u64,
+            taffy_selected_count: u64,
+            legacy_selected_count: u64,
+            fallback_count: u64,
+            unsupported_count: u64,
+            fallback_reason_counts: Vec<UiLayoutEngineFallbackReasonCount>,
+            taffy_tree_build_count: u64,
+            taffy_tree_node_count: u64,
+        }
+
+        let wire = WireReport::deserialize(deserializer)?;
+        let mut report = Self {
+            selections: wire.selections,
+            request_count: wire.request_count,
+            taffy_selected_count: wire.taffy_selected_count,
+            legacy_selected_count: wire.legacy_selected_count,
+            fallback_count: wire.fallback_count,
+            unsupported_count: wire.unsupported_count,
+            fallback_reason_counts: wire.fallback_reason_counts,
+            taffy_tree_build_count: wire.taffy_tree_build_count,
+            taffy_tree_node_count: wire.taffy_tree_node_count,
+        };
+        report.recompute_counts();
+        Ok(report)
+    }
 }
 
 impl UiLayoutEngineSelectionReport {
@@ -251,6 +334,11 @@ impl UiLayoutEngineSelectionReport {
         self.legacy_selected_count = 0;
         self.fallback_count = 0;
         self.unsupported_count = 0;
+        self.taffy_tree_build_count = 0;
+        self.taffy_tree_node_count = 0;
+        self.fallback_reason_counts.clear();
+        let mut fallback_reason_counts =
+            BTreeMap::<Option<UiLayoutEngineFallbackReason>, u64>::new();
 
         for selection in &self.selections {
             match selection.selected_backend {
@@ -262,7 +350,24 @@ impl UiLayoutEngineSelectionReport {
                 UiLayoutEngineSupport::Fallback => self.fallback_count += 1,
                 UiLayoutEngineSupport::Unsupported => self.unsupported_count += 1,
             }
+            if selection.support != UiLayoutEngineSupport::Native {
+                *fallback_reason_counts
+                    .entry(selection.fallback_reason)
+                    .or_default() += 1;
+            }
+            if let Some(stats) = selection.taffy_tree_build {
+                self.taffy_tree_build_count = self
+                    .taffy_tree_build_count
+                    .saturating_add(stats.build_count);
+                self.taffy_tree_node_count =
+                    self.taffy_tree_node_count.saturating_add(stats.node_count);
+            }
         }
+
+        self.fallback_reason_counts = fallback_reason_counts
+            .into_iter()
+            .map(|(reason, count)| UiLayoutEngineFallbackReasonCount { reason, count })
+            .collect();
     }
 }
 

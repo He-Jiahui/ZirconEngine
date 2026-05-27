@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        export-platform: [windows, linux, macos, android, ios, web_gpu, wasm]
+        export-platform: [windows, linux, macos, android, ios, web_gpu, wasm, headless]
     steps:
       - uses: actions/checkout@v5
 

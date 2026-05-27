@@ -28,7 +28,7 @@ children = [
 [nodes.select_folder]
 component = "IconButton"
 control_id = "SelectFolder"
-props = { label = "Folder", icon = "folder-outline" }
+props = { label = "Folder", icon = "editor_pages/asset_browser/navigation/folder.svg" }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SelectFolder", event = "Change", route = "AssetCommand.SelectFolder" }]
 
@@ -63,34 +63,34 @@ events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCom
 [nodes.utility_tab]
 component = "IconButton"
 control_id = "SetUtilityTab"
-props = { label = "Tools", icon = "options-outline" }
+props = { label = "Tools", icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 
 [nodes.activate_reference]
 component = "IconButton"
 control_id = "ActivateReference"
-props = { label = "Use", icon = "link-outline" }
+props = { label = "Use", icon = "editor_pages/asset_browser/references/reference.svg" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/ActivateReference", event = "Click", route = "AssetCommand.ActivateReference" }]
 
 [nodes.open_browser]
 component = "IconButton"
 control_id = "OpenAssetBrowser"
-props = { label = "Browser", icon = "albums-outline" }
+props = { label = "Browser", icon = "editor_pages/asset_browser/navigation/folder.svg" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "AssetCommand.OpenAssetBrowser" }]
 
 [nodes.locate_asset]
 component = "IconButton"
 control_id = "LocateSelectedAsset"
-props = { label = "Locate", icon = "locate-outline" }
+props = { label = "Locate", icon = "editor_pages/asset_browser/navigation/search.svg" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "AssetCommand.LocateSelectedAsset" }]
 
 [nodes.import_model]
 component = "IconButton"
 control_id = "ImportModel"
-props = { label = "Import", icon = "cloud-upload-outline" }
+props = { label = "Import", icon = "editor_pages/asset_browser/import_pipeline/import.svg" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "AssetCommand.ImportModel" }]

@@ -4,16 +4,18 @@ import { CatalogPage, HubTokens, InfoRow } from "components.slint";
 component LearnRow inherits InfoRow {
     in property <LearnData> resource;
     in property <UiTextData> ui-text;
+    in property <bool> collapse-label: false;
     callback open-resource(string);
 
     title: root.resource.title;
     detail: root.resource.summary;
-    meta: root.resource.path;
+    meta: root.resource.source + "    " + root.ui-text.learn-category + ": " + root.resource.category + "    " + root.resource.path;
     leading-image: @image-url("../assets/icons/ui/help.svg");
     has-leading-image: true;
     trailing-text: root.resource.category;
     trailing-tone: "accent";
     show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
     show-arrow: true;
     row-height: HubTokens.list-row-lg + HubTokens.space-6;
     clicked => {
@@ -21,32 +23,27 @@ component LearnRow inherits InfoRow {
     }
 }
 
-export component LearnPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+export component LearnPage inherits CatalogPage {
     in property <[LearnData]> resources;
     in property <int> resource-count;
+    in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <length> list-scroll-y: 0px;
+    private property <string> library-title: root.has-selected-project ? root.ui-text.learn-library-selected : root.ui-text.learn-library;
+    private property <string> resources-empty-detail: root.has-selected-project ? root.ui-text.learn-empty-selected-detail : root.ui-text.learn-empty-global-detail;
     callback open-resource(string);
 
-    background: HubTokens.surface-page;
+    title: root.library-title;
+    badge-text: root.resource-count + " " + root.ui-text.learn-resources-found;
+    badge-tone: "accent";
+    empty-title: root.ui-text.no-learn-resources-found;
+    empty-detail: root.resources-empty-detail;
+    row-count: root.resource-count;
+    row-height: HubTokens.list-row-lg + HubTokens.space-6;
 
-    CatalogPage {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
-        list-scroll-y <=> root.list-scroll-y;
-        title: root.ui-text.learn-library;
-        badge-text: root.resource-count + " " + root.ui-text.learn-resources-found;
-        badge-tone: "accent";
-        empty-title: root.ui-text.no-learn-resources-found;
-        row-count: root.resource-count;
-        row-height: HubTokens.list-row-lg + HubTokens.space-6;
-
-        for resource in root.resources: LearnRow {
-            resource: resource;
-            ui-text: root.ui-text;
-            open-resource(path) => { root.open-resource(path); }
-        }
+    for resource in root.resources: LearnRow {
+        resource: resource;
+        ui-text: root.ui-text;
+        collapse-label: root.content-width < HubTokens.breakpoint-medium;
+        open-resource(path) => { root.open-resource(path); }
     }
 }

@@ -1,5 +1,6 @@
 version = 1
 name = "Default PBR"
+import_path = "zircon::pbr"
 wgsl_files = ["pbr.wgsl"]
 
 [[entry_points]]

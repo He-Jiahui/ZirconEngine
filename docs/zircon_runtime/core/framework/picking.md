@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/picking/mod.rs
   - zircon_runtime/src/core/framework/picking/backend.rs
+  - zircon_runtime/src/core/framework/picking/debug_feed.rs
   - zircon_runtime/src/core/framework/picking/hit_data.rs
   - zircon_runtime/src/core/framework/picking/hit_record.rs
   - zircon_runtime/src/core/framework/picking/hit_target.rs
@@ -24,11 +25,16 @@ related_code:
   - zircon_runtime/src/core/framework/picking/settings.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_route.rs
+  - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
+  - zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs
+  - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 implementation_files:
   - zircon_runtime/src/core/framework/picking/mod.rs
   - zircon_runtime/src/core/framework/picking/backend.rs
+  - zircon_runtime/src/core/framework/picking/debug_feed.rs
   - zircon_runtime/src/core/framework/picking/hit_data.rs
   - zircon_runtime/src/core/framework/picking/hit_record.rs
   - zircon_runtime/src/core/framework/picking/hit_target.rs
@@ -45,6 +51,10 @@ implementation_files:
   - zircon_runtime/src/core/framework/picking/ray_map.rs
   - zircon_runtime/src/core/framework/picking/report.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_route.rs
+  - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
+  - zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs
+  - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 plan_sources:
@@ -100,6 +110,7 @@ The module is split by declaration so the root stays structural:
 - `PickingPointerEvent`, `PickingEventKind`, `PickingEventLabel`, and `PickingEventState` describe runtime-neutral interaction events and the per-pointer/button state machine that emits them.
 - `PrimitivePickingBackend`, `PickingPrimitive`, and `PickingPrimitiveShape` provide a small CPU ray primitive backend for overlay, gizmo, and coarse scene-primitive tests. The first shape is a sphere; exact mesh picking remains a later backend concern.
 - `PickingPipelineReport` and `PickingPointerPipelineReport` provide a stable diagnostics snapshot of one picking frame: ray count, pointer count, backend output count, raw hit count, hovered hit count, blocking pointer count, and per-pointer top/blocking target details.
+- `PickingDebugFeed`, `PickingDebugMetric`, and `PickingDebugPointerRow` convert a pipeline report into stable summary metrics and per-pointer rows for editor overlays, remote tools, and diagnostics panels.
 - `PickingPipelineInput`, `PickingPipelineOutput`, `PickingPipelineStageReport`, and `run_picking_pipeline` provide a reusable plain-Rust stage runner for one picking frame. The runner is intentionally independent of ECS schedules, editor windows, or render backend ownership.
 - `PickingSettings` and `PickingScheduleLabel` reserve the configuration and pipeline labels later used by pointer events and backend orchestration.
 
@@ -109,7 +120,7 @@ The module is split by declaration so the root stays structural:
 
 `ray_from_viewport_point` supports perspective and orthographic camera snapshots using the same transform direction conventions as the current runtime math layer. It returns `None` for zero-sized viewports, out-of-bounds pointer positions, or invalid ray directions.
 
-`sorted_hits_for_pointer` merges backend outputs for a pointer. The current editor cutover priority sorts `HandleAxis` before `SceneGizmo` before `Renderable` before backend order, so a renderable backend cannot steal a transform-handle route by using a higher backend order. Backend order and depth then break ties within the same target priority. This preserves existing editor route behavior while moving the semantics to a runtime-owned contract.
+`sorted_hits_for_pointer` merges backend outputs for a pointer. The current editor cutover priority sorts `HandleAxis` before `SceneGizmo` before `Renderable` before backend order, so a renderable backend cannot steal a transform-handle route by using a higher backend order. Backend order and depth then break ties within the same target priority. This preserves existing editor route behavior while moving the semantics to a runtime-owned contract. A single backend should place all hits for one pointer in one `PointerHits` value; separate `PointerHits` values represent separate backend outputs, not separate targets from the same backend.
 
 `hovered_hits_for_pointer` applies Bevy-style pickability: non-hoverable hits are skipped, non-blocking hits allow lower hits through, and blocking hits stop lower hover resolution after they are considered.
 
@@ -118,6 +129,16 @@ The module is split by declaration so the root stays structural:
 `PrimitivePickingBackend` is a generic CPU ray backend over framework primitives. It casts each `RayMap` ray against registered `PickingPrimitive`s and returns ordinary `PointerHits`. This backend does not inspect the runtime world, editor state, render resources, or selection; it exists so overlays, gizmos, tests, and future render extract adapters can share the same backend contract before exact mesh acceleration data is exposed.
 
 `PickingPipelineReport::from_ray_map_and_outputs` is the M1 diagnostics bridge for dev tools and future editor cutover. It collects pointer ids from both `RayMap` and backend output, so a pointer with a valid camera ray but no backend hits is still visible in diagnostics. Per-pointer reports reuse `sorted_hits_for_pointer` and `hovered_hits_for_pointer` instead of reimplementing ordering; this is deliberate so debug overlays cannot drift from runtime picking semantics. Blocking reports record the first sorted blocking target even when that target is non-hoverable, which makes invisible blockers diagnosable without making them hover events.
+
+`PickingDebugFeed::from_report` is the M2 dev-tools bridge. It does not recompute picking. It only reshapes the already authoritative `PickingPipelineReport` into ordered metrics and pointer rows so an overlay or remote inspector can display ray-only pointers, hovered hit counts, invisible blockers, and top/blocking targets without depending on editor route code.
+
+The editor viewport now consumes this through `ViewportOverlayPointerRouter::debug_feed_at` and through the `ViewportPointerDispatch::picking_debug_feed` field returned by normal move/down dispatch. The method is intentionally a consumer adapter: it uses the UI hit-test stack and editor precision candidates to build one runtime `PointerHits` output for the editor overlay backend, then creates a `PickingPipelineReport` and `PickingDebugFeed`. It does not mutate selection or treat the private editor route enum as the debug authority.
+
+The same dispatch result now carries `ViewportPointerDispatch::runtime_input`, produced from the UI pointer event as a runtime `PointerInput`. This keeps editor input adaptation explicit and runtime-shaped while avoiding editor-owned hover/event synthesis. Move, down, up, and scroll dispatch all resolve through the same runtime route adapter, so editor release and scroll handling cannot drift into a separate route path. Move events currently carry a zero delta because the retained UI event only provides the absolute cursor; a later stateful input collector should compute deltas before driving the full `PickingEventState` path.
+
+The editor router currently exposes only move/down as production convenience methods because those are the viewport controller's active entry points. Up/scroll coverage is exercised through test-only helpers while the production dispatcher and input mapper remain prepared for those event kinds.
+
+The editor precision candidate score used by this adapter carries only screen-space score and projected depth. Editor candidate priority no longer flows through that score object, which prevents the old editor-only resolver semantics from surviving alongside runtime `HitTarget` priority.
 
 `run_picking_pipeline` executes the fixed runtime stage order `Input -> RayMap -> Backend -> Hover -> Events`. It returns all intermediate frame products plus stage counters and the diagnostics report, so editor overlays, remote dev tools, and future runtime debug panels can observe the same picking state without owning the pipeline. When `PickingSettings::enabled` is false, the runner clears `PickingEventState` and returns empty output with every stage marked disabled; this prevents stale hover, press, drag, or click state from surviving a disabled picking frame.
 
@@ -138,6 +159,8 @@ Bevy's event payload stores click duration. Zircon M2 omits timing because no sh
 
 The editor route enum is not removed in this slice. It is a private adapter around `HitTarget` because M1 only freezes the runtime contract. M9 will delete or downgrade the remaining editor pointer/handle code after transform gizmo and pointer events have moved onto runtime primitives.
 
+The M2 editor adapter begins that cutover by converting stacked editor precision candidates into runtime `PointerHits` before route resolution. The editor still computes screen-space candidate geometry from authoring overlays, but category ordering now flows through runtime `HitTarget` and `hovered_hits_for_pointer` instead of an editor-only score resolver.
+
 ## Test Coverage
 
 `zircon_runtime/src/tests/picking/mod.rs` covers:
@@ -157,6 +180,7 @@ The editor route enum is not removed in this slice. It is a private adapter arou
 - drag/drop and scroll event sequencing,
 - cancel filtering of current hover plus pointer interaction state clearing.
 - picking pipeline diagnostics for ray-only pointers, backend output counts, raw/hovered hit counts, top target selection, and blocking non-hoverable targets.
+- picking debug feed summary metrics, ray-only pointer rows, and blocked non-hoverable pointer rows.
 - picking pipeline stage execution, report carry-through, and disabled-frame state clearing.
 
 `zircon_editor/src/tests/editing/viewport.rs` covers:
@@ -183,5 +207,35 @@ Milestone testing evidence for this slice:
 - M1 boundary hardening on 2026-05-21 added ray-map tests for two pointers across two active cameras and for the same pointer id scoped to separate viewport locations.
 - `cargo fmt --all --check` passed on 2026-05-21 after the M1 boundary slice.
 - `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-21 after the M1 boundary slice: 18 focused picking tests passed, 0 failed, 1778 filtered out.
+- M2 editor adapter on 2026-05-21 routed editor precision candidates through runtime `PointerHits` and `hovered_hits_for_pointer`, removing the editor-only `better_score` / `resolve_best_route` dispatcher path.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-m1-20260521-1320 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-21 after clearing stale UI test helper field initializers: 18 focused picking tests passed, 0 failed, 1798 filtered out.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib viewport --locked --color never --jobs 1` passed on 2026-05-21 after the M2 editor adapter slice: 78 focused viewport tests passed, 0 failed, 1342 filtered out.
+- `cargo fmt --all --check` passed on 2026-05-21 after the M2 editor adapter slice.
+- M2 debug-feed hardening on 2026-05-22 added `PickingDebugFeed`, `PickingDebugMetric`, `PickingDebugMetricKind`, and `PickingDebugPointerRow`, plus focused coverage for summary metrics, ray-only pointer rows, and blocked non-hoverable pointer rows.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-debug-20260522-0045 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` passed on 2026-05-22 after clearing the stale `widget_text_input_pointer.rs` binding helper initializer: 20 focused picking tests passed, 0 failed, 1816 filtered out.
+- `rustfmt --edition 2021 --check zircon_runtime/src/core/framework/picking/debug_feed.rs zircon_runtime/src/core/framework/picking/mod.rs zircon_runtime/src/tests/picking/mod.rs zircon_runtime/src/ui/tests/widget_text_input_pointer.rs` passed on 2026-05-22.
+- `cargo fmt --all --check` was attempted on 2026-05-22 and stopped on unrelated active UI/A11y formatting differences in `zircon_runtime/src/ui/accessibility/action.rs`; no picking formatting diagnostics were emitted.
+- M2 editor debug-feed consumption on 2026-05-22 added `ViewportOverlayPointerRouter::debug_feed_at`, backed by `runtime_debug_feed_for_candidates`, plus focused viewport coverage proving overlapping editor overlay candidates produce a runtime `PickingDebugFeed` whose top target matches the dispatched route.
+- `rustfmt --edition 2021 --check zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/viewport_pointer_dispatch.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs zircon_editor/src/scene/viewport/pointer/overlay_router/mod.rs` passed on 2026-05-22 after the editor debug-feed dispatch slice.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib overlay_router_debug_feed_reports_runtime_picking_route_at_point --locked --color never --jobs 1` passed on 2026-05-22 after the dispatch field was added: 1 focused debug-feed test passed, 0 failed, 1422 filtered out.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib viewport --locked --color never --jobs 1` passed on 2026-05-22 after the editor debug-feed dispatch slice: 79 focused viewport tests passed, 0 failed, 1344 filtered out.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-runtime-picking-debug-20260522-0045 CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib picking --locked --color never --jobs 1` and the same command with `--offline` were attempted on 2026-05-22 but did not enter tests because unrelated active manifest edits in `zircon_app/Cargo.toml`, `zircon_plugins/net/features/content_download/runtime/Cargo.toml`, and `zircon_plugins/sound/runtime/Cargo.toml` made Cargo require a `Cargo.lock` update. The picking lane left `Cargo.lock` untouched rather than running non-locked validation for another session's manifest changes.
+- M2 editor input DTO follow-up on 2026-05-22 added `ViewportPointerDispatch::runtime_input` and `runtime_pointer_input_for_event`, mapping editor UI move/down/up/scroll input into runtime `PointerInput` without moving event-state synthesis into editor code.
+- `rustfmt --edition 2021 --check zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs zircon_editor/src/scene/viewport/pointer/viewport_pointer_dispatch.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs` passed on 2026-05-22 after the input DTO follow-up.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib overlay_router_ --locked --color never --jobs 1` was attempted on 2026-05-22 after the input DTO follow-up but did not enter tests because unrelated active manifest edits still required a `Cargo.lock` update.
+- M2 resolver source-guard follow-up on 2026-05-22 added a direct runtime-route test that keeps `HitTarget` priority authoritative even when UI stack order and projected depth favor a renderable candidate, and removed the unused editor precision priority from `CandidateScore`.
+- `rustfmt --edition 2021 --check zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs zircon_editor/src/scene/viewport/pointer/viewport_pointer_dispatch.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs zircon_runtime/src/core/framework/picking/debug_feed.rs zircon_runtime/src/core/framework/picking/mod.rs zircon_runtime/src/tests/picking/mod.rs` passed on 2026-05-22 before the resolver source-guard follow-up.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib overlay_router_ --locked --color never --jobs 1` was retried on 2026-05-22 but still did not enter tests because unrelated active manifest edits required a `Cargo.lock` update.
+- M2 pointer event coverage follow-up on 2026-05-23 made editor up/scroll dispatch use the same runtime route resolver as move/down and added focused source coverage for release and scroll returning runtime input, runtime-picked route, and runtime debug feed output.
+- `rustfmt --edition 2021 --check zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/overlay_router/build_dispatcher.rs zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs` passed on 2026-05-23 after the up/scroll debug-feed coverage follow-up.
+- `CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-picking-m2-20260521-2330 CARGO_INCREMENTAL=0 cargo test -p zircon_editor --lib overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input --locked --color never --jobs 1` was attempted on 2026-05-23 but did not enter tests because unrelated active manifest edits in `zircon_app/Cargo.toml`, `zircon_plugins/net/features/content_download/runtime/Cargo.toml`, and `zircon_plugins/sound/runtime/Cargo.toml` still require a `Cargo.lock` update.
+- `Get-ChildItem zircon_editor/src/scene/viewport/pointer -Recurse -File -Include *.rs | Select-String -Pattern 'resolve_best_route|better_score'` returned no source matches on 2026-05-23, confirming runtime adapter resolution is now the only pointer source route resolver path.
+- `Select-String` source guard for `CandidateScore|priority:` on 2026-05-23 showed `CandidateScore` no longer stores priority; remaining priority matches are candidate z-index inputs, runtime `PickingTargetPriority` constants, and test candidate setup.
+- Directly running `E:\cargo-targets\zircon-review-followup\debug\deps\zircon_editor-88ef940533c92e4c.exe overlay_router_debug_feed_reports_runtime_picking_route_at_point --test-threads=1 --nocapture` passed on 2026-05-25: 1 passed, 0 failed, 1463 filtered out.
+- Directly running `E:\cargo-targets\zircon-review-followup\debug\deps\zircon_editor-88ef940533c92e4c.exe overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input --test-threads=1 --nocapture` passed on 2026-05-25: 1 passed, 0 failed, 1463 filtered out.
+- M2 editor adapter backend-output follow-up on 2026-05-24 packed all scored editor overlay hits for one pointer into one `PointerHits` output, so debug/report backend-output counts now reflect one editor overlay backend rather than one backend output per candidate.
+- `rustfmt --edition 2021 --check zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs` passed on 2026-05-24.
+- `git diff --check -- zircon_editor/src/scene/viewport/pointer/mod.rs zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs docs/zircon_editor/scene/viewport/pointer.md docs/zircon_runtime/core/framework/picking.md .codex/sessions/20260524-1739-review-followup-deferred.md` passed on 2026-05-24 with CRLF warnings only.
+- Focused Cargo validation for `overlay_router_debug_feed_reports_runtime_picking_route_at_point` had three intermediate non-accepted attempts on 2026-05-24/25: one timed out while compiling, one failed before source compilation on transient root lockfile drift, and one compiled but ran 0 tests because `--exact` did not match the fully qualified lib-test name. The warmed lib-test binary was then run directly with the correct substring filter: `& "E:\cargo-targets\zircon-review-followup\debug\deps\zircon_editor-88ef940533c92e4c.exe" overlay_router_debug_feed_reports_runtime_picking_route_at_point --test-threads=1 --nocapture` passed with 1 passed, 0 failed, 1463 filtered out.
 
-The focused runtime M2 picking backend/event validation is accepted by the 12-test locked run above. Because this is a shared framework API, editor viewport and workspace-level validation still need to be rerun before claiming the broader runtime/editor cutover is green.
+The runtime M2 picking backend/event validation remains accepted by the locked runtime runs above. The latest editor adapter/debug-feed slice is accepted by the 2026-05-22 focused editor viewport run, but workspace-level validation still depends on resolving the unrelated active manifest and lockfile drift before claiming the broader runtime/editor cutover is green.

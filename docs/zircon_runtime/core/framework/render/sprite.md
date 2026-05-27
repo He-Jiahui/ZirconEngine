@@ -57,6 +57,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
 plan_sources:
+  - user: 2026-05-21 continue M10 default 2D and presentation base acceptance checklist
   - user: 2026-05-17 continue M6A sprite/default 2D renderer productization
   - user: 2026-05-21 continue Bevy-level render sprite evidence mapping
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
@@ -141,6 +142,14 @@ The concrete sprite renderer builds texture-tinted quads from `ViewportRenderFra
 M6A intentionally keeps the concrete sprite GPU path minimal. Opaque, alpha-mask, and transparent phase passes share one alpha-blended WGPU pipeline today; per-phase depth-write, alpha-mask cutoff discard, batching, material-specific sprite pipelines, texture-atlas asset import, and GPU culling remain later product work.
 
 The accepted M6A scope also does not add `.zmaterial`, shader/material importer schema, material editor UI, anti-aliasing, UI pass placement, advanced VG/HGI integration, or Solari.
+
+## M10R Default 2D Promotion Gate
+
+M10R uses this document as the default 2D side of the M10.4/M10.7 gate. The Bevy baseline is broader than Zircon's current M6A implementation: `2d_bevy_render` includes the render backend, core pipeline, post-process, sprite renderer, and gizmos render collection, while `SpriteRenderPlugin` also installs Mesh2d, ColorMaterial, SpriteMesh, tilemap, extract, queue, bind-group preparation, and phase-sort systems.
+
+For Zircon, the promotable scope is narrower and explicit. `Render2d` may advance to the default Core2d sprite base when product sprite extraction, Core2d phase queues, default Core2d pipeline compilation, sprite graph pass execution, texture fallback stats, and non-particle separation are all covered by focused tests. Mesh2d/SpriteMesh drawing, texture slicing/tiling, atlas asset import/layout projection, batching, per-view pipeline specialization, Text2d, and picking stay open requirements rather than hidden inside the sprite pass.
+
+This gate is paired with the presentation target gate in [Render Product Submit](../../graphics/render-product-submit.md). A screenshot or headless capture is only valid as combined smoke evidence after the sprite product path and camera target error model are both clear; it cannot replace the default 2D renderer evidence above.
 
 ## Test Coverage
 

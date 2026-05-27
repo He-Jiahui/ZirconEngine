@@ -26,6 +26,7 @@ related_code:
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -57,6 +58,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -66,9 +68,12 @@ plan_sources:
   - user: 2026-05-16 continue precise VM host reflection macro implementation
   - user: 2026-05-18 modular reflection content/generated reflection interface documentation
   - user: 2026-05-20 continue ZrVM host reflection follow-up with macro modularity
+  - user: 2026-05-21 continue ZrVM lane 1 real backend hardening
   - docs/superpowers/specs/2026-05-20-zrvm-reflection-macro-modularity-design.md
   - docs/superpowers/plans/2026-05-20-zrvm-reflection-macro-modularity.md
   - docs/superpowers/plans/2026-05-18-zrvm-host-reflection-docs.md
+  - docs/superpowers/specs/2026-05-21-zrvm-real-backend-hardening-design.md
+  - docs/superpowers/plans/2026-05-21-zrvm-real-backend-hardening.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
   - "cargo test -p zircon_runtime script::vm: passed 2026-05-15"
@@ -114,6 +119,10 @@ tests:
   - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity: passed 2026-05-21 closeout validation; 10 passed, 0 failed, 0 doc-tests"
   - "cargo test -p zircon_runtime --lib rust_reflection_macros_generate_type_function_and_module_descriptors --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-21 closeout validation; 1 passed, 0 failed, 1746 filtered out"
   - "cargo test -p zircon_runtime --lib host_reflection_docs_include_macro_generated_builtin_math_module --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macro-modularity --verbose -- --nocapture --test-threads=1: passed 2026-05-21 closeout validation; 1 passed, 0 failed, 1746 filtered out"
+  - "F: free space check before ZrVM real-backend hardening validation: passed 2026-05-24; 93.32 GB free, no target cleanup required for F:\\cargo-targets\\codex-zrvm-real-backend-hardening"
+  - "rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-24"
+  - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-zrvm-real-backend-hardening: passed 2026-05-24; 3 passed, 0 failed, 0 doc-tests"
+  - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug and PATH including E:\\Git\\zr_vm\\build\\codex-msvc-debug\\bin\\Debug: passed 2026-05-24; 11 passed, 0 failed, 3 filtered out"
 doc_type: module-detail
 ---
 
@@ -194,6 +203,12 @@ cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline
 The command requires exactly one output Markdown path, creates missing parent directories through the writer API, and does not commit a machine-specific generated artifact path into the repository. Callers choose where generated interface documentation is emitted.
 
 The built-in math module is the proof that handwritten and macro-generated descriptors flow through one documentation path. `zr.zircon.math` is registered through the reflection macros, then rendered from the same descriptor model as the handwritten built-ins; Milestone 3 generated output was inspected and contained `zr.zircon.math` at line 76.
+
+## Real Backend Lowering Boundary
+
+The real `zr_vm` backend treats `HostExportRegistry` records as already validated neutral descriptors, then applies only target-backend lowering checks. Function arity must fit the `zr_vm` native function ABI (`u16` min/max bounds), `min_argument_count` must not exceed `max_argument_count`, and reflected parameter count must fit the maximum arity. These are backend constraints, not shared descriptor constraints for every future VM backend.
+
+Native callbacks convert ZrVM null, bool, int, float, and string arguments into `ScriptHostValue` before dispatching through `HostExportRegistry::call_with_capabilities`. Host return values lower null, bool, int, float, string, bytes as lossy UTF-8 strings, and `HostHandle` as integers. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
 
 ## Package Protocol
 

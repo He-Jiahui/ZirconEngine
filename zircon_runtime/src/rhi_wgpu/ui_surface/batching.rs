@@ -195,7 +195,7 @@ fn rects_intersect(left: UiSurfaceRect, right: UiSurfaceRect) -> bool {
 mod tests {
     use crate::rhi::{
         UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
-        UiSurfaceRect, UiSurfaceTextStyle,
+        UiSurfaceImageUvRect, UiSurfaceRect, UiSurfaceTextStyle,
     };
 
     use super::*;
@@ -418,6 +418,48 @@ mod tests {
         };
         assert_eq!(draw.resource_key, "atlas://editor/icons");
         assert_eq!(draw.vertices.len(), 18);
+    }
+
+    #[test]
+    fn batch_plan_batches_disjoint_atlas_images_with_same_key_and_distinct_uvs() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                atlas_image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
+                    "atlas://editor/icons",
+                    UiSurfaceImageUvRect {
+                        min: [0.0, 0.0],
+                        max: [0.25, 0.5],
+                    },
+                ),
+                atlas_image(
+                    1,
+                    UiSurfaceRect::new(20.0, 0.0, 10.0, 10.0),
+                    "atlas://editor/icons",
+                    UiSurfaceImageUvRect {
+                        min: [0.25, 0.0],
+                        max: [0.5, 0.5],
+                    },
+                ),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 2);
+        assert_eq!(plan.stats.draw_calls, 1);
+        let [DrawOp::Image(draw)] = plan.ops.as_slice() else {
+            panic!("expected one atlas image batch");
+        };
+        assert_eq!(draw.resource_key, "atlas://editor/icons");
+        assert_eq!(draw.vertices.len(), 12);
+        assert_eq!(draw.vertices[0].uv, [0.0, 0.0]);
+        assert_eq!(draw.vertices[5].uv, [0.25, 0.5]);
+        assert_eq!(draw.vertices[6].uv, [0.25, 0.0]);
+        assert_eq!(draw.vertices[11].uv, [0.5, 0.5]);
     }
 
     #[test]
@@ -668,6 +710,29 @@ mod tests {
                     upload_bytes: 16,
                     rgba: Some(vec![255; 16]),
                     atlas_uv: None,
+                },
+            },
+        }
+    }
+
+    fn atlas_image(
+        z_index: i32,
+        frame: UiSurfaceRect,
+        resource_key: &str,
+        atlas_uv: UiSurfaceImageUvRect,
+    ) -> UiSurfaceCommand {
+        UiSurfaceCommand {
+            z_index,
+            frame,
+            clip: None,
+            kind: UiSurfaceCommandKind::Image {
+                payload: UiSurfaceImagePayload {
+                    resource_key: resource_key.to_string(),
+                    width: 64,
+                    height: 64,
+                    upload_bytes: 64 * 64 * 4,
+                    rgba: Some(vec![255; 64 * 64 * 4]),
+                    atlas_uv: Some(atlas_uv),
                 },
             },
         }

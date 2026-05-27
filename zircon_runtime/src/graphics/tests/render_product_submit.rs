@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::{
+    AlphaMode, AssetReference, AssetUri, MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset,
+    ShaderSourceLanguage,
+};
 use crate::core::framework::render::{
     AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
     FallbackSkyboxKind, GeometryExtract, PreviewEnvironmentExtract, ProjectionMode,
@@ -15,7 +19,8 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+    TextureMarker,
 };
 use crate::graphics::{ViewportRenderFrame, WgpuRenderFramework};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
@@ -242,6 +247,108 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
 }
 
 #[test]
+fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = AssetUri::parse("res://materials/import-note.zmaterial").unwrap();
+    let material_id = ResourceId::from_locator(&material_uri);
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material_with_import_note(),
+        )
+        .expect("material insert");
+
+    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(95),
+        snapshot_with_projection(ProjectionMode::Perspective),
+    );
+    extract.geometry = GeometryExtract::from_meshes(
+        extract.view.core_pipeline,
+        vec![RenderMeshSnapshot {
+            node_id: 601,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "builtin://cube",
+            )),
+            material: ResourceHandle::<MaterialMarker>::new(material_id),
+            tint: Vec4::ONE,
+            mobility: Mobility::Dynamic,
+            render_layer_mask: u32::MAX,
+        }],
+    );
+
+    framework.submit_frame_extract(viewport, extract).unwrap();
+
+    let stats = framework.query_stats().unwrap();
+    assert_eq!(stats.last_material_count, 1);
+    assert_eq!(stats.last_material_ready_count, 1);
+    assert_eq!(stats.last_material_fallback_count, 0);
+    assert_eq!(stats.last_material_validation_error_count, 0);
+    assert_eq!(stats.last_material_diagnostic_count, 1);
+}
+
+#[test]
+fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let shader_uri = AssetUri::parse("res://shaders/uniform-string.zshader").unwrap();
+    let shader_id = ResourceId::from_locator(&shader_uri);
+    asset_manager
+        .assets::<ShaderAsset>()
+        .insert(
+            ResourceRecord::new(shader_id, ResourceKind::Shader, shader_uri),
+            shader_with_string_property(),
+        )
+        .expect("shader insert");
+
+    let material_uri = AssetUri::parse("res://materials/uniform-string.zmaterial").unwrap();
+    let material_id = ResourceId::from_locator(&material_uri);
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material_with_string_property(),
+        )
+        .expect("material insert");
+
+    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(96),
+        snapshot_with_projection(ProjectionMode::Perspective),
+    );
+    extract.geometry = GeometryExtract::from_meshes(
+        extract.view.core_pipeline,
+        vec![RenderMeshSnapshot {
+            node_id: 602,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "builtin://cube",
+            )),
+            material: ResourceHandle::<MaterialMarker>::new(material_id),
+            tint: Vec4::ONE,
+            mobility: Mobility::Dynamic,
+            render_layer_mask: u32::MAX,
+        }],
+    );
+
+    framework.submit_frame_extract(viewport, extract).unwrap();
+
+    let stats = framework.query_stats().unwrap();
+    assert_eq!(stats.last_material_count, 1);
+    assert_eq!(stats.last_material_ready_count, 1);
+    assert_eq!(stats.last_material_fallback_count, 0);
+    assert_eq!(stats.last_material_validation_error_count, 0);
+    assert_eq!(stats.last_material_diagnostic_count, 1);
+}
+
+#[test]
 fn render_product_submit_default_profile_accepts_default_3d_ui_and_2d_sprite_paths() {
     let bundle = RenderProfileBundle::default_render();
     bundle.validate().unwrap();
@@ -458,6 +565,69 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         mobility: Mobility::Dynamic,
         render_layer_mask: u32::MAX,
     }
+}
+
+fn material_with_import_note() -> MaterialAsset {
+    MaterialAsset {
+        name: Some("ImportNote".to_string()),
+        shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        base_color: [1.0, 1.0, 1.0, 1.0],
+        base_color_texture: None,
+        normal_texture: None,
+        metallic: 0.0,
+        roughness: 1.0,
+        metallic_roughness_texture: None,
+        occlusion_texture: None,
+        emissive: [0.0, 0.0, 0.0],
+        emissive_texture: None,
+        alpha_mode: AlphaMode::Opaque,
+        double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: vec![
+            "glTF material imported with generated renderer defaults".to_string()
+        ],
+    }
+}
+
+fn shader_with_string_property() -> ShaderAsset {
+    ShaderAsset {
+        uri: AssetUri::parse("res://shaders/uniform-string.zshader").unwrap(),
+        source_language: ShaderSourceLanguage::Wgsl,
+        source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(1.0); }".to_string(),
+        wgsl_source: String::new(),
+        import_path: None,
+        entry_points: Vec::new(),
+        dependencies: Vec::new(),
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        shader_defs: Vec::new(),
+        property_schema: vec![ShaderMaterialPropertyAsset {
+            name: "debug_label".to_string(),
+            kind: "string".to_string(),
+            required: false,
+            default: None,
+            editor: Default::default(),
+        }],
+        texture_slots: Vec::new(),
+        editor: Default::default(),
+        pipeline_layout: Default::default(),
+        validation_diagnostics: Vec::new(),
+    }
+}
+
+fn material_with_string_property() -> MaterialAsset {
+    let mut material = material_with_import_note();
+    material.name = Some("UniformString".to_string());
+    material.shader = AssetReference::from_locator(
+        AssetUri::parse("res://shaders/uniform-string.zshader").unwrap(),
+    );
+    material.validation_diagnostics.clear();
+    material.property_values.insert(
+        "debug_label".to_string(),
+        toml::Value::String("paint".to_string()),
+    );
+    material
 }
 
 fn default_core3d_acceptance_extract() -> RenderFrameExtract {

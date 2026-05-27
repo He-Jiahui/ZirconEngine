@@ -215,10 +215,12 @@ fn shader_asset() -> ShaderAsset {
         source_language: ShaderSourceLanguage::Wgsl,
         source: String::new(),
         wgsl_source: String::new(),
+        import_path: None,
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: vec![
             ShaderMaterialPropertyAsset {
                 name: "base_color".to_string(),
@@ -244,6 +246,7 @@ fn shader_asset() -> ShaderAsset {
             ShaderTextureSlotAsset {
                 name: "albedo".to_string(),
                 kind: "texture2d".to_string(),
+                required: false,
                 default: Some("white".to_string()),
                 sampler: Some("linear_repeat".to_string()),
                 group: Some("Surface".to_string()),
@@ -253,6 +256,7 @@ fn shader_asset() -> ShaderAsset {
             ShaderTextureSlotAsset {
                 name: "normal".to_string(),
                 kind: "texture2d".to_string(),
+                required: false,
                 default: Some("normal".to_string()),
                 sampler: Some("linear_repeat".to_string()),
                 group: Some("Surface".to_string()),

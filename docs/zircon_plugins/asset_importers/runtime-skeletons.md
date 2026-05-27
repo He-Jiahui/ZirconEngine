@@ -265,10 +265,12 @@ self-contained while production behavior remains plugin-owned.
 
 `gltf_importer` declares `gltf` and `glb` model inputs with
 `runtime.asset.importer.model.gltf` and registers a function backend that parses glTF buffers,
-preserves skinning channels, and emits `ModelAsset` primitives. Its runtime tests now include a
-minimal triangle glTF fixture that exercises the real importer path and validates primitive indices
-plus cooked virtual-geometry source metadata; the fixture has a passing locked package test and the
-crate declares `toml` as a dev-dependency for the test-side `AssetImportContext` metadata table.
+preserves skinning channels, emits `ModelAsset` primitives, and expands Bevy-style labeled subassets.
+`Mesh0/Primitive0` subassets now preserve morph target displacement maps and node-linked skin inverse
+bind matrices beside the compatibility primitive data. Its runtime tests include a minimal triangle
+glTF fixture that exercises the real importer path and validates primitive indices, cooked
+virtual-geometry source metadata, morph target position deltas, and inverse bind matrices; the crate
+declares `toml` as a dev-dependency for the test-side `AssetImportContext` metadata table.
 
 `obj_importer` declares Wavefront `obj` model inputs with
 `runtime.asset.importer.model.obj` and registers a function backend that triangulates OBJ meshes and

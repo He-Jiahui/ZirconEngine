@@ -2,7 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::support::collect_rust_files;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use std::collections::BTreeMap;
+use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 fn source(relative: &str) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
@@ -73,6 +75,76 @@ fn assert_no_legacy_ui_toml(root: PathBuf) {
     }
 }
 
+fn collect_v2_ui_toml_files(root: &Path) -> Vec<PathBuf> {
+    if !root.exists() {
+        return Vec::new();
+    }
+
+    let mut files = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(path) = stack.pop() {
+        if path.is_dir() {
+            for entry in fs::read_dir(&path)
+                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
+            {
+                stack.push(
+                    entry
+                        .unwrap_or_else(|error| {
+                            panic!("read entry under `{}`: {error}", path.display())
+                        })
+                        .path(),
+                );
+            }
+            continue;
+        }
+
+        if path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|file_name| file_name.ends_with(".v2.ui.toml"))
+        {
+            files.push(path);
+        }
+    }
+    files.sort();
+    files
+}
+
+fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
+    if !root.exists() {
+        return Vec::new();
+    }
+
+    let mut files = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(path) = stack.pop() {
+        if path.is_dir() {
+            for entry in fs::read_dir(&path)
+                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
+            {
+                stack.push(
+                    entry
+                        .unwrap_or_else(|error| {
+                            panic!("read entry under `{}`: {error}", path.display())
+                        })
+                        .path(),
+                );
+            }
+            continue;
+        }
+
+        if path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("zui"))
+        {
+            files.push(path);
+        }
+    }
+    files.sort();
+    files
+}
+
 #[test]
 fn build_script_tracks_editor_assets_not_deleted_ui_sources() {
     let build = source("build.rs");
@@ -103,10 +175,85 @@ fn packaged_ui_asset_roots_contain_only_v2_schema_files() {
 }
 
 #[test]
+fn production_v2_ui_toml_assets_do_not_define_components() {
+    let editor_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui");
+    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_editor lives directly under workspace root")
+        .join("zircon_runtime/assets/ui");
+
+    let mut offenders = Vec::new();
+    for path in collect_v2_ui_toml_files(&editor_root)
+        .into_iter()
+        .chain(collect_v2_ui_toml_files(&runtime_root))
+    {
+        let source =
+            fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
+        let document = UiV2AssetLoader::load_toml_str(&source)
+            .unwrap_or_else(|error| panic!("parse {:?}: {error}", path));
+        if document.asset.kind == UiV2AssetKind::Component {
+            offenders.push(path);
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "component prototypes must be .zui assets, not .v2.ui.toml documents: {:?}",
+        offenders
+    );
+}
+
+#[test]
+fn production_zui_assets_are_single_component_documents() {
+    let editor_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui");
+    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_editor lives directly under workspace root")
+        .join("zircon_runtime/assets/ui");
+
+    let mut asset_ids = BTreeMap::<String, PathBuf>::new();
+    let mut zui_count = 0usize;
+    for path in collect_zui_files(&editor_root)
+        .into_iter()
+        .chain(collect_zui_files(&runtime_root))
+    {
+        zui_count += 1;
+        let source =
+            fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
+        let document = UiZuiAssetLoader::load_zui_str(&source)
+            .unwrap_or_else(|error| panic!("parse .zui {:?}: {error}", path));
+        let (component_name, component) = document
+            .components
+            .iter()
+            .next()
+            .unwrap_or_else(|| panic!("{:?} should declare one component", path));
+        assert!(
+            document.nodes.contains_key(&component.root),
+            "{:?} component `{}` root node `{}` should exist",
+            path,
+            component_name,
+            component.root
+        );
+        assert!(
+            asset_ids
+                .insert(document.asset.id.clone(), path.clone())
+                .is_none(),
+            ".zui asset id `{}` should be unique",
+            document.asset.id
+        );
+    }
+
+    assert!(
+        zui_count > 0,
+        "production UI asset roots should contain .zui component assets"
+    );
+}
+
+#[test]
 fn host_template_assets_are_toml_authority_for_editor_shells() {
     let assets: &[(&str, &[&str])] = &[
         (
-            "assets/ui/editor/host/activity_drawer_window.v2.ui.toml",
+            "assets/ui/editor/host/activity_drawer_window.zui",
             &[
                 "ActivityDrawerWindowRoot",
                 "ActivityDrawerWindowContentSlot",
@@ -165,6 +312,7 @@ fn editor_v2_replacement_assets_do_not_keep_same_name_v1_sources() {
         "assets/ui/editor/inspector.ui.toml",
         "assets/ui/editor/project_overview.ui.toml",
         "assets/ui/editor/welcome.ui.toml",
+        "assets/ui/editor/host/activity_drawer_window.v2.ui.toml",
         "assets/ui/editor/host/activity_drawer_window.ui.toml",
         "assets/ui/editor/host/animation_graph_body.ui.toml",
         "assets/ui/editor/host/animation_sequence_body.ui.toml",
@@ -207,7 +355,6 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     let runtime_host = source("src/ui/template_runtime/runtime/runtime_host.rs");
     for required in [
         "editor_main_frame.v2.ui.toml",
-        "activity_drawer_window.v2.ui.toml",
         "workbench_window.v2.ui.toml",
         "asset_window.v2.ui.toml",
         "ui_layout_editor_window.v2.ui.toml",
@@ -237,6 +384,16 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
             "builtin template registry missing v2 asset `{required}`"
         );
     }
+    for component_only in [
+        "activity_drawer_window.v2.ui.toml",
+        "activity_drawer_window.zui",
+    ] {
+        assert!(
+            !registry.contains(component_only),
+            "activity drawer shell is a .zui component import, not a directly registered builtin document `{component_only}`"
+        );
+    }
+
     for forbidden in [
         "editor_main_frame.ui.toml",
         "activity_drawer_window.ui.toml",
@@ -407,8 +564,12 @@ fn welcome_startup_demo_routes_to_component_showcase_window() {
 }
 
 #[test]
-fn component_showcase_imported_zui_components_are_single_component_assets() {
+fn imported_zui_components_are_single_component_assets() {
     for (relative, component) in [
+        (
+            "assets/ui/editor/host/activity_drawer_window.zui",
+            "ActivityDrawerWindow",
+        ),
         (
             "assets/ui/editor/components/showcase_command_toolbar.zui",
             "ShowcaseCommandToolbar",
@@ -1057,6 +1218,7 @@ fn rust_owned_template_node_contract_keeps_retained_widget_state() {
     for required in [
         "pub(crate) struct TemplatePaneNodeData",
         "pub component_role: SharedString",
+        "pub component_variant: SharedString",
         "pub value_number: f32",
         "pub value_percent: f32",
         "pub value_color: Color",

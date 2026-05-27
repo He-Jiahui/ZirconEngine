@@ -10,17 +10,72 @@ related_code:
   - zircon_editor/assets/icons/editor_pages/ui_layout_editor/layout/canvas.svg
   - zircon_editor/assets/icons/editor_pages/console_profiler/logs/log-info.svg
   - zircon_editor/assets/icons/editor_pages/build_plugins/build/build.svg
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_app/src/entry/builtin_modules.rs
+  - zircon_runtime/src/lib.rs
 implementation_files:
   - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
+  - docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
+  - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_app/src/entry/builtin_modules.rs
+  - zircon_runtime/src/lib.rs
 plan_sources:
   - user: 2026-05-20 generate more Editor SVG icons, reference Fyrox, Unity, Unreal main and secondary editor interfaces
   - docs/superpowers/specs/2026-05-20-editor-page-function-svg-icons-design.md
   - docs/superpowers/plans/2026-05-20-editor-page-function-svg-icons.md
+  - user: 2026-05-21 continue improving Editor SVGs; choose A + C: polish existing icons, then prepare UI mapping
+  - docs/superpowers/specs/2026-05-21-editor-svg-polish-ui-mapping-design.md
+  - docs/superpowers/plans/2026-05-21-editor-svg-polish-ui-mapping.md
+  - user: 2026-05-23 wire production Editor templates to accepted editor_pages icon mappings
+  - docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
+  - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
+  - user: 2026-05-25 complete live Editor visual rendering and 16px readability validation for wired editor_pages icons
 tests:
   - asset inventory: 204 SVG files under zircon_editor/assets/icons/editor_pages
+  - page-group inventory: A 61, B 54, C 89 under zircon_editor/assets/icons/editor_pages
   - external-reference scan: no href/image/remote-url references under zircon_editor/assets/icons/editor_pages
   - ASCII scan: no non-ASCII content under zircon_editor/assets/icons/editor_pages
+  - template wiring validation: 39 direct/near rows use expected editor_pages paths, referenced SVGs exist, and 7 gaps remain unchanged
+  - machine-readable header check for docs/zircon_editor/assets/editor-page-function-svg-resources.md, docs/zircon_editor/assets/editor-page-function-icon-template-map.md, and docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
+  - scoped git status check for production templates, editor_pages icons, wiring docs, spec, and plan
+  - repository asset test: cargo test -p zircon_editor --lib repository_assets --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture passed with 1 test, 0 failures, and 1510 filtered on the closeout rerun
+  - retained-host 16px readability test: cargo test -p zircon_editor editor_pages_template_icons_have_readable_16px_raster_footprints --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture
+  - retained-host screenshot gate: cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --ignored --nocapture
+  - live editor build: cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
+  - live editor screenshot: target/visual-layout/editor-live-window-900x620.png
 doc_type: module-detail
 ---
 
@@ -30,7 +85,7 @@ doc_type: module-detail
 
 `zircon_editor/assets/icons/editor_pages` is a Zircon-owned, page-first SVG resource tree for Editor page and function icons. It contains 204 generated SVG files arranged by owning Editor surface before functional category. The taxonomy exists so future retained-host template wiring, icon registry work, or sprite-atlas generation can resolve icons by screen context instead of relying on older generic icon packs.
 
-This asset pass is intentionally asset-only. It does not modify retained-host templates, runtime icon lookup, atlas generation, Rust code, or existing icon packs such as `ionicons`, `zircon_editor_shell`, or `zircon_engine_style`. Current UI behavior remains unchanged until a later integration plan maps these paths into templates or runtime asset catalogs and validates rendering behavior separately.
+The original asset pass was asset-only. The 2026-05-23 template wiring follow-up now references accepted `direct` and `near` paths from production Editor templates, while runtime icon lookup, atlas generation, and existing icon packs such as `ionicons`, `zircon_editor_shell`, or `zircon_engine_style` remain unchanged. The later visual validation pass adds retained-host readability coverage and live Editor build evidence without changing the SVG inventory or gap-row policy.
 
 ## Ownership
 
@@ -194,11 +249,67 @@ Milestone C generated secondary tool pages: `animation_timeline`, `graph_editor`
 
 Milestone D documents the complete taxonomy and reruns the whole-pack acceptance gate. The full inventory is 204 SVG files, equal to A 61 + B 54 + C 89.
 
+## Polish And UI Mapping Follow-Up
+
+The 2026-05-21 polish and mapping pass kept the `editor_pages` inventory stable at 204 SVG files. The page-group distribution remains A 61, B 54, and C 89, so `docs/zircon_editor/assets/icon-resource-audit.md` remains inventory-stable and was not refreshed.
+
+One SVG was edited during the polish pass:
+
+| Path | Reason |
+| --- | --- |
+| `zircon_editor/assets/icons/editor_pages/build_plugins/build/build-settings.svg` | Replaced the previous slider-like settings duplicate with a build/config panel plus gear-like glyph, making it visually distinct from `zircon_editor/assets/icons/editor_pages/graph_editor/shader/parameter.svg` while preserving the same path and build-settings role. |
+
+The 2026-05-21 advisory UI mapping was recorded at `docs/zircon_editor/assets/editor-page-function-icon-template-map.md`. It covered 46 production Editor template icon usages in scope without changing `*.v2.ui.toml`, `.zui`, Rust source, icon registry, atlas, or runtime lookup behavior; the later 2026-05-23 follow-up below wires only accepted production template rows.
+
+Mapping confidence counts after review:
+
+| Confidence | Count |
+| --- | ---: |
+| `direct` | 22 |
+| `near` | 17 |
+| `gap` | 7 |
+
+Remaining `gap` mappings should not be wired to `editor_pages` until a future coverage or UI-design pass resolves the missing role. The current gaps are:
+
+| Template path | Control id or local node | Current icon/value | Gap reason |
+| --- | --- | --- | --- |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `SetTransformSpace` / `set_transform_space` | `resize-outline` | Requires local/world transform-space icon coverage or a more specific transform-space UI decision. |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `SetPreviewSkybox` / `set_preview_skybox` | `cloud-outline` | Requires skybox, cloud, or environment icon coverage. |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `AlignView` / `align_view` | `navigate-outline` | Requires view-align or axis-alignment icon coverage. |
+| `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml` | `SelectItem` / `select_item` | `cube-outline` | Requires a generic asset item or selected-asset role, or a future decision to specialize this control by asset type. |
+| `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml` | `SetViewMode` / `view_mode` | `list-outline` | Requires asset browser list/grid view-mode icon coverage. |
+| `zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml` | `TriggerAction` / `trigger_action` | `flash-outline` | Requires a generic flash/action icon only if this placeholder-like pane action becomes a stable page/function role. |
+| `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml` | `CreateProject` / `create` | `add-circle-outline` | Requires new-project or project-create icon coverage. |
+
+## Template Wiring Follow-Up
+
+The 2026-05-23 template wiring pass converted the prior advisory mapping into production template metadata for accepted rows. It wires all 39 `direct` and `near` rows with repository-icon-root-relative `editor_pages/...svg` values and leaves all 7 `gap` rows unchanged.
+
+The follow-up is driven by `docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md` and `docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md`. It does not add, remove, rename, or rewrite any SVG file, so the inventory remains 204 files with A 61, B 54, and C 89.
+
+Current template wiring status:
+
+| Status | Count | Template behavior |
+| --- | ---: | --- |
+| Wired `direct` rows | 22 | Production templates use the matching `editor_pages/...svg` path. |
+| Wired `near` rows | 17 | Production templates use the accepted close semantic `editor_pages/...svg` path. |
+| Unwired `gap` rows | 7 | Production templates keep the existing generic icon names until future coverage exists. |
+
+Validation for this follow-up reruns the template wiring gate, whole-pack inventory, page-group distribution, forbidden-construct scan, ASCII scan, documentation-header check, scoped git status, and the scoped `zircon_editor` repository asset test.
+
+## Live Visual Validation Follow-Up
+
+The live visual validation pass closes the static-wiring blind spot without changing the icon pack. `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs` now contains `editor_pages_template_icons_have_readable_16px_raster_footprints`, a retained-host painter regression that rasterizes the unique wired `editor_pages` template icon paths at 16 x 16 px through the same template icon path used by production chrome. It rejects missing icons, blank rasters, collapsed footprints smaller than 6 x 6 px, and full-slot silhouettes that would read as solid blocks instead of icons.
+
+The existing ignored screenshot gate `capture_m3_gui_acceptance_visual_artifacts` generated retained-host artifacts under `target/visual-layout`, including `editor-window-m3-svg-icon-scale-small-640x420.png` and `editor-window-m3-svg-icon-scale-large-1260x780.png`. A live Editor smoke capture then launched the built `zircon_editor.exe` and wrote `target/visual-layout/editor-live-window-900x620.png`; the OS window capture reported title `Zircon Editor`, actual PNG size `1296 x 759`, and `86492` bytes.
+
+The live binary build required two build-boundary corrections outside the icon pack itself. `zircon_runtime/src/lib.rs` now re-exports the manifest-specific runtime-profile helper APIs already owned by `zircon_runtime::builtin`, and `zircon_app/src/entry/builtin_modules.rs` clones the optional project manifest before the feature-registration resolver path consumes it. These fixes keep app bootstrap on the existing profile/provider architecture while making the editor-host binary compile for live validation.
+
 ## Integration Boundary
 
-This pack does not currently participate in retained-host template rendering. No `*.v2.ui.toml` template, `Icon`, `IconButton`, runtime asset registry, atlas generator, or Rust module is changed by this documentation milestone. Future UI wiring should be handled as a separate behavior change with its own validation for retained-host template loading, fallback behavior, rendering, atlas packing if used, and page-specific icon lookup rules.
+This pack now participates in production retained-host template metadata for accepted `direct` and `near` mappings. Runtime asset registries and atlas generation remain unchanged by the wiring pass. The visual validation follow-up adds test/build evidence around the existing retained-host icon resolver, but it does not introduce a new runtime asset registry, atlas path, or page-specific lookup rule.
 
-Until such wiring exists, these icons are validated as repository assets only. Their contract is path stability, SVG self-containment, ASCII content, and documented ownership.
+The icon pack contract remains path stability, SVG self-containment, ASCII content, and documented ownership.
 
 ## Validation Evidence
 
@@ -213,4 +324,49 @@ Milestone D used PowerShell/.NET fallback scans because `rg` was not available i
 | External-reference scan | `zircon_editor/assets/icons/editor_pages` | pass | No files reported `href=`, `<image`, or `url(http` matches. |
 | ASCII scan | `zircon_editor/assets/icons/editor_pages` | pass | No generated SVG file contained bytes greater than `0x7f`. |
 
+Milestone 3 final validation reran the whole-pack gate after the polish and mapping documentation update.
+
+| Check | Scope | Result | Evidence |
+| --- | --- | --- | --- |
+| Full asset inventory | `zircon_editor/assets/icons/editor_pages/**/*.svg` | pass | Fresh validation counted 204 SVG files. |
+| Page-group inventory | A `workbench`, `scene_viewport`, `hierarchy`; B `asset_browser`, `inspector`; C `animation_timeline`, `graph_editor`, `ui_layout_editor`, `console_profiler`, `build_plugins` | pass | Fresh validation counted A 61, B 54, and C 89 SVG files. |
+| Forbidden construct scan | `zircon_editor/assets/icons/editor_pages` | pass | Fresh validation reported no `<image`, `href=`, `<use`, `<symbol`, `<script`, `<style`, `style=`, `class=`, `@font`, `font-family`, or remote `url(http` matches. |
+| ASCII scan | `zircon_editor/assets/icons/editor_pages` | pass | Fresh validation reported no SVG bytes greater than `0x7f`. |
+| Header check | `docs/zircon_editor/assets/editor-page-function-svg-resources.md`; `docs/zircon_editor/assets/editor-page-function-icon-template-map.md` | pass | Both documents start with machine-readable YAML headers containing `related_code`, `implementation_files`, `plan_sources`, `tests`, and `doc_type`. |
+| UI template status check | `zircon_editor/assets/ui/editor` | pass | Scoped git status reported no modified UI template files for this plan. |
+
 The design spec remains unchanged because the final inventory matches the approved 204-icon list and taxonomy.
+
+Milestone 2 final validation reran the wiring and asset gate after production template wiring.
+
+Commands rerun for this gate:
+
+| Command | Purpose |
+| --- | --- |
+| PowerShell template-map script over the 46 production rows from `docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md` | Confirm 39 expected wired rows, referenced SVG existence, 22 `direct`, 17 `near`, and 7 unchanged `gap` rows. |
+| PowerShell `Get-ChildItem -Recurse -Filter *.svg` under `zircon_editor/assets/icons/editor_pages` | Confirm full SVG inventory and A/B/C group counts. |
+| PowerShell forbidden-construct scan for `<image`, `href=`, `<use`, `<symbol`, `<script`, `<style`, `style=`, `class=`, `@font`, `font-family`, and `url(http` | Confirm SVG files remain self-contained and registry/atlas-safe. |
+| PowerShell byte scan over `zircon_editor/assets/icons/editor_pages/**/*.svg` | Confirm SVG files remain ASCII-only. |
+| PowerShell YAML-header check for the two asset docs and the 2026-05-23 wiring design spec | Confirm machine-readable headers contain `related_code`, `implementation_files`, `plan_sources`, `tests`, and `doc_type`. |
+| `git status --short -- zircon_editor/assets/ui/editor zircon_editor/assets/icons/editor_pages docs/zircon_editor/assets/editor-page-function-icon-template-map.md docs/zircon_editor/assets/editor-page-function-svg-resources.md docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md` | Confirm intended docs and pre-existing Milestone 1 paths against unrelated dirty workspace state. |
+| `cargo test -p zircon_editor --lib repository_assets --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture` | Attempt scoped repository asset test after static asset/template checks. |
+
+| Check | Scope | Result | Evidence |
+| --- | --- | --- | --- |
+| Template wiring validation | 46 mapped production rows | pass | Validation confirmed 39 wired `direct`/`near` rows use expected `editor_pages/...svg` values, every referenced SVG exists under `zircon_editor/assets/icons`, and all 7 `gap` rows retain their original generic icon values. |
+| Full asset inventory | `zircon_editor/assets/icons/editor_pages/**/*.svg` | pass | Fresh validation counted 204 SVG files. |
+| Page-group inventory | A `workbench`, `scene_viewport`, `hierarchy`; B `asset_browser`, `inspector`; C `animation_timeline`, `graph_editor`, `ui_layout_editor`, `console_profiler`, `build_plugins` | pass | Fresh validation counted A 61, B 54, and C 89 SVG files. |
+| Forbidden construct scan | `zircon_editor/assets/icons/editor_pages` | pass | Fresh validation reported no `<image`, `href=`, `<use`, `<symbol`, `<script`, `<style`, `style=`, `class=`, `@font`, `font-family`, or remote `url(http` matches. |
+| ASCII scan | `zircon_editor/assets/icons/editor_pages` | pass | Fresh validation reported no SVG bytes greater than `0x7f`. |
+| Header check | `docs/zircon_editor/assets/editor-page-function-icon-template-map.md`; `docs/zircon_editor/assets/editor-page-function-svg-resources.md`; `docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md` | pass | All three documents start with machine-readable YAML headers containing `related_code`, `implementation_files`, `plan_sources`, `tests`, and `doc_type`. |
+| Scoped git status check | `zircon_editor/assets/ui/editor`; `zircon_editor/assets/icons/editor_pages`; wiring docs, spec, and plan | reviewed | Broad scoped status reported intended dirty template/docs/icon-polish files for this wiring/doc audit. It also surfaced pre-existing unrelated `zircon_editor/assets/ui/editor/material_components/*.zui` dirty files under the broad UI path; those Material component lab files are out of scope for this pass, were not modified by this wiring pass, and are not intended changes. |
+| Repository asset test | `zircon_editor` library `repository_assets` tests | pass | `cargo test -p zircon_editor --lib repository_assets --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture` passed with 1 test, 0 failures, and 1510 filtered on the closeout rerun. |
+
+Visual validation evidence added after the static wiring gate:
+
+| Check | Scope | Result | Evidence |
+| --- | --- | --- | --- |
+| 16px retained-host readability | 29 unique wired `editor_pages` template icon paths | pass | `cargo test -p zircon_editor editor_pages_template_icons_have_readable_16px_raster_footprints --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture` passed on the closeout rerun with 1 test, 0 failures, and 1510 filtered; it printed per-icon `ICON_16PX_READABILITY` footprints. |
+| Retained-host screenshot artifact gate | M3 workbench, asset browser, assets drawer, menu popup SVG icons, and small/large SVG icon scaling screenshots | pass | `cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --ignored --nocapture` passed in the earlier visual pass and wrote PNGs under `target/visual-layout`. |
+| Live editor-host binary build | `zircon_app` editor-host executable | pass | `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation` passed on the closeout rerun after the app/runtime build-boundary fixes. |
+| Live Editor native window capture | `target/visual-layout/editor-live-window-900x620.png` | captured | The live capture reported title `Zircon Editor`, actual PNG dimensions `1296 x 759`, and `86492` bytes. |

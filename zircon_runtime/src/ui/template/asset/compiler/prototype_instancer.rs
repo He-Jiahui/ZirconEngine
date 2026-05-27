@@ -9,7 +9,10 @@ use zircon_runtime_interface::ui::template::{
     UiPrototypeChildMount, UiPrototypeNodeHandle, UiRawAssetPrototype, UiTemplateNode,
 };
 
-use super::style_apply::{apply_styles_to_tree, build_style_plan};
+use super::style_apply::{
+    append_mui_style_classes, apply_mui_child_slot_props, apply_mui_root_slot_props_to_node,
+    apply_mui_sx_to_node, apply_styles_to_tree, build_style_plan,
+};
 use super::ui_document_compiler::{ResolvedStyleSheet, UiCompiledDocument, UiDocumentCompiler};
 use super::value_normalizer::{
     append_classes, build_prototype_attribute_map, compose_tokens, merge_value_maps,
@@ -532,6 +535,10 @@ fn apply_prototype_child_mount(
     params: &BTreeMap<String, Value>,
 ) -> Vec<UiTemplateNode> {
     let mut slot = resolve_value_map(&child.slot, tokens, params);
+    if let Some(mount) = child.mount.as_deref().filter(|mount| !mount.is_empty()) {
+        slot.entry("mui_slot".to_string())
+            .or_insert_with(|| Value::String(mount.to_string()));
+    }
     normalize_layout(&mut slot);
     nodes
         .into_iter()
@@ -706,10 +713,16 @@ fn apply_prototype_styles(
 fn apply_prototype_inline_styles_iterative(root: &mut UiTemplateNode) {
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
+        apply_mui_root_slot_props_to_node(node);
+        append_mui_style_classes(node);
         if !node.style_overrides.is_empty() {
+            apply_mui_sx_to_node(node);
             let inline = node.style_overrides.clone();
             merge_value_maps(&mut node.attributes, &inline);
+        } else {
+            apply_mui_sx_to_node(node);
         }
+        apply_mui_child_slot_props(node);
         stack.extend(node.children.iter_mut());
     }
 }

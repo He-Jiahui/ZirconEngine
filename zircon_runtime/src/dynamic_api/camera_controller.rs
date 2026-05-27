@@ -1,4 +1,5 @@
-use crate::core::math::{Transform, UVec2, Vec2, Vec3};
+use crate::core::framework::camera_controller::{OrbitCameraController, OrbitCameraInput};
+use crate::core::math::{clamp_viewport_size, UVec2, Vec2, Vec3};
 use crate::scene::Scene;
 
 #[derive(Clone, Copy, Debug)]
@@ -10,15 +11,15 @@ enum DragState {
 #[derive(Clone, Debug)]
 pub(super) struct RuntimeCameraController {
     viewport_size: UVec2,
-    orbit_target: Vec3,
+    orbit: OrbitCameraController,
     drag: Option<DragState>,
 }
 
 impl RuntimeCameraController {
     pub(super) fn new(viewport_size: UVec2) -> Self {
         Self {
-            viewport_size: clamp_size(viewport_size),
-            orbit_target: Vec3::ZERO,
+            viewport_size: clamp_viewport_size(viewport_size),
+            orbit: OrbitCameraController::with_target(Vec3::ZERO),
             drag: None,
         }
     }
@@ -28,11 +29,11 @@ impl RuntimeCameraController {
     }
 
     pub(super) fn resize(&mut self, size: UVec2) {
-        self.viewport_size = clamp_size(size);
+        self.viewport_size = clamp_viewport_size(size);
     }
 
     pub(super) fn set_orbit_target(&mut self, target: Vec3) {
-        self.orbit_target = target;
+        self.orbit.set_target(target);
     }
 
     pub(super) fn pointer_moved(&mut self, scene: &mut Scene, position: Vec2) {
@@ -73,68 +74,55 @@ impl RuntimeCameraController {
         self.apply_zoom(scene, delta);
     }
 
-    fn apply_orbit(&self, scene: &mut Scene, previous: Vec2, current: Vec2) {
-        let delta = (current - previous) * 0.01;
+    fn apply_orbit(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
         let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
-        let offset = camera.transform.translation - self.orbit_target;
-        let distance = offset.length().max(0.001);
-        let mut yaw = offset.x.atan2(offset.z);
-        let horizontal = (offset.x * offset.x + offset.z * offset.z)
-            .sqrt()
-            .max(0.001);
-        let mut pitch = offset.y.atan2(horizontal);
-
-        yaw -= delta.x;
-        pitch = (pitch + delta.y).clamp(-1.4, 1.4);
-
-        let next_offset = Vec3::new(
-            distance * pitch.cos() * yaw.sin(),
-            distance * pitch.sin(),
-            distance * pitch.cos() * yaw.cos(),
+        let output = self.orbit.update(
+            camera.transform,
+            OrbitCameraInput::orbit(previous, current).with_viewport_size(self.viewport_size),
         );
-        let transform =
-            Transform::looking_at(self.orbit_target + next_offset, self.orbit_target, Vec3::Y);
-        let _ = scene.update_transform(camera.id, transform);
+        let _ = scene.update_transform(camera.id, output.transform);
     }
 
     fn apply_pan(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
-        let delta = current - previous;
         let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
-        let distance = (camera.transform.translation - self.orbit_target)
-            .length()
-            .max(0.5);
-        let world_per_pixel = distance * 0.0015;
-        let translation = (-camera.transform.right() * delta.x + camera.transform.up() * delta.y)
-            * world_per_pixel;
-        let transform = Transform {
-            translation: camera.transform.translation + translation,
-            ..camera.transform
-        };
-        self.orbit_target += translation;
-        let _ = scene.update_transform(camera.id, transform);
+        let output = self.orbit.update(
+            camera.transform,
+            OrbitCameraInput::pan(previous, current).with_viewport_size(self.viewport_size),
+        );
+        let _ = scene.update_transform(camera.id, output.transform);
     }
 
-    fn apply_zoom(&self, scene: &mut Scene, delta: f32) {
+    fn apply_zoom(&mut self, scene: &mut Scene, delta: f32) {
         let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
-        let direction = camera.transform.forward();
-        let distance = (camera.transform.translation - self.orbit_target)
-            .length()
-            .max(0.25);
-        let step = (distance * 0.15 * delta.signum()).min(distance - 0.25);
-        let transform = Transform {
-            translation: camera.transform.translation + direction * step,
-            ..camera.transform
-        };
-        let _ = scene.update_transform(camera.id, transform);
+        let output = self.orbit.update(
+            camera.transform,
+            OrbitCameraInput::zoom(delta).with_viewport_size(self.viewport_size),
+        );
+        let _ = scene.update_transform(camera.id, output.transform);
     }
 }
 
-fn clamp_size(size: UVec2) -> UVec2 {
-    UVec2::new(size.x.max(1), size.y.max(1))
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dynamic_runtime_camera_controller_scroll_uses_runtime_orbit_controller() {
+        let mut scene = Scene::new();
+        let camera = scene.active_camera();
+        let before = scene.find_node(camera).unwrap().transform;
+        let mut controller = RuntimeCameraController::new(UVec2::new(800, 600));
+
+        controller.set_orbit_target(Vec3::ZERO);
+        controller.scrolled(&mut scene, 1.0);
+
+        let after = scene.find_node(camera).unwrap().transform;
+        assert!(after.translation.length() < before.translation.length());
+    }
 }

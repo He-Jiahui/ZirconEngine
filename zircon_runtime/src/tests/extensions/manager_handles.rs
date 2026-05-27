@@ -1,4 +1,4 @@
-#[test]
+﻿#[test]
 fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
@@ -33,6 +33,10 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     let sound_service_source =
         std::fs::read_to_string(plugin_root.join("sound/runtime/src/service_types.rs"))
             .unwrap_or_default();
+    let sound_manager_trait_source = std::fs::read_to_string(
+        plugin_root.join("sound/runtime/src/service_types/manager_trait.rs"),
+    )
+    .unwrap_or_default();
     let manager_mod_source =
         std::fs::read_to_string(runtime_root.join("src/core/manager/mod.rs")).unwrap_or_default();
     let manager_resolver_source =
@@ -85,7 +89,9 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
         "SOUND_MANAGER_NAME",
     ] {
         assert!(
-            sound_mod_source.contains(required) || sound_service_source.contains(required),
+            sound_mod_source.contains(required)
+                || sound_service_source.contains(required)
+                || sound_manager_trait_source.contains(required),
             "sound plugin should keep its framework-backed manager service wiring `{required}`"
         );
     }

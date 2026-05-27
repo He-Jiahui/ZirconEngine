@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{collections::BTreeMap, sync::OnceLock};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;
@@ -9,21 +9,33 @@ use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
 
 mod collection_fields;
+mod popup_frame;
 pub(crate) mod preview_images;
+mod progress_value;
 mod showcase_actions;
+mod surface_defaults;
+mod transition_metadata;
 
 use self::collection_fields::collection_fields_for_component;
+use self::popup_frame::projected_popup_frame;
 use self::preview_images::load_preview_image;
+use self::progress_value::projected_value_percent;
 use self::showcase_actions::{
     preferred_showcase_action_buttons, preferred_showcase_action_id,
     preferred_showcase_commit_action_id, preferred_showcase_drag_action_id,
     preferred_showcase_edit_action_id, preferred_showcase_pointer_drag_action_id,
 };
+use self::surface_defaults::{
+    projected_border_width, projected_component_variant, projected_corner_radius,
+    projected_elevation, projected_surface_variant, projected_text_tone,
+    projected_validation_level, projected_z_index,
+};
+use self::transition_metadata::projected_transition_metadata;
 use super::pane_menu_projection::structured_menu_items;
 use super::pane_option_projection::structured_options_for_node;
 use super::pane_value_conversion::{
-    normalized_value_percent, value_as_bool, value_as_color, value_as_f64, value_as_float_array,
-    value_as_options, value_as_string,
+    value_as_bool, value_as_color, value_as_f64, value_as_float_array, value_as_options,
+    value_as_string,
 };
 
 fn to_host_contract_shared_string_list(
@@ -51,11 +63,14 @@ pub(super) fn host_template_node(
         || node.attributes.get("enabled").and_then(value_as_bool) == Some(false);
     let component_role = component_descriptor
         .map(|descriptor| descriptor.role.clone())
+        .filter(|role| !role.is_empty())
+        .or_else(|| {
+            let role = crate::ui::layouts::views::resolve_component_role(&component);
+            (!role.is_empty()).then(|| role.to_string())
+        })
         .unwrap_or_default();
-    let value_text = node
-        .attributes
-        .get("value_text")
-        .and_then(value_as_string)
+    let value_text = projected_badge_value_text(component_role.as_str(), &node.attributes)
+        .or_else(|| node.attributes.get("value_text").and_then(value_as_string))
         .or_else(|| {
             node.attributes
                 .get("value")
@@ -68,10 +83,16 @@ pub(super) fn host_template_node(
     let value_number = node
         .attributes
         .get("value")
+        .or_else(|| node.attributes.get("progress"))
         .and_then(value_as_f64)
         .unwrap_or(0.0);
-    let value_percent = normalized_value_percent(
+    let value_percent = projected_value_percent(
+        component_role.as_str(),
         value_number,
+        node.attributes
+            .get("value_percent")
+            .or_else(|| node.attributes.get("progress_percent"))
+            .and_then(value_as_f64),
         node.attributes.get("min").and_then(value_as_f64),
         node.attributes.get("max").and_then(value_as_f64),
     );
@@ -114,14 +135,12 @@ pub(super) fn host_template_node(
         .get("value")
         .and_then(value_as_float_array)
         .unwrap_or_default();
-    let validation_level = node
-        .attributes
-        .get("validation_level")
-        .and_then(value_as_string)
-        .or_else(|| {
-            component_descriptor.map(|_| if disabled { "disabled" } else { "normal" }.to_string())
-        })
-        .unwrap_or_default();
+    let validation_level = projected_validation_level(
+        &node.attributes,
+        component_role.as_str(),
+        disabled,
+        component_descriptor.is_some(),
+    );
     let selection_state = node
         .attributes
         .get("selection_state")
@@ -284,6 +303,7 @@ pub(super) fn host_template_node(
     let popup_open = node
         .attributes
         .get("popup_open")
+        .or_else(|| node.attributes.get("open"))
         .and_then(value_as_bool)
         .unwrap_or(false);
     let popup_anchor_x = node
@@ -297,6 +317,17 @@ pub(super) fn host_template_node(
         .and_then(value_as_f64)
         .map(|value| value as f32);
     let has_popup_anchor = popup_anchor_x.is_some() && popup_anchor_y.is_some();
+    let frame = projected_popup_frame(
+        &node.attributes,
+        component_role.as_str(),
+        popup_open,
+        popup_anchor_x,
+        popup_anchor_y,
+        node.frame.x,
+        node.frame.y,
+        node.frame.width,
+        node.frame.height,
+    );
     let accepted_drag_payloads = component_descriptor
         .map(|descriptor| {
             descriptor
@@ -343,27 +374,28 @@ pub(super) fn host_template_node(
     } else {
         ""
     };
-    let text = node
-        .attributes
-        .get("text")
-        .or_else(|| node.attributes.get("label"))
-        .and_then(value_as_string)
-        .filter(|value| !value.is_empty())
+    let text_names: &[&str] = match component_role.as_str() {
+        "card-header" => &["text", "label", "title", "subheader"],
+        "snackbar" | "snackbar-content" => &["text", "label", "message"],
+        _ => &["text", "label"],
+    };
+    let text = first_non_empty_string_attribute(&node.attributes, text_names)
         .or_else(|| {
             (!node.bindings.is_empty() || should_humanize_control_label(&control_id))
                 .then(|| humanize_control_id(&control_id))
         })
         .unwrap_or_default();
-    let surface_variant = node
-        .attributes
-        .get("surface_variant")
-        .and_then(value_as_string)
-        .unwrap_or_default();
-    let text_tone = node
-        .attributes
-        .get("text_tone")
-        .and_then(value_as_string)
-        .unwrap_or_default();
+    let component_variant = projected_component_variant(&node.attributes, component_role.as_str());
+    let surface_variant = projected_surface_variant(
+        &node.attributes,
+        component_role.as_str(),
+        &component_variant,
+    );
+    let text_tone = projected_text_tone(
+        &node.attributes,
+        component_role.as_str(),
+        &component_variant,
+    );
     let button_variant = node
         .attributes
         .get("button_variant")
@@ -383,29 +415,34 @@ pub(super) fn host_template_node(
     let text_align = node
         .attributes
         .get("text_align")
+        .or_else(|| node.attributes.get("textAlign"))
         .and_then(value_as_string)
-        .unwrap_or_else(|| "left".to_string());
+        .unwrap_or_else(|| {
+            if component_role.as_str() == "divider" {
+                "center".to_string()
+            } else {
+                "left".to_string()
+            }
+        });
     let overflow = node
         .attributes
         .get("overflow")
         .and_then(value_as_string)
         .unwrap_or_default();
-    let corner_radius = node
-        .attributes
-        .get("corner_radius")
-        .or_else(|| node.attributes.get("radius"))
-        .and_then(value_as_f64)
-        .unwrap_or(0.0) as f32;
-    let border_width = node
-        .attributes
-        .get("border_width")
-        .and_then(value_as_f64)
-        .unwrap_or(0.0) as f32;
-    let elevation = node
-        .attributes
-        .get("elevation")
-        .and_then(value_as_f64)
-        .unwrap_or(0.0) as f32;
+    let corner_radius = projected_corner_radius(&node.attributes, component_role.as_str());
+    let border_width = projected_border_width(
+        &node.attributes,
+        component_role.as_str(),
+        &component_variant,
+    );
+    let elevation = projected_elevation(
+        &node.attributes,
+        component_role.as_str(),
+        &component_variant,
+    );
+    let z_index = projected_z_index(&node.attributes, component_role.as_str(), node.z_index);
+    let transition =
+        projected_transition_metadata(&node.attributes, component_role.as_str(), popup_open);
     let state_layer_enabled = node
         .attributes
         .get("state_layer_enabled")
@@ -454,6 +491,7 @@ pub(super) fn host_template_node(
         role: component.into(),
         text: text.into(),
         component_role: component_role.into(),
+        component_variant: component_variant.into(),
         value_text: value_text.into(),
         value_number: value_number as f32,
         value_percent,
@@ -559,6 +597,13 @@ pub(super) fn host_template_node(
         ripple_pressed_x,
         ripple_pressed_y,
         ripple_unclipped: !clip_ripple,
+        transition_kind: transition.kind.into(),
+        transition_in: transition.active,
+        transition_entered: transition.entered,
+        transition_progress: transition.progress,
+        transition_duration_ms: transition.duration_ms,
+        transition_easing: transition.easing.into(),
+        transition_direction: transition.direction.into(),
         drop_hovered: node
             .attributes
             .get("drop_hovered")
@@ -589,6 +634,7 @@ pub(super) fn host_template_node(
         corner_radius,
         border_width,
         elevation,
+        z_index,
         has_clip_frame: node.clip_frame.is_some(),
         clip_frame: node
             .clip_frame
@@ -599,19 +645,54 @@ pub(super) fn host_template_node(
                 height: clip.height,
             })
             .unwrap_or_default(),
-        frame: host_contract::TemplateNodeFrameData {
-            x: node.frame.x,
-            y: node.frame.y,
-            width: node.frame.width,
-            height: node.frame.height,
-        },
+        frame,
     })
+}
+
+fn projected_badge_value_text(
+    component_role: &str,
+    attributes: &BTreeMap<String, toml::Value>,
+) -> Option<String> {
+    if component_role != "badge" {
+        return None;
+    }
+    let variant = attributes
+        .get("variant")
+        .or_else(|| attributes.get("mui_variant"))
+        .and_then(value_as_string)
+        .unwrap_or_else(|| "standard".to_string());
+    if variant == "dot" {
+        return Some(String::new());
+    }
+    let content = attributes
+        .get("badgeContent")
+        .or_else(|| attributes.get("badge_content"))?;
+    let max = attributes.get("max").and_then(value_as_f64).unwrap_or(99.0);
+    if badge_content_number(content).is_some_and(|value| value > max) {
+        return Some(format!("{}+", max.round() as i64));
+    }
+    Some(UiValue::from_toml(content).display_text())
+}
+
+fn badge_content_number(value: &toml::Value) -> Option<f64> {
+    value_as_f64(value).or_else(|| value_as_string(value)?.trim().parse::<f64>().ok())
 }
 
 fn value_as_i32(value: &toml::Value) -> Option<i32> {
     value
         .as_integer()
         .and_then(|value| i32::try_from(value).ok())
+}
+
+fn first_non_empty_string_attribute(
+    attributes: &std::collections::BTreeMap<String, toml::Value>,
+    names: &[&str],
+) -> Option<String> {
+    names
+        .iter()
+        .filter_map(|name| attributes.get(*name))
+        .filter_map(value_as_string)
+        .find(|value| !value.is_empty())
 }
 
 fn vec_component(values: &[f32], index: usize, default: f32) -> f32 {
@@ -690,309 +771,19 @@ fn primary_submit_binding_id(
 
 fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
     static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
-    UI_COMPONENT_REGISTRY.get_or_init(UiComponentDescriptorRegistry::editor_showcase)
+    UI_COMPONENT_REGISTRY.get_or_init(|| {
+        let mut registry = UiComponentDescriptorRegistry::editor_showcase();
+        for descriptor in UiComponentDescriptorRegistry::material_editor_foundation()
+            .descriptors()
+            .cloned()
+        {
+            registry
+                .register(descriptor)
+                .expect("retained host component registry descriptors must validate");
+        }
+        registry
+    })
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::*;
-    use crate::ui::template_runtime::RetainedUiHostBindingProjection;
-    use toml::Value;
-    use zircon_runtime_interface::ui::layout::UiFrame;
-
-    #[test]
-    fn runtime_component_projection_preserves_virtualization_and_pagination_metadata() {
-        let virtual_list = host_template_node(projected_node(
-            "VirtualList",
-            [
-                ("item_extent", Value::Float(32.0)),
-                ("overscan", Value::Integer(4)),
-                ("total_count", Value::Integer(1000)),
-                ("viewport_start", Value::Integer(120)),
-                ("viewport_count", Value::Integer(40)),
-            ],
-        ))
-        .expect("VirtualList should project into the host contract");
-
-        assert!(virtual_list.virtualization_enabled);
-        assert_eq!(virtual_list.virtualization_item_extent, 32.0);
-        assert_eq!(virtual_list.virtualization_overscan, 4);
-        assert_eq!(virtual_list.virtualization_total_count, 1000);
-        assert_eq!(virtual_list.virtualization_visible_start, 120);
-        assert_eq!(virtual_list.virtualization_visible_count, 40);
-
-        let paged_list = host_template_node(projected_node(
-            "PagedList",
-            [
-                ("total_count", Value::Integer(2500)),
-                ("page_index", Value::Integer(3)),
-                ("page_size", Value::Integer(100)),
-                ("page_count", Value::Integer(25)),
-            ],
-        ))
-        .expect("PagedList should project into the host contract");
-
-        assert!(!paged_list.virtualization_enabled);
-        assert_eq!(paged_list.pagination_total_count, 2500);
-        assert_eq!(paged_list.pagination_page_index, 3);
-        assert_eq!(paged_list.pagination_page_size, 100);
-        assert_eq!(paged_list.pagination_page_count, 25);
-    }
-
-    #[test]
-    fn runtime_component_projection_slices_virtualized_visible_collection_items() {
-        let virtual_list = host_template_node(projected_node(
-            "VirtualList",
-            [
-                (
-                    "collection_items",
-                    string_array((0..20).map(|index| format!("Item {index}"))),
-                ),
-                ("viewport_start", Value::Integer(10)),
-                ("viewport_count", Value::Integer(5)),
-                ("overscan", Value::Integer(2)),
-            ],
-        ))
-        .expect("VirtualList should project a visible collection window");
-
-        assert_eq!(virtual_list.collection_items.row_count(), 9);
-        assert_eq!(
-            virtual_list.collection_items.row_data(0).as_deref(),
-            Some("Item 8")
-        );
-        assert_eq!(
-            virtual_list.collection_items.row_data(8).as_deref(),
-            Some("Item 16")
-        );
-    }
-
-    #[test]
-    fn runtime_component_projection_clamps_virtualized_collection_window_edges() {
-        let negative_start = host_template_node(projected_node(
-            "VirtualList",
-            [
-                (
-                    "collection_items",
-                    string_array((0..5).map(|index| format!("Item {index}"))),
-                ),
-                ("viewport_start", Value::Integer(-10)),
-                ("viewport_count", Value::Integer(2)),
-                ("overscan", Value::Integer(1)),
-            ],
-        ))
-        .expect("VirtualList should project a negative start deterministically");
-
-        assert_eq!(negative_start.collection_items.row_count(), 3);
-        assert_eq!(
-            negative_start.collection_items.row_data(0).as_deref(),
-            Some("Item 0")
-        );
-        assert_eq!(
-            negative_start.collection_items.row_data(2).as_deref(),
-            Some("Item 2")
-        );
-
-        let zero_count = host_template_node(projected_node(
-            "VirtualList",
-            [
-                (
-                    "collection_items",
-                    string_array((0..5).map(|index| format!("Item {index}"))),
-                ),
-                ("viewport_start", Value::Integer(1)),
-                ("viewport_count", Value::Integer(0)),
-                ("overscan", Value::Integer(10)),
-            ],
-        ))
-        .expect("VirtualList should project a zero visible count deterministically");
-
-        assert_eq!(zero_count.collection_items.row_count(), 0);
-
-        let oversized_overscan = host_template_node(projected_node(
-            "VirtualList",
-            [
-                (
-                    "collection_items",
-                    string_array((0..4).map(|index| format!("Item {index}"))),
-                ),
-                ("viewport_start", Value::Integer(2)),
-                ("viewport_count", Value::Integer(1)),
-                ("overscan", Value::Integer(50)),
-            ],
-        ))
-        .expect("VirtualList should project oversized overscan deterministically");
-
-        assert_eq!(oversized_overscan.collection_items.row_count(), 4);
-    }
-
-    #[test]
-    fn runtime_component_projection_preserves_primary_click_binding_id() {
-        let mut button = projected_node("Button", [("text", Value::String("Apply".to_owned()))]);
-        button.bindings.push(RetainedUiHostBindingProjection {
-            binding_id: "InspectorPaneBody/ApplyDraft".to_owned(),
-            event_kind: UiEventKind::Click,
-            route_id: None,
-        });
-
-        let projected = host_template_node(button)
-            .expect("button with a primary click binding should project into the host contract");
-
-        assert_eq!(
-            projected.binding_id.as_str(),
-            "InspectorPaneBody/ApplyDraft"
-        );
-        assert_eq!(projected.action_id.as_str(), "");
-    }
-
-    #[test]
-    fn runtime_component_projection_derives_text_edit_targets_from_change_and_submit_bindings() {
-        let mut input = projected_node(
-            "InputField",
-            [("value_text", Value::String("Draft".into()))],
-        );
-        input.control_id = Some("NameField".to_owned());
-        input.bindings.push(RetainedUiHostBindingProjection {
-            binding_id: "InspectorView/NameField".to_owned(),
-            event_kind: UiEventKind::Change,
-            route_id: None,
-        });
-        input.bindings.push(RetainedUiHostBindingProjection {
-            binding_id: "InspectorView/ApplyBatchButton".to_owned(),
-            event_kind: UiEventKind::Submit,
-            route_id: None,
-        });
-
-        let projected = host_template_node(input)
-            .expect("input with change and commit bindings should project edit targets");
-
-        assert_eq!(projected.component_role.as_str(), "input-field");
-        assert_eq!(projected.edit_action_id.as_str(), "InspectorView/NameField");
-        assert_eq!(
-            projected.commit_action_id.as_str(),
-            "InspectorView/ApplyBatchButton"
-        );
-    }
-
-    #[test]
-    fn runtime_component_projection_preserves_material_visual_metadata() {
-        let button = host_template_node(projected_node(
-            "Button",
-            [
-                ("surface_variant", Value::String("accent".to_owned())),
-                ("text_tone", Value::String("muted".to_owned())),
-                ("button_variant", Value::String("primary".to_owned())),
-                ("font_size", Value::Float(13.0)),
-                ("font_weight", Value::Integer(600)),
-                ("text_align", Value::String("center".to_owned())),
-                ("overflow", Value::String("clip".to_owned())),
-                ("corner_radius", Value::Float(5.0)),
-                ("border_width", Value::Float(1.0)),
-                ("elevation", Value::Float(3.0)),
-                ("state_layer_enabled", Value::Boolean(true)),
-                ("state_layer_color", Value::String("#80eaff".to_owned())),
-                ("ripple_enabled", Value::Boolean(true)),
-                ("ripple_pressed_x", Value::Float(24.0)),
-                ("ripple_pressed_y", Value::Float(12.0)),
-                ("clip_ripple", Value::Boolean(false)),
-                ("validation_level", Value::String("error".to_owned())),
-                ("selected", Value::Boolean(true)),
-                ("hovered", Value::Boolean(true)),
-                ("pressed", Value::Boolean(true)),
-                ("focused", Value::Boolean(true)),
-                ("disabled", Value::Boolean(true)),
-            ],
-        ))
-        .expect("material button metadata should project into the host contract");
-
-        assert_eq!(button.surface_variant.as_str(), "accent");
-        assert_eq!(button.text_tone.as_str(), "muted");
-        assert_eq!(button.button_variant.as_str(), "primary");
-        assert_eq!(button.validation_level.as_str(), "error");
-        assert!(button.selected);
-        assert!(button.hovered);
-        assert!(button.pressed);
-        assert!(button.focused);
-        assert!(button.disabled);
-        assert_eq!(button.font_size, 13.0);
-        assert_eq!(button.font_weight, 600);
-        assert_eq!(button.text_align.as_str(), "center");
-        assert_eq!(button.overflow.as_str(), "clip");
-        assert_eq!(button.corner_radius, 5.0);
-        assert_eq!(button.border_width, 1.0);
-        assert_eq!(button.elevation, 3.0);
-        assert!(button.state_layer_enabled);
-        assert_eq!(button.state_layer_color, Color::from_rgb_u8(128, 234, 255));
-        assert!(button.ripple_enabled);
-        assert_eq!(button.ripple_pressed_x, 24.0);
-        assert_eq!(button.ripple_pressed_y, 12.0);
-        assert!(button.ripple_unclipped);
-    }
-
-    #[test]
-    fn runtime_component_projection_preserves_world_space_metadata() {
-        let world_surface = host_template_node(projected_node(
-            "WorldSpaceSurface",
-            [
-                ("world_position", float_array([1.0, 2.0, 3.0])),
-                ("world_rotation", float_array([10.0, 20.0, 30.0])),
-                ("world_scale", float_array([2.0, 2.5, 3.0])),
-                ("world_size", float_array([4.0, 2.0, 0.0])),
-                ("pixels_per_meter", Value::Float(128.0)),
-                ("billboard", Value::Boolean(true)),
-                ("depth_test", Value::Boolean(true)),
-                ("render_order", Value::Integer(7)),
-                ("camera_target", Value::String("viewport-main".to_owned())),
-            ],
-        ))
-        .expect("WorldSpaceSurface should project into the host contract");
-
-        assert!(world_surface.world_space_enabled);
-        assert_eq!(world_surface.world_position_x, 1.0);
-        assert_eq!(world_surface.world_position_y, 2.0);
-        assert_eq!(world_surface.world_position_z, 3.0);
-        assert_eq!(world_surface.world_rotation_x, 10.0);
-        assert_eq!(world_surface.world_rotation_y, 20.0);
-        assert_eq!(world_surface.world_rotation_z, 30.0);
-        assert_eq!(world_surface.world_scale_x, 2.0);
-        assert_eq!(world_surface.world_scale_y, 2.5);
-        assert_eq!(world_surface.world_scale_z, 3.0);
-        assert_eq!(world_surface.world_width, 4.0);
-        assert_eq!(world_surface.world_height, 2.0);
-        assert_eq!(world_surface.world_pixels_per_meter, 128.0);
-        assert!(world_surface.world_billboard);
-        assert!(world_surface.world_depth_test);
-        assert_eq!(world_surface.world_render_order, 7);
-        assert_eq!(world_surface.world_camera_target.as_str(), "viewport-main");
-    }
-
-    fn projected_node(
-        component: &str,
-        attributes: impl IntoIterator<Item = (&'static str, Value)>,
-    ) -> RetainedUiHostNodeProjection {
-        RetainedUiHostNodeProjection {
-            node_id: format!("{component}Node"),
-            parent_id: None,
-            component: component.to_owned(),
-            control_id: Some(format!("{component}Control")),
-            frame: UiFrame::new(0.0, 0.0, 320.0, 240.0),
-            clip_frame: None,
-            z_index: 0,
-            attributes: attributes
-                .into_iter()
-                .map(|(name, value)| (name.to_owned(), value))
-                .collect::<BTreeMap<_, _>>(),
-            style_tokens: BTreeMap::new(),
-            bindings: Vec::new(),
-        }
-    }
-
-    fn float_array(values: [f64; 3]) -> Value {
-        Value::Array(values.into_iter().map(Value::Float).collect())
-    }
-
-    fn string_array(values: impl Iterator<Item = String>) -> Value {
-        Value::Array(values.map(Value::String).collect())
-    }
-}
+mod tests;

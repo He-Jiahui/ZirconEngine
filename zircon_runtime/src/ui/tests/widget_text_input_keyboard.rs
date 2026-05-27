@@ -573,6 +573,65 @@ fn text_input_keyboard_control_a_selects_all_text() {
 }
 
 #[test]
+fn text_input_keyboard_escape_collapses_active_selection() {
+    let value = "alpha beta";
+    let mut surface = text_input_surface_with_selection(value, 5, 0, 5);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key(&mut surface, "Escape", 27);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.text_edit")
+    );
+    assert_eq!(text_attr(&surface, "content"), value);
+    assert_eq!(int_attr(&surface, "caret_offset"), 5);
+    assert_eq!(int_attr(&surface, "selection_anchor"), 5);
+    assert_eq!(int_attr(&surface, "selection_focus"), 5);
+    assert!(result.component_events.is_empty());
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn text_input_keyboard_escape_cancels_composition_before_selection_collapse() {
+    let mut surface = text_input_surface_with_attributes(
+        "aXYd",
+        3,
+        [
+            ("composition_start", toml::Value::Integer(1)),
+            ("composition_end", toml::Value::Integer(3)),
+            ("composition_text", toml::Value::String("XY".to_string())),
+            (
+                "composition_restore_text",
+                toml::Value::String("bc".to_string()),
+            ),
+        ],
+    );
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key(&mut surface, "Escape", 27);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "abcd");
+    assert_eq!(int_attr(&surface, "caret_offset"), 3);
+    assert_eq!(int_attr(&surface, "selection_anchor"), 3);
+    assert_eq!(int_attr(&surface, "selection_focus"), 3);
+    assert_eq!(int_attr(&surface, "composition_start"), 3);
+    assert_eq!(int_attr(&surface, "composition_end"), 3);
+    assert_eq!(text_attr(&surface, "composition_text"), "");
+    assert_eq!(text_attr(&surface, "composition_restore_text"), "");
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ValueChanged {
+            property: "content".to_string(),
+            value: UiValue::String("abcd".to_string()),
+        }
+    );
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
 fn text_input_keyboard_control_c_requests_clipboard_write_for_selection() {
     let mut surface = text_input_surface_with_selection("alpha beta", 5, 0, 5);
     surface.focus_node(UiNodeId::new(2)).unwrap();
@@ -635,6 +694,92 @@ fn text_input_keyboard_control_v_requests_clipboard_read() {
     assert!(result.component_events.is_empty());
     assert!(result.binding_reports.is_empty());
     assert_clipboard_request(&result, UiClipboardRequestKind::ReadText, None);
+}
+
+#[test]
+fn text_input_keyboard_copy_key_requests_clipboard_write_for_selection() {
+    let mut surface = text_input_surface_with_selection("alpha beta", 5, 0, 5);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key(&mut surface, "Copy", 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.clipboard_copy")
+    );
+    assert_eq!(text_attr(&surface, "content"), "alpha beta");
+    assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
+    assert_clipboard_request(&result, UiClipboardRequestKind::WriteText, Some("alpha"));
+}
+
+#[test]
+fn text_input_keyboard_cut_key_cuts_selection_and_requests_clipboard_write() {
+    let mut surface = text_input_surface_with_selection("alpha beta", 5, 0, 5);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key(&mut surface, "Cut", 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.clipboard_cut")
+    );
+    assert_eq!(text_attr(&surface, "content"), " beta");
+    assert_eq!(int_attr(&surface, "caret_offset"), 0);
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ValueChanged {
+            property: "content".to_string(),
+            value: UiValue::String(" beta".to_string()),
+        }
+    );
+    assert_widget_binding_report(&result.binding_reports);
+    assert_clipboard_request(&result, UiClipboardRequestKind::WriteText, Some("alpha"));
+}
+
+#[test]
+fn text_input_keyboard_paste_key_requests_clipboard_read() {
+    let mut surface = text_input_surface("alpha", 5);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key(&mut surface, "Paste", 0);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.clipboard_paste")
+    );
+    assert_eq!(text_attr(&surface, "content"), "alpha");
+    assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
+    assert_clipboard_request(&result, UiClipboardRequestKind::ReadText, None);
+}
+
+#[test]
+fn text_input_keyboard_shift_delete_cuts_selection_and_requests_clipboard_write() {
+    let mut surface = text_input_surface_with_selection("alpha beta", 5, 0, 5);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key_with_shift(&mut surface, "Delete", 46);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.clipboard_cut")
+    );
+    assert_eq!(text_attr(&surface, "content"), " beta");
+    assert_eq!(int_attr(&surface, "caret_offset"), 0);
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ValueChanged {
+            property: "content".to_string(),
+            value: UiValue::String(" beta".to_string()),
+        }
+    );
+    assert_widget_binding_report(&result.binding_reports);
+    assert_clipboard_request(&result, UiClipboardRequestKind::WriteText, Some("alpha"));
 }
 
 #[test]

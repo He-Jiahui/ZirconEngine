@@ -1,10 +1,12 @@
 use crate::core::framework::input::InputManager;
 
 use crate::input::{
-    ButtonInputState, DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadButton,
-    GamepadConnectionInfo, GamepadId, ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding,
-    ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton, InputEvent,
-    MouseScrollUnit, MouseWheelEvent, TouchPhase, WindowStatusEvent, WindowTheme,
+    ButtonInputState, DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisSettings,
+    GamepadButton, GamepadButtonAxisSettings, GamepadConnectionInfo, GamepadId,
+    GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea, ImeCursorRange,
+    ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton,
+    InputEvent, InputFrameSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase,
+    WindowStatusEvent, WindowTheme,
 };
 
 #[test]
@@ -294,7 +296,15 @@ fn input_manager_tracks_touch_and_gamepad_state() {
         button: GamepadButton::South
     }));
     assert_eq!(frame.gamepad_axes.len(), 1);
-    assert_eq!(frame.gamepad_axes[0].value, 0.5);
+    assert_eq!(
+        frame.gamepad_axes[0].value,
+        GamepadAxisSettings::default().scaled_value(0.5)
+    );
+    assert_eq!(frame.gamepad_button_values.len(), 1);
+    assert_eq!(
+        frame.gamepad_button_values[0].value,
+        GamepadButtonAxisSettings::default().scaled_value(1.0)
+    );
 
     input.submit_event(InputEvent::Touch {
         id: 42,
@@ -315,8 +325,307 @@ fn input_manager_tracks_touch_and_gamepad_state() {
     assert!(cleared.active_touches.is_empty());
     assert!(cleared.connected_gamepads.is_empty());
     assert!(cleared.gamepad_axes.is_empty());
+    assert!(cleared.gamepad_button_values.is_empty());
     assert!(!cleared.buttons.pressed(&InputButton::Gamepad {
         gamepad,
         button: GamepadButton::South
     }));
+}
+
+#[test]
+fn input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(9);
+
+    input.begin_frame();
+    input.submit_event(InputEvent::WindowStatus(WindowStatusEvent::Moved {
+        x: 640,
+        y: 480,
+    }));
+    input.submit_event(InputEvent::WindowStatus(WindowStatusEvent::CloseRequested));
+    input.submit_event(InputEvent::KeyboardInput {
+        key_code: 65,
+        logical_key: Some("KeyA".to_string()),
+        text: Some("a".to_string()),
+        pressed: true,
+        repeat: false,
+    });
+    input.submit_event(InputEvent::CursorEntered);
+    input.submit_event(InputEvent::CursorMoved { x: 320.0, y: 180.0 });
+    input.submit_event(InputEvent::MouseMotion {
+        delta_x: 2.5,
+        delta_y: -1.0,
+    });
+    input.submit_event(InputEvent::MouseWheel(MouseWheelEvent::lines(0.0, -1.0)));
+    input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
+    input.submit_event(InputEvent::Touch {
+        id: 12,
+        phase: TouchPhase::Started,
+        x: 10.0,
+        y: 20.0,
+    });
+    input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        gamepad,
+        connected: true,
+        name: Some("Harness Pad".to_string()),
+        vendor_id: Some(100),
+        product_id: Some(200),
+    }));
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button: GamepadButton::South,
+        value: 1.0,
+        pressed: true,
+    });
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: 0.5,
+    });
+
+    let frame = input.frame_snapshot();
+
+    assert_eq!(
+        runtime_input_event_log_harness(&frame),
+        vec![
+            "window:moved(640,480)",
+            "window:close_requested",
+            "keyboard:key_code:65:pressed",
+            "keyboard:key:KeyA:pressed",
+            "mouse:cursor(320.0,180.0):inside",
+            "mouse:motion(2.5,-1.0)",
+            "mouse:wheel:line(0.0,-1.0)",
+            "mouse:button:left:pressed",
+            "touch:12:Started(10.0,20.0)",
+            "gamepad:9:connected",
+            "gamepad:9:South:pressed",
+            "gamepad:9:LeftStickX=0.47",
+        ]
+    );
+    assert_eq!(
+        input
+            .drain_event_records()
+            .iter()
+            .map(|record| record.sequence)
+            .collect::<Vec<_>>(),
+        (1..=12).collect::<Vec<_>>()
+    );
+}
+
+fn runtime_input_event_log_harness(frame: &InputFrameSnapshot) -> Vec<String> {
+    let mut log = Vec::new();
+
+    for event in &frame.window_status_events {
+        match event {
+            WindowStatusEvent::Moved { x, y } => log.push(format!("window:moved({x},{y})")),
+            WindowStatusEvent::CloseRequested => log.push("window:close_requested".to_string()),
+            other => log.push(format!("window:{other:?}")),
+        }
+    }
+
+    for button in frame.buttons.just_pressed_inputs() {
+        match button {
+            InputButton::KeyCode(code) => log.push(format!("keyboard:key_code:{code}:pressed")),
+            InputButton::Key(key) => log.push(format!("keyboard:key:{key}:pressed")),
+            _ => {}
+        }
+    }
+
+    if frame.cursor_inside_window || frame.cursor_position != [0.0, 0.0] {
+        let boundary = if frame.cursor_inside_window {
+            "inside"
+        } else {
+            "outside"
+        };
+        log.push(format!(
+            "mouse:cursor({:.1},{:.1}):{boundary}",
+            frame.cursor_position[0], frame.cursor_position[1]
+        ));
+    }
+    if frame.mouse_motion_accumulator != [0.0, 0.0] {
+        log.push(format!(
+            "mouse:motion({:.1},{:.1})",
+            frame.mouse_motion_accumulator[0], frame.mouse_motion_accumulator[1]
+        ));
+    }
+    for wheel in &frame.mouse_wheel_events {
+        let unit = match wheel.unit {
+            MouseScrollUnit::Line => "line",
+            MouseScrollUnit::Pixel => "pixel",
+        };
+        log.push(format!("mouse:wheel:{unit}({:.1},{:.1})", wheel.x, wheel.y));
+    }
+    for button in frame.buttons.just_pressed_inputs() {
+        if let Some(label) = mouse_button_label(&button) {
+            log.push(format!("mouse:button:{label}:pressed"));
+        }
+    }
+
+    for touch in &frame.active_touches {
+        log.push(format!(
+            "touch:{}:{:?}({:.1},{:.1})",
+            touch.id, touch.phase, touch.position[0], touch.position[1]
+        ));
+    }
+
+    for gamepad in &frame.connected_gamepads {
+        log.push(format!("gamepad:{}:connected", gamepad.0));
+    }
+    for button in frame.buttons.just_pressed_inputs() {
+        if let InputButton::Gamepad { gamepad, button } = button {
+            log.push(format!("gamepad:{}:{button:?}:pressed", gamepad.0));
+        }
+    }
+    for axis in &frame.gamepad_axes {
+        log.push(format!(
+            "gamepad:{}:{:?}={:.2}",
+            axis.gamepad.0, axis.axis, axis.value
+        ));
+    }
+
+    log
+}
+
+fn mouse_button_label(button: &InputButton) -> Option<String> {
+    match button {
+        InputButton::MouseLeft => Some("left".to_string()),
+        InputButton::MouseRight => Some("right".to_string()),
+        InputButton::MouseMiddle => Some("middle".to_string()),
+        InputButton::MouseBack => Some("back".to_string()),
+        InputButton::MouseForward => Some("forward".to_string()),
+        InputButton::MouseOther(code) => Some(format!("other:{code}")),
+        _ => None,
+    }
+}
+
+#[test]
+fn gamepad_button_values_use_runtime_thresholds_and_hysteresis() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(3);
+    let button = GamepadButton::South;
+    let input_button = InputButton::Gamepad { gamepad, button };
+
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button,
+        value: 0.70,
+        pressed: true,
+    });
+    let below_press = input.frame_snapshot();
+    assert!(!below_press.buttons.pressed(&input_button));
+    assert_eq!(
+        below_press.gamepad_button_values[0].value,
+        GamepadButtonAxisSettings::default().scaled_value(0.70)
+    );
+
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button,
+        value: 0.80,
+        pressed: true,
+    });
+    let pressed = input.frame_snapshot();
+    assert!(pressed.buttons.pressed(&input_button));
+    assert!(pressed.buttons.just_pressed(&input_button));
+
+    input.begin_frame();
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button,
+        value: 0.70,
+        pressed: true,
+    });
+    let held_by_hysteresis = input.frame_snapshot();
+    assert!(held_by_hysteresis.buttons.pressed(&input_button));
+    assert!(!held_by_hysteresis.buttons.just_pressed(&input_button));
+
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button,
+        value: 0.60,
+        pressed: true,
+    });
+    let released = input.frame_snapshot();
+    assert!(!released.buttons.pressed(&input_button));
+    assert!(released.buttons.just_released(&input_button));
+}
+
+#[test]
+fn gamepad_axis_values_use_deadzone_livezone_and_change_threshold() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(5);
+    let axis = GamepadAxis::LeftStickX;
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis,
+        value: 0.03,
+    });
+    let deadzone = input.frame_snapshot();
+    assert_eq!(deadzone.gamepad_axes.len(), 1);
+    assert_eq!(deadzone.gamepad_axes[0].value, 0.0);
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis,
+        value: 0.04,
+    });
+    let unchanged = input.frame_snapshot();
+    assert_eq!(unchanged.gamepad_axes.len(), 1);
+    assert_eq!(unchanged.gamepad_axes[0].value, 0.0);
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis,
+        value: 0.50,
+    });
+    let moved = input.frame_snapshot();
+    assert_eq!(
+        moved.gamepad_axes[0].value,
+        GamepadAxisSettings::default().scaled_value(0.50)
+    );
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis,
+        value: 0.505,
+    });
+    let filtered = input.frame_snapshot();
+    assert_eq!(filtered.gamepad_axes[0].value, moved.gamepad_axes[0].value);
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis,
+        value: -1.25,
+    });
+    let clamped = input.frame_snapshot();
+    assert_eq!(clamped.gamepad_axes[0].value, -1.0);
+}
+
+#[test]
+fn gamepad_rumble_requests_are_frame_local_and_drainable() {
+    let input = DefaultInputManager::default();
+    let gamepad = GamepadId(11);
+    let add = GamepadRumbleRequest::add(gamepad, GamepadRumbleIntensity::new(1.2, 0.4), 125);
+    let stop = GamepadRumbleRequest::stop(gamepad);
+
+    assert_eq!(
+        GamepadRumbleIntensity::new(f32::NAN, 1.5).clamped(),
+        GamepadRumbleIntensity::new(0.0, 1.0)
+    );
+
+    input.submit_event(InputEvent::GamepadRumbleRequest(add));
+    input.submit_event(InputEvent::GamepadRumbleRequest(stop));
+
+    let frame = input.frame_snapshot();
+    assert_eq!(frame.gamepad_rumble_requests, vec![add, stop]);
+
+    assert_eq!(input.drain_gamepad_rumble_requests(), vec![add, stop]);
+    assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
+
+    input.submit_event(InputEvent::GamepadRumbleRequest(add));
+    input.begin_frame();
+
+    assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
+    assert!(input.drain_gamepad_rumble_requests().is_empty());
 }

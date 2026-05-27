@@ -222,10 +222,16 @@ pub(super) fn desktop_export_profiles() -> Vec<ExportProfile> {
         ("mobile_ios", ExportTargetPlatform::Ios),
         ("browser_webgpu", ExportTargetPlatform::WebGpu),
         ("browser_wasm", ExportTargetPlatform::Wasm),
+        ("headless_server", ExportTargetPlatform::Headless),
     ]
     .into_iter()
     .map(|(name, platform)| {
-        ExportProfile::new(name, RuntimeTargetMode::ClientRuntime, platform).with_strategies([
+        let target_mode = if platform == ExportTargetPlatform::Headless {
+            RuntimeTargetMode::ServerRuntime
+        } else {
+            RuntimeTargetMode::ClientRuntime
+        };
+        ExportProfile::new(name, target_mode, platform).with_strategies([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,
         ])
@@ -249,6 +255,7 @@ pub(super) fn export_platform_label(platform: ExportTargetPlatform) -> &'static 
         ExportTargetPlatform::Ios => "iOS",
         ExportTargetPlatform::WebGpu => "WebGPU",
         ExportTargetPlatform::Wasm => "WASM",
+        ExportTargetPlatform::Headless => "Headless",
     }
 }
 
@@ -895,13 +902,20 @@ mod tests {
             .iter()
             .find(|profile| profile.name == "browser_webgpu")
             .expect("WebGPU export profile is projected");
+        let headless = profiles
+            .iter()
+            .find(|profile| profile.name == "headless_server")
+            .expect("headless server export profile is projected");
 
         assert_eq!(android.target_platform, ExportTargetPlatform::Android);
         assert_eq!(webgpu.target_platform, ExportTargetPlatform::WebGpu);
+        assert_eq!(headless.target_platform, ExportTargetPlatform::Headless);
+        assert_eq!(headless.target_mode, RuntimeTargetMode::ServerRuntime);
         assert!(android.uses_strategy(ExportPackagingStrategy::SourceTemplate));
         assert!(android.uses_strategy(ExportPackagingStrategy::LibraryEmbed));
         assert!(!android.uses_strategy(ExportPackagingStrategy::NativeDynamic));
         assert!(!webgpu.uses_strategy(ExportPackagingStrategy::NativeDynamic));
+        assert!(!headless.uses_strategy(ExportPackagingStrategy::NativeDynamic));
     }
 
     #[test]

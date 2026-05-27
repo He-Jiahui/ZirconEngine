@@ -15,10 +15,51 @@ component = "Space"
 control_id = "SoundMixerPresetPicker"
 layout = { width = { min = 220.0, preferred = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
-[nodes.sound_mixer_transport_controls]
+[nodes.sound_output_device_picker]
 component = "Space"
-control_id = "SoundMixerTransportControls"
+control_id = "SoundOutputDevicePicker"
+layout = { width = { min = 260.0, preferred = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_output_refresh_button]
+component = "Button"
+control_id = "SoundOutputRefreshButton"
+classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+props = { text = "Refresh", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
+events = [{ id = "Sound/Output/Refresh", event = "Click", route = "Sound.Output.Device.Refresh" }]
+layout = { width = { min = 78.0, preferred = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_output_start_button]
+component = "Button"
+control_id = "SoundOutputStartButton"
+classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+props = { text = "Start", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
+events = [{ id = "Sound/Output/Start", event = "Click", route = "Sound.Output.Device.Start" }]
+layout = { width = { min = 64.0, preferred = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_output_stop_button]
+component = "Button"
+control_id = "SoundOutputStopButton"
+classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+props = { text = "Stop", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
+events = [{ id = "Sound/Output/Stop", event = "Click", route = "Sound.Output.Device.Stop" }]
+layout = { width = { min = 64.0, preferred = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_output_status_panel]
+component = "Space"
+control_id = "SoundOutputStatusPanel"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_mixer_transport_controls]
+component = "HorizontalGroup"
+control_id = "SoundMixerTransportControls"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "sound_output_device_picker" },
+  { node = "sound_output_refresh_button" },
+  { node = "sound_output_start_button" },
+  { node = "sound_output_stop_button" },
+  { node = "sound_output_status_panel" },
+]
 
 [nodes.sound_mixer_toolbar]
 component = "HorizontalGroup"

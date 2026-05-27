@@ -23,7 +23,7 @@ children = [{ node = "refresh" }]
 [nodes.refresh]
 component = "IconButton"
 control_id = "RefreshTimelineSnapshot"
-props = { label = "Refresh Timeline", icon = "timeline-outline" }
+props = { label = "Refresh Timeline", icon = "editor_pages/console_profiler/profiling/frame-time.svg" }
 layout = { width = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "PerformanceTimelinePaneBody/RefreshSnapshot", event = "Click", route = "DockCommand.FocusView" }]
 

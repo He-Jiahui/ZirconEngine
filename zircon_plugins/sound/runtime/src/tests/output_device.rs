@@ -16,6 +16,118 @@ fn output_backends_list_deterministic_null_backend() {
 }
 
 #[test]
+fn output_devices_list_configurable_software_null_picker_descriptor() {
+    let sound = DefaultSoundManager::default();
+    let devices = sound.available_output_devices().unwrap();
+    let software = devices
+        .iter()
+        .find(|device| device.descriptor.backend == "software-null")
+        .expect("software-null output device should be listed");
+
+    assert!(software.is_default);
+    assert!(software.available);
+    assert_eq!(software.diagnostic, None);
+    assert_eq!(software.descriptor.display_name, "Software Output");
+
+    sound
+        .configure_output_device(software.descriptor.clone())
+        .unwrap();
+    let status = sound.output_device_status().unwrap();
+    assert_eq!(status.descriptor, software.descriptor);
+    assert_eq!(status.latency.requested_latency_blocks, 2);
+    assert_eq!(
+        status.latency.estimated_latency_frames,
+        status.descriptor.block_size_frames * status.descriptor.latency_blocks
+    );
+    assert!(status.latency.estimated_latency_seconds > 0.0);
+    assert_eq!(status.latency.queued_samples, None);
+    assert_eq!(status.latency.capacity_samples, None);
+    assert!(status.diagnostics.is_empty());
+}
+
+#[cfg(not(feature = "cpal-backend"))]
+#[test]
+fn cpal_backend_reports_feature_disabled_when_not_compiled() {
+    let sound = DefaultSoundManager::default();
+    assert!(sound
+        .available_output_backends()
+        .unwrap()
+        .iter()
+        .all(|backend| backend.backend != "cpal"));
+    assert!(sound
+        .available_output_devices()
+        .unwrap()
+        .iter()
+        .all(|device| device.descriptor.backend != "cpal"));
+
+    let error = sound
+        .configure_output_device(SoundOutputDeviceDescriptor {
+            id: SoundOutputDeviceId::new("sound.output.cpal.disabled"),
+            backend: "cpal".to_string(),
+            display_name: "CPAL Disabled".to_string(),
+            sample_rate_hz: 48_000,
+            channel_count: 2,
+            block_size_frames: 128,
+            latency_blocks: 2,
+        })
+        .unwrap_err();
+    assert!(error.to_string().contains("cpal-backend"));
+    assert_eq!(sound.backend_status().requested_backend, "cpal");
+    assert_eq!(sound.backend_status().state, SoundBackendState::Unavailable);
+
+    sound
+        .configure_output_device(SoundOutputDeviceDescriptor {
+            id: SoundOutputDeviceId::new("sound.output.cpal.recovery"),
+            backend: "software-null".to_string(),
+            display_name: "Software Null Recovery".to_string(),
+            sample_rate_hz: 48_000,
+            channel_count: 2,
+            block_size_frames: 128,
+            latency_blocks: 2,
+        })
+        .unwrap();
+    assert_eq!(sound.backend_status().state, SoundBackendState::Ready);
+}
+
+#[cfg(feature = "cpal-backend")]
+#[test]
+fn cpal_backend_is_listed_when_feature_is_enabled() {
+    let sound = DefaultSoundManager::default();
+    let backend = sound
+        .available_output_backends()
+        .unwrap()
+        .into_iter()
+        .find(|backend| backend.backend == "cpal")
+        .expect("cpal backend should be listed with cpal-backend feature");
+    assert!(backend.realtime_capable);
+    assert!(!backend.deterministic);
+}
+
+#[cfg(feature = "cpal-backend")]
+#[test]
+fn cpal_output_device_enumeration_is_structured_when_feature_is_enabled() {
+    let sound = DefaultSoundManager::default();
+    let devices = sound.available_output_devices().unwrap();
+    let cpal_devices = devices
+        .iter()
+        .filter(|device| device.descriptor.backend == "cpal")
+        .collect::<Vec<_>>();
+
+    assert!(!cpal_devices.is_empty());
+    assert!(cpal_devices
+        .iter()
+        .any(|device| device.descriptor.id.as_str() == "sound.output.cpal.default"));
+    for device in cpal_devices {
+        assert_eq!(device.descriptor.backend, "cpal");
+        assert!(!device.descriptor.display_name.trim().is_empty());
+        assert!(device.descriptor.sample_rate_hz > 0);
+        assert!(device.descriptor.channel_count > 0);
+        assert!(device.descriptor.block_size_frames > 0);
+        assert!(device.descriptor.latency_blocks > 0);
+    }
+}
+
+#[test]
 fn software_null_backend_callback_reports_rendered_block() {
     let sound = DefaultSoundManager::default();
     sound
@@ -51,6 +163,9 @@ fn software_null_backend_callback_reports_rendered_block() {
     assert_eq!(status.last_callback_sequence, Some(0));
     assert_eq!(status.rendered_blocks, 1);
     assert_eq!(status.rendered_frames, 2);
+    assert_eq!(status.latency.requested_latency_blocks, 2);
+    assert_eq!(status.latency.estimated_latency_frames, 4);
+    assert!(status.diagnostics.is_empty());
 }
 
 #[test]
@@ -65,8 +180,8 @@ fn software_null_backend_rejects_stopped_callback_and_unsupported_backend() {
     let error = sound
         .configure_output_device(SoundOutputDeviceDescriptor {
             id: SoundOutputDeviceId::new("sound.output.unsupported"),
-            backend: "cpal".to_string(),
-            display_name: "Unsupported CPAL".to_string(),
+            backend: "native-missing".to_string(),
+            display_name: "Unsupported Native".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
             block_size_frames: 128,
@@ -76,7 +191,7 @@ fn software_null_backend_rejects_stopped_callback_and_unsupported_backend() {
     assert!(error.to_string().contains("not available"));
 
     let status = sound.backend_status();
-    assert_eq!(status.requested_backend, "cpal");
+    assert_eq!(status.requested_backend, "native-missing");
     assert_eq!(status.active_backend, None);
     assert_eq!(status.state, SoundBackendState::Unavailable);
     assert!(status
@@ -84,7 +199,7 @@ fn software_null_backend_rejects_stopped_callback_and_unsupported_backend() {
         .as_deref()
         .unwrap_or_default()
         .contains("not available"));
-    assert_eq!(sound.backend_name(), "cpal");
+    assert_eq!(sound.backend_name(), "native-missing");
     assert!(sound
         .start_output_device()
         .unwrap_err()
@@ -99,6 +214,12 @@ fn software_null_backend_rejects_stopped_callback_and_unsupported_backend() {
         sound.output_device_status().unwrap().state,
         SoundOutputDeviceState::Stopped
     );
+    assert!(sound
+        .output_device_status()
+        .unwrap()
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("not available")));
 
     sound
         .configure_output_device(SoundOutputDeviceDescriptor {
@@ -116,6 +237,44 @@ fn software_null_backend_rejects_stopped_callback_and_unsupported_backend() {
     assert_eq!(status.active_backend.as_deref(), Some("software-null"));
     assert_eq!(status.state, SoundBackendState::Ready);
     assert_eq!(status.detail, None);
+}
+
+#[cfg(all(feature = "cpal-backend", target_os = "windows"))]
+#[test]
+fn cpal_backend_start_stop_is_structured_on_windows() {
+    let sound = DefaultSoundManager::default();
+    sound
+        .configure_output_device(SoundOutputDeviceDescriptor {
+            id: SoundOutputDeviceId::new("sound.output.cpal.windows"),
+            backend: "cpal".to_string(),
+            display_name: "CPAL Windows Default Output".to_string(),
+            sample_rate_hz: 48_000,
+            channel_count: 2,
+            block_size_frames: 128,
+            latency_blocks: 2,
+        })
+        .unwrap();
+
+    match sound.start_output_device() {
+        Ok(()) => {
+            assert_eq!(
+                sound.output_device_status().unwrap().state,
+                SoundOutputDeviceState::Started
+            );
+            sound.stop_output_device().unwrap();
+            assert_eq!(
+                sound.output_device_status().unwrap().state,
+                SoundOutputDeviceState::Stopped
+            );
+        }
+        Err(error) => {
+            assert!(error.to_string().contains("cpal") || error.to_string().contains("device"));
+            assert_eq!(
+                sound.output_device_status().unwrap().state,
+                SoundOutputDeviceState::Stopped
+            );
+        }
+    }
 }
 
 #[test]

@@ -1,5 +1,7 @@
 use super::support::*;
 
+const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
+
 #[test]
 fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     let mut runtime = EditorUiHostRuntime::default();
@@ -37,7 +39,7 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     assert_eq!(template.component, "IconButton");
     assert_eq!(
         template.attributes.get("icon").unwrap().as_str(),
-        Some("folder-open-outline")
+        Some(OPEN_PROJECT_ICON)
     );
     assert_eq!(template.bindings[0].id, "WorkbenchMenuBar/OpenProject");
     assert_eq!(open_project.input_policy, UiInputPolicy::Receive);
@@ -67,7 +69,7 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
         .contains(&"v2/StatusText|Label|StatusText".to_string()));
     assert!(snapshot
         .attribute_entries
-        .contains(&"v2/OpenProject.icon=folder-open-outline".to_string()));
+        .contains(&format!("v2/OpenProject.icon={OPEN_PROJECT_ICON}")));
     assert!(snapshot
         .binding_ids
         .contains(&"WorkbenchMenuBar/OpenProject".to_string()));

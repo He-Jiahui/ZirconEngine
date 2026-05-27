@@ -58,6 +58,24 @@ pub(super) fn send_button(
     session.handle_event(event)
 }
 
+pub(super) fn send_raw_button(
+    session: &RuntimeSession,
+    viewport: ZrRuntimeViewportHandle,
+    gamepad: u64,
+    button: Button,
+    value: f32,
+) -> Result<(), RuntimeLibraryError> {
+    let event = ZrRuntimeEventV1::gamepad_button(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport,
+        gamepad,
+        button_code(button),
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        value,
+    );
+    session.handle_event(event)
+}
+
 pub(super) fn send_axis(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,

@@ -35,7 +35,8 @@ impl UiSurface {
                 }
                 let value_property = self.default_range_value_property(node_id)?;
                 self.capture_pointer(node_id)?;
-                self.push_pointer_component_events(
+                let drag = self.input.begin_pointer_drag(node_id, route.point);
+                self.push_pointer_component_events_with_drag_metrics(
                     events,
                     node_id,
                     UiEventKind::DragBegin,
@@ -43,6 +44,7 @@ impl UiSurface {
                         property: value_property,
                     },
                     UiPointerComponentEventReason::PressBegin,
+                    Some(drag),
                 )?;
                 action.handled_by = Some(node_id);
                 action.captured_by = Some(node_id);
@@ -56,6 +58,7 @@ impl UiSurface {
                     return Ok(action);
                 }
                 let value_property = self.default_range_value_property(node_id)?;
+                let drag = self.input.update_pointer_drag(node_id, route.point);
                 if let Some(delta) = self.apply_default_range_value_from_point(
                     node_id,
                     &value_property,
@@ -64,7 +67,7 @@ impl UiSurface {
                     binding_reports,
                     UiPointerComponentEventReason::DirectBinding,
                 )? {
-                    self.push_pointer_component_events(
+                    self.push_pointer_component_events_with_drag_metrics(
                         events,
                         node_id,
                         UiEventKind::DragUpdate,
@@ -73,6 +76,7 @@ impl UiSurface {
                             delta,
                         },
                         UiPointerComponentEventReason::DirectBinding,
+                        Some(drag),
                     )?;
                     action.damage_node = Some(node_id);
                 }
@@ -99,7 +103,8 @@ impl UiSurface {
                 {
                     action.damage_node = Some(node_id);
                 }
-                self.push_pointer_component_events(
+                let drag = self.input.end_pointer_drag(node_id, route.point);
+                self.push_pointer_component_events_with_drag_metrics(
                     events,
                     node_id,
                     UiEventKind::DragEnd,
@@ -107,6 +112,7 @@ impl UiSurface {
                         property: value_property,
                     },
                     UiPointerComponentEventReason::PressEnd,
+                    Some(drag),
                 )?;
                 action.handled_by = Some(node_id);
                 action.released_capture = Some(node_id);

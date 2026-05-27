@@ -218,6 +218,11 @@ fn surface_dirty_layout_preserves_unvisited_layout_engine_routes() {
         .expect("root route should be reported");
 
     assert_eq!(initial_report.request_count, 1);
+    assert_fallback_reason_count(
+        &initial_report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        1,
+    );
     assert_eq!(root_selection.request.family, UiLayoutEngineFamily::Free);
     assert_eq!(
         root_selection.selected_backend,
@@ -248,6 +253,11 @@ fn surface_dirty_layout_preserves_unvisited_layout_engine_routes() {
     assert_eq!(report.layout_visited_node_count, 1);
     assert_eq!(report.layout_skipped_node_count, 2);
     assert_eq!(surface.layout_engine_report, initial_report);
+    assert_fallback_reason_count(
+        &surface.layout_engine_report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        1,
+    );
     assert_layout_engine_report_exported(&surface, &initial_report);
     assert_dirty_cleared_for(&surface, primary_id());
 }
@@ -258,6 +268,16 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
     let initial_report = surface.layout_engine_report.clone();
 
     assert_eq!(initial_report.request_count, 2);
+    assert_fallback_reason_count(
+        &initial_report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        1,
+    );
+    assert_fallback_reason_count(
+        &initial_report,
+        UiLayoutEngineFallbackReason::AxisConstraintPriority,
+        1,
+    );
     assert_route(
         &initial_report,
         root_id(),
@@ -270,9 +290,9 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         &initial_report,
         primary_id(),
         UiLayoutEngineFamily::Flex,
-        UiLayoutEngineBackend::Taffy,
-        UiLayoutEngineSupport::Native,
-        None,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::AxisConstraintPriority),
     );
 
     surface
@@ -312,6 +332,11 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         route_count_for_node(&surface.layout_engine_report, primary_id()),
         1
     );
+    assert_fallback_reason_count(
+        &surface.layout_engine_report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        2,
+    );
     assert!(!surface
         .layout_engine_report
         .selections
@@ -329,9 +354,9 @@ fn surface_dirty_layout_drops_removed_layout_engine_routes() {
         &surface.layout_engine_report,
         primary_id(),
         UiLayoutEngineFamily::Flex,
-        UiLayoutEngineBackend::Taffy,
-        UiLayoutEngineSupport::Native,
-        None,
+        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineSupport::Fallback,
+        Some(UiLayoutEngineFallbackReason::AxisConstraintPriority),
     );
 
     surface.detach_subtree_to_pool(primary_id()).unwrap();
@@ -342,6 +367,11 @@ fn surface_dirty_layout_drops_removed_layout_engine_routes() {
     assert_eq!(report.layout_skipped_node_count, 0);
     assert!(!surface.tree.nodes.contains_key(&primary_id()));
     assert_eq!(surface.layout_engine_report.request_count, 1);
+    assert_fallback_reason_count(
+        &surface.layout_engine_report,
+        UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
+        1,
+    );
     assert_route(
         &surface.layout_engine_report,
         root_id(),
@@ -888,6 +918,22 @@ fn route_count_for_node(report: &UiLayoutEngineSelectionReport, node_id: UiNodeI
         .iter()
         .filter(|selection| selection.node_id == Some(node_id))
         .count()
+}
+
+fn assert_fallback_reason_count(
+    report: &UiLayoutEngineSelectionReport,
+    reason: UiLayoutEngineFallbackReason,
+    count: u64,
+) {
+    assert_eq!(
+        report
+            .fallback_reason_counts
+            .iter()
+            .find(|reason_count| reason_count.reason == Some(reason))
+            .map(|reason_count| reason_count.count),
+        Some(count),
+        "{report:#?}"
+    );
 }
 
 fn assert_layout_engine_report_exported(

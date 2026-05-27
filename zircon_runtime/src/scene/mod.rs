@@ -46,19 +46,19 @@ pub use world::{ComponentTypeRegistry, DynamicComponentInstance, World};
 pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
 
 pub use ecs::{
-    Added, ArchetypeId, Bundle, ChangeTick, ChangeTickWindow, Changed, Command, CommandQueue,
-    Commands, CommandsParam, Component, ComponentDescriptor, ComponentDescriptorSource,
-    ComponentId, ComponentKey, ComponentRegistry, ComponentRemoveResult, ComponentStorage,
-    ComponentTicks, EntityCommands, EntityLocation, EntityRegistry, EntityRegistryError,
-    EventReader, EventReaderParam, EventStore, EventWriter, EventWriterParam, Events, FnCommand,
-    InternalEntity, Local, LocalParam, Mut, ParamSet, ParamSetItem, ParamSetParam, Query,
-    QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryFilter, QueryIter,
-    QueryMutData, QueryState, Ref, RemovedComponentEvent, RemovedComponentEvents,
-    RemovedComponentReader, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam,
-    ResParam, Resource, ResourceDescriptor, ResourceId, ResourceRegistry, ResourceStore,
-    SceneSystemDescriptor, SceneSystemRegistry, Schedule, StableEntityLocation, StorageError,
-    StorageType, SystemParam, SystemParamAccess, SystemParamError, SystemStage, SystemState, With,
-    Without,
+    Added, ArchetypeId, BoxedSceneSystem, Bundle, ChangeTick, ChangeTickWindow, Changed, Command,
+    CommandQueue, Commands, CommandsParam, Component, ComponentDescriptor,
+    ComponentDescriptorSource, ComponentId, ComponentKey, ComponentRegistry, ComponentRemoveResult,
+    ComponentStorage, ComponentTicks, EntityCommands, EntityLocation, EntityRegistry,
+    EntityRegistryError, EventReader, EventReaderParam, EventStore, EventWriter, EventWriterParam,
+    Events, FnCommand, FunctionSceneSystem, InternalEntity, IntoSceneSystem, Local, LocalParam,
+    Mut, ParamSet, ParamSetItem, ParamSetParam, Query, QueryAccess, QueryAccessError, QueryData,
+    QueryDataAccess, QueryFilter, QueryIter, QueryMutData, QueryState, Ref, RemovedComponentEvent,
+    RemovedComponentEvents, RemovedComponentReader, RemovedComponents, RemovedComponentsParam, Res,
+    ResMut, ResMutParam, ResParam, Resource, ResourceDescriptor, ResourceId, ResourceRegistry,
+    ResourceStore, SceneSystem, SceneSystemDescriptor, SceneSystemMetadata, SceneSystemRegistry,
+    Schedule, StableEntityLocation, StorageError, StorageType, SystemParam, SystemParamAccess,
+    SystemParamError, SystemStage, SystemState, With, Without,
 };
 
 pub type Scene = World;

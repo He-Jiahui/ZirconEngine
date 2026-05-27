@@ -169,16 +169,15 @@ impl UiSurface {
                     event,
                     false,
                 )?;
-                let component_events =
-                    if behavior == UiWidgetBehavior::MenuItem && !component_events.is_empty() {
-                        self.with_default_menu_item_popup_close_reports(
-                            node_id,
-                            component_events,
-                            &mut binding_reports,
-                        )?
-                    } else {
-                        component_events
-                    };
+                let component_events = if behavior == UiWidgetBehavior::MenuItem {
+                    self.with_default_menu_item_popup_close_reports(
+                        node_id,
+                        component_events,
+                        &mut binding_reports,
+                    )?
+                } else {
+                    component_events
+                };
                 Ok(UiDefaultKeyboardActionReport {
                     handled: !component_events.is_empty(),
                     component_events,
@@ -520,6 +519,7 @@ impl UiSurface {
                 target: node_id,
                 event: event.clone(),
                 delivered: true,
+                drag: None,
             })
             .collect())
     }

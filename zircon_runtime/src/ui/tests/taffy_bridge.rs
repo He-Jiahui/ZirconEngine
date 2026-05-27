@@ -4,7 +4,8 @@ use zircon_runtime_interface::ui::layout::{
     AxisConstraint, BoxConstraints, UiContainerKind, UiGridBoxConfig, UiLayoutEngineBackend,
     UiLayoutEngineCapability, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
     UiLayoutEngineRequest, UiLayoutEngineSelection, UiLayoutEngineSupport, UiLinearBoxConfig,
-    UiScrollableBoxConfig, UiSizeBoxConfig, UiVirtualListConfig, UiWrapBoxConfig,
+    UiMasonryBoxConfig, UiScrollableBoxConfig, UiSizeBoxConfig, UiVirtualListConfig,
+    UiWrapBoxConfig,
 };
 
 #[test]
@@ -78,6 +79,15 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
     )
     .is_none());
     assert!(taffy_style_for_container(
+        UiContainerKind::MasonryBox(UiMasonryBoxConfig {
+            columns: 3,
+            gap: 8.0,
+            sequential: true,
+        }),
+        sample_constraints(),
+    )
+    .is_none());
+    assert!(taffy_style_for_container(
         UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
             axis: Default::default(),
             gap: 2.0,
@@ -106,6 +116,66 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
         selection.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
     );
+
+    let masonry_selection = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::from_container_kind(UiContainerKind::MasonryBox(
+            UiMasonryBoxConfig {
+                columns: 3,
+                gap: 8.0,
+                sequential: true,
+            },
+        )),
+        &UiLayoutEngineCapability::taffy_flex_grid_block(),
+        &UiLayoutEngineCapability::legacy_zircon(),
+    );
+    assert_eq!(
+        masonry_selection.request.family,
+        UiLayoutEngineFamily::Masonry
+    );
+    assert_eq!(
+        masonry_selection.selected_backend,
+        UiLayoutEngineBackend::LegacyZircon
+    );
+    assert_eq!(
+        masonry_selection.fallback_reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+}
+
+#[test]
+fn taffy_bridge_rejects_non_finite_style_inputs() {
+    assert!(taffy_style_for_container(
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: f32::INFINITY }),
+        sample_constraints(),
+    )
+    .is_none());
+    assert!(taffy_style_for_container(
+        UiContainerKind::WrapBox(UiWrapBoxConfig {
+            horizontal_gap: 4.0,
+            vertical_gap: 5.0,
+            item_min_width: f32::NAN,
+        }),
+        sample_constraints(),
+    )
+    .is_none());
+    assert!(taffy_style_for_container(
+        UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: 3,
+            rows: 2,
+            column_gap: 10.0,
+            row_gap: f32::INFINITY,
+        }),
+        sample_constraints(),
+    )
+    .is_none());
+
+    let mut constraints = sample_constraints();
+    constraints.width.preferred = f32::INFINITY;
+    assert!(taffy_style_for_container(
+        UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 8.0 }),
+        constraints,
+    )
+    .is_none());
 }
 
 #[test]

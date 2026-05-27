@@ -14,7 +14,7 @@ pub use constraints::{
 pub use engine::{
     UiLayoutEngineBackend, UiLayoutEngineCapability, UiLayoutEngineFallbackReason,
     UiLayoutEngineFamily, UiLayoutEngineRequest, UiLayoutEngineSelection,
-    UiLayoutEngineSelectionReport, UiLayoutEngineSupport,
+    UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiLayoutEngineTaffyTreeBuildStats,
 };
 pub use geometry::{
     Anchor, Pivot, Position, UiFrame, UiGeometry, UiLayoutTransform, UiPixelSnapping, UiPoint,
@@ -23,7 +23,7 @@ pub use geometry::{
 pub use linear_sizing::{UiLinearSlotSizeRule, UiLinearSlotSizing};
 pub use metrics::{UiFlowDirection, UiLayoutMetrics};
 pub use scroll::{
-    UiAxis, UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig, UiScrollState,
+    UiAxis, UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig, UiMasonryBoxConfig, UiScrollState,
     UiScrollableBoxConfig, UiScrollbarVisibility, UiSizeBoxConfig, UiVirtualListConfig,
     UiWrapBoxConfig,
 };

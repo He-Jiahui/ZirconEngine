@@ -9,5 +9,6 @@ mod model;
 mod physics_material;
 mod render_product;
 mod scene;
+mod shader_readiness;
 mod texture_importer;
 mod ui;

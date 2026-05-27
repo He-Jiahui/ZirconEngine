@@ -2,6 +2,7 @@
 related_code:
   - dev/bevy/Cargo.toml
   - dev/bevy/docs/cargo_features.md
+  - dev/bevy/docs/profiling.md
   - dev/bevy/crates/bevy_internal/src/default_plugins.rs
   - dev/bevy/crates/bevy_camera/src/camera.rs
   - dev/bevy/crates/bevy_render/src/lib.rs
@@ -157,6 +158,8 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/query_stats/query_stats.rs
   - zircon_runtime/src/core/diagnostics/render.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
@@ -185,6 +188,7 @@ implementation_files:
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
   - docs/assets-and-rendering/render-framework-architecture.md
   - docs/zircon_runtime/core/framework/render/profile.md
+  - docs/zircon_runtime/core/framework/render/common_api.md
   - docs/zircon_runtime/core/framework/render/camera.md
   - docs/zircon_runtime/core/framework/render/image.md
   - docs/zircon_runtime/core/framework/render/mesh.md
@@ -197,6 +201,8 @@ implementation_files:
   - docs/zircon_runtime/core/framework/render/sprite.md
   - docs/zircon_runtime/core/framework/render/solari.md
   - docs/zircon_runtime/graphics/render-product-submit.md
+  - docs/zircon_runtime/core/diagnostics.md
+  - docs/zircon_runtime/core/diagnostics/profiling.md
   - docs/zircon_runtime/asset/scene.md
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -304,6 +310,16 @@ implementation_files:
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
 plan_sources:
+  - user: 2026-05-22 continue M10 render promotion testing-stage rollup
+  - user: 2026-05-22 continue M10 advanced and Solari separation checklist
+  - user: 2026-05-22 continue M10 post-process and anti-alias breadth checklist
+  - user: 2026-05-21 continue M10 default 3D PBR and light acceptance checklist
+  - user: 2026-05-21 continue M10 default 2D and presentation base acceptance checklist
+  - user: 2026-05-21 continue M10 schedule visibility acceptance checklist
+  - user: 2026-05-21 continue M10 common render API readiness checklist
+  - user: 2026-05-21 continue M10 profile freeze acceptance checklist
+  - user: 2026-05-21 continue M10 render dependency gate sequencing
+  - user: 2026-05-21 continue M10 detailed render sub-milestone plan
   - user: 2026-05-21 continue Bevy advanced/default render boundary evidence
   - user: 2026-05-21 continue Bevy default render profile completion gates
   - user: 2026-05-21 continue Bevy render schedule and submit pipeline evidence mapping
@@ -328,6 +344,10 @@ tests:
   - cargo test -p zircon_runtime --lib ambient_and_rect_light_reflection_roundtrips_authoring_fields --locked
   - cargo test -p zircon_runtime --locked material
   - cargo check -p zircon_runtime --lib --locked
+  - cargo test -p zircon_runtime --locked render_product_post_process
+  - cargo test -p zircon_runtime --locked render_product_anti_alias
+  - zircon_runtime/src/core/framework/tests.rs::render_product_post_process_graph_rejects_cycles
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::anti_alias_settings_report_structured_fallbacks
   - tests/acceptance/render-product-m5a-pbr-light.md
   - tests/acceptance/render-product-m6a-sprite-default-2d.md
   - zircon_runtime/src/core/framework/tests.rs::render_camera_contracts_cover_viewports_and_bevy_layer_intersection
@@ -362,6 +382,12 @@ tests:
   - cargo test -p zircon_runtime --locked render_product_sprite
   - cargo test -p zircon_runtime --locked render_product_pipeline
   - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
+  - cargo test -p zircon_runtime --locked camera_target
+  - cargo test -p zircon_runtime --locked surface_targets
+  - cargo test -p zircon_runtime --locked render_product_advanced
+  - cargo test -p zircon_runtime --lib --locked render_product_solari
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_solari_runtime --locked
+  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime
 doc_type: milestone-detail
 ---
 
@@ -413,8 +439,8 @@ Advanced Virtual Geometry and Hybrid GI remain explicit advanced capability/prof
 | Lights | `dev/bevy/crates/bevy_light/src/lib.rs:159-245` wires light visibility, clusters, shadow maps, and directional/point/spot/rect light visibility; `ambient_light.rs` defines global ambient color/brightness/lightmap influence; `rect_light.rs` defines local-XY rectangular area lights facing local `-Z`; `dev/bevy/crates/bevy_pbr/src/render/light.rs:1316-1343` uploads point/spot lights as `GpuClusteredLight`, and `render/light.rs:1519-1624` builds per-view `GpuLights` with ambient, directional, cluster, and rect-light storage; `mesh_view_types.wgsl` carries directional, rect, and clustered light view data. | `AmbientLight`, `DirectionalLight`, `PointLight`, `RectLight`, and `SpotLight` in `zircon_runtime/src/scene/components/scene.rs`; scene persistence in `zircon_runtime/src/asset/assets/scene.rs`; render light snapshots and readiness reports in `zircon_runtime/src/core/framework/render/light`; fixed reflection in `scene/reflect/fixed/lights.rs`; editor creation/projection in `zircon_editor/src/ui/workbench/model/menu/selection_menu.rs` and `zircon_editor/src/scene/viewport/edit_mode_projection/build.rs`; basic ambient and single-directional uniform consumption in `scene_uniform/from_frame.rs`; submit stats in `update_stats/base_stats.rs`; limited directional clustered-light buffer in `execute_clustered_lighting.rs`. | `render::light` and runtime `LightingExtract`. | M5 light authoring now stores ambient/rect scene components, exposes them through property paths and reflection, persists them through `SceneAsset`, and projects them into `SceneViewportRenderPacket` plus `RenderFrameExtract`. The editor creation surface now lists ambient/directional/point/rect/spot lights, maps them to undoable create operations, and projects `AmbientLight` plus `RectLight` inspector fields including `RectLight.size` as `Vec2`. `render::light` owns the neutral light row vocabulary plus `RenderLightReadinessReport`; ambient light feeds the basic forward/deferred `SceneUniform::ambient_color` path, the first directional light is reported as ready through the single `SceneUniform` directional slot, and submit stats split directional/point/spot/ambient/rect ready/degraded counts from that shared report. Extra directional lights plus point, spot, and rect lights remain renderer-degraded until clustered/Forward+ and area-light shading land. Bevy-style shadows/clusters and full PBR lighting remain later work. |
 | Sprite | `dev/bevy/crates/bevy_sprite/src/lib.rs:68-108` owns `SpritePlugin`, texture-atlas setup, bounds, and optional picking; `dev/bevy/crates/bevy_sprite/src/sprite.rs:19-41` defines the authored sprite fields; `dev/bevy/crates/bevy_sprite_render/src/lib.rs:54-125` wires extraction, queueing, bind groups, and phase sorting; `dev/bevy/crates/bevy_sprite_render/src/render/mod.rs:49-573` owns pipeline keys, specialization, visibility extraction, queueing, and sprite batches. | `Sprite2dComponent`, `RenderSpriteSnapshot`, `SpriteExtract`, Core2d sprite phase queueing, sprite renderer, graph executors, and sprite stats. | `render::sprite`; see [Render Sprite Contracts](../zircon_runtime/core/framework/render/sprite.md). | M6A lands non-particle sprite contracts, atlas/rect/flip/anchor/custom-size/tint/z/layer extraction, 2D queueing, fallback texture stats, and product submit evidence. M10E classifies remaining Bevy sprite gaps: image scaling/sliced/tiled modes, atlas import/layout workflow, Mesh2d/SpriteMesh products, binned batching, HDR/MSAA/tonemapping/dither/compositing/alpha-mask pipeline specialization, and separate picking/Text2d milestones. |
 | Runtime UI render | `dev/bevy/crates/bevy_ui_render/src/lib.rs:192-270` registers UI extraction and inserts `ui_pass` after post-process and before upscaling for Core2d/Core3d. | `zircon_runtime/src/ui/*`, `zircon_runtime_interface/src/ui/surface/*`, `zircon_runtime/src/graphics/scene/scene_renderer/ui/*`, and the `ui.screen-space` graph executor. | `render::UiRender` plus existing runtime UI contracts. | Accepted for focused M10A submit: UI is graph-executed after postprocess and before overlay, with target-size and pass-order stats. Multi-camera UI targeting remains future work. |
-| Post-process | `dev/bevy/crates/bevy_post_process/src/lib.rs:9-36` adds bloom, motion blur, depth of field, effect stack, and MSAA writeback; bloom schedules Core2d/Core3d before tonemapping at `bloom/mod.rs:44-83`; effect stack covers chromatic aberration and vignette at `effect_stack/mod.rs:3-6`. | `BuiltinRenderFeature::{Bloom, ColorGrading, HistoryResolve, PostProcess}`, `PostProcessStackDescriptor`, `PostProcessPassGraph`, and post-process renderer resources under `zircon_runtime/src/graphics/scene/scene_renderer/post_process/*`. | `render::post_process`; [Postprocess Pass Graph Contracts](../zircon_runtime/core/framework/render/post_process.md). | Accepted for focused DefaultRender submit with graph node/execution stats. M10C now classifies Bevy motion blur, depth of field, chromatic aberration, vignette, and MSAA writeback as explicit gaps instead of letting bloom/color-grading imply full post-process parity. |
-| Anti-aliasing | `dev/bevy/crates/bevy_anti_alias/src/lib.rs:23-33` adds FXAA, SMAA, TAA, CAS, and optional DLSS; `fxaa/mod.rs:57-108`, `smaa/mod.rs:137-196`, `taa/mod.rs:47-115`, and `contrast_adaptive_sharpening/mod.rs:40-122` define the per-mode product surfaces. | `render::anti_alias`, `AntiAliasMode`, `AntiAliasSettings`, `AntiAliasFallbackReport`, FXAA renderer resources, capability validation, and AA graph stats. | `render::anti_alias`; [Anti-Alias Product Surface](../zircon_runtime/core/framework/render/anti_alias.md). | Accepted for focused DefaultRender submit through concrete FXAA fallback. M10C now records per-family gaps: MSAA writeback/resolve, SMAA three-pass resources/LUTs, TAA jitter/history/prepasses, CAS sharpening, and DLSS provider capability remain future work. |
+| Post-process | `dev/bevy/crates/bevy_post_process/src/lib.rs:9-36` adds bloom, motion blur, depth of field, effect stack, and MSAA writeback; bloom schedules Core2d/Core3d before tonemapping at `bloom/mod.rs:44-83`; effect stack covers chromatic aberration and vignette at `effect_stack/mod.rs:3-6`. | `BuiltinRenderFeature::{Bloom, ColorGrading, HistoryResolve, PostProcess}`, `PostProcessStackDescriptor`, `PostProcessPassGraph`, and post-process renderer resources under `zircon_runtime/src/graphics/scene/scene_renderer/post_process/*`. | `render::post_process`; [Postprocess Pass Graph Contracts](../zircon_runtime/core/framework/render/post_process.md). | Accepted for focused DefaultRender submit with graph node/execution stats. M10C classifies Bevy motion blur, depth of field, chromatic aberration, vignette, and MSAA writeback as explicit gaps; M10T adds the promotion rule that each family needs typed descriptors, graph resources, diagnostics, and tests before bloom/color-grading can be cited as breadth evidence. |
+| Anti-aliasing | `dev/bevy/crates/bevy_anti_alias/src/lib.rs:23-33` adds FXAA, SMAA, TAA, CAS, and optional DLSS; `fxaa/mod.rs:57-108`, `smaa/mod.rs:137-196`, `taa/mod.rs:47-115`, and `contrast_adaptive_sharpening/mod.rs:40-122` define the per-mode product surfaces. | `render::anti_alias`, `AntiAliasMode`, `AntiAliasSettings`, `AntiAliasFallbackReport`, FXAA renderer resources, capability validation, and AA graph stats. | `render::anti_alias`; [Anti-Alias Product Surface](../zircon_runtime/core/framework/render/anti_alias.md). | Accepted for focused DefaultRender submit through concrete FXAA fallback. M10C records per-family gaps; M10T keeps FXAA as a concrete subfamily only and requires separate MSAA writeback/resolve, SMAA LUT/three-pass resources, TAA jitter/history/prepasses, CAS sharpening, and DLSS provider evidence before AA breadth is promoted. |
 | Solari | `dev/bevy/crates/bevy_solari/src/lib.rs:29-57` defines the experimental Solari plugin group and required WGPU features; `scene/mod.rs:39-78` gates BLAS/bind-group scene setup; `realtime/mod.rs:35-95` gates realtime lighting, deferred/prepass/HDR requirements, and Core3d scheduling; `realtime/node.rs:31-180` shows the concrete compute-pipeline/resource surface; `pathtracer/mod.rs:23-60` keeps reference pathtracing separate. | `render::solari`, Solari capability validation, Solari provider availability, and `zircon_plugins/solari`. | `render::solari` plus `SolariExperimental` profile; see [Solari Experimental Render Contract](../zircon_runtime/core/framework/render/solari.md). | Experimental gated path accepted: missing caps, missing provider, disabled gate, and unavailable provider all report explicit status. M10F records the remaining Bevy gaps: no BLAS scene build, raytracing scene bindings, SolariLighting camera/prepass validation, Core3d Solari node, temporal history, ReSTIR/world-cache pipeline family, DLSS RR integration, or validation pathtracer. |
 | Virtual Geometry and Hybrid GI | Bevy's checked-in profile model keeps default 2D, 3D, and UI rendering in `default`, `2d`, `3d`, `ui`, and their renderer collections; no Bevy default profile row makes an advanced renderer a substitute for those defaults. | `zircon_plugins/virtual_geometry/runtime/src/lib.rs`, `zircon_plugins/hybrid_gi/runtime/src/lib.rs`, neutral DTOs in `render::advanced`, provider facades in `zircon_runtime::graphics`, and submit/runtime-plan gates. | `AdvancedRender` and `SolariExperimental` profile gates, not default profiles; see [Advanced Render Profile Runtime Plan](../zircon_runtime/core/framework/render/advanced.md). | Accepted for focused M10A AdvancedRender submit with provider-backed VG/HGI graph execution and authored payload stats. M10L records that this evidence is non-substitutable: it cannot close default `CommonRenderApi`, `Render2d`, `Render3d`, `Ui`, presentation, diagnostics, scheduling, or shader/material reflection gaps. |
 
@@ -531,6 +557,98 @@ The Zircon rule is now that `DefaultRender` is only accepted slice by slice. `Co
 M10L expands [Advanced Render Profile Runtime Plan](../zircon_runtime/core/framework/render/advanced.md) with the Bevy and Zircon evidence behind that non-substitution rule. Bevy's profiles and collections keep default 2D, 3D, and UI rendering separate from optional breadth; Zircon maps that into `DefaultRender` first, then layers `AdvancedRender` and `SolariExperimental` as opt-in profiles that depend on but do not complete the default slices.
 
 The concrete runtime gates now have documented ownership: `AdvancedProfileRuntimePlan` reports VG/HGI as not requested under `DefaultRender`, profile compile options only enable advanced capabilities when a quality profile requests them and a provider is selected, and viewport state resolution falls back to `DefaultRender` when VG/HGI/Solari flags are absent. Advanced graph execution and authored payload stats therefore remain valid M9/M10 evidence for VG/HGI provider integration, but they cannot close Mesh2d/SpriteMesh, PBR lighting, UI target, presentation, diagnostics, scheduling, or shader/material reflection gaps.
+
+## M10M Detailed Render Sub-Milestone Plan Update
+
+M10M expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with an executable M10 sub-milestone table. The plan now splits render work into profile/module order, render app and scheduling, common API/assets, default 2D, default 3D/PBR/light, post-process/AA, presentation/capture, diagnostics/profiling, and advanced/Solari separation. Each row includes Bevy source or docs evidence, Zircon landing modules, implementation slices, testing-stage commands, acceptance evidence, and evidence that is explicitly not accepted.
+
+The main planning change is promotion discipline: M10 can keep advancing through docs-only evidence slices during shared checkout contention, but final M10 acceptance must still run focused render tests, `cargo check -p zircon_runtime --lib --locked`, `cargo check -p zircon_app --locked --all-targets` when app profiles are touched, then package/workspace validation during the milestone testing stage. This keeps the roadmap aligned with Bevy `cargo_features.md` profile/collection documentation and prevents advanced renderer success from hiding baseline product gaps.
+
+## M10N Render Dependency Gate Sequencing Update
+
+M10N adds the dependency order underneath the M10M table in `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md`. The sequence now starts with profile freeze, then common API readiness, schedule visibility, default 2D plus presentation base, default 3D/PBR/light, post-process/AA breadth, diagnostics/profiling bridge, and only then advanced/Solari proof. This follows Bevy's default plugin ordering and `RenderSystems` split while preserving Zircon's runtime/framework/backend ownership.
+
+The practical rule is that active implementation slices must declare which gate they are closing and which gates remain open. Work that touches UI/Text/Input, picking, asset import/material editor, ECS query, platform window/input, or ZRVM must first re-read the corresponding active session note; otherwise the render lane should stay in M10 docs, capability matrix, or clearly owned render framework files.
+
+## M10O Profile Freeze Acceptance Checklist Update
+
+M10O expands [Runtime Render Profile Contracts](../zircon_runtime/core/framework/render/profile.md) and `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the concrete M10.1 profile freeze checklist. The Bevy pressure points are `dev/bevy/docs/cargo_features.md:22-52`, where default/high-level profiles and renderer collections are separate, and `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`, where the default render-facing order is normal render infrastructure, image, mesh, camera, light, core pipeline, post-process, anti-aliasing, sprite/UI render, and PBR rather than an experimental advanced renderer.
+
+The Zircon gate now names the exact evidence expected before profile freeze can be promoted: `RenderProfileBundle::default_render()` must stay `CommonRenderApi + Render2d + Render3d + Ui`; `Headless` must carry no render products; app bootstrap must store the selected bundle under `RENDER_PROFILE_CONFIG_KEY`; default render must not link VG/HGI/Solari providers; advanced and Solari providers must remain opt-in; and backend capability failures must surface through structured `RenderProfileValidationError` or explicit unavailable status.
+
+This is a docs-only acceptance checklist update. It records the gate and existing source/test evidence, but it does not claim fresh Cargo validation. Promotion still requires `cargo test -p zircon_runtime render_profile --locked` and `cargo check -p zircon_app --locked --all-targets`.
+
+## M10P Common Render API Readiness Update
+
+M10P adds [Runtime Common Render API Contracts](../zircon_runtime/core/framework/render/common_api.md) and expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the M10.3 readiness checklist. The Bevy source pressure is that `common_api` includes camera/image/mesh/shader/material-facing API surface but explicitly excludes the renderer (`dev/bevy/docs/cargo_features.md:44-52`), while the default plugin order still loads image, mesh, camera, light, core pipeline, post-process, AA, sprite/UI render, and PBR as distinct slices (`dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`).
+
+The accepted Zircon shape is now explicit: `CommonRenderApi` owns typed camera/image/mesh/shader/material DTOs plus asset projection and readiness vocabulary, but not draw execution, presentation, shader import resolution, material editor UX, bind-group reflection, or advanced renderer products. `render::light` remains adjacent 3D API evidence for M10.5 rather than a `CommonRenderApi` requirement, matching Bevy's split where `bevy_light` is part of `3d_api`, not `common_api`.
+
+The promotion gate is focused: `cargo test -p zircon_runtime --locked render_product_assets` must cover image, mesh, shader, and material projection/readiness, and `cargo check -p zircon_runtime --lib --locked` must pass before M10.3 is called current-checkout verified. This slice only records the docs/source evidence because the shared Windows build queue was busy with Hub, Editor, Picking, UI, and ECS work.
+
+## M10Q Schedule Visibility Acceptance Update
+
+M10Q expands [Runtime Render Core Pipeline Contracts](../zircon_runtime/core/framework/render/core_pipeline.md) and `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the M10.2 schedule visibility checklist. The Bevy pressure points are `dev/bevy/crates/bevy_render/src/lib.rs:120-208` for `RenderApp` plus named `RenderSystems`, `dev/bevy/crates/bevy_render/src/lib.rs:286-423` for render schedule setup, `dev/bevy/crates/bevy_core_pipeline/src/schedule.rs:31-170` for Core2d/Core3d and camera-driven schedules, and `dev/bevy/crates/bevy_render/src/pipelined_rendering.rs:68-178` for pipelined rendering as a separate render-thread model.
+
+Zircon's accepted state stays intentionally narrower: `submit_frame_extract(...)` is a synchronous runtime-framework path with source-visible context-build, runtime prepare, history resolve, runtime frame build, compiled graph render, feedback, record, history release, and stats update. The graph path compiles stage mappings, queues, dependencies, resources, capability requirements, and executor ids, then executes registered graph passes while recording stage, executor, queue, dependencies, and resources.
+
+The M10.2 promotion rule is now explicit: schedule visibility can advance without copying Bevy's render world, but diagnostics must use stable neutral names for extract/context-build/prepare/queue-or-phase/graph-compile/render/postprocess/present/cleanup. Graph completion remains open until culled-pass reason, resource-residency decisions, executor availability, effective queue, and pass timing are visible. Pipelined rendering remains a later milestone requiring render-thread lifecycle, extract handoff, overlap timing, and shutdown ownership evidence.
+
+## M10R Default 2D And Presentation Base Acceptance Update
+
+M10R expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the combined M10.4/M10.7 acceptance checklist. The Bevy source pressure is deliberately two-sided: `dev/bevy/docs/cargo_features.md:47-52` separates API-only profiles from renderer collections, `dev/bevy/crates/bevy_sprite_render/src/lib.rs:54-125` shows that the 2D renderer is a render-app plugin with extract, queue, bind-group prepare, and phase-sort systems, and `dev/bevy/crates/bevy_camera/src/camera.rs:814-855` plus `dev/bevy/crates/bevy_render/src/view/window/screenshot.rs:49-111` keep camera targets and screenshots as target-aware presentation contracts.
+
+The accepted Zircon shape is equally split. The default 2D base is the documented Core2d sprite path: `Sprite2dComponent` projects into `RenderSpriteSnapshot`, `SpriteExtract` owns product sprites separately from particles, `RenderPipelineAsset::default_core2d()` exposes sprite graph passes without advanced features, and renderer stats report sprite counts/fallbacks. Presentation base is the camera/surface contract: `RenderCameraTarget::PrimarySurface` presents to a bound viewport surface, `Headless { size }` controls offscreen capture size, `Texture(handle)` remains explicit unsupported until texture residency/writeback lands, and headless surface-present is rejected instead of silently falling back to the primary surface.
+
+M10R therefore does not mark Bevy 2D parity complete. Mesh2d/SpriteMesh rendering, texture slice/tile generation, binned batching, per-view pipeline specialization, target-aware async screenshot requests, render-to-texture, manual texture views, and no-color/depth-only target scheduling remain open. The promotion gate must run `render_product_sprite`, the default Core2d pipeline compile test, camera target/surface target tests, and `cargo check -p zircon_runtime --lib --locked` in a quiet build window before this docs-only checklist becomes fresh current-checkout evidence.
+
+## M10S Default 3D PBR And Light Acceptance Update
+
+M10S expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the M10.5 checklist. The Bevy pressure points are `dev/bevy/docs/cargo_features.md:49-50`, where `3d_api` and `3d_bevy_render` stay separate; `dev/bevy/crates/bevy_pbr/src/lib.rs:131-252`, where `PbrPlugin` combines StandardMaterial, MaterialPlugin, SSAO, fog, lightmap, light probes, volumetric fog, SSR, clustered decals, light sync, GPU clustering, and optional deferred PBR lighting; and `dev/bevy/crates/bevy_pbr/src/pbr_material.rs:26-1056`, where StandardMaterial includes much more than Zircon's current core descriptor.
+
+The Zircon accepted state remains intentionally limited. `StandardMaterialDescriptor` and `RenderMaterialReadinessReport` give the default 3D lane typed material/readiness/fallback vocabulary; `MaterialRuntime` and `PipelineKey` project a smaller runtime material; `RenderLightReadinessReport` distinguishes ready/degraded light families; the renderer has G-buffer geometry, fullscreen deferred lighting, and a limited directional clustered-light compute path. These are real foundations, but not full Bevy PBR.
+
+M10.5 cannot be promoted until each family has evidence rather than a single aggregate success: material descriptor breadth and missing-family gaps, bind-group/reflection/cache behavior, per-phase pipeline specialization, point/spot clustered lighting, rect/area light shading, shadows/contact shadows, probes/IBL/lightmaps, forward/deferred parity, and post-process/AA coupling. The focused promotion commands remain `render_product_pbr`, material tests, light readiness tests, PBR submit tests, and `cargo check -p zircon_runtime --lib --locked` once the build queue is quiet.
+
+## M10T Post-Process And Anti-Alias Breadth Acceptance Update
+
+M10T expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md`, [Postprocess Pass Graph Contracts](../zircon_runtime/core/framework/render/post_process.md), and [Anti-Alias Product Surface](../zircon_runtime/core/framework/render/anti_alias.md) with the M10.6 checklist. The Bevy pressure points are `dev/bevy/crates/bevy_post_process/src/lib.rs:9-36`, where `PostProcessPlugin` combines MSAA writeback, bloom, motion blur, depth of field, and effect stack plugins, and `dev/bevy/crates/bevy_anti_alias/src/lib.rs:21-35`, where `AntiAliasPlugin` installs FXAA, SMAA, TAA, CAS, and optional DLSS.
+
+The accepted Zircon state remains intentionally narrower. Post-process has a validated product graph for bloom, color grading, history resolve, final composite, and FXAA execution evidence. Anti-aliasing has typed mode vocabulary, capability resolution, structured fallback reports, and a concrete FXAA graph pass. These foundations are accepted subfamilies, not full Bevy breadth.
+
+M10.6 cannot be promoted until missing post-process and AA families have independent evidence: motion blur needs depth/motion-vector prepass ownership; depth of field needs camera focus/lens settings and auxiliary resources; chromatic aberration/vignette need camera descriptors and LUT/resource diagnostics; MSAA needs multisampled target/writeback policy; SMAA needs LUT and three-pass resources; TAA needs jitter/history/prepass/reset behavior; CAS needs sharpening settings and graph ordering; DLSS remains provider gated. This docs-only update records the gate and does not claim fresh Cargo validation.
+
+## M10U Render Diagnostics And Profiling Bridge Acceptance Update
+
+M10U expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md`, [Render Product Submit](../zircon_runtime/graphics/render-product-submit.md), [Core Runtime Diagnostics](../zircon_runtime/core/diagnostics.md), and [Runtime Profiling Diagnostics](../zircon_runtime/core/diagnostics/profiling.md) with the M10.8 checklist. The Bevy pressure points are `dev/bevy/crates/bevy_render/src/diagnostic/mod.rs:37-63`, where `RenderDiagnosticsPlugin` owns CPU/GPU pass elapsed time and pipeline statistics; `dev/bevy/crates/bevy_render/src/diagnostic/internal.rs:244-285`, where timestamp and pipeline-stat query resources are created only when backend features exist; and `dev/bevy/docs/profiling.md:151-213`, where CPU tracing, Tracy RenderQueue, vendor GPU profilers, and RenderDoc debugging are kept separate.
+
+The accepted Zircon state remains intentionally narrower. `RenderStats` is a submit/product snapshot for graph counts, product readiness/fallbacks, material/sprite/light stats, advanced provider reports, Solari status, and VG/HGI counters. `collect_runtime_diagnostics(...)` currently bridges only `render.submitted_frames`, `render.active_viewports`, and `render.last_graph_executed_pass_count` into the runtime `DiagnosticStore`. The profiling feature records CPU timeline spans for submit, present, capture, framework locking, and render graph stage/pass execution, and can export native/perfetto/hotspot artifacts.
+
+M10.8 cannot be promoted until the diagnostic bridge distinguishes product readiness, pass-level CPU timing, backend-gated GPU timing, pipeline statistics, render-asset residency, mesh allocator memory, present/capture failure state, and future render-thread handoff telemetry. RenderDoc markers, one FPS counter, aggregate frame time, or a profiling artifact alone cannot close the gate. This docs-only update records the gate and does not claim fresh Cargo validation.
+
+## M10V Advanced Render And Solari Separation Acceptance Update
+
+M10V expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md`, [Advanced Render Profile Runtime Plan](../zircon_runtime/core/framework/render/advanced.md), and [Solari Experimental Render Contract](../zircon_runtime/core/framework/render/solari.md) with the M10.9 checklist. The Bevy pressure points are `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`, where default rendering is built before any Solari-style experimental path; `dev/bevy/crates/bevy_solari/src/lib.rs:29-57`, where Solari is an experimental plugin group with explicit WGPU feature requirements; `dev/bevy/crates/bevy_solari/src/scene/mod.rs:39-78`, where raytracing scene setup initializes BLAS and binding resources only after feature checks; `dev/bevy/crates/bevy_solari/src/realtime/mod.rs:35-95`, where realtime Solari requires deferred/depth/motion-vector prepasses; and `dev/bevy/crates/bevy_solari/src/pathtracer/mod.rs:23-60`, where pathtracing is validation-only.
+
+The accepted Zircon state is intentionally narrow. `AdvancedRender` proves VG/HGI provider selection, capability degradation, submit-side gating, payload source reporting, and stats. `SolariExperimental` proves neutral capability requirements, provider selection, explicit experimental gating, unavailable-provider status, and default-profile `NotRequested` behavior. Neither path proves Bevy default render completion.
+
+M10.9 cannot be promoted until advanced and experimental evidence stays separate from the baseline gates: default rendering must keep M10.3-M10.8 evidence for API readiness, schedule visibility, 2D/presentation, 3D/PBR/light, post-process/AA, and diagnostics; advanced providers must report backend/provider failures structurally; Solari must add real BLAS scene setup, raytracing scene bindings, Solari view requirements, Core3d schedule insertion, ReSTIR/world-cache compute pipelines, temporal history, and optional validation pathtracing before it can move beyond status-only experimental readiness. This docs-only update records the gate and does not claim fresh Cargo validation.
+
+## M10W Render Promotion Testing Stage Rollup
+
+M10W expands `.codex/plans/ZirconEngine Bevy 完成度两层路线图.md` with the final M10 testing-stage sequence. It turns the previous docs-only gates into an ordered promotion plan: document/path preflight, profile/app checks, core/default 2D/presentation tests, asset/PBR/light tests, post-process/AA tests, diagnostics/profiling checks, advanced/Solari provider checks, crate-level compile gates, and CI-parity validation.
+
+The Bevy pressure points remain the default plugin order in `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`, the `RenderSystems` execution split in `dev/bevy/crates/bevy_render/src/lib.rs:151-208`, and the diagnostics bridge in `dev/bevy/crates/bevy_render/src/diagnostic/mod.rs:37-66`. The Zircon CI-parity commands are grounded in `.github/workflows/ci.yml`: workspace build/test, plugin workspace check/build/test, and export-platform contract tests.
+
+This update does not claim M10 has passed. Its purpose is to make the acceptance boundary auditable: until the focused tests, scoped checks, plugin workspace checks, and final validator run pass in the current checkout, the valid status remains "M10 plan/docs gates are complete, current-checkout promotion is pending." Active UI/Text/Input, Picking, ECS, and asset/material sessions remain coordination blockers for any full-workspace claim.
+
+2026-05-26 M10W current-checkout evidence advanced through the asset/material and post-process/AA stages. The broad material filter passed after the folder-backed data-display split restored the Material catalog guard. M10.6 then passed `render_product_post_process` (9 matching lib tests), `render_product_anti_alias` (3 matching lib tests), `runtime_ui_graph_pass_order` (2 matching lib tests), `pipeline_compile` (39 matching lib tests), and `cargo check -p zircon_runtime --lib --locked` with existing warnings only. This evidence promotes only the already-implemented bloom/color-grading/history/FXAA and structured-fallback subitems; MSAA writeback, SMAA, TAA, CAS, DLSS, motion blur, DoF, effect stack, GPU timing, advanced render, Solari, and final CI-parity validation remain separate gates.
+
+The same 2026-05-26 M10W run also advanced M10.8 diagnostics/profiling. `runtime_diagnostics` passed 2 matching lib tests, `diagnostic_store` passed 5 matching lib tests, `profiling` under `--profile profiling --features profiling` passed 20 matching lib tests after a cold compile timeout was rerun warmed, and both default and profiling-profile runtime checks passed with existing warnings only. This confirms the current `RuntimeDiagnosticsSnapshot` / `DiagnosticStore` bridge plus CPU profiling artifacts, but it does not promote GPU timestamp queries, pipeline statistics, generic render-asset residency, mesh allocator diagnostics, or render-thread overlap telemetry.
+
+The 2026-05-26 M10W run then advanced M10.9 advanced/Solari. `render_product_advanced` passed 2 matching tests for provider-backed VG/HGI execution and provider-missing degradation. `render_product_solari` passed 5 matching lib tests for default/advanced `NotRequested`, missing provider, experimental gate, unavailable provider, and missing capability rejection. The Solari plugin package gate passed 2 tests plus doc-tests. This promotes only the advanced/provider/status boundary; VG/HGI/Solari evidence remains non-substitutable for `CommonRenderApi`, 2D/presentation, 3D/PBR/light, post-process/AA, diagnostics, scheduling, shader/material reflection, or final CI-parity validation.
+
+The same run attempted the first CI-parity package validator with `.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -TargetDir F:\cargo-targets\zircon-render-m10w-ci-parity-runtime`. `cargo build -p zircon_runtime --locked` passed with the existing warning set, but `cargo test -p zircon_runtime --locked` failed. The reproduced lib-test layer showed 12 failures outside the render M10.9 gates: one asset texture readiness expectation and 11 active UI/MUI/input/layout failures. M10 therefore cannot be marked current-checkout CI accepted; `zircon_app`, full workspace, plugin workspace, and export-platform validators remain deferred until those shared checkout blockers are resolved.
 
 ## M2A Camera And Layer Contract Update
 

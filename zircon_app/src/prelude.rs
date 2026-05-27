@@ -5,8 +5,8 @@ pub use crate::{
     first_party_runtime_plugin_registrations_for_manifest,
     first_party_runtime_plugin_registrations_for_runtime_profile, BuiltinEngineEntry,
     DefaultPlugins, DevPlugins, EngineEntry, EntryConfig, EntryModuleSelection,
-    EntryModuleSelectionReport, EntryProfile, EntryRunMode, EntryRunner, HeadlessPlugins,
-    MinimalPlugins, NativePluginRuntimeBootstrap, PluginGroup, PluginGroupBuilder,
+    EntryModuleSelectionReport, EntryProfile, EntryRunMode, EntryRunner, EntryRuntimeBootstrap,
+    HeadlessPlugins, MinimalPlugins, NativePluginRuntimeBootstrap, PluginGroup, PluginGroupBuilder,
     PluginGroupError, ResolvedPluginGroup,
 };
 pub use zircon_runtime::prelude::*;

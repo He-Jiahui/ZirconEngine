@@ -78,6 +78,7 @@ implementation_files:
   - zircon_runtime/src/rhi/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
 plan_sources:
+  - user: 2026-05-22 continue M10 advanced and Solari separation checklist
   - user: 2026-05-21 continue Bevy advanced/default render boundary evidence
   - user: 2026-05-18 continue Render M9A advanced profile integration
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
@@ -130,6 +131,14 @@ Zircon deliberately mirrors that separation at runtime. `RenderProfileBundle::de
 The runtime gates enforce the same rule. `AdvancedProfileRuntimePlan::from_profile_bundle(...)` reports VG/HGI as `NotRequested` for `DefaultRender`, even if providers are available. `compile_options_for_profile(...)` only enables advanced compile capabilities when the selected quality profile requests an advanced feature and a provider is present. `runtime_profile_bundle_for_quality_profile(...)` falls back to `DefaultRender` whenever the quality profile does not set VG/HGI/Solari flags.
 
 M10L therefore treats advanced-render evidence as non-substitutable. It cannot close missing Mesh2d/SpriteMesh rendering, full PBR lighting, UI render targeting, presentation/capture, render diagnostics, shader/material reflection, or Bevy-style render scheduling gaps. Those gaps stay with their default product slices, while this module only owns the advanced profile's capability/provider/runtime-plan truth.
+
+## M10V Advanced And Solari Separation Gate
+
+M10V turns the M10L boundary into the final advanced-render acceptance rule for this render roadmap. Bevy's default render stack is loaded from normal render infrastructure through image, mesh, camera, light, pipelined rendering, core pipeline, post-process, anti-aliasing, sprite/UI render, and PBR in `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`. Bevy Solari is separate: `dev/bevy/crates/bevy_solari/src/lib.rs:29-57` marks it as experimental, puts realtime lighting and raytracing scene setup in a plugin group, and requires ray-query plus binding-array GPU features.
+
+The AdvancedRender side of M10.9 is accepted only when it proves advanced capability honesty: `DefaultRender` reports VG/HGI as `NotRequested`, even with providers linked; `AdvancedRender` reports VG/HGI as `Ready` only when profile request, backend capability, and selected provider all agree; provider absence and backend capability absence remain structured degradation records; submit-side feature enablement, payload source labels, graph pass counts, and stats are cleared when a feature degrades; and Solari remains outside `AdvancedRender` unless the selected product profile is `SolariExperimental`.
+
+This gate also defines what AdvancedRender cannot claim. It cannot substitute for `CommonRenderApi`, Core2d sprite/Mesh2d, presentation targets and screenshots, StandardMaterial/PBR breadth, light families, post-process and anti-alias breadth, render diagnostics, shader/material reflection, or Bevy-style render scheduling. The promotion evidence for this module is provider/status/sideband focused: `render_product_advanced`, provider bridge tests, runtime profile tests, and a scoped `cargo check -p zircon_runtime --lib --locked`.
 
 ## Feature Mapping
 
@@ -266,6 +275,12 @@ Capability reporting is also grouped into classes:
 This slice still does not implement native dynamic VG/HGI provider loading, Solari, ray-query policy, or deeper VG/HGI visual feature work. It fixes the neutral contract, app-linked first-party provider collection, plugin manifest/catalog capability declarations, framework-local provider arbitration, product-level AdvancedRender acceptance, submit-time provider gating, VG/HGI payload-source reporting, and production HGI/VG sideband readback merge.
 
 ## Validation Notes
+
+Fresh M10.9 validation on 2026-05-26 used `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate` for the runtime gate:
+
+- `cargo test -p zircon_runtime --locked render_product_advanced --jobs 1 --message-format short --color never` passed: 2 matching tests, 0 failures. This covered provider-backed VG/HGI graph execution with authored payload sources and descriptor-only provider-missing degradation that clears VG/HGI graph pass counts and payload-source stats.
+
+This remains advanced-profile evidence only. It does not promote default render API, Core2d/Mesh2d, PBR/light, presentation, diagnostics, scheduling, or shader/material reflection gaps.
 
 Fresh M9A validation on 2026-05-19 used `CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-render-m9a-advanced`. The product and broad runtime filters passed:
 

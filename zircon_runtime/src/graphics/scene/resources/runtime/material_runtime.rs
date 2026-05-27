@@ -1,4 +1,9 @@
-use crate::core::framework::render::RenderMaterialReadinessReport;
+use std::collections::BTreeMap;
+
+use crate::core::framework::render::{
+    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
+    RenderMaterialReadinessReport,
+};
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
@@ -38,6 +43,9 @@ pub(crate) struct MaterialRuntime {
     pub(crate) metallic_roughness_texture: Option<ResourceId>,
     pub(crate) occlusion_texture: Option<ResourceId>,
     pub(crate) emissive_texture: Option<ResourceId>,
+    pub(crate) shader_property_values: BTreeMap<String, RenderMaterialPropertyValue>,
+    pub(crate) shader_property_uniform_payload: RenderMaterialPropertyUniformPayload,
+    pub(crate) non_standard_texture_slots: BTreeMap<String, Option<ResourceId>>,
     pub(crate) pipeline_key: PipelineKey,
     pub(crate) readiness_report: RenderMaterialReadinessReport,
 }

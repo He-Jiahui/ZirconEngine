@@ -1,9 +1,14 @@
 use crate::ui::retained_host::primitives::ModelRc;
+use std::f32::consts::PI;
 
 use super::super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
 use super::frame::HostRgbaFrame;
 use super::geometry::{frame_from_template, intersect, is_visible_frame, translated};
+use super::material_primitives::{
+    push_material_primitive_commands, push_material_text_field_surface_commands,
+};
 use super::material_state_layer::push_state_layer_commands;
+use super::mui_x_primitives::push_mui_x_primitive_commands;
 use super::render_commands::{draw_host_paint_commands, HostPaintCommand};
 use super::theme::PALETTE;
 use super::visual_assets::{raster_size_from_frame, template_image_pixels, template_image_tint};
@@ -18,6 +23,13 @@ const TEXT_VERTICAL_INSET: f32 = 5.0;
 const MIN_TEXT_RECT_HEIGHT: f32 = 12.0;
 const MATERIAL_ELEVATION_SHADOW_OFFSET: f32 = 2.0;
 const MATERIAL_ELEVATION_SHADOW_OPACITY: f32 = 0.72;
+const MATERIAL_PROGRESS_TRACK: [u8; 4] = [42, 52, 60, 255];
+const MUI_BACKDROP_SCRIM: [u8; 4] = [0, 0, 0, 128];
+const MUI_TOOLTIP_BG: [u8; 4] = [97, 97, 97, 255];
+const MUI_SNACKBAR_BG: [u8; 4] = [50, 50, 50, 255];
+const MUI_ON_DARK: [u8; 4] = [255, 255, 255, 255];
+const TEMPLATE_NODE_ORDER_STRIDE: i32 = 4;
+const TEMPLATE_NODE_Z_LAYER_STRIDE: i32 = 100_000;
 
 pub(super) fn draw_template_nodes(
     frame: &mut HostRgbaFrame,
@@ -116,30 +128,57 @@ fn push_template_node_commands(
         return;
     }
 
-    if draws_surface(node) {
+    let order = template_node_paint_order(node, order);
+    let opacity = template_node_transition_opacity(node);
+    if opacity <= 0.0 {
+        return;
+    }
+
+    if push_material_feedback_primitive_commands(commands, node, &rect, &node_clip, order, opacity)
+    {
+        return;
+    }
+
+    if push_material_primitive_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    let draws_mui_x_primitive =
+        push_mui_x_primitive_commands(commands, node, &rect, &node_clip, order, opacity);
+
+    let draws_text_field_surface = push_material_text_field_surface_commands(
+        commands,
+        node,
+        &rect,
+        &node_clip,
+        order,
+        opacity,
+    );
+
+    if !draws_mui_x_primitive && !draws_text_field_surface && draws_surface(node) {
         let border_width = template_border_width(node);
         let corner_radius = template_corner_radius(node);
         if draws_elevation_shadow(node) {
             commands.push(HostPaintCommand::quad(
                 elevation_shadow_rect(&rect, node.elevation),
                 Some(node_clip.clone()),
-                order * 4 - 1,
+                order - 1,
                 Some(PALETTE.shadow),
                 None,
                 0.0,
                 corner_radius,
-                MATERIAL_ELEVATION_SHADOW_OPACITY,
+                MATERIAL_ELEVATION_SHADOW_OPACITY * opacity,
             ));
         }
         commands.push(HostPaintCommand::quad(
             rect.clone(),
             Some(node_clip.clone()),
-            order * 4,
+            order,
             Some(surface_color(node)),
             draws_border(node).then_some(border_color(node)),
             border_width,
             corner_radius,
-            1.0,
+            opacity,
         ));
         push_state_layer_commands(
             commands,
@@ -147,11 +186,12 @@ fn push_template_node_commands(
             &rect,
             &node_clip,
             corner_radius,
-            order * 4 + 1,
+            order + 1,
+            opacity,
         );
     }
 
-    push_template_image_command(commands, node, &rect, &node_clip, order * 4 + 2);
+    push_template_image_command(commands, node, &rect, &node_clip, order + 2, opacity);
 
     let label = node_label(node, text_input_focus);
     if (!label.is_empty() && !is_icon_only_node(node))
@@ -167,14 +207,27 @@ fn push_template_node_commands(
                 height: text_rect.height,
             },
             Some(node_clip),
-            order * 4 + 3,
+            order + 3,
             label,
             text_color(node),
             font_size,
             font_size * 1.2,
             UiTextRunPaintStyle::default(),
-            1.0,
+            opacity,
         ));
+    }
+}
+
+fn template_node_paint_order(node: &TemplatePaneNodeData, row_order: i32) -> i32 {
+    node.z_index
+        .saturating_mul(TEMPLATE_NODE_Z_LAYER_STRIDE)
+        .saturating_add(row_order.saturating_mul(TEMPLATE_NODE_ORDER_STRIDE))
+}
+
+fn template_node_transition_opacity(node: &TemplatePaneNodeData) -> f32 {
+    match node.transition_kind.as_str() {
+        "fade" | "grow" | "zoom" => node.transition_progress.clamp(0.0, 1.0),
+        _ => 1.0,
     }
 }
 
@@ -197,8 +250,9 @@ fn push_template_image_command(
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
+    opacity: f32,
 ) {
-    if !node.has_preview_image {
+    if !template_node_has_image_source(node) {
         return;
     }
     let preview_size = node.preview_image.size();
@@ -220,6 +274,7 @@ fn push_template_image_command(
         node.disabled,
         node.text_tone.as_str(),
         node.validation_level.as_str(),
+        resolved_style_color(node.button_style.element.foreground_color.as_ref()),
     );
     let image = {
         zircon_runtime::profile_scope!("editor", "host_painter", "template_node_image_pixels");
@@ -244,8 +299,298 @@ fn push_template_image_command(
         image.width,
         image.height,
         image.rgba,
-        1.0,
+        image.atlas,
+        opacity,
     ));
+}
+
+fn template_node_has_image_source(node: &TemplatePaneNodeData) -> bool {
+    node.has_preview_image || !node.media_source.is_empty() || !node.icon_name.is_empty()
+}
+
+fn push_material_feedback_primitive_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) -> bool {
+    if is_material_backdrop_node(node) {
+        push_material_backdrop_commands(commands, node, rect, clip, order, opacity);
+        return true;
+    }
+    if is_material_progress_node(node) {
+        push_material_progress_commands(commands, node, rect, clip, order, opacity);
+        return true;
+    }
+    false
+}
+
+fn push_material_backdrop_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) {
+    if !node.popup_open
+        && node.surface_variant.as_str() != "backdrop"
+        && !component_variant_contains(node, "open")
+    {
+        return;
+    }
+    if component_variant_contains(node, "invisible") {
+        return;
+    }
+    commands.push(HostPaintCommand::quad(
+        rect.clone(),
+        Some(clip.clone()),
+        order,
+        Some(
+            resolved_style_color(node.button_style.element.background_color.as_ref())
+                .unwrap_or(MUI_BACKDROP_SCRIM),
+        ),
+        None,
+        0.0,
+        0.0,
+        opacity,
+    ));
+}
+
+fn push_material_progress_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) {
+    if progress_is_circular(node) {
+        push_circular_progress_command(commands, node, rect, clip, order, opacity);
+    } else {
+        push_linear_progress_commands(commands, node, rect, clip, order, opacity);
+    }
+}
+
+fn push_linear_progress_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) {
+    let radius = template_corner_radius(node)
+        .max((rect.height * 0.5).min(2.0))
+        .max(0.0);
+    commands.push(HostPaintCommand::quad(
+        rect.clone(),
+        Some(clip.clone()),
+        order,
+        Some(progress_track_color(node)),
+        None,
+        0.0,
+        radius,
+        opacity,
+    ));
+
+    let fill = progress_fill_color(node);
+    if progress_is_indeterminate(node) {
+        for (x_factor, width_factor) in [(0.12, 0.36), (0.62, 0.24)] {
+            let bar = FrameRect {
+                x: rect.x + rect.width * x_factor,
+                y: rect.y,
+                width: (rect.width * width_factor).max(1.0),
+                height: rect.height,
+            };
+            commands.push(HostPaintCommand::quad(
+                bar,
+                Some(clip.clone()),
+                order + 1,
+                Some(fill),
+                None,
+                0.0,
+                radius,
+                opacity,
+            ));
+        }
+        return;
+    }
+
+    let width = rect.width * progress_percent(node);
+    if width <= 0.0 {
+        return;
+    }
+    commands.push(HostPaintCommand::quad(
+        FrameRect {
+            x: rect.x,
+            y: rect.y,
+            width: width.max(1.0),
+            height: rect.height,
+        },
+        Some(clip.clone()),
+        order + 1,
+        Some(fill),
+        None,
+        0.0,
+        radius,
+        opacity,
+    ));
+}
+
+fn push_circular_progress_command(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) {
+    let image_rect = circular_progress_rect(rect);
+    let Some((width, height)) = raster_size_from_frame(image_rect.width, image_rect.height) else {
+        return;
+    };
+    let size = width.min(height);
+    if size == 0 {
+        return;
+    }
+    let rgba = circular_progress_pixels(
+        size,
+        if progress_is_indeterminate(node) {
+            0.58
+        } else {
+            progress_percent(node)
+        },
+        progress_track_color(node),
+        progress_fill_color(node),
+    );
+    commands.push(HostPaintCommand::image_pixels(
+        image_rect,
+        Some(clip.clone()),
+        order,
+        format!(
+            "mui-circular-progress:{size}:{:.3}:{}:{}",
+            progress_percent(node),
+            progress_track_color(node)[0],
+            progress_fill_color(node)[0]
+        ),
+        size,
+        size,
+        rgba,
+        None,
+        opacity,
+    ));
+}
+
+fn is_material_progress_node(node: &TemplatePaneNodeData) -> bool {
+    matches!(
+        node.component_role.as_str(),
+        "progress" | "progress-bar" | "linear-progress" | "circular-progress" | "spinner"
+    ) || matches!(
+        node.role.as_str(),
+        "Progress" | "ProgressBar" | "LinearProgress" | "CircularProgress" | "Spinner"
+    )
+}
+
+fn is_material_backdrop_node(node: &TemplatePaneNodeData) -> bool {
+    node.component_role.as_str() == "backdrop"
+        || node.role.as_str() == "Backdrop"
+        || node.surface_variant.as_str() == "backdrop"
+}
+
+fn progress_is_circular(node: &TemplatePaneNodeData) -> bool {
+    matches!(
+        node.component_role.as_str(),
+        "circular-progress" | "spinner"
+    ) || matches!(node.role.as_str(), "CircularProgress" | "Spinner")
+        || component_variant_contains(node, "circular")
+}
+
+fn progress_is_indeterminate(node: &TemplatePaneNodeData) -> bool {
+    matches!(node.component_role.as_str(), "spinner")
+        || component_variant_contains(node, "indeterminate")
+}
+
+fn progress_percent(node: &TemplatePaneNodeData) -> f32 {
+    if node.value_percent.is_finite() {
+        node.value_percent.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
+}
+
+fn progress_track_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+    if node.disabled {
+        return PALETTE.surface_disabled;
+    }
+    resolved_style_color(node.button_style.element.background_color.as_ref())
+        .unwrap_or(MATERIAL_PROGRESS_TRACK)
+}
+
+fn progress_fill_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+    if node.disabled {
+        return PALETTE.text_disabled;
+    }
+    resolved_style_color(node.button_style.element.foreground_color.as_ref())
+        .or_else(|| material_tone_color(node))
+        .unwrap_or(PALETTE.accent)
+}
+
+fn material_tone_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+    match first_non_empty(&[node.validation_level.as_str(), node.text_tone.as_str()]) {
+        "warning" => Some(PALETTE.warning),
+        "error" | "danger" => Some(PALETTE.error),
+        "success" => Some(PALETTE.success),
+        "info" => Some(PALETTE.info),
+        "accent" | "primary" => Some(PALETTE.accent),
+        _ => None,
+    }
+}
+
+fn circular_progress_rect(rect: &FrameRect) -> FrameRect {
+    let size = rect.width.min(rect.height).max(1.0);
+    FrameRect {
+        x: rect.x + (rect.width - size) * 0.5,
+        y: rect.y + (rect.height - size) * 0.5,
+        width: size,
+        height: size,
+    }
+}
+
+fn circular_progress_pixels(size: u32, percent: f32, track: [u8; 4], fill: [u8; 4]) -> Vec<u8> {
+    let mut rgba = vec![0; size as usize * size as usize * 4];
+    let center = size as f32 * 0.5;
+    let radius = (size as f32 * 0.5 - 0.5).max(1.0);
+    let thickness = (size as f32 * 0.16).clamp(3.0, 6.0);
+    let inner = (radius - thickness).max(0.0);
+    let percent = percent.clamp(0.0, 1.0);
+    for y in 0..size {
+        for x in 0..size {
+            let dx = x as f32 + 0.5 - center;
+            let dy = y as f32 + 0.5 - center;
+            let distance = (dx * dx + dy * dy).sqrt();
+            if distance < inner || distance > radius {
+                continue;
+            }
+            let angle = dy.atan2(dx);
+            let turn = ((angle + PI * 0.5).rem_euclid(PI * 2.0)) / (PI * 2.0);
+            let color = if turn <= percent { fill } else { track };
+            let offset = ((y as usize * size as usize) + x as usize) * 4;
+            rgba[offset..offset + 4].copy_from_slice(&color);
+        }
+    }
+    rgba
+}
+
+fn component_variant_contains(node: &TemplatePaneNodeData, expected: &str) -> bool {
+    node.component_variant
+        .as_str()
+        .split(|character: char| {
+            character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+        })
+        .any(|part| part.eq_ignore_ascii_case(expected))
 }
 
 fn image_rect_for_node(
@@ -355,6 +700,7 @@ fn node_font_size(node: &TemplatePaneNodeData, available_height: f32) -> f32 {
 
 fn draws_surface(node: &TemplatePaneNodeData) -> bool {
     matches!(node.role.as_str(), "Panel" | "Button" | "Mount")
+        || is_mui_overlay_surface_node(node)
         || !node.surface_variant.is_empty()
         || !node.button_variant.is_empty()
         || node.button_style.element.background_color.is_some()
@@ -461,6 +807,12 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if let Some(color) = typed_button_variant_background(node) {
         return color;
     }
+    match node.surface_variant.as_str() {
+        "tooltip" => return MUI_TOOLTIP_BG,
+        "snackbar" => return MUI_SNACKBAR_BG,
+        "paper" | "paper-outlined" | "dialog" | "popover" => return PALETTE.popup,
+        _ => {}
+    }
     if matches!(node.button_variant.as_str(), "primary" | "filled")
         || matches!(node.surface_variant.as_str(), "accent" | "primary")
     {
@@ -540,6 +892,7 @@ fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         return [8, 20, 22, 255];
     }
     match node.text_tone.as_str() {
+        "inverse" | "on-dark" | "tooltip" | "snackbar" => MUI_ON_DARK,
         "muted" | "subtle" => PALETTE.text_muted,
         "accent" | "primary" | "default" => PALETTE.focus_ring,
         "warning" => PALETTE.warning,
@@ -548,6 +901,20 @@ fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         "info" => PALETTE.info,
         _ => PALETTE.text,
     }
+}
+
+fn is_mui_overlay_surface_node(node: &TemplatePaneNodeData) -> bool {
+    matches!(
+        node.component_role.as_str(),
+        "paper"
+            | "dialog"
+            | "alert-dialog"
+            | "popover"
+            | "menu"
+            | "tooltip"
+            | "snackbar"
+            | "drawer"
+    )
 }
 
 pub(super) fn is_button_disabled(node: &TemplatePaneNodeData) -> bool {

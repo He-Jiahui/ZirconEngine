@@ -1,15 +1,18 @@
 use std::collections::BTreeSet;
 
 use accesskit::{
-    Action, ActionData, ActionRequest, Node, NodeId, Rect, Role, Toggled, Tree, TreeUpdate,
+    Action, ActionData, ActionRequest, Node, NodeId, Point, Rect, Role, TextPosition,
+    TextSelection, Toggled, Tree, TreeUpdate,
 };
+use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yCheckedState, UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
-        UiAccessibilityActionSource, UiAccessibilityNode, UiAccessibilityTreeSnapshot,
+        UiA11yCheckedState, UiA11yRole, UiA11yTextSelection, UiAccessibilityAction,
+        UiAccessibilityActionRequest, UiAccessibilityActionSource, UiAccessibilityNode,
+        UiAccessibilityTreeSnapshot,
     },
     event_ui::UiNodeId,
-    layout::UiFrame,
+    layout::{UiFrame, UiPoint},
 };
 
 const SYNTHETIC_ROOT_NODE_ID: NodeId = NodeId(u64::MAX);
@@ -51,15 +54,22 @@ pub(crate) fn snapshot_to_accesskit_tree_update(
 
 pub(crate) fn neutral_action_request_from_accesskit(
     request: &ActionRequest,
+    snapshot: &UiAccessibilityTreeSnapshot,
 ) -> Option<UiAccessibilityActionRequest> {
     let action = neutral_action(request.action)?;
-    let (value, numeric_value) = action_payload(request.data.as_ref());
+    let (value, numeric_value, text_selection, scroll_offset) =
+        action_payload(request.data.as_ref(), snapshot);
+    if action == UiAccessibilityAction::SetTextSelection && text_selection.is_none() {
+        return None;
+    }
     Some(UiAccessibilityActionRequest {
         target: UiNodeId::new(request.target.0),
         action,
         source: UiAccessibilityActionSource::AssistiveTechnology,
         value,
         numeric_value,
+        text_selection,
+        scroll_offset,
     })
 }
 
@@ -188,19 +198,27 @@ fn apply_state(source: &UiAccessibilityNode, node: &mut Node) {
 
 fn apply_actions(source: &UiAccessibilityNode, node: &mut Node) {
     for action in source.actions.iter().copied() {
-        node.add_action(accesskit_action(action));
+        for mapped in accesskit_actions(source.role, action) {
+            node.add_action(*mapped);
+        }
     }
 }
 
-fn accesskit_action(action: UiAccessibilityAction) -> Action {
+fn accesskit_actions(role: UiA11yRole, action: UiAccessibilityAction) -> &'static [Action] {
     match action {
-        UiAccessibilityAction::Activate => Action::Click,
-        UiAccessibilityAction::Focus => Action::Focus,
-        UiAccessibilityAction::Increment => Action::Increment,
-        UiAccessibilityAction::Decrement => Action::Decrement,
-        UiAccessibilityAction::SetValue => Action::SetValue,
-        UiAccessibilityAction::ScrollTo => Action::ScrollIntoView,
-        UiAccessibilityAction::Dismiss => Action::HideTooltip,
+        UiAccessibilityAction::Activate => &[Action::Click],
+        UiAccessibilityAction::Focus => &[Action::Focus],
+        UiAccessibilityAction::Increment => &[Action::Increment],
+        UiAccessibilityAction::Decrement => &[Action::Decrement],
+        UiAccessibilityAction::SetValue => &[Action::SetValue],
+        UiAccessibilityAction::ReplaceSelectedText => &[Action::ReplaceSelectedText],
+        UiAccessibilityAction::SetTextSelection => &[Action::SetTextSelection],
+        UiAccessibilityAction::Expand => &[Action::Expand],
+        UiAccessibilityAction::Collapse => &[Action::Collapse],
+        UiAccessibilityAction::ScrollTo => &[Action::ScrollIntoView, Action::SetScrollOffset],
+        UiAccessibilityAction::Dismiss if role == UiA11yRole::Dialog => &[Action::Blur],
+        UiAccessibilityAction::Dismiss if role == UiA11yRole::Tooltip => &[Action::HideTooltip],
+        UiAccessibilityAction::Dismiss => &[],
     }
 }
 
@@ -210,30 +228,103 @@ fn neutral_action(action: Action) -> Option<UiAccessibilityAction> {
         Action::Focus => Some(UiAccessibilityAction::Focus),
         Action::Increment => Some(UiAccessibilityAction::Increment),
         Action::Decrement => Some(UiAccessibilityAction::Decrement),
-        Action::SetValue | Action::ReplaceSelectedText => Some(UiAccessibilityAction::SetValue),
-        Action::ScrollIntoView | Action::ScrollToPoint => Some(UiAccessibilityAction::ScrollTo),
-        Action::Blur | Action::Collapse | Action::HideTooltip => {
-            Some(UiAccessibilityAction::Dismiss)
-        }
-        Action::Expand
-        | Action::CustomAction
+        Action::SetValue => Some(UiAccessibilityAction::SetValue),
+        Action::ReplaceSelectedText => Some(UiAccessibilityAction::ReplaceSelectedText),
+        Action::SetTextSelection => Some(UiAccessibilityAction::SetTextSelection),
+        Action::Expand => Some(UiAccessibilityAction::Expand),
+        Action::Collapse => Some(UiAccessibilityAction::Collapse),
+        Action::ScrollIntoView | Action::SetScrollOffset => Some(UiAccessibilityAction::ScrollTo),
+        Action::Blur | Action::HideTooltip => Some(UiAccessibilityAction::Dismiss),
+        Action::CustomAction
         | Action::ShowTooltip
         | Action::ScrollDown
         | Action::ScrollLeft
         | Action::ScrollRight
         | Action::ScrollUp
-        | Action::SetScrollOffset
-        | Action::SetTextSelection
+        | Action::ScrollToPoint
         | Action::SetSequentialFocusNavigationStartingPoint
         | Action::ShowContextMenu => None,
     }
 }
 
-fn action_payload(data: Option<&ActionData>) -> (Option<String>, Option<f64>) {
+fn action_payload(
+    data: Option<&ActionData>,
+    snapshot: &UiAccessibilityTreeSnapshot,
+) -> (
+    Option<String>,
+    Option<f64>,
+    Option<UiA11yTextSelection>,
+    Option<UiPoint>,
+) {
     match data {
-        Some(ActionData::Value(value)) => (Some(value.to_string()), None),
-        Some(ActionData::NumericValue(value)) if value.is_finite() => (None, Some(*value)),
-        _ => (None, None),
+        Some(ActionData::Value(value)) => (Some(value.to_string()), None, None, None),
+        Some(ActionData::NumericValue(value)) if value.is_finite() => {
+            (None, Some(*value), None, None)
+        }
+        Some(ActionData::SetTextSelection(selection)) => (
+            None,
+            None,
+            neutral_text_selection(*selection, snapshot),
+            None,
+        ),
+        Some(ActionData::SetScrollOffset(point)) => {
+            (None, None, None, Some(neutral_scroll_offset(*point)))
+        }
+        _ => (None, None, None, None),
+    }
+}
+
+fn neutral_text_selection(
+    selection: TextSelection,
+    snapshot: &UiAccessibilityTreeSnapshot,
+) -> Option<UiA11yTextSelection> {
+    // AccessKit positions are character indexes; the neutral DTO stores UTF-8 byte offsets.
+    if selection.anchor.node != selection.focus.node {
+        return None;
+    }
+    let anchor = text_position_byte_offset(selection.anchor, snapshot)?;
+    let focus = text_position_byte_offset(selection.focus, snapshot)?;
+    Some(UiA11yTextSelection {
+        caret: focus,
+        anchor,
+        focus,
+    })
+}
+
+fn text_position_byte_offset(
+    position: TextPosition,
+    snapshot: &UiAccessibilityTreeSnapshot,
+) -> Option<usize> {
+    let node = snapshot.node(UiNodeId::new(position.node.0))?;
+    let text = node.state.value.as_deref().or(node.name.as_deref())?;
+    Some(character_index_to_byte_offset(
+        text,
+        position.character_index,
+    ))
+}
+
+fn character_index_to_byte_offset(text: &str, character_index: usize) -> usize {
+    if character_index == 0 {
+        return 0;
+    }
+    text.grapheme_indices(true)
+        .map(|(index, grapheme)| index + grapheme.len())
+        .nth(character_index - 1)
+        .unwrap_or(text.len())
+}
+
+fn neutral_scroll_offset(point: Point) -> UiPoint {
+    UiPoint {
+        x: finite_f64_to_f32(point.x),
+        y: finite_f64_to_f32(point.y),
+    }
+}
+
+fn finite_f64_to_f32(value: f64) -> f32 {
+    if value.is_finite() {
+        value as f32
+    } else {
+        0.0
     }
 }
 

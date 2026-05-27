@@ -4,7 +4,7 @@ use crate::asset::ProjectAssetManager;
 
 use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
-use super::text::ScreenSpaceUiTextSystem;
+use super::text::{ScreenSpaceUiTextPrepareReport, ScreenSpaceUiTextSystem};
 
 const SCREEN_SPACE_UI_SHADER: &str = include_str!("shaders/screen_space_ui.wgsl");
 
@@ -62,6 +62,7 @@ impl ScreenSpaceUiRenderer {
         Self {
             pipeline,
             text_system,
+            last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
         }
     }
 }

@@ -3,7 +3,7 @@ use std::path::Path;
 use slint::{ModelRc, SharedString, VecModel};
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::{now_unix_ms, RecentProject};
+use crate::projects::{metadata_for_path, now_unix_ms, project_paths_match, RecentProject};
 use crate::settings::{HubLanguage, HubSettings};
 use crate::state::{HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectViewMode};
 
@@ -24,7 +24,6 @@ mod quick_actions;
 mod team;
 
 const PROJECT_CARD_LIMIT: usize = 12;
-const PROJECT_LIST_ROW_LIMIT: usize = 4;
 const RECENT_ROW_LIMIT: usize = 8;
 const BUILD_HISTORY_ROW_LIMIT: usize = 5;
 const MILLIS_PER_MINUTE: u64 = 60_000;
@@ -35,8 +34,7 @@ const MILLIS_PER_WEEK: u64 = 7 * MILLIS_PER_DAY;
 pub(super) use projects::{
     dashboard_project_rows, dashboard_project_title, project_browser_rows, project_cards,
     project_create_enabled, project_create_engine_label, project_create_template_label,
-    project_detail, project_engine_rows, project_list_rows, project_subpage_id, project_templates,
-    recent_project_rows,
+    project_detail, project_engine_rows, project_subpage_id, project_templates,
 };
 pub(super) fn model_from<T: Clone + 'static>(items: Vec<T>) -> ModelRc<T> {
     ModelRc::new(VecModel::from(items))
@@ -138,42 +136,74 @@ pub(super) fn cloud_services(language: HubLanguage) -> Vec<CloudServiceData> {
     cloud::cloud_services(language)
 }
 
-pub(super) fn source_engine_data(
-    engines: &[SourceEngineInstall],
+pub(super) fn source_engine_data(snapshot: &HubSnapshot) -> SourceEngineData {
+    match selected_project_engine_context(snapshot) {
+        BuildContextEngine::Engine(engine) => source_engine_data_for_context(
+            Some(engine),
+            !snapshot.engines.is_empty(),
+            &snapshot.settings,
+        ),
+        BuildContextEngine::SelectedProjectUnbound => source_engine_data_for_missing_context(
+            localization::text(snapshot.settings.language, "No Source Engine", "无源码引擎"),
+            localization::text(
+                snapshot.settings.language,
+                "Bind project engine",
+                "绑定项目引擎",
+            ),
+            &snapshot.settings,
+        ),
+        BuildContextEngine::SelectedProjectUnavailable => source_engine_data_for_missing_context(
+            localization::text(
+                snapshot.settings.language,
+                "Source Engine unavailable",
+                "源码引擎不可用",
+            ),
+            localization::text(snapshot.settings.language, "Unavailable", "不可用"),
+            &snapshot.settings,
+        ),
+        BuildContextEngine::NoSelectedProject => source_engine_data_for_context(
+            selected_engine(&snapshot.engines, snapshot.active_engine_id.as_deref()),
+            !snapshot.engines.is_empty(),
+            &snapshot.settings,
+        ),
+    }
+}
+
+fn source_engine_data_for_context(
+    engine: Option<&SourceEngineInstall>,
+    has_registered_engine: bool,
     settings: &HubSettings,
-    active_engine_id: Option<&str>,
 ) -> SourceEngineData {
     let language = settings.language;
-    let (title, source_path, output_path, last_build) = selected_engine(engines, active_engine_id)
-        .map_or_else(
-            || {
-                (
-                    "No Source Engine".to_string(),
-                    path_text(&settings.default_source_dir, language),
-                    path_text(&settings.default_build_output_dir, language),
-                    localization::text(language, "Not built yet", "尚未构建").to_string(),
-                )
-            },
-            |engine| {
-                (
-                    engine.display_name.clone(),
-                    path_text(&engine.source_dir, language),
-                    path_text(&engine.output_dir, language),
-                    engine
-                        .last_build_unix_ms
-                        .map(|value| {
-                            format!(
-                                "{} {}",
-                                localization::text(language, "Built", "构建于"),
-                                relative_time(now_unix_ms(), value, language)
-                            )
-                        })
-                        .unwrap_or_else(|| {
-                            localization::text(language, "Not built yet", "尚未构建").to_string()
-                        }),
-                )
-            },
-        );
+    let (title, source_path, output_path, last_build) = engine.map_or_else(
+        || {
+            (
+                "No Source Engine".to_string(),
+                path_text(&settings.default_source_dir, language),
+                path_text(&settings.default_build_output_dir, language),
+                localization::text(language, "Not built yet", "尚未构建").to_string(),
+            )
+        },
+        |engine| {
+            (
+                engine.display_name.clone(),
+                path_text(&engine.source_dir, language),
+                path_text(&engine.output_dir, language),
+                engine
+                    .last_build_unix_ms
+                    .map(|value| {
+                        format!(
+                            "{} {}",
+                            localization::text(language, "Built", "构建于"),
+                            relative_time(now_unix_ms(), value, language)
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        localization::text(language, "Not built yet", "尚未构建").to_string()
+                    }),
+            )
+        },
+    );
 
     SourceEngineData {
         title: shared(title),
@@ -183,17 +213,35 @@ pub(super) fn source_engine_data(
         last_build: shared(last_build),
         status: localization::text(
             language,
-            if engines.is_empty() {
+            if !has_registered_engine {
                 "Configure source"
             } else {
                 "Source registered"
             },
-            if engines.is_empty() {
+            if !has_registered_engine {
                 "配置源码"
             } else {
                 "源码已注册"
             },
         ),
+        build_profile: shared(settings.build_profile.as_mode()),
+        jobs: shared(settings.jobs.to_string()),
+    }
+}
+
+fn source_engine_data_for_missing_context(
+    title: SharedString,
+    status: SharedString,
+    settings: &HubSettings,
+) -> SourceEngineData {
+    let not_configured = localization::text(settings.language, "Not configured", "未配置");
+    SourceEngineData {
+        title,
+        version: shared(format!("Zircon Engine {}", env!("CARGO_PKG_VERSION"))),
+        source_path: not_configured.clone(),
+        output_path: not_configured,
+        last_build: localization::text(settings.language, "Not built yet", "尚未构建"),
+        status,
         build_profile: shared(settings.build_profile.as_mode()),
         jobs: shared(settings.jobs.to_string()),
     }
@@ -244,7 +292,7 @@ pub(super) fn source_engine_rows(snapshot: &HubSnapshot) -> Vec<SourceEngineRowD
 
 pub(super) fn source_build_history_rows(snapshot: &HubSnapshot) -> Vec<SourceBuildHistoryRowData> {
     let language = snapshot.settings.language;
-    selected_engine(&snapshot.engines, snapshot.active_engine_id.as_deref())
+    build_context_engine(snapshot)
         .map(|engine| {
             engine
                 .build_history
@@ -492,6 +540,49 @@ fn selected_engine<'a>(
         .or_else(|| engines.first())
 }
 
+enum BuildContextEngine<'a> {
+    Engine(&'a SourceEngineInstall),
+    NoSelectedProject,
+    SelectedProjectUnbound,
+    SelectedProjectUnavailable,
+}
+
+fn build_context_engine(snapshot: &HubSnapshot) -> Option<&SourceEngineInstall> {
+    match selected_project_engine_context(snapshot) {
+        BuildContextEngine::Engine(engine) => Some(engine),
+        BuildContextEngine::NoSelectedProject => {
+            selected_engine(&snapshot.engines, snapshot.active_engine_id.as_deref())
+        }
+        BuildContextEngine::SelectedProjectUnbound
+        | BuildContextEngine::SelectedProjectUnavailable => None,
+    }
+}
+
+fn selected_project_engine_context(snapshot: &HubSnapshot) -> BuildContextEngine<'_> {
+    let Some(project) = selected_project_for_context(snapshot) else {
+        return BuildContextEngine::NoSelectedProject;
+    };
+    let Some(engine_id) = metadata_for_path(&snapshot.project_metadata, &project.path)
+        .and_then(|metadata| metadata.engine_id.as_deref())
+    else {
+        return BuildContextEngine::SelectedProjectUnbound;
+    };
+    snapshot
+        .engines
+        .iter()
+        .find(|engine| engine.id == engine_id)
+        .map(BuildContextEngine::Engine)
+        .unwrap_or(BuildContextEngine::SelectedProjectUnavailable)
+}
+
+fn selected_project_for_context(snapshot: &HubSnapshot) -> Option<&RecentProject> {
+    let selected_path = snapshot.selected_project_path.as_ref()?;
+    snapshot
+        .recent_projects
+        .iter()
+        .find(|project| project_paths_match(&project.path, selected_path))
+}
+
 fn executable_status(label: &str, value: &str, language: HubLanguage) -> SettingStatusData {
     let trimmed = value.trim();
     if trimmed.is_empty() {
@@ -584,6 +675,7 @@ mod tests {
             search_query: "stellar".to_string(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -602,7 +694,7 @@ mod tests {
         };
 
         let cards = project_cards(&snapshot);
-        let rows = recent_project_rows(&snapshot);
+        let rows = dashboard_project_rows(&snapshot);
 
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0].title, SharedString::from("Stellar Outpost"));
@@ -618,7 +710,7 @@ mod tests {
 
     #[test]
     fn project_rows_mark_selected_project_path() {
-        let selected_path = PathBuf::from("E:/Projects/StellarOutpost");
+        let selected_path = PathBuf::from("E:\\Projects\\StellarOutpost\\");
         let snapshot = HubSnapshot {
             selected_page: HubPage::Projects,
             project_filter: ProjectFilterMode::All,
@@ -628,6 +720,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: Some(selected_path),
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -646,7 +739,7 @@ mod tests {
         };
 
         let cards = project_cards(&snapshot);
-        let rows = recent_project_rows(&snapshot);
+        let rows = dashboard_project_rows(&snapshot);
 
         assert!(cards[0].selected);
         assert!(!cards[1].selected);
@@ -674,6 +767,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -689,8 +783,58 @@ mod tests {
         };
 
         assert_eq!(project_cards(&snapshot).len(), PROJECT_CARD_LIMIT);
-        assert_eq!(project_list_rows(&snapshot).len(), PROJECT_LIST_ROW_LIMIT);
-        assert_eq!(recent_project_rows(&snapshot).len(), RECENT_ROW_LIMIT);
+        assert_eq!(dashboard_project_rows(&snapshot).len(), RECENT_ROW_LIMIT);
+        assert_eq!(project_browser_rows(&snapshot).len(), 14);
+    }
+
+    #[test]
+    fn project_create_requires_available_source_engine() {
+        let mut snapshot = HubSnapshot {
+            selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::NewProject,
+            search_query: String::new(),
+            selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![SourceEngineInstall {
+                id: "local-source".to_string(),
+                display_name: "Local Source".to_string(),
+                source_dir: PathBuf::from("E:/source"),
+                output_dir: PathBuf::from("E:/out"),
+                last_build_unix_ms: None,
+                build_history: Vec::new(),
+            }],
+            active_engine_id: None,
+            settings: HubSettings::default(),
+        };
+
+        assert!(!project_create_enabled(&snapshot));
+
+        snapshot.new_project_engine_id = Some("missing-source".to_string());
+        assert!(!project_create_enabled(&snapshot));
+        assert_eq!(
+            project_create_engine_label(&snapshot),
+            SharedString::from("Selected Source Engine is unavailable")
+        );
+
+        snapshot.new_project_engine_id = Some("local-source".to_string());
+        assert!(project_create_enabled(&snapshot));
+        assert_eq!(
+            project_create_engine_label(&snapshot),
+            SharedString::from("Local Source")
+        );
     }
 
     #[test]
@@ -712,6 +856,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -758,6 +903,236 @@ mod tests {
             dashboard_project_title(&fallback, HubLanguage::Chinese),
             "最近项目"
         );
+    }
+
+    #[test]
+    fn project_rows_use_bound_engine_metadata_without_active_fallback() {
+        let mut metadata = crate::projects::ProjectMetadataMap::new();
+        metadata.insert(
+            crate::projects::project_metadata_key("E:/Projects/Bound"),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("bound".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        metadata.insert(
+            crate::projects::project_metadata_key("E:/Projects/Stale"),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("missing-source".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::Name,
+            project_view_mode: ProjectViewMode::List,
+            project_subpage: ProjectSubpage::ProjectBrowser,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:/Projects/Unbound")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![
+                RecentProject::new("Unbound", "E:/Projects/Unbound", 50),
+                RecentProject::new("Stale", "E:/Projects/Stale", 25),
+                RecentProject::new("Bound", "E:/Projects/Bound", 10),
+            ],
+            project_metadata: metadata,
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![
+                SourceEngineInstall {
+                    id: "active".to_string(),
+                    display_name: "Active Source".to_string(),
+                    source_dir: PathBuf::from("E:/active"),
+                    output_dir: PathBuf::from("E:/out-active"),
+                    last_build_unix_ms: None,
+                    build_history: Vec::new(),
+                },
+                SourceEngineInstall {
+                    id: "bound".to_string(),
+                    display_name: "Bound Source".to_string(),
+                    source_dir: PathBuf::from("E:/bound"),
+                    output_dir: PathBuf::from("E:/out-bound"),
+                    last_build_unix_ms: None,
+                    build_history: Vec::new(),
+                },
+            ],
+            active_engine_id: Some("active".to_string()),
+            settings: HubSettings::default(),
+        };
+
+        let rows = project_browser_rows(&snapshot);
+        let bound = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Bound"))
+            .expect("bound project row should be projected");
+        let unbound = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Unbound"))
+            .expect("unbound project row should be projected");
+        let stale = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Stale"))
+            .expect("stale project row should be projected");
+        let detail = project_detail(&snapshot);
+
+        assert_eq!(bound.engine_id, SharedString::from("bound"));
+        assert_eq!(bound.engine_label, SharedString::from("Bound Source"));
+        assert_ne!(bound.version, SharedString::from("Unbound"));
+        assert_eq!(stale.engine_id, SharedString::from("missing-source"));
+        assert_eq!(
+            stale.engine_label,
+            SharedString::from("Source Engine unavailable")
+        );
+        assert_eq!(stale.version, SharedString::from("Unavailable"));
+        assert_eq!(unbound.engine_id, SharedString::default());
+        assert_eq!(unbound.engine_label, SharedString::from("No Source Engine"));
+        assert_eq!(unbound.version, SharedString::from("Unbound"));
+        assert_eq!(detail.engine_id, SharedString::default());
+        assert_eq!(detail.engine_label, SharedString::from("No Source Engine"));
+        assert_eq!(detail.version, SharedString::from("Unbound"));
+        assert_eq!(detail.status, SharedString::from("Missing"));
+
+        let mut chinese_snapshot = snapshot.clone();
+        chinese_snapshot.settings.language = HubLanguage::Chinese;
+        let chinese_rows = project_browser_rows(&chinese_snapshot);
+        let chinese_stale = chinese_rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Stale"))
+            .expect("stale project row should be projected in Chinese");
+        let chinese_unbound = chinese_rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Unbound"))
+            .expect("unbound project row should be projected in Chinese");
+        assert_eq!(
+            chinese_stale.engine_label,
+            SharedString::from("源码引擎不可用")
+        );
+        assert_eq!(chinese_stale.version, SharedString::from("不可用"));
+        assert_eq!(
+            chinese_unbound.engine_label,
+            SharedString::from("无源码引擎")
+        );
+        assert_eq!(chinese_unbound.version, SharedString::from("未绑定"));
+        let chinese_detail = project_detail(&chinese_snapshot);
+        assert_eq!(chinese_detail.status, SharedString::from("缺失"));
+    }
+
+    #[test]
+    fn project_detail_can_build_requires_available_bound_source_engine() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-hub-can-build-{}-{}",
+            std::process::id(),
+            now_unix_ms()
+        ));
+        let bound_project = root.join("bound");
+        let unbound_project = root.join("unbound");
+        let stale_project = root.join("stale");
+        for project in [&bound_project, &unbound_project, &stale_project] {
+            fs::create_dir_all(project).expect("test project root should be created");
+            fs::write(project.join("zircon-project.toml"), "name = \"Demo\"\n")
+                .expect("test project manifest should be created");
+        }
+        let mut metadata = crate::projects::ProjectMetadataMap::new();
+        metadata.insert(
+            crate::projects::project_metadata_key(&bound_project),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("bound".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        metadata.insert(
+            crate::projects::project_metadata_key(&stale_project),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("missing-source".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+
+        let snapshot_for = |selected_project_path: PathBuf| HubSnapshot {
+            selected_page: HubPage::Builds,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::Name,
+            project_view_mode: ProjectViewMode::List,
+            project_subpage: ProjectSubpage::ProjectDetail,
+            search_query: String::new(),
+            selected_project_path: Some(selected_project_path),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: root.clone(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![
+                RecentProject::new("Bound", bound_project.clone(), 30),
+                RecentProject::new("Unbound", unbound_project.clone(), 20),
+                RecentProject::new("Stale", stale_project.clone(), 10),
+            ],
+            project_metadata: metadata.clone(),
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![SourceEngineInstall {
+                id: "bound".to_string(),
+                display_name: "Bound Source".to_string(),
+                source_dir: root.join("source"),
+                output_dir: root.join("out"),
+                last_build_unix_ms: None,
+                build_history: Vec::new(),
+            }],
+            active_engine_id: Some("active-source-must-not-be-used".to_string()),
+            settings: HubSettings::default(),
+        };
+
+        let bound_detail = project_detail(&snapshot_for(bound_project.clone()));
+        assert!(bound_detail.can_open);
+        assert!(bound_detail.can_build);
+        assert_eq!(
+            bound_detail.engine_label,
+            SharedString::from("Bound Source")
+        );
+
+        let unbound_detail = project_detail(&snapshot_for(unbound_project.clone()));
+        assert!(unbound_detail.can_open);
+        assert!(!unbound_detail.can_build);
+        assert_eq!(
+            unbound_detail.engine_label,
+            SharedString::from("No Source Engine")
+        );
+
+        let stale_detail = project_detail(&snapshot_for(stale_project.clone()));
+        assert!(stale_detail.can_open);
+        assert!(!stale_detail.can_build);
+        assert_eq!(
+            stale_detail.engine_label,
+            SharedString::from("Source Engine unavailable")
+        );
+
+        let row_snapshot = snapshot_for(bound_project.clone());
+        let rows = project_browser_rows(&row_snapshot);
+        let bound_row = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Bound"))
+            .expect("bound row should be projected");
+        let unbound_row = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Unbound"))
+            .expect("unbound row should be projected");
+        let stale_row = rows
+            .iter()
+            .find(|row| row.title == SharedString::from("Stale"))
+            .expect("stale row should be projected");
+        assert!(bound_row.can_build);
+        assert!(!unbound_row.can_build);
+        assert!(!stale_row.can_build);
+
+        fs::remove_dir_all(root).expect("test project roots should be removed");
     }
 
     #[test]
@@ -828,6 +1203,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: project_dir.clone(),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::running("Building", "Running build command"),
@@ -864,6 +1240,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -903,6 +1280,114 @@ mod tests {
     }
 
     #[test]
+    fn source_engine_data_prefers_selected_project_bound_engine() {
+        let selected_project = PathBuf::from("E:/Projects/Game");
+        let mut project_metadata = crate::projects::ProjectMetadataMap::new();
+        project_metadata.insert(
+            crate::projects::project_metadata_key(&selected_project),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("selected-source".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Builds,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:\\Projects\\Game\\")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![RecentProject::new("Game", selected_project, 11)],
+            project_metadata,
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![
+                SourceEngineInstall {
+                    id: "active-source".to_string(),
+                    display_name: "Active".to_string(),
+                    source_dir: PathBuf::from("E:/active"),
+                    output_dir: PathBuf::from("E:/active-out"),
+                    last_build_unix_ms: Some(5),
+                    build_history: Vec::new(),
+                },
+                SourceEngineInstall {
+                    id: "selected-source".to_string(),
+                    display_name: "Selected".to_string(),
+                    source_dir: PathBuf::from("E:/selected"),
+                    output_dir: PathBuf::from("E:/selected-out"),
+                    last_build_unix_ms: Some(9),
+                    build_history: Vec::new(),
+                },
+            ],
+            active_engine_id: Some("active-source".to_string()),
+            settings: HubSettings::default(),
+        };
+
+        let source = source_engine_data(&snapshot);
+
+        assert_eq!(source.title, SharedString::from("Selected"));
+        assert_eq!(source.source_path, SharedString::from("E:/selected"));
+        assert_eq!(source.output_path, SharedString::from("E:/selected-out"));
+    }
+
+    #[test]
+    fn source_engine_data_does_not_fallback_when_selected_project_is_unbound() {
+        let selected_project = PathBuf::from("E:/Projects/Game");
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Builds,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:\\Projects\\Game\\")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![RecentProject::new("Game", selected_project, 11)],
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![SourceEngineInstall {
+                id: "active-source".to_string(),
+                display_name: "Active".to_string(),
+                source_dir: PathBuf::from("E:/active"),
+                output_dir: PathBuf::from("E:/active-out"),
+                last_build_unix_ms: Some(5),
+                build_history: vec![crate::engines::SourceBuildRecord {
+                    finished_unix_ms: 5,
+                    status: "success".to_string(),
+                    profile: "debug".to_string(),
+                    jobs: Some(2),
+                    output_dir: PathBuf::from("E:/active-out"),
+                    detail: "active history".to_string(),
+                }],
+            }],
+            active_engine_id: Some("active-source".to_string()),
+            settings: HubSettings::default(),
+        };
+
+        let source = source_engine_data(&snapshot);
+        let rows = source_build_history_rows(&snapshot);
+
+        assert_eq!(source.title, SharedString::from("No Source Engine"));
+        assert_eq!(source.status, SharedString::from("Bind project engine"));
+        assert!(rows.is_empty());
+    }
+
+    #[test]
     fn build_history_rows_use_active_engine_records() {
         let snapshot = HubSnapshot {
             selected_page: HubPage::Editor,
@@ -913,6 +1398,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path: None,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -946,6 +1432,81 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].status, SharedString::from("Success"));
         assert_eq!(rows[0].profile, SharedString::from("debug / 4 jobs"));
+        assert!(rows[0].success);
+    }
+
+    #[test]
+    fn build_history_rows_prefer_selected_project_bound_engine_records() {
+        let selected_project = PathBuf::from("E:/Projects/Game");
+        let mut project_metadata = crate::projects::ProjectMetadataMap::new();
+        project_metadata.insert(
+            crate::projects::project_metadata_key(&selected_project),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("selected-source".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Builds,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:\\Projects\\Game\\")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![RecentProject::new("Game", selected_project, 11)],
+            project_metadata,
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: vec![
+                SourceEngineInstall {
+                    id: "active-source".to_string(),
+                    display_name: "Active".to_string(),
+                    source_dir: PathBuf::from("E:/active"),
+                    output_dir: PathBuf::from("E:/active-out"),
+                    last_build_unix_ms: Some(5),
+                    build_history: vec![crate::engines::SourceBuildRecord {
+                        finished_unix_ms: 5,
+                        status: "failed".to_string(),
+                        profile: "debug".to_string(),
+                        jobs: Some(2),
+                        output_dir: PathBuf::from("E:/active-out"),
+                        detail: "active history".to_string(),
+                    }],
+                },
+                SourceEngineInstall {
+                    id: "selected-source".to_string(),
+                    display_name: "Selected".to_string(),
+                    source_dir: PathBuf::from("E:/selected"),
+                    output_dir: PathBuf::from("E:/selected-out"),
+                    last_build_unix_ms: Some(9),
+                    build_history: vec![crate::engines::SourceBuildRecord {
+                        finished_unix_ms: 9,
+                        status: "success".to_string(),
+                        profile: "release".to_string(),
+                        jobs: Some(8),
+                        output_dir: PathBuf::from("E:/selected-out"),
+                        detail: "selected history".to_string(),
+                    }],
+                },
+            ],
+            active_engine_id: Some("active-source".to_string()),
+            settings: HubSettings::default(),
+        };
+
+        let rows = source_build_history_rows(&snapshot);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].detail, SharedString::from("selected history"));
+        assert_eq!(rows[0].output_path, SharedString::from("E:/selected-out"));
+        assert_eq!(rows[0].profile, SharedString::from("release / 8 jobs"));
         assert!(rows[0].success);
     }
 }

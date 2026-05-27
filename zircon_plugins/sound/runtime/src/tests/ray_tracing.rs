@@ -32,6 +32,7 @@ fn ray_traced_impulse_response_submission_feeds_convolution_and_status() {
         source: Some(source_id),
         listener: Some(SoundListenerId::new(1)),
         volume: Some(SoundVolumeId::new(5)),
+        occlusion_gain: None,
         sample_rate_hz: 48_000,
         channel_count: 1,
         rays_traced: 128,
@@ -56,6 +57,40 @@ fn ray_traced_impulse_response_submission_feeds_convolution_and_status() {
 }
 
 #[test]
+fn ray_traced_impulse_response_occlusion_gain_replaces_static_fallback() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/ray-occlusion.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [1.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        attenuation: SoundAttenuationMode::None,
+        occlusion_enabled: true,
+        ..SoundSpatialSourceSettings::default()
+    };
+    let source_id = sound.create_source(source).unwrap();
+
+    sound
+        .submit_ray_traced_impulse_response(SoundRayTracedImpulseResponseDescriptor {
+            impulse_response: SoundImpulseResponseId::new(96),
+            cell_key: "listener-1/source-1/occlusion".to_string(),
+            source: Some(source_id),
+            listener: Some(SoundListenerId::new(1)),
+            volume: None,
+            occlusion_gain: Some(0.25),
+            sample_rate_hz: 48_000,
+            channel_count: 1,
+            rays_traced: 96,
+            samples: vec![1.0],
+        })
+        .unwrap();
+
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.0, 0.25]);
+}
+
+#[test]
 fn ray_traced_impulse_response_clear_invalidates_cache_and_static_ir() {
     let sound = DefaultSoundManager::default();
     let impulse_response = SoundImpulseResponseId::new(92);
@@ -66,6 +101,7 @@ fn ray_traced_impulse_response_clear_invalidates_cache_and_static_ir() {
             source: None,
             listener: None,
             volume: None,
+            occlusion_gain: None,
             sample_rate_hz: 48_000,
             channel_count: 1,
             rays_traced: 64,
@@ -99,6 +135,7 @@ fn ray_traced_impulse_response_submission_validates_provider_data() {
             source: None,
             listener: None,
             volume: None,
+            occlusion_gain: None,
             sample_rate_hz: 48_000,
             channel_count: 1,
             rays_traced: 1,
@@ -115,6 +152,7 @@ fn ray_traced_impulse_response_submission_validates_provider_data() {
                 source: Some(SoundSourceId::new(404)),
                 listener: None,
                 volume: None,
+                occlusion_gain: None,
                 sample_rate_hz: 48_000,
                 channel_count: 1,
                 rays_traced: 1,
@@ -130,6 +168,7 @@ fn ray_traced_impulse_response_submission_validates_provider_data() {
             source: None,
             listener: None,
             volume: None,
+            occlusion_gain: None,
             sample_rate_hz: 48_000,
             channel_count: 1,
             rays_traced: 0,
@@ -138,4 +177,20 @@ fn ray_traced_impulse_response_submission_validates_provider_data() {
         .unwrap_err()
         .to_string()
         .contains("ray-traced impulse response"));
+    assert!(sound
+        .submit_ray_traced_impulse_response(SoundRayTracedImpulseResponseDescriptor {
+            impulse_response: SoundImpulseResponseId::new(97),
+            cell_key: "bad-occlusion".to_string(),
+            source: None,
+            listener: None,
+            volume: None,
+            occlusion_gain: Some(1.5),
+            sample_rate_hz: 48_000,
+            channel_count: 1,
+            rays_traced: 1,
+            samples: vec![1.0],
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("occlusion gain"));
 }

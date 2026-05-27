@@ -2,6 +2,7 @@ use std::path::Path;
 
 use slint::SharedString;
 
+use crate::projects::project_metadata_key;
 use crate::settings::HubLanguage;
 use crate::state::HubSnapshot;
 use crate::team::{TeamMemberEntry, TeamOverview};
@@ -62,14 +63,38 @@ fn team_status(
         return localization::text(language, "No local Git workspace", "未发现本地 Git 工作区")
             .to_string();
     }
-    if selected_project_path.is_some_and(|project_path| {
-        project_path.starts_with(&team.repository_path)
-            || team.repository_path.starts_with(project_path)
-    }) {
-        return localization::text(language, "Selected project repository", "选中项目仓库")
-            .to_string();
+    if let Some(project_path) = selected_project_path {
+        if paths_share_repository_scope(project_path, &team.repository_path) {
+            return localization::text(language, "Selected project repository", "选中项目仓库")
+                .to_string();
+        }
+        return localization::text(
+            language,
+            "Selected project repository unavailable; showing Source Engine repository",
+            "未找到选中项目仓库；显示 Source Engine 仓库",
+        )
+        .to_string();
     }
-    localization::text(language, "Source engine repository", "Source Engine 仓库").to_string()
+    localization::text(language, "Source Engine repository", "Source Engine 仓库").to_string()
+}
+
+fn paths_share_repository_scope(project_path: &Path, repository_path: &Path) -> bool {
+    if project_path.starts_with(repository_path) || repository_path.starts_with(project_path) {
+        return true;
+    }
+
+    if let (Ok(project_path), Ok(repository_path)) =
+        (project_path.canonicalize(), repository_path.canonicalize())
+    {
+        return project_path.starts_with(&repository_path)
+            || repository_path.starts_with(&project_path);
+    }
+
+    let project_key = project_metadata_key(project_path);
+    let repository_key = project_metadata_key(repository_path);
+    project_key == repository_key
+        || project_key.starts_with(&format!("{repository_key}/"))
+        || repository_key.starts_with(&format!("{project_key}/"))
 }
 
 fn team_member_data(index: usize, member: &TeamMemberEntry) -> TeamMemberData {
@@ -140,7 +165,7 @@ mod tests {
         assert_eq!(summary.identity_name, SharedString::from("Not configured"));
         assert_eq!(
             summary.status,
-            SharedString::from("Source engine repository")
+            SharedString::from("Source Engine repository")
         );
         assert_eq!(members.len(), 1);
         assert_eq!(members[0].name, SharedString::from("Ada"));
@@ -182,6 +207,84 @@ mod tests {
         assert_eq!(
             summary.status,
             SharedString::from("Selected project repository")
+        );
+    }
+
+    #[test]
+    fn team_summary_labels_selected_project_repository_with_normalized_paths() {
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Team,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:\\Repo\\Projects\\Demo\\")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: TeamOverview {
+                repository_path: PathBuf::from("e:/repo"),
+                identity_name: "Ada".to_string(),
+                identity_email: "ada@example.com".to_string(),
+                members: Vec::new(),
+            },
+            engines: Vec::new(),
+            active_engine_id: None,
+            settings: HubSettings::default(),
+        };
+
+        let summary = team_summary(&snapshot);
+
+        assert_eq!(
+            summary.status,
+            SharedString::from("Selected project repository")
+        );
+    }
+
+    #[test]
+    fn team_summary_labels_source_engine_fallback_for_missing_selected_project_repository() {
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Team,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: Some(PathBuf::from("E:/missing/projects/demo")),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: TeamOverview {
+                repository_path: PathBuf::from("E:/source-engine"),
+                identity_name: "Ada".to_string(),
+                identity_email: "ada@example.com".to_string(),
+                members: Vec::new(),
+            },
+            engines: Vec::new(),
+            active_engine_id: None,
+            settings: HubSettings::default(),
+        };
+
+        let summary = team_summary(&snapshot);
+
+        assert_eq!(
+            summary.status,
+            SharedString::from(
+                "Selected project repository unavailable; showing Source Engine repository"
+            )
         );
     }
 }

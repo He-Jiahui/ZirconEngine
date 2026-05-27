@@ -17,6 +17,7 @@ fn popup_effects_update_shared_popup_stack_and_host_requests() {
         UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
             kind: UiPopupEffectKind::Open,
             popup_id: "menu.file".to_string(),
+            owner: None,
             anchor: Some(UiPoint::new(10.0, 20.0)),
         }),
     );
@@ -37,6 +38,7 @@ fn popup_effects_update_shared_popup_stack_and_host_requests() {
         UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
             kind: UiPopupEffectKind::Toggle,
             popup_id: "menu.file".to_string(),
+            owner: None,
             anchor: Some(UiPoint::new(10.0, 20.0)),
         }),
     );
@@ -53,6 +55,7 @@ fn tooltip_effects_track_pending_visible_and_canceled_state() {
         UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
             kind: UiTooltipEffectKind::Arm,
             tooltip_id: "status.hint".to_string(),
+            owner: None,
         }),
     );
     assert_eq!(
@@ -69,6 +72,7 @@ fn tooltip_effects_track_pending_visible_and_canceled_state() {
         UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
             kind: UiTooltipEffectKind::Show,
             tooltip_id: "status.hint".to_string(),
+            owner: None,
         }),
     );
     assert_eq!(
@@ -89,6 +93,7 @@ fn tooltip_effects_track_pending_visible_and_canceled_state() {
         UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
             kind: UiTooltipEffectKind::Cancel,
             tooltip_id: "status.hint".to_string(),
+            owner: None,
         }),
     );
     assert_eq!(surface.input.tooltip, None);

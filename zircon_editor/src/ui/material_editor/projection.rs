@@ -264,6 +264,15 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 message: format!("required shader property `{name}` needs a material override"),
             }
         }
+        RenderMaterialValidationError::MissingRequiredTextureSlot { source, path, slot } => {
+            MaterialEditorDiagnosticRow {
+                source: Some(source),
+                path,
+                message: format!(
+                    "required texture slot `{slot}` needs a material texture reference"
+                ),
+            }
+        }
         RenderMaterialValidationError::UnknownTextureSlot { source, path, slot } => {
             MaterialEditorDiagnosticRow {
                 source: Some(source),
@@ -278,5 +287,14 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 message: format!("shader WGSL does not appear to capture `{name}`"),
             }
         }
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(source),
+            path,
+            message: diagnostic,
+        },
     }
 }

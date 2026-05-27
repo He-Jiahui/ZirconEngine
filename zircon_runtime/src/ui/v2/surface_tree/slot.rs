@@ -13,6 +13,8 @@ use super::parse::{
     parse_usize,
 };
 
+const RESPONSIVE_BREAKPOINTS: &[&str] = &["xs", "sm", "md", "lg", "xl"];
+
 pub(super) fn infer_slot_contract(
     asset_id: &str,
     path: &str,
@@ -20,6 +22,7 @@ pub(super) fn infer_slot_contract(
     child_id: UiNodeId,
     parent_container: UiContainerKind,
     slot_attributes: &BTreeMap<String, Value>,
+    attributes: &BTreeMap<String, Value>,
 ) -> Result<UiSlot, UiV2AssetError> {
     let mut slot = UiSlot::new(parent_id, child_id, infer_slot_kind(parent_container));
     let layout = slot_attributes
@@ -64,6 +67,10 @@ pub(super) fn infer_slot_contract(
         if slot.kind == UiSlotKind::Grid {
             slot = slot.with_grid_placement(parse_grid_placement(asset_id, layout, path)?);
         }
+    } else if slot.kind == UiSlotKind::Grid {
+        if let Some(placement) = mui_grid_item_placement(attributes) {
+            slot = slot.with_grid_placement(placement);
+        }
     }
     Ok(slot)
 }
@@ -75,7 +82,7 @@ fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
         UiContainerKind::Overlay => UiSlotKind::Overlay,
         UiContainerKind::Space => UiSlotKind::Free,
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => UiSlotKind::Linear,
-        UiContainerKind::WrapBox(_) => UiSlotKind::Flow,
+        UiContainerKind::WrapBox(_) | UiContainerKind::MasonryBox(_) => UiSlotKind::Flow,
         UiContainerKind::GridBox(_) => UiSlotKind::Grid,
         UiContainerKind::ScrollableBox(_) => UiSlotKind::Scrollable,
     }
@@ -253,4 +260,39 @@ fn parse_linear_size_rule(
             ));
         }
     })
+}
+
+fn mui_grid_item_placement(attributes: &BTreeMap<String, Value>) -> Option<UiGridSlotPlacement> {
+    let span = responsive_usize_attribute(attributes, &["size"])?;
+    let column = responsive_usize_attribute(attributes, &["offset"]).unwrap_or(0);
+    Some(UiGridSlotPlacement::new(column, 0).with_span(span, 1))
+}
+
+fn responsive_usize_attribute(
+    attributes: &BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<usize> {
+    names
+        .iter()
+        .find_map(|name| responsive_base_value(attributes.get(*name)))
+        .and_then(value_as_usize)
+}
+
+fn responsive_base_value(value: Option<&Value>) -> Option<&Value> {
+    match value? {
+        Value::Table(values) => RESPONSIVE_BREAKPOINTS
+            .iter()
+            .find_map(|breakpoint| values.get(*breakpoint)),
+        Value::Array(values) => values.first(),
+        scalar => Some(scalar),
+    }
+}
+
+fn value_as_usize(value: &Value) -> Option<usize> {
+    match value {
+        Value::Integer(value) => usize::try_from(*value).ok(),
+        Value::Float(value) if value.is_finite() && *value >= 0.0 => Some(*value as usize),
+        Value::String(value) => value.trim().parse().ok(),
+        _ => None,
+    }
 }

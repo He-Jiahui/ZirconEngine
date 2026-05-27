@@ -10,5 +10,6 @@ mod resource_streamer_load_model_asset;
 mod resource_streamer_new;
 mod resource_streamer_resolve_texture_id;
 mod resource_streamer_resource_revision;
+mod resource_streamer_validate_material_shader_layout;
 
 pub(crate) use resource_streamer::ResourceStreamer;

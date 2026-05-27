@@ -6,6 +6,14 @@ impl World {
         self.change_tick
     }
 
+    pub fn last_change_tick(&self) -> ChangeTick {
+        self.last_change_tick
+    }
+
+    pub fn clear_trackers(&mut self) {
+        self.last_change_tick = self.change_tick;
+    }
+
     pub(crate) fn advance_change_tick(&mut self) -> ChangeTick {
         self.change_tick = self.change_tick.next();
         self.change_tick

@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextSelection, UiTextWrap, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
+use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
 
 pub(super) fn resolve_command_kind(
     style: &UiResolvedStyle,
@@ -158,7 +159,22 @@ fn resolve_non_empty_string_attribute<'a>(
 }
 
 fn resolve_visible_value_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
-    let value = metadata.and_then(|metadata| metadata.attributes.get("value"))?;
+    let metadata = metadata?;
+    let value_property = metadata.widget.value_property.as_deref().unwrap_or("value");
+    let value = metadata.attributes.get(value_property).or_else(|| {
+        (value_property != "value")
+            .then(|| metadata.attributes.get("value"))
+            .flatten()
+    })?;
+    if is_editable_text_component(metadata) {
+        let text = resolve_scalar_text_allow_empty(value)?;
+        if text.is_empty()
+            && resolve_non_empty_string_attribute(Some(metadata), "placeholder").is_some()
+        {
+            return None;
+        }
+        return Some(text);
+    }
     resolve_scalar_text(value)
 }
 
@@ -220,6 +236,11 @@ fn supports_visible_value_fallback(metadata: Option<&UiTemplateNodeMetadata>) ->
     let Some(metadata) = metadata else {
         return false;
     };
+    if metadata.widget.value_property.is_some()
+        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
+    {
+        return true;
+    }
 
     matches!(
         metadata.component.as_str(),
@@ -250,6 +271,7 @@ fn supports_visible_value_fallback(metadata: Option<&UiTemplateNodeMetadata>) ->
 
 fn is_editable_text_component(metadata: &UiTemplateNodeMetadata) -> bool {
     resolve_bool_attribute(Some(metadata), "editable_text").unwrap_or(false)
+        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
         || matches!(
             metadata.component.as_str(),
             "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
@@ -260,16 +282,30 @@ fn resolve_editable_text_value(
     metadata: &UiTemplateNodeMetadata,
     visible_text: Option<&str>,
 ) -> String {
+    let value_property = metadata.widget.value_property.as_deref().unwrap_or("value");
     metadata
         .attributes
-        .get("value")
-        .and_then(resolve_scalar_text)
+        .get(value_property)
+        .or_else(|| {
+            (value_property != "value")
+                .then(|| metadata.attributes.get("value"))
+                .flatten()
+        })
+        .and_then(resolve_scalar_text_allow_empty)
         .or_else(|| {
             resolve_non_empty_string_attribute(Some(metadata), "value_text").map(str::to_string)
         })
         .or_else(|| resolve_non_empty_string_attribute(Some(metadata), "text").map(str::to_string))
-        .or_else(|| visible_text.map(str::to_string))
+        .or_else(|| {
+            visible_text
+                .filter(|text| !is_placeholder_text(metadata, text))
+                .map(str::to_string)
+        })
         .unwrap_or_default()
+}
+
+fn is_placeholder_text(metadata: &UiTemplateNodeMetadata, text: &str) -> bool {
+    resolve_string_attribute(Some(metadata), "placeholder") == Some(text)
 }
 
 fn resolve_selection(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<UiTextSelection> {
@@ -320,6 +356,13 @@ fn resolve_scalar_text(value: &Value) -> Option<String> {
         Value::Float(value) => Some(value.to_string()),
         Value::Boolean(value) => Some(value.to_string()),
         _ => None,
+    }
+}
+
+fn resolve_scalar_text_allow_empty(value: &Value) -> Option<String> {
+    match value {
+        Value::String(value) => Some(value.clone()),
+        _ => resolve_scalar_text(value),
     }
 }
 

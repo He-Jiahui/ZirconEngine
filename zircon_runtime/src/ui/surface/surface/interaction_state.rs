@@ -1,9 +1,9 @@
 use zircon_runtime_interface::ui::{
-    component::{UiComponentState, UiValue},
     event_ui::UiNodeId,
     tree::{UiTemplateNodeMetadata, UiTreeError, UiTreeNode},
 };
 
+use crate::ui::surface::ui_surface_effective_disabled;
 use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::UiSurface;
@@ -38,35 +38,6 @@ impl UiSurface {
         node: &UiTreeNode,
         metadata: Option<&UiTemplateNodeMetadata>,
     ) -> bool {
-        node.state_flags.enabled
-            && !self
-                .component_states
-                .get(node_id)
-                .and_then(disabled_component_state_value)
-                .unwrap_or(false)
-            && !metadata.is_some_and(|metadata| {
-                metadata.widget.disabled
-                    || bool_attribute_value(&metadata.attributes, "disabled") == Some(true)
-            })
+        !ui_surface_effective_disabled(self, node_id, node, metadata)
     }
-}
-
-fn disabled_component_state_value(state: &UiComponentState) -> Option<bool> {
-    bool_component_state_value(state, "disabled")
-        .or_else(|| bool_component_state_value(state, "enabled").map(|enabled| !enabled))
-        .or_else(|| state.flags.disabled.then_some(true))
-}
-
-fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {
-    match state.value(property) {
-        Some(UiValue::Bool(value)) => Some(*value),
-        _ => None,
-    }
-}
-
-fn bool_attribute_value(
-    values: &std::collections::BTreeMap<String, toml::Value>,
-    key: &str,
-) -> Option<bool> {
-    values.get(key).and_then(toml::Value::as_bool)
 }

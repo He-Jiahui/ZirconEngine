@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::core::framework::render::RenderNativeSurfaceTarget;
 
 use super::RhiError;
@@ -194,6 +196,7 @@ impl UiSurfaceDrawList {
     }
 
     pub fn stats(&self) -> UiSurfacePresentStats {
+        let mut uploaded_image_keys = BTreeSet::new();
         let mut stats = UiSurfacePresentStats {
             surface_size: self.surface_size,
             ..UiSurfacePresentStats::default()
@@ -215,7 +218,9 @@ impl UiSurfaceDrawList {
                     stats.visible_draw_item_count = stats.visible_draw_item_count.saturating_add(1);
                     stats.draw_calls = stats.draw_calls.saturating_add(1);
                     stats.image_count = stats.image_count.saturating_add(1);
-                    if payload.rgba.is_some() {
+                    if payload.rgba.is_some()
+                        && uploaded_image_keys.insert(payload.resource_key.as_str())
+                    {
                         stats.image_upload_bytes = stats
                             .image_upload_bytes
                             .saturating_add(payload.upload_bytes);
@@ -430,6 +435,58 @@ mod tests {
         assert_eq!(stats.visible_draw_item_count, 1);
         assert_eq!(stats.image_count, 1);
         assert_eq!(stats.image_upload_bytes, 0);
+    }
+
+    #[test]
+    fn draw_list_stats_count_same_resource_image_upload_once() {
+        let draw_list = UiSurfaceDrawList::new(
+            (64, 32),
+            None,
+            vec![
+                UiSurfaceCommand {
+                    z_index: 0,
+                    frame: UiSurfaceRect::new(0.0, 0.0, 2.0, 2.0),
+                    clip: None,
+                    kind: UiSurfaceCommandKind::Image {
+                        payload: UiSurfaceImagePayload {
+                            resource_key: "atlas://editor/icons".to_string(),
+                            width: 4,
+                            height: 4,
+                            upload_bytes: 64,
+                            rgba: Some(vec![255; 64]),
+                            atlas_uv: Some(UiSurfaceImageUvRect {
+                                min: [0.0, 0.0],
+                                max: [0.5, 0.5],
+                            }),
+                        },
+                    },
+                },
+                UiSurfaceCommand {
+                    z_index: 1,
+                    frame: UiSurfaceRect::new(4.0, 0.0, 2.0, 2.0),
+                    clip: None,
+                    kind: UiSurfaceCommandKind::Image {
+                        payload: UiSurfaceImagePayload {
+                            resource_key: "atlas://editor/icons".to_string(),
+                            width: 4,
+                            height: 4,
+                            upload_bytes: 64,
+                            rgba: Some(vec![255; 64]),
+                            atlas_uv: Some(UiSurfaceImageUvRect {
+                                min: [0.5, 0.0],
+                                max: [1.0, 0.5],
+                            }),
+                        },
+                    },
+                },
+            ],
+        );
+
+        let stats = draw_list.stats();
+
+        assert_eq!(stats.visible_command_count, 2);
+        assert_eq!(stats.image_count, 2);
+        assert_eq!(stats.image_upload_bytes, 64);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
-use crate::ui::layout::UiFrame;
+use crate::ui::layout::{UiFrame, UiPoint};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -36,6 +36,27 @@ pub enum UiA11yCheckedState {
     Mixed,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiA11yTextSelection {
+    /// Current caret byte offset in the exposed text value.
+    pub caret: usize,
+    /// Selection anchor byte offset in the exposed text value.
+    pub anchor: usize,
+    /// Selection focus byte offset in the exposed text value.
+    pub focus: usize,
+}
+
+impl UiA11yTextSelection {
+    pub const fn collapsed(offset: usize) -> Self {
+        Self {
+            caret: offset,
+            anchor: offset,
+            focus: offset,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiA11yState {
@@ -47,6 +68,8 @@ pub struct UiA11yState {
     pub checked: Option<UiA11yCheckedState>,
     pub pressed: Option<bool>,
     pub value: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_selection: Option<UiA11yTextSelection>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -58,6 +81,10 @@ pub enum UiAccessibilityAction {
     Increment,
     Decrement,
     SetValue,
+    ReplaceSelectedText,
+    SetTextSelection,
+    Expand,
+    Collapse,
     ScrollTo,
     Dismiss,
 }
@@ -82,6 +109,10 @@ pub struct UiAccessibilityActionRequest {
     pub value: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub numeric_value: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_selection: Option<UiA11yTextSelection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scroll_offset: Option<UiPoint>,
 }
 
 impl Default for UiAccessibilityActionRequest {
@@ -92,6 +123,8 @@ impl Default for UiAccessibilityActionRequest {
             source: UiAccessibilityActionSource::AssistiveTechnology,
             value: None,
             numeric_value: None,
+            text_selection: None,
+            scroll_offset: None,
         }
     }
 }

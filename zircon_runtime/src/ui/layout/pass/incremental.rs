@@ -9,7 +9,8 @@ use zircon_runtime_interface::ui::{
 
 use super::{
     arrange::arrange_node, child_frame::free_child_frame, engine::UiLayoutPassEngineContext,
-    measure::measure_node, slot::slot_for_container_child,
+    measure::measure_node, responsive_mui::apply_mui_responsive_layout,
+    slot::slot_for_container_child,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -31,6 +32,7 @@ pub(crate) fn compute_incremental_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
+    apply_mui_responsive_layout(tree, root_size)?;
     let previous = snapshot_geometry(tree);
     let roots = incremental_layout_roots(tree)?;
     let mut visited = BTreeSet::new();

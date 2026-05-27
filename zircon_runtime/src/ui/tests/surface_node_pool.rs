@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::{dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{
-    dispatch::{UiPointerEvent, UiPointerId},
+    dispatch::{UiDragSessionId, UiPointerEvent, UiPointerId},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{AxisConstraint, BoxConstraints, StretchMode, UiPoint, UiSize},
     surface::{UiPointerButton, UiPointerEventKind},
@@ -19,6 +19,17 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
     surface.input.captured_pointer_id = Some(UiPointerId::new(7));
     surface.input.high_precision_owner = Some(child_id());
     surface.input.input_method_owner = Some(child_id());
+    surface
+        .input
+        .begin_drag_drop(
+            child_id(),
+            child_id(),
+            UiPointerId::new(7),
+            Some(UiDragSessionId::new(70)),
+            Some(UiPoint::new(12.0, 12.0)),
+            None,
+        )
+        .unwrap();
     surface
         .dispatch_pointer_event(
             &UiPointerDispatcher::default(),
@@ -64,6 +75,7 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
     assert_eq!(surface.input.captured_pointer_id, None);
     assert_eq!(surface.input.high_precision_owner, None);
     assert_eq!(surface.input.input_method_owner, None);
+    assert_eq!(surface.input.drag_drop, None);
     assert!(surface.component_state(child_id()).is_none());
 
     let reuse_report = surface

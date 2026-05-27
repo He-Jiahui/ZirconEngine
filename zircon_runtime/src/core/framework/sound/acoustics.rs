@@ -20,6 +20,8 @@ pub struct SoundRayTracedImpulseResponseDescriptor {
     pub source: Option<SoundSourceId>,
     pub listener: Option<SoundListenerId>,
     pub volume: Option<SoundVolumeId>,
+    #[serde(default)]
+    pub occlusion_gain: Option<f32>,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
     pub rays_traced: usize,

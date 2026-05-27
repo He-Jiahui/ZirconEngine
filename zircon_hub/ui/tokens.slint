@@ -39,7 +39,26 @@ export global HubTokens {
     in property <length> panel-min-md: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_80;
     in property <length> panel-min-lg: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_200;
 
-    in property <length> workspace-row-editor-summary: root.control-md + root.list-row-md * 3 + root.toolbar-gap * 3 + root.space-4 * 2;
+    in property <float> project-dashboard-toolbar-search-ratio: 0.25;
+    in property <float> project-dashboard-toolbar-select-ratio: 0.111111;
+    in property <float> project-dashboard-card-ratio: 0.22;
+    in property <float> project-dashboard-lower-compact-ratio: 0.60;
+    in property <float> project-dashboard-lower-regular-ratio: 0.35;
+    in property <float> project-dashboard-table-ratio: 0.58;
+    in property <float> project-new-main-stack-ratio: 0.60;
+    in property <float> project-new-side-stack-ratio: 0.40;
+    in property <float> project-browser-toolbar-search-ratio: 0.40;
+    in property <float> project-browser-toolbar-select-ratio: 0.125;
+    in property <float> project-detail-cover-ratio: 0.25;
+    in property <float> project-detail-info-row-ratio: 0.05;
+    in property <float> project-detail-version-badge-ratio: 0.10;
+    in property <float> project-detail-pin-badge-ratio: 0.0714286;
+    in property <float> project-detail-main-panel-ratio: 0.50;
+    in property <float> project-detail-action-panel-ratio: 0.25;
+    in property <float> project-detail-main-stack-ratio: 0.60;
+    in property <float> project-detail-action-stack-ratio: 0.40;
+
+    in property <length> workspace-row-editor-summary: root.control-md + root.list-row-sm * 3 + root.toolbar-gap * 3 + root.space-4 * 2;
     in property <length> workspace-row-editor-config: MaterialStyleMetrics.size_200 * 2 + MaterialStyleMetrics.size_72 + MaterialStyleMetrics.size_4;
     in property <length> workspace-row-build-summary: root.control-md + root.list-row-md * 5 + root.toolbar-gap * 5 + root.space-4 * 2;
     in property <length> workspace-row-build-detail: root.control-md + root.list-row-md * 4 + root.toolbar-gap * 4 + root.space-4 * 2;

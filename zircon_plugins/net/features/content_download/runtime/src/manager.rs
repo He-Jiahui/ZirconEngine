@@ -3,12 +3,27 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::net::{
     NetDownloadAttemptDescriptor, NetDownloadChunk, NetDownloadId, NetDownloadManifest,
-    NetDownloadProgress, NetDownloadStatus,
+    NetDownloadProgress, NetDownloadStatus, NetError, NetHttpMethod, NetHttpRequestDescriptor,
+    NetHttpResponseDescriptor, NetManager, NetRequestId, NetSecurityPolicy,
 };
 
-#[derive(Clone, Debug, Default)]
+const HTTP_PARTIAL_CONTENT_STATUS: u16 = 206;
+const HTTP_SUCCESS_STATUS: u16 = 200;
+const CONTENT_DOWNLOAD_HTTP_TIMEOUT_MS: u64 = 30_000;
+const CONTENT_DOWNLOAD_HTTP_RETRY_ATTEMPTS: u8 = 1;
+
+#[derive(Clone, Default)]
 pub struct NetContentDownloadRuntimeManager {
     state: Arc<Mutex<NetContentDownloadRuntimeState>>,
+    net: Option<Arc<dyn NetManager>>,
+}
+
+impl std::fmt::Debug for NetContentDownloadRuntimeManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NetContentDownloadRuntimeManager")
+            .field("has_net_manager", &self.net.is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -18,11 +33,19 @@ struct NetContentDownloadRuntimeState {
     cache_hits: HashMap<NetDownloadId, Vec<String>>,
     attempt_indices: HashMap<(NetDownloadId, String), usize>,
     failed_attempts: HashMap<(NetDownloadId, String), Vec<String>>,
+    partial_chunks: HashMap<(NetDownloadId, String), Vec<u8>>,
 }
 
 impl NetContentDownloadRuntimeManager {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_net_manager(net: Arc<dyn NetManager>) -> Self {
+        Self {
+            state: Arc::default(),
+            net: Some(net),
+        }
     }
 
     pub fn queue_manifest(&self, manifest: NetDownloadManifest) -> NetDownloadProgress {
@@ -129,6 +152,144 @@ impl NetContentDownloadRuntimeManager {
             .unwrap_or_default()
     }
 
+    pub fn store_partial_chunk(
+        &self,
+        download: NetDownloadId,
+        chunk_id: impl Into<String>,
+        bytes: Vec<u8>,
+    ) {
+        self.state
+            .lock()
+            .expect("net content download state mutex poisoned")
+            .partial_chunks
+            .insert((download, chunk_id.into()), bytes);
+    }
+
+    pub fn partial_chunk_bytes(&self, download: NetDownloadId, chunk_id: &str) -> Vec<u8> {
+        self.state
+            .lock()
+            .expect("net content download state mutex poisoned")
+            .partial_chunks
+            .get(&(download, chunk_id.to_string()))
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    pub fn fetch_next_chunk(
+        &self,
+        download: NetDownloadId,
+        chunk_id: &str,
+    ) -> Option<NetDownloadProgress> {
+        let attempt = self.next_attempt(download, chunk_id)?;
+        let Some(prefix) = self.partial_prefix_for_attempt(&attempt) else {
+            return self.progress(download);
+        };
+        let response = match self.fetch_attempt(&attempt) {
+            Ok(response) => response,
+            Err(diagnostic) => {
+                self.mark_attempt_failed(download, chunk_id, diagnostic);
+                return self.progress(download);
+            }
+        };
+        if !response.status_code_is_successful() {
+            self.mark_attempt_failed(
+                download,
+                chunk_id,
+                format!(
+                    "chunk HTTP fetch failed with status: {}",
+                    response.status_code
+                ),
+            );
+            return self.progress(download);
+        }
+        if attempt.range_start.is_some() && response.status_code != HTTP_PARTIAL_CONTENT_STATUS {
+            self.mark_attempt_failed(
+                download,
+                chunk_id,
+                format!("chunk range fetch did not return partial content: {chunk_id}"),
+            );
+            return self.progress(download);
+        }
+
+        let mut bytes = prefix;
+        bytes.extend_from_slice(&response.body);
+        if bytes.len() != attempt.byte_len as usize {
+            self.mark_attempt_failed(
+                download,
+                chunk_id,
+                format!(
+                    "chunk HTTP fetch length mismatch: expected {} bytes, got {} bytes",
+                    attempt.byte_len,
+                    bytes.len()
+                ),
+            );
+            return self.progress(download);
+        }
+        let actual_sha256 = sha256_hex(&bytes);
+        if !self.chunk_hash_matches(download, chunk_id, &actual_sha256) {
+            self.fail_progress(download, format!("chunk hash mismatch: {chunk_id}"))
+        } else {
+            self.store_partial_chunk(download, chunk_id.to_string(), bytes);
+            self.mark_chunk_complete(download, chunk_id, &actual_sha256)
+        }
+    }
+
+    fn fetch_attempt(
+        &self,
+        attempt: &NetDownloadAttemptDescriptor,
+    ) -> Result<FetchAttemptResponse, String> {
+        let Some(net) = self.net.as_ref() else {
+            return Err("content download HTTP fetch requires NetManager".to_string());
+        };
+        fetch_attempt_via_net(net.as_ref(), attempt)
+    }
+
+    fn partial_prefix_for_attempt(
+        &self,
+        attempt: &NetDownloadAttemptDescriptor,
+    ) -> Option<Vec<u8>> {
+        let Some(range_start) = attempt.range_start else {
+            return Some(Vec::new());
+        };
+        let expected_prefix_len = range_start.checked_sub(attempt.byte_offset)? as usize;
+        let key = (attempt.download, attempt.chunk_id.clone());
+        let prefix = self
+            .state
+            .lock()
+            .expect("net content download state mutex poisoned")
+            .partial_chunks
+            .get(&key)
+            .cloned()
+            .unwrap_or_default();
+        if prefix.len() == expected_prefix_len {
+            Some(prefix)
+        } else {
+            self.fail_progress(
+                attempt.download,
+                format!(
+                    "chunk resume requires existing partial bytes: {}",
+                    attempt.chunk_id
+                ),
+            )?;
+            None
+        }
+    }
+
+    fn fail_progress(
+        &self,
+        download: NetDownloadId,
+        diagnostic: String,
+    ) -> Option<NetDownloadProgress> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net content download state mutex poisoned");
+        let progress = state.progress.get_mut(&download)?;
+        progress.status = NetDownloadStatus::Failed;
+        progress.diagnostic = Some(diagnostic);
+        Some(progress.clone())
+    }
+
     pub fn mark_cache_hit(
         &self,
         download: NetDownloadId,
@@ -197,6 +358,21 @@ impl NetContentDownloadRuntimeManager {
         Some(progress.clone())
     }
 
+    fn chunk_hash_matches(
+        &self,
+        download: NetDownloadId,
+        chunk_id: &str,
+        actual_sha256: &str,
+    ) -> bool {
+        self.state
+            .lock()
+            .expect("net content download state mutex poisoned")
+            .manifests
+            .get(&download)
+            .and_then(|manifest| manifest.chunks.iter().find(|chunk| chunk.id == chunk_id))
+            .is_some_and(|chunk| chunk.sha256 == actual_sha256)
+    }
+
     pub fn progress(&self, download: NetDownloadId) -> Option<NetDownloadProgress> {
         self.state
             .lock()
@@ -225,6 +401,113 @@ impl NetContentDownloadRuntimeManager {
             .get(&download)
             .cloned()
             .unwrap_or_default()
+    }
+}
+
+struct FetchAttemptResponse {
+    status_code: u16,
+    body: Vec<u8>,
+}
+
+impl FetchAttemptResponse {
+    fn status_code_is_successful(&self) -> bool {
+        matches!(
+            self.status_code,
+            HTTP_SUCCESS_STATUS | HTTP_PARTIAL_CONTENT_STATUS
+        )
+    }
+}
+
+fn fetch_attempt_via_net(
+    net: &dyn NetManager,
+    attempt: &NetDownloadAttemptDescriptor,
+) -> Result<FetchAttemptResponse, String> {
+    let mut request = NetHttpRequestDescriptor::new(
+        NetRequestId::new(attempt.attempt_index as u64 + 1),
+        NetHttpMethod::Get,
+        attempt.url.clone(),
+    );
+    request.timeout_ms = CONTENT_DOWNLOAD_HTTP_TIMEOUT_MS;
+    request.max_retry_attempts = CONTENT_DOWNLOAD_HTTP_RETRY_ATTEMPTS;
+    request.security = NetSecurityPolicy::development();
+    if let Some((range_start, range_end)) = attempt_range_bounds(attempt)? {
+        request = request.with_header("range", format!("bytes={range_start}-{range_end}"));
+    }
+    let response = net
+        .send_http_request(request)
+        .map_err(download_http_error_diagnostic)?;
+    validate_response_range(attempt, &response)?;
+    validate_response_length(attempt, &response)?;
+    Ok(FetchAttemptResponse {
+        status_code: response.status_code,
+        body: response.body,
+    })
+}
+
+fn attempt_range_bounds(
+    attempt: &NetDownloadAttemptDescriptor,
+) -> Result<Option<(u64, u64)>, String> {
+    let Some(range_start) = attempt.range_start else {
+        return Ok(None);
+    };
+    let chunk_end = attempt
+        .byte_offset
+        .checked_add(attempt.byte_len)
+        .and_then(|end_exclusive| end_exclusive.checked_sub(1))
+        .ok_or_else(|| format!("chunk byte range overflow: {}", attempt.chunk_id))?;
+    if range_start < attempt.byte_offset || range_start > chunk_end {
+        return Err(format!(
+            "chunk range start outside byte range: {}",
+            attempt.chunk_id
+        ));
+    }
+    Ok(Some((range_start, chunk_end)))
+}
+
+fn validate_response_length(
+    attempt: &NetDownloadAttemptDescriptor,
+    response: &NetHttpResponseDescriptor,
+) -> Result<(), String> {
+    let expected_body_len = attempt
+        .range_start
+        .map(|range_start| attempt.byte_offset + attempt.byte_len - range_start)
+        .unwrap_or(attempt.byte_len);
+    if response.body.len() > expected_body_len as usize {
+        return Err(format!(
+            "chunk HTTP fetch exceeded expected body length: {}",
+            attempt.chunk_id
+        ));
+    }
+    Ok(())
+}
+
+fn validate_response_range(
+    attempt: &NetDownloadAttemptDescriptor,
+    response: &NetHttpResponseDescriptor,
+) -> Result<(), String> {
+    let Some((range_start, range_end)) = attempt_range_bounds(attempt)? else {
+        return Ok(());
+    };
+    let expected_prefix = format!("bytes {range_start}-{range_end}/");
+    response
+        .headers
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case("content-range"))
+        .filter(|(_, value)| value.starts_with(&expected_prefix))
+        .map(|_| ())
+        .ok_or_else(|| format!("chunk HTTP content-range mismatch: {}", attempt.chunk_id))
+}
+
+fn download_http_error_diagnostic(error: NetError) -> String {
+    match error {
+        NetError::SecurityPolicyViolation { reason } => {
+            format!("chunk HTTP security policy rejected request: {reason}")
+        }
+        NetError::ProtocolUnavailable { capability } => {
+            format!("chunk HTTP fetch unavailable: {capability}")
+        }
+        NetError::Io(message) => format!("chunk HTTP fetch failed: {message}"),
+        other => format!("chunk HTTP fetch failed: {other:?}"),
     }
 }
 
@@ -265,10 +548,10 @@ fn validate_manifest(manifest: &NetDownloadManifest) -> Option<String> {
         if chunk.sha256.trim().is_empty() {
             return Some(format!("download chunk has empty sha256: {}", chunk.id));
         }
-        if chunk
-            .resume_from_byte
-            .is_some_and(|resume_from_byte| resume_from_byte > chunk.byte_offset + chunk.byte_len)
-        {
+        if chunk.resume_from_byte.is_some_and(|resume_from_byte| {
+            resume_from_byte < chunk.byte_offset
+                || resume_from_byte > chunk.byte_offset + chunk.byte_len
+        }) {
             return Some(format!(
                 "download chunk resume offset outside range: {}",
                 chunk.id
@@ -295,6 +578,15 @@ fn attempt_descriptor_for_chunk(
             .then_some(chunk.resume_from_byte.unwrap_or(chunk.byte_offset)),
         attempt_index,
     }
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = ring::digest::digest(&ring::digest::SHA256, bytes);
+    digest
+        .as_ref()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
 }
 
 pub fn net_content_download_runtime_manager() -> NetContentDownloadRuntimeManager {

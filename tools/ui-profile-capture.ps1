@@ -1449,6 +1449,14 @@ function Invoke-SoftbufferScreenshotCapture {
     $previousCapture = $env:ZIRCON_PROFILE_CAPTURE
     $previousSession = $env:ZIRCON_PROFILE_SESSION
     $previousForceSoftbuffer = $env:ZIRCON_PROFILE_FORCE_SOFTBUFFER
+    $profileDir = Join-Path $OutputPath $SessionId
+    $interactionEvidencePath = Join-Path $profileDir "ui_interaction_evidence.json"
+    $primaryInteractionEvidence = if (Test-Path $interactionEvidencePath) {
+        Get-Content -Path $interactionEvidencePath -Raw
+    }
+    else {
+        $null
+    }
     $capturedSessionId = $null
     try {
         $env:ZIRCON_PROFILE_CAPTURE = "0"
@@ -1463,6 +1471,9 @@ function Invoke-SoftbufferScreenshotCapture {
         $capturedSessionId = $softbufferSessionId
     }
     finally {
+        if ($null -ne $primaryInteractionEvidence) {
+            Set-Content -Path $interactionEvidencePath -Value $primaryInteractionEvidence -Encoding UTF8
+        }
         if ($null -eq $previousCapture) {
             Remove-Item "Env:\ZIRCON_PROFILE_CAPTURE" -ErrorAction SilentlyContinue
         }

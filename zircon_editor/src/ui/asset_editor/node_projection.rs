@@ -20,8 +20,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::layouts::views::{
-    preferred_binding_id, resolve_commit_action_id, resolve_component_role, resolve_edit_action_id,
-    resolve_node_value_text, resolve_visual_assets, ViewTemplateFrameData, ViewTemplateNodeData,
+    default_transition_duration_ms, default_transition_easing, preferred_binding_id,
+    resolve_commit_action_id, resolve_component_role, resolve_component_variant,
+    resolve_edit_action_id, resolve_node_popup_open, resolve_node_value_number,
+    resolve_node_value_percent, resolve_node_value_text, resolve_transition_in,
+    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets,
+    ViewTemplateFrameData, ViewTemplateNodeData,
 };
 
 const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.v2.ui.toml";
@@ -192,9 +196,26 @@ fn project_ui_asset_editor_nodes(
             let binding_id = preferred_binding_id(metadata, None).unwrap_or_default();
             let edit_action_id = resolve_edit_action_id(metadata, component_role, &binding_id);
             let commit_action_id = resolve_commit_action_id(metadata);
+            let component_variant = resolve_component_variant(metadata);
             let value_text = resolve_node_value_text(metadata, &text, component_role);
+            let value_number = resolve_node_value_number(metadata);
+            let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
             let visual_assets = resolve_visual_assets(metadata);
             let button_style = resolve_button_style_from_values(&metadata.style_overrides);
+            let popup_open = resolve_node_popup_open(metadata);
+            let transition_kind = resolve_transition_kind(metadata, component_role);
+            let transition_in =
+                resolve_transition_in(metadata, !transition_kind.is_empty(), popup_open);
+            let transition_status =
+                string_attribute(metadata, "transition_status").unwrap_or_else(|| {
+                    if transition_in {
+                        "entered".to_string()
+                    } else {
+                        "exited".to_string()
+                    }
+                });
+            let transition_progress =
+                resolve_transition_progress(metadata, transition_status.as_str(), transition_in);
 
             Some(ViewTemplateNodeData {
                 node_id: SharedString::from(node.node_path.0.clone()),
@@ -202,7 +223,10 @@ fn project_ui_asset_editor_nodes(
                 role: SharedString::from(resolve_role(&metadata.component, render_info, metadata)),
                 text: SharedString::from(text),
                 component_role: SharedString::from(component_role),
+                component_variant: SharedString::from(component_variant),
                 value_text: SharedString::from(value_text),
+                value_number,
+                value_percent,
                 dispatch_kind: string_attribute(metadata, "dispatch_kind")
                     .unwrap_or_default()
                     .into(),
@@ -250,7 +274,41 @@ fn project_ui_asset_editor_nodes(
                         .map(|info| info.border_width)
                         .unwrap_or_default()
                 }),
+                z_index: integer_attribute(metadata, "z_index").unwrap_or(node.z_index),
+                transition_kind: SharedString::from(transition_kind.clone()),
+                transition_in,
+                transition_entered: bool_attribute(metadata, "transition_entered")
+                    .or_else(|| bool_attribute(metadata, "entered"))
+                    .unwrap_or_else(|| {
+                        transition_in
+                            && transition_status == "entered"
+                            && transition_progress >= 1.0
+                    }),
+                transition_progress,
+                transition_duration_ms: integer_attribute(metadata, "transition_duration_ms")
+                    .or_else(|| integer_attribute(metadata, "timeout_ms"))
+                    .or_else(|| integer_attribute(metadata, "duration_ms"))
+                    .unwrap_or_else(|| {
+                        default_transition_duration_ms(&transition_kind, transition_in)
+                    }),
+                transition_easing: string_attribute(metadata, "transition_easing")
+                    .or_else(|| string_attribute(metadata, "easing"))
+                    .unwrap_or_else(|| {
+                        default_transition_easing(&transition_kind, transition_in).to_string()
+                    })
+                    .into(),
+                transition_direction: string_attribute(metadata, "transition_direction")
+                    .or_else(|| string_attribute(metadata, "direction"))
+                    .unwrap_or_else(|| {
+                        if transition_kind == "slide" {
+                            "down".to_string()
+                        } else {
+                            String::new()
+                        }
+                    })
+                    .into(),
                 selected: bool_attribute(metadata, "selected").unwrap_or(false),
+                popup_open,
                 focused: bool_attribute(metadata, "focused").unwrap_or(false),
                 hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
                 pressed: bool_attribute(metadata, "pressed").unwrap_or(false),
@@ -307,7 +365,14 @@ fn resolve_role(
         "Label" | "Text" => "Label",
         "InputField" | "TextField" => "InputField",
         "NumberField" => "InputField",
-        "RangeField" => "RangeField",
+        "RangeField" | "Slider" => "RangeField",
+        "Progress" | "ProgressBar" | "LinearProgress" | "CircularProgress" | "Spinner" => {
+            "Progress"
+        }
+        "Skeleton" => "Skeleton",
+        "Backdrop" => "Backdrop",
+        "Paper" | "Dialog" | "AlertDialog" | "Popover" | "Popper" | "Tooltip" | "Snackbar"
+        | "Menu" | "Drawer" => "Panel",
         "Toggle" | "Checkbox" | "Radio" | "RadioField" => "Toggle",
         "ComboBox" | "Dropdown" | "EnumField" | "FlagsField" | "SearchSelect" => "ComboBox",
         "TreeView" | "TreeRow" => "TreeView",

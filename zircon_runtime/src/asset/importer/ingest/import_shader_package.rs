@@ -21,6 +21,9 @@ pub(crate) fn import_shader_package(
     let zshader_source = fs::read_to_string(&zshader_path)?;
     let document = ZShaderDocument::from_toml_str(&zshader_source)
         .map_err(|error| AssetImportError::Parse(format!("parse zshader toml: {error}")))?;
+    let shader_defs = document.shader_definition_values().map_err(|error| {
+        AssetImportError::Parse(format!("parse zshader shader_def_values: {error}"))
+    })?;
     let wgsl_files = wgsl_files_for_document(&package_dir, &document)?;
     let (wgsl_source, source_files) =
         read_wgsl_sources(&package_dir, &context.uri, wgsl_files.as_slice())?;
@@ -46,19 +49,19 @@ pub(crate) fn import_shader_package(
     let imports = document
         .imports
         .iter()
-        .filter_map(|import| {
-            import
-                .redirect
-                .clone()
-                .map(|redirect| ShaderImportRedirectAsset {
-                    source: import.source.clone(),
-                    redirect,
-                })
+        .map(|import| ShaderImportRedirectAsset {
+            source: import.source.clone(),
+            redirect: import.redirect.clone(),
         })
         .collect::<Vec<_>>();
     let dependency_locators = imports
         .iter()
-        .map(|import| import.redirect.locator.clone())
+        .filter_map(|import| {
+            import
+                .redirect
+                .as_ref()
+                .map(|redirect| redirect.locator.clone())
+        })
         .collect::<Vec<_>>();
 
     let mut shader = ShaderAsset {
@@ -66,16 +69,23 @@ pub(crate) fn import_shader_package(
         source_language: ShaderSourceLanguage::Wgsl,
         source: wgsl_source.clone(),
         wgsl_source,
+        import_path: document.import_path,
         entry_points,
         dependencies: imports
             .iter()
-            .map(|import| crate::asset::ShaderDependencyAsset {
-                kind: ResourceKind::Shader,
-                reference: import.redirect.clone(),
+            .filter_map(|import| {
+                import
+                    .redirect
+                    .clone()
+                    .map(|reference| crate::asset::ShaderDependencyAsset {
+                        kind: ResourceKind::Shader,
+                        reference,
+                    })
             })
             .collect(),
         source_files,
         imports,
+        shader_defs,
         property_schema: document.properties,
         texture_slots: document
             .texture_slots
@@ -83,7 +93,7 @@ pub(crate) fn import_shader_package(
             .map(crate::asset::ShaderTextureSlotAsset::from)
             .collect(),
         editor: document.editor,
-        pipeline_layout: Default::default(),
+        pipeline_layout: document.pipeline_layout,
         validation_diagnostics,
     };
     shader

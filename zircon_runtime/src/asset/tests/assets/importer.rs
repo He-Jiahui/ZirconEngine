@@ -11,7 +11,7 @@ use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus,
     AssetImporterDescriptor, AssetImporterRegistry, AssetImporterRegistryError, AssetUri,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, ImportedAssetEntry,
-    MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    MeshAttributeValues, MeshVertex, ModelAsset, ModelPrimitiveAsset, MESH_ATTRIBUTE_POSITION,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -699,7 +699,27 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
         other => panic!("unexpected Material0 asset: {other:?}"),
     }
     match &gltf_entry_for_label(&outcome, "Mesh0/Primitive0").asset {
-        ImportedAsset::Mesh(mesh) => assert_eq!(mesh.vertex_count().unwrap(), 3),
+        ImportedAsset::Mesh(mesh) => {
+            assert_eq!(mesh.vertex_count().unwrap(), 3);
+            assert_eq!(
+                mesh.skin
+                    .as_ref()
+                    .expect("skinned gltf mesh primitive should keep inverse bind matrices")
+                    .inverse_bind_matrices,
+                vec![identity_bind_matrix()]
+            );
+            assert_eq!(mesh.morph_targets.len(), 1);
+            assert_eq!(
+                mesh.morph_targets[0]
+                    .attributes
+                    .get(MESH_ATTRIBUTE_POSITION),
+                Some(&MeshAttributeValues::Float32x3(vec![
+                    [0.1, 0.0, 0.0],
+                    [0.0, 0.1, 0.0],
+                    [0.0, 0.0, 0.1],
+                ]))
+            );
+        }
         other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
     }
     match &gltf_entry_for_label(&outcome, "Node0").asset {
@@ -819,6 +839,15 @@ fn gltf_entry_for_label<'a>(
 
 fn gltf_test_label_uri(label: &str) -> AssetUri {
     AssetUri::parse(&format!("res://models/triangle.gltf#{label}")).unwrap()
+}
+
+fn identity_bind_matrix() -> [[f32; 4]; 4] {
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
 }
 
 #[test]
@@ -965,6 +994,9 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
     for value in [0.0_f32, 0.0, 0.0] {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
+    for value in [0.1_f32, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.1] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
     fs::write(&buffer_path, bytes).unwrap();
 
     fs::write(
@@ -972,14 +1004,15 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
         r#"{
   "asset": { "version": "2.0" },
   "buffers": [
-    { "uri": "triangle.bin", "byteLength": 124 }
+    { "uri": "triangle.bin", "byteLength": 160 }
   ],
   "bufferViews": [
     { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
     { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 },
     { "buffer": 0, "byteOffset": 44, "byteLength": 64 },
     { "buffer": 0, "byteOffset": 108, "byteLength": 4 },
-    { "buffer": 0, "byteOffset": 112, "byteLength": 12 }
+    { "buffer": 0, "byteOffset": 112, "byteLength": 12 },
+    { "buffer": 0, "byteOffset": 124, "byteLength": 36, "target": 34962 }
   ],
   "accessors": [
     {
@@ -1015,6 +1048,12 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
       "componentType": 5126,
       "count": 1,
       "type": "VEC3"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3"
     }
   ],
   "images": [
@@ -1043,7 +1082,8 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
         {
           "attributes": { "POSITION": 0 },
           "indices": 1,
-          "material": 0
+          "material": 0,
+          "targets": [{ "POSITION": 5 }]
         }
       ]
     }

@@ -227,12 +227,59 @@ impl ZrRuntimeHostRequestBatchV1 {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ZrRuntimeHostRequestV1 {
     Ime(ZrRuntimeImeHostRequestV1),
+    GamepadRumble(ZrRuntimeGamepadRumbleRequestV1),
 }
 
 impl ZrRuntimeHostRequestV1 {
     pub fn ime(request: ZrRuntimeImeHostRequestV1) -> Self {
         Self::Ime(request)
     }
+
+    pub fn gamepad_rumble(request: ZrRuntimeGamepadRumbleRequestV1) -> Self {
+        Self::GamepadRumble(request)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeGamepadRumbleRequestV1 {
+    pub gamepad_id: u64,
+    pub kind: ZrRuntimeGamepadRumbleRequestKindV1,
+    pub strong_motor: f32,
+    pub weak_motor: f32,
+    pub duration_millis: u32,
+}
+
+impl ZrRuntimeGamepadRumbleRequestV1 {
+    pub const fn add(
+        gamepad_id: u64,
+        strong_motor: f32,
+        weak_motor: f32,
+        duration_millis: u32,
+    ) -> Self {
+        Self {
+            gamepad_id,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Add,
+            strong_motor,
+            weak_motor,
+            duration_millis,
+        }
+    }
+
+    pub const fn stop(gamepad_id: u64) -> Self {
+        Self {
+            gamepad_id,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
+            strong_motor: 0.0,
+            weak_motor: 0.0,
+            duration_millis: 0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeGamepadRumbleRequestKindV1 {
+    Add,
+    Stop,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

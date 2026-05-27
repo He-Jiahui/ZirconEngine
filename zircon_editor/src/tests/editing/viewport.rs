@@ -175,6 +175,22 @@ fn viewport_pointer_route_priority_matches_runtime_hit_target_order() {
 }
 
 #[test]
+fn viewport_perspective_camera_navigation_uses_runtime_orbit_controller() {
+    let navigation_source =
+        include_str!("../../scene/viewport/controller/scene_viewport_controller_navigation.rs");
+    let state_source = include_str!("../../scene/viewport/controller/scene_viewport_state.rs");
+
+    assert!(state_source.contains("OrbitCameraController"));
+    assert!(navigation_source.contains("OrbitCameraInput::orbit"));
+    assert!(navigation_source.contains("OrbitCameraInput::pan"));
+    assert!(navigation_source.contains("OrbitCameraInput::zoom"));
+    assert!(!navigation_source.contains("const ORBIT_SENSITIVITY"));
+    assert!(!navigation_source.contains("const PAN_PERSPECTIVE_FACTOR"));
+    assert!(!navigation_source.contains("let mut yaw"));
+    assert!(!navigation_source.contains("let mut pitch"));
+}
+
+#[test]
 fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_only() {
     let scene = Scene::new();
     let selected = scene

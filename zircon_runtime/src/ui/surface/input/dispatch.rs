@@ -14,11 +14,9 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiReflectedPropertySource},
     focus::UiFocusedInputKind,
     surface::{
-        UiEditableTextState, UiPointerEventKind, UiTextCaret, UiTextCaretAffinity,
-        UiTextComposition, UiTextEditAction, UiTextRange, UiTextSelection,
+        UiEditableTextState, UiPointerEventKind, UiTextEditAction, UiTextRange, UiTextSelection,
     },
     tree::UiTreeError,
-    widget::UiWidgetBehavior,
 };
 
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
@@ -32,8 +30,10 @@ use super::{
     text_constraints::{text_input_constraints_for_node, TextInputConstraints},
     text_keyboard::{
         keyboard_clipboard_action, keyboard_requests_newline, keyboard_text_edit_actions,
-        KeyboardClipboardAction,
+        keyboard_text_payload, KeyboardClipboardAction,
     },
+    text_pointer::dispatch_pointer_text_edit,
+    text_state::{clamp_text_boundary, editable_text_state_for_node, editable_value_property},
 };
 
 pub(crate) fn dispatch_input_event(
@@ -45,6 +45,7 @@ pub(crate) fn dispatch_input_event(
     match event {
         UiInputEvent::Pointer(pointer) => {
             let metadata = pointer.metadata.clone();
+            let pointer_for_text = pointer.clone();
             let legacy =
                 surface.dispatch_pointer_event(pointer_dispatcher, pointer.event.clone())?;
             let event = UiInputEvent::Pointer(pointer);
@@ -82,6 +83,11 @@ pub(crate) fn dispatch_input_event(
                     .push(format!("scroll_delta={}", legacy.route.scroll_delta));
             }
             result.applied_effects = applied_effects;
+            result.drag = legacy
+                .component_events
+                .iter()
+                .filter_map(|event| event.drag)
+                .last();
             result.component_events = legacy
                 .component_events
                 .into_iter()
@@ -89,9 +95,15 @@ pub(crate) fn dispatch_input_event(
                     target: event.node_id,
                     event: event.envelope.event,
                     delivered: true,
+                    drag: event.drag,
                 })
                 .collect();
             result.binding_reports = legacy.binding_reports;
+            if let Some(text_result) =
+                dispatch_pointer_text_edit(surface, &pointer_for_text, &legacy.route)
+            {
+                merge_pointer_text_result(&mut result, text_result);
+            }
             Ok(result)
         }
         UiInputEvent::Navigation(navigation) => {
@@ -106,6 +118,14 @@ pub(crate) fn dispatch_input_event(
             result.diagnostics.routed = target.is_some();
             result.diagnostics.route_target = target;
             if let Some(target) = target {
+                if !is_valid_input_owner(surface, target) {
+                    return Ok(owner_routed_result(
+                        surface,
+                        UiInputEvent::Keyboard(keyboard),
+                        Some(target),
+                        "keyboard.focused",
+                    ));
+                }
                 let route = surface.tree.bubble_route(target)?;
                 result
                     .diagnostics
@@ -218,6 +238,18 @@ fn dispatch_keyboard_text_edit(
             target,
             next,
             "keyboard.text_edit",
+            TextComponentEventKind::Change,
+        ));
+    }
+    if let Some(text) = keyboard_text_payload(&keyboard) {
+        let constraints = text_input_constraints_for_node(surface, target);
+        let next = committed_text_state(editable, text.to_string(), constraints);
+        return Some(apply_editable_text_state(
+            surface,
+            UiInputEvent::Keyboard(keyboard),
+            target,
+            next,
+            "keyboard.text_payload",
             TextComponentEventKind::Change,
         ));
     }
@@ -429,6 +461,43 @@ fn pointer_reply(
     reply
 }
 
+fn merge_pointer_text_result(
+    result: &mut UiInputDispatchResult,
+    text_result: UiInputDispatchResult,
+) {
+    if !matches!(result.reply.disposition, UiDispatchDisposition::Blocked) {
+        result.reply.disposition = text_result.reply.disposition;
+        result.reply.handler = text_result.reply.handler.or(result.reply.handler);
+        result.reply.phase = text_result.reply.phase.or(result.reply.phase);
+    }
+    for effect in text_result.reply.effects {
+        let effect_index = result.reply.effects.len();
+        result.reply.effects.push(effect.clone());
+        result.applied_effects.push(UiDispatchAppliedEffect {
+            effect_index,
+            effect,
+        });
+    }
+    result.component_events.extend(text_result.component_events);
+    result.binding_reports.extend(text_result.binding_reports);
+    result.host_requests.extend(text_result.host_requests);
+    result.rejected_effects.extend(text_result.rejected_effects);
+    result.drag = text_result.drag.or(result.drag);
+    result.diagnostics.routed |= text_result.diagnostics.routed;
+    result.diagnostics.route_target = text_result
+        .diagnostics
+        .route_target
+        .or(result.diagnostics.route_target);
+    result.diagnostics.handled_phase = text_result
+        .diagnostics
+        .handled_phase
+        .or(result.diagnostics.handled_phase.take());
+    result
+        .diagnostics
+        .notes
+        .extend(text_result.diagnostics.notes);
+}
+
 fn dispatch_drag_drop_input(
     surface: &mut UiSurface,
     drag_drop: UiDragDropInputEvent,
@@ -495,6 +564,7 @@ fn dispatch_popup_input(
     let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
         kind: effect_kind,
         popup_id: popup.popup_id,
+        owner: popup.owner,
         anchor: popup.anchor,
     });
     let mut result = apply_dispatch_reply(surface, event, reply);
@@ -516,6 +586,7 @@ fn dispatch_tooltip_timer_input(
     let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
         kind: effect_kind,
         tooltip_id: tooltip.tooltip_id,
+        owner: tooltip.owner,
     });
     let mut result = apply_dispatch_reply(surface, event, reply);
     result.diagnostics.routed = result.rejected_effects.is_empty();
@@ -717,59 +788,7 @@ fn preedit_text_state(
     next
 }
 
-fn editable_text_state_for_node(
-    surface: &UiSurface,
-    target: UiNodeId,
-) -> Option<UiEditableTextState> {
-    let metadata = surface
-        .tree
-        .nodes
-        .get(&target)?
-        .template_metadata
-        .as_ref()?;
-    if !is_editable_text_component(metadata) {
-        return None;
-    }
-    let property = editable_value_property(surface, target)?;
-    let text = string_attribute(metadata, property.as_str())
-        .or_else(|| string_attribute(metadata, "value_text"))
-        .or_else(|| string_attribute(metadata, "text"))
-        .or_else(|| metadata.widget.value.as_ref().map(UiValue::display_text))
-        .unwrap_or_default();
-    let caret_offset = usize_attribute(metadata, "caret_offset").unwrap_or(text.len());
-    let selection = usize_attribute(metadata, "selection_anchor")
-        .zip(usize_attribute(metadata, "selection_focus"))
-        .map(|(anchor, focus)| UiTextSelection {
-            anchor: clamp_text_boundary(&text, anchor),
-            focus: clamp_text_boundary(&text, focus),
-        });
-    let composition = usize_attribute(metadata, "composition_start")
-        .zip(usize_attribute(metadata, "composition_end"))
-        .zip(string_attribute(metadata, "composition_text"))
-        .map(|((start, end), composition_text)| UiTextComposition {
-            range: UiTextRange {
-                start: clamp_text_boundary(&text, start),
-                end: clamp_text_boundary(&text, end),
-            },
-            text: composition_text,
-            restore_text: string_attribute(metadata, "composition_restore_text"),
-        });
-
-    Some(UiEditableTextState {
-        caret: UiTextCaret {
-            offset: clamp_text_boundary(&text, caret_offset),
-            affinity: UiTextCaretAffinity::Downstream,
-        },
-        selection,
-        composition,
-        read_only: bool_attribute(metadata, "read_only")
-            .or_else(|| bool_attribute(metadata, "input_read_only"))
-            .unwrap_or(false),
-        text,
-    })
-}
-
-fn apply_editable_text_state(
+pub(super) fn apply_editable_text_state(
     surface: &mut UiSurface,
     event: UiInputEvent,
     target: UiNodeId,
@@ -887,7 +906,7 @@ fn apply_editable_text_state(
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum TextComponentEventKind {
+pub(super) enum TextComponentEventKind {
     Change,
     Submit,
 }
@@ -937,6 +956,7 @@ fn push_text_component_event_report(
         target,
         event,
         delivered: true,
+        drag: result.drag,
     });
 }
 
@@ -968,77 +988,6 @@ fn mutate_text_property(
             .push(format!("text_property_rejected:{property}:{error}")),
     }
     false
-}
-
-fn editable_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {
-    let metadata = surface
-        .tree
-        .nodes
-        .get(&target)?
-        .template_metadata
-        .as_ref()?;
-    if let Some(property) = metadata.widget.value_property.as_ref() {
-        Some(property.clone())
-    } else if metadata.attributes.contains_key("value") {
-        Some("value".to_string())
-    } else if metadata.attributes.contains_key("text") {
-        Some("text".to_string())
-    } else {
-        Some("value".to_string())
-    }
-}
-
-fn is_editable_text_component(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-) -> bool {
-    bool_attribute(metadata, "editable_text").unwrap_or(false)
-        || metadata
-            .widget
-            .resolved_behavior(metadata.component.as_str())
-            == UiWidgetBehavior::TextInput
-        || matches!(
-            metadata.component.as_str(),
-            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
-        )
-}
-
-fn string_attribute(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<String> {
-    metadata.attributes.get(key).and_then(|value| match value {
-        toml::Value::String(value) => Some(value.clone()),
-        toml::Value::Integer(value) => Some(value.to_string()),
-        toml::Value::Float(value) => Some(value.to_string()),
-        toml::Value::Boolean(value) => Some(value.to_string()),
-        _ => None,
-    })
-}
-
-fn usize_attribute(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<usize> {
-    metadata.attributes.get(key).and_then(|value| match value {
-        toml::Value::Integer(value) => (*value >= 0).then_some(*value as usize),
-        toml::Value::Float(value) if value.is_finite() && *value >= 0.0 => Some(*value as usize),
-        _ => None,
-    })
-}
-
-fn bool_attribute(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<bool> {
-    metadata.attributes.get(key).and_then(toml::Value::as_bool)
-}
-
-fn clamp_text_boundary(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    offset
 }
 
 fn owner_routed_result(

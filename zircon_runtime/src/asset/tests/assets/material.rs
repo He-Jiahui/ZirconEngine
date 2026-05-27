@@ -1,9 +1,10 @@
 use crate::asset::{
     AlphaMode, AssetReference, AssetUri, AssetUuid, MaterialAsset, MaterialTextureSlotValue,
-    ShaderAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
+    ShaderAsset, ShaderEntryPointAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialValidationError,
+    RenderMaterialDiagnosticSource, RenderMaterialValidationError, RenderShaderDefinitionValue,
 };
 
 #[test]
@@ -278,6 +279,135 @@ url = "res://textures/extra.png"
 }
 
 #[test]
+fn material_asset_reports_missing_required_shader_texture_slot() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "MissingTexture"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/missing_texture.zshader"
+
+[textures.base_color]
+fallback = "white"
+"#,
+    )
+    .unwrap();
+    let mut shader = shader_contract();
+    shader.property_schema.clear();
+    shader.texture_slots[0].required = true;
+
+    let diagnostics = material.shader_contract_diagnostics(&shader);
+    let report = material.readiness_report_with_shader_contract(&shader, |_| true, |_| true);
+
+    assert!(diagnostics.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::MissingRequiredTextureSlot { source, path, slot }
+            if *source == RenderMaterialDiagnosticSource::ShaderSchema
+                && path == "textures.base_color"
+                && slot == "base_color"
+    )));
+    assert!(!report.is_ready());
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::MissingRequiredTextureSlot { slot, .. }
+            if slot == "base_color"
+    )));
+    assert_eq!(
+        material.shader_property_diagnostics(&shader),
+        vec!["material texture slot base_color requires a concrete texture reference"]
+    );
+}
+
+#[test]
+fn material_asset_readiness_includes_shader_payload_readiness_diagnostics() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "ShaderReadiness"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/readiness.zshader"
+"#,
+    )
+    .unwrap();
+    let mut shader = shader_contract();
+    shader.property_schema.clear();
+    shader.texture_slots.clear();
+    shader.entry_points = vec![ShaderEntryPointAsset {
+        name: "fs_main".to_string(),
+        stage: "pixel".to_string(),
+    }];
+    shader.shader_defs = vec![
+        RenderShaderDefinitionValue::from("USE_UNLIT"),
+        RenderShaderDefinitionValue::from(" USE_UNLIT "),
+    ];
+
+    let report = material.readiness_report_with_shader_contract(&shader, |_| true, |_| true);
+
+    assert!(!report.is_ready());
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } if *source == RenderMaterialDiagnosticSource::ShaderReadiness
+            && path == "entry_points.fs_main"
+            && diagnostic.contains("unsupported stage `pixel`")
+    )));
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } if *source == RenderMaterialDiagnosticSource::ShaderReadiness
+            && path == "shader_defs.USE_UNLIT"
+            && diagnostic.contains("duplicated")
+    )));
+}
+
+#[test]
+fn material_asset_readiness_reports_material_local_diagnostics_without_blocking() {
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "ImportedMaterial"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/imported.zshader"
+"#,
+    )
+    .unwrap();
+    material
+        .validation_diagnostics
+        .push("glTF Material0 imported with generated defaults".to_string());
+
+    let report = material.readiness_report();
+
+    assert!(report.is_ready());
+    assert!(report.has_diagnostics());
+    assert!(report.validation_errors.is_empty());
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].source,
+        RenderMaterialDiagnosticSource::MaterialAsset
+    );
+    assert_eq!(
+        report.diagnostics[0].path,
+        "material.validation_diagnostics[0]"
+    );
+    assert_eq!(
+        report.diagnostics[0].diagnostic,
+        "glTF Material0 imported with generated defaults"
+    );
+}
+
+#[test]
 fn shader_declared_texture_slot_overrides_standard_material_bridge() {
     let legacy = AssetReference::new(
         AssetUuid::from_stable_label("legacy-base-color"),
@@ -306,6 +436,7 @@ url = "res://shaders/custom.zshader"
     shader.texture_slots = vec![ShaderTextureSlotAsset {
         name: "albedo".to_string(),
         kind: "texture2d".to_string(),
+        required: false,
         default: None,
         sampler: None,
         group: None,
@@ -324,12 +455,14 @@ fn shader_contract() -> ShaderAsset {
     ShaderAsset {
         uri: AssetUri::parse("res://shaders/mismatch.zshader").unwrap(),
         source_language: ShaderSourceLanguage::Wgsl,
-        source: String::new(),
+        source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(1.0); }".to_string(),
         wgsl_source: String::new(),
+        import_path: None,
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: vec![
             ShaderMaterialPropertyAsset {
                 name: "base_color".to_string(),
@@ -349,6 +482,7 @@ fn shader_contract() -> ShaderAsset {
         texture_slots: vec![ShaderTextureSlotAsset {
             name: "base_color".to_string(),
             kind: "texture2d".to_string(),
+            required: false,
             default: Some("white".to_string()),
             sampler: Some("linear_repeat".to_string()),
             group: Some("Surface".to_string()),

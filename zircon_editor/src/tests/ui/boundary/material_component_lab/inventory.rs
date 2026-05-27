@@ -280,11 +280,20 @@ fn material_component_prototype_sample_nodes_carry_typed_material_props() {
             "{} node `{sample_id}` should keep the shared material-control class",
             path.display()
         );
+        let key = path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .expect("prototype file stem is UTF-8")
+            .strip_prefix("material_")
+            .expect("prototype files use material_ prefix");
         for (prop, expected) in [
             ("surface_variant", "elevated"),
             ("button_variant", "contained"),
             ("text_tone", "primary"),
-            ("validation_level", "normal"),
+            (
+                "validation_level",
+                if key == "alert" { "warning" } else { "normal" },
+            ),
         ] {
             assert_eq!(
                 sample.props.get(prop).and_then(|value| value.as_str()),
@@ -316,12 +325,6 @@ fn material_component_prototype_sample_nodes_carry_typed_material_props() {
                 path.display()
             );
         }
-        let key = path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .expect("prototype file stem is UTF-8")
-            .strip_prefix("material_")
-            .expect("prototype files use material_ prefix");
         let expected_corner_radius = if key == "buttons" { 17.0 } else { 10.0 };
         for (prop, expected) in [
             ("corner_radius", expected_corner_radius),
@@ -433,7 +436,12 @@ fn material_component_prototype_roots_keep_card_layout_contract() {
         );
         let height = table_prop(layout, "height")
             .unwrap_or_else(|| panic!("{} root should define height layout", path.display()));
-        for (prop, expected) in [("min", 104.0), ("preferred", 120.0), ("max", 140.0)] {
+        let expected_height = match key {
+            "image_list" => [("min", 114.0), ("preferred", 128.0), ("max", 150.0)],
+            "masonry" => [("min", 260.0), ("preferred", 268.0), ("max", 292.0)],
+            _ => [("min", 104.0), ("preferred", 120.0), ("max", 140.0)],
+        };
+        for (prop, expected) in expected_height {
             assert_eq!(
                 numeric_prop(height.get(prop)),
                 Some(expected),

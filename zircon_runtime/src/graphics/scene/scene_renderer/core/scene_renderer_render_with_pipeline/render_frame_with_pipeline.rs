@@ -169,6 +169,10 @@ impl SceneRenderer {
         self.streamer.last_material_validation_error_count()
     }
 
+    pub(crate) fn last_material_diagnostic_count(&self) -> usize {
+        self.streamer.last_material_diagnostic_count()
+    }
+
     pub(crate) fn last_sprite_count(&self) -> usize {
         self.streamer.last_sprite_count()
     }

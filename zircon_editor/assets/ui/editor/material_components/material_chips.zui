@@ -58,14 +58,32 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "row / grid", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "row / grid", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Button"
+component = "Chip"
 control_id = "chips_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Chips", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiChip-root"]
+props = { text = "Warn", label = "Warn", className = "material-chip-sample", component = "div", variant = "outlined", size = "small", color = "warning", clickable = true, deletable = true, onDelete = true, deleteIcon = "cancel", slotProps = { label = { className = "material-chip-label", text = "Styled Warn" }, deleteIcon = { className = "material-chip-delete-icon" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, focusVisible = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "chip_label", slot = { name = "label" } },
+  { node = "chip_delete_icon", slot = { name = "deleteIcon" } },
+]
 events = [
   { id = "MaterialLab/Chips/Click", event = "Click", route = "MaterialLab.Chips.Click" },
 ]
+
+[nodes.chip_label]
+component = "Label"
+control_id = "chips_Label"
+classes = ["material-chip-label", "MuiChip-label"]
+props = { text = "Styled Warn", text_tone = "warning", surface_variant = "elevated", validation_level = "warning", corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 72.0, preferred = 84.0, max = 96.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 26.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.chip_delete_icon]
+component = "Icon"
+control_id = "chips_DeleteIcon"
+classes = ["material-chip-delete-icon", "MuiChip-deleteIcon"]
+props = { text = "x", icon = "cancel", text_tone = "warning", surface_variant = "elevated", validation_level = "warning", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

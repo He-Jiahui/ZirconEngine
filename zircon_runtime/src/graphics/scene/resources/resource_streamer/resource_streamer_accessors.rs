@@ -2,11 +2,16 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::TextureAsset;
 use std::sync::Arc;
 
-use crate::core::framework::render::{RenderMaterialAlphaMode, RenderMaterialReadinessReport};
+use crate::core::framework::render::{
+    RenderMaterialAlphaMode, RenderMaterialPropertyUniformSummary, RenderMaterialReadinessReport,
+};
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
-use super::super::{GpuModelResource, GpuTextureResource, MaterialCaptureSeed, MaterialRuntime};
+use super::super::{
+    GpuMaterialUniformResource, GpuModelResource, GpuTextureResource, MaterialCaptureSeed,
+    MaterialRuntime,
+};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -20,6 +25,59 @@ impl ResourceStreamer {
 
     pub(crate) fn material(&self, id: &ResourceId) -> Option<&MaterialRuntime> {
         self.materials.get(id).map(|prepared| &prepared.runtime)
+    }
+
+    pub(crate) fn material_uniform(&self, id: &ResourceId) -> Arc<GpuMaterialUniformResource> {
+        self.materials
+            .get(id)
+            .map(|prepared| prepared.uniform.clone())
+            .unwrap_or_else(|| self.fallback_material_uniform.clone())
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_uniform_payload_byte_len(&self, id: &ResourceId) -> Option<u64> {
+        self.materials
+            .get(id)
+            .map(|prepared| prepared.uniform.payload_byte_len)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_uniform_buffer_byte_len(&self, id: &ResourceId) -> Option<u64> {
+        self.materials
+            .get(id)
+            .map(|prepared| prepared.uniform.buffer_byte_len)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_uniform_field_count(&self, id: &ResourceId) -> Option<usize> {
+        self.materials.get(id).map(|prepared| {
+            prepared
+                .runtime
+                .shader_property_uniform_payload
+                .layout
+                .len()
+        })
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_uniform_unsupported_count(&self, id: &ResourceId) -> Option<usize> {
+        self.materials.get(id).map(|prepared| {
+            prepared
+                .runtime
+                .shader_property_uniform_payload
+                .unsupported
+                .len()
+        })
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_uniform_summary(
+        &self,
+        id: &ResourceId,
+    ) -> Option<RenderMaterialPropertyUniformSummary> {
+        self.materials
+            .get(id)
+            .map(|prepared| prepared.runtime.shader_property_uniform_payload.summary())
     }
 
     #[allow(dead_code)]
@@ -129,6 +187,10 @@ impl ResourceStreamer {
 
     pub(crate) fn last_material_validation_error_count(&self) -> usize {
         self.last_material_validation_error_count
+    }
+
+    pub(crate) fn last_material_diagnostic_count(&self) -> usize {
+        self.last_material_diagnostic_count
     }
 
     pub(crate) fn last_sprite_count(&self) -> usize {

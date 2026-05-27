@@ -318,6 +318,38 @@ layout_min_height = 56
 }
 
 #[test]
+fn text_field_placeholder_measures_without_becoming_editable_value() {
+    let command = render_material_leaf_command(
+        "TextField",
+        r#"
+value = ""
+placeholder = "Describe runtime material layout"
+font_size = 12
+line_height = 14
+layout_padding_left = 16
+layout_padding_right = 16
+layout_padding_top = 4
+layout_padding_bottom = 4
+layout_min_height = 56
+"#,
+    );
+
+    assert_eq!(
+        command.text.as_deref(),
+        Some("Describe runtime material layout")
+    );
+    assert_eq!(command.frame.width, 224.0);
+    assert_eq!(
+        command
+            .text_layout
+            .as_ref()
+            .and_then(|layout| layout.editable.as_ref())
+            .map(|editable| editable.text.as_str()),
+        Some("")
+    );
+}
+
+#[test]
 fn material_numeric_fields_measure_numeric_value_text() {
     let number = measure_material_leaf(
         "NumberField",

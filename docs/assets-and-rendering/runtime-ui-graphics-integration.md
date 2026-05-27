@@ -58,6 +58,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -140,6 +141,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -534,12 +536,17 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 这份 plan 固定做三件事：
 
 - 以 glyph + font asset + font family + quantized font size 作为 `SdfAtlasGlyphKey`，避免不同字体或字号的同一字符错误共用一个 atlas slot
-- 按 key-sorted glyph set 为每个 atlas slot 分配稳定 `SdfAtlasRect`，小批次从 256x256 texture 起步，超过默认网格后按 power-of-two grid 扩容
+- 普通 stateless planner 仍按 key-sorted glyph set 生成 deterministic atlas slot；runtime owner 则会在非空 SDF 帧之间保留已见 glyph slot，复用旧 slot index，超过 cache 上限时按 last-seen generation 淘汰 inactive slot
+- 为每个 atlas slot 分配稳定 `SdfAtlasRect`，小批次从 256x256 texture 起步，超过默认网格后按 power-of-two grid 扩容
 - 为每个 SDF text batch 生成 glyph slot index run；空白字符保留 advance 但不分配 atlas slot，让 GPU SDF renderer 可以从同一个 plan 生成 textured glyph quads 而不会画出可见空格
+
+2026-05-23 的 M7 cache 切片把 `ScreenSpaceUiSdfAtlas` 从“每帧非空输入替换整份 plan”推进到持久 slot cache：非空帧会保留上一帧仍有价值的 cached slots，新增 glyph 只追加新 slot，空 SDF 帧会释放 cache，超过 `SDF_ATLAS_MAX_CACHED_SLOT_COUNT` 时才淘汰最久未使用的 inactive slot。`SdfAtlasCacheReport` 同步记录 previous/current slot count、retained/stable/relocated/added/evicted slot count 和 atlas resize；其中 relocated 表示 glyph key 保留但 `SdfAtlasRect` 变了，后续 partial atlas writes 必须把这类槽也当作 dirty slot，而不能只看 key 是否命中。M7 quality-parameter slice 又把 atlas slot size、最小 grid side 和 cache 上限收进 `SdfAtlasQuality`，默认值保持 64px slot、8x8 起步 grid、256 cached slots；planner 内部会 normalize 这些参数，避免 0 值配置破坏 atlas 尺寸或 eviction。
 
 [`ScreenSpaceUiSdfRenderer`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 是当前 SDF 可见输出路径。`ScreenSpaceUiTextSystem::prepare` 会先把 `Auto` batch 解析到 native/sdf，再把 resolved SDF batches 同步交给 `ScreenSpaceUiSdfAtlas::prepare(...)`，随后由 SDF renderer 调用 renderer-local [`SdfFontBakeCache`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 生成字体轮廓 atlas、上传 `R8Unorm` atlas texture、生成 screen-space glyph quads，并在 UI render pass 中绑定 SDF pipeline 绘制。SDF quad planning 会同时受真实 glyph metrics、advance、bearing、text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；native glyphon backend 不再接收 SDF batch，因此替换 shader path 不会污染普通文本 atlas。
 
-真实字体 bake 被局部封装在 `scene_renderer::ui` 内：`SdfFontBakeCache` 通过既有 `.font.toml` manifest 解析字体源，缓存 `fontsdf::Font`，按 `SdfAtlasGlyphKey` 为非空白 glyph bake 单通道 SDF alpha，并把 bitmap 尺寸、bearing、ascent 与 advance 交回 draw planner。whitespace 不写 atlas slot，只通过字体 metrics 保留 advance；missing glyph 使用稳定空可见输出和保守 advance，避免把未知字符退回旧的整块占位 mask。这保持了 shared template metadata、`UiRenderExtract` DTO、RHI、render graph 和 render plugin 边界不变。
+真实字体 bake 被局部封装在 `scene_renderer::ui` 内：`SdfFontBakeCache` 通过既有 `.font.toml` manifest 解析字体源，缓存 `fontsdf::Font`，按 `SdfAtlasGlyphKey` 为非空白 glyph bake 单通道 SDF alpha，并把 bitmap 尺寸、bearing、ascent 与 advance 交回 draw planner。whitespace 不写 atlas slot，只通过字体 metrics 保留 advance；missing glyph 使用稳定空可见输出和保守 advance，避免把未知字符退回旧的整块占位 mask。2026-05-23 的 M7 bake-report slice 还让 `SdfAtlasBake` 携带 `SdfAtlasBakeReport`，记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和已加载字体数，后续 quality 参数、局部 atlas upload 和 debug 面板可以直接消费这份报告。这保持了 shared template metadata、`UiRenderExtract` DTO、RHI、render graph 和 render plugin 边界不变。
+
+同日的 M7 text prepare report slice 把 atlas/cache/bake 事实向上汇聚到 runtime text system，而不是让 debug 面板或后续 renderer 统计从底层对象反推。`ScreenSpaceUiSdfRenderer` 在 `prepare(...)` 后保存 `ScreenSpaceUiSdfPrepareReport`，记录 SDF text batch 数、atlas slot 数、atlas size、atlas resize、bake report、当前 atlas upload byte 数、是否全量 texture upload，以及最终 SDF vertex 数；`ScreenSpaceUiTextSystem` 再保存 `ScreenSpaceUiTextPrepareReport`，记录输入 auto/native/sdf batch 数、解析后的 native/sdf batch 数，以及对应的 `SdfAtlasCacheReport` 与 `ScreenSpaceUiSdfPrepareReport`。2026-05-24 的 upload-report slice 进一步把 upload 计算抽到 [`sdf_upload.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs)，并把 `ScreenSpaceUiSdfPrepareReport.atlas_upload` 固定为内部 DTO：当前 GPU path 仍以 `FullTexture` 写入保证正确性，但 report 会同步给出 dirty slot count/dirty byte count；未 resize 且全部 stable retained 时 dirty 为 0，新增或 relocated slot 会计入 dirty，为后续把 full texture upload 收束成局部 texture writes 提供可验证边界。`ScreenSpaceUiRenderer` 会在每次 `record(...)` 后缓存最新 text prepare report，并在没有可提交 UI 时清空这份 report；后续 render stats 或 debug reflector 可以从 screen-space renderer 边界读取这份快照，不需要直接穿透进 glyphon/SDF backend。该层仍然是 `scene_renderer::ui` 内部的 renderer-local 可观测层，不把 GPU atlas 或 glyphon 类型泄漏到 shared `UiRenderExtract`、editor widget 合同或 runtime interface。
 
 这一轮还补了一条 capture 级回归：[runtime_ui_text_render_contract.rs](/E:/Git/ZirconEngine/zircon_runtime/tests/runtime_ui_text_render_contract.rs)。它不再只看 planner/batch 统计，而是直接通过 `RenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)` 证明：
 
@@ -651,13 +658,19 @@ M1 这里再补了一条最小默认策略：
 - `cargo test -p zircon_runtime --lib screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches --locked --jobs 1`
   - 证明 graphics planner 会把 extract 阶段的 resolved text lines 分别送进 text batch，而不是重新用整段文本和节点 frame 排版
 - `cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1`
-  - 证明 SDF atlas/cache owner 会按 glyph + font asset + family + size 生成稳定 slot key，跨 batch 去重，按 key 分配稳定 atlas rect，空白只保留 advance 不分配 slot，并在下一帧 prepare 时替换旧 plan
+  - 证明 SDF atlas/cache owner 会按 glyph + font asset + family + size 生成稳定 slot key，跨 batch 去重，空白只保留 advance 不分配 slot；2026-05-23 的 M7 cache-report/persistent-cache slices 进一步断言非空帧保留旧 slot、返回旧 glyph 时不 re-add、空 SDF 帧清理 cache、超过 cache 上限时只淘汰最久未使用 inactive slot，并记录 retained/stable/relocated/added/evicted slot 数和 atlas resize 标志；同日 quality-parameter slice 断言自定义 slot size/min grid 会改变 atlas size 和 slot rect，而默认 planner 行为保持原值
 - `cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-sdf-font-bake --message-format short --color never`
-  - 2026-05-01 fresh focused SDF bake suite 通过 4 passed / 0 failed；证明 renderer-local `fontsdf` bake 会为 `A`、`I`、`O` 生成不同 alpha pattern，输出不等于旧 rounded-rect placeholder，whitespace 只保留 advance，不可见/missing glyph 策略稳定不 panic
+  - 2026-05-01 fresh focused SDF bake suite 通过 4 passed / 0 failed；证明 renderer-local `fontsdf` bake 会为 `A`、`I`、`O` 生成不同 alpha pattern，输出不等于旧 rounded-rect placeholder，whitespace 只保留 advance，不可见/missing glyph 策略稳定不 panic。2026-05-23 的 M7 bake-report slice 扩展同一测试面，断言 bake report 会记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和 loaded font 数，并覆盖 empty atlas plan 的零像素报告。
 - `cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`
   - 2026-04-29 fresh focused SDF draw-plan suite 通过 5 passed / 0 failed；后续真实 bake slice 保持同一测试面通过，证明 GPU SDF renderer 会从 atlas plan 和真实 glyph metrics 生成每个可见 glyph 的 textured quad，上传 atlas alpha mask，并按 text frame、`text_align`、clip frame 和 viewport 计算 position/uv
+- `cargo test -p zircon_runtime --lib sdf_prepare_report --locked --jobs 1`
+  - 2026-05-23 M7 text prepare report slice 覆盖 renderer-local SDF prepare report 汇总，断言 text batch、atlas slot、atlas size、resize、bake report、atlas upload byte/full-upload 标志和 vertex count 会进入同一 report DTO；2026-05-24 upload-report slice 又断言当前实际 full texture upload 与 dirty slot/dirty byte 计划统计同时存在，stable retained atlas dirty 为 0，added/relocated slot 会进入 future partial-upload dirty 预算
+- `cargo test -p zircon_runtime --lib sdf_upload --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sdf-upload-report-20260524 --message-format short --color never`
+  - 2026-05-24 focused Cargo attempt completed runtime lib-test compilation with warnings only, then the 15 minute command timeout cut test enumeration and produced BrokenPipe; no SDF compile diagnostic or test assertion failure was produced before the timeout
 - `cargo test -p zircon_runtime --lib text_backend_routing --locked --jobs 1`
   - 证明 SDF routing contract 不会把普通 native 文本送进 SDF atlas input，`Auto` 解析成 native/sdf 后也不会跨 backend 混用
+- `cargo test -p zircon_runtime --lib text_prepare_report --locked --jobs 1`
+  - 2026-05-23 M7 text prepare report slice 覆盖 text system 汇总，断言输入 auto/native/sdf batch 数、解析后的 native/sdf batch 数、SDF atlas cache report 和 SDF renderer prepare report 会被合并保存；2026-05-24 同步覆盖新增 `SdfAtlasUploadReport` 字段穿过 text prepare report
 - `cargo test -p zircon_runtime auto_text_mode_uses_font_asset_default_when_present`
   - 证明 `UiTextRenderMode::Auto` 会优先采用字体资产 manifest 的默认 render mode，并保留显式样式优先级
 - `cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked`

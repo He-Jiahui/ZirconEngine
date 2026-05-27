@@ -60,8 +60,8 @@ layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, he
 [nodes.sample]
 component = "Table"
 control_id = "table_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { rows = ["Alpha", "Beta"], columns = ["Name", "State"], text = "Table", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+classes = ["material-control", "material-lab-sample", "MuiTable-root"]
+props = { rows = ["Alpha", "Beta"], columns = ["Name", "State"], text = "Table", className = "material-table-sample", component = "table", stickyHeader = true, padding = "checkbox", size = "small", slotProps = { header = { className = "material-table-header" }, row = { className = "material-table-row" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "MaterialLab/Table/Click", event = "Click", route = "MaterialLab.Table.Click" },

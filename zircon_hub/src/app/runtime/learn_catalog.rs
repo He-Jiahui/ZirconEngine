@@ -1,17 +1,18 @@
 use std::path::PathBuf;
 
 use crate::error::HubError;
-use crate::learn::discover_learn_catalog;
+use crate::learn::discover_learn_catalog_for_scope;
 use crate::process::{open_folder, OpenFolderCommand};
 use crate::state::TaskStatus;
 
-use super::HubRuntime;
+use super::{root_paths::push_development_roots, HubRuntime};
 
 impl HubRuntime {
     pub(super) fn refresh_learn_catalog(&mut self) -> Result<(), HubError> {
-        self.learn_catalog = discover_learn_catalog(learn_catalog_roots(
-            self.config.settings.default_source_dir.clone(),
-        ))?;
+        self.learn_catalog = discover_learn_catalog_for_scope(
+            self.selected_project_path.clone(),
+            learn_catalog_roots(self.config.settings.default_source_dir.clone()),
+        )?;
         Ok(())
     }
 
@@ -30,25 +31,6 @@ impl HubRuntime {
 
 fn learn_catalog_roots(source_dir: PathBuf) -> Vec<PathBuf> {
     let mut roots = Vec::new();
-    push_non_empty(&mut roots, source_dir);
-    if let Ok(current_dir) = std::env::current_dir() {
-        push_non_empty(&mut roots, current_dir);
-    }
-    if let Some(compiled_repo_root) = compiled_repo_root() {
-        push_non_empty(&mut roots, compiled_repo_root);
-    }
+    push_development_roots(&mut roots, source_dir);
     roots
-}
-
-fn push_non_empty(roots: &mut Vec<PathBuf>, path: PathBuf) {
-    if path.as_os_str().is_empty() || roots.iter().any(|root| root == &path) {
-        return;
-    }
-    roots.push(path);
-}
-
-fn compiled_repo_root() -> Option<PathBuf> {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .map(|path| path.to_path_buf())
 }

@@ -11,8 +11,9 @@ use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
 use super::geometry::{inset, is_visible_frame};
 use super::primitives::{
-    draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped_with_resource_key,
-    draw_rounded_border_clipped, draw_rounded_rect_clipped,
+    draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped_with_atlas,
+    draw_rgba_image_clipped_with_resource_key, draw_rounded_border_clipped,
+    draw_rounded_rect_clipped,
 };
 use super::text::draw_text_with_size_and_style;
 use super::theme::PALETTE;
@@ -170,6 +171,7 @@ impl HostPaintCommand {
         image_width: u32,
         image_height: u32,
         rgba: Vec<u8>,
+        atlas: Option<super::sprite_atlas::HostPaintAtlasImage>,
         opacity: f32,
     ) -> Self {
         Self {
@@ -192,6 +194,7 @@ impl HostPaintCommand {
                 width: image_width,
                 height: image_height,
                 rgba,
+                atlas,
             }),
             opacity,
         }
@@ -332,6 +335,21 @@ fn draw_text_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
 
 fn draw_image_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> bool {
     if let Some(image) = command.image_pixels.as_ref() {
+        if command.opacity >= 1.0 {
+            if let Some(atlas) = image.atlas.as_ref().filter(|atlas| atlas.rgba.is_some()) {
+                if draw_rgba_image_clipped_with_atlas(
+                    frame,
+                    command.frame.clone(),
+                    command.clip_frame.as_ref(),
+                    image.width,
+                    image.height,
+                    &image.rgba,
+                    atlas,
+                ) {
+                    return true;
+                }
+            }
+        }
         let rgba;
         let source = if command.opacity < 1.0 {
             rgba = image_pixels_with_opacity(image, command.opacity);
@@ -593,6 +611,7 @@ fn push_image_resource_command(
                     image.width,
                     image.height,
                     image.rgba,
+                    image.atlas,
                     opacity,
                 ));
                 return;

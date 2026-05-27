@@ -57,6 +57,7 @@ impl SceneRenderer {
             &backend.device,
             &backend.queue,
             &core.texture_bind_group_layout,
+            &core.material_bind_group_layout,
         );
 
         Ok(Self {

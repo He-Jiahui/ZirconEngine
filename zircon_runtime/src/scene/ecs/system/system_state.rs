@@ -39,6 +39,7 @@ where
         self.last_run
     }
 
+    #[cfg(test)]
     pub(crate) fn state(&self) -> &P::State {
         &self.state
     }

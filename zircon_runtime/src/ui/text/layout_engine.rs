@@ -28,7 +28,7 @@ pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
     UiSize::new(width, line_height * line_count)
 }
 
-pub fn layout_text(
+pub(crate) fn layout_text(
     text: &str,
     style: &UiResolvedStyle,
     frame: UiFrame,
@@ -780,7 +780,7 @@ fn measure_width(text: &str, char_advance: f32) -> f32 {
     grapheme_count(text) as f32 * char_advance
 }
 
-fn text_advance(font_size: f32) -> f32 {
+pub(super) fn text_advance(font_size: f32) -> f32 {
     (font_size * 0.5).max(1.0)
 }
 

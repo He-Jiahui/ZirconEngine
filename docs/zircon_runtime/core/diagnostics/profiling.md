@@ -1,6 +1,9 @@
 ---
 related_code:
   - zircon_runtime/Cargo.toml
+  - dev/bevy/docs/profiling.md
+  - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
+  - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
   - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/diagnostics/profiling/macros.rs
   - zircon_runtime/src/core/diagnostics/profiling/recorder.rs
@@ -10,6 +13,8 @@ related_code:
   - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/diagnostics/profiling/export.rs
   - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/diagnostics/render.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/diagnostics/snapshot.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
@@ -48,6 +53,10 @@ implementation_files:
 plan_sources:
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
   - user: 2026-05-13 continue profiling timeline and Tracy integration milestone
+  - user: 2026-05-22 continue M10 render diagnostics and profiling bridge checklist
+  - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
+  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/zircon_runtime/graphics/render-product-submit.md
 tests:
   - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/diagnostics/profiling/recorder.rs
@@ -63,6 +72,7 @@ tests:
   - target: cargo test -p zircon_runtime --lib direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope --profile profiling --features profiling --locked --message-format=short
   - target: cargo check -p zircon_runtime --profile profiling --features "profiling profiling-tracy" --locked
   - target: cargo check -p zircon_app --profile profiling --features "target-editor-host profiling profiling-tracy profiling-chrome" --locked
+  - target: cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
 ---
 
@@ -120,6 +130,14 @@ The first profiling slice records coarse CPU spans at stable engine seams:
 
 Upper-layer app/editor spans are deliberately consumers of this core module; the recorder remains in runtime diagnostics and does not move process-host or authoring state into runtime world data.
 
+## M10.8 Render Profiling Boundary
+
+The profiling module is one evidence source for M10.8, not the whole render diagnostics bridge. Bevy separates the surfaces: `RenderDiagnosticsPlugin` records render pass CPU/GPU elapsed time, pipeline statistics, and buffer-backed scalar diagnostics into `DiagnosticsStore`, while `docs/profiling.md` explains CPU tracing, Tracy RenderQueue, and vendor GPU profilers as profiling workflows. It also states that RenderDoc is a debugging tool, not a profiler.
+
+Zircon's current profiling support records CPU timeline spans around render submit, surface present, capture, framework locks, graph stages, and graph passes in profiling builds. Those spans can prove where CPU render work sits in a captured timeline and can support hotspot/perfetto artifacts. They do not prove GPU timestamp queries, pipeline-statistics rows, render-asset residency, mesh allocator memory, or render-thread overlap telemetry.
+
+M10.8 promotion therefore needs two linked but separate outputs: store-backed render diagnostics for normal runtime/dev tooling, and profiling artifacts for optional timeline analysis. A profiling artifact smoke test can support the gate only when the corresponding `RuntimeDiagnosticsSnapshot` / `DiagnosticStore` paths remain the tooling boundary. The 2026-05-26 M10W focused run passed the profiling-profile tests and check, while the normal diagnostics filters passed separately; this promotes only CPU timeline/artifact support and not GPU timestamp, pipeline-statistics, render-asset residency, or render-thread telemetry gaps.
+
 ## Diagnostics Snapshot
 
 `RuntimeDiagnosticsSnapshot` now carries `profile: ProfileSnapshot`. `collect_runtime_diagnostics` pulls the in-process profiling snapshot next to render, physics, animation, and diagnostic-store data so existing diagnostics panels can display profile state without a separate runtime-owned UI path.
@@ -127,3 +145,8 @@ Upper-layer app/editor spans are deliberately consumers of this core module; the
 ## Test Coverage
 
 Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Export tests cover Perfetto event shape and expected artifact names. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit a real headless runtime frame in a profiling build and assert that operation/state wait spans plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting.
+
+2026-05-26 M10W evidence:
+
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --lib profiling --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS, 20 matching lib tests passed after the initial cold profiling-profile compile timed out before test execution.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.

@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
+
 use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
     RenderMaterialAlphaMode, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialValidationError,
+    RenderMaterialFallbackUsage, RenderMaterialPropertyUniformPayload,
+    RenderMaterialValidationError,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
@@ -9,7 +12,10 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, Resource
 use crate::graphics::types::GraphicsError;
 
 use super::super::prepared::PreparedMaterial;
-use super::super::{texture_upload_support_from_device, MaterialRuntime, PipelineKey};
+use super::super::{
+    texture_upload_support_from_device, GpuMaterialUniformResource, MaterialRuntime, PipelineKey,
+};
+use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 use super::ResourceStreamer;
 
 const FALLBACK_MATERIAL_URI: &str = "builtin://missing-material";
@@ -86,6 +92,11 @@ impl ResourceStreamer {
             readiness.push_validation_error_once(validation_error);
             readiness.push_fallback_usage_once(fallback_usage);
         }
+        if let Some(shader) = shader_contract.as_ref() {
+            for error in renderer_material_layout_diagnostics(shader) {
+                readiness.push_validation_error_once(error);
+            }
+        }
         let (alpha_blend, alpha_mask, alpha_cutoff) = match descriptor.alpha_mode {
             RenderMaterialAlphaMode::Opaque => (false, false, None),
             RenderMaterialAlphaMode::Mask { cutoff } => (false, true, Some(cutoff)),
@@ -122,9 +133,29 @@ impl ResourceStreamer {
             .into_iter()
             .filter(|(slot, _)| !is_standard_texture_slot(slot))
             .map(|(slot, texture)| {
-                self.resolve_texture_reference_with_support(&slot, Some(texture), texture_support)
+                let resolved = self.resolve_texture_reference_with_support(
+                    &slot,
+                    Some(texture),
+                    texture_support,
+                );
+                (slot, resolved)
             })
             .collect::<Vec<_>>();
+        let shader_property_values = shader_contract
+            .as_ref()
+            .map(|shader| material.shader_property_values_for_shader(shader))
+            .unwrap_or_default();
+        let shader_property_uniform_payload =
+            RenderMaterialPropertyUniformPayload::from_values(&shader_property_values);
+        for diagnostic in shader_property_uniform_payload.unsupported_diagnostics() {
+            readiness.push_diagnostic_once(diagnostic);
+        }
+        readiness.uniform_summary = Some(shader_property_uniform_payload.summary());
+        let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
+            device,
+            &self.material_bind_group_layout,
+            &shader_property_uniform_payload,
+        ));
         for texture in [
             &base_color_texture,
             &normal_texture,
@@ -139,7 +170,7 @@ impl ResourceStreamer {
                 readiness.push_fallback_usage_once(usage.clone());
             }
         }
-        for texture in &shader_slot_textures {
+        for (_slot, texture) in &shader_slot_textures {
             if let Some(error) = &texture.validation_error {
                 readiness.push_validation_error_once(error.clone());
             }
@@ -155,6 +186,9 @@ impl ResourceStreamer {
             }
             for usage in shader_readiness.fallback_usages {
                 readiness.push_fallback_usage_once(usage);
+            }
+            for diagnostic in shader_readiness.diagnostics {
+                readiness.push_diagnostic_once(diagnostic);
             }
         }
         let has_blocking_validation = readiness.validation_errors.iter().any(|error| {
@@ -178,6 +212,12 @@ impl ResourceStreamer {
             metallic_roughness_texture: metallic_roughness_texture.id(),
             occlusion_texture: occlusion_texture.id(),
             emissive_texture: emissive_texture.id(),
+            shader_property_values,
+            shader_property_uniform_payload,
+            non_standard_texture_slots: shader_slot_textures
+                .iter()
+                .map(|(slot, texture)| (slot.clone(), texture.id()))
+                .collect::<BTreeMap<_, _>>(),
             pipeline_key: PipelineKey {
                 shader_id,
                 shader_revision,
@@ -196,7 +236,8 @@ impl ResourceStreamer {
         };
         if has_blocking_validation {
             let validation_errors = runtime.readiness_report.validation_errors.clone();
-            self.materials.insert(id, PreparedMaterial { runtime });
+            self.materials
+                .insert(id, PreparedMaterial { runtime, uniform });
             return Err(GraphicsError::Asset(format!(
                 "material {} is not render-ready: {:?}",
                 id, validation_errors
@@ -214,11 +255,12 @@ impl ResourceStreamer {
         .chain(
             shader_slot_textures
                 .iter()
-                .filter_map(|texture| texture.id()),
+                .filter_map(|(_slot, texture)| texture.id()),
         ) {
             self.ensure_texture(device, queue, texture_layout, texture_id)?;
         }
-        self.materials.insert(id, PreparedMaterial { runtime });
+        self.materials
+            .insert(id, PreparedMaterial { runtime, uniform });
         Ok(())
     }
 

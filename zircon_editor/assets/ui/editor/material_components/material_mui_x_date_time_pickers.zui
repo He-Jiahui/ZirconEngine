@@ -60,10 +60,10 @@ props = { text = "picker popup", text_tone = "warning", font_size = 8.0, surface
 layout = { width = { min = 97, preferred = 97, max = 97, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.sample]
-component = "InputField"
+component = "DateTimePickers"
 control_id = "mui-x-date-time-pickers_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { value = "2026-05-17 09:30", placeholder = "Select date and time", helper_text = "Open picker, select, commit", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+classes = ["material-control", "material-lab-sample", "MuiDateTimePicker-root"]
+props = { value = "2026-05-17 09:30", date_value = "2026-05-17", time_value = "09:30", picker_mode = "date_time", variant = "desktop", view = "day", views = ["year", "month", "day", "hours", "minutes"], format = "yyyy-MM-dd HH:mm", ampm = true, readOnly = true, minDate = "2026-01-01", maxDate = "2026-12-31", slotProps = { field = { className = "material-mui-x-field" }, layout = { className = "material-mui-x-layout" }, toolbar = { className = "material-mui-x-toolbar" }, popper = { className = "material-mui-x-popper" } }, text = "Date Time Picker", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "MaterialLab/MuiXDateTimePickers/Submit", event = "Submit", route = "MaterialLab.MuiXDateTimePickers.Submit" },

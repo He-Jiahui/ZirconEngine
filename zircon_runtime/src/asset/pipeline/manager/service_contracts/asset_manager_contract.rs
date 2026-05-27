@@ -10,7 +10,9 @@ use super::super::{
 };
 use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
-use crate::asset::{AssetImporterHandler, AssetUri};
+use crate::asset::{
+    AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
+};
 use std::sync::Arc;
 
 impl AssetManagerContract for ProjectAssetManager {
@@ -25,6 +27,20 @@ impl AssetManagerContract for ProjectAssetManager {
         importer: Arc<dyn AssetImporterHandler>,
     ) -> Result<(), CoreError> {
         ProjectAssetManager::register_asset_importer_arc(self, importer)
+    }
+
+    fn asset_importer_capability_reports(&self) -> Vec<AssetImporterCapabilityReport> {
+        ProjectAssetManager::asset_importer_capability_reports(self)
+    }
+
+    fn asset_importer_capability_report_for_source(
+        &self,
+        source_path: &str,
+    ) -> Result<AssetImporterCapabilityReport, AssetImportError> {
+        ProjectAssetManager::asset_importer_capability_report_for_source(
+            self,
+            std::path::Path::new(source_path),
+        )
     }
 
     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {

@@ -15,11 +15,8 @@ impl RuntimeEntryApp {
                 return false;
             }
         };
-        let Some(window) = self.window.as_ref() else {
-            return true;
-        };
         for request in requests {
-            apply_runtime_host_request(window.as_ref(), request);
+            apply_runtime_host_request(self, request);
         }
         true
     }

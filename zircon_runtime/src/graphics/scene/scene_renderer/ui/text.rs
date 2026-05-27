@@ -15,8 +15,10 @@ use zircon_runtime_interface::ui::surface::{
     UiTextAlign, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
 };
 
-use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
-use super::sdf_render::ScreenSpaceUiSdfRenderer;
+use super::sdf_atlas::{ScreenSpaceUiSdfAtlas, SdfAtlasCacheReport};
+use super::sdf_render::{ScreenSpaceUiSdfPrepareReport, ScreenSpaceUiSdfRenderer};
+#[cfg(test)]
+use super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadReport};
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 
@@ -28,6 +30,18 @@ pub(super) struct ScreenSpaceUiTextSystem {
     native: ScreenSpaceUiTextBackend,
     sdf_atlas: ScreenSpaceUiSdfAtlas,
     sdf_renderer: ScreenSpaceUiSdfRenderer,
+    last_prepare_report: ScreenSpaceUiTextPrepareReport,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ScreenSpaceUiTextPrepareReport {
+    pub(super) input_auto_text_batch_count: usize,
+    pub(super) input_native_text_batch_count: usize,
+    pub(super) input_sdf_text_batch_count: usize,
+    pub(super) resolved_native_text_batch_count: usize,
+    pub(super) resolved_sdf_text_batch_count: usize,
+    pub(super) sdf_atlas: SdfAtlasCacheReport,
+    pub(super) sdf_renderer: ScreenSpaceUiSdfPrepareReport,
 }
 
 struct ScreenSpaceUiTextBackend {
@@ -115,6 +129,7 @@ impl ScreenSpaceUiTextSystem {
             native: ScreenSpaceUiTextBackend::new(device, queue, target_format),
             sdf_atlas: ScreenSpaceUiSdfAtlas::new(),
             sdf_renderer: ScreenSpaceUiSdfRenderer::new(device, target_format),
+            last_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
         }
     }
 
@@ -136,14 +151,17 @@ impl ScreenSpaceUiTextSystem {
             sdf_texts,
         );
         self.sdf_atlas.prepare(resolved_texts.sdf_atlas_texts());
+        let sdf_atlas_report = self.sdf_atlas.cache_report();
         self.sdf_renderer.prepare(
             device,
             queue,
             viewport_size,
             resolved_texts.sdf_texts(),
             self.sdf_atlas.plan(),
+            sdf_atlas_report,
             self.asset_manager.as_ref(),
         );
+        let sdf_renderer_report = self.sdf_renderer.prepare_report();
         self.native.prepare(
             device,
             queue,
@@ -154,6 +172,14 @@ impl ScreenSpaceUiTextSystem {
             &mut self.font_assets,
             self.asset_manager.as_ref(),
         );
+        self.last_prepare_report = text_prepare_report(
+            auto_texts,
+            native_texts,
+            sdf_texts,
+            &resolved_texts,
+            sdf_atlas_report,
+            sdf_renderer_report,
+        );
     }
 
     pub(super) fn render<'pass>(&'pass mut self, pass: &mut wgpu::RenderPass<'pass>) {
@@ -162,6 +188,10 @@ impl ScreenSpaceUiTextSystem {
             .renderer
             .render(&self.native.atlas, &self.native.viewport, pass);
         self.sdf_renderer.render(pass);
+    }
+
+    pub(super) fn prepare_report(&self) -> ScreenSpaceUiTextPrepareReport {
+        self.last_prepare_report
     }
 }
 
@@ -338,6 +368,25 @@ fn resolve_text_batches(
     resolved
 }
 
+fn text_prepare_report(
+    auto_texts: &[ScreenSpaceUiTextBatch],
+    native_texts: &[ScreenSpaceUiTextBatch],
+    sdf_texts: &[ScreenSpaceUiTextBatch],
+    resolved_texts: &ResolvedScreenSpaceUiTextBatches,
+    sdf_atlas: SdfAtlasCacheReport,
+    sdf_renderer: ScreenSpaceUiSdfPrepareReport,
+) -> ScreenSpaceUiTextPrepareReport {
+    ScreenSpaceUiTextPrepareReport {
+        input_auto_text_batch_count: auto_texts.len(),
+        input_native_text_batch_count: native_texts.len(),
+        input_sdf_text_batch_count: sdf_texts.len(),
+        resolved_native_text_batch_count: resolved_texts.native_texts().len(),
+        resolved_sdf_text_batch_count: resolved_texts.sdf_texts().len(),
+        sdf_atlas,
+        sdf_renderer,
+    }
+}
+
 fn resolve_font_asset_record<'a>(
     font_system: &mut FontSystem,
     font_assets: &'a mut HashMap<String, LoadedUiFontAsset>,
@@ -462,6 +511,57 @@ mod tests {
         assert_eq!(routed.sdf_texts().len(), 1);
         assert_eq!(routed.sdf_texts()[0].text, "SdfAuto");
         assert_eq!(routed.sdf_atlas_texts()[0].text, "SdfAuto");
+    }
+
+    #[test]
+    fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
+        let auto = [text_batch("Auto", UiTextRenderMode::Auto)];
+        let native = [text_batch("Native", UiTextRenderMode::Native)];
+        let sdf = [text_batch("Sdf", UiTextRenderMode::Sdf)];
+        let mut resolved = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&native, &sdf);
+        resolved.push_resolved_auto_text(auto[0].clone(), UiTextRenderMode::Sdf);
+        let atlas_report = SdfAtlasCacheReport {
+            previous_slot_count: 1,
+            current_slot_count: 2,
+            retained_slot_count: 1,
+            stable_slot_count: 1,
+            relocated_slot_count: 0,
+            added_slot_count: 1,
+            evicted_slot_count: 0,
+            atlas_resized: false,
+        };
+        let sdf_report = ScreenSpaceUiSdfPrepareReport {
+            text_batch_count: 2,
+            atlas_slot_count: 2,
+            atlas_size: crate::core::math::UVec2::splat(512),
+            atlas_resized: false,
+            bake: Default::default(),
+            atlas_upload_byte_len: 512 * 512,
+            atlas_upload_full_texture: true,
+            atlas_upload: SdfAtlasUploadReport {
+                mode: SdfAtlasUploadMode::FullTexture,
+                byte_len: 512 * 512,
+                full_texture: true,
+                dirty_slot_count: 1,
+                dirty_byte_len: 4096,
+            },
+            vertex_count: 12,
+        };
+
+        let report = text_prepare_report(&auto, &native, &sdf, &resolved, atlas_report, sdf_report);
+
+        assert_eq!(
+            report,
+            ScreenSpaceUiTextPrepareReport {
+                input_auto_text_batch_count: 1,
+                input_native_text_batch_count: 1,
+                input_sdf_text_batch_count: 1,
+                resolved_native_text_batch_count: 1,
+                resolved_sdf_text_batch_count: 2,
+                sdf_atlas: atlas_report,
+                sdf_renderer: sdf_report,
+            }
+        );
     }
 
     #[test]

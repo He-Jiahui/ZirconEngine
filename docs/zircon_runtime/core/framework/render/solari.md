@@ -30,6 +30,7 @@ implementation_files:
   - zircon_runtime/src/graphics/solari_runtime_provider/provider_registration.rs
   - zircon_plugins/solari/runtime/src/lib.rs
 plan_sources:
+  - user: 2026-05-22 continue M10 advanced and Solari separation checklist
   - user: 2026-05-19 continue Render M9B Solari experimental contract
   - user: 2026-05-21 continue Bevy-level Solari experimental gating evidence
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
@@ -106,3 +107,18 @@ The built-in plugin catalog and runtime profiles list Solari as experimental and
 | Realtime Solari lighting | No `SolariLighting` camera component, deferred/prepass/storage-texture/MSAA-off validation, Core3d Solari node, temporal history, or ReSTIR/world-cache compute pipeline family exists. | Add per-view settings, required prepass validation, history resources, compute pipeline cache integration, and Core3d scheduling. |
 | Pathtracer validation | Not implemented and not part of the default product path. | Add a separate validation-only path if Solari renderer work needs reference screenshots; keep it out of default runtime profiles. |
 | Default render boundary | DefaultRender and AdvancedRender do not request Solari; `SolariExperimental` is the only profile that can request it. | Preserve this boundary so advanced raytracing work does not hide missing baseline camera/light/PBR/sprite/UI render work. |
+
+## M10V Solari Promotion Boundary
+
+M10V makes the Solari rule explicit for the Bevy-completion roadmap: Solari is an experimental opt-in profile proof, not a default render proof. Bevy's `SolariPlugins` require explicit plugin activation and `required_wgpu_features()` before the raytracing scene or realtime lighting paths can load. Bevy scene setup then creates BLAS management, standard-material asset clones, raytracing scene bindings, and extract systems; realtime Solari requires HDR, deferred/depth/motion-vector prepasses, double-buffered prepass resources, temporal history, Core3d scheduling before the normal opaque pass, and the ReSTIR/world-cache compute pipeline family. The pathtracer stays validation-only.
+
+Zircon's accepted state is narrower by design. `SolariRuntimeReport` proves request state, backend capability mismatch reporting, provider-missing state, explicit experimental-gate enforcement, unavailable-provider status, and default-profile `NotRequested` behavior. The first-party Solari plugin currently registers an unavailable provider so profile wiring and diagnostics are testable without claiming a raytraced lighting pass.
+
+2026-05-26 M10W validation evidence:
+
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --lib --locked render_product_solari --jobs 1 --message-format short --color never`: PASS, 5 matching lib tests passed.
+- `CARGO_TARGET_DIR=F:\cargo-targets\zircon-render-m10w-solari-plugin-gate cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_solari_runtime --locked --jobs 1 --message-format short --color never`: PASS, 2 plugin tests passed plus doc-tests.
+
+This validation only promotes the status/provider/capability contract. It does not claim BLAS scene setup, raytracing bindings, Solari view/prepass validation, ReSTIR/world-cache compute pipelines, temporal history, DLSS ray-reconstruction, Core3d Solari node insertion, or validation pathtracing.
+
+Promotion beyond this boundary requires concrete renderer work: BLAS build/compact ownership, raytracing scene bindings, Solari camera/view settings, prepass validation, temporal history reset, ReSTIR/world-cache compute pipelines, Core3d graph insertion, optional DLSS ray-reconstruction integration, missing-resource diagnostics, and a separate validation-only pathtracer if reference screenshots become required. Until then, Solari evidence can only close the experimental-status gate and must not close DefaultRender, AdvancedRender VG/HGI, PBR/light, post-process/AA, presentation, or diagnostics gaps.

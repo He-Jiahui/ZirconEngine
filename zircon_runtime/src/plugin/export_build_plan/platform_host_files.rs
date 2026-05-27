@@ -13,6 +13,11 @@ pub(super) fn platform_host_files(
             purpose: "generated desktop runtime entry point".to_string(),
             contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
         }],
+        crate::plugin::ExportPlatformHostKind::Headless => vec![ExportGeneratedFile {
+            path: "src/main.rs".to_string(),
+            purpose: "generated headless runtime entry point".to_string(),
+            contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
+        }],
         crate::plugin::ExportPlatformHostKind::MobileApp => mobile_host_files(profile),
         crate::plugin::ExportPlatformHostKind::Browser => browser_host_files(profile),
     }

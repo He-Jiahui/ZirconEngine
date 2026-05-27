@@ -8,7 +8,8 @@ use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageFallbackKind,
     RenderImageUsage, RenderMaterialFallbackReason, RenderMaterialValidationError, RenderMeshKind,
     RenderMeshTopology, RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+    RenderShaderBindingResourceType, RenderShaderDefinitionValue,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::core::resource::ResourceKind;
@@ -150,6 +151,7 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         source_language: ShaderSourceLanguage::Glsl,
         source: "void main() {}".to_string(),
         wgsl_source: "@fragment fn fs_main() {}".to_string(),
+        import_path: None,
         entry_points: vec![ShaderEntryPointAsset {
             name: "fs_main".to_string(),
             stage: "fragment".to_string(),
@@ -160,6 +162,10 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         }],
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: vec![
+            RenderShaderDefinitionValue::from("USE_BLUE_NOISE"),
+            RenderShaderDefinitionValue::uint("ALPHA_CLIP", 1),
+        ],
         property_schema: Vec::new(),
         texture_slots: Vec::new(),
         editor: Default::default(),
@@ -191,10 +197,12 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@vertex fn vs_main() -> @builtin(position) vec4f { return vec4f(); }".to_string(),
         wgsl_source: "".to_string(),
+        import_path: None,
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: Vec::new(),
         texture_slots: Vec::new(),
         editor: Default::default(),
@@ -206,10 +214,12 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         source_language: ShaderSourceLanguage::Glsl,
         source: "void main() {}".to_string(),
         wgsl_source: "".to_string(),
+        import_path: None,
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: Vec::new(),
         texture_slots: Vec::new(),
         editor: Default::default(),
@@ -234,6 +244,13 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         shader.variant_keys()[0].entry_point.as_deref(),
         Some("fs_main")
     );
+    assert_eq!(
+        shader.variant_keys()[0].defines,
+        vec![
+            RenderShaderDefinitionValue::from("USE_BLUE_NOISE"),
+            RenderShaderDefinitionValue::uint("ALPHA_CLIP", 1),
+        ]
+    );
     assert_eq!(shader.dependencies().len(), 1);
     assert_eq!(shader.dependencies()[0].kind, ResourceKind::Texture);
     assert_eq!(
@@ -250,6 +267,55 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
     assert_eq!(
         layout.push_constant_ranges,
         vec!["draw_index:0..4".to_string()]
+    );
+}
+
+#[test]
+fn render_product_assets_shader_defs_accept_legacy_flags_and_typed_values() {
+    let shader: ShaderAsset = toml::from_str(
+        r#"
+uri = "res://shaders/typed.shader"
+source = "@fragment fn fs_main() {}"
+wgsl_source = "@fragment fn fs_main() {}"
+
+[[shader_defs]]
+kind = "bool"
+name = "ENABLE_FOG"
+value = false
+
+[[shader_defs]]
+kind = "uint"
+name = "BINDING_INDEX"
+value = 2
+
+[[shader_defs]]
+kind = "int"
+name = "DEBUG_MODE"
+value = -1
+"#,
+    )
+    .unwrap();
+    let legacy_shader: ShaderAsset = toml::from_str(
+        r#"
+uri = "res://shaders/legacy.shader"
+source = "@fragment fn fs_main() {}"
+wgsl_source = "@fragment fn fs_main() {}"
+shader_defs = ["USE_UNLIT"]
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        shader.shader_defs,
+        vec![
+            RenderShaderDefinitionValue::bool("ENABLE_FOG", false),
+            RenderShaderDefinitionValue::uint("BINDING_INDEX", 2),
+            RenderShaderDefinitionValue::int("DEBUG_MODE", -1),
+        ]
+    );
+    assert_eq!(
+        legacy_shader.shader_defs,
+        vec![RenderShaderDefinitionValue::from("USE_UNLIT")]
     );
 }
 

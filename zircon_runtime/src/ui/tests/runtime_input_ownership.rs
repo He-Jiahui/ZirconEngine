@@ -1,6 +1,6 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
-    surface::UiSurface,
+    surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
     tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::dispatch::{
@@ -9,15 +9,16 @@ use zircon_runtime_interface::ui::dispatch::{
     UiDragSessionId, UiFocusEffectReason, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
     UiInputMethodRequestKind, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
     UiKeyboardInputState, UiNavigationInputEvent, UiNavigationRequestPolicy,
-    UiPointerCaptureReason, UiPointerId, UiPopupInputEvent, UiPopupInputEventKind,
-    UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+    UiPointerCaptureReason, UiPointerId, UiPointerLockPolicy, UiPopupInputEvent,
+    UiPopupInputEventKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
 };
 use zircon_runtime_interface::ui::{
-    component::{UiDragPayload, UiDragPayloadKind},
+    component::{UiDragPayload, UiDragPayloadKind, UiValue},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    focus::UiFocusChangeReason,
     layout::{UiFrame, UiPoint},
     surface::UiNavigationEventKind,
-    tree::{UiInputPolicy, UiTreeNode, UiVisibility},
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
 #[test]
@@ -123,6 +124,72 @@ fn focus_and_capture_reject_hidden_ancestor_owners_without_clearing_current_owne
     assert!(rejected_capture.is_err());
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
     assert_eq!(surface.input.high_precision_owner, Some(UiNodeId::new(2)));
+}
+
+#[test]
+fn mutating_disabled_ancestor_clears_focus_and_transient_input_owners() {
+    let mut surface = two_button_surface();
+    let root = surface
+        .tree
+        .node_mut(UiNodeId::new(1))
+        .expect("root should exist");
+    root.template_metadata = Some(UiTemplateNodeMetadata {
+        component: "Panel".to_string(),
+        ..UiTemplateNodeMetadata::default()
+    });
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    surface.focus.captured = Some(UiNodeId::new(2));
+    surface.focus.pressed = Some(UiNodeId::new(2));
+    surface.focus.hovered = vec![UiNodeId::new(2), UiNodeId::new(3)];
+    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    surface.input.high_precision_owner = Some(UiNodeId::new(2));
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    surface.input.pointer_lock_owner = Some(UiNodeId::new(2));
+    surface.input.pointer_lock_policy = Some(UiPointerLockPolicy::RawDelta);
+    surface
+        .input
+        .begin_drag_drop(
+            UiNodeId::new(2),
+            UiNodeId::new(2),
+            UiPointerId::new(7),
+            Some(UiDragSessionId::new(31)),
+            Some(UiPoint::new(10.0, 10.0)),
+            None,
+        )
+        .unwrap();
+
+    let report = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(1),
+            "disabled",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+    let focus_change = report
+        .focus_change
+        .expect("disabled ancestor should clear focused descendant");
+    assert_eq!(focus_change.previous, Some(UiNodeId::new(2)));
+    assert_eq!(focus_change.current, None);
+    assert_eq!(focus_change.reason, UiFocusChangeReason::Disabled);
+    assert_eq!(surface.focus.focused, None);
+    assert_eq!(surface.focus.captured, None);
+    assert_eq!(surface.focus.pressed, None);
+    assert!(surface.focus.hovered.is_empty());
+    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.high_precision_owner, None);
+    assert_eq!(surface.input.input_method_owner, None);
+    assert_eq!(surface.input.pointer_lock_owner, None);
+    assert_eq!(surface.input.pointer_lock_policy, None);
+    assert_eq!(surface.input.drag_drop, None);
+    assert!(
+        surface
+            .component_state(UiNodeId::new(1))
+            .expect("disabled mutation should mirror component state")
+            .flags
+            .disabled
+    );
 }
 
 #[test]
@@ -467,6 +534,36 @@ fn drag_drop_rejects_stale_pointer_or_session_without_clearing_active_drag() {
     assert_eq!(drag.target, UiNodeId::new(2));
     assert_eq!(drag.point, Some(UiPoint::new(12.0, 16.0)));
 
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(3))
+        .unwrap()
+        .state_flags
+        .enabled = false;
+    let invalid_target = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(drag_effect(
+            UiDragDropEffectKind::Update,
+            UiNodeId::new(3),
+            pointer_id,
+            Some(session_id),
+            Some(UiPoint::new(50.0, 70.0)),
+            None,
+        )),
+    );
+    assert_eq!(invalid_target.rejected_effects.len(), 1);
+    assert!(invalid_target.rejected_effects[0]
+        .reason
+        .starts_with("invalid input owner"));
+    let drag = surface
+        .input
+        .drag_drop
+        .as_ref()
+        .expect("drag remains active after invalid target");
+    assert_eq!(drag.target, UiNodeId::new(2));
+    assert_eq!(drag.point, Some(UiPoint::new(12.0, 16.0)));
+
     let stale_pointer = surface.apply_dispatch_reply(
         keyboard_event(),
         UiDispatchReply::handled().with_effect(drag_effect(
@@ -484,6 +581,60 @@ fn drag_drop_rejects_stale_pointer_or_session_without_clearing_active_drag() {
         "drag pointer owner mismatch"
     );
     assert!(surface.input.drag_drop.is_some());
+}
+
+#[test]
+fn popup_and_tooltip_inputs_reject_stale_owner_without_mutating_shared_state() {
+    let mut surface = two_button_surface();
+    let pointer_dispatcher = UiPointerDispatcher::default();
+    let navigation_dispatcher = UiNavigationDispatcher::default();
+    let stale_owner = UiNodeId::new(2);
+    surface
+        .tree
+        .nodes
+        .get_mut(&stale_owner)
+        .unwrap()
+        .state_flags
+        .enabled = false;
+
+    let popup_open = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            popup_input_event_for_owner(
+                UiPopupInputEventKind::OpenRequested,
+                "menu.disabled",
+                Some(stale_owner),
+                Some(UiPoint::new(8.0, 12.0)),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(popup_open.rejected_effects.len(), 1);
+    assert!(popup_open.rejected_effects[0]
+        .reason
+        .starts_with("invalid input owner"));
+    assert!(popup_open.host_requests.is_empty());
+    assert!(surface.input.popup_stack.is_empty());
+
+    let tooltip_arm = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            tooltip_input_event_for_owner(
+                UiTooltipTimerInputEventKind::Armed,
+                "disabled.tooltip",
+                Some(stale_owner),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(tooltip_arm.rejected_effects.len(), 1);
+    assert!(tooltip_arm.rejected_effects[0]
+        .reason
+        .starts_with("invalid input owner"));
+    assert!(tooltip_arm.host_requests.is_empty());
+    assert_eq!(surface.input.tooltip, None);
 }
 
 #[test]
@@ -779,19 +930,38 @@ fn popup_input_event(
     popup_id: &str,
     anchor: Option<UiPoint>,
 ) -> UiInputEvent {
+    popup_input_event_for_owner(kind, popup_id, None, anchor)
+}
+
+fn popup_input_event_for_owner(
+    kind: UiPopupInputEventKind,
+    popup_id: &str,
+    owner: Option<UiNodeId>,
+    anchor: Option<UiPoint>,
+) -> UiInputEvent {
     UiInputEvent::Popup(UiPopupInputEvent {
         metadata: input_metadata(),
         kind,
         popup_id: popup_id.to_string(),
+        owner,
         anchor,
     })
 }
 
 fn tooltip_input_event(kind: UiTooltipTimerInputEventKind, tooltip_id: &str) -> UiInputEvent {
+    tooltip_input_event_for_owner(kind, tooltip_id, None)
+}
+
+fn tooltip_input_event_for_owner(
+    kind: UiTooltipTimerInputEventKind,
+    tooltip_id: &str,
+    owner: Option<UiNodeId>,
+) -> UiInputEvent {
     UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
         metadata: input_metadata(),
         kind,
         tooltip_id: tooltip_id.to_string(),
+        owner,
     })
 }
 

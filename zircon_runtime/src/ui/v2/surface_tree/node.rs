@@ -98,8 +98,29 @@ fn insert_arena_node(
     )?;
     let container = layout
         .container
-        .unwrap_or_else(|| infer_container(&node.component));
+        .unwrap_or_else(|| infer_container(&node.component, &attributes));
     let (state_flags, input_policy) = infer_interaction(node, &attributes);
+    let slot = if let Some(parent_id) = parent_id {
+        let parent_container = tree
+            .node(parent_id)
+            .map(|parent| parent.container)
+            .ok_or_else(|| UiV2AssetError::InvalidDocument {
+                asset_id: asset_id.to_string(),
+                detail: format!("ui tree is missing parent {parent_id:?}"),
+            })?;
+        Some(infer_slot_contract(
+            asset_id,
+            path,
+            parent_id,
+            node_id,
+            parent_container,
+            &slot_attributes,
+            &attributes,
+        )?)
+    } else {
+        None
+    };
+
     let mut tree_node = UiTreeNode::new(node_id, UiNodePath::new(path.to_string()))
         .with_state_flags(state_flags)
         .with_constraints(layout.constraints)
@@ -129,28 +150,14 @@ fn insert_arena_node(
     }
 
     if let Some(parent_id) = parent_id {
-        let parent_container = tree
-            .node(parent_id)
-            .map(|parent| parent.container)
-            .ok_or_else(|| UiV2AssetError::InvalidDocument {
-                asset_id: asset_id.to_string(),
-                detail: format!("ui tree is missing parent {parent_id:?}"),
-            })?;
-        let slot = infer_slot_contract(
-            asset_id,
-            path,
-            parent_id,
-            node_id,
-            parent_container,
-            &slot_attributes,
-        )?;
         tree.insert_child(parent_id, tree_node).map_err(|error| {
             UiV2AssetError::InvalidDocument {
                 asset_id: asset_id.to_string(),
                 detail: error.to_string(),
             }
         })?;
-        tree.slots.push(slot);
+        tree.slots
+            .push(slot.expect("parent nodes compute a slot before metadata move"));
     } else {
         tree.insert_root(tree_node);
     }

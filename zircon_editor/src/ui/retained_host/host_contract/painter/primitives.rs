@@ -1,6 +1,7 @@
 use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
 use super::geometry::{intersect, is_visible_frame, PixelRect};
+use super::sprite_atlas::HostPaintAtlasImage;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -80,7 +81,15 @@ pub(in crate::ui::retained_host::host_contract) fn draw_rgba_image_clipped(
     image_height: u32,
     rgba: &[u8],
 ) -> bool {
-    draw_rgba_image_clipped_with_key(frame, rect, clip, None, image_width, image_height, rgba)
+    draw_rgba_image_clipped_with_recording(
+        frame,
+        rect,
+        clip,
+        image_width,
+        image_height,
+        rgba,
+        ImageRecordingMetadata::ResourceKey(None),
+    )
 }
 
 pub(in crate::ui::retained_host::host_contract) fn draw_rgba_image_clipped_with_resource_key(
@@ -92,29 +101,59 @@ pub(in crate::ui::retained_host::host_contract) fn draw_rgba_image_clipped_with_
     image_height: u32,
     rgba: &[u8],
 ) -> bool {
-    draw_rgba_image_clipped_with_key(
+    draw_rgba_image_clipped_with_recording(
         frame,
         rect,
         clip,
-        Some(resource_key),
         image_width,
         image_height,
         rgba,
+        ImageRecordingMetadata::ResourceKey(Some(resource_key)),
     )
 }
 
-fn draw_rgba_image_clipped_with_key(
+pub(in crate::ui::retained_host::host_contract) fn draw_rgba_image_clipped_with_atlas(
     frame: &mut HostRgbaFrame,
     rect: FrameRect,
     clip: Option<&FrameRect>,
-    resource_key: Option<&str>,
     image_width: u32,
     image_height: u32,
     rgba: &[u8],
+    atlas: &HostPaintAtlasImage,
+) -> bool {
+    if atlas.rgba.is_none() {
+        return false;
+    }
+    draw_rgba_image_clipped_with_recording(
+        frame,
+        rect,
+        clip,
+        image_width,
+        image_height,
+        rgba,
+        ImageRecordingMetadata::Atlas(atlas),
+    )
+}
+
+#[derive(Clone, Copy)]
+enum ImageRecordingMetadata<'a> {
+    ResourceKey(Option<&'a str>),
+    Atlas(&'a HostPaintAtlasImage),
+}
+
+fn draw_rgba_image_clipped_with_recording(
+    frame: &mut HostRgbaFrame,
+    rect: FrameRect,
+    clip: Option<&FrameRect>,
+    image_width: u32,
+    image_height: u32,
+    rgba: &[u8],
+    recording: ImageRecordingMetadata<'_>,
 ) -> bool {
     if image_width == 0
         || image_height == 0
         || rgba.len() != image_width as usize * image_height as usize * 4
+        || !recording.is_valid()
     {
         return false;
     }
@@ -130,16 +169,13 @@ fn draw_rgba_image_clipped_with_key(
         return false;
     };
     if frame.is_recording() {
-        let resource_key = resource_key
-            .map(str::to_string)
-            .unwrap_or_else(|| rgba_resource_key(image_width, image_height, rgba));
-        frame.record_image(
+        recording.record(
+            frame,
             rect.clone(),
             effective_clip.clone(),
-            resource_key,
             image_width,
             image_height,
-            Some(rgba.to_vec()),
+            rgba,
         );
         if frame.record_only() {
             return true;
@@ -151,6 +187,59 @@ fn draw_rgba_image_clipped_with_key(
 
     draw_scaled_rgba_image_pixels(frame, &rect, &target, image_width, image_height, rgba);
     true
+}
+
+impl ImageRecordingMetadata<'_> {
+    fn is_valid(self) -> bool {
+        match self {
+            Self::ResourceKey(_) => true,
+            Self::Atlas(atlas) => {
+                atlas.width > 0
+                    && atlas.height > 0
+                    && atlas.rgba.as_ref().is_some_and(|rgba| {
+                        rgba.len() == atlas.width as usize * atlas.height as usize * 4
+                    })
+            }
+        }
+    }
+
+    fn record(
+        self,
+        frame: &mut HostRgbaFrame,
+        rect: FrameRect,
+        clip: Option<FrameRect>,
+        image_width: u32,
+        image_height: u32,
+        rgba: &[u8],
+    ) {
+        match self {
+            Self::ResourceKey(resource_key) => {
+                let resource_key = resource_key
+                    .map(str::to_string)
+                    .unwrap_or_else(|| rgba_resource_key(image_width, image_height, rgba));
+                frame.record_image(
+                    rect,
+                    clip,
+                    resource_key,
+                    image_width,
+                    image_height,
+                    Some(rgba.to_vec()),
+                    None,
+                );
+            }
+            Self::Atlas(atlas) => {
+                frame.record_image(
+                    rect,
+                    clip,
+                    atlas.resource_key.clone(),
+                    atlas.width,
+                    atlas.height,
+                    atlas.rgba.clone(),
+                    Some(atlas.clone()),
+                );
+            }
+        }
+    }
 }
 
 fn rgba_resource_key(image_width: u32, image_height: u32, rgba: &[u8]) -> String {

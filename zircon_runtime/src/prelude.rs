@@ -46,12 +46,17 @@ pub use crate::engine_module::{
 };
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
 pub use crate::input::{
-    ButtonInputState, DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisState,
-    GamepadButton, GamepadConnectionInfo, GamepadId, ImeCursorArea, ImeCursorRange,
-    ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton,
-    InputConfig, InputDriver, InputEvent, InputEventRecord, InputFrameSnapshot, InputModule,
-    InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent,
-    WindowTheme, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
+    ButtonInputState, DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisSettings,
+    GamepadAxisState, GamepadButton, GamepadButtonAxisSettings, GamepadButtonSettings,
+    GamepadButtonValueState, GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity,
+    GamepadRumbleRequest, ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent,
+    ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton, InputConfig, InputDriver,
+    InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputSnapshot, MouseScrollUnit,
+    MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent, WindowTheme,
+    GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER,
+    GAMEPAD_AXIS_LIVEZONE_LOWER, GAMEPAD_AXIS_LIVEZONE_UPPER, GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD,
+    GAMEPAD_BUTTON_AXIS_HIGH, GAMEPAD_BUTTON_AXIS_LOW, GAMEPAD_BUTTON_PRESS_THRESHOLD,
+    GAMEPAD_BUTTON_RELEASE_THRESHOLD, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
     LEGACY_PIXEL_SCROLL_SCALE,
 };
 pub use crate::platform::{

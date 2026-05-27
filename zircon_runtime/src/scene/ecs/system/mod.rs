@@ -1,6 +1,7 @@
 mod events;
 mod local;
 mod messages;
+mod native;
 mod param_set;
 mod query;
 mod removed_components;
@@ -13,6 +14,9 @@ mod system_state;
 pub use events::{EventReader, EventReaderParam, EventWriter, EventWriterParam};
 pub use local::{Local, LocalParam};
 pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam};
+pub use native::{
+    BoxedSceneSystem, FunctionSceneSystem, IntoSceneSystem, SceneSystem, SceneSystemMetadata,
+};
 pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;
 pub use removed_components::{RemovedComponents, RemovedComponentsParam};
@@ -21,3 +25,5 @@ pub use system_param::SystemParam;
 pub use system_param_access::{SystemParamAccess, SystemParamConflictKind};
 pub use system_param_error::SystemParamError;
 pub use system_state::SystemState;
+
+pub(crate) use native::ScheduledSceneStep;

@@ -52,7 +52,7 @@ children = [{ node = "set_projection_mode" }, { node = "align_view" }]
 [nodes.set_tool]
 component = "IconButton"
 control_id = "SetTool"
-props = { label = "Tool", icon = "move-outline" }
+props = { label = "Tool", icon = "editor_pages/scene_viewport/tools/universal-transform.svg" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetTool", event = "Change", route = "ViewportCommand.SetTool" }]
 
@@ -66,42 +66,42 @@ events = [{ id = "ViewportToolbar/SetTransformSpace", event = "Change", route = 
 [nodes.set_display_mode]
 component = "IconButton"
 control_id = "SetDisplayMode"
-props = { label = "Display", icon = "eye-outline" }
+props = { label = "Display", icon = "editor_pages/scene_viewport/display/lit.svg" }
 layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetDisplayMode", event = "Change", route = "ViewportCommand.SetDisplayMode" }]
 
 [nodes.set_grid_mode]
 component = "IconButton"
 control_id = "SetGridMode"
-props = { label = "Grid", icon = "grid-outline" }
+props = { label = "Grid", icon = "editor_pages/scene_viewport/display/grid-overlay.svg" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetGridMode", event = "Change", route = "ViewportCommand.SetGridMode" }]
 
 [nodes.set_translate_snap]
 component = "IconButton"
 control_id = "SetTranslateSnap"
-props = { label = "Move", icon = "magnet-outline" }
+props = { label = "Move", icon = "editor_pages/scene_viewport/snapping/grid-snap.svg" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetTranslateSnap", event = "Change", route = "ViewportCommand.SetTranslateSnap" }]
 
 [nodes.set_rotate_snap]
 component = "IconButton"
 control_id = "SetRotateSnapDegrees"
-props = { label = "Rotate", icon = "sync-outline" }
+props = { label = "Rotate", icon = "editor_pages/scene_viewport/snapping/angle-snap.svg" }
 layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetRotateSnapDegrees", event = "Change", route = "ViewportCommand.SetRotateSnapDegrees" }]
 
 [nodes.set_scale_snap]
 component = "IconButton"
 control_id = "SetScaleSnap"
-props = { label = "Scale", icon = "expand-outline" }
+props = { label = "Scale", icon = "editor_pages/scene_viewport/snapping/scale-snap.svg" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetScaleSnap", event = "Change", route = "ViewportCommand.SetScaleSnap" }]
 
 [nodes.set_preview_lighting]
 component = "IconButton"
 control_id = "SetPreviewLighting"
-props = { label = "Light", icon = "sunny-outline" }
+props = { label = "Light", icon = "editor_pages/scene_viewport/display/lit.svg" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetPreviewLighting", event = "Change", route = "ViewportCommand.SetPreviewLighting" }]
 
@@ -115,35 +115,35 @@ events = [{ id = "ViewportToolbar/SetPreviewSkybox", event = "Change", route = "
 [nodes.set_gizmos]
 component = "IconButton"
 control_id = "SetGizmosEnabled"
-props = { label = "Gizmo", icon = "construct-outline" }
+props = { label = "Gizmo", icon = "editor_pages/scene_viewport/display/gizmo-visibility.svg" }
 layout = { width = { min = 66.0, preferred = 66.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetGizmosEnabled", event = "Change", route = "ViewportCommand.SetGizmosEnabled" }]
 
 [nodes.frame_selection]
 component = "IconButton"
 control_id = "FrameSelection"
-props = { label = "Frame", icon = "scan-outline" }
+props = { label = "Frame", icon = "editor_pages/scene_viewport/camera/frame-selection.svg" }
 layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/FrameSelection", event = "Click", route = "ViewportCommand.FrameSelection" }]
 
 [nodes.enter_play]
 component = "IconButton"
 control_id = "EnterPlayMode"
-props = { label = "Play", icon = "play-outline" }
+props = { label = "Play", icon = "editor_pages/scene_viewport/play/play.svg" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/EnterPlayMode", event = "Click", route = "MenuAction.EnterPlayMode" }]
 
 [nodes.exit_play]
 component = "IconButton"
 control_id = "ExitPlayMode"
-props = { label = "Stop", icon = "stop-outline" }
+props = { label = "Stop", icon = "editor_pages/scene_viewport/play/stop.svg" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", route = "MenuAction.ExitPlayMode" }]
 
 [nodes.set_projection_mode]
 component = "IconButton"
 control_id = "SetProjectionMode"
-props = { label = "Camera", icon = "camera-outline" }
+props = { label = "Camera", icon = "editor_pages/scene_viewport/camera/perspective.svg" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetProjectionMode", event = "Change", route = "ViewportCommand.SetProjectionMode" }]
 

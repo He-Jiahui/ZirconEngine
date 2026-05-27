@@ -20,7 +20,10 @@ pub use descriptor::{
     UiRenderCapability, UiSlotSchema, UiWidgetEditorFallback, UiWidgetFallbackPolicy,
     UiWidgetRuntimeFallback,
 };
-pub use drag::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiDropPolicy};
+pub use drag::{
+    UiDragMetrics, UiDragPayload, UiDragPayloadKind, UiDragPhase, UiDragSourceMetadata,
+    UiDropPolicy,
+};
 pub use event::{UiComponentEvent, UiComponentEventError, UiComponentEventKind};
 pub use state::{UiComponentFlags, UiComponentState};
 pub use validation::{UiValidationLevel, UiValidationState};

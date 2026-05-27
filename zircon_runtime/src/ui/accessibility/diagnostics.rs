@@ -276,6 +276,15 @@ fn role_supports_action(role: UiA11yRole, action: UiAccessibilityAction) -> bool
         UiAccessibilityAction::SetValue => {
             matches!(role, UiA11yRole::TextInput | UiA11yRole::Slider)
         }
+        UiAccessibilityAction::ReplaceSelectedText | UiAccessibilityAction::SetTextSelection => {
+            matches!(role, UiA11yRole::TextInput)
+        }
+        UiAccessibilityAction::Expand | UiAccessibilityAction::Collapse => {
+            matches!(
+                role,
+                UiA11yRole::Button | UiA11yRole::Menu | UiA11yRole::Generic
+            )
+        }
         UiAccessibilityAction::ScrollTo => true,
         UiAccessibilityAction::Dismiss => matches!(role, UiA11yRole::Dialog | UiA11yRole::Tooltip),
     }

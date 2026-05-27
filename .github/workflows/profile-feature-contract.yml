@@ -1,0 +1,68 @@
+name: Profile Feature Contract
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  profile-feature-contract:
+    name: Profile feature contract (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: zircon_app target-server
+            package: zircon_app
+            features: target-server
+          - label: zircon_app target-client-platform
+            package: zircon_app
+            features: target-client,platform-winit,input-gamepad,gamepad-gilrs
+          - label: zircon_runtime target-client
+            package: zircon_runtime
+            features: target-client
+          - label: zircon_runtime target-editor-host
+            package: zircon_runtime
+            features: target-editor-host
+          - label: zircon_runtime target-server
+            package: zircon_runtime
+            features: target-server
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Linux system dependencies (profile feature contract)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libfontconfig-dev \
+            libudev-dev \
+            libinput-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcursor-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libwayland-dev \
+            xinput \
+            libasound2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check profile features for ${{ matrix.label }}
+        run: cargo check -p ${{ matrix.package }} --no-default-features --features ${{ matrix.features }} --locked --verbose

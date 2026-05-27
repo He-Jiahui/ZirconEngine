@@ -63,8 +63,9 @@ pub use runtime_plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
-    RuntimePluginAvailabilityEntry, RuntimePluginAvailabilityReport, RuntimeProfileDescriptor,
-    RuntimeProfileId, RuntimeProfilePluginSelection,
+    RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,
+    RuntimePluginAvailabilityReport, RuntimeProfileDescriptor, RuntimeProfileId,
+    RuntimeProfilePluginSelection,
 };
 pub use scene_hook::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,

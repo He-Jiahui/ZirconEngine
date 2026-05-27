@@ -4,6 +4,7 @@ pub mod accessibility;
 pub mod binding;
 pub mod component;
 pub mod dispatch;
+pub mod ecs;
 pub mod event_ui;
 pub mod focus;
 pub mod layout;

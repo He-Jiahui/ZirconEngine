@@ -44,7 +44,7 @@ events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "Welco
 [nodes.open_existing]
 component = "IconButton"
 control_id = "OpenExistingProject"
-props = { label = "Open", icon = "folder-open-outline", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
+props = { label = "Open", icon = "editor_pages/workbench/menu/open-project.svg", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = "WelcomeCommand.OpenExistingProject" }]
 
@@ -57,13 +57,13 @@ children = [{ node = "open_recent" }, { node = "remove_recent" }]
 [nodes.open_recent]
 component = "IconButton"
 control_id = "OpenRecentProject"
-props = { label = "Open Recent", icon = "time-outline", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
+props = { label = "Open Recent", icon = "editor_pages/asset_browser/navigation/recent.svg", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 116.0, preferred = 116.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "WelcomeCommand.OpenRecentProject" }]
 
 [nodes.remove_recent]
 component = "IconButton"
 control_id = "RemoveRecentProject"
-props = { label = "Remove", icon = "close-circle-outline", surface_variant = "danger", text_tone = "danger", border_width = 1.0, corner_radius = 999.0 }
+props = { label = "Remove", icon = "editor_pages/workbench/tabs/close-tab.svg", surface_variant = "danger", text_tone = "danger", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/RemoveRecentProject", event = "Click", route = "WelcomeCommand.RemoveRecentProject" }]

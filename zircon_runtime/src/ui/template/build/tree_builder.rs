@@ -75,9 +75,12 @@ impl UiTemplateTreeBuilder {
             .map(|parent| parent.container);
         let (state_flags, input_policy) = infer_interaction(node);
         let layout = infer_layout_contract(node, path, parent_container)?;
-        let container = layout
-            .container
-            .unwrap_or_else(|| infer_container(node.component.as_deref().unwrap_or_default()));
+        let container = layout.container.unwrap_or_else(|| {
+            infer_container(
+                node.component.as_deref().unwrap_or_default(),
+                &node.attributes,
+            )
+        });
         let mut tree_node = UiTreeNode::new(node_id, UiNodePath::new(path.to_string()))
             .with_state_flags(state_flags)
             .with_constraints(layout.constraints)

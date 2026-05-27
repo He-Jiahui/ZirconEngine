@@ -19,6 +19,10 @@ impl Resource for FrameCounter {}
 #[test]
 fn world_spawn_insert_get_mut_and_remove_typed_components() {
     let mut world = World::empty();
+    assert!(!world.contains_component::<Health>(u64::MAX));
+    assert!(!world.is_component_added::<Health>(u64::MAX));
+    assert!(!world.is_component_changed::<Health>(u64::MAX));
+
     let entity = world
         .spawn((
             Name("Typed Entity".to_string()),
@@ -29,6 +33,12 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
         ))
         .unwrap();
 
+    assert!(world.contains_component::<Health>(entity));
+    assert!(world.contains_component::<Name>(entity));
+    assert!(world.is_component_added::<Health>(entity));
+    assert!(world.is_component_changed::<Health>(entity));
+    assert!(world.is_component_added::<Name>(entity));
+    assert!(world.is_component_changed::<Name>(entity));
     assert_eq!(world.get::<Name>(entity).unwrap().0, "Typed Entity");
     assert_eq!(world.get::<Health>(entity), Some(&Health(7)));
     assert_eq!(
@@ -40,27 +50,87 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
         Vec3::new(2.0, 0.0, 0.0)
     );
 
-    world.get_mut::<Health>(entity).unwrap().0 += 5;
+    world.clear_trackers();
+    assert!(!world.is_component_added::<Health>(entity));
+    assert!(!world.is_component_changed::<Health>(entity));
+    assert!(!world.is_component_added::<Name>(entity));
+    assert!(!world.is_component_changed::<Name>(entity));
 
-    assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(12)));
+    world.get_mut::<Health>(entity).unwrap().0 += 5;
+    assert!(!world.is_component_added::<Health>(entity));
+    assert!(world.is_component_changed::<Health>(entity));
+    assert!(!world.is_component_changed::<Name>(entity));
+
+    assert_eq!(world.insert(entity, Health(3)).unwrap(), Some(Health(12)));
+    assert!(!world.is_component_added::<Health>(entity));
+    assert!(world.is_component_changed::<Health>(entity));
+
+    assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(3)));
+    assert!(!world.contains_component::<Health>(entity));
+    assert!(!world.is_component_added::<Health>(entity));
+    assert!(!world.is_component_changed::<Health>(entity));
     assert_eq!(world.get::<Health>(entity), None);
+
+    world.clear_trackers();
+    assert_eq!(world.insert(entity, Health(99)).unwrap(), None);
+    assert!(world.contains_component::<Health>(entity));
+    assert!(world.is_component_added::<Health>(entity));
+    assert!(world.is_component_changed::<Health>(entity));
+
+    world.clear_trackers();
+    world
+        .get_mut::<Name>(entity)
+        .unwrap()
+        .0
+        .push_str(" Renamed");
+    assert!(!world.is_component_added::<Name>(entity));
+    assert!(world.is_component_changed::<Name>(entity));
 }
 
 #[test]
 fn world_resources_are_registered_and_replaced_by_type() {
     let mut world = World::empty();
 
+    assert!(!world.contains_resource::<FrameCounter>());
+    assert!(!world.is_resource_added::<FrameCounter>());
+    assert!(!world.is_resource_changed::<FrameCounter>());
+
     let resource_id = world.resource_id::<FrameCounter>();
     assert_eq!(resource_id.index(), 0);
     assert_eq!(world.insert_resource(FrameCounter(1)), None);
     assert_eq!(world.resource::<FrameCounter>(), &FrameCounter(1));
+    assert!(world.contains_resource::<FrameCounter>());
+    assert!(world.is_resource_added::<FrameCounter>());
+    assert!(world.is_resource_changed::<FrameCounter>());
+
+    world.clear_trackers();
+    assert!(!world.is_resource_added::<FrameCounter>());
+    assert!(!world.is_resource_changed::<FrameCounter>());
+
     world.resource_mut::<FrameCounter>().0 += 1;
+    assert!(!world.is_resource_added::<FrameCounter>());
+    assert!(world.is_resource_changed::<FrameCounter>());
 
     assert_eq!(
         world.insert_resource(FrameCounter(9)),
         Some(FrameCounter(2))
     );
     assert_eq!(world.resource::<FrameCounter>(), &FrameCounter(9));
+    assert!(!world.is_resource_added::<FrameCounter>());
+    assert!(world.is_resource_changed::<FrameCounter>());
+
+    assert_eq!(
+        world.remove_resource::<FrameCounter>(),
+        Some(FrameCounter(9))
+    );
+    assert!(!world.contains_resource::<FrameCounter>());
+    assert!(!world.is_resource_added::<FrameCounter>());
+    assert!(!world.is_resource_changed::<FrameCounter>());
+
+    world.clear_trackers();
+    assert_eq!(world.insert_resource(FrameCounter(4)), None);
+    assert!(world.is_resource_added::<FrameCounter>());
+    assert!(world.is_resource_changed::<FrameCounter>());
     assert_eq!(
         world.registered_resource_id::<FrameCounter>(),
         Some(resource_id)

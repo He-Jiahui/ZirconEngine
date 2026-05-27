@@ -13,6 +13,16 @@ pub enum MeshValidationError {
         expected: usize,
         actual: usize,
     },
+    MorphTargetAttributeLengthMismatch {
+        target_index: usize,
+        attribute: String,
+        expected: usize,
+        actual: usize,
+    },
+    IndexOutOfRange {
+        max_index: u32,
+        vertex_count: usize,
+    },
 }
 
 impl fmt::Display for MeshValidationError {
@@ -41,6 +51,22 @@ impl fmt::Display for MeshValidationError {
             } => write!(
                 formatter,
                 "mesh attribute `{attribute}` has {actual} values but expected {expected}"
+            ),
+            Self::MorphTargetAttributeLengthMismatch {
+                target_index,
+                attribute,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "mesh morph target {target_index} attribute `{attribute}` has {actual} values but expected {expected}"
+            ),
+            Self::IndexOutOfRange {
+                max_index,
+                vertex_count,
+            } => write!(
+                formatter,
+                "mesh index buffer references vertex {max_index} but only {vertex_count} vertices are present"
             ),
         }
     }

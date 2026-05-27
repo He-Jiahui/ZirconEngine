@@ -15,11 +15,40 @@ use crate::entry::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryModuleSele
 use super::EntryRunner;
 
 #[derive(Debug)]
+pub struct EntryRuntimeBootstrap {
+    core: CoreHandle,
+    module_selection_report: EntryModuleSelectionReport,
+}
+
+impl EntryRuntimeBootstrap {
+    pub fn core(&self) -> &CoreHandle {
+        &self.core
+    }
+
+    pub fn clone_core(&self) -> CoreHandle {
+        self.core.clone()
+    }
+
+    pub fn into_core(self) -> CoreHandle {
+        self.core
+    }
+
+    pub fn module_selection_report(&self) -> &EntryModuleSelectionReport {
+        &self.module_selection_report
+    }
+
+    pub fn into_parts(self) -> (CoreHandle, EntryModuleSelectionReport) {
+        (self.core, self.module_selection_report)
+    }
+}
+
+#[derive(Debug)]
 pub struct NativePluginRuntimeBootstrap {
     // Native dynamic library handles must outlive the runtime graph that was
     // registered from their package manifests.
     core: CoreHandle,
     native_plugin_host: NativePluginLiveHost,
+    module_selection_report: EntryModuleSelectionReport,
     diagnostics: Vec<String>,
 }
 
@@ -40,8 +69,28 @@ impl NativePluginRuntimeBootstrap {
         (self.core, self.native_plugin_host, self.diagnostics)
     }
 
+    pub fn into_parts_with_report(
+        self,
+    ) -> (
+        CoreHandle,
+        NativePluginLiveHost,
+        EntryModuleSelectionReport,
+        Vec<String>,
+    ) {
+        (
+            self.core,
+            self.native_plugin_host,
+            self.module_selection_report,
+            self.diagnostics,
+        )
+    }
+
     pub fn native_plugin_host(&self) -> &NativePluginLiveHost {
         &self.native_plugin_host
+    }
+
+    pub fn module_selection_report(&self) -> &EntryModuleSelectionReport {
+        &self.module_selection_report
     }
 
     pub fn diagnostics(&self) -> &[String] {
@@ -204,22 +253,50 @@ impl EntryRunner {
     }
 
     pub fn bootstrap(config: EntryConfig) -> Result<CoreHandle, CoreError> {
-        BuiltinEngineEntry::for_config(&config)?.bootstrap()
+        Ok(Self::bootstrap_with_report(config)?.into_core())
+    }
+
+    pub fn bootstrap_with_report(config: EntryConfig) -> Result<EntryRuntimeBootstrap, CoreError> {
+        bootstrap_entry_with_report(BuiltinEngineEntry::for_config(&config)?)
     }
 
     pub fn bootstrap_with_first_party_runtime_plugin_registrations(
         config: EntryConfig,
     ) -> Result<CoreHandle, CoreError> {
-        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)?
-            .bootstrap()
+        Ok(
+            Self::bootstrap_with_first_party_runtime_plugin_registrations_and_report(config)?
+                .into_core(),
+        )
+    }
+
+    pub fn bootstrap_with_first_party_runtime_plugin_registrations_and_report(
+        config: EntryConfig,
+    ) -> Result<EntryRuntimeBootstrap, CoreError> {
+        bootstrap_entry_with_report(
+            BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)?,
+        )
     }
 
     pub fn bootstrap_with_runtime_plugin_registrations(
         config: EntryConfig,
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
     ) -> Result<CoreHandle, CoreError> {
-        BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(&config, registrations)?
-            .bootstrap()
+        Ok(
+            Self::bootstrap_with_runtime_plugin_registrations_and_report(config, registrations)?
+                .into_core(),
+        )
+    }
+
+    pub fn bootstrap_with_runtime_plugin_registrations_and_report(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+    ) -> Result<EntryRuntimeBootstrap, CoreError> {
+        bootstrap_entry_with_report(
+            BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
+                &config,
+                registrations,
+            )?,
+        )
     }
 
     pub fn bootstrap_with_runtime_plugin_and_feature_registrations(
@@ -227,12 +304,28 @@ impl EntryRunner {
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
         feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
     ) -> Result<CoreHandle, CoreError> {
-        BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
-            &config,
-            registrations,
-            feature_registrations,
-        )?
-        .bootstrap()
+        Ok(
+            Self::bootstrap_with_runtime_plugin_and_feature_registrations_and_report(
+                config,
+                registrations,
+                feature_registrations,
+            )?
+            .into_core(),
+        )
+    }
+
+    pub fn bootstrap_with_runtime_plugin_and_feature_registrations_and_report(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+    ) -> Result<EntryRuntimeBootstrap, CoreError> {
+        bootstrap_entry_with_report(
+            BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+                &config,
+                registrations,
+                feature_registrations,
+            )?,
+        )
     }
 
     pub fn bootstrap_with_native_plugins_from_export_root(
@@ -248,18 +341,31 @@ impl EntryRunner {
         for diagnostic in &native_report.diagnostics {
             eprintln!("[zircon_app] native plugin warning: {diagnostic}");
         }
-        let core = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+        let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
             &config,
             native_report.runtime_plugin_registration_reports.clone(),
             native_report
                 .runtime_plugin_feature_registration_reports
                 .clone(),
-        )?
-        .bootstrap()?;
+        )?;
+        let module_selection_report = entry.module_selection_report();
+        let core = entry.bootstrap()?;
         Ok(NativePluginRuntimeBootstrap {
             core,
             native_plugin_host,
+            module_selection_report,
             diagnostics: native_report.diagnostics,
         })
     }
+}
+
+fn bootstrap_entry_with_report(
+    entry: BuiltinEngineEntry,
+) -> Result<EntryRuntimeBootstrap, CoreError> {
+    let module_selection_report = entry.module_selection_report();
+    let core = entry.bootstrap()?;
+    Ok(EntryRuntimeBootstrap {
+        core,
+        module_selection_report,
+    })
 }

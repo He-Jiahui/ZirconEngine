@@ -5,12 +5,13 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetImporterHandler,
-    ImportedAssetEntry,
+    AssetSchemaMigrationReport, ImportedAssetEntry,
 };
 use crate::asset::{asset_kind_for_imported_asset, AssetImportError, AssetUri};
 use crate::plugin::{
-    LoadedNativePlugin, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    LoadedNativePlugin, NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 
 const REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
@@ -38,6 +39,8 @@ pub struct NativeAssetImportEntryMetadata {
     pub imported_asset: crate::asset::ImportedAsset,
     #[serde(default)]
     pub dependencies: Vec<crate::asset::AssetUri>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration_report: Option<AssetSchemaMigrationReport>,
     #[serde(default)]
     pub diagnostics: Vec<String>,
 }
@@ -81,13 +84,7 @@ impl AssetImporterHandler for NativeAssetImporterHandler {
             &context.source_bytes,
         )?;
         let report = self.plugin.invoke_runtime_command(&command, &request);
-        let status = report.status_code;
-        let payload = report.payload.ok_or_else(|| {
-            native_status_error(status, "native importer did not return an output payload")
-        })?;
-        if status != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
-            return Err(native_status_error(status, &report.diagnostics.join("; ")));
-        }
+        let payload = native_command_payload(report)?;
         let response = decode_response(&payload)?;
         native_response_to_outcome(&self.descriptor, response)
     }
@@ -162,6 +159,23 @@ fn native_status_error(status: u32, detail: &str) -> AssetImportError {
     ))
 }
 
+fn native_command_payload(
+    report: NativePluginBehaviorCallReport,
+) -> Result<Vec<u8>, AssetImportError> {
+    let status = report.status_code;
+    if status != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+        let detail = if report.diagnostics.is_empty() {
+            "native importer returned no diagnostics".to_string()
+        } else {
+            report.diagnostics.join("; ")
+        };
+        return Err(native_status_error(status, &detail));
+    }
+    report.payload.ok_or_else(|| {
+        native_status_error(status, "native importer did not return an output payload")
+    })
+}
+
 fn native_response_to_outcome(
     descriptor: &AssetImporterDescriptor,
     response: NativeAssetImportResponseMetadata,
@@ -194,6 +208,7 @@ fn native_response_to_outcome(
             .map(|entry| {
                 let mut imported = ImportedAssetEntry::new(entry.locator, entry.imported_asset);
                 imported.dependencies = entry.dependencies;
+                imported.migration_report = entry.migration_report;
                 imported.diagnostics.extend(
                     entry
                         .diagnostics
@@ -251,6 +266,11 @@ mod tests {
                     canonical_json: json!({ "temperature": 21 }),
                 }),
                 dependencies: vec![AssetUri::parse("res://assets/dependency.fixture").unwrap()],
+                migration_report: Some(AssetSchemaMigrationReport {
+                    source_schema_version: Some(1),
+                    target_schema_version: 2,
+                    summary: "fixture migrated to schema 2".to_string(),
+                }),
                 diagnostics: vec!["fixture diagnostic".to_string()],
             }],
         };
@@ -310,6 +330,35 @@ mod tests {
     }
 
     #[test]
+    fn native_import_command_errors_preserve_status_diagnostics_without_payload() {
+        let report = NativePluginBehaviorCallReport {
+            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+            diagnostics: vec!["denied native command unknown".to_string()],
+            payload: None,
+        };
+
+        let error = native_command_payload(report).expect_err("denied status");
+
+        assert!(error.to_string().contains("command returned denied"));
+        assert!(error.to_string().contains("denied native command unknown"));
+    }
+
+    #[test]
+    fn native_import_command_requires_payload_only_after_ok_status() {
+        let report = NativePluginBehaviorCallReport {
+            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+            diagnostics: Vec::new(),
+            payload: None,
+        };
+
+        let error = native_command_payload(report).expect_err("missing ok payload");
+
+        assert!(error
+            .to_string()
+            .contains("did not return an output payload"));
+    }
+
+    #[test]
     fn native_import_response_converts_diagnostics_to_resource_diagnostics() {
         let descriptor =
             AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
@@ -349,6 +398,28 @@ mod tests {
         assert_eq!(outcome.entries[0].dependencies, vec![dependency]);
     }
 
+    #[test]
+    fn native_import_response_preserves_schema_migration_report() {
+        let descriptor =
+            AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
+                .with_source_extensions(["fixture"]);
+        let migration_report = AssetSchemaMigrationReport {
+            source_schema_version: Some(1),
+            target_schema_version: 3,
+            summary: "native fixture migrated source schema".to_string(),
+        };
+        let mut response = fixture_native_response(
+            "fixture.data",
+            fixture_data().uri.clone(),
+            ImportedAsset::Data(fixture_data()),
+        );
+        response.entries[0].migration_report = Some(migration_report.clone());
+
+        let outcome = native_response_to_outcome(&descriptor, response).expect("valid response");
+
+        assert_eq!(outcome.entries[0].migration_report, Some(migration_report));
+    }
+
     fn fixture_native_response(
         importer_id: &str,
         locator: AssetUri,
@@ -360,6 +431,7 @@ mod tests {
                 locator,
                 imported_asset,
                 dependencies: Vec::new(),
+                migration_report: None,
                 diagnostics: Vec::new(),
             }],
         }

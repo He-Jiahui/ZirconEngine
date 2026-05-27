@@ -125,6 +125,8 @@ pub struct World {
     #[serde(skip, default = "default_change_tick")]
     pub(super) change_tick: ChangeTick,
     #[serde(skip, default)]
+    pub(super) last_change_tick: ChangeTick,
+    #[serde(skip, default)]
     pub(super) active_change_tick: Option<ChangeTick>,
     #[serde(skip, default)]
     pub(super) node_cache: Vec<SceneNode>,
@@ -236,6 +238,7 @@ impl<'de> Deserialize<'de> for World {
             command_queue: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: default_change_tick(),
+            last_change_tick: ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
             derived_state_dirty: Default::default(),

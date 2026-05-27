@@ -61,7 +61,7 @@ fn slot_kind_for_container(container: UiContainerKind) -> Option<UiSlotKind> {
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
             Some(UiSlotKind::Linear)
         }
-        UiContainerKind::WrapBox(_) => Some(UiSlotKind::Flow),
+        UiContainerKind::WrapBox(_) | UiContainerKind::MasonryBox(_) => Some(UiSlotKind::Flow),
         UiContainerKind::GridBox(_) => Some(UiSlotKind::Grid),
         UiContainerKind::ScrollableBox(_) => Some(UiSlotKind::Scrollable),
     }

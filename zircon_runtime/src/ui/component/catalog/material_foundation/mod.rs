@@ -5,13 +5,26 @@ use zircon_runtime_interface::ui::component::UiComponentDescriptor;
 
 mod button_inputs;
 mod data_display;
+mod data_display_editor;
+mod data_display_subcomponents;
+mod data_display_table;
 mod feedback;
+mod form_controls;
 mod inputs;
+mod lab_subcomponents;
 mod layout;
+mod layout_editor;
+mod layout_mui;
+mod layout_transitions;
+mod layout_utilities;
 mod mui_x;
 mod navigation;
+mod navigation_editor;
+mod navigation_secondary;
+mod navigation_subcomponents;
 mod selection_inputs;
 mod shared;
+mod surface_subcomponents;
 mod surfaces;
 mod text_inputs;
 
@@ -43,11 +56,24 @@ fn material_editor_foundation_descriptors() -> Vec<UiComponentDescriptor> {
     descriptors.extend(inputs::descriptors());
     descriptors.extend(selection_inputs::descriptors());
     descriptors.extend(text_inputs::descriptors());
+    descriptors.extend(form_controls::descriptors());
     descriptors.extend(data_display::descriptors());
+    descriptors.extend(data_display_editor::descriptors());
+    descriptors.extend(data_display_subcomponents::descriptors());
+    descriptors.extend(data_display_table::descriptors());
     descriptors.extend(feedback::descriptors());
+    descriptors.extend(surface_subcomponents::descriptors());
     descriptors.extend(surfaces::descriptors());
     descriptors.extend(navigation::descriptors());
+    descriptors.extend(navigation_subcomponents::descriptors());
+    descriptors.extend(navigation_secondary::descriptors());
+    descriptors.extend(navigation_editor::descriptors());
+    descriptors.extend(layout_mui::descriptors());
     descriptors.extend(layout::descriptors());
+    descriptors.extend(layout_utilities::descriptors());
+    descriptors.extend(layout_transitions::descriptors());
+    descriptors.extend(layout_editor::descriptors());
     descriptors.extend(mui_x::descriptors());
+    descriptors.extend(lab_subcomponents::descriptors());
     descriptors
 }

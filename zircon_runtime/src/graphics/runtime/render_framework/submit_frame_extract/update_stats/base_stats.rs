@@ -95,6 +95,7 @@ pub(super) fn update_base_stats(
     state.stats.last_material_fallback_count = state.renderer.last_material_fallback_count();
     state.stats.last_material_validation_error_count =
         state.renderer.last_material_validation_error_count();
+    state.stats.last_material_diagnostic_count = state.renderer.last_material_diagnostic_count();
     state.stats.last_sprite_count = state.renderer.last_sprite_count();
     state.stats.last_sprite_ready_count = state.renderer.last_sprite_ready_count();
     state.stats.last_sprite_texture_fallback_count =

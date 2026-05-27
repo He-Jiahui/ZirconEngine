@@ -79,8 +79,12 @@ pub use light::{
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialReadinessReport, RenderMaterialValidationError,
-    StandardMaterialDescriptor,
+    RenderMaterialFallbackUsage, RenderMaterialPropertyUniformField,
+    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyUniformSummary,
+    RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyUniformUnsupportedReason,
+    RenderMaterialPropertyValue, RenderMaterialPropertyValueSummary,
+    RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
+    RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
@@ -120,8 +124,9 @@ pub use scene_extract::{
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderDependency, RenderShaderEntryPointDescriptor,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, RenderShaderVariantKey,
+    RenderShaderBindingResourceType, RenderShaderDefinitionValue, RenderShaderDependency,
+    RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+    RenderShaderVariantKey,
 };
 pub use solari::{
     SolariCapabilityRequirement, SolariDegradationReason, SolariProviderAvailability,

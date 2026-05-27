@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::manager::NetManagerHandle;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject};
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 
-use crate::net_content_download_runtime_manager;
+use crate::NetContentDownloadRuntimeManager;
 
 pub const NET_CONTENT_DOWNLOAD_FEATURE_ID: &str = "net.content_download";
 pub const NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY: &str = "runtime.feature.net.cdn_download";
@@ -55,7 +56,14 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "NetManager",
         )],
-        factory(|_| Ok(Arc::new(net_content_download_runtime_manager()) as ServiceObject)),
+        factory(|core| {
+            let net = core.resolve_manager::<NetManagerHandle>(
+                zircon_runtime::core::manager::NET_MANAGER_NAME,
+            )?;
+            Ok(Arc::new(NetContentDownloadRuntimeManager::with_net_manager(
+                net.shared(),
+            )) as ServiceObject)
+        }),
     ))
 }
 
@@ -68,6 +76,10 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
     .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
         zircon_plugin_net_runtime::PLUGIN_ID,
         "runtime.plugin.net",
+    ))
+    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
+        zircon_plugin_net_runtime::PLUGIN_ID,
+        "runtime.feature.net.http",
     ))
     .with_capability(NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY)
     .with_runtime_module(

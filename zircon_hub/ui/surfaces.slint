@@ -1,4 +1,5 @@
 import { MutedText } from "shared.slint";
+import { ResponsiveSlot } from "layout.slint";
 import { HubTokens } from "tokens.slint";
 import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
 
@@ -35,10 +36,35 @@ export component HubCard inherits HubPanel {
     variant: "interactive";
 }
 
+export component PanelSlot inherits ResponsiveSlot {
+    in property <string> variant: "default";
+    in property <length> body-padding: HubTokens.space-4;
+    in property <length> body-spacing: HubTokens.toolbar-gap;
+
+    HubPanel {
+        width: parent.width;
+        height: parent.height;
+        variant: root.variant;
+
+        VerticalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding: root.body-padding;
+            spacing: root.body-spacing;
+            alignment: stretch;
+
+            @children
+        }
+    }
+}
+
 export component HeaderGroup inherits Rectangle {
     in property <length> group-height: HubTokens.shell-header-height;
 
     height: root.group-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
     background: HubTokens.surface-page;
     border-width: HubTokens.border-width;
     border-color: HubTokens.stroke-muted;
@@ -141,13 +167,123 @@ export component PanelHeader inherits Rectangle {
     }
 }
 
+export component OverviewPanel inherits HubPanel {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "accent";
+    in property <bool> show-badge: true;
+    in property <length> badge-width: HubTokens.control-md * 3;
+    in property <length> body-padding-horizontal: MaterialStyleMetrics.padding_16;
+    in property <length> body-padding-vertical: MaterialStyleMetrics.padding_14;
+
+    height: HubTokens.list-row-lg;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.body-padding-horizontal;
+        padding-right: root.body-padding-horizontal;
+        padding-top: root.body-padding-vertical;
+        padding-bottom: root.body-padding-vertical;
+
+        PanelHeader {
+            title: root.title;
+            subtitle: root.subtitle;
+            show-badge: root.show-badge;
+            badge-text: root.badge-text;
+            badge-tone: root.badge-tone;
+            badge-width: root.badge-width;
+        }
+    }
+}
+
+export component EmptyStateBlock inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> extra-detail;
+    in property <length> body-padding: HubTokens.space-4;
+    in property <length> body-spacing: HubTokens.space-2;
+    in property <bool> title-prominent: false;
+    in property <bool> center-content: false;
+
+    horizontal-stretch: 1;
+    min-height: HubTokens.control-md;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: root.body-padding;
+        spacing: root.body-spacing;
+        alignment: stretch;
+
+        Rectangle {
+            vertical-stretch: root.center-content ? 1 : 0;
+            min-height: 0px;
+        }
+
+        MaterialText {
+            text: root.title;
+            overflow: elide;
+            color: MaterialPalette.on_surface;
+            style: root.title-prominent ? MaterialTypography.title_medium : MaterialTypography.label_large;
+            horizontal-stretch: 1;
+            min-width: 1px;
+        }
+
+        if root.detail != "": MutedText {
+            text: root.detail;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 1px;
+        }
+
+        if root.extra-detail != "": MutedText {
+            text: root.extra-detail;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 1px;
+        }
+
+        Rectangle {
+            vertical-stretch: root.center-content ? 1 : 0;
+            min-height: 0px;
+        }
+    }
+}
+
+export component EmptyStatePanel inherits HubPanel {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> extra-detail;
+    in property <length> body-padding: HubTokens.space-4;
+    in property <length> body-spacing: HubTokens.space-2;
+    in property <bool> title-prominent: false;
+
+    horizontal-stretch: 1;
+    min-height: HubTokens.list-row-sm;
+
+    EmptyStateBlock {
+        width: parent.width;
+        height: parent.height;
+        title: root.title;
+        detail: root.detail;
+        extra-detail: root.extra-detail;
+        body-padding: root.body-padding;
+        body-spacing: root.body-spacing;
+        title-prominent: root.title-prominent;
+    }
+}
+
 export component StatusBanner inherits HubPanel {
     in property <string> title;
     in property <string> detail;
     in property <string> tone: "info";
 
     variant: root.tone == "error" ? "danger" : "elevated";
-    min-height: HubTokens.list-row-sm;
+    height: HubTokens.list-row-sm;
+    vertical-stretch: 0;
 
     VerticalLayout {
         width: parent.width;

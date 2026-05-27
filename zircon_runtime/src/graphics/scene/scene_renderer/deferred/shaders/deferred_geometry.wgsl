@@ -10,10 +10,18 @@ struct ModelUniform {
     tint: vec4<f32>,
 };
 
+struct MaterialPropertyUniform {
+    data0: vec4<f32>,
+    data1: vec4<f32>,
+    data2: vec4<f32>,
+    data3: vec4<f32>,
+};
+
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(1) @binding(0) var<uniform> model_data: ModelUniform;
 @group(2) @binding(0) var albedo_tex: texture_2d<f32>;
 @group(2) @binding(1) var albedo_sampler: sampler;
+@group(3) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,

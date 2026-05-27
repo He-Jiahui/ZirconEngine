@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::input::{
-    ButtonInputState, FileDragDropEvent, GamepadAxis, GamepadAxisState, GamepadId,
-    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, InputEvent, InputEventRecord,
-    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ButtonInputState, FileDragDropEvent, GamepadAxis, GamepadAxisState, GamepadButton,
+    GamepadButtonValueState, GamepadId, GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest,
+    ImePreedit, InputButton, InputEvent, InputEventRecord, MouseScrollUnit, MouseWheelEvent,
+    TouchPoint, WindowStatusEvent,
 };
 
 #[derive(Debug)]
@@ -19,6 +20,8 @@ pub(crate) struct InputState {
     pub(crate) active_touches: BTreeMap<u64, TouchPoint>,
     pub(crate) connected_gamepads: BTreeSet<GamepadId>,
     pub(crate) gamepad_axes: BTreeMap<(GamepadId, GamepadAxis), f32>,
+    pub(crate) gamepad_button_values: BTreeMap<(GamepadId, GamepadButton), f32>,
+    pub(crate) gamepad_rumble_requests: Vec<GamepadRumbleRequest>,
     pub(crate) ime_enabled: bool,
     pub(crate) ime_preedit: Option<ImePreedit>,
     pub(crate) ime_commits: Vec<String>,
@@ -45,6 +48,8 @@ impl Default for InputState {
             active_touches: BTreeMap::new(),
             connected_gamepads: BTreeSet::new(),
             gamepad_axes: BTreeMap::new(),
+            gamepad_button_values: BTreeMap::new(),
+            gamepad_rumble_requests: Vec::new(),
             ime_enabled: false,
             ime_preedit: None,
             ime_commits: Vec::new(),
@@ -66,6 +71,17 @@ impl InputState {
             .map(|((gamepad, axis), value)| GamepadAxisState {
                 gamepad: *gamepad,
                 axis: *axis,
+                value: *value,
+            })
+            .collect()
+    }
+
+    pub(crate) fn gamepad_button_value_states(&self) -> Vec<GamepadButtonValueState> {
+        self.gamepad_button_values
+            .iter()
+            .map(|((gamepad, button), value)| GamepadButtonValueState {
+                gamepad: *gamepad,
+                button: *button,
                 value: *value,
             })
             .collect()

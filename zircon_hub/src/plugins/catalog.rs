@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 use crate::error::HubError;
+use crate::projects::project_filesystem_path_key;
 
 const PLUGINS_DIR: &str = "zircon_plugins";
 const PLUGIN_MANIFEST_FILE: &str = "plugin.toml";
@@ -106,7 +107,7 @@ fn collect_project_plugin_manifests(
 ) -> Result<(), HubError> {
     let manifest_path = project_root.join(PLUGIN_MANIFEST_FILE);
     if manifest_path.is_file() {
-        let manifest_key = normalized_path_key(&manifest_path);
+        let manifest_key = project_filesystem_path_key(&manifest_path);
         if visited_manifests.insert(manifest_key) {
             entries.push(read_plugin_manifest(&manifest_path, PROJECT_PLUGIN_SCOPE)?);
         }
@@ -138,7 +139,7 @@ fn collect_plugin_manifests(
         } else if file_type.is_file()
             && path.file_name().and_then(|name| name.to_str()) == Some(PLUGIN_MANIFEST_FILE)
         {
-            let manifest_key = normalized_path_key(&path);
+            let manifest_key = project_filesystem_path_key(&path);
             if visited_manifests.insert(manifest_key) {
                 entries.push(read_plugin_manifest(&path, scope)?);
             }
@@ -190,19 +191,6 @@ fn should_skip_directory(name: &str) -> bool {
     SKIPPED_DIRECTORIES
         .iter()
         .any(|skipped| skipped.eq_ignore_ascii_case(name))
-}
-
-fn normalized_path_key(path: &Path) -> String {
-    let value = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-        .to_string_lossy()
-        .replace('\\', "/");
-    if cfg!(target_os = "windows") {
-        value.to_ascii_lowercase()
-    } else {
-        value
-    }
 }
 
 fn non_empty_or(value: Option<String>, fallback: String) -> String {

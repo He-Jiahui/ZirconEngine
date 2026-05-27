@@ -5,5 +5,11 @@ edition.workspace = true
 license.workspace = true
 description = "Sound runtime plugin package for Zircon."
 
+[features]
+default = []
+cpal-backend = ["dep:cpal"]
+
 [dependencies]
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_runtime_interface = { path = "../../../zircon_runtime_interface" }
+cpal = { version = "0.15", optional = true }

@@ -148,6 +148,9 @@ fn message_reader_param_uses_a_persistent_cursor() {
 
     let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
     let first_read = reader.run(&mut world, |mut messages| {
+        assert_eq!(messages.unread_count(), 2);
+        assert_eq!(messages.len(), 2);
+        assert!(!messages.is_empty());
         messages
             .read()
             .map(|(_id, message)| message.0)
@@ -156,6 +159,9 @@ fn message_reader_param_uses_a_persistent_cursor() {
     assert_eq!(first_read, vec![1, 2]);
 
     let second_read = reader.run(&mut world, |mut messages| {
+        assert_eq!(messages.unread_count(), 0);
+        assert_eq!(messages.len(), 0);
+        assert!(messages.is_empty());
         messages
             .read()
             .map(|(_id, message)| message.0)
@@ -171,4 +177,98 @@ fn message_reader_param_uses_a_persistent_cursor() {
             .collect::<Vec<_>>()
     });
     assert_eq!(third_read, vec![3]);
+}
+
+#[test]
+fn message_writer_batch_preserves_order_and_ids() {
+    let mut world = World::empty();
+    type Writer = MessageWriterParam<DamageMessage>;
+    type Reader = MessageReaderParam<DamageMessage>;
+
+    let mut writer = SystemState::<Writer>::new(&mut world).unwrap();
+    let ids = writer.run(&mut world, |mut messages| {
+        messages.write_batch([DamageMessage(1), DamageMessage(2), DamageMessage(3)])
+    });
+    assert_eq!(
+        ids.iter().map(|id| id.id()).collect::<Vec<_>>(),
+        vec![0, 1, 2]
+    );
+
+    let more_ids = writer.run(&mut world, |mut messages| {
+        messages.write_batch([DamageMessage(4), DamageMessage(5)])
+    });
+    assert_eq!(
+        more_ids.iter().map(|id| id.id()).collect::<Vec<_>>(),
+        vec![3, 4]
+    );
+
+    let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
+    let observed = reader.run(&mut world, |mut messages| {
+        messages
+            .read()
+            .map(|(id, message)| (id.id(), message.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(observed, vec![(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]);
+}
+
+#[test]
+fn message_reader_param_observes_messages_after_global_clear() {
+    let mut world = World::empty();
+    type Reader = MessageReaderParam<DamageMessage>;
+
+    world.send_message(DamageMessage(1));
+    world.send_message(DamageMessage(2));
+
+    let mut reader = SystemState::<Reader>::new(&mut world).unwrap();
+    let first_read = reader.run(&mut world, |mut messages| {
+        messages
+            .read()
+            .map(|(_id, message)| message.0)
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(first_read, vec![1, 2]);
+
+    world.clear_messages::<DamageMessage>();
+    assert_eq!(world.send_message(DamageMessage(3)).id(), 2);
+
+    let after_clear = reader.run(&mut world, |mut messages| {
+        assert_eq!(messages.unread_count(), 1);
+        messages
+            .read()
+            .map(|(_id, message)| message.0)
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(after_clear, vec![3]);
+}
+
+#[test]
+fn message_reader_clear_advances_only_that_reader_cursor() {
+    let mut world = World::empty();
+    type Reader = MessageReaderParam<DamageMessage>;
+
+    world.send_message(DamageMessage(1));
+    world.send_message(DamageMessage(2));
+
+    let mut first_reader = SystemState::<Reader>::new(&mut world).unwrap();
+    let mut second_reader = SystemState::<Reader>::new(&mut world).unwrap();
+
+    let cleared = first_reader.run(&mut world, |mut messages| {
+        assert_eq!(messages.len(), 2);
+        messages.clear();
+        assert!(messages.is_empty());
+        messages
+            .read()
+            .map(|(_id, message)| message.0)
+            .collect::<Vec<_>>()
+    });
+    assert!(cleared.is_empty());
+
+    let observed_by_other_reader = second_reader.run(&mut world, |mut messages| {
+        messages
+            .read()
+            .map(|(_id, message)| message.0)
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(observed_by_other_reader, vec![1, 2]);
 }

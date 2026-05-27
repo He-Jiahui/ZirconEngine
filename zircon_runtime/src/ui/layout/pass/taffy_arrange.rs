@@ -9,8 +9,8 @@ use zircon_runtime_interface::ui::{
     layout::{
         AxisConstraint, BoxConstraints, Pivot, Position, StretchMode, UiAlignment, UiAxis,
         UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement,
-        UiLayoutEngineFallbackReason, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiSize,
-        UiSlot,
+        UiLayoutEngineFallbackReason, UiLayoutEngineTaffyTreeBuildStats, UiLinearSlotSizeRule,
+        UiLinearSlotSizing, UiMargin, UiSize, UiSlot,
     },
     tree::{UiTree, UiTreeError, UiTreeNode},
 };
@@ -34,8 +34,17 @@ pub(super) fn try_arrange_taffy_owned_children(
     let Some(axis) = taffy_main_axis(container) else {
         return Ok(false);
     };
+    if !taffy_supports_parent_layout_values(container, frame) {
+        engine_context.record_taffy_fallback(
+            parent_id,
+            container,
+            UiLayoutEngineFallbackReason::InvalidLayoutValue,
+            None,
+        );
+        return Ok(false);
+    }
     if let Some(reason) = taffy_child_contracts_unsupported(tree, parent_id, children, container)? {
-        engine_context.record_taffy_fallback(parent_id, container, reason);
+        engine_context.record_taffy_fallback(parent_id, container, reason, None);
         return Ok(false);
     }
 
@@ -53,6 +62,7 @@ pub(super) fn try_arrange_taffy_owned_children(
                 parent_id,
                 container,
                 UiLayoutEngineFallbackReason::TaffyTreeBuildFailed,
+                Some(taffy_tree_stats(taffy_children.len())),
             );
             return Ok(false);
         };
@@ -64,6 +74,7 @@ pub(super) fn try_arrange_taffy_owned_children(
             parent_id,
             container,
             UiLayoutEngineFallbackReason::TaffyStyleUnavailable,
+            Some(taffy_tree_stats(taffy_children.len())),
         );
         return Ok(false);
     };
@@ -72,9 +83,11 @@ pub(super) fn try_arrange_taffy_owned_children(
             parent_id,
             container,
             UiLayoutEngineFallbackReason::TaffyTreeBuildFailed,
+            Some(taffy_tree_stats(taffy_children.len())),
         );
         return Ok(false);
     };
+    let complete_taffy_tree_build = complete_taffy_tree_stats(taffy_children.len());
     if taffy
         .compute_layout(
             taffy_parent,
@@ -89,6 +102,7 @@ pub(super) fn try_arrange_taffy_owned_children(
             parent_id,
             container,
             UiLayoutEngineFallbackReason::TaffyComputeFailed,
+            Some(complete_taffy_tree_build),
         );
         return Ok(false);
     }
@@ -100,6 +114,7 @@ pub(super) fn try_arrange_taffy_owned_children(
                 parent_id,
                 container,
                 UiLayoutEngineFallbackReason::TaffyComputeFailed,
+                Some(complete_taffy_tree_build),
             );
             return Ok(false);
         };
@@ -114,12 +129,20 @@ pub(super) fn try_arrange_taffy_owned_children(
         ));
     }
 
-    engine_context.record_taffy_native(parent_id, container);
+    engine_context.record_taffy_native(parent_id, container, complete_taffy_tree_build);
     for (child_id, child_frame) in child_frames {
         arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
     }
 
     Ok(true)
+}
+
+fn taffy_tree_stats(node_count: usize) -> UiLayoutEngineTaffyTreeBuildStats {
+    UiLayoutEngineTaffyTreeBuildStats::new(u64::try_from(node_count).unwrap_or(u64::MAX))
+}
+
+fn complete_taffy_tree_stats(child_count: usize) -> UiLayoutEngineTaffyTreeBuildStats {
+    taffy_tree_stats(child_count.saturating_add(1))
 }
 
 fn taffy_child_contracts_unsupported(
@@ -145,11 +168,20 @@ fn taffy_child_contracts_unsupported(
         {
             return Ok(Some(UiLayoutEngineFallbackReason::ChildPlacementPolicy));
         }
+        if !taffy_supports_axis_constraint_priority(child, taffy_main_axis(container).flatten()) {
+            return Ok(Some(UiLayoutEngineFallbackReason::AxisConstraintPriority));
+        }
+        if !taffy_supports_child_layout_values(child) {
+            return Ok(Some(UiLayoutEngineFallbackReason::InvalidLayoutValue));
+        }
 
         let slot = slot_for_container_child(tree, parent_id, *child_id, container);
         if let Some(slot) = slot {
             if slot.canvas_placement.is_some() {
                 return Ok(Some(UiLayoutEngineFallbackReason::SlotCanvasPlacement));
+            }
+            if !taffy_supports_slot_layout_values(slot, container) {
+                return Ok(Some(UiLayoutEngineFallbackReason::InvalidLayoutValue));
             }
             if !taffy_supports_slot_padding(slot.padding) {
                 return Ok(Some(UiLayoutEngineFallbackReason::SlotFramePolicy));
@@ -302,7 +334,7 @@ fn taffy_child_style(
         style.flex_basis = flex_basis_for_axis(constraint, desired_extent, preserve_stretch);
         style.flex_grow = flex_grow_for_axis(constraint, desired_extent, preserve_stretch);
         style.flex_shrink = 1.0;
-        if let Some(sizing) = slot.and_then(|slot| slot.linear_sizing) {
+        if let Some(sizing) = linear_slot_sizing_for_taffy(parent_container, slot) {
             apply_linear_slot_sizing(&mut style, axis, constraint, desired_extent, sizing);
         }
     }
@@ -327,6 +359,86 @@ fn taffy_child_style(
     }
 
     style
+}
+
+fn taffy_supports_parent_layout_values(container: UiContainerKind, frame: UiFrame) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && taffy_supports_container_layout_values(container)
+}
+
+fn taffy_supports_container_layout_values(container: UiContainerKind) -> bool {
+    match container {
+        UiContainerKind::HorizontalBox(config) | UiContainerKind::VerticalBox(config) => {
+            config.gap.is_finite()
+        }
+        UiContainerKind::WrapBox(config) => {
+            config.horizontal_gap.is_finite()
+                && config.vertical_gap.is_finite()
+                && config.item_min_width.is_finite()
+        }
+        UiContainerKind::GridBox(config) => {
+            config.column_gap.is_finite() && config.row_gap.is_finite()
+        }
+        _ => true,
+    }
+}
+
+fn taffy_supports_axis_constraint_priority(
+    child: &UiTreeNode,
+    parent_axis: Option<UiAxis>,
+) -> bool {
+    let Some(parent_axis) = parent_axis else {
+        return true;
+    };
+    match parent_axis {
+        UiAxis::Horizontal => child.constraints.width.priority == 0,
+        UiAxis::Vertical => child.constraints.height.priority == 0,
+    }
+}
+
+fn taffy_supports_child_layout_values(child: &UiTreeNode) -> bool {
+    axis_constraint_values_are_finite(child.constraints.width)
+        && axis_constraint_values_are_finite(child.constraints.height)
+        && child.layout_cache.desired_size.width.is_finite()
+        && child.layout_cache.desired_size.height.is_finite()
+}
+
+fn axis_constraint_values_are_finite(constraint: AxisConstraint) -> bool {
+    constraint.min.is_finite()
+        && constraint.max.is_finite()
+        && constraint.preferred.is_finite()
+        && constraint.weight.is_finite()
+}
+
+fn linear_slot_sizing_for_taffy(
+    parent_container: UiContainerKind,
+    slot: Option<&UiSlot>,
+) -> Option<UiLinearSlotSizing> {
+    // WrapBox uses Flow slots; legacy wrap only uses those slots for order/padding/alignment.
+    // Keep Taffy native wrap on that same contract instead of treating Flow as flex growth.
+    match parent_container {
+        UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
+            slot.and_then(|slot| slot.linear_sizing)
+        }
+        _ => None,
+    }
+}
+
+fn taffy_supports_slot_layout_values(slot: &UiSlot, parent_container: UiContainerKind) -> bool {
+    match linear_slot_sizing_for_taffy(parent_container, Some(slot)) {
+        Some(sizing) => linear_slot_sizing_values_are_finite(sizing),
+        None => true,
+    }
+}
+
+fn linear_slot_sizing_values_are_finite(sizing: UiLinearSlotSizing) -> bool {
+    sizing.value.is_finite()
+        && sizing.shrink_value.is_finite()
+        && sizing.min.is_finite()
+        && sizing.max.is_finite()
 }
 
 fn taffy_supports_slot_alignment(

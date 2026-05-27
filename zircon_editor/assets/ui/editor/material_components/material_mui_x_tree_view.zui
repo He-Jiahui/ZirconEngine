@@ -58,10 +58,10 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "data viewport", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "data viewport", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 97, preferred = 97, max = 97, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "TreeView"
+component = "MaterialTreeView"
 control_id = "mui-x-tree-view_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { query = "assets", expanded = true, text = "MUI X Tree View", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+classes = ["material-control", "material-lab-sample", "MuiTreeView-root"]
+props = { query = "assets", expanded = true, editable = true, checkboxSelection = true, multiSelect = true, disabledItemsFocusable = true, defaultExpandedItems = ["Assets"], selectedItems = ["Assets.Materials"], itemChildrenIndentation = 18.0, slotProps = { item = { className = "material-mui-x-tree-item" }, content = { className = "material-mui-x-tree-content" }, label = { className = "material-mui-x-tree-label" }, icon = { className = "material-mui-x-tree-icon" }, checkbox = { className = "material-mui-x-tree-checkbox" } }, text = "MUI X Tree View", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "MaterialLab/MuiXTreeView/Toggle", event = "Toggle", route = "MaterialLab.MuiXTreeView.Toggle" },

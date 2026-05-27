@@ -2,7 +2,8 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
         UiFrame, UiLayoutEngineCapability, UiLayoutEngineFamily, UiLayoutEngineRequest,
-        UiLayoutEngineSelection, UiLayoutEngineSelectionReport, UiPoint,
+        UiLayoutEngineSelection, UiLayoutEngineSelectionReport, UiLayoutEngineTaffyTreeBuildStats,
+        UiPoint,
     },
     surface::{
         UiDamageDebugReport, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
@@ -86,18 +87,30 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
             && section
                 .lines
                 .iter()
+                .any(|line| line == "taffy tree builds: 1 nodes=2")
+            && section
+                .lines
+                .iter()
                 .any(|line| line == "fallbacks: 1 unsupported: 0")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "fallback reasons: ZirconOwnedSemantics=1")
             && section.lines.iter().any(|line| {
                 line.contains("node=1")
                     && line.contains("family=Flex")
                     && line.contains("selected=Taffy")
                     && line.contains("support=Native")
+                    && line.contains("taffy_tree_builds=1")
+                    && line.contains("taffy_tree_nodes=2")
             })
             && section.lines.iter().any(|line| {
                 line.contains("node=2")
                     && line.contains("family=Overlay")
                     && line.contains("selected=LegacyZircon")
                     && line.contains("reason=ZirconOwnedSemantics")
+                    && line.contains("taffy_tree_builds=0")
+                    && line.contains("taffy_tree_nodes=0")
             })
     }));
     assert!(model.sections.iter().any(|section| {
@@ -129,11 +142,21 @@ fn ui_debug_reflector_model_displays_unsupported_layout_routes() {
                 .lines
                 .iter()
                 .any(|line| line == "fallbacks: 0 unsupported: 1")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "taffy tree builds: 0 nodes=0")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "fallback reasons: UnsupportedFamily=1")
             && section.lines.iter().any(|line| {
                 line.contains("node=42")
                     && line.contains("family=Block")
                     && line.contains("support=Unsupported")
                     && line.contains("reason=UnsupportedFamily")
+                    && line.contains("taffy_tree_builds=0")
+                    && line.contains("taffy_tree_nodes=0")
             })
     }));
 }
@@ -496,7 +519,8 @@ fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
             &taffy,
             &zircon,
         )
-        .with_node_id(UiNodeId::new(1)),
+        .with_node_id(UiNodeId::new(1))
+        .with_taffy_tree_build(UiLayoutEngineTaffyTreeBuildStats::new(2)),
         UiLayoutEngineSelection::select(
             &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
             &taffy,

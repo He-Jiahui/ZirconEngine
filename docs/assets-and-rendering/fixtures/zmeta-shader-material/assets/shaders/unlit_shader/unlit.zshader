@@ -1,6 +1,8 @@
 version = 1
 name = "Unlit Shader"
+import_path = "zircon::unlit"
 wgsl_files = ["unlit.wgsl"]
+shader_defs = ["USE_UNLIT"]
 
 [[entry_points]]
 name = "vs_main"

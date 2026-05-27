@@ -125,7 +125,7 @@ fn export_plan_uses_explicit_runtime_profile_id_before_name_inference() {
 }
 
 #[test]
-fn built_in_default_export_profiles_have_explicit_runtime_profile_ids() {
+fn built_in_default_export_profiles_have_explicit_runtime_profile_ids_and_server_is_headless() {
     let manifest = ProjectManifest::new(
         "Default Profile Runtime Profile Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -142,6 +142,18 @@ fn built_in_default_export_profiles_have_explicit_runtime_profile_ids() {
     assert_eq!(
         server.profile.runtime_profile_id,
         Some(RuntimeProfileId::Server)
+    );
+    assert_eq!(
+        server.profile.target_platform,
+        ExportTargetPlatform::Headless
+    );
+    assert_eq!(
+        server.platform_policy.host_kind,
+        ExportPlatformHostKind::Headless
+    );
+    assert_eq!(
+        server.platform_policy.resource_strategy,
+        ExportPlatformResourceStrategy::FilesystemBundle
     );
 }
 
@@ -382,6 +394,13 @@ fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
             ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
             false,
         ),
+        (
+            ExportTargetPlatform::Headless,
+            ExportPlatformHostKind::Headless,
+            ExportPlatformResourceStrategy::FilesystemBundle,
+            ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            true,
+        ),
     ];
     let requested_platform = std::env::var("ZR_EXPORT_CONTRACT_PLATFORM")
         .ok()
@@ -401,6 +420,47 @@ fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
         assert_eq!(policy.supports_native_dynamic, supports_native_dynamic);
         assert_eq!(platform.supports_native_dynamic(), supports_native_dynamic);
     }
+}
+
+#[test]
+fn source_template_emits_headless_host_scaffold_without_platform_shell() {
+    let mut manifest = ProjectManifest::new(
+        "Headless Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.export_profiles = vec![ExportProfile::new(
+        "server",
+        RuntimeTargetMode::ServerRuntime,
+        ExportTargetPlatform::Headless,
+    )
+    .with_runtime_profile_id(RuntimeProfileId::Server)
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "server").unwrap();
+
+    assert_eq!(
+        plan.platform_policy.host_kind,
+        ExportPlatformHostKind::Headless
+    );
+    assert_eq!(
+        generated_file_purpose(&plan, "src/main.rs"),
+        "generated headless runtime entry point"
+    );
+    assert!(generated_file(&plan, "src/main.rs").contains("EntryProfile::Headless"));
+    assert!(
+        generated_file(&plan, "src/zircon_plugins.rs").contains("ExportTargetPlatform::Headless")
+    );
+    assert!(generated_file(&plan, "Cargo.toml").contains("features = [\"target-server\"]"));
+    assert!(plan
+        .generated_files
+        .iter()
+        .all(|file| !file.path.starts_with("platform/")));
+    assert!(plan
+        .generated_files
+        .iter()
+        .all(|file| file.path != "src/lib.rs"));
 }
 
 #[test]
@@ -1794,6 +1854,7 @@ fn export_target_platform_from_ci_name(value: &str) -> ExportTargetPlatform {
         "ios" => ExportTargetPlatform::Ios,
         "web_gpu" => ExportTargetPlatform::WebGpu,
         "wasm" => ExportTargetPlatform::Wasm,
+        "headless" => ExportTargetPlatform::Headless,
         other => panic!("unknown export target platform {other}"),
     }
 }

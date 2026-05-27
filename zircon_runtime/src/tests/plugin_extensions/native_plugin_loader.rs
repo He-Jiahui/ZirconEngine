@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{
-    AssetImportContext, AssetImporterDescriptor, AssetImporterHandler, AssetKind, DataAssetFormat,
-    ImportedAsset, NativeAssetImporterHandler,
+    AssetImportContext, AssetImporterDescriptor, AssetImporterHandler, AssetKind,
+    AssetSchemaMigrationReport, DataAssetFormat, ImportedAsset, NativeAssetImporterHandler,
 };
 use crate::{
     plugin::NativePluginLoader, plugin::PluginModuleKind,
@@ -659,6 +659,14 @@ fn native_loader_fixture_can_import_data_asset_through_native_importer_handler()
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.message.contains("weather.nativejson")));
+    assert_eq!(
+        entry.migration_report,
+        Some(AssetSchemaMigrationReport {
+            source_schema_version: Some(1),
+            target_schema_version: 2,
+            summary: "native fixture migrated weather.nativejson".to_string(),
+        })
+    );
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);

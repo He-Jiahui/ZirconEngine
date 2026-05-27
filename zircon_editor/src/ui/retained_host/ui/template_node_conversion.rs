@@ -37,9 +37,10 @@ pub(crate) fn to_host_contract_template_node(
         role: data.role.clone(),
         text: data.text.clone(),
         component_role: data.component_role.clone(),
+        component_variant: data.component_variant.clone(),
         value_text: data.value_text.clone(),
-        value_number: 0.0,
-        value_percent: 0.0,
+        value_number: data.value_number,
+        value_percent: data.value_percent,
         value_color: crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0),
         media_source: data.media_source.clone(),
         icon_name: data.icon_name.clone(),
@@ -48,7 +49,7 @@ pub(crate) fn to_host_contract_template_node(
         vector_components: ModelRc::default(),
         validation_level: "".into(),
         validation_message: "".into(),
-        popup_open: false,
+        popup_open: data.popup_open,
         has_popup_anchor: false,
         popup_anchor_x: 0.0,
         popup_anchor_y: 0.0,
@@ -107,6 +108,13 @@ pub(crate) fn to_host_contract_template_node(
         ripple_pressed_x: 0.0,
         ripple_pressed_y: 0.0,
         ripple_unclipped: false,
+        transition_kind: data.transition_kind.clone(),
+        transition_in: data.transition_in,
+        transition_entered: data.transition_entered,
+        transition_progress: data.transition_progress,
+        transition_duration_ms: data.transition_duration_ms,
+        transition_easing: data.transition_easing.clone(),
+        transition_direction: data.transition_direction.clone(),
         drop_hovered: false,
         active_drag_target: false,
         disabled: data.disabled,
@@ -129,6 +137,7 @@ pub(crate) fn to_host_contract_template_node(
         corner_radius: data.corner_radius,
         border_width: data.border_width,
         elevation: 0.0,
+        z_index: data.z_index,
         has_clip_frame: false,
         clip_frame: host_contract::TemplateNodeFrameData::default(),
         frame: to_host_contract_template_frame(&data.frame),
@@ -158,7 +167,18 @@ mod tests {
             control_id: "SearchEdited".into(),
             role: "InputField".into(),
             component_role: "input-field".into(),
+            component_variant: "outlined".into(),
             value_text: "albedo".into(),
+            value_number: 42.0,
+            value_percent: 0.42,
+            z_index: 17,
+            transition_kind: "fade".into(),
+            transition_in: true,
+            transition_entered: false,
+            transition_progress: 0.5,
+            transition_duration_ms: 225,
+            transition_easing: "cubic-bezier(0.4, 0, 0.2, 1)".into(),
+            popup_open: true,
             dispatch_kind: "asset".into(),
             binding_id: "AssetSurface/SearchEdited".into(),
             edit_action_id: "AssetSurface/SearchEdited".into(),
@@ -169,7 +189,21 @@ mod tests {
         let node = to_host_contract_template_node(&data);
 
         assert_eq!(node.component_role.as_str(), "input-field");
+        assert_eq!(node.component_variant.as_str(), "outlined");
         assert_eq!(node.value_text.as_str(), "albedo");
+        assert_eq!(node.value_number, 42.0);
+        assert_eq!(node.value_percent, 0.42);
+        assert_eq!(node.z_index, 17);
+        assert_eq!(node.transition_kind.as_str(), "fade");
+        assert!(node.transition_in);
+        assert!(!node.transition_entered);
+        assert_eq!(node.transition_progress, 0.5);
+        assert_eq!(node.transition_duration_ms, 225);
+        assert_eq!(
+            node.transition_easing.as_str(),
+            "cubic-bezier(0.4, 0, 0.2, 1)"
+        );
+        assert!(node.popup_open);
         assert_eq!(node.dispatch_kind.as_str(), "asset");
         assert_eq!(node.binding_id.as_str(), "AssetSurface/SearchEdited");
         assert_eq!(node.edit_action_id.as_str(), "AssetSurface/SearchEdited");

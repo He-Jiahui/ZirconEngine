@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::ecs::UiEcsProjectionSnapshot;
 use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
 use crate::ui::layout::{UiFrame, UiLayoutEngineSelectionReport};
+use crate::ui::pipeline::UiPipelineFrameReport;
 use crate::ui::tree::{UiDirtyFlags, UiInputPolicy, UiVisibility};
 
 use super::{
@@ -68,6 +70,10 @@ pub struct UiSurfaceDebugSnapshot {
     pub rebuild: UiSurfaceRebuildDebugStats,
     #[serde(default)]
     pub layout_engine_report: UiLayoutEngineSelectionReport,
+    #[serde(default)]
+    pub pipeline_report: UiPipelineFrameReport,
+    #[serde(default)]
+    pub ecs_projection: UiEcsProjectionSnapshot,
     pub render: UiRenderDebugStats,
     #[serde(default)]
     pub render_batches: UiRenderDebugSnapshot,

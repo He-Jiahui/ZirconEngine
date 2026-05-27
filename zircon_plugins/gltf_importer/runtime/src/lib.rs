@@ -1,13 +1,17 @@
 mod subassets;
 
+use std::collections::BTreeMap;
+
 use subassets::{
     add_gltf_animation_and_skin_placeholders, add_gltf_material_subassets, add_gltf_mesh_subassets,
     add_gltf_scene_subassets, add_gltf_texture_subassets, GltfMeshSubasset, GltfPrimitiveSubasset,
 };
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetKind, FunctionAssetImporter, ImportedAsset, MeshVertex,
-    ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    AssetImporterDescriptor, AssetKind, FunctionAssetImporter, ImportedAsset, MeshAttributeValues,
+    MeshMorphTargetAsset, MeshSkinAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 use zircon_runtime::core::ModuleDescriptor;
@@ -124,6 +128,7 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
     let mut primitives = Vec::new();
     let mut meshes = Vec::new();
+    let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
 
     for mesh in document.meshes() {
@@ -183,11 +188,13 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
                 material_index: primitive.material().index(),
+                morph_targets: morph_targets_from_reader(&reader),
                 primitive: primitive_asset,
             });
         }
         meshes.push(GltfMeshSubasset {
             mesh_index: mesh.index(),
+            skin: mesh_skins.get(&mesh.index()).cloned(),
             primitives: mesh_primitives,
         });
     }
@@ -203,6 +210,73 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_animation_and_skin_placeholders(outcome, &context.uri, &document);
     Ok(outcome)
+}
+
+fn morph_targets_from_reader<'a, 's, F>(
+    reader: &gltf::mesh::Reader<'a, 's, F>,
+) -> Vec<MeshMorphTargetAsset>
+where
+    F: Clone + Fn(gltf::Buffer<'a>) -> Option<&'s [u8]>,
+{
+    reader
+        .read_morph_targets()
+        .enumerate()
+        .filter_map(|(index, (positions, normals, tangents))| {
+            let mut attributes = BTreeMap::new();
+            if let Some(positions) = positions {
+                attributes.insert(
+                    MESH_ATTRIBUTE_POSITION.to_string(),
+                    MeshAttributeValues::Float32x3(positions.collect()),
+                );
+            }
+            if let Some(normals) = normals {
+                attributes.insert(
+                    MESH_ATTRIBUTE_NORMAL.to_string(),
+                    MeshAttributeValues::Float32x3(normals.collect()),
+                );
+            }
+            if let Some(tangents) = tangents {
+                attributes.insert(
+                    MESH_ATTRIBUTE_TANGENT.to_string(),
+                    MeshAttributeValues::Float32x3(tangents.collect()),
+                );
+            }
+            (!attributes.is_empty()).then(|| MeshMorphTargetAsset {
+                name: Some(format!("MorphTarget{index}")),
+                attributes,
+            })
+        })
+        .collect()
+}
+
+fn mesh_skin_assets_by_mesh(
+    document: &gltf::Document,
+    buffers: &[gltf::buffer::Data],
+) -> BTreeMap<usize, MeshSkinAsset> {
+    let mut mesh_skins = BTreeMap::new();
+    for node in document.nodes() {
+        let Some(mesh) = node.mesh() else {
+            continue;
+        };
+        let Some(skin) = node.skin() else {
+            continue;
+        };
+        let Some(matrices) = skin
+            .reader(|buffer| Some(&buffers[buffer.index()].0))
+            .read_inverse_bind_matrices()
+        else {
+            continue;
+        };
+
+        // MeshAsset has one optional skin payload today, so keep the first
+        // node-level binding until dedicated Skin subassets carry richer links.
+        mesh_skins
+            .entry(mesh.index())
+            .or_insert_with(|| MeshSkinAsset {
+                inverse_bind_matrices: matrices.collect(),
+            });
+    }
+    mesh_skins
 }
 
 fn primitive_from_indexed_mesh(
@@ -430,7 +504,27 @@ mod tests {
             other => panic!("unexpected Mesh0 asset: {other:?}"),
         }
         match &entry_for_label(&outcome, "Mesh0/Primitive0").asset {
-            ImportedAsset::Mesh(mesh) => assert_eq!(mesh.vertex_count().unwrap(), 3),
+            ImportedAsset::Mesh(mesh) => {
+                assert_eq!(mesh.vertex_count().unwrap(), 3);
+                assert_eq!(
+                    mesh.skin
+                        .as_ref()
+                        .expect("skinned gltf mesh primitive should keep inverse bind matrices")
+                        .inverse_bind_matrices,
+                    vec![identity_bind_matrix()]
+                );
+                assert_eq!(mesh.morph_targets.len(), 1);
+                assert_eq!(
+                    mesh.morph_targets[0]
+                        .attributes
+                        .get(MESH_ATTRIBUTE_POSITION),
+                    Some(&MeshAttributeValues::Float32x3(vec![
+                        [0.1, 0.0, 0.0],
+                        [0.0, 0.1, 0.0],
+                        [0.0, 0.0, 0.1],
+                    ]))
+                );
+            }
             other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
         }
         match &entry_for_label(&outcome, "Node0").asset {
@@ -486,6 +580,15 @@ mod tests {
         AssetUri::parse("res://shaders/default_pbr.zshader").unwrap()
     }
 
+    fn identity_bind_matrix() -> [[f32; 4]; 4] {
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    }
+
     fn unique_temp_root(label: &str) -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -522,6 +625,9 @@ mod tests {
         for value in [0.0_f32, 0.0, 0.0] {
             bytes.extend_from_slice(&value.to_le_bytes());
         }
+        for value in [0.1_f32, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.1] {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
         fs::write(&buffer_path, bytes).unwrap();
 
         fs::write(
@@ -529,14 +635,15 @@ mod tests {
             r#"{
   "asset": { "version": "2.0" },
   "buffers": [
-    { "uri": "triangle.bin", "byteLength": 124 }
+    { "uri": "triangle.bin", "byteLength": 160 }
   ],
   "bufferViews": [
     { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
     { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 },
     { "buffer": 0, "byteOffset": 44, "byteLength": 64 },
     { "buffer": 0, "byteOffset": 108, "byteLength": 4 },
-    { "buffer": 0, "byteOffset": 112, "byteLength": 12 }
+    { "buffer": 0, "byteOffset": 112, "byteLength": 12 },
+    { "buffer": 0, "byteOffset": 124, "byteLength": 36, "target": 34962 }
   ],
   "accessors": [
     {
@@ -572,6 +679,12 @@ mod tests {
       "componentType": 5126,
       "count": 1,
       "type": "VEC3"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3"
     }
   ],
   "images": [
@@ -600,7 +713,8 @@ mod tests {
         {
           "attributes": { "POSITION": 0 },
           "indices": 1,
-          "material": 0
+          "material": 0,
+          "targets": [{ "POSITION": 5 }]
         }
       ]
     }

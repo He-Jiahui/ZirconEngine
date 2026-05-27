@@ -4,6 +4,7 @@ use super::support::*;
 use crate::ui::template_runtime::{RetainedUiHostModel, RetainedUiHostNodeProjection};
 
 const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
+const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
 fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks() {
@@ -116,7 +117,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
     assert_eq!(open_project.parent_id.as_deref(), Some("root.0.0"));
     assert_eq!(
         open_project.attributes.get("icon"),
-        Some(&Value::String("folder-open-outline".to_string()))
+        Some(&Value::String(OPEN_PROJECT_ICON.to_string()))
     );
     assert_eq!(
         open_project.attributes.get("label"),
@@ -179,7 +180,7 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
         .any(|entry: &String| entry.starts_with("WorkbenchMenuBar/OpenProject@")));
     assert!(snapshot
         .attribute_entries
-        .contains(&"root.0.0.0.icon=folder-open-outline".to_string()));
+        .contains(&format!("root.0.0.0.icon={OPEN_PROJECT_ICON}")));
     assert!(snapshot
         .attribute_entries
         .contains(&"root.0.4.0.text=Ready".to_string()));
@@ -285,7 +286,7 @@ fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
     assert_eq!(open_project.parent_id.as_deref(), Some("root.0.0"));
     assert_eq!(open_project.kind, RetainedUiHostComponentKind::IconButton);
     assert_eq!(open_project.text.as_deref(), Some("Open"));
-    assert_eq!(open_project.icon.as_deref(), Some("folder-open-outline"));
+    assert_eq!(open_project.icon.as_deref(), Some(OPEN_PROJECT_ICON));
     assert_eq!(
         open_project.properties.get("label").cloned().unwrap(),
         RetainedUiHostValue::String("Open".to_string())
@@ -407,7 +408,7 @@ fn editor_ui_host_runtime_builds_retained_host_projection_and_snapshot() {
         .contains(&"root.0.0.0=Open".to_string()));
     assert!(snapshot
         .icon_entries
-        .contains(&"root.0.0.0=folder-open-outline".to_string()));
+        .contains(&format!("root.0.0.0={OPEN_PROJECT_ICON}")));
     assert!(snapshot
         .route_bindings
         .iter()

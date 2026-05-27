@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use zircon_plugin_net_runtime::DefaultNetManager;
@@ -6,6 +6,8 @@ use zircon_runtime::core::framework::net::{
     NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
     NetHttpRouteDescriptor, NetManager, NetRequestId, NetSecurityPolicy,
 };
+
+use crate::backend::HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES;
 
 use super::{
     http_runtime_manager, plugin_feature_registration, NET_HTTP_FEATURE_CAPABILITY,
@@ -156,4 +158,96 @@ fn http_feature_manager_retries_transient_server_statuses() {
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body, b"ok-after-retry");
     assert_eq!(attempts.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn http_feature_manager_forwards_headers_and_body_to_socket_route_handlers() {
+    let net = http_runtime_manager();
+    let saw_header = Arc::new(AtomicBool::new(false));
+    let saw_body = Arc::new(AtomicBool::new(false));
+    let saw_header_for_handler = saw_header.clone();
+    let saw_body_for_handler = saw_body.clone();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/inspect", [NetHttpMethod::Post]),
+        move |request| {
+            saw_header_for_handler.store(
+                request.headers.iter().any(|(name, value)| {
+                    name.eq_ignore_ascii_case("x-zircon-test") && value == "present"
+                }),
+                Ordering::SeqCst,
+            );
+            saw_body_for_handler.store(request.body == b"request-body", Ordering::SeqCst);
+            NetHttpResponseDescriptor::new(request.request, 204, Vec::new())
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(35),
+                NetHttpMethod::Post,
+                format!("http://{}:{}/inspect", endpoint.host, endpoint.port),
+            )
+            .with_header("x-zircon-test", "present")
+            .with_body(b"request-body".to_vec()),
+        )
+        .unwrap();
+
+    assert_eq!(response.status_code, 204);
+    assert!(saw_header.load(Ordering::SeqCst));
+    assert!(saw_body.load(Ordering::SeqCst));
+}
+
+#[test]
+fn http_feature_manager_rejects_oversized_route_body_before_handler_dispatch() {
+    let net = http_runtime_manager();
+    let handler_called = Arc::new(AtomicBool::new(false));
+    let handler_called_for_handler = handler_called.clone();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/limited", [NetHttpMethod::Post]),
+        move |request| {
+            handler_called_for_handler.store(true, Ordering::SeqCst);
+            NetHttpResponseDescriptor::new(request.request, 204, Vec::new())
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(36),
+                NetHttpMethod::Post,
+                format!("http://{}:{}/limited", endpoint.host, endpoint.port),
+            )
+            .with_body(vec![b'x'; HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES + 1]),
+        )
+        .unwrap();
+
+    assert_eq!(response.status_code, 413);
+    assert!(!handler_called.load(Ordering::SeqCst));
+}
+
+#[test]
+fn http_feature_manager_matches_route_before_applying_body_limit() {
+    let net = http_runtime_manager();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(37),
+                NetHttpMethod::Post,
+                format!("http://{}:{}/missing", endpoint.host, endpoint.port),
+            )
+            .with_body(vec![b'x'; HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES + 1]),
+        )
+        .unwrap();
+
+    assert_eq!(response.status_code, 404);
 }

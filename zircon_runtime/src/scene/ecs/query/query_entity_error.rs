@@ -6,6 +6,7 @@ use crate::scene::EntityId;
 pub enum QueryEntityError {
     NotSpawned(EntityId),
     QueryDoesNotMatch(EntityId),
+    DuplicateEntity(EntityId),
     AliasedMutability(EntityId),
 }
 
@@ -15,6 +16,9 @@ impl fmt::Display for QueryEntityError {
             Self::NotSpawned(entity) => write!(formatter, "entity {entity} is not spawned"),
             Self::QueryDoesNotMatch(entity) => {
                 write!(formatter, "query does not match entity {entity}")
+            }
+            Self::DuplicateEntity(entity) => {
+                write!(formatter, "entity {entity} was requested more than once")
             }
             Self::AliasedMutability(entity) => {
                 write!(

@@ -1,5 +1,12 @@
 use super::*;
 
+use zircon_runtime_interface::{
+    ZrByteSlice, ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1, ZrStatus,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
+};
+
+static ABI_CALLBACK_FAILURE_DETAIL: &[u8] = b"abi callback rejected event";
+
 #[test]
 fn dynamic_event_registry_accepts_descriptors_and_drains_invocations() {
     let sound = DefaultSoundManager::default();
@@ -458,4 +465,121 @@ fn configure_mixer_removes_executors_for_removed_dynamic_events() {
         report.executions[0].status,
         SoundDynamicEventExecutionStatus::SkippedMissingExecutor
     );
+}
+
+#[test]
+fn dynamic_event_abi_callback_receives_projected_delivery_request() {
+    let sound = DefaultSoundManager::default();
+    register_abi_event_and_handler(&sound, "abi_plugin", "abi_handler");
+    sound
+        .register_dynamic_event_abi_callback("abi_plugin", "abi_handler", capture_abi_callback)
+        .unwrap();
+    sound
+        .submit_dynamic_event(SoundDynamicEventInvocation {
+            event_id: "sound.dynamic.abi".to_string(),
+            source_path: Some("Timeline/Combat/Impact".to_string()),
+            time_seconds: 2.5,
+            payload_schema: "sound.dynamic.abi.v1".to_string(),
+            payload: b"payload".to_vec(),
+        })
+        .unwrap();
+
+    let report = sound.execute_dynamic_events().unwrap();
+
+    assert_eq!(report.executions.len(), 1);
+    assert_eq!(
+        report.executions[0].status,
+        SoundDynamicEventExecutionStatus::Succeeded
+    );
+}
+
+#[test]
+fn dynamic_event_abi_callback_failure_maps_to_handler_failure_detail() {
+    let sound = DefaultSoundManager::default();
+    register_abi_event_and_handler(&sound, "abi_plugin", "abi_handler");
+    sound
+        .register_dynamic_event_abi_callback("abi_plugin", "abi_handler", failing_abi_callback)
+        .unwrap();
+    sound
+        .submit_dynamic_event(SoundDynamicEventInvocation {
+            event_id: "sound.dynamic.abi".to_string(),
+            source_path: None,
+            time_seconds: 0.0,
+            payload_schema: "sound.dynamic.abi.v1".to_string(),
+            payload: Vec::new(),
+        })
+        .unwrap();
+
+    let report = sound.execute_dynamic_events().unwrap();
+
+    assert_eq!(report.executions.len(), 1);
+    assert_eq!(
+        report.executions[0].status,
+        SoundDynamicEventExecutionStatus::Failed
+    );
+    assert_eq!(
+        report.executions[0].detail.as_deref(),
+        Some("abi callback rejected event")
+    );
+}
+
+fn register_abi_event_and_handler(sound: &DefaultSoundManager, plugin_id: &str, handler_id: &str) {
+    sound
+        .register_dynamic_event(SoundDynamicEventDescriptor {
+            id: "sound.dynamic.abi".to_string(),
+            display_name: "ABI Event".to_string(),
+            payload_schema: "sound.dynamic.abi.v1".to_string(),
+        })
+        .unwrap();
+    sound
+        .register_dynamic_event_handler(SoundDynamicEventHandlerDescriptor {
+            plugin_id: plugin_id.to_string(),
+            handler_id: handler_id.to_string(),
+            event_id: "sound.dynamic.abi".to_string(),
+            display_name: "ABI Handler".to_string(),
+            priority: 0,
+        })
+        .unwrap();
+}
+
+unsafe extern "C" fn capture_abi_callback(
+    request: ZrPluginEventCallbackRequestV1,
+    result: *mut ZrPluginEventCallbackResultV1,
+) -> ZrStatus {
+    assert!(!result.is_null());
+    assert_eq!(request.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(
+        unsafe { request.namespace.as_slice() },
+        b"sound.dynamic_events"
+    );
+    assert_eq!(unsafe { request.plugin_id.as_slice() }, b"abi_plugin");
+    assert_eq!(unsafe { request.handler_id.as_slice() }, b"abi_handler");
+    assert_eq!(unsafe { request.event_id.as_slice() }, b"sound.dynamic.abi");
+    assert_eq!(
+        unsafe { request.source_path.as_slice() },
+        b"Timeline/Combat/Impact"
+    );
+    assert_eq!(request.time_seconds, 2.5);
+    assert_eq!(
+        unsafe { request.payload_schema.as_slice() },
+        b"sound.dynamic.abi.v1"
+    );
+    assert_eq!(unsafe { request.payload.as_slice() }, b"payload");
+    unsafe {
+        *result = ZrPluginEventCallbackResultV1::ok(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    }
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn failing_abi_callback(
+    _request: ZrPluginEventCallbackRequestV1,
+    result: *mut ZrPluginEventCallbackResultV1,
+) -> ZrStatus {
+    unsafe {
+        *result = ZrPluginEventCallbackResultV1::failed(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            ZrByteSlice::from_static(ABI_CALLBACK_FAILURE_DETAIL),
+        );
+    }
+    ZrStatus::ok()
 }

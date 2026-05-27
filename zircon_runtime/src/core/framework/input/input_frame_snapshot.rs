@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ButtonInputState, FileDragDropEvent, GamepadAxisState, GamepadId, ImeDeleteSurrounding,
-    ImeHostRequest, ImePreedit, InputButton, MouseScrollUnit, MouseWheelEvent, TouchPoint,
-    WindowStatusEvent,
+    ButtonInputState, FileDragDropEvent, GamepadAxisState, GamepadButtonValueState, GamepadId,
+    GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton,
+    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -19,6 +19,8 @@ pub struct InputFrameSnapshot {
     pub active_touches: Vec<TouchPoint>,
     pub connected_gamepads: Vec<GamepadId>,
     pub gamepad_axes: Vec<GamepadAxisState>,
+    pub gamepad_button_values: Vec<GamepadButtonValueState>,
+    pub gamepad_rumble_requests: Vec<GamepadRumbleRequest>,
     pub ime_enabled: bool,
     pub ime_preedit: Option<ImePreedit>,
     pub ime_commits: Vec<String>,
@@ -42,6 +44,8 @@ impl Default for InputFrameSnapshot {
             active_touches: Vec::new(),
             connected_gamepads: Vec::new(),
             gamepad_axes: Vec::new(),
+            gamepad_button_values: Vec::new(),
+            gamepad_rumble_requests: Vec::new(),
             ime_enabled: false,
             ime_preedit: None,
             ime_commits: Vec::new(),

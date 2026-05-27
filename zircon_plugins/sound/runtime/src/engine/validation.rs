@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::sound::{
-    SoundEffectDescriptor, SoundEffectKind, SoundError, SoundMixerGraph, SoundTrackId,
+    SoundEffectDescriptor, SoundEffectKind, SoundError, SoundMixerGraph, SoundTrackDescriptor,
+    SoundTrackId, SoundTrackSend,
 };
 
 pub(crate) fn validate_graph(graph: &SoundMixerGraph) -> Result<(), SoundError> {
@@ -21,6 +22,7 @@ pub(crate) fn validate_graph(graph: &SoundMixerGraph) -> Result<(), SoundError> 
         ));
     }
     for track in &graph.tracks {
+        validate_track_controls(track)?;
         if let Some(parent) = track.parent {
             if !track_ids.contains(&parent) {
                 return Err(SoundError::UnknownTrack { track: parent });
@@ -32,6 +34,7 @@ pub(crate) fn validate_graph(graph: &SoundMixerGraph) -> Result<(), SoundError> 
             }
         }
         for send in &track.sends {
+            validate_track_send(track, send)?;
             if !track_ids.contains(&send.target) {
                 return Err(SoundError::UnknownTrack { track: send.target });
             }
@@ -57,37 +60,182 @@ pub(crate) fn validate_graph(graph: &SoundMixerGraph) -> Result<(), SoundError> 
 }
 
 pub(crate) fn validate_effect(effect: &SoundEffectDescriptor) -> Result<(), SoundError> {
-    if !(0.0..=1.0).contains(&effect.wet) {
+    if !effect.wet.is_finite() || !(0.0..=1.0).contains(&effect.wet) {
         return Err(SoundError::InvalidEffect(format!(
-            "effect {} wet mix must be between 0 and 1",
+            "effect {} wet mix must be finite and between 0 and 1",
             effect.display_name
         )));
     }
     match &effect.kind {
-        SoundEffectKind::Compressor(compressor) if compressor.ratio < 1.0 => Err(
-            SoundError::InvalidEffect("compressor ratio must be at least 1".to_string()),
-        ),
-        SoundEffectKind::Filter(filter)
+        SoundEffectKind::Gain(gain) => validate_finite_effect_value(effect, "gain", gain.gain),
+        SoundEffectKind::Filter(filter) => {
             if !filter.cutoff_hz.is_finite()
                 || filter.cutoff_hz <= 0.0
                 || !filter.resonance.is_finite()
-                || !filter.gain_db.is_finite() =>
-        {
-            Err(SoundError::InvalidEffect(
-                "filter cutoff, resonance, and gain must be finite, with positive cutoff"
-                    .to_string(),
-            ))
+                || filter.resonance < 0.0
+                || !filter.gain_db.is_finite()
+            {
+                return Err(SoundError::InvalidEffect(
+                    "filter cutoff, resonance, and gain must be finite, with positive cutoff and non-negative resonance"
+                        .to_string(),
+                ));
+            }
+            Ok(())
         }
-        SoundEffectKind::Limiter(limiter) if limiter.ceiling <= 0.0 => Err(
-            SoundError::InvalidEffect("limiter ceiling must be positive".to_string()),
-        ),
-        SoundEffectKind::Chorus(chorus) if chorus.voices == 0 => Err(SoundError::InvalidEffect(
-            "chorus must have at least one voice".to_string(),
-        )),
-        SoundEffectKind::PanStereo(pan) if pan.width < 0.0 => Err(SoundError::InvalidEffect(
-            "stereo width cannot be negative".to_string(),
-        )),
-        _ => Ok(()),
+        SoundEffectKind::Reverb(reverb) => {
+            validate_unit_effect_value(effect, "room size", reverb.room_size)?;
+            validate_unit_effect_value(effect, "damping", reverb.damping)
+        }
+        SoundEffectKind::ConvolutionReverb(_) => Ok(()),
+        SoundEffectKind::Compressor(compressor) => {
+            validate_finite_effect_value(effect, "threshold dB", compressor.threshold_db)?;
+            validate_finite_effect_value(effect, "ratio", compressor.ratio)?;
+            if compressor.ratio < 1.0 {
+                return Err(SoundError::InvalidEffect(
+                    "compressor ratio must be at least 1".to_string(),
+                ));
+            }
+            validate_non_negative_effect_value(effect, "attack ms", compressor.attack_ms)?;
+            validate_non_negative_effect_value(effect, "release ms", compressor.release_ms)?;
+            validate_finite_effect_value(effect, "makeup gain dB", compressor.makeup_gain_db)
+        }
+        SoundEffectKind::WaveShaper(shaper) => {
+            validate_non_negative_effect_value(effect, "drive", shaper.drive)
+        }
+        SoundEffectKind::Flanger(flanger) => {
+            validate_non_negative_effect_value(effect, "rate Hz", flanger.rate_hz)?;
+            validate_feedback_effect_value(effect, "feedback", flanger.feedback)
+        }
+        SoundEffectKind::Phaser(phaser) => {
+            validate_non_negative_effect_value(effect, "rate Hz", phaser.rate_hz)?;
+            validate_unit_effect_value(effect, "depth", phaser.depth)?;
+            validate_feedback_effect_value(effect, "feedback", phaser.feedback)?;
+            validate_finite_effect_value(effect, "phase offset", phaser.phase_offset)
+        }
+        SoundEffectKind::Chorus(chorus) => {
+            if chorus.voices == 0 {
+                return Err(SoundError::InvalidEffect(
+                    "chorus must have at least one voice".to_string(),
+                ));
+            }
+            validate_non_negative_effect_value(effect, "rate Hz", chorus.rate_hz)
+        }
+        SoundEffectKind::Delay(delay) => {
+            validate_feedback_effect_value(effect, "feedback", delay.feedback)
+        }
+        SoundEffectKind::PanStereo(pan) => {
+            validate_pan_value("stereo pan", pan.pan).map_err(SoundError::InvalidEffect)?;
+            validate_non_negative_effect_value(effect, "stereo width", pan.width)?;
+            validate_finite_effect_value(effect, "left gain", pan.left_gain)?;
+            validate_finite_effect_value(effect, "right gain", pan.right_gain)
+        }
+        SoundEffectKind::Limiter(limiter) => {
+            if !limiter.ceiling.is_finite() || limiter.ceiling <= 0.0 {
+                return Err(SoundError::InvalidEffect(
+                    "limiter ceiling must be finite and positive".to_string(),
+                ));
+            }
+            Ok(())
+        }
+    }
+}
+
+fn validate_track_controls(track: &SoundTrackDescriptor) -> Result<(), SoundError> {
+    let controls = track.controls;
+    let gain = controls.gain;
+    let pan = controls.pan;
+    let left_gain = controls.left_gain;
+    let right_gain = controls.right_gain;
+    if !gain.is_finite() || !left_gain.is_finite() || !right_gain.is_finite() {
+        return Err(SoundError::InvalidMixerGraph(format!(
+            "track {} controls gain and L/R trims must be finite",
+            track.display_name
+        )));
+    }
+    validate_pan_value("track pan", pan).map_err(SoundError::InvalidMixerGraph)
+}
+
+fn validate_track_send(
+    track: &SoundTrackDescriptor,
+    send: &SoundTrackSend,
+) -> Result<(), SoundError> {
+    if send.gain.is_finite() {
+        return Ok(());
+    }
+    Err(SoundError::InvalidMixerGraph(format!(
+        "track {} send gain to {:?} must be finite",
+        track.display_name, send.target
+    )))
+}
+
+fn validate_finite_effect_value(
+    effect: &SoundEffectDescriptor,
+    label: &str,
+    value: f32,
+) -> Result<(), SoundError> {
+    if value.is_finite() {
+        Ok(())
+    } else {
+        Err(SoundError::InvalidEffect(format!(
+            "effect {} {label} must be finite",
+            effect.display_name
+        )))
+    }
+}
+
+fn validate_non_negative_effect_value(
+    effect: &SoundEffectDescriptor,
+    label: &str,
+    value: f32,
+) -> Result<(), SoundError> {
+    validate_finite_effect_value(effect, label, value)?;
+    if value >= 0.0 {
+        Ok(())
+    } else {
+        Err(SoundError::InvalidEffect(format!(
+            "effect {} {label} must be non-negative",
+            effect.display_name
+        )))
+    }
+}
+
+fn validate_unit_effect_value(
+    effect: &SoundEffectDescriptor,
+    label: &str,
+    value: f32,
+) -> Result<(), SoundError> {
+    validate_finite_effect_value(effect, label, value)?;
+    if (0.0..=1.0).contains(&value) {
+        Ok(())
+    } else {
+        Err(SoundError::InvalidEffect(format!(
+            "effect {} {label} must be between 0 and 1",
+            effect.display_name
+        )))
+    }
+}
+
+fn validate_feedback_effect_value(
+    effect: &SoundEffectDescriptor,
+    label: &str,
+    value: f32,
+) -> Result<(), SoundError> {
+    validate_finite_effect_value(effect, label, value)?;
+    if (0.0..=0.99).contains(&value) {
+        Ok(())
+    } else {
+        Err(SoundError::InvalidEffect(format!(
+            "effect {} {label} must be between 0 and 0.99",
+            effect.display_name
+        )))
+    }
+}
+
+fn validate_pan_value(label: &str, value: f32) -> Result<(), String> {
+    if value.is_finite() && (-1.0..=1.0).contains(&value) {
+        Ok(())
+    } else {
+        Err(format!("{label} must be finite and between -1 and 1"))
     }
 }
 

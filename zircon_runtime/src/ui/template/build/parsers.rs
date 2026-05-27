@@ -2,8 +2,8 @@ use toml::Value;
 
 use zircon_runtime_interface::ui::layout::{
     AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiContainerKind, UiGridBoxConfig,
-    UiLinearBoxConfig, UiScrollableBoxConfig, UiScrollbarVisibility, UiSizeBoxConfig,
-    UiVirtualListConfig, UiWrapBoxConfig,
+    UiLinearBoxConfig, UiMasonryBoxConfig, UiScrollableBoxConfig, UiScrollbarVisibility,
+    UiSizeBoxConfig, UiVirtualListConfig, UiWrapBoxConfig,
 };
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
@@ -123,6 +123,15 @@ pub(super) fn parse_container(
             row_gap: parse_f32(table.get("row_gap"))
                 .or_else(|| parse_f32(table.get("gap")))
                 .unwrap_or(0.0),
+        }),
+        "Masonry" | "MasonryBox" => UiContainerKind::MasonryBox(UiMasonryBoxConfig {
+            columns: parse_usize(table.get("columns"), node_path, "container.columns")?
+                .unwrap_or(UiMasonryBoxConfig::default().columns)
+                .max(1),
+            gap: parse_f32(table.get("gap"))
+                .or_else(|| parse_f32(table.get("spacing")))
+                .unwrap_or(0.0),
+            sequential: parse_bool(table.get("sequential")).unwrap_or(false),
         }),
         other => {
             return Err(UiTemplateBuildError::InvalidLayoutContract {

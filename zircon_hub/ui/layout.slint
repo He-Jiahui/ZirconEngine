@@ -1,12 +1,22 @@
-import { HorizontalDivider, ScrollView, VerticalDivider } from "@material";
+import { HorizontalDivider, ScrollView, VerticalDivider } from "material_bridge.slint";
 import { HubTokens } from "tokens.slint";
 
 export component Fill inherits Rectangle {
+    in property <length> fill-spacing: HubTokens.space-0;
+
     horizontal-stretch: 1;
     vertical-stretch: 1;
     min-width: 1px;
     min-height: 0px;
     background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.fill-spacing;
+
+        @children
+    }
 }
 
 export component Divider inherits Rectangle {
@@ -79,13 +89,24 @@ export component ResponsiveSlot inherits Rectangle {
     in property <length> basis: HubTokens.panel-min-md;
     in property <float> grow: 1;
     in property <float> shrink: 1;
+    in property <int> order: 0;
 
-    flex-basis: root.basis;
-    flex-grow: root.grow;
-    flex-shrink: root.shrink;
     background: transparent;
 
     @children
+}
+
+export component ResponsiveState inherits Rectangle {
+    in property <length> viewport-width: 0px;
+    in property <length> viewport-height: 0px;
+    out property <bool> compact: root.viewport-width < HubTokens.breakpoint-compact;
+    out property <bool> medium: root.viewport-width < HubTokens.breakpoint-medium;
+    out property <bool> wide: root.viewport-width >= HubTokens.breakpoint-wide;
+    out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;
+
+    width: 0px;
+    height: 0px;
+    background: transparent;
 }
 
 export component PanelGrid inherits Rectangle {
@@ -142,7 +163,7 @@ export component Page inherits Rectangle {
 
             content-layout := VerticalLayout {
                 width: parent.width;
-                height: self.preferred-height;
+                height: parent.height;
                 padding-left: root.page-padding;
                 padding-right: root.page-padding;
                 padding-top: root.page-padding;
@@ -176,11 +197,12 @@ export component WorkspacePanelSection inherits Rectangle {
     in property <bool> compact-stack: true;
     in property <int> compact-rows: 2;
     in property <length> row-height: HubTokens.workspace-row-build-detail;
+    in property <length> compact-height-override: 0px;
     in property <length> spacing-horizontal: HubTokens.panel-gap;
     in property <length> spacing-vertical: HubTokens.panel-gap;
     private property <int> compact-row-count: root.compact-rows < 1 ? 1 : root.compact-rows;
     private property <length> compact-height: root.row-height * root.compact-row-count + root.spacing-vertical * (root.compact-row-count - 1);
-    private property <length> section-height: root.compact ? root.compact-height : root.row-height;
+    private property <length> section-height: root.compact ? (root.compact-height-override > 0px ? root.compact-height-override : root.compact-height) : root.row-height;
 
     min-width: 0px;
     preferred-width: 0px;

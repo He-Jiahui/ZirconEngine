@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiComponentEventReport, UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     surface::{UiArrangedNode, UiPointerRoute},
-    tree::UiTreeError,
+    tree::{UiTemplateNodeMetadata, UiTreeError},
     widget::UiWidgetBehavior,
 };
 
@@ -138,6 +138,15 @@ impl UiSurface {
         })
     }
 
+    pub(crate) fn default_popup_dismissal_target(
+        &self,
+        node_id: UiNodeId,
+    ) -> Result<Option<(UiNodeId, String)>, UiTreeError> {
+        Ok(self
+            .default_popup_ancestor_close(node_id)?
+            .map(|close| (close.popup_id, close.property)))
+    }
+
     pub(super) fn apply_default_menu_item_popup_close_pointer(
         &mut self,
         menu_item_id: UiNodeId,
@@ -231,7 +240,10 @@ impl UiSurface {
             return Ok(None);
         }
 
-        self.default_popup_ancestor_close_from_parent(menu_item.parent)
+        self.default_popup_ancestor_close_from_parent(
+            menu_item.parent,
+            UiDefaultPopupCloseReason::MenuItemActivation,
+        )
     }
 
     fn default_popup_ancestor_close(
@@ -242,19 +254,26 @@ impl UiSurface {
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        self.default_popup_ancestor_close_from_parent(Some(node_id))
-            .and_then(|close| {
-                if close.is_some() {
-                    Ok(close)
-                } else {
-                    self.default_popup_ancestor_close_from_parent(node.parent)
-                }
-            })
+        self.default_popup_ancestor_close_from_parent(
+            Some(node_id),
+            UiDefaultPopupCloseReason::EscapeDismissal,
+        )
+        .and_then(|close| {
+            if close.is_some() {
+                Ok(close)
+            } else {
+                self.default_popup_ancestor_close_from_parent(
+                    node.parent,
+                    UiDefaultPopupCloseReason::EscapeDismissal,
+                )
+            }
+        })
     }
 
     fn default_popup_ancestor_close_from_parent(
         &self,
         mut current: Option<UiNodeId>,
+        reason: UiDefaultPopupCloseReason,
     ) -> Result<Option<UiDefaultMenuPopupClose>, UiTreeError> {
         while let Some(node_id) = current {
             let node = self
@@ -275,6 +294,11 @@ impl UiSurface {
                         false,
                     );
                     if popup_open {
+                        if reason == UiDefaultPopupCloseReason::EscapeDismissal
+                            && !popup_escape_dismiss_enabled(metadata)
+                        {
+                            return Ok(None);
+                        }
                         return Ok(Some(UiDefaultMenuPopupClose {
                             popup_id: node_id,
                             property: property.to_string(),
@@ -317,6 +341,9 @@ impl UiSurface {
             if !popup_open || pointer_route_is_inside_popup(route, arranged) {
                 continue;
             }
+            if !popup_backdrop_click_enabled(metadata) {
+                return Ok(None);
+            }
             return Ok(Some(UiDefaultMenuPopupClose {
                 popup_id: node_id,
                 property: property.to_string(),
@@ -329,6 +356,36 @@ impl UiSurface {
 struct UiDefaultMenuPopupClose {
     popup_id: UiNodeId,
     property: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum UiDefaultPopupCloseReason {
+    MenuItemActivation,
+    EscapeDismissal,
+}
+
+fn popup_escape_dismiss_enabled(metadata: &UiTemplateNodeMetadata) -> bool {
+    !bool_attribute(metadata, "disable_escape_key_down")
+        && !bool_attribute(metadata, "disable_escape_dismiss")
+}
+
+fn popup_backdrop_click_enabled(metadata: &UiTemplateNodeMetadata) -> bool {
+    !matches!(
+        metadata
+            .attributes
+            .get("close_on_backdrop_click")
+            .and_then(toml::Value::as_bool),
+        Some(false)
+    ) && !bool_attribute(metadata, "disable_backdrop_click")
+        && !bool_attribute(metadata, "disable_outside_dismiss")
+}
+
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
+    metadata
+        .attributes
+        .get(key)
+        .and_then(toml::Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn pointer_route_is_inside_popup(route: &UiPointerRoute, popup: &UiArrangedNode) -> bool {

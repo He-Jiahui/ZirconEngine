@@ -16,7 +16,7 @@ pub use engine_entry::{
 };
 pub use entry_config::EntryConfig;
 pub use entry_profile::EntryProfile;
-pub use entry_runner::{EntryRunner, NativePluginRuntimeBootstrap};
+pub use entry_runner::{EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap};
 pub use first_party_runtime_plugins::{
     first_party_runtime_plugin_registrations_for_config,
     first_party_runtime_plugin_registrations_for_manifest,

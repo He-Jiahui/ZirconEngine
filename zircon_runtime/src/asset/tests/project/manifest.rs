@@ -61,7 +61,7 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
         ExportProfile::new(
             "server",
             RuntimeTargetMode::ServerRuntime,
-            ExportTargetPlatform::Linux,
+            ExportTargetPlatform::Headless,
         )
         .with_strategy(ExportPackagingStrategy::SourceTemplate),
     );
@@ -87,6 +87,10 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
 
     let server = ExportBuildPlan::from_project_manifest(&loaded, "server").unwrap();
     assert_eq!(server.profile.target_mode, RuntimeTargetMode::ServerRuntime);
+    assert_eq!(
+        server.profile.target_platform,
+        ExportTargetPlatform::Headless
+    );
     assert!(server
         .generated_files
         .iter()

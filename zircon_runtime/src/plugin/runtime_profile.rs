@@ -56,6 +56,19 @@ pub struct RuntimePluginAvailabilityReport {
     pub missing_required: Vec<RuntimePluginAvailabilityEntry>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimePluginAvailabilityCategory {
+    Available,
+    Linked,
+    NativeDynamic,
+    ExternalizedMissing,
+    Stub,
+    BlockedByTarget,
+    BlockedByMaturity,
+    MissingRequired,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimePluginAvailabilityEntry {
     pub id: String,
@@ -63,6 +76,88 @@ pub struct RuntimePluginAvailabilityEntry {
     pub required: bool,
     pub maturity: PluginMaturity,
     pub reason: String,
+}
+
+impl RuntimePluginAvailabilityReport {
+    pub fn has_missing_required(&self) -> bool {
+        !self.missing_required.is_empty()
+    }
+
+    pub fn entries(
+        &self,
+        category: RuntimePluginAvailabilityCategory,
+    ) -> &[RuntimePluginAvailabilityEntry] {
+        match category {
+            RuntimePluginAvailabilityCategory::Available => &self.available,
+            RuntimePluginAvailabilityCategory::Linked => &self.linked,
+            RuntimePluginAvailabilityCategory::NativeDynamic => &self.native_dynamic,
+            RuntimePluginAvailabilityCategory::ExternalizedMissing => &self.externalized_missing,
+            RuntimePluginAvailabilityCategory::Stub => &self.stub,
+            RuntimePluginAvailabilityCategory::BlockedByTarget => &self.blocked_by_target,
+            RuntimePluginAvailabilityCategory::BlockedByMaturity => &self.blocked_by_maturity,
+            RuntimePluginAvailabilityCategory::MissingRequired => &self.missing_required,
+        }
+    }
+
+    pub fn category_count(&self, category: RuntimePluginAvailabilityCategory) -> usize {
+        self.entries(category).len()
+    }
+
+    pub fn contains(
+        &self,
+        category: RuntimePluginAvailabilityCategory,
+        runtime_id: RuntimePluginId,
+    ) -> bool {
+        self.entries(category)
+            .iter()
+            .any(|entry| entry.runtime_id == runtime_id)
+    }
+
+    pub fn entry_for(
+        &self,
+        category: RuntimePluginAvailabilityCategory,
+        runtime_id: RuntimePluginId,
+    ) -> Option<&RuntimePluginAvailabilityEntry> {
+        self.entries(category)
+            .iter()
+            .find(|entry| entry.runtime_id == runtime_id)
+    }
+
+    pub fn diagnostic_lines(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+        self.push_diagnostic_lines(&mut lines);
+        lines
+    }
+
+    pub fn push_diagnostic_lines(&self, lines: &mut Vec<String>) {
+        push_availability_diagnostic_lines(lines, "available", &self.available);
+        push_availability_diagnostic_lines(lines, "linked", &self.linked);
+        push_availability_diagnostic_lines(lines, "native_dynamic", &self.native_dynamic);
+        push_availability_diagnostic_lines(
+            lines,
+            "externalized_missing",
+            &self.externalized_missing,
+        );
+        push_availability_diagnostic_lines(lines, "stub", &self.stub);
+        push_availability_diagnostic_lines(lines, "blocked_by_target", &self.blocked_by_target);
+        push_availability_diagnostic_lines(lines, "blocked_by_maturity", &self.blocked_by_maturity);
+        push_availability_diagnostic_lines(lines, "missing_required", &self.missing_required);
+    }
+}
+
+impl RuntimePluginAvailabilityCategory {
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Available => "available",
+            Self::Linked => "linked",
+            Self::NativeDynamic => "native_dynamic",
+            Self::ExternalizedMissing => "externalized_missing",
+            Self::Stub => "stub",
+            Self::BlockedByTarget => "blocked_by_target",
+            Self::BlockedByMaturity => "blocked_by_maturity",
+            Self::MissingRequired => "missing_required",
+        }
+    }
 }
 
 impl RuntimeProfilePluginSelection {
@@ -180,6 +275,19 @@ impl RuntimeProfileDescriptor {
         descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
         registrations: impl IntoIterator<Item = &'b RuntimePluginRegistrationReport>,
     ) -> RuntimePluginAvailabilityReport {
+        self.availability_report_for_manifest_and_registration_reports(
+            descriptors,
+            &self.project_manifest(),
+            registrations,
+        )
+    }
+
+    pub fn availability_report_for_manifest_and_registration_reports<'a, 'b>(
+        &self,
+        descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
+        manifest: &ProjectPluginManifest,
+        registrations: impl IntoIterator<Item = &'b RuntimePluginRegistrationReport>,
+    ) -> RuntimePluginAvailabilityReport {
         let mut linked_plugin_ids = Vec::new();
         let mut native_dynamic_plugin_ids = Vec::new();
         for registration in registrations {
@@ -200,15 +308,70 @@ impl RuntimeProfileDescriptor {
             push_provider_id(target_ids, &registration.package_manifest.id);
             push_provider_id(target_ids, &registration.project_selection.id);
         }
-        self.availability_report_with_providers(
+        self.availability_report_for_manifest_with_providers(
             descriptors,
+            manifest,
             linked_plugin_ids.iter(),
             native_dynamic_plugin_ids.iter(),
         )
     }
 
+    pub fn availability_report_for_manifest_with_providers<'a>(
+        &self,
+        descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
+        manifest: &ProjectPluginManifest,
+        linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        native_dynamic_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> RuntimePluginAvailabilityReport {
+        let mut plugins = Vec::<(RuntimePluginId, bool)>::new();
+        for selection in manifest.enabled_for_target(self.target_mode) {
+            let Some(runtime_id) = selection.runtime_id() else {
+                continue;
+            };
+            if let Some((_, required)) = plugins.iter_mut().find(|(id, _)| *id == runtime_id) {
+                *required = *required || selection.required;
+            } else {
+                plugins.push((runtime_id, selection.required));
+            }
+        }
+        self.availability_report_for_runtime_plugins_with_provider_gate(
+            plugins,
+            descriptors,
+            linked_plugin_ids,
+            native_dynamic_plugin_ids,
+            true,
+        )
+    }
+
     fn availability_report_with_provider_gate<'a>(
         &self,
+        descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
+        linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        native_dynamic_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        require_external_provider: bool,
+    ) -> RuntimePluginAvailabilityReport {
+        let plugins = self
+            .default_plugins
+            .iter()
+            .map(|plugin| (plugin.id, plugin.required))
+            .chain(
+                self.optional_plugins
+                    .iter()
+                    .copied()
+                    .map(|plugin_id| (plugin_id, false)),
+            );
+        self.availability_report_for_runtime_plugins_with_provider_gate(
+            plugins,
+            descriptors,
+            linked_plugin_ids,
+            native_dynamic_plugin_ids,
+            require_external_provider,
+        )
+    }
+
+    fn availability_report_for_runtime_plugins_with_provider_gate<'a>(
+        &self,
+        plugins: impl IntoIterator<Item = (RuntimePluginId, bool)>,
         descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
         linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
         native_dynamic_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
@@ -227,21 +390,10 @@ impl RuntimeProfileDescriptor {
             .map(|id| id.as_ref().to_string())
             .collect::<HashSet<_>>();
         let mut report = RuntimePluginAvailabilityReport::default();
-        for plugin in &self.default_plugins {
+        for (plugin_id, required) in plugins {
             self.report_plugin_availability(
-                plugin.id,
-                plugin.required,
-                &descriptors,
-                &linked_plugin_ids,
-                &native_dynamic_plugin_ids,
-                require_external_provider,
-                &mut report,
-            );
-        }
-        for plugin_id in &self.optional_plugins {
-            self.report_plugin_availability(
-                *plugin_id,
-                false,
+                plugin_id,
+                required,
                 &descriptors,
                 &linked_plugin_ids,
                 &native_dynamic_plugin_ids,
@@ -548,4 +700,21 @@ fn push_missing_required(
     if entry.required {
         missing_required.push(entry);
     }
+}
+
+fn push_availability_diagnostic_lines(
+    lines: &mut Vec<String>,
+    category: &str,
+    entries: &[RuntimePluginAvailabilityEntry],
+) {
+    lines.push(format!(
+        "runtime_plugin_availability.{category}.count={}",
+        entries.len()
+    ));
+    lines.extend(entries.iter().map(|entry| {
+        format!(
+            "runtime_plugin_availability.{category}={} required={} maturity={:?} reason={}",
+            entry.id, entry.required, entry.maturity, entry.reason
+        )
+    }));
 }

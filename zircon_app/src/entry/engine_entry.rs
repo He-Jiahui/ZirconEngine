@@ -10,7 +10,7 @@ use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
 };
-use zircon_runtime::plugin::RuntimeProfileId;
+use zircon_runtime::plugin::{RuntimePluginAvailabilityReport, RuntimeProfileId};
 use zircon_runtime::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
@@ -65,6 +65,7 @@ pub struct EntryModuleSelectionReport {
     pub platform_config: PlatformConfig,
     pub window_descriptor: WindowDescriptor,
     pub plugin_group: String,
+    pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
     pub modules: Vec<EntryModuleSelection>,
 }
 
@@ -90,6 +91,8 @@ impl EntryModuleSelectionReport {
         lines.extend(self.platform_config.diagnostic_lines());
         lines.extend(self.window_descriptor.diagnostic_lines());
         lines.push(format!("entry.plugin_group={}", self.plugin_group));
+        self.runtime_plugin_availability
+            .push_diagnostic_lines(&mut lines);
         lines.push(format!("entry.modules={}", self.modules.len()));
         lines.extend(
             self.modules
@@ -157,6 +160,7 @@ pub struct BuiltinEngineEntry {
     config: EntryConfig,
     profile: EntryProfile,
     plugin_group: ResolvedPluginGroup,
+    runtime_plugin_availability: RuntimePluginAvailabilityReport,
 }
 
 impl BuiltinEngineEntry {
@@ -165,11 +169,12 @@ impl BuiltinEngineEntry {
     }
 
     pub fn for_config(config: &EntryConfig) -> Result<Self, CoreError> {
-        let modules = builtin_modules_for_config(config)?;
+        let selection = builtin_modules_for_config(config)?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            plugin_group: plugin_group_for_config(config, modules)?,
+            plugin_group: plugin_group_for_config(config, selection.modules)?,
+            runtime_plugin_availability: selection.runtime_plugin_availability,
         })
     }
 
@@ -193,12 +198,13 @@ impl BuiltinEngineEntry {
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
     ) -> Result<Self, CoreError> {
         let registrations = registrations.into_iter().collect::<Vec<_>>();
-        let modules =
+        let selection =
             builtin_modules_for_config_with_runtime_plugin_registrations(config, &registrations)?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            plugin_group: plugin_group_for_config(config, modules)?,
+            plugin_group: plugin_group_for_config(config, selection.modules)?,
+            runtime_plugin_availability: selection.runtime_plugin_availability,
         })
     }
 
@@ -209,7 +215,7 @@ impl BuiltinEngineEntry {
     ) -> Result<Self, CoreError> {
         let registrations = registrations.into_iter().collect::<Vec<_>>();
         let feature_registrations = feature_registrations.into_iter().collect::<Vec<_>>();
-        let modules = builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
+        let selection = builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
             config,
             &registrations,
             &feature_registrations,
@@ -217,7 +223,8 @@ impl BuiltinEngineEntry {
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            plugin_group: plugin_group_for_config(config, modules)?,
+            plugin_group: plugin_group_for_config(config, selection.modules)?,
+            runtime_plugin_availability: selection.runtime_plugin_availability,
         })
     }
 
@@ -226,19 +233,24 @@ impl BuiltinEngineEntry {
         available_plugin_ids: impl IntoIterator<Item = String>,
     ) -> Result<Self, CoreError> {
         let available_plugin_ids = available_plugin_ids.into_iter().collect::<Vec<_>>();
-        let modules = builtin_modules_for_config_with_available_runtime_plugins(
+        let selection = builtin_modules_for_config_with_available_runtime_plugins(
             config,
             &available_plugin_ids,
         )?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            plugin_group: plugin_group_for_config(config, modules)?,
+            plugin_group: plugin_group_for_config(config, selection.modules)?,
+            runtime_plugin_availability: selection.runtime_plugin_availability,
         })
     }
 
     pub fn plugin_group(&self) -> &ResolvedPluginGroup {
         &self.plugin_group
+    }
+
+    pub fn runtime_plugin_availability(&self) -> &RuntimePluginAvailabilityReport {
+        &self.runtime_plugin_availability
     }
 
     pub fn module_selection_report(&self) -> EntryModuleSelectionReport {
@@ -250,6 +262,7 @@ impl BuiltinEngineEntry {
             platform_config: platform_config_for_entry_config(&self.config),
             window_descriptor: self.config.window_descriptor.clone(),
             plugin_group: self.plugin_group.name().to_string(),
+            runtime_plugin_availability: self.runtime_plugin_availability.clone(),
             modules: self
                 .module_descriptors()
                 .into_iter()

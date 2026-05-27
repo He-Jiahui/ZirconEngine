@@ -8,7 +8,7 @@ pub struct UiSelectorMatchNode<'a> {
     pub control_id: Option<&'a str>,
     pub classes: &'a [String],
     pub is_host: bool,
-    pub states: &'a [&'a str],
+    pub states: &'a [String],
 }
 
 pub(super) trait UiRuntimeSelectorMatchExt {
@@ -72,7 +72,7 @@ fn matches_segment(segment: &UiSelectorSegment, node: &UiSelectorMatchNode<'_>) 
             .iter()
             .any(|class| class.as_str() == class_name.as_str()),
         UiSelectorToken::Id(control_id) => node.control_id == Some(control_id.as_str()),
-        UiSelectorToken::State(state) => node.states.iter().any(|value| *value == state.as_str()),
+        UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
         UiSelectorToken::Part(_) => false,
         UiSelectorToken::Host => node.is_host,
     })

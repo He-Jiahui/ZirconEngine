@@ -1,11 +1,16 @@
 use crate::ui::{
-    dispatch::UiNavigationDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+    dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
+    surface::UiSurface,
+    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
-    binding::UiBindingSourceKind,
+    binding::{UiBindingSourceKind, UiEventKind},
+    component::{UiComponentEvent, UiDragPhase},
+    dispatch::{UiPointerDispatchResult, UiPointerEvent},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
-    surface::UiNavigationEventKind,
+    layout::{UiFrame, UiPoint},
+    surface::{UiNavigationEventKind, UiPointerButton, UiPointerEventKind},
+    template::UiBindingRef,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
@@ -45,6 +50,66 @@ fn range_home_and_end_navigation_use_authored_min_max_aliases() {
     assert!(!surface.dirty_flags().layout);
 }
 
+#[test]
+fn range_pointer_drag_reports_phase_and_distance_metrics() {
+    let mut surface = range_surface();
+
+    let down = press_primary(&mut surface, 68.0, 16.0);
+    assert_eq!(down.handled_by, Some(UiNodeId::new(2)));
+    assert_eq!(down.captured_by, Some(UiNodeId::new(2)));
+    assert!(down.component_events.iter().any(|event| {
+        event.binding_id == "Range/DragBegin"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::Begin
+                    && drag.start == UiPoint::new(68.0, 16.0)
+                    && drag.current == UiPoint::new(68.0, 16.0)
+                    && drag.distance == 0.0
+            })
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::BeginDrag { property } if property == "amount"
+            )
+    }));
+
+    let drag = move_pointer(&mut surface, 128.0, 16.0);
+    assert_eq!(drag.handled_by, Some(UiNodeId::new(2)));
+    assert_widget_binding_report(&drag.binding_reports);
+    assert!(drag.component_events.iter().any(|event| {
+        event.binding_id == "Range/DragUpdate"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::Update
+                    && drag.start == UiPoint::new(68.0, 16.0)
+                    && drag.current == UiPoint::new(128.0, 16.0)
+                    && drag.delta == UiPoint::new(60.0, 0.0)
+                    && (drag.distance - 60.0).abs() < f32::EPSILON
+            })
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::DragDelta { property, delta }
+                    if property == "amount" && (*delta - 50.0).abs() < f64::EPSILON
+            )
+    }));
+    assert_range_value(&surface, 100.0);
+
+    let up = release_primary(&mut surface, 128.0, 16.0);
+    assert_eq!(up.handled_by, Some(UiNodeId::new(2)));
+    assert_eq!(up.released_capture, Some(UiNodeId::new(2)));
+    assert!(up.component_events.iter().any(|event| {
+        event.binding_id == "Range/DragEnd"
+            && event.drag.as_ref().is_some_and(|drag| {
+                drag.phase == UiDragPhase::End
+                    && drag.start == UiPoint::new(68.0, 16.0)
+                    && drag.current == UiPoint::new(128.0, 16.0)
+                    && drag.delta == UiPoint::new(60.0, 0.0)
+                    && (drag.distance - 60.0).abs() < f32::EPSILON
+            })
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::EndDrag { property } if property == "amount"
+            )
+    }));
+}
+
 fn assert_widget_binding_report(
     reports: &[zircon_runtime_interface::ui::binding::UiBindingUpdateReport],
 ) {
@@ -71,6 +136,11 @@ fn range_surface() -> UiSurface {
                 .with_state_flags(focusable_state())
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "RuntimeMeter".to_string(),
+                    bindings: vec![
+                        binding("Range/DragBegin", UiEventKind::DragBegin),
+                        binding("Range/DragUpdate", UiEventKind::DragUpdate),
+                        binding("Range/DragEnd", UiEventKind::DragEnd),
+                    ],
                     attributes: toml::from_str(
                         "amount = 50.0\nlow = 0.0\nhigh = 100.0\nquantum = 5.0",
                     )
@@ -89,6 +159,45 @@ fn range_surface() -> UiSurface {
         .unwrap();
     surface.rebuild();
     surface
+}
+
+fn press_primary(surface: &mut UiSurface, x: f32, y: f32) -> UiPointerDispatchResult {
+    surface
+        .dispatch_pointer_event(
+            &UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(x, y))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap()
+}
+
+fn move_pointer(surface: &mut UiSurface, x: f32, y: f32) -> UiPointerDispatchResult {
+    surface
+        .dispatch_pointer_event(
+            &UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(x, y)),
+        )
+        .unwrap()
+}
+
+fn release_primary(surface: &mut UiSurface, x: f32, y: f32) -> UiPointerDispatchResult {
+    surface
+        .dispatch_pointer_event(
+            &UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Up, UiPoint::new(x, y))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap()
+}
+
+fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
+    UiBindingRef {
+        id: id.to_string(),
+        event,
+        route: Some(id.replace('/', ".")),
+        action: None,
+        targets: Vec::new(),
+    }
 }
 
 fn assert_range_value(surface: &UiSurface, expected: f64) {

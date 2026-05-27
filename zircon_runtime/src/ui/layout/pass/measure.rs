@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
         DesiredSize, UiAxis, UiContainerKind, UiGridBoxConfig, UiGridSlotPlacement, UiMargin,
-        UiSize,
+        UiMasonryBoxConfig, UiSize,
     },
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeError},
 };
@@ -131,6 +131,9 @@ fn measure_content_size(
         }
         UiContainerKind::GridBox(config) => {
             measure_grid_content_size(tree, node_id, config, child_desired)
+        }
+        UiContainerKind::MasonryBox(config) => {
+            measure_masonry_content_size(tree, node_id, config, child_desired)
         }
     };
 
@@ -381,6 +384,39 @@ fn measure_grid_content_size(
     )
 }
 
+fn measure_masonry_content_size(
+    tree: &UiTree,
+    parent_id: UiNodeId,
+    config: UiMasonryBoxConfig,
+    child_desired: &[(UiNodeId, DesiredSize)],
+) -> UiSize {
+    let container = UiContainerKind::MasonryBox(config);
+    let ordered_desired =
+        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
+    let columns = config.columns.max(1);
+    let gap = config.gap.max(0.0);
+    let mut column_widths = vec![0.0_f32; columns];
+    let mut column_heights = vec![0.0_f32; columns];
+    let mut column_counts = vec![0usize; columns];
+
+    for (index, (child_id, desired)) in ordered_desired.iter().copied().enumerate() {
+        let padding = slot_padding_for(tree, parent_id, child_id, container);
+        let column = masonry_target_column(index, config.sequential, &column_heights);
+        if column_counts[column] > 0 {
+            column_heights[column] += gap;
+        }
+        column_widths[column] = column_widths[column].max(desired.width + padding.horizontal());
+        column_heights[column] += desired.height + padding.vertical();
+        column_counts[column] += 1;
+    }
+
+    let used_columns = column_counts.iter().filter(|count| **count > 0).count();
+    UiSize::new(
+        column_widths.iter().sum::<f32>() + gap * used_columns.saturating_sub(1) as f32,
+        column_heights.iter().copied().fold(0.0_f32, f32::max),
+    )
+}
+
 fn wrap_measure_width(tree: &UiTree, parent_id: UiNodeId) -> f32 {
     let Some(node) = tree.node(parent_id) else {
         return UNBOUNDED_WRAP_MEASURE_WIDTH;
@@ -519,6 +555,20 @@ fn grid_placement_for_child(
 
     let columns = columns.max(1);
     UiGridSlotPlacement::new(index % columns, index / columns)
+}
+
+fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32]) -> usize {
+    if sequential {
+        return index % column_heights.len().max(1);
+    }
+
+    column_heights
+        .iter()
+        .copied()
+        .enumerate()
+        .min_by(|(_, left), (_, right)| left.total_cmp(right))
+        .map(|(column, _)| column)
+        .unwrap_or(0)
 }
 
 fn slot_padding_for(

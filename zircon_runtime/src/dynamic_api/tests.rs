@@ -8,20 +8,24 @@ use zircon_runtime_interface::{
     },
     ZrByteSlice, ZrHostApiV1, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
-    ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestKindV1,
+    ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
-use crate::core::framework::input::{ImeCursorArea, ImeHostRequest, ImeSurroundingText};
+use crate::core::framework::input::{
+    GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea, ImeHostRequest,
+    ImeSurroundingText,
+};
 
 use super::{
     frame::{
         encode_host_request_batch, free_runtime_accessibility_bytes,
         free_runtime_host_request_bytes,
     },
-    session::runtime_ime_host_request,
+    session::{runtime_gamepad_rumble_request, runtime_ime_host_request},
     zircon_runtime_get_api_v1,
 };
 
@@ -361,6 +365,51 @@ fn host_request_batch_encodes_runtime_ime_requests() {
 }
 
 #[test]
+fn host_request_batch_encodes_gamepad_rumble_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::gamepad_rumble(runtime_gamepad_rumble_request(
+                GamepadRumbleRequest::add(
+                    GamepadId(7),
+                    GamepadRumbleIntensity::new(1.25, -0.5),
+                    250,
+                ),
+            )),
+            ZrRuntimeHostRequestV1::gamepad_rumble(runtime_gamepad_rumble_request(
+                GamepadRumbleRequest::stop(GamepadId(7)),
+            )),
+        ],
+    );
+
+    let output = encode_host_request_batch(&batch).unwrap();
+    let batch = host_request_batch_from_output(output);
+
+    assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(batch.requests.len(), 2);
+    assert!(matches!(
+        batch.requests[0],
+        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
+            gamepad_id: 7,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Add,
+            strong_motor: 1.0,
+            weak_motor: 0.0,
+            duration_millis: 250,
+        })
+    ));
+    assert!(matches!(
+        batch.requests[1],
+        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
+            gamepad_id: 7,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
+            strong_motor: 0.0,
+            weak_motor: 0.0,
+            duration_millis: 0,
+        })
+    ));
+}
+
+#[test]
 fn unbind_viewport_surface_rejects_unknown_viewport_before_session_lookup() {
     let api = runtime_api();
     let unbind = api
@@ -626,6 +675,8 @@ fn accessibility_action_event_rejects_dynamic_preview_without_surface() {
         source: UiAccessibilityActionSource::AssistiveTechnology,
         value: None,
         numeric_value: None,
+        text_selection: None,
+        scroll_offset: None,
     };
     let bytes = serde_json::to_vec(&request).unwrap();
     let event = ZrRuntimeEventV1::accessibility_action(

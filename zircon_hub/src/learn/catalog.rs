@@ -3,16 +3,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::HubError;
+use crate::projects::project_filesystem_path_key;
 
 const DOCS_DIR: &str = "docs";
 const LEARN_CATALOG_LIMIT: usize = 128;
 const MARKDOWN_EXTENSION: &str = "md";
 const SKIPPED_DIRECTORIES: &[&str] = &[".git", "target"];
+pub const SELECTED_PROJECT_LEARN_SOURCE: &str = "Selected Project";
+pub const SOURCE_ENGINE_LEARN_SOURCE: &str = "Source Engine";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LearnCatalogEntry {
     pub title: String,
     pub category: String,
+    pub source: String,
     pub summary: String,
     pub path: PathBuf,
 }
@@ -21,22 +25,42 @@ pub fn discover_learn_catalog<I>(repo_roots: I) -> Result<Vec<LearnCatalogEntry>
 where
     I: IntoIterator<Item = PathBuf>,
 {
+    discover_learn_catalog_for_scope(None, repo_roots)
+}
+
+pub fn discover_learn_catalog_for_scope<I>(
+    selected_project_root: Option<PathBuf>,
+    repo_roots: I,
+) -> Result<Vec<LearnCatalogEntry>, HubError>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
     let mut entries = Vec::new();
     let mut visited_roots = HashSet::new();
-    for repo_root in repo_roots {
-        let docs_root = repo_root.join(DOCS_DIR);
-        if !docs_root.is_dir() {
-            continue;
-        }
-        let key = normalized_path_key(&docs_root);
-        if !visited_roots.insert(key) {
-            continue;
-        }
-        collect_docs(&docs_root, &docs_root, &mut entries)?;
+
+    if let Some(project_root) = selected_project_root {
+        collect_docs_root(
+            SELECTED_PROJECT_LEARN_SOURCE,
+            &project_root,
+            &mut visited_roots,
+            &mut entries,
+        )?;
     }
+
+    for repo_root in repo_roots {
+        collect_docs_root(
+            SOURCE_ENGINE_LEARN_SOURCE,
+            &repo_root,
+            &mut visited_roots,
+            &mut entries,
+        )?;
+    }
+
     entries.sort_by(|left, right| {
-        left.category
-            .cmp(&right.category)
+        source_priority(&left.source)
+            .cmp(&source_priority(&right.source))
+            .then_with(|| left.source.cmp(&right.source))
+            .then_with(|| left.category.cmp(&right.category))
             .then_with(|| left.title.cmp(&right.title))
             .then_with(|| left.path.cmp(&right.path))
     });
@@ -44,7 +68,33 @@ where
     Ok(entries)
 }
 
+fn collect_docs_root(
+    source: &str,
+    repo_root: &Path,
+    visited_roots: &mut HashSet<String>,
+    entries: &mut Vec<LearnCatalogEntry>,
+) -> Result<(), HubError> {
+    let docs_root = repo_root.join(DOCS_DIR);
+    if !docs_root.is_dir() {
+        return Ok(());
+    }
+    let key = project_filesystem_path_key(&docs_root);
+    if !visited_roots.insert(key) {
+        return Ok(());
+    }
+    collect_docs(source, &docs_root, &docs_root, entries)
+}
+
+fn source_priority(source: &str) -> u8 {
+    match source {
+        SELECTED_PROJECT_LEARN_SOURCE => 0,
+        SOURCE_ENGINE_LEARN_SOURCE => 1,
+        _ => 2,
+    }
+}
+
 fn collect_docs(
+    source: &str,
     docs_root: &Path,
     directory: &Path,
     entries: &mut Vec<LearnCatalogEntry>,
@@ -57,21 +107,26 @@ fn collect_docs(
             if should_skip_directory(&entry.file_name().to_string_lossy()) {
                 continue;
             }
-            collect_docs(docs_root, &path, entries)?;
+            collect_docs(source, docs_root, &path, entries)?;
         } else if file_type.is_file() && is_markdown_file(&path) {
-            entries.push(read_learn_doc(docs_root, &path)?);
+            entries.push(read_learn_doc(source, docs_root, &path)?);
         }
     }
     Ok(())
 }
 
-fn read_learn_doc(docs_root: &Path, path: &Path) -> Result<LearnCatalogEntry, HubError> {
+fn read_learn_doc(
+    source: &str,
+    docs_root: &Path,
+    path: &Path,
+) -> Result<LearnCatalogEntry, HubError> {
     let text = fs::read_to_string(path)?;
     let title = first_heading(&text).unwrap_or_else(|| fallback_title(path));
     let summary = first_summary_line(&text).unwrap_or_default();
     Ok(LearnCatalogEntry {
         title,
         category: category_from_path(docs_root, path),
+        source: source.to_string(),
         summary,
         path: path.to_path_buf(),
     })
@@ -153,19 +208,6 @@ fn should_skip_directory(name: &str) -> bool {
         .any(|skipped| skipped.eq_ignore_ascii_case(name))
 }
 
-fn normalized_path_key(path: &Path) -> String {
-    let value = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-        .to_string_lossy()
-        .replace('\\', "/");
-    if cfg!(target_os = "windows") {
-        value.to_ascii_lowercase()
-    } else {
-        value
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -197,10 +239,41 @@ related_code:
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].title, "Zircon Hub");
         assert_eq!(entries[0].category, "Zircon hub");
+        assert_eq!(entries[0].source, SOURCE_ENGINE_LEARN_SOURCE);
         assert_eq!(
             entries[0].summary,
             "`zircon_hub` is the standalone desktop launcher."
         );
+    }
+
+    #[test]
+    fn discover_learn_catalog_orders_selected_project_docs_first() {
+        let project_root = temp_repo_root("learn-project");
+        let repo_root = temp_repo_root("learn-engine");
+        fs::create_dir_all(project_root.join(DOCS_DIR).join("guide")).unwrap();
+        fs::create_dir_all(repo_root.join(DOCS_DIR).join("engine")).unwrap();
+        fs::write(
+            project_root.join(DOCS_DIR).join("guide").join("project.md"),
+            "# Project Guide\n\nProject-local onboarding.",
+        )
+        .unwrap();
+        fs::write(
+            repo_root.join(DOCS_DIR).join("engine").join("engine.md"),
+            "# Engine Guide\n\nEngine onboarding.",
+        )
+        .unwrap();
+
+        let entries =
+            discover_learn_catalog_for_scope(Some(project_root.clone()), [repo_root.clone()])
+                .unwrap();
+        fs::remove_dir_all(project_root).unwrap();
+        fs::remove_dir_all(repo_root).unwrap();
+
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].title, "Project Guide");
+        assert_eq!(entries[0].source, SELECTED_PROJECT_LEARN_SOURCE);
+        assert_eq!(entries[1].title, "Engine Guide");
+        assert_eq!(entries[1].source, SOURCE_ENGINE_LEARN_SOURCE);
     }
 
     #[test]

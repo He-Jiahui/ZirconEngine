@@ -58,14 +58,40 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "rail / tabs", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "rail / tabs", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "ListRow"
+component = "TransferList"
 control_id = "transfer-list_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Transfer List row", value = "selected", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiTransferList-root"]
+props = { text = "Transfer List", className = "material-transfer-list-sample", source_items = ["Scene", "Materials", "Lighting"], target_items = ["Export"], selected_items = ["Materials", "Export"], source_selected_items = ["Materials"], target_selected_items = ["Export"], disabled_items = ["Lighting"], disabled_actions = ["move_all_left"], slotProps = { source = { className = "material-transfer-list-source" }, target = { className = "material-transfer-list-target" }, actions = { className = "material-transfer-list-actions" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "transfer_source", slot = { name = "source" } },
+  { node = "transfer_actions", slot = { name = "actions" } },
+  { node = "transfer_target", slot = { name = "target" } },
+]
 events = [
   { id = "MaterialLab/TransferList/Change", event = "Change", route = "MaterialLab.TransferList.Change" },
 ]
+
+[nodes.transfer_source]
+component = "List"
+control_id = "transfer-list_Source"
+classes = ["material-control", "material-transfer-list-panel", "material-transfer-list-source"]
+props = { items = ["Scene", "Materials", "Lighting"], selected_items = ["Materials"], disabled_items = ["Lighting"], text = "Source", surface_variant = "elevated", text_tone = "info", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 70.0, preferred = 84.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.transfer_actions]
+component = "Button"
+control_id = "transfer-list_Actions"
+classes = ["material-control", "material-transfer-list-actions"]
+props = { text = "Move", disabled_actions = ["move_all_left"], surface_variant = "elevated", button_variant = "outlined", text_tone = "warning", validation_level = "warning", hovered = false, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 44.0, preferred = 50.0, max = 56.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.transfer_target]
+component = "List"
+control_id = "transfer-list_Target"
+classes = ["material-control", "material-transfer-list-panel", "material-transfer-list-target"]
+props = { items = ["Export"], selected_items = ["Export"], text = "Target", surface_variant = "elevated", text_tone = "success", validation_level = "success", hovered = false, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { min = 70.0, preferred = 84.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

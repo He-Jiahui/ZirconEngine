@@ -5,8 +5,24 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         text_field_descriptor(),
         with_text_input_events(
             primitive("Input", "Input", UiComponentCategory::Input, "input")
+                .with_prop(default_string_prop("value", ""))
                 .with_prop(value_text_prop())
-                .with_prop(string_prop("placeholder")),
+                .with_prop(string_prop("placeholder"))
+                .with_prop(default_string_prop("type", "text"))
+                .with_prop(default_string_prop("component", "div"))
+                .with_prop(default_string_prop("inputComponent", "input"))
+                .with_prop(bool_prop("autoFocus", false))
+                .with_prop(bool_prop("readOnly", false))
+                .with_prop(bool_prop("inputReadOnly", false))
+                .with_prop(bool_prop("disableUnderline", false))
+                .with_prop(bool_prop("fullWidth", false))
+                .with_prop(bool_prop("formControl", false))
+                .with_prop(bool_prop("multiline", false))
+                .with_prop(default_string_prop("startAdornment", ""))
+                .with_prop(default_string_prop("endAdornment", ""))
+                .slot(UiSlotSchema::new("input"))
+                .slot(UiSlotSchema::new("startAdornment"))
+                .slot(UiSlotSchema::new("endAdornment")),
         ),
         textarea_autosize_descriptor(),
         editor_panel_component(

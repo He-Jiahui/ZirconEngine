@@ -4,8 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{
-    ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventRecord, InputFrameSnapshot,
-    InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
+    GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings, ImeEvent,
+    ImeHostRequest, InputButton, InputEvent, InputEventRecord, InputFrameSnapshot, InputSnapshot,
+    MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
 
 use super::InputState;
@@ -27,6 +28,7 @@ impl InputManagerFacade for DefaultInputManager {
         state.ime_commits.clear();
         state.ime_delete_surrounding.clear();
         state.ime_host_requests.clear();
+        state.gamepad_rumble_requests.clear();
         state.window_status_events.clear();
         state.file_drag_drop_events.clear();
     }
@@ -155,6 +157,9 @@ impl InputManagerFacade for DefaultInputManager {
                     state
                         .gamepad_axes
                         .retain(|(gamepad, _), _| gamepad != &info.gamepad);
+                    state
+                        .gamepad_button_values
+                        .retain(|(gamepad, _), _| gamepad != &info.gamepad);
                     state.buttons.release_where(|button| {
                         matches!(button, InputButton::Gamepad { gamepad, .. } if gamepad == &info.gamepad)
                     });
@@ -163,17 +168,28 @@ impl InputManagerFacade for DefaultInputManager {
             InputEvent::GamepadButton {
                 gamepad,
                 button,
+                value,
                 pressed,
-                ..
             } => {
-                let button = InputButton::Gamepad {
+                let input_button = InputButton::Gamepad {
                     gamepad: *gamepad,
                     button: *button,
                 };
-                if *pressed {
-                    state.buttons.press(button);
-                } else {
-                    state.buttons.release(&button);
+                let previous_value = state
+                    .gamepad_button_values
+                    .get(&(*gamepad, *button))
+                    .copied();
+                let settings = GamepadButtonAxisSettings::default();
+                if let Some(value) = settings.process_value(*value, previous_value) {
+                    state
+                        .gamepad_button_values
+                        .insert((*gamepad, *button), value);
+                    let currently_pressed = state.buttons.pressed(&input_button);
+                    if button_should_press(value, currently_pressed, *pressed) {
+                        state.buttons.press(input_button);
+                    } else if button_should_release(value, *pressed) {
+                        state.buttons.release(&input_button);
+                    }
                 }
             }
             InputEvent::GamepadAxis {
@@ -181,7 +197,15 @@ impl InputManagerFacade for DefaultInputManager {
                 axis,
                 value,
             } => {
-                state.gamepad_axes.insert((*gamepad, *axis), *value);
+                let previous_value = state.gamepad_axes.get(&(*gamepad, *axis)).copied();
+                if let Some(value) =
+                    GamepadAxisSettings::default().process_value(*value, previous_value)
+                {
+                    state.gamepad_axes.insert((*gamepad, *axis), value);
+                }
+            }
+            InputEvent::GamepadRumbleRequest(request) => {
+                state.gamepad_rumble_requests.push(*request);
             }
         }
         state.events.push(event.clone());
@@ -215,6 +239,8 @@ impl InputManagerFacade for DefaultInputManager {
             active_touches: state.active_touches.values().copied().collect(),
             connected_gamepads: state.connected_gamepads.iter().copied().collect(),
             gamepad_axes: state.gamepad_axis_states(),
+            gamepad_button_values: state.gamepad_button_value_states(),
+            gamepad_rumble_requests: state.gamepad_rumble_requests.clone(),
             ime_enabled: state.ime_enabled,
             ime_preedit: state.ime_preedit.clone(),
             ime_commits: state.ime_commits.clone(),
@@ -230,6 +256,11 @@ impl InputManagerFacade for DefaultInputManager {
         std::mem::take(&mut state.ime_host_requests)
     }
 
+    fn drain_gamepad_rumble_requests(&self) -> Vec<crate::input::GamepadRumbleRequest> {
+        let mut state = self.state.lock().unwrap();
+        std::mem::take(&mut state.gamepad_rumble_requests)
+    }
+
     fn drain_events(&self) -> Vec<InputEvent> {
         let mut state = self.state.lock().unwrap();
         std::mem::take(&mut state.events)
@@ -239,4 +270,15 @@ impl InputManagerFacade for DefaultInputManager {
         let mut state = self.state.lock().unwrap();
         std::mem::take(&mut state.records)
     }
+}
+
+fn button_should_press(value: f32, currently_pressed: bool, host_pressed: bool) -> bool {
+    host_pressed
+        && GamepadButtonSettings::default()
+            .transition_for_value(value, currently_pressed)
+            .unwrap_or(false)
+}
+
+fn button_should_release(value: f32, host_pressed: bool) -> bool {
+    !host_pressed || GamepadButtonSettings::default().is_released(value)
 }

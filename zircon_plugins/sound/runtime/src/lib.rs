@@ -4,6 +4,7 @@ mod automation;
 mod components;
 mod config;
 mod descriptor_validation;
+mod dynamic_event_abi;
 mod dynamic_events;
 mod engine;
 mod mixer_configuration;
@@ -79,7 +80,15 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_capability("runtime.plugin.sound")
+    .with_capability_status(
+        zircon_runtime::plugin::CapabilityStatusManifest::new(
+            "runtime.plugin.sound",
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        )
+        .with_bevy_reference("dev/bevy/crates/bevy_audio/src/lib.rs"),
+    )
     .with_optional_feature(sound_timeline_animation_track_feature_manifest())
     .with_optional_feature(sound_ray_traced_convolution_reverb_feature_manifest())
 }

@@ -5,13 +5,14 @@ use gltf::image::{Data as GltfImageData, Format as GltfImageFormat};
 use crate::asset::{
     AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset,
     DataAssetFormat, ImportedAsset, ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue,
-    MeshAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, TextureAsset, TransformAsset,
+    MeshAsset, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TextureAsset, TransformAsset,
 };
 
 #[derive(Clone)]
 pub(crate) struct GltfMeshSubasset {
     pub(crate) mesh_index: usize,
+    pub(crate) skin: Option<MeshSkinAsset>,
     pub(crate) primitives: Vec<GltfPrimitiveSubasset>,
 }
 
@@ -19,6 +20,7 @@ pub(crate) struct GltfMeshSubasset {
 pub(crate) struct GltfPrimitiveSubasset {
     pub(crate) primitive_index: usize,
     pub(crate) material_index: Option<usize>,
+    pub(crate) morph_targets: Vec<MeshMorphTargetAsset>,
     pub(crate) primitive: ModelPrimitiveAsset,
 }
 
@@ -120,8 +122,10 @@ pub(crate) fn add_gltf_mesh_subassets(
                     mesh.mesh_index, primitive.primitive_index
                 ),
             );
-            let mesh_asset =
+            let mut mesh_asset =
                 MeshAsset::from_model_primitive(primitive_uri.clone(), &primitive.primitive);
+            mesh_asset.morph_targets = primitive.morph_targets.clone();
+            mesh_asset.skin = mesh.skin.clone();
             let entry = ImportedAssetEntry::new(primitive_uri, ImportedAsset::Mesh(mesh_asset))
                 .with_dependency(material_uri_for_index(root_uri, primitive.material_index));
             outcome = with_root_dependency_and_entry(outcome, entry);

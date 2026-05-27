@@ -18,20 +18,31 @@ pub(crate) fn dispatch_builtin_host_drawer_toggle(
     slot: &str,
     instance_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
-    let binding = bridge.activity_binding_for_target(slot, instance_id)?;
-    let EditorUiBindingPayload::DockCommand(DockCommand::ActivateDrawerTab {
-        slot: binding_slot,
-        instance_id: binding_instance_id,
-    }) = binding.payload()
-    else {
-        return None;
+    // Drawer-header tabs are projected from workbench state and may not have
+    // static workbench-shell bindings; activity-rail controls still do.
+    let (slot, target_instance) = match bridge.activity_binding_for_target(slot, instance_id) {
+        Some(binding) => {
+            let EditorUiBindingPayload::DockCommand(DockCommand::ActivateDrawerTab {
+                slot: binding_slot,
+                instance_id: binding_instance_id,
+            }) = binding.payload()
+            else {
+                return None;
+            };
+            let slot = match parse_activity_drawer_slot(binding_slot.as_str()) {
+                Ok(slot) => slot,
+                Err(error) => return Some(Err(error)),
+            };
+            (slot, ViewInstanceId::new(binding_instance_id))
+        }
+        None => {
+            let slot = match parse_activity_drawer_slot(slot) {
+                Ok(slot) => slot,
+                Err(error) => return Some(Err(error)),
+            };
+            (slot, ViewInstanceId::new(instance_id))
+        }
     };
-
-    let slot = match parse_activity_drawer_slot(binding_slot.as_str()) {
-        Ok(slot) => slot,
-        Err(error) => return Some(Err(error)),
-    };
-    let target_instance = ViewInstanceId::new(binding_instance_id);
     let layout = runtime.current_layout();
     let active_drawers = layout.active_activity_window_drawers();
     let Some(drawer) = active_drawers.get(&slot).cloned() else {

@@ -20,6 +20,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
   - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
@@ -27,11 +28,11 @@ related_code:
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.ui.toml
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/asset_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.ui.toml
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/asset_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_id.rs
@@ -60,6 +61,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/tab_drop.rs
   - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
@@ -70,11 +72,11 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_layout/workbench_page.rs
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.ui.toml
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/asset_window.ui.toml
-  - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.ui.toml
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/asset_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.v2.ui.toml
 plan_sources:
   - user: 2026-04-25 ActivityDrawer should move into ActivityWindow; main frame keeps only task bar and window tabs; no Slint business UI
   - user: 2026-05-06 Drawer/Window/Menu Slate 化推进计划，要求抽屉实例、含抽屉 window、普通 window 由 editor 内单例 registry 管理
@@ -87,6 +89,7 @@ tests:
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
   - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/tests/host/retained_drawer_header_pointer/dispatch.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
@@ -109,6 +112,11 @@ tests:
   - cargo test -p zircon_editor --lib dirty_main_window_discard_prompt_requests_host_exit --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo test -p zircon_editor --lib capture_close_prompt_visual_artifact --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --ignored --nocapture
   - visual screenshot: target/visual-layout/editor-window-20260507-close-prompt-900x620.png
+  - 2026-05-24 drawer header visual follow-up: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs zircon_editor/src/tests/host/retained_drawer_header_pointer/dispatch.rs (passed)
+  - 2026-05-24 drawer header visual follow-up: cargo test -p zircon_editor --lib shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260524 --message-format short --color never -- --test-threads=1 --nocapture (1 passed, 0 failed)
+  - 2026-05-24 drawer header visual follow-up: cargo test -p zircon_editor --lib native_root_bottom_drawer_header_click_activates_runtime_diagnostics_in_real_host --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260524 --message-format short --color never -- --test-threads=1 --nocapture (1 passed, 0 failed)
+  - 2026-05-24 drawer header visual follow-up: cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260524 --message-format short --color never (passed with existing warnings)
+  - 2026-05-24 drawer header visual follow-up: target/editor-visual-check/editor-runtime-diagnostics-window-20260524-after-fix.png captured after a window-coordinate click but still showed Console selected, so visual proof remains pending a client-coordinate recapture.
 doc_type: module-detail
 ---
 
@@ -116,13 +124,15 @@ doc_type: module-detail
 
 The editor main frame is now modeled separately from drawer-capable editor windows. `EditorMainFrameLayout` stores only the active window and ordered window tabs. Drawer-capable windows use `ActivityWindowLayout`, which owns `activity_drawers` and a content workspace.
 
-The reusable `.ui.toml` shell is `editor.host.activity_drawer_window`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` reference that shell and mount their own left, right, bottom, and content regions. The retained host consumes Rust-owned `host_contract` projection data; these business window structures are `.ui.toml` assets.
+The reusable `.zui` component shell is `editor.host.activity_drawer_window#ActivityDrawerWindow`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` remain `.v2.ui.toml` view assets that import that component and mount their own left, right, bottom, and content regions. The retained host consumes Rust-owned `host_contract` projection data; drawer-capable shell reuse now lives in `.zui` component assets while window roots stay v2 view documents.
 
 `WorkbenchLayout::activity_windows()` remains the compatibility read surface for old layouts that still only persisted root `drawers`, but current presentation no longer treats the first or root drawer map as active by default. `MainHostPageLayout::WorkbenchPage` now binds the page to an `ActivityWindowId`, and `EditorChromeSnapshot::build(...)` projects drawer snapshots only from the activity window attached to `active_main_page`.
 
 The view model and autolayout path consume that active-window drawer snapshot directly. `WorkbenchViewModel.drawer_ring` is hidden and empty when the active window has no configured drawers, so switching from `WorkbenchWindow` to an `AssetBrowserWindow` with no drawer configuration no longer preserves the previous left/right/bottom edge drawers. Drawer extent calculation also reads the active window drawer snapshots instead of the legacy root `WorkbenchLayout.drawers` map, preventing stale Workbench drawer widths from sizing a different activity window.
 
 Drawer mutation commands (`OpenView` into a drawer, `SetDrawerMode`, `SetDrawerExtent`, and `ActivateDrawerTab`) now resolve through `WorkbenchLayout::active_activity_window_mut()`. Focusing a drawer tab records the owning activity window and re-activates the page bound to that window. This keeps layout state, snapshot projection, and host geometry aligned around the same ownership rule: the current `ActivityWindowLayout` decides whether left, right, and bottom drawers exist and how large they are.
+
+Retained drawer header clicks use the shared drawer-header pointer route as the input authority. Static activity-rail bindings still resolve through the builtin host template bridge, but dynamically projected drawer tabs such as `editor.runtime_diagnostics#1` do not require a matching static `workbench_shell.v2.ui.toml` binding. When the bridge has no static activity binding for the routed `(slot, instance_id)`, `callback_dispatch::layout::drawer_toggle` parses the routed drawer slot and dispatches `LayoutCommand::ActivateDrawerTab` directly through `EditorEventRuntime`. The route still writes back normal `layout_dirty` and `presentation_dirty` effects, so activation, frame recompute, render extraction, and visual state remain on the same runtime event path as static drawer toggles.
 
 `EditorWindowRegistry` is the runtime data-layer view of the same contract. `EditorUiHost` owns one registry instance, and `workspace_state` rebuilds it from the active `WorkbenchLayout` plus the current `ViewInstance` list when session metadata is recomputed. Ordinary windows are registered as `WindowKind::Ordinary`; windows with `activity_drawers` become `WindowKind::DrawerCapable`; detached drawer windows are tracked separately as `DrawerWindowInstance`.
 

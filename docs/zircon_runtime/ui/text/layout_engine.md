@@ -1,9 +1,12 @@
 ---
 related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/hit_test.rs
+  - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/text/layout_engine/tests.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/rich_text.rs
+  - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -11,10 +14,13 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
 implementation_files:
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/hit_test.rs
+  - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
@@ -28,6 +34,8 @@ plan_sources:
   - user: 2026-05-06 continue M6 text-system convergence from Unreal Slate audit
 tests:
   - zircon_runtime/src/ui/text/layout_engine/tests.rs
+  - zircon_runtime/src/ui/tests/text_hit_testing.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - cargo test -p zircon_runtime --lib ui::text::layout_engine --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-ui-text-grapheme-layout" --message-format short --color never -- --nocapture
@@ -86,6 +94,8 @@ These byte ranges are the foundation for later caret, selection, composition und
 
 The M6 continuation makes the shared render DTO consume this layout output more directly. `UiShapedText::from_resolved_layout(...)` now derives per-grapheme synthetic glyph records from each resolved line. Those records are not final backend glyph ids, but they give Widget Reflector, editor painter, and runtime debug payloads stable glyph count, visual frame, advance, and source range data for combining marks and emoji clusters.
 
+`hit_test.rs` now consumes the same `UiResolvedTextLayout` and maps a surface-space pointer point back to a nearest source byte caret. The helper uses the resolved line frames, alignment, direction, fixed text advance, and grapheme runs that render extraction already emitted. `surface/input/text_pointer.rs` consumes that geometry for TextInput pointer press and captured drag, mirroring Bevy's editable text flow where `dev/bevy/crates/bevy_ui_widgets/src/editable_text.rs` converts a local pointer position into `TextEdit::MoveToPoint`, `TextEdit::ShiftClickExtension`, or `TextEdit::ExtendSelectionToPoint`, and `dev/bevy/crates/bevy_text/src/text_edit.rs` applies those edits through the text driver.
+
 Editable selection, caret, and composition underline geometry now also snaps to grapheme cluster edges in `UiRenderCommand::text_paint(...)`. A selection whose byte range falls inside `a\u{0301}` expands to the whole visible cluster, so editor/runtime painters do not split an accent or emoji component. Runtime screen-space UI planning then consumes the same shared `UiTextPaintDecoration` frames: selection is emitted as a pre-text quad, while caret and composition underline are emitted as post-text quads after the glyphon/SDF text pass.
 
 Rich style paint now follows the same route. `UiTextPaint.runs` is derived from shaped clusters and carries `UiTextPaintRun` records with Strong/Emphasis/Code style flags. Runtime planning prefers these shared runs over raw line text, so a resolved line containing plain, strong, and code fragments becomes separate text batches with stable run frames. The glyphon backend converts the flags to bold, italic, and monospace attrs, while the editor native painter uses the same DTO to apply software fallback bold/italic drawing. This closes the immediate renderer-local rich-run parsing gap without claiming final HarfBuzz-level metrics.
@@ -95,6 +105,8 @@ Rich style paint now follows the same route. `UiTextPaint.runs` is derived from 
 `ui::text::layout_engine` module tests cover grapheme-safe fixed-advance measurement, glyph wrapping, ellipsis truncation, low-fidelity RTL reversal, and rich-run boundary clusters.
 
 `ui::tests::text_layout` covers word wrapping, clip-frame line removal, rich ellipsis preservation, mixed LTR/RTL visual-order ranges, neutral separator assignment inside RTL spans, and editable text action interactions.
+
+`ui::tests::text_hit_testing` covers layout-backed pointer-to-caret mapping for grapheme midpoint selection, multiline y routing and x clamping, and aligned line frames. `ui::tests::widget_text_input_pointer` covers that the same layout output drives TextInput press, Shift+press, drag selection, and empty-value editable layout fallback. These tests are intentionally focused on the current fixed-advance geometry and do not claim final shaped glyph hit testing.
 
 `render_contracts` covers the shared shaped artifact and decoration cluster snapping through `ui_shaped_text_contract_derives_grapheme_glyph_bounds` and `ui_text_decorations_snap_to_grapheme_cluster_edges`.
 

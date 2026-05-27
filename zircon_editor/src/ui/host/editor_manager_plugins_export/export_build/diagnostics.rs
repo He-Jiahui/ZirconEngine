@@ -55,6 +55,9 @@ pub(super) fn skipped_export_cargo_build_diagnostic(plan: &ExportBuildPlan) -> S
             "export cargo build skipped because target platform {} emits a browser host scaffold that must be built by the web/WASM package toolchain",
             plan.profile.target_platform.as_str()
         ),
+        ExportPlatformHostKind::Headless => {
+            "export cargo build skipped because no generated Cargo.toml was materialized".to_string()
+        }
     }
 }
 

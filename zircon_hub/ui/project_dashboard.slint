@@ -11,6 +11,8 @@ import {
     ActionRow,
     Badge,
     DataTable,
+    EmptyStateBlock,
+    EmptyStatePanel,
     Flow,
     HubPanel,
     HubTokens,
@@ -21,12 +23,17 @@ import {
     PageScrollSurface,
     PanelGrid,
     PanelHeader,
+    PanelListViewport,
+    PanelSlot,
     ResponsiveSlot,
     SearchBox,
     ScrollView,
     StateLayerArea,
-    ToolbarSelect,
 } from "components.slint";
+import {
+    ProjectFilterSelect,
+    ProjectSortSelect,
+} from "project_page_components.slint";
 
 component ProjectCover inherits Rectangle {
     in property <ProjectCardData> project;
@@ -63,26 +70,6 @@ component ProjectCover inherits Rectangle {
         padding: HubTokens.space-2;
         spacing: HubTokens.space-1;
 
-        Rectangle {
-            horizontal-stretch: 1;
-            height: HubTokens.icon-lg;
-
-            HorizontalLayout {
-                width: parent.width;
-                height: parent.height;
-                alignment: start;
-
-                Rectangle { horizontal-stretch: 1; }
-
-                IconButton {
-                    width: HubTokens.icon-lg;
-                    height: HubTokens.icon-lg;
-                    icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
-                    has-icon-image: true;
-                }
-            }
-        }
-
         Rectangle { vertical-stretch: 1; }
 
         Rectangle {
@@ -118,7 +105,6 @@ component ProjectCover inherits Rectangle {
 
 component ProjectCard inherits HubPanel {
     in property <ProjectCardData> project;
-    in property <UiTextData> ui-text;
     in property <length> card-height: HubTokens.list-row-lg * 3;
     in property <length> cover-height: root.card-height * 9 / 20;
     in property <length> card-width-basis: HubTokens.panel-min-sm;
@@ -133,7 +119,7 @@ component ProjectCard inherits HubPanel {
 
     variant: root.project.selected ? "selected" : "interactive";
     height: root.card-height;
-    min-width: min(max(HubTokens.panel-min-sm * 2 / 3, root.card-width-basis * 4 / 5), root.card-width-basis);
+    min-width: root.card-width-basis;
     preferred-width: root.card-width-basis;
     clip: true;
 
@@ -143,7 +129,7 @@ component ProjectCard inherits HubPanel {
         color: MaterialPalette.on_surface;
         border_radius: MaterialStyleMetrics.border_radius_12;
         clicked => {
-            root.select(root.project.project-path);
+            root.select(root.project.open-path);
         }
     }
 
@@ -175,14 +161,14 @@ component ProjectCard inherits HubPanel {
             }
 
             if root.project.pinned: Badge {
-                text: root.ui-text.pinned-label;
+                text: root.project.pinned-label;
                 tone: "accent";
                 badge-width: root.status-badge-width;
                 badge-height: root.status-badge-height;
             }
 
             if root.project.missing: Badge {
-                text: root.ui-text.missing-label;
+                text: root.project.missing-label;
                 tone: "warning";
                 badge-width: root.status-badge-width;
                 badge-height: root.status-badge-height;
@@ -195,7 +181,7 @@ component ProjectCard inherits HubPanel {
         }
 
         MutedText {
-            text: root.ui-text.modified-prefix + root.project.modified;
+            text: root.project.modified-label;
             overflow: elide;
         }
 
@@ -226,7 +212,7 @@ component ProjectCard inherits HubPanel {
                 icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
                 has-icon-image: true;
                 clicked => {
-                    root.open(root.project.project-path);
+                    root.open(root.project.open-path);
                 }
             }
         }
@@ -237,72 +223,87 @@ component ProjectFlow inherits Rectangle {
     in-out property <bool> expanded;
     in property <[ProjectCardData]> project-cards;
     in property <int> project-card-count;
-    in property <UiTextData> ui-text;
-    in property <length> card-height-token: HubTokens.list-row-lg * 3;
+    in property <string> empty-title;
+    in property <string> empty-detail;
+    in property <length> flow-width: HubTokens.panel-min-lg;
     callback select(string);
     callback open(string);
 
     private property <length> card-gap-x: HubTokens.panel-gap;
     private property <length> card-gap-y: HubTokens.panel-gap;
-    private property <length> card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.width * 23 / 100);
-    private property <length> card-height: root.card-height-token;
+    private property <length> card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.flow-width * HubTokens.project-dashboard-card-ratio);
+    private property <length> card-height: HubTokens.list-row-lg * 3;
     private property <length> empty-height: max(root.card-height * 3 / 5, root.card-gap-y * 10);
+    private property <int> raw-card-columns: Math.floor((root.flow-width + root.card-gap-x) / (root.card-basis + root.card-gap-x));
+    private property <int> card-column-count: root.raw-card-columns < 1 ? 1 : root.raw-card-columns;
+    private property <int> card-row-count: (root.project-card-count + root.card-column-count - 1) / root.card-column-count;
+    private property <int> expanded-visible-rows: root.card-row-count < 3 ? root.card-row-count : 3;
+    private property <int> visible-row-count: root.expanded ? root.expanded-visible-rows : 1;
+    private property <length> flow-visible-height: root.visible-row-count * root.card-height + (root.visible-row-count - 1) * root.card-gap-y;
+    private property <length> flow-content-height: root.card-row-count * root.card-height + (root.card-row-count - 1) * root.card-gap-y;
+    private property <length> card-scroll-y: 0px;
 
-    height: root.project-card-count == 0 ? root.empty-height : (root.expanded ? root.card-height * 2 + root.card-gap-y : root.card-height);
+    height: root.project-card-count == 0 ? root.empty-height : root.flow-visible-height;
     horizontal-stretch: 1;
     clip: true;
     background: transparent;
 
-    if root.project-card-count > 0: Flow {
+    if root.project-card-count > 0: card-scroll := ScrollView {
         width: parent.width;
         height: parent.height;
-        gap-x: root.card-gap-x;
-        gap-y: root.card-gap-y;
+        viewport_y <=> root.card-scroll-y;
+        viewport_width: card-scroll.visible_width;
+        viewport_height: root.expanded ? root.flow-content-height : root.flow-visible-height;
+        vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
+        horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
 
-        for card in root.project-cards: ProjectCard {
-            min-width: min(max(HubTokens.panel-min-sm * 2 / 3, root.card-basis * 4 / 5), root.width);
-            card-height: root.card-height;
-            cover-height: max(root.card-height * 2 / 5, min(root.card-height * 9 / 20, root.card-basis * 2 / 5));
-            card-width-basis: root.card-basis;
-            project: card;
-            ui-text: root.ui-text;
-            select(path) => {
-                root.select(path);
-            }
-            open(path) => {
-                root.open(path);
+        Rectangle {
+            width: card-scroll.visible_width;
+            height: card-scroll.viewport_height;
+            background: transparent;
+
+            Flow {
+                width: parent.width;
+                height: parent.height;
+                gap-x: root.card-gap-x;
+                gap-y: root.card-gap-y;
+
+                for card in root.project-cards: ProjectCard {
+                    min-width: max(HubTokens.panel-min-sm * 2 / 3, root.card-basis);
+                    card-height: root.card-height;
+                    cover-height: max(root.card-height * 2 / 5, min(root.card-height * 9 / 20, root.card-basis * 2 / 5));
+                    card-width-basis: root.card-basis;
+                    project: card;
+                    select(path) => { root.select(path); }
+                    open(path) => { root.open(path); }
+                }
             }
         }
     }
 
-    if root.project-card-count == 0: HubPanel {
+    if root.project-card-count == 0: EmptyStatePanel {
         width: parent.width;
         height: root.empty-height;
-
-        VerticalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding: HubTokens.space-6;
-            spacing: HubTokens.space-2;
-
-            MaterialText {
-                text: root.ui-text.projects-empty-title;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.title_medium;
-            }
-
-            MutedText {
-                text: root.ui-text.projects-empty-detail;
-                overflow: elide;
-            }
-        }
+        title: root.empty-title;
+        detail: root.empty-detail;
+        body-padding: HubTokens.space-6;
+        title-prominent: true;
     }
 }
 
-export component ProjectDashboardPage inherits Rectangle {
+component DashboardQuickActionRow inherits ActionRow {
+    in property <QuickActionData> quick-action-data;
+    callback triggered(string);
+
+    action: root.quick-action-data;
+    activate(id) => {
+        root.triggered(id);
+    }
+}
+
+export component ProjectDashboardPage inherits PageScrollSurface {
     in-out property <string> search-query;
     in-out property <bool> project-cards-expanded: false;
-    in-out property <length> scroll-y: 0px;
     in property <string> project-filter-label;
     in property <string> project-sort-label;
     in property <string> project-view-mode;
@@ -327,34 +328,28 @@ export component ProjectDashboardPage inherits Rectangle {
     private property <bool> compact: root.content-width < HubTokens.breakpoint-compact - root.page-pad * 2;
     private property <length> page-pad: HubTokens.page-padding;
     private property <length> page-gap: HubTokens.panel-gap;
-    private property <length> content-width: page-surface.content-width;
     private property <length> dashboard-main-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
     private property <length> dashboard-side-basis: HubTokens.panel-min-md;
-    private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.height / 18));
+    private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.content-height / 18));
     private property <length> toolbar-control-min-width: root.toolbar-height * 4;
     private property <bool> dashboard-toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.toolbar-height * 2 + root.page-gap * 5;
     private property <length> dashboard-toolbar-height: root.dashboard-toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
-    private property <length> dashboard-toolbar-select-basis: root.dashboard-toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width / 9, root.toolbar-control-min-width);
-    private property <length> dashboard-card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.content-width * 23 / 100);
-    private property <length> dashboard-card-height: max(HubTokens.list-row-lg * 3, min(HubTokens.list-row-lg * 7 / 2, root.dashboard-card-basis * 3 / 4));
-    private property <length> dashboard-empty-height: max(root.dashboard-card-height * 3 / 5, root.toolbar-height * 3);
-    private property <length> dashboard-flow-height: root.project-card-count == 0 ? root.dashboard-empty-height : (root.project-cards-expanded ? root.dashboard-card-height * 2 + root.page-gap : root.dashboard-card-height);
+    private property <length> dashboard-toolbar-search-basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width * HubTokens.project-dashboard-toolbar-search-ratio, root.toolbar-height * 6);
+    private property <length> dashboard-toolbar-select-basis: root.dashboard-toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width * HubTokens.project-dashboard-toolbar-select-ratio, root.toolbar-control-min-width);
     private property <length> dashboard-show-more-height: root.project-card-count > 4 ? root.toolbar-height : 0px;
-    private property <length> dashboard-lower-height: root.compact ? max(page-surface.viewport-height * 3 / 5, root.toolbar-height * 12) : max(page-surface.viewport-height * 7 / 20, root.toolbar-height * 7);
+    private property <length> dashboard-lower-height: root.compact ? max(root.viewport-height * HubTokens.project-dashboard-lower-compact-ratio, root.toolbar-height * 12) : max(root.viewport-height * HubTokens.project-dashboard-lower-regular-ratio, root.toolbar-height * 7);
     private property <length> dashboard-panel-height: root.compact ? max(root.toolbar-height * 5, (root.dashboard-lower-height - root.page-gap) / 2) : root.dashboard-lower-height;
     private property <length> dashboard-table-row-height: max(root.toolbar-height * 3 / 5, min(root.toolbar-height * 7 / 10, root.dashboard-lower-height / 10));
     private property <length> dashboard-table-gap: max(HubTokens.toolbar-gap, min(HubTokens.panel-gap, root.page-gap));
-    private property <length> dashboard-table-width: max(root.toolbar-height * 8, root.content-width * 58 / 100);
+    private property <length> dashboard-table-width: max(root.toolbar-height * 8, root.content-width * HubTokens.project-dashboard-table-ratio);
+    private property <int> quick-action-count: root.quick-actions.length;
     private property <length> quick-action-row-gap: max(MaterialStyleMetrics.spacing_6, min(HubTokens.space-2, root.dashboard-lower-height / 36));
     private property <length> quick-action-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, (root.dashboard-lower-height - root.toolbar-height * 5 / 2) / 4));
+    page-padding: root.page-pad;
+    bottom-padding: root.page-pad;
+    gap: root.page-gap;
     background: HubTokens.surface-page;
     clip: true;
-
-    page-surface := PageScrollSurface {
-        scroll-y <=> root.scroll-y;
-        page-padding: root.page-pad;
-        bottom-padding: root.page-pad;
-        gap: root.page-gap;
 
                 Flow {
                     horizontal-stretch: 1;
@@ -363,10 +358,13 @@ export component ProjectDashboardPage inherits Rectangle {
                     gap-y: root.page-gap;
 
                     ResponsiveSlot {
-                        basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
+                        basis: root.dashboard-toolbar-search-basis;
+                        flex-basis: root.dashboard-toolbar-search-basis;
                         grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
                         shrink: 1;
-                        min-width: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width / 4, root.toolbar-height * 6);
+                        flex-shrink: 1;
+                        min-width: root.dashboard-toolbar-search-basis;
                         height: root.toolbar-height;
 
                         SearchBox {
@@ -384,58 +382,40 @@ export component ProjectDashboardPage inherits Rectangle {
 
                     ResponsiveSlot {
                         basis: root.dashboard-toolbar-select-basis;
+                        flex-basis: root.dashboard-toolbar-select-basis;
                         grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
                         shrink: 1;
+                        flex-shrink: 1;
                         min-width: root.dashboard-toolbar-select-basis;
                         height: root.toolbar-height;
 
-                        ToolbarSelect {
+                        ProjectFilterSelect {
                             width: parent.width;
                             height: parent.height;
-                            icon-image: @image-url("../assets/icons/ui/folder.svg");
-                            has-icon-image: true;
-                            text: root.project-filter-label;
-                            select-width: parent.width;
                             select-height: root.toolbar-height;
-                            option-count: 3;
-                            menu-items: [
-                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
-                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
-                                { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
-                            ];
-                            options: [
-                                { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
-                                { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
-                                { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
-                            ];
+                            label: root.project-filter-label;
+                            ui-text: root.ui-text;
                             selected(id) => { root.set-project-filter(id); }
                         }
                     }
 
                     ResponsiveSlot {
                         basis: root.dashboard-toolbar-select-basis;
+                        flex-basis: root.dashboard-toolbar-select-basis;
                         grow: root.dashboard-toolbar-wrap ? 1 : 0;
+                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
                         shrink: 1;
+                        flex-shrink: 1;
                         min-width: root.dashboard-toolbar-select-basis;
                         height: root.toolbar-height;
 
-                        ToolbarSelect {
+                        ProjectSortSelect {
                             width: parent.width;
                             height: parent.height;
-                            icon-image: @image-url("../assets/icons/ui/sort.svg");
-                            has-icon-image: true;
-                            text: root.project-sort-label;
-                            select-width: parent.width;
                             select-height: root.toolbar-height;
-                            option-count: 2;
-                            menu-items: [
-                                { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
-                                { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
-                            ];
-                            options: [
-                                { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
-                                { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
-                            ];
+                            label: root.project-sort-label;
+                            ui-text: root.ui-text;
                             selected(id) => { root.set-project-sort(id); }
                         }
                     }
@@ -457,7 +437,7 @@ export component ProjectDashboardPage inherits Rectangle {
                         width: root.toolbar-height;
                         icon-image: @image-url("../assets/icons/ui/list.svg");
                         has-icon-image: true;
-                        active: false;
+                        active: root.project-view-mode == "list";
                         clicked => {
                             root.set-project-view-mode("list");
                             root.show-project-subpage("project-browser");
@@ -473,8 +453,9 @@ export component ProjectDashboardPage inherits Rectangle {
                         expanded <=> root.project-cards-expanded;
                         project-cards: root.project-cards;
                         project-card-count: root.project-card-count;
-                        card-height-token: root.dashboard-card-height;
-                        ui-text: root.ui-text;
+                        empty-title: root.ui-text.projects-empty-title;
+                        empty-detail: root.ui-text.projects-empty-detail;
+                        flow-width: parent.width;
                         select(path) => { root.select-project(path); }
                         open(path) => { root.open-project-detail(path); }
                     }
@@ -495,23 +476,17 @@ export component ProjectDashboardPage inherits Rectangle {
                     gap: root.page-gap;
                     row-gap: root.page-gap;
 
-                    ResponsiveSlot {
+                    PanelSlot {
                         basis: root.compact ? root.content-width : root.dashboard-main-basis;
+                        flex-basis: root.compact ? root.content-width : root.dashboard-main-basis;
                         grow: 2;
+                        flex-grow: 2;
                         shrink: 1;
+                        flex-shrink: 1;
                         min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
                         height: root.dashboard-panel-height;
-
-                        HubPanel {
-                            width: parent.width;
-                            height: parent.height;
-
-                            VerticalLayout {
-                                width: parent.width;
-                                height: parent.height;
-                                padding: HubTokens.space-4;
-                                spacing: HubTokens.toolbar-gap;
-                                alignment: stretch;
+                        body-padding: HubTokens.space-4;
+                        body-spacing: HubTokens.toolbar-gap;
 
                                 PanelHeader {
                                     title: root.dashboard-project-title;
@@ -542,53 +517,46 @@ export component ProjectDashboardPage inherits Rectangle {
                                     select(path) => { root.select-project(path); }
                                     open(path) => { root.open-project-detail(path); }
                                 }
-                            }
-                        }
                     }
 
-                    ResponsiveSlot {
+                    PanelSlot {
                         basis: root.compact ? root.content-width : root.dashboard-side-basis;
+                        flex-basis: root.compact ? root.content-width : root.dashboard-side-basis;
                         grow: 1;
+                        flex-grow: 1;
                         shrink: 1;
+                        flex-shrink: 1;
                         min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
                         height: root.dashboard-panel-height;
-
-                        HubPanel {
-                            width: parent.width;
-                            height: parent.height;
-
-                            VerticalLayout {
-                                width: parent.width;
-                                height: parent.height;
-                                padding: HubTokens.space-4;
-                                spacing: HubTokens.toolbar-gap;
-                                alignment: stretch;
+                        body-padding: HubTokens.space-4;
+                        body-spacing: HubTokens.toolbar-gap;
 
                                 PanelHeader { title: root.ui-text.quick-actions; }
 
-                                action-scroll := ScrollView {
+                                action-list := PanelListViewport {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
-                                    viewport_y <=> root.quick-actions-scroll-y;
-                                    viewport_width: action-scroll.visible_width;
-                                    viewport_height: max(action-scroll.visible_height, root.quick-action-row-height * 4 + root.quick-action-row-gap * 3);
-                                    vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
-                                    horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
+                                    scroll-y <=> root.quick-actions-scroll-y;
+                                    row-count: root.quick-action-count;
+                                    row-height: root.quick-action-row-height;
+                                    row-spacing: root.quick-action-row-gap;
+                                    vertical-padding: 0px;
+                                    empty-height: HubTokens.list-row-lg;
 
-                                    VerticalLayout {
-                                        width: action-scroll.visible_width;
-                                        spacing: root.quick-action-row-gap;
+                                    for action in root.quick-actions: DashboardQuickActionRow {
+                                        row-height: root.quick-action-row-height;
+                                        quick-action-data: action;
+                                        triggered(id) => { root.quick-action(id); }
+                                    }
 
-                                        for action in root.quick-actions: ActionRow {
-                                            row-height: root.quick-action-row-height;
-                                            action: action;
-                                            activate(id) => { root.quick-action(id); }
-                                        }
+                                    if root.quick-action-count == 0: EmptyStateBlock {
+                                        height: HubTokens.list-row-lg;
+                                        title: root.ui-text.no-quick-actions;
+                                        detail: root.ui-text.quick-actions-empty-detail;
+                                        body-padding: HubTokens.space-4;
+                                        center-content: true;
                                     }
                                 }
-                            }
-                        }
                     }
                 }
-    }
 }

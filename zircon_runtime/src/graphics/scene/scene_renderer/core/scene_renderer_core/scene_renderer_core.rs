@@ -15,6 +15,8 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group: wgpu::BindGroup,
     pub(in crate::graphics::scene::scene_renderer::core) model_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::core) material_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) mesh_pipelines: MeshPipelineCache,
     pub(in crate::graphics::scene::scene_renderer::core) normal_prepass: NormalPrepassPipeline,
     pub(in crate::graphics::scene::scene_renderer::core) deferred: DeferredSceneResources,

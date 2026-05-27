@@ -18,6 +18,7 @@ mod property_access;
 mod query;
 mod records;
 mod render;
+mod schedule;
 mod typed_api;
 mod world;
 

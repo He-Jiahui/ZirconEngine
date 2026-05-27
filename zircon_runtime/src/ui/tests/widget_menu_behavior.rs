@@ -73,6 +73,46 @@ fn menu_item_keyboard_activation_closes_nearest_popup() {
 }
 
 #[test]
+fn menu_item_keyboard_activation_without_item_binding_still_closes_popup() {
+    let mut surface = menu_surface();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(3))
+        .unwrap()
+        .template_metadata
+        .as_mut()
+        .unwrap()
+        .bindings
+        .clear();
+    surface.focus_node(UiNodeId::new(3)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(keyboard_pressed("Enter", 13)),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.widget")
+    );
+    assert_popup_open(&surface, false);
+    assert!(result.component_events.iter().all(|event| {
+        !matches!(
+            &event.event,
+            UiComponentEvent::Commit { property, .. } if property == "activated"
+        )
+    }));
+    assert!(result.component_events.iter().any(|event| {
+        event.target == UiNodeId::new(2) && matches!(&event.event, UiComponentEvent::ClosePopup)
+    }));
+    assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
 fn escape_on_focused_menu_item_closes_nearest_popup_without_activation() {
     let mut surface = menu_surface();
     surface.focus_node(UiNodeId::new(3)).unwrap();
@@ -104,6 +144,65 @@ fn escape_on_focused_menu_item_closes_nearest_popup_without_activation() {
 }
 
 #[test]
+fn escape_respects_disable_escape_key_down_on_popup_owner() {
+    let mut surface = menu_surface();
+    set_popup_attribute(
+        &mut surface,
+        "disable_escape_key_down",
+        toml::Value::Boolean(true),
+    );
+    surface.focus_node(UiNodeId::new(3)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(keyboard_pressed("Escape", 27)),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_popup_open(&surface, true);
+    assert!(result.binding_reports.is_empty());
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| { !matches!(&event.event, UiComponentEvent::ClosePopup) }));
+}
+
+#[test]
+fn escape_on_descendant_does_not_close_disabled_popup_owner() {
+    let mut surface = menu_surface();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .unwrap()
+        .template_metadata
+        .as_mut()
+        .unwrap()
+        .attributes
+        .insert("disabled".to_string(), toml::Value::Boolean(true));
+    assert!(surface.focus_node(UiNodeId::new(3)).is_err());
+    surface.focus.focused = Some(UiNodeId::new(3));
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(keyboard_pressed("Escape", 27)),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_popup_open(&surface, true);
+    assert!(result.binding_reports.is_empty());
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| { !matches!(&event.event, UiComponentEvent::ClosePopup) }));
+}
+
+#[test]
 fn outside_pointer_click_closes_open_popup_without_menu_item_activation() {
     let mut surface = menu_surface();
     let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
@@ -120,6 +219,48 @@ fn outside_pointer_click_closes_open_popup_without_menu_item_activation() {
         )
     }));
     assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn outside_pointer_click_respects_close_on_backdrop_click_false() {
+    let mut surface = menu_surface();
+    set_popup_attribute(
+        &mut surface,
+        "close_on_backdrop_click",
+        toml::Value::Boolean(false),
+    );
+
+    let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
+
+    assert_popup_open(&surface, true);
+    assert!(result.binding_reports.is_empty());
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| { !matches!(&event.envelope.event, UiComponentEvent::ClosePopup) }));
+}
+
+#[test]
+fn outside_pointer_click_does_not_close_disabled_popup_owner() {
+    let mut surface = menu_surface();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .unwrap()
+        .template_metadata
+        .as_mut()
+        .unwrap()
+        .attributes
+        .insert("disabled".to_string(), toml::Value::Boolean(true));
+
+    let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
+
+    assert_popup_open(&surface, true);
+    assert!(result.binding_reports.is_empty());
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| { !matches!(&event.envelope.event, UiComponentEvent::ClosePopup) }));
 }
 
 #[test]
@@ -165,6 +306,18 @@ fn assert_widget_binding_report(
             .first()
             .is_some_and(|update| update.source.kind == UiBindingSourceKind::WidgetBehavior)
     }));
+}
+
+fn set_popup_attribute(surface: &mut UiSurface, key: &str, value: toml::Value) {
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .unwrap()
+        .template_metadata
+        .as_mut()
+        .unwrap()
+        .attributes
+        .insert(key.to_string(), value);
 }
 
 fn click_menu_item(

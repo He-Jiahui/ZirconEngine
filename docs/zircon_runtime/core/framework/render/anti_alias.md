@@ -62,6 +62,7 @@ implementation_files:
 plan_sources:
   - user: 2026-05-18 continue Render M8A anti-alias product surface
   - user: 2026-05-20 continue Bevy-level render anti-alias evidence mapping
+  - user: 2026-05-22 continue M10 post-process and anti-alias breadth checklist
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
@@ -147,6 +148,29 @@ The fallback report proves what the renderer actually used for the submitted fra
 | TAA | Named but unsupported. Missing history and unsupported temporal capability are distinct fallback reasons. | Add temporal jitter, mip-bias, depth/motion-vector prepass ownership, history reset, and Core3d early post-process scheduling. |
 | CAS | Named but unsupported. It degrades with `UnsupportedCas`. | Add camera-facing sharpening settings and schedule CAS after the chosen screen-space AA pass. |
 | DLSS | Named but unsupported and treated as optional capability-gated provider work. | Add explicit backend/provider capability checks before exposing it as anything other than a degraded optional mode. |
+
+## M10.6 Promotion Gate
+
+M10.6 uses this document as the anti-alias side of the post-process/AA breadth gate. The accepted state is intentionally narrow: FXAA is concrete, `Auto` can resolve to FXAA, unsupported families degrade through structured fallback reports, and the graph records the FXAA node. That is not equivalent to Bevy's complete `AntiAliasPlugin`, which installs FXAA, SMAA, TAA, CAS, and optional DLSS as distinct camera-facing products.
+
+| AA family | Current Zircon evidence | Promotion requirement |
+| --- | --- | --- |
+| FXAA | Concrete graph pass and submit stats exist for DefaultRender. | Keep it as the accepted screen-space fallback and add sensitivity controls only when they become user-facing product settings. |
+| MSAA | Camera MSAA requests are projected into `AntiAliasMode::Msaa`, but capability summary reports only one sample today. | Add multisampled render targets, resolve/writeback policy, sorted-camera writeback diagnostics, and interaction rules with TAA before accepting MSAA parity. |
+| SMAA | `AntiAliasMode::Smaa` names the family and degrades with `UnsupportedSmaa`. | Add three graph passes, temporary edge/blend textures, area/search LUT handling, quality presets, missing-LUT diagnostics, and Core2d/Core3d pass-order tests. |
+| TAA | `AntiAliasMode::Taa` names the family and distinguishes missing history from unsupported temporal capability. | Add temporal jitter, mip bias, depth and motion-vector prepass ownership, history reset behavior, MSAA conflict diagnostics, and Core3d early-postprocess ordering. |
+| CAS | `AntiAliasMode::Cas` names the family and degrades with `UnsupportedCas`. | Add camera-facing sharpening settings, denoise mode, a graph node after the chosen AA pass, and pass-order diagnostics. |
+| DLSS | `AntiAliasMode::Dlss` names an optional provider-backed family and degrades with `UnsupportedDlss`. | Keep it capability/provider gated; do not expose it as accepted behavior without backend/provider checks and fallback diagnostics. |
+
+Promotion requires `cargo test -p zircon_runtime --locked render_product_anti_alias`, post-process graph coverage, pipeline/pass-order coverage, and `cargo check -p zircon_runtime --lib --locked` in a quiet validation window. The 2026-05-26 M10W run passed those focused current-checkout gates while keeping MSAA, SMAA, TAA, CAS, and DLSS as explicit gaps.
+
+2026-05-26 M10W validation evidence:
+
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked render_product_anti_alias --jobs 1 --message-format short --color never`: PASS, 3 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked render_product_post_process --jobs 1 --message-format short --color never`: PASS, 9 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked runtime_ui_graph_pass_order --jobs 1 --message-format short --color never`: PASS, 2 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never`: PASS, 39 matching lib tests passed.
+- `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.
 
 ## Out Of Scope
 

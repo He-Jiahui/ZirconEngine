@@ -2,6 +2,7 @@
 
 pub mod animation;
 pub mod asset;
+pub mod camera_controller;
 pub mod foundation;
 pub mod gizmos;
 pub mod input;

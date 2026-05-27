@@ -7,6 +7,7 @@ mod reflect_contracts;
 mod render_contracts;
 mod resource_contracts;
 mod ui_contract_spine;
+mod ui_ecs_projection_contracts;
 mod ui_geometry_metrics;
 mod ui_layout;
 mod ui_skin_contracts;

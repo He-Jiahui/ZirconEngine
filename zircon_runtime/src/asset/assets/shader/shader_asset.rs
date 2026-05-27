@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    RenderShaderDependency, RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor,
-    RenderShaderVariantKey,
+    RenderShaderDefinitionValue, RenderShaderDependency, RenderShaderEntryPointDescriptor,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderVariantKey,
 };
 
 use super::{
@@ -20,6 +20,8 @@ pub struct ShaderAsset {
     pub source: String,
     #[serde(default)]
     pub wgsl_source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_path: Option<String>,
     #[serde(default)]
     pub entry_points: Vec<ShaderEntryPointAsset>,
     #[serde(default)]
@@ -28,6 +30,8 @@ pub struct ShaderAsset {
     pub source_files: Vec<ShaderSourceFileAsset>,
     #[serde(default)]
     pub imports: Vec<ShaderImportRedirectAsset>,
+    #[serde(default)]
+    pub shader_defs: Vec<RenderShaderDefinitionValue>,
     #[serde(default)]
     pub property_schema: Vec<ShaderMaterialPropertyAsset>,
     #[serde(default)]
@@ -70,7 +74,7 @@ impl ShaderAsset {
             .map(|entry| RenderShaderVariantKey {
                 entry_point: Some(entry.name.clone()),
                 stage: Some(entry.stage.clone()),
-                defines: Vec::new(),
+                defines: self.shader_defs.clone(),
             })
             .collect()
     }

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 pub(super) use zircon_runtime_interface::ui::component::{
     UiComponentCategory, UiComponentDescriptor, UiComponentDescriptorKind, UiComponentEventKind,
     UiComponentLayoutRole, UiHostCapability, UiOptionDescriptor, UiPropSchema, UiRenderCapability,
@@ -114,6 +116,102 @@ fn with_material_defaults(descriptor: UiComponentDescriptor) -> UiComponentDescr
         .with_prop(float_prop("corner_radius", 10.0))
         .with_prop(float_prop("border_width", 1.0))
         .with_prop(float_prop("elevation", 0.0))
+        .with_prop(default_string_prop("mui_variant", ""))
+        .with_prop(default_string_prop("mui_color", "primary"))
+        .with_prop(default_string_prop("mui_size", "medium"))
+        .with_prop(map_prop("mui_slots"))
+        .with_prop(map_prop("mui_slot_props"))
+        .with_prop(map_prop("mui_sx"))
+        .with_prop(array_prop("mui_classes"))
+        .with_prop(map_prop("slots"))
+        .with_prop(map_prop("slotProps"))
+        .with_prop(map_prop("sx"))
+        .with_prop(map_prop("classes"))
+        .with_prop(default_string_prop("className", ""))
+}
+
+pub(super) fn popup_position_props(
+    descriptor: UiComponentDescriptor,
+    default_placement: &str,
+) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(enum_prop("placement", default_placement))
+        .with_prop(optional_float_prop("popup_anchor_x"))
+        .with_prop(optional_float_prop("popup_anchor_y"))
+        .with_prop(float_prop("popup_anchor_width", 0.0))
+        .with_prop(float_prop("popup_anchor_height", 0.0))
+        .with_prop(default_string_prop("anchor_origin_vertical", ""))
+        .with_prop(default_string_prop("anchor_origin_horizontal", ""))
+        .with_prop(default_string_prop("transform_origin_vertical", ""))
+        .with_prop(default_string_prop("transform_origin_horizontal", ""))
+        .with_prop(float_prop("popup_offset_x", 0.0))
+        .with_prop(float_prop("popup_offset_y", 0.0))
+}
+
+pub(super) fn modal_interaction_props(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(bool_prop("disable_auto_focus", false))
+        .with_prop(bool_prop("disable_enforce_focus", false))
+        .with_prop(bool_prop("disable_restore_focus", false))
+        .with_prop(bool_prop("disable_escape_key_down", false))
+        .with_prop(bool_prop("close_on_backdrop_click", true))
+        .with_prop(bool_prop("keep_mounted", false))
+        .with_prop(bool_prop("aria_modal", true))
+        .with_prop(default_string_prop("aria_labelledby", ""))
+        .with_prop(default_string_prop("aria_describedby", ""))
+}
+
+pub(super) fn overlay_layer_props(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(optional_int_prop("z_index"))
+        .with_prop(bool_prop("disable_portal", false))
+        .with_prop(default_string_prop("portal_layer", "overlay"))
+}
+
+pub(super) fn transition_props(
+    descriptor: UiComponentDescriptor,
+    transition_kind: &str,
+    timeout_ms: i64,
+    easing: &str,
+) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(default_string_prop("transition_kind", transition_kind))
+        .with_prop(bool_prop("in", true))
+        .with_prop(default_string_prop("transition_status", "entered"))
+        .with_prop(float_prop("transition_progress", 1.0))
+        .with_prop(int_prop("timeout_ms", timeout_ms))
+        .with_prop(int_prop("transition_duration_ms", timeout_ms))
+        .with_prop(default_string_prop("easing", easing))
+        .with_prop(default_string_prop("transition_easing", easing))
+        .with_prop(bool_prop("mount_on_enter", false))
+        .with_prop(bool_prop("mountOnEnter", false))
+        .with_prop(bool_prop("unmount_on_exit", false))
+        .with_prop(bool_prop("unmountOnExit", false))
+}
+
+pub(super) fn virtualized_range_props(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(int_prop("total_count", 0))
+        .with_prop(int_prop("item_count", 0))
+        .with_prop(int_prop("itemCount", 0))
+        .with_prop(int_prop("row_count", 0))
+        .with_prop(int_prop("rowCount", 0))
+        .with_prop(int_prop("viewport_start", 0))
+        .with_prop(int_prop("viewport_count", 20))
+        .with_prop(int_prop("visible_end", 0))
+        .with_prop(int_prop("requested_start", 0))
+        .with_prop(int_prop("requested_count", 0))
+        .with_prop(float_prop("item_extent", 24.0))
+        .with_prop(float_prop("itemSize", 24.0))
+        .with_prop(float_prop("row_height", 24.0))
+        .with_prop(float_prop("rowHeight", 24.0))
+        .with_prop(int_prop("overscan", 2))
+        .with_prop(int_prop("overscan_count", 2))
+        .with_prop(int_prop("overscanCount", 2))
+        .with_prop(float_prop("scroll_offset", 0.0))
+        .with_prop(float_prop("scrollTop", 0.0))
+        .with_prop(bool_prop("disable_virtualization", false))
+        .with_prop(bool_prop("disableVirtualization", false))
 }
 
 pub(super) fn density_prop() -> UiPropSchema {
@@ -216,7 +314,7 @@ fn enum_options<const N: usize>(options: [&'static str; N]) -> Vec<UiOptionDescr
         .collect()
 }
 
-pub(super) fn enum_option_descriptor(option: &'static str) -> UiOptionDescriptor {
+pub(super) fn enum_option_descriptor(option: &str) -> UiOptionDescriptor {
     UiOptionDescriptor::new(
         option,
         enum_label(option),
@@ -242,8 +340,16 @@ pub(super) fn int_prop(name: &str, default: i64) -> UiPropSchema {
     UiPropSchema::new(name, UiValueKind::Int).default_value(UiValue::Int(default))
 }
 
+fn optional_int_prop(name: &str) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Int)
+}
+
 pub(super) fn float_prop(name: &str, default: f64) -> UiPropSchema {
     UiPropSchema::new(name, UiValueKind::Float).default_value(UiValue::Float(default))
+}
+
+pub(super) fn optional_float_prop(name: &str) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Float)
 }
 
 pub(super) fn value_text_prop() -> UiPropSchema {
@@ -256,6 +362,14 @@ pub(super) fn options_prop() -> UiPropSchema {
 
 pub(super) fn array_prop(name: &str) -> UiPropSchema {
     UiPropSchema::new(name, UiValueKind::Array).default_value(UiValue::Array(Vec::new()))
+}
+
+pub(super) fn map_prop(name: &str) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Map).default_value(UiValue::Map(BTreeMap::new()))
+}
+
+pub(super) fn any_prop(name: &str) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Any).default_value(UiValue::Null)
 }
 
 pub(super) fn number_value_prop() -> UiPropSchema {

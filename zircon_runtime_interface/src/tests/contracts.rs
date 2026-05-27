@@ -4,8 +4,9 @@ use crate::{
         binding::{UiEventBinding, UiEventKind, UiEventPath},
         component::{
             UiComponentCategory, UiComponentDescriptor, UiComponentEvent, UiComponentEventKind,
-            UiComponentState, UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiDropPolicy,
-            UiHostCapability, UiPropSchema, UiRenderCapability, UiSlotSchema, UiValue, UiValueKind,
+            UiComponentState, UiDragMetrics, UiDragPayload, UiDragPayloadKind, UiDragPhase,
+            UiDragSourceMetadata, UiDropPolicy, UiHostCapability, UiPropSchema, UiRenderCapability,
+            UiSlotSchema, UiValue, UiValueKind,
         },
         dispatch::{
             UiAnalogInputEvent, UiClipboardRequest, UiClipboardRequestKind,
@@ -18,12 +19,12 @@ use crate::{
             UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
             UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputSequence,
             UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent,
-            UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEventReason,
-            UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchResult,
-            UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy,
-            UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-            UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId, UiTextByteRange,
-            UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
+            UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEvent,
+            UiPointerComponentEventReason, UiPointerDispatchContext, UiPointerDispatchEffect,
+            UiPointerDispatchResult, UiPointerEvent, UiPointerId, UiPointerInputEvent,
+            UiPointerLockPolicy, UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind,
+            UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId,
+            UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
             UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
         },
         event_ui::{
@@ -32,7 +33,11 @@ use crate::{
             UiReflectorHitContext, UiReflectorNode, UiReflectorSnapshot, UiTreeId,
             UiWidgetLifecycleState,
         },
-        layout::{BoxConstraints, UiFrame, UiPoint},
+        layout::{
+            BoxConstraints, UiFrame, UiLayoutEngineCapability, UiLayoutEngineFallbackReason,
+            UiLayoutEngineFamily, UiLayoutEngineRequest, UiLayoutEngineSelection,
+            UiLayoutEngineSelectionReport, UiPoint,
+        },
         surface::{
             UiArrangedNode, UiArrangedTree, UiBackendRenderDebugStats, UiDamageDebugReport,
             UiDebugEventRecord, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
@@ -62,33 +67,35 @@ use crate::{
         },
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeNode, UiVisibility},
     },
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1,
-    ZrRuntimeHostRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1,
-    ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1,
-    ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-    ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
-    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
-    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
-    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-    ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
-    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
-    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-    ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
-    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
-    ZR_RUNTIME_IME_STATE_ENABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
-    ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
-    ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
-    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
+    ZrPluginEventCallbackResultV1, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
+    ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionHandle,
+    ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1, ZR_RUNTIME_EVENT_KIND_IME_V1,
+    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
+    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+    ZR_RUNTIME_FETCH_FLAG_STREAMING_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
+    ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
+    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
+    ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
+    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
@@ -185,6 +192,8 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
         focus_state: Default::default(),
         last_rebuild: Default::default(),
         layout_engine_report: Default::default(),
+        pipeline_report: Default::default(),
+        ecs_projection: Default::default(),
     };
     let hit_path = UiHitPath {
         target: Some(node_id),
@@ -285,6 +294,8 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
         }],
         rebuild: Default::default(),
         layout_engine_report: Default::default(),
+        pipeline_report: Default::default(),
+        ecs_projection: Default::default(),
         render: UiRenderDebugStats {
             command_count: 1,
             quad_count: 1,
@@ -401,6 +412,8 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
     assert!(serialized.contains("command_records"));
     assert!(serialized.contains("cell_records"));
     assert!(serialized.contains("layout_engine_report"));
+    assert!(serialized.contains("pipeline_report"));
+    assert!(serialized.contains("ecs_projection"));
     assert!(serialized.contains("material_batches"));
     assert!(serialized.contains("overdraw"));
     assert!(serialized.contains("overlay_primitives"));
@@ -410,6 +423,49 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
         snapshot.nodes[0].node_path,
         UiNodePath::new("root/debug_button")
     );
+}
+
+#[test]
+fn ui_surface_debug_snapshot_legacy_layout_report_recovers_fallback_reason_counts() {
+    let selection = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+        &UiLayoutEngineCapability::taffy_flex_grid_block(),
+        &UiLayoutEngineCapability::legacy_zircon(),
+    )
+    .with_node_id(UiNodeId::new(41));
+    let snapshot = UiSurfaceDebugSnapshot {
+        layout_engine_report: UiLayoutEngineSelectionReport::from_selections(vec![selection]),
+        ..UiSurfaceDebugSnapshot::default()
+    };
+    let mut serialized = serde_json::to_value(&snapshot).unwrap();
+    serialized
+        .as_object_mut()
+        .unwrap()
+        .remove("pipeline_report");
+    serialized.as_object_mut().unwrap().remove("ecs_projection");
+    let report_json = serialized
+        .get_mut("layout_engine_report")
+        .and_then(|value| value.as_object_mut())
+        .expect("layout report object");
+    report_json.remove("fallback_reason_counts");
+    report_json.insert("request_count".to_string(), serde_json::json!(99));
+    report_json.insert("fallback_count".to_string(), serde_json::json!(0));
+    report_json.insert("unsupported_count".to_string(), serde_json::json!(7));
+
+    let recovered: UiSurfaceDebugSnapshot = serde_json::from_value(serialized).unwrap();
+    let report = recovered.layout_engine_report;
+
+    assert_eq!(recovered.pipeline_report, Default::default());
+    assert_eq!(recovered.ecs_projection, Default::default());
+    assert_eq!(report.request_count, 1);
+    assert_eq!(report.fallback_count, 1);
+    assert_eq!(report.unsupported_count, 0);
+    assert_eq!(report.fallback_reason_counts.len(), 1);
+    assert_eq!(
+        report.fallback_reason_counts[0].reason,
+        Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
+    );
+    assert_eq!(report.fallback_reason_counts[0].count, 1);
 }
 
 #[test]
@@ -529,6 +585,68 @@ fn runtime_api_table_records_size_and_version() {
         core::mem::offset_of!(ZrRuntimeApiV1, drain_host_requests),
         core::mem::offset_of!(ZrRuntimeApiV1, tick_frame)
             + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV1>>()
+    );
+}
+
+#[test]
+fn plugin_api_table_records_optional_event_callback() {
+    let api = ZrPluginApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrPluginApiV1>());
+    assert_eq!(core::mem::size_of::<ZrPluginApiV1>(), 32);
+    assert!(api.unload.is_none());
+    assert!(api.invoke_event.is_none());
+    assert_eq!(
+        core::mem::offset_of!(ZrPluginApiV1, invoke_event),
+        core::mem::offset_of!(ZrPluginApiV1, unload)
+            + core::mem::size_of::<Option<crate::plugin_api::ZrPluginUnloadFnV1>>()
+    );
+}
+
+#[test]
+fn plugin_event_callback_request_preserves_payload_slices() {
+    let request = ZrPluginEventCallbackRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrByteSlice::from_static(b"sound.dynamic_events"),
+        ZrByteSlice::from_static(b"native_sound"),
+        ZrByteSlice::from_static(b"impact"),
+        ZrByteSlice::from_static(b"sound.dynamic.impact"),
+        ZrByteSlice::from_static(b"Timeline/Combat/Impact"),
+        1.25,
+        ZrByteSlice::from_static(b"sound.dynamic.impact.v1"),
+        ZrByteSlice::from_static(b"{\"gain\":0.5}"),
+    );
+    let result = ZrPluginEventCallbackResultV1::failed(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrByteSlice::from_static(b"handler rejected event"),
+    );
+
+    assert_eq!(request.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(
+        unsafe { request.namespace.as_slice() },
+        b"sound.dynamic_events"
+    );
+    assert_eq!(unsafe { request.plugin_id.as_slice() }, b"native_sound");
+    assert_eq!(unsafe { request.handler_id.as_slice() }, b"impact");
+    assert_eq!(
+        unsafe { request.event_id.as_slice() },
+        b"sound.dynamic.impact"
+    );
+    assert_eq!(
+        unsafe { request.source_path.as_slice() },
+        b"Timeline/Combat/Impact"
+    );
+    assert_eq!(request.time_seconds, 1.25);
+    assert_eq!(
+        unsafe { request.payload_schema.as_slice() },
+        b"sound.dynamic.impact.v1"
+    );
+    assert_eq!(unsafe { request.payload.as_slice() }, b"{\"gain\":0.5}");
+    assert_eq!(result.status.status_code(), ZrStatusCode::Error);
+    assert_eq!(
+        unsafe { result.status.diagnostics.as_slice() },
+        b"handler rejected event"
     );
 }
 
@@ -952,6 +1070,44 @@ fn runtime_host_request_batch_serializes_ime_requests() {
 }
 
 #[test]
+fn runtime_host_request_batch_serializes_gamepad_rumble_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::gamepad_rumble(ZrRuntimeGamepadRumbleRequestV1::add(
+                7, 0.5, 1.0, 125,
+            )),
+            ZrRuntimeHostRequestV1::gamepad_rumble(ZrRuntimeGamepadRumbleRequestV1::stop(7)),
+        ],
+    );
+
+    let decoded: ZrRuntimeHostRequestBatchV1 = ui_input_round_trip(&batch);
+
+    assert_eq!(decoded.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(decoded.requests.len(), 2);
+    assert!(matches!(
+        decoded.requests[0],
+        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
+            gamepad_id: 7,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Add,
+            strong_motor: 0.5,
+            weak_motor: 1.0,
+            duration_millis: 125,
+        })
+    ));
+    assert!(matches!(
+        decoded.requests[1],
+        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
+            gamepad_id: 7,
+            kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
+            strong_motor: 0.0,
+            weak_motor: 0.0,
+            duration_millis: 0,
+        })
+    ));
+}
+
+#[test]
 fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks() {
     let viewport = ZrRuntimeViewportHandle::new(2);
     let metrics = ZrRuntimeViewportMetricsV1::new(
@@ -1339,6 +1495,93 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
 }
 
 #[test]
+fn ui_pointer_component_event_drag_metrics_are_optional_and_round_trip() {
+    let node_id = UiNodeId::new(7);
+    let event = UiPointerComponentEvent::new(
+        &UiTreeId::new("ui.drag.contract"),
+        node_id,
+        "slider",
+        "Slider/DragUpdate",
+        UiEventKind::DragUpdate,
+        UiComponentEvent::DragDelta {
+            property: "value".to_string(),
+            delta: 2.5,
+        },
+        UiPointerComponentEventReason::DirectBinding,
+    )
+    .with_drag_metrics(UiDragMetrics::new(
+        UiDragPhase::Update,
+        UiPoint::new(1.0, 2.0),
+        UiPoint::new(4.0, 6.0),
+    ));
+
+    let round_trip: UiPointerComponentEvent = ui_input_round_trip(&event);
+    let drag = round_trip.drag.expect("drag metrics roundtrip");
+    assert_eq!(drag.phase, UiDragPhase::Update);
+    assert_eq!(drag.start, UiPoint::new(1.0, 2.0));
+    assert_eq!(drag.current, UiPoint::new(4.0, 6.0));
+    assert_eq!(drag.delta, UiPoint::new(3.0, 4.0));
+    assert_eq!(drag.distance, 5.0);
+
+    let mut legacy_json = serde_json::to_value(event).unwrap();
+    legacy_json.as_object_mut().unwrap().remove("drag");
+    let legacy_event: UiPointerComponentEvent = serde_json::from_value(legacy_json).unwrap();
+    assert_eq!(legacy_event.drag, None);
+}
+
+#[test]
+fn ui_input_dispatch_result_drag_metrics_are_optional_and_round_trip() {
+    let target = UiNodeId::new(17);
+    let drag = UiDragMetrics::end(UiPoint::new(2.0, 4.0), UiPoint::new(8.0, 12.0));
+    let mut result = UiInputDispatchResult::new(
+        UiInputEvent::Pointer(UiPointerInputEvent {
+            metadata: sample_ui_input_metadata(),
+            event: UiPointerEvent::new(UiPointerEventKind::Up, drag.current)
+                .with_button(UiPointerButton::Primary),
+            precise_scroll: None,
+        }),
+        UiDispatchReply::handled().from_handler(target),
+    );
+    result.drag = Some(drag);
+    result.component_events.push(UiComponentEventReport {
+        target,
+        event: UiComponentEvent::EndDrag {
+            property: "value".to_string(),
+        },
+        delivered: true,
+        drag: Some(drag),
+    });
+
+    let round_trip: UiInputDispatchResult = ui_input_round_trip(&result);
+    assert_eq!(
+        round_trip.drag.expect("result drag").phase,
+        UiDragPhase::End
+    );
+    assert_eq!(
+        round_trip
+            .component_events
+            .first()
+            .and_then(|report| report.drag)
+            .expect("component report drag")
+            .distance,
+        10.0
+    );
+
+    let mut legacy_json = serde_json::to_value(result).unwrap();
+    legacy_json.as_object_mut().unwrap().remove("drag");
+    legacy_json
+        .get_mut("component_events")
+        .and_then(|value| value.as_array_mut())
+        .and_then(|events| events.first_mut())
+        .and_then(|event| event.as_object_mut())
+        .unwrap()
+        .remove("drag");
+    let legacy_result: UiInputDispatchResult = serde_json::from_value(legacy_json).unwrap();
+    assert_eq!(legacy_result.drag, None);
+    assert_eq!(legacy_result.component_events[0].drag, None);
+}
+
+#[test]
 fn ui_input_event_contract_constructs_every_event_family() {
     let metadata = sample_ui_input_metadata();
     let payload = UiDragPayload::new(UiDragPayloadKind::Asset, "res://textures/grid.png");
@@ -1388,18 +1631,106 @@ fn ui_input_event_contract_constructs_every_event_family() {
             metadata: metadata.clone(),
             kind: UiPopupInputEventKind::OpenRequested,
             popup_id: "context-menu".to_string(),
+            owner: Some(UiNodeId::new(11)),
             anchor: Some(UiPoint::new(12.0, 16.0)),
         }),
         UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
             metadata,
             kind: UiTooltipTimerInputEventKind::Elapsed,
             tooltip_id: "save-tooltip".to_string(),
+            owner: Some(UiNodeId::new(11)),
         }),
     ];
 
     assert_eq!(events.len(), 9);
     assert!(matches!(events[0], UiInputEvent::Pointer(_)));
     assert!(matches!(events[8], UiInputEvent::TooltipTimer(_)));
+}
+
+#[test]
+fn ui_popup_tooltip_owner_fields_are_backward_compatible() {
+    let metadata = sample_ui_input_metadata();
+    let owner = UiNodeId::new(11);
+    let popup_event = UiInputEvent::Popup(UiPopupInputEvent {
+        metadata: metadata.clone(),
+        kind: UiPopupInputEventKind::OpenRequested,
+        popup_id: "context-menu".to_string(),
+        owner: Some(owner),
+        anchor: None,
+    });
+    let tooltip_event = UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
+        metadata,
+        kind: UiTooltipTimerInputEventKind::Elapsed,
+        tooltip_id: "save-tooltip".to_string(),
+        owner: Some(owner),
+    });
+    let popup_effect = UiDispatchEffect::Popup {
+        kind: UiPopupEffectKind::Open,
+        popup_id: "context-menu".to_string(),
+        owner: Some(owner),
+        anchor: None,
+    };
+    let tooltip_effect = UiDispatchEffect::Tooltip {
+        kind: UiTooltipEffectKind::Show,
+        tooltip_id: "save-tooltip".to_string(),
+        owner: Some(owner),
+    };
+
+    let mut legacy_popup_event = serde_json::to_value(&popup_event).unwrap();
+    legacy_popup_event
+        .get_mut("Popup")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap()
+        .remove("owner");
+    let UiInputEvent::Popup(decoded_popup_event) =
+        serde_json::from_value::<UiInputEvent>(legacy_popup_event).unwrap()
+    else {
+        panic!("popup event family changed");
+    };
+    assert_eq!(decoded_popup_event.owner, None);
+
+    let mut legacy_tooltip_event = serde_json::to_value(&tooltip_event).unwrap();
+    legacy_tooltip_event
+        .get_mut("TooltipTimer")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap()
+        .remove("owner");
+    let UiInputEvent::TooltipTimer(decoded_tooltip_event) =
+        serde_json::from_value::<UiInputEvent>(legacy_tooltip_event).unwrap()
+    else {
+        panic!("tooltip event family changed");
+    };
+    assert_eq!(decoded_tooltip_event.owner, None);
+
+    let mut legacy_popup_effect = serde_json::to_value(&popup_effect).unwrap();
+    legacy_popup_effect
+        .get_mut("Popup")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap()
+        .remove("owner");
+    let UiDispatchEffect::Popup {
+        owner: decoded_popup_owner,
+        ..
+    } = serde_json::from_value::<UiDispatchEffect>(legacy_popup_effect).unwrap()
+    else {
+        panic!("popup effect family changed");
+    };
+    assert_eq!(decoded_popup_owner, None);
+
+    let mut legacy_tooltip_effect = serde_json::to_value(&tooltip_effect).unwrap();
+    legacy_tooltip_effect
+        .get_mut("Tooltip")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap()
+        .remove("owner");
+    let UiDispatchEffect::Tooltip {
+        owner: decoded_tooltip_owner,
+        ..
+    } = serde_json::from_value::<UiDispatchEffect>(legacy_tooltip_effect).unwrap()
+    else {
+        panic!("tooltip effect family changed");
+    };
+    assert_eq!(decoded_tooltip_owner, None);
 }
 
 #[test]
@@ -1459,11 +1790,13 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
         UiDispatchEffect::Popup {
             kind: UiPopupEffectKind::Open,
             popup_id: "context-menu".to_string(),
+            owner: Some(target),
             anchor: Some(UiPoint::new(1.0, 2.0)),
         },
         UiDispatchEffect::Tooltip {
             kind: UiTooltipEffectKind::Arm,
             tooltip_id: "hint".to_string(),
+            owner: Some(target),
         },
         UiDispatchEffect::RequestInputMethod {
             request: UiInputMethodRequest {
@@ -1545,8 +1878,10 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             target,
             event: component_event,
             delivered: true,
+            drag: Some(UiDragMetrics::begin(UiPoint::new(6.0, 7.0))),
         }],
         binding_reports: Vec::new(),
+        drag: Some(UiDragMetrics::begin(UiPoint::new(6.0, 7.0))),
     };
 
     assert_eq!(effects.len(), 15);
@@ -1661,12 +1996,14 @@ fn ui_input_payloads_round_trip_through_serde() {
         metadata: metadata.clone(),
         kind: UiPopupInputEventKind::Dismissed,
         popup_id: "menu.file".to_string(),
+        owner: Some(UiNodeId::new(77)),
         anchor: Some(UiPoint::new(3.0, 4.0)),
     });
     let tooltip = UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
         metadata,
         kind: UiTooltipTimerInputEventKind::Canceled,
         tooltip_id: "status.hint".to_string(),
+        owner: Some(UiNodeId::new(77)),
     });
     let input_method_request = UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {

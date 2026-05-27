@@ -4,6 +4,7 @@ import { CatalogPage, HubTokens, InfoRow } from "components.slint";
 component PluginRow inherits InfoRow {
     in property <PluginData> plugin;
     in property <UiTextData> ui-text;
+    in property <bool> collapse-label: false;
 
     title: root.plugin.title;
     detail: root.plugin.description;
@@ -13,37 +14,29 @@ component PluginRow inherits InfoRow {
     trailing-text: root.plugin.category;
     trailing-tone: "accent";
     show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
     row-height: HubTokens.list-row-lg + HubTokens.space-6;
 }
 
-export component PluginsPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+export component PluginsPage inherits CatalogPage {
     in property <[PluginData]> plugins;
     in property <int> plugin-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <length> list-scroll-y: 0px;
     private property <string> catalog-title: root.has-selected-project ? root.ui-text.plugin-catalog-selected : root.ui-text.plugin-catalog;
     private property <string> plugins-empty-detail: root.has-selected-project ? root.ui-text.plugin-empty-selected-detail : root.ui-text.plugin-empty-global-detail;
 
-    background: HubTokens.surface-page;
+    title: root.catalog-title;
+    badge-text: root.plugin-count + " " + root.ui-text.plugins-found;
+    badge-tone: "accent";
+    empty-title: root.ui-text.no-plugins-found;
+    empty-detail: root.plugins-empty-detail;
+    row-count: root.plugin-count;
+    row-height: HubTokens.list-row-lg + HubTokens.space-6;
 
-    CatalogPage {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
-        list-scroll-y <=> root.list-scroll-y;
-        title: root.catalog-title;
-        badge-text: root.plugin-count + " " + root.ui-text.plugins-found;
-        badge-tone: "accent";
-        empty-title: root.ui-text.no-plugins-found;
-        empty-detail: root.plugins-empty-detail;
-        row-count: root.plugin-count;
-        row-height: HubTokens.list-row-lg + HubTokens.space-6;
-
-        for plugin in root.plugins: PluginRow {
-            plugin: plugin;
-            ui-text: root.ui-text;
-        }
+    for plugin in root.plugins: PluginRow {
+        plugin: plugin;
+        ui-text: root.ui-text;
+        collapse-label: root.content-width < HubTokens.breakpoint-medium;
     }
 }

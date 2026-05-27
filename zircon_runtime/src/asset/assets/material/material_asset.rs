@@ -2,16 +2,17 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetReference, ShaderAsset};
+use crate::asset::{AssetReference, ShaderAsset, ShaderRuntimeSourceKind};
 use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialDiagnosticSource,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialReadinessReport, RenderMaterialValidationError, StandardMaterialDescriptor,
+    RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
+    RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 
 use super::{
-    dependency_set, validate_alpha_mode, validate_shader_contract, AlphaMode,
-    MaterialTextureSlotValue, ZMaterialDocument,
+    dependency_set, shader_property_values_for_shader, validate_alpha_mode,
+    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -132,6 +133,9 @@ impl MaterialAsset {
                 RenderMaterialValidationError::MissingRequiredProperty { name, .. } => Some(
                     format!("material property {name} is required by shader schema"),
                 ),
+                RenderMaterialValidationError::MissingRequiredTextureSlot { slot, .. } => Some(
+                    format!("material texture slot {slot} requires a concrete texture reference"),
+                ),
                 _ => None,
             })
             .collect()
@@ -142,6 +146,13 @@ impl MaterialAsset {
         shader: &ShaderAsset,
     ) -> Vec<RenderMaterialValidationError> {
         validate_shader_contract(self, shader)
+    }
+
+    pub fn shader_property_values_for_shader(
+        &self,
+        shader: &ShaderAsset,
+    ) -> BTreeMap<String, crate::core::framework::render::RenderMaterialPropertyValue> {
+        shader_property_values_for_shader(self, shader)
     }
 
     pub fn readiness_report(&self) -> RenderMaterialReadinessReport {
@@ -191,6 +202,8 @@ impl MaterialAsset {
             fallback_policy,
             validation_errors,
             fallback_usages,
+            uniform_summary: None,
+            diagnostics: material_readiness_diagnostics(self),
         }
     }
 
@@ -204,13 +217,7 @@ impl MaterialAsset {
         for error in self.shader_contract_diagnostics(shader) {
             report.push_validation_error_once(error);
         }
-        for diagnostic in &shader.validation_diagnostics {
-            report.push_validation_error_once(RenderMaterialValidationError::MissingWgslCapture {
-                source: RenderMaterialDiagnosticSource::WgslCapture,
-                path: "shader.validation_diagnostics".to_string(),
-                name: diagnostic.clone(),
-            });
-        }
+        push_shader_readiness_validation_errors(&mut report, shader);
         report
     }
 
@@ -491,4 +498,67 @@ fn toml_array<const N: usize>(value: [f32; N]) -> toml::Value {
             .map(|value| toml::Value::Float(value as f64))
             .collect(),
     )
+}
+
+fn push_shader_readiness_validation_errors(
+    report: &mut RenderMaterialReadinessReport,
+    shader: &ShaderAsset,
+) {
+    let readiness = shader.readiness_report();
+    if readiness.runtime_source.source_kind == ShaderRuntimeSourceKind::Unavailable {
+        report
+            .push_validation_error_once(RenderMaterialValidationError::MissingRuntimeShaderSource);
+    }
+
+    for entry in readiness.entry_points {
+        if let Some(diagnostic) = entry.diagnostic {
+            report.push_validation_error_once(
+                RenderMaterialValidationError::ShaderReadinessDiagnostic {
+                    source: RenderMaterialDiagnosticSource::ShaderReadiness,
+                    path: format!("entry_points.{}", entry.name),
+                    diagnostic,
+                },
+            );
+        }
+    }
+
+    for definition in readiness.shader_defs {
+        if let Some(diagnostic) = definition.diagnostic {
+            let path_name = if definition.normalized_name.is_empty() {
+                "<empty>".to_string()
+            } else {
+                definition.normalized_name
+            };
+            report.push_validation_error_once(
+                RenderMaterialValidationError::ShaderReadinessDiagnostic {
+                    source: RenderMaterialDiagnosticSource::ShaderReadiness,
+                    path: format!("shader_defs.{path_name}"),
+                    diagnostic,
+                },
+            );
+        }
+    }
+
+    for diagnostic in readiness.validation_diagnostics {
+        report.push_validation_error_once(RenderMaterialValidationError::MissingWgslCapture {
+            source: RenderMaterialDiagnosticSource::WgslCapture,
+            path: "shader.validation_diagnostics".to_string(),
+            name: diagnostic,
+        });
+    }
+}
+
+fn material_readiness_diagnostics(
+    material: &MaterialAsset,
+) -> Vec<RenderMaterialReadinessDiagnostic> {
+    material
+        .validation_diagnostics
+        .iter()
+        .enumerate()
+        .map(|(index, diagnostic)| RenderMaterialReadinessDiagnostic {
+            source: RenderMaterialDiagnosticSource::MaterialAsset,
+            path: format!("material.validation_diagnostics[{index}]"),
+            diagnostic: diagnostic.clone(),
+        })
+        .collect()
 }

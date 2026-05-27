@@ -11,20 +11,20 @@ where
 }
 
 #[test]
-fn ui_pipeline_stage_order_matches_m2_schedule_contract() {
+fn ui_pipeline_stage_order_matches_bevy_aligned_schedule_contract() {
     assert_eq!(
         UiPipelineStage::ORDER,
         [
             UiPipelineStage::InputCollect,
-            UiPipelineStage::FocusInteraction,
-            UiPipelineStage::ContentMeasure,
+            UiPipelineStage::Focus,
+            UiPipelineStage::WidgetBehavior,
+            UiPipelineStage::TextMeasure,
             UiPipelineStage::Layout,
-            UiPipelineStage::PostLayoutStack,
-            UiPipelineStage::HitGrid,
+            UiPipelineStage::PostLayout,
+            UiPipelineStage::Picking,
+            UiPipelineStage::A11yExtract,
             UiPipelineStage::RenderExtract,
             UiPipelineStage::BatchPrepare,
-            UiPipelineStage::PaintSubmit,
-            UiPipelineStage::Diagnostics,
         ]
     );
 
@@ -37,20 +37,28 @@ fn ui_pipeline_stage_order_matches_m2_schedule_contract() {
         names,
         vec![
             "input_collect",
-            "focus_interaction",
-            "content_measure",
+            "focus",
+            "widget_behavior",
+            "text_measure",
             "layout",
-            "post_layout_stack",
-            "hit_grid",
+            "post_layout",
+            "picking",
+            "a11y_extract",
             "render_extract",
             "batch_prepare",
-            "paint_submit",
-            "diagnostics",
         ]
     );
     assert_eq!(
         round_trip(&UiPipelineStage::RenderExtract),
         UiPipelineStage::RenderExtract
+    );
+    assert_eq!(
+        serde_json::from_str::<UiPipelineStage>("\"focus_interaction\"").unwrap(),
+        UiPipelineStage::FocusInteraction
+    );
+    assert_eq!(
+        serde_json::from_str::<UiPipelineStage>("\"hit_grid\"").unwrap(),
+        UiPipelineStage::HitGrid
     );
 }
 
@@ -68,7 +76,7 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
             },
         ),
         UiPipelineStageReport::new(
-            UiPipelineStage::FocusInteraction,
+            UiPipelineStage::Focus,
             11,
             vec![UiPipelineDirtyReason::Focus],
             UiPipelineStageCounters {
@@ -77,11 +85,20 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
             },
         ),
         UiPipelineStageReport::new(
-            UiPipelineStage::ContentMeasure,
+            UiPipelineStage::WidgetBehavior,
             13,
+            vec![UiPipelineDirtyReason::WidgetBehavior],
+            UiPipelineStageCounters {
+                widget_behavior_count: 2,
+                ..UiPipelineStageCounters::default()
+            },
+        ),
+        UiPipelineStageReport::new(
+            UiPipelineStage::TextMeasure,
+            17,
             vec![UiPipelineDirtyReason::Text],
             UiPipelineStageCounters {
-                content_measure_count: 4,
+                text_measure_count: 4,
                 ..UiPipelineStageCounters::default()
             },
         ),
@@ -96,7 +113,7 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
             },
         ),
         UiPipelineStageReport::new(
-            UiPipelineStage::PostLayoutStack,
+            UiPipelineStage::PostLayout,
             23,
             vec![UiPipelineDirtyReason::Layout],
             UiPipelineStageCounters {
@@ -105,17 +122,27 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
             },
         ),
         UiPipelineStageReport::new(
-            UiPipelineStage::HitGrid,
+            UiPipelineStage::Picking,
             29,
-            vec![UiPipelineDirtyReason::HitGrid],
+            vec![UiPipelineDirtyReason::Picking],
             UiPipelineStageCounters {
+                picking_candidate_count: 7,
                 hit_grid_rebuild_count: 1,
                 ..UiPipelineStageCounters::default()
             },
         ),
         UiPipelineStageReport::new(
-            UiPipelineStage::RenderExtract,
+            UiPipelineStage::A11yExtract,
             31,
+            vec![UiPipelineDirtyReason::A11y],
+            UiPipelineStageCounters {
+                accessibility_node_count: 6,
+                ..UiPipelineStageCounters::default()
+            },
+        ),
+        UiPipelineStageReport::new(
+            UiPipelineStage::RenderExtract,
+            37,
             vec![UiPipelineDirtyReason::Render],
             UiPipelineStageCounters {
                 render_extract_command_count: 12,
@@ -126,28 +153,10 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
         ),
         UiPipelineStageReport::new(
             UiPipelineStage::BatchPrepare,
-            37,
+            41,
             vec![UiPipelineDirtyReason::Render],
             UiPipelineStageCounters {
                 batch_count: 5,
-                ..UiPipelineStageCounters::default()
-            },
-        ),
-        UiPipelineStageReport::new(
-            UiPipelineStage::PaintSubmit,
-            41,
-            vec![UiPipelineDirtyReason::HostRequest],
-            UiPipelineStageCounters {
-                paint_submit_count: 1,
-                ..UiPipelineStageCounters::default()
-            },
-        ),
-        UiPipelineStageReport::new(
-            UiPipelineStage::Diagnostics,
-            43,
-            vec![UiPipelineDirtyReason::Diagnostics],
-            UiPipelineStageCounters {
-                diagnostic_record_count: 2,
                 ..UiPipelineStageCounters::default()
             },
         ),
@@ -158,9 +167,13 @@ fn ui_pipeline_frame_report_records_stage_timings_dirty_reasons_and_counters() {
     assert!(frame.is_complete_ordered());
     assert!(frame.missing_required_stages().is_empty());
     assert_eq!(frame.completed_stage_count(), 10);
-    assert_eq!(frame.total_elapsed_micros, 254);
+    assert_eq!(frame.total_elapsed_micros, 228);
+    assert_eq!(frame.totals.widget_behavior_count, 2);
+    assert_eq!(frame.totals.text_measure_count, 4);
     assert_eq!(frame.totals.layout_node_count, 8);
+    assert_eq!(frame.totals.picking_candidate_count, 7);
     assert_eq!(frame.totals.hit_grid_rebuild_count, 1);
+    assert_eq!(frame.totals.accessibility_node_count, 6);
     assert_eq!(frame.totals.render_command_reuse_count, 9);
     assert_eq!(frame.totals.batch_count, 5);
     assert_eq!(
@@ -186,7 +199,7 @@ fn ui_pipeline_counters_express_repeated_pointer_move_fast_path() {
         },
     );
     let content = UiPipelineStageReport::skipped(
-        UiPipelineStage::ContentMeasure,
+        UiPipelineStage::TextMeasure,
         vec![UiPipelineDirtyReason::Input],
     );
     let layout =

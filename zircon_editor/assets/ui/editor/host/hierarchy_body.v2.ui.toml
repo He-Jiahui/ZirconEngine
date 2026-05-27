@@ -23,7 +23,7 @@ children = [{ node = "select_root" }]
 [nodes.select_root]
 component = "IconButton"
 control_id = "SelectRoot"
-props = { label = "Select Root", icon = "layers-outline" }
+props = { label = "Select Root", icon = "editor_pages/hierarchy/entity/scene.svg" }
 layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "SelectionCommand.SelectSceneNode" }]
 

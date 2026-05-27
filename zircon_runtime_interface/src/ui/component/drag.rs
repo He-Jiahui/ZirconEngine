@@ -1,5 +1,58 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::layout::UiPoint;
+
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+pub enum UiDragPhase {
+    #[default]
+    None,
+    Begin,
+    Update,
+    End,
+    Cancel,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiDragMetrics {
+    pub phase: UiDragPhase,
+    pub start: UiPoint,
+    pub current: UiPoint,
+    pub delta: UiPoint,
+    pub distance: f32,
+}
+
+impl UiDragMetrics {
+    pub fn new(phase: UiDragPhase, start: UiPoint, current: UiPoint) -> Self {
+        let delta = UiPoint::new(current.x - start.x, current.y - start.y);
+        Self {
+            phase,
+            start,
+            current,
+            delta,
+            distance: (delta.x.mul_add(delta.x, delta.y * delta.y)).sqrt(),
+        }
+    }
+
+    pub fn begin(point: UiPoint) -> Self {
+        Self::new(UiDragPhase::Begin, point, point)
+    }
+
+    pub fn update(start: UiPoint, current: UiPoint) -> Self {
+        Self::new(UiDragPhase::Update, start, current)
+    }
+
+    pub fn end(start: UiPoint, current: UiPoint) -> Self {
+        Self::new(UiDragPhase::End, start, current)
+    }
+
+    pub fn cancel(start: UiPoint, current: UiPoint) -> Self {
+        Self::new(UiDragPhase::Cancel, start, current)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum UiDragPayloadKind {
     Asset,

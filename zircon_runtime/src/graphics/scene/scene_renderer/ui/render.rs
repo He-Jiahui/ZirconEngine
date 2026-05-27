@@ -79,6 +79,7 @@ impl ScreenSpaceUiRenderer {
         frame: &ViewportRenderFrame,
     ) {
         let Some(prepared) = prepare_screen_space_ui(device, frame) else {
+            self.last_text_prepare_report = Default::default();
             return;
         };
         self.text_system.prepare(
@@ -89,6 +90,7 @@ impl ScreenSpaceUiRenderer {
             &prepared.native_texts,
             &prepared.sdf_texts,
         );
+        self.last_text_prepare_report = self.text_system.prepare_report();
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("zircon-screen-space-ui-pass"),
@@ -143,6 +145,10 @@ impl ScreenSpaceUiRenderer {
                 pass.draw(draw.vertices.clone(), 0..1);
             }
         }
+    }
+
+    pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
+        self.last_text_prepare_report
     }
 }
 

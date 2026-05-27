@@ -12,6 +12,7 @@ pub enum ExportTargetPlatform {
     Ios,
     WebGpu,
     Wasm,
+    Headless,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +21,7 @@ pub enum ExportPlatformHostKind {
     Desktop,
     MobileApp,
     Browser,
+    Headless,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -62,6 +64,7 @@ impl ExportTargetPlatform {
             Self::Ios => "ios",
             Self::WebGpu => "web_gpu",
             Self::Wasm => "wasm",
+            Self::Headless => "headless",
         }
     }
 
@@ -89,6 +92,11 @@ impl ExportTargetPlatform {
                 ExportPlatformHostKind::Browser,
                 ExportPlatformResourceStrategy::BrowserFetch,
                 ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            ),
+            Self::Headless => (
+                ExportPlatformHostKind::Headless,
+                ExportPlatformResourceStrategy::FilesystemBundle,
+                ExportPlatformPluginStrategy::NativeDynamicAllowed,
             ),
         };
         ExportPlatformPolicy {

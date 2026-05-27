@@ -41,6 +41,7 @@ related_code:
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_ui/src/tests/asset.rs
+  - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
@@ -123,6 +124,8 @@ related_code:
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/mod.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/retained_list_pointer/
@@ -170,6 +173,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/build/interaction.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_ui/src/template/document.rs
+  - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
@@ -289,6 +293,8 @@ tests:
   - zircon_editor/src/tests/host/retained_tab_drag/
   - zircon_editor/src/ui/retained_host/app/tests/floating_window_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests.rs
@@ -456,6 +462,7 @@ doc_type: module-detail
 - [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 现在又补了一条 real-host alignment regression：`root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed`
 - 这条 regression 在生产改动前给出的真实 red 不是抽象语义，而是具体的 frame 漂移：`host.viewport_size = 1600x876`，但 root shell 的 `viewport_content_frame = 1544x884`
 - 这一步当前已经有直接 focused green 证据，而不只是 compile green：`apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collapsed`、`apply_presentation_keeps_geometry_document_region_when_drawers_are_visible`、`builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell_size`、`root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed` 与 `cargo check -p zircon_editor --lib --locked` 都已通过
+- The 2026-05-27 M5 editor gate tightened the same root-shell path for visible bottom drawers: [`compact_bottom_height_limit(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs) now rounds its compact bottom height to a layout pixel before shared template/root projection consumes it. This prevents fractional `489.72`/`491.26` shell values from disagreeing with the integer pixel frames used by `workbench_drawer_source`, root presentation, and native host assertions. Focused regressions passed for `builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames_from_workbench_model`, `root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_header_frames`, and `builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model`.
 - [`template_bridge/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs) 也同步锁住 `root_shell_frames()` 的 control 映射，防止 callback fallback 和真实 presentation 后续对同一组 builtin control frame 漂移
 - 同一条 root-shell projection seam 这一刀又继续推进到了 tab-drop 精确 strip 命中：[`resolve_workbench_tab_drop_route_with_root_frames(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs)、[`resolve_tab_drop_with_root_frames(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/tab_drag/drop_resolution.rs) 和 [`strip_hitbox.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/tab_drag/strip_hitbox.rs) 现在会把 `BuiltinWorkbenchRootShellFrames` 继续带到 tool/document tab strip 的 `x/y` 计算，让 shared drag surface 命中、presentation frame 和 precise attach anchor 维持同一份 root-shell authority
 - 这修掉了一个典型 mixed-authority 回退：shared shell pointer route 已经因为 `WorkbenchBody` 平移而命中了正确的 `Right` tool stack，但 precise drop target 过去仍会按旧 `geometry.center_band_frame.y` 算 tab strip，最终退化成 `anchor: None`。真实宿主的 [`workspace_docking.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/workspace_docking.rs) 现在也会把 `template_bridge.root_shell_frames()` 传进 drop route 解析，所以 attach anchor 不再落回旧 geometry 真源

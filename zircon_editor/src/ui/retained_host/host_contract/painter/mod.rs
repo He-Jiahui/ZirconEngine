@@ -3,9 +3,12 @@ mod debug_reflector_overlay;
 mod diagnostics_overlay;
 mod frame;
 mod geometry;
+mod material_primitives;
 mod material_state_layer;
+mod mui_x_primitives;
 mod primitives;
 mod render_commands;
+mod sprite_atlas;
 mod template_nodes;
 mod text;
 mod theme;
@@ -23,6 +26,11 @@ pub(super) use primitives::{
 };
 pub(super) use text::draw_text_with_size_and_style;
 pub(super) use workbench::{paint_host_frame, record_host_frame_commands};
+
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use sprite_atlas::{
+    HostPaintAtlasImage, HostPaintImageUvRect,
+};
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;

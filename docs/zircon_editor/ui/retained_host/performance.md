@@ -20,6 +20,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
@@ -48,6 +49,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
@@ -66,6 +68,8 @@ related_code:
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/assets/icons/editor_pages/**
+  - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - tools/ui-profile-capture.ps1
 implementation_files:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -86,6 +90,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
@@ -114,6 +119,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
@@ -144,9 +150,12 @@ plan_sources:
   - .codex/plans/Retained Host Chrome 性能根因修复计划.md
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - docs/superpowers/plans/2026-05-18-editor-sprite-atlas-ui-batching.md
+  - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
 tests:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/atlas_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -164,6 +173,7 @@ tests:
   - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - cargo test -p zircon_editor --lib host_chrome_presenter --locked
@@ -201,9 +211,17 @@ tests:
   - cargo test -p zircon_editor --lib viewport_image_patch_can_carry_upload_bytes_for_gpu --locked
   - cargo test -p zircon_editor --lib command_stream --locked
   - cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never
+  - cargo test -p zircon_editor --lib recorded_atlas_images_keep_shared_resource_key_and_distinct_uvs --locked
+  - cargo test -p zircon_editor --lib recorded_atlas_image_uses_atlas_texture_payload_not_source_payload --locked
+  - cargo test -p zircon_editor --lib resolver_reads_project_library_atlas_artifacts_for_template_icon --locked
+  - cargo test -p zircon_editor --lib command_stream_replay_samples_atlas_uv_from_embedded_atlas_bytes --locked
+  - cargo test -p zircon_runtime --lib batch_plan_batches_disjoint_atlas_images_with_same_key_and_distinct_uvs --locked
+  - cargo test -p zircon_runtime --lib wgpu_ui_surface_headless_stats_batch_atlas_images_by_resource_key --locked
   - cargo test -p zircon_editor --lib painter --locked
   - cargo test -p zircon_editor --lib patch_command_stream_matches_legacy_region_repaint_pixels --locked
   - cargo test -p zircon_editor --lib text_draw_skips_disjoint_active_and_explicit_clips --locked
+  - cargo test -p zircon_editor editor_pages_template_icons_have_readable_16px_raster_footprints --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture
+  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --ignored --nocapture
   - cargo test -p zircon_editor --lib draw_rect_clipped_skips_disjoint_active_and_explicit_clips --locked
   - cargo test -p zircon_editor --lib fill_rect_respects_active_paint_clip --locked
   - cargo test -p zircon_editor --lib gpu_presenter --locked
@@ -355,6 +373,8 @@ Icon and preview loading is cached in `preview_images.rs`. `load_preview_image` 
 
 SVG tree parsing is also cached in `painter/visual_assets.rs`. The cache key uses canonical path, modification time, and file length, then stores the parsed `usvg::Tree` on the heap for reuse by subsequent raster/tint requests. The `20260514-215427-startup` trace shows the cache lookup itself in low microseconds; cold first-frame icon cost is now mostly unique SVG rasterization and template-node image pixel preparation rather than repeated tree parsing.
 
+The 2026-05-25 editor-page icon validation adds a compact readability guard to that same retained-host path. `editor_pages_template_icons_have_readable_16px_raster_footprints` renders the unique wired `editor_pages` template icons at 16 x 16 px, using the production template image pipeline and current icon tint, then rejects missing, blank, collapsed, or full-slot footprints. This keeps compact toolbar/menu/dock icon regressions visible as a painter test instead of relying only on manual screenshots. The closeout rerun passed with 1 test, 0 failures, and 1510 filtered, and printed per-icon `ICON_16PX_READABILITY` footprints. The complementary ignored screenshot gate still writes the accepted M3 GUI artifact bundle under `target/visual-layout`, including small and large SVG icon scaling captures.
+
 The later 2026-05-14 captures narrowed startup further. The component showcase runtime is now lazy: normal editor startup keeps a compact shared builtin runtime for bridge documents and first-screen pane bodies, and `component_showcase_runtime.rs` loads the showcase-only templates only when that view is visible or dispatching a showcase interaction. This removed the previous `new_load_builtin_templates` startup cliff.
 
 Icon-only template preview calls also avoid startup raster work. When a template node has no image source and only names an icon, `preview_images.rs` returns fixed 24 by 24 metadata after confirming the icon exists. The painter still loads the real icon pixels when it needs to draw at the final size, but host-scene construction no longer parses and rasterizes SVGs just to compute preview metadata. The `20260514-201128-startup` report shows `apply_build_host_scene_data` dropping from roughly 142 ms to roughly 69 ms after this change.
@@ -393,11 +413,11 @@ Template-node painting now applies the active region-damage clip before command 
 
 The presenter boundary lives under `host_contract/presenter/`. `HostChromePresenter` is the object-safe seam used by `window.rs`; `HostPresenterBackend::default_native()` returns `Gpu`, and `HostPresenterBackend::fallback()` is the explicit softbuffer path used only when GPU presenter creation fails. Window startup logs the selected backend and exits only if both GPU and softbuffer construction fail.
 
-`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded software/viewport images set it to `None`, while future SpriteAtlas consumers can use one atlas texture `resource_key` plus per-entry UV metadata. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
+`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded viewport images set it to `None`, while untinted retained template/image sources can resolve generated SpriteAtlas manifests under `library/editor-sprite-atlases` into one atlas texture `resource_key` plus per-entry UV metadata. Full-opacity atlas images record the shared atlas texture key; opacity-baked images keep the non-atlas content key so tinted/translucent pixels do not mutate shared atlas semantics. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
 
 `GpuChromePresenter<P: UiSurfacePresenter>` converts the chrome command stream into `zircon_runtime::rhi::UiSurfaceDrawList`. It records command full/patch counters, propagates runtime surface failures instead of hiding them, and emits `gpu_upload_bytes`, actual `gpu_draw_calls`, `gpu_visible_commands`, `gpu_visible_draw_items`, `gpu_batch_layers`, and `gpu_batch_dependencies`. It also maps `ChromeImageUvRect` directly into `UiSurfaceImageUvRect`, so atlas metadata crosses the editor/runtime boundary without exposing editor asset-manager or renderer-specific types. It never imports `wgpu`, and its factory no longer names `rhi_wgpu`; the concrete native surface, swapchain, offscreen retained UI target, quad/image pipelines, glyphon text atlas, texture uploads, batch planning, and surface present are selected by the runtime RHI factory.
 
-Softbuffer replay deliberately ignores atlas UV metadata. The software command-stream executor paints the embedded `rgba` bytes as the image payload it was given and falls back to `FALLBACK_IMAGE_COLOR` when bytes are absent, so atlas-backed producers must only depend on GPU atlas sampling when they provide the atlas texture to runtime. Non-atlas viewport and recorded-image paths continue to set `atlas_uv: None`, preserving byte-for-byte software parity tests.
+Softbuffer replay samples atlas UV metadata when atlas-backed payloads embed full atlas RGBA bytes. The software command-stream executor extracts the atlas subimage described by `ChromeImageUvRect`, paints that subimage through the same clipped RGBA path, and falls back to `FALLBACK_IMAGE_COLOR` when bytes are absent or the atlas rect/byte length is invalid. Non-atlas viewport and recorded-image paths continue to set `atlas_uv: None`, preserving byte-for-byte software parity tests while keeping atlas replay deterministic.
 
 The runtime presenter keeps a retained offscreen UI texture so damage patches can repaint only their region and still present a complete swapchain image. Full streams clear the offscreen target and rebuild it; patch streams load the previous target, clip command geometry to the command clip plus damage, upload changed image payloads, render UI geometry/text on the GPU, then blit the offscreen texture to the native surface. Runtime text preparation and image uploads use the same effective command-frame, clip, surface, and damage intersection as the quad/image clipping path from `rhi_wgpu/ui_surface/geometry.rs`; shader and blit setup lives in `rhi_wgpu/ui_surface/pipeline.rs`; glyphon buffer preparation, style mapping, and atlas rendering live in `rhi_wgpu/ui_surface/text.rs`. `rhi_wgpu/ui_surface/batching.rs` builds the draw plan from the clipped items: overlapping items keep the stable softbuffer z/index order through depth dependencies, while non-overlapping items are incomparable and can share a layer. Each layer batches all solid vertices into one solid draw, groups images by identical `resource_key`, and sends all layer text areas to one glyphon batch. This means `gpu_draw_calls` now measures actual planned GPU batch submissions instead of visible command count, and the visible command/item counters explain how much batching happened. Glyphs, texture uploads, and profile counters are therefore skipped or bounded exactly like the command stream patch. The headless constructor remains stats-only so runtime and editor tests can verify the contract without requiring a real window.
 
@@ -436,3 +456,5 @@ The same capture script now writes sidecar evidence files after the runtime expo
 The 2026-05-17 screenshot parity blocker was in the runtime WGPU surface color-space path rather than retained-host command generation. A pre-fix viewport-image run, `20260517-182730-viewport_image`, showed direct GPU-vs-softbuffer `differing_sample_ratio=0.6522`, matching the observed bright GPU capture. `zircon_runtime::rhi_wgpu::ui_surface` now keeps the retained UI target in `Rgba8Unorm`, prefers non-sRGB swapchain formats, clears new retained targets to opaque black, and prefers opaque swapchain alpha. After rebuilding the profiling binaries, `20260517-190736-viewport_image` reduced direct GPU-vs-softbuffer diff to `differing_sample_ratio=0.0165` and `average_channel_delta=0.9022`, below the configured `0.25` / `10.0` thresholds, while keeping `viewport_image` batch evidence at `21` visible draw items to `16` GPU draw calls and hit consistency at `93 failed=0`.
 
 The same rebuild closed the earlier scenario-attribution gap for the requested interaction evidence. `HostRedrawRequest::merge` now lets the later frame-update scenario own a coalesced redraw request, so resize and asset-refresh presents are no longer hidden under earlier click/startup labels. `20260517-190840-drawer_resize` used live splitter geometry, moved the left drawer by `80px`, refreshed geometry, kept `87 failed=0` hit samples, and recorded `653` visible draw items to `124` GPU draw calls. `20260517-190851-asset_refresh` recorded real asset-refresh presenter work with `266` visible draw items to `42` GPU draw calls and `114 failed=0` hit samples. These captures are evidence for geometry-derived interaction, GPU counter attribution, screenshot parity, and no normal-run software fallback; they still leave UI hotspot cleanup work open for `click/non_structural_interaction_rebuilt_presentation`, `drawer_resize/resize_triggered_slow_path_rebuild`, `idle_hover/region_request_repainted_full_frame`, and `startup/gpu_presenter_recorded_no_draw_calls`.
+
+The 2026-05-22 SpriteAtlas M5 retained-host slice made atlas-backed image commands concrete without changing dynamic viewport-image behavior. `painter/sprite_atlas.rs` resolves untinted `template-icon:`, `template-image:`, `icon:`, and `image:` keys from source paths under an `assets` tree to generated `library/editor-sprite-atlases/*.toml` manifests and matching atlas PNG bytes. `visual_assets.rs` attaches that metadata to retained image pixels; `render_commands.rs` records atlas metadata only for full-opacity image draws; `command_stream.rs` converts recorded atlas images to the atlas texture `resource_key`, atlas dimensions/RGBA bytes, and `ChromeImageUvRect`; and softbuffer replay samples the subimage from those atlas bytes. The M5 debug pass fixed a payload bug where recorded atlas images kept the source key/dimensions instead of the atlas key/dimensions, then split `presenter/command_stream/tests.rs` out of the 1010-line command-stream file so the production implementation returned to 621 lines. Focused validation in `D:\cargo-targets\zircon-shared\sprite-atlas-ui` passed `cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never` (`12` tests), `cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never` (`11` tests), `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` (`5` tests), and `cargo check -p zircon_editor --lib --locked --message-format short --color never` with deferred unused SpriteAtlas producer warnings. Live atlas-heavy profiling remains pending because no project-library `editor-sprite-atlases` artifacts currently exist in the workspace for an automated retained-host scenario.

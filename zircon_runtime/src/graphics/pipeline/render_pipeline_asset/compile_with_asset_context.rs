@@ -91,6 +91,12 @@ fn collect_feature_contract_diagnostics(
     }
 
     if let Some((shader_reference, shader)) = shader.as_ref() {
+        push_shader_readiness_diagnostics(
+            &mut diagnostics,
+            &feature_name,
+            shader_reference,
+            shader,
+        );
         for entry_point in &references.required_entry_points {
             if !shader
                 .entry_points
@@ -130,13 +136,6 @@ fn collect_feature_contract_diagnostics(
                 });
             }
         }
-        for diagnostic in &shader.validation_diagnostics {
-            diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
-                feature: feature_name.clone(),
-                shader: (*shader_reference).clone(),
-                diagnostic: diagnostic.clone(),
-            });
-        }
     }
 
     if let (Some((feature_shader, shader)), Some((_material_reference, material))) =
@@ -158,4 +157,45 @@ fn collect_feature_contract_diagnostics(
     }
 
     diagnostics
+}
+
+fn push_shader_readiness_diagnostics(
+    diagnostics: &mut Vec<RendererFeatureContractDiagnostic>,
+    feature_name: &str,
+    shader_reference: &AssetReference,
+    shader: &ShaderAsset,
+) {
+    let readiness = shader.readiness_report();
+    if let Some(diagnostic) = readiness.runtime_source.diagnostic {
+        diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
+            feature: feature_name.to_string(),
+            shader: shader_reference.clone(),
+            diagnostic,
+        });
+    }
+    for entry in readiness.entry_points {
+        if let Some(diagnostic) = entry.diagnostic {
+            diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
+                feature: feature_name.to_string(),
+                shader: shader_reference.clone(),
+                diagnostic,
+            });
+        }
+    }
+    for definition in readiness.shader_defs {
+        if let Some(diagnostic) = definition.diagnostic {
+            diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
+                feature: feature_name.to_string(),
+                shader: shader_reference.clone(),
+                diagnostic,
+            });
+        }
+    }
+    for diagnostic in readiness.validation_diagnostics {
+        diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
+            feature: feature_name.to_string(),
+            shader: shader_reference.clone(),
+            diagnostic,
+        });
+    }
 }

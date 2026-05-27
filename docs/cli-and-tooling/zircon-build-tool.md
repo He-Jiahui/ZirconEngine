@@ -40,6 +40,7 @@ plan_sources:
   - user: 2026-05-04 confirm editor/runtime asset staging and exported lookup support
   - user: 2026-05-04 add file-backed exported editor/runtime diagnostics
   - user: 2026-05-13 stop packaging legacy `.ui.toml` schema assets after the editor UI v2 hard cut
+  - user: 2026-05-26 keep packaged `.zui` component assets alongside v2 UI documents
   - .codex/plans/zircon_hub 独立启动器设计.md
   - docs/engine-architecture/runtime-editor-pluginized-export.md
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
@@ -51,7 +52,7 @@ tests:
   - python tools/zircon_build.py --targets hub,editor,runtime --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
-  - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.v2.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
+  - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.v2.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/host/activity_drawer_window.zui')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
   - powershell: Get-ChildItem E:\zircon-build\ZirconEngine\assets\ui -Recurse -File -Filter *.ui.toml | Where-Object { $_.Name -notlike '*.v2.ui.toml' } returns no files
   - E:\zircon-build\ZirconEngine\zircon_editor.exe smoke run with E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log
 doc_type: workflow-detail
@@ -110,10 +111,12 @@ authoring and migration inputs live under
 `zircon_editor/src/tests/fixtures/ui_legacy/**`, outside the deployable asset
 roots. `tools/zircon_build.py` still defensively skips non-v2 `assets/ui/**`
 files if one is reintroduced, and guard tests reject that regression. Files
-ending in `.v2.ui.toml` are staged, as are non-UI assets such as fonts, icons,
-SVGs, and viewport gizmo resources. This prevents a packaged `zircon_editor.exe`
-from resolving old schema assets from the exported directory while the source
-tree can keep focused migration coverage until those fixtures are rewritten.
+ending in `.v2.ui.toml` are staged for root view/style documents, and `.zui`
+component assets are staged for imported widget prototypes. Non-UI assets such
+as fonts, icons, SVGs, and viewport gizmo resources are staged unchanged. This
+prevents a packaged `zircon_editor.exe` from resolving old schema assets from
+the exported directory while the source tree can keep focused migration coverage
+until those fixtures are rewritten.
 
 The hub target stages `zircon_hub.exe` as the default launcher entry. It does not
 replace the editor/runtime targets: a complete local desktop payload should include

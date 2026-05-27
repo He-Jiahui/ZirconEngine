@@ -1,6 +1,7 @@
 //! Runtime-owned picking contracts shared by editor tools, dev tools, and backends.
 
 mod backend;
+mod debug_feed;
 mod hit_data;
 mod hit_record;
 mod hit_target;
@@ -23,6 +24,9 @@ mod schedule_label;
 mod settings;
 
 pub use backend::{PickingBackend, PickingBackendCapability, PickingBackendInfo};
+pub use debug_feed::{
+    PickingDebugFeed, PickingDebugMetric, PickingDebugMetricKind, PickingDebugPointerRow,
+};
 pub use hit_data::HitData;
 pub use hit_record::HitRecord;
 pub use hit_target::{HitTarget, PickingAxis, PickingTargetPriority};

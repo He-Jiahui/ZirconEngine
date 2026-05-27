@@ -17,6 +17,17 @@ pub(super) struct SdfFontBakeCache {
 pub(super) struct SdfAtlasBake {
     pub(super) pixels: Vec<u8>,
     pub(super) glyphs: Vec<SdfBakedGlyph>,
+    pub(super) report: SdfAtlasBakeReport,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct SdfAtlasBakeReport {
+    pub(super) slot_count: usize,
+    pub(super) visible_glyph_count: usize,
+    pub(super) empty_glyph_count: usize,
+    pub(super) atlas_byte_len: usize,
+    pub(super) nonzero_pixel_count: usize,
+    pub(super) loaded_font_count: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -69,7 +80,21 @@ impl SdfFontBakeCache {
             });
         }
 
-        SdfAtlasBake { pixels, glyphs }
+        let visible_glyph_count = glyphs.iter().filter(|glyph| glyph.visible).count();
+        let report = SdfAtlasBakeReport {
+            slot_count: glyphs.len(),
+            visible_glyph_count,
+            empty_glyph_count: glyphs.len().saturating_sub(visible_glyph_count),
+            atlas_byte_len: pixels.len(),
+            nonzero_pixel_count: pixels.iter().filter(|pixel| **pixel != 0).count(),
+            loaded_font_count: self.fonts.len(),
+        };
+
+        SdfAtlasBake {
+            pixels,
+            glyphs,
+            report,
+        }
     }
 
     pub(super) fn measure_glyph(
@@ -266,6 +291,15 @@ mod tests {
         assert_ne!(a, i);
         assert_ne!(a, o);
         assert_ne!(i, o);
+        assert_eq!(atlas.report.slot_count, 3);
+        assert_eq!(atlas.report.visible_glyph_count, 3);
+        assert_eq!(atlas.report.empty_glyph_count, 0);
+        assert_eq!(
+            atlas.report.atlas_byte_len,
+            (plan.atlas_size.x * plan.atlas_size.y) as usize
+        );
+        assert!(atlas.report.nonzero_pixel_count > 0);
+        assert!(atlas.report.loaded_font_count >= 1);
     }
 
     #[test]
@@ -280,6 +314,7 @@ mod tests {
         let placeholder =
             old_rounded_rect_placeholder(plan.slots[0].rect.width, plan.slots[0].rect.height);
         assert_ne!(actual, placeholder);
+        assert!(atlas.report.nonzero_pixel_count > 0);
     }
 
     #[test]
@@ -322,6 +357,34 @@ mod tests {
         assert_eq!(
             atlas.pixels.len(),
             (plan.atlas_size.x * plan.atlas_size.y) as usize
+        );
+        assert_eq!(atlas.report.slot_count, 1);
+        assert_eq!(atlas.report.atlas_byte_len, atlas.pixels.len());
+    }
+
+    #[test]
+    fn sdf_font_bake_report_handles_empty_atlas_plan() {
+        let mut bake = SdfFontBakeCache::new();
+        let asset_manager = ProjectAssetManager::default();
+        let plan = SdfAtlasPlan {
+            atlas_size: UVec2::new(1, 1),
+            slots: Vec::new(),
+            runs: Vec::new(),
+        };
+
+        let atlas = bake.build_atlas(&plan, &asset_manager);
+
+        assert_eq!(atlas.pixels, vec![0]);
+        assert_eq!(
+            atlas.report,
+            SdfAtlasBakeReport {
+                slot_count: 0,
+                visible_glyph_count: 0,
+                empty_glyph_count: 0,
+                atlas_byte_len: 1,
+                nonzero_pixel_count: 0,
+                loaded_font_count: 0,
+            }
         );
     }
 

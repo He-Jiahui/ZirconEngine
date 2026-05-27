@@ -3,7 +3,9 @@ use std::sync::Arc;
 use crate::core::math::{RenderVec4, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::graphics::scene::resources::{GpuMeshResource, GpuTextureResource, PipelineKey};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, GpuTextureResource, PipelineKey,
+};
 
 use super::super::super::primitives::{render_vec4_or, ModelUniform};
 use super::super::mesh_draw::{MeshDraw, VirtualGeometrySubmissionDetail};
@@ -13,6 +15,7 @@ pub(super) fn create_mesh_draw(
     model_layout: &wgpu::BindGroupLayout,
     mesh: Arc<GpuMeshResource>,
     texture: Arc<GpuTextureResource>,
+    material_uniform: Arc<GpuMaterialUniformResource>,
     pipeline_key: PipelineKey,
     model_matrix: [[f32; 4]; 4],
     draw_tint: Vec4,
@@ -47,6 +50,7 @@ pub(super) fn create_mesh_draw(
         indirect_args_offset,
         virtual_geometry_submission_detail,
         texture,
+        material_uniform,
         pipeline_key,
         model_buffer,
         model_bind_group,

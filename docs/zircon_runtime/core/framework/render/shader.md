@@ -9,10 +9,12 @@ related_code:
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
+  - zircon_runtime/src/core/framework/render/shader/definition_value.rs
   - zircon_runtime/src/core/framework/render/shader/dependency.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
+  - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
@@ -25,10 +27,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
+  - zircon_runtime/src/core/framework/render/shader/definition_value.rs
   - zircon_runtime/src/core/framework/render/shader/dependency.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
+  - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
@@ -42,8 +46,24 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/superpowers/specs/2026-05-24-shader-readiness-report-design.md
+  - docs/superpowers/specs/2026-05-25-typed-shader-definitions-design.md
+  - docs/superpowers/plans/2026-05-24-shader-readiness-report.md
+  - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
 tests:
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts
+  - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_defs_accept_legacy_flags_and_typed_values
+  - zircon_runtime/src/asset/tests/assets/shader_readiness.rs
+  - zircon_runtime/src/asset/tests/project/zmeta.rs::zshader_typed_shader_definition_rows_validate_kind_and_value
+  - zircon_runtime/src/asset/tests/project/zmeta.rs::project_manager_imports_compound_zshader_package_with_subassets
+  - 2026-05-26 typed shader definitions: rustfmt, focused shader tests, compound zshader test, and runtime lib-test check passed on D:/cargo-targets/zircon-typed-shader-defs
+  - cargo test -p zircon_runtime --lib render_product_assets_shader_defs_accept_legacy_flags_and_typed_values --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib zshader_typed_shader_definition_rows_validate_kind_and_value --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib project_manager_imports_compound_zshader_package_with_subassets --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib shader_readiness --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 5 passed)
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs --message-format short --color never (2026-05-25 typed shader definitions: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib shader_readiness --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 5 passed)
+  - cargo test -p zircon_runtime --lib shader --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 24 passed)
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
@@ -75,7 +95,9 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 
 `RenderShaderDependency` records a `ResourceKind` and `AssetReference`. Dependencies are explicit serialized authoring data in the current milestone; they are not inferred from WGSL import syntax by the framework layer.
 
-`RenderShaderVariantKey` records an optional entry point, optional stage, and string define list. It is a neutral key for material or pipeline specialization diagnostics, not a concrete pipeline-cache key. Concrete renderer caches can combine it with target format, material state, mesh layout, and backend limits when needed.
+`RenderShaderDefinitionValue` records Bevy-style shader definition inputs as bool, signed integer, or unsigned integer values. `From<&str>` and `From<String>` create bool-true flag definitions so legacy authoring paths and small tests can stay concise while the runtime contract is no longer string-only.
+
+`RenderShaderVariantKey` records an optional entry point, optional stage, and typed definition list. It is a neutral key for material or pipeline specialization diagnostics, not a concrete pipeline-cache key. Concrete renderer caches can combine it with target format, material state, mesh layout, backend limits, and the typed definition values when the render prepare/cache layer starts consuming them.
 
 `RenderShaderPipelineLayoutDescriptor` records the intended shader resource interface. Each `RenderShaderBindGroupLayoutDescriptor` stores a group index, optional label, and binding rows. Each `RenderShaderBindingDescriptor` stores binding index, optional label, resource type, and stage visibility. `RenderShaderBindingResourceType` currently names uniform buffers, storage buffers, sampled textures, storage textures, and samplers. `push_constant_ranges` is intentionally a vector of labels or range descriptions rather than a WGPU-native range type because the neutral contract must remain serializable and backend-agnostic.
 
@@ -84,6 +106,8 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 `ShaderAsset::runtime_wgsl_source()` is the runtime source selector. It prefers non-empty emitted `wgsl_source`, then falls back to raw `source` only when `source_language == ShaderSourceLanguage::Wgsl`. Non-WGSL source without emitted WGSL is not render-ready and must fall back or report readiness diagnostics before graphics code attempts to build a shader module.
 
 `ShaderAsset::entry_point_descriptors()` maps serialized `ShaderEntryPointAsset` rows into canonical framework descriptors and filters invalid stage tokens. `ShaderAsset::dependencies()` maps serialized `ShaderDependencyAsset` rows into `RenderShaderDependency`. `ShaderAsset::variant_keys()` derives first-pass keys from entry point names and stage strings. `ShaderAsset::pipeline_layout_descriptor()` clones the serialized layout descriptor so render feature contracts and diagnostics can reason about bind groups without allocating WGPU layouts.
+
+`ShaderAsset::readiness_report()` sits above the neutral render DTOs and below renderer preparation. It validates whether the asset payload has runtime WGSL, canonical entry-point stages, non-empty and non-duplicated shader definition names, and no shader-side validation diagnostics. It deliberately does not compose WGSL imports, create Naga modules, allocate WGPU shader modules, build bind group layouts, or queue pipelines; those remain shader-cache and graphics responsibilities.
 
 `.zshader` documents are asset-layer authoring documents. They store WGSL file references, entry points, import redirects, material property schema, texture slots, and editor hints. The `.zshader` importer may perform authoring diagnostics such as WGSL capture checks, but `render::shader` stays limited to the product DTOs that the renderer and material readiness layer can consume.
 
@@ -95,12 +119,16 @@ The mesh renderer cache currently creates WGPU shader modules from the prepared 
 
 ## Current Limits
 
-This module is not a full Bevy `ShaderPlugin`, `ShaderCache`, or `PipelineCache`. It does not parse WGSL imports, resolve shader include graphs, apply typed shader-def values, validate Naga modules, track dependent pipelines, deduplicate bind group layouts, or support async pipeline creation states.
+This module is not a full Bevy `ShaderPlugin`, `ShaderCache`, or `PipelineCache`. It does not parse WGSL imports, resolve shader include graphs, apply shader definitions to Naga composition, validate Naga modules, track dependent pipelines, deduplicate bind group layouts, or support async pipeline creation states.
+
+Asset-level shader readiness is intentionally narrower than renderer readiness. It can report missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, source-only versus redirected import rows, and copied validation diagnostics, but it does not decide whether a concrete device can create a module or pipeline.
 
 The layout descriptor is serialized intent, not reflection. It does not yet derive bind groups from WGSL, validate binding type compatibility, model dynamic offsets, express texture sample types, or map push constants to backend feature gates. Future shader milestones should add those checks below the framework DTO layer so `.zshader` authoring and renderer preparation continue to share one stable contract.
 
 ## Test Coverage
 
-`render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts` proves runtime WGSL selection, WGSL fallback source selection, non-WGSL missing-source rejection, entry-point stage projection, dependency projection, variant-key projection, and serialized pipeline layout projection.
+`render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts` proves runtime WGSL selection, WGSL fallback source selection, non-WGSL missing-source rejection, entry-point stage projection, dependency projection, typed variant-key projection, and serialized pipeline layout projection.
 
-The broader `render_product_assets` filter and `cargo check -p zircon_runtime --lib --locked` remain the milestone-level compile/test gates for this surface. The M10D continuation is documentation-only, so no Cargo gate is required unless source changes accompany a later shader contract slice.
+`render_product_assets_shader_defs_accept_legacy_flags_and_typed_values`, `zshader_typed_shader_definition_rows_validate_kind_and_value`, and the compound `.zshader` import regression cover the typed shader-definition contract. Legacy `shader_defs = ["FEATURE"]` remains accepted as bool-true flags, while typed rows preserve bool, signed integer, and unsigned integer values through `ShaderAsset`, readiness reporting, and `RenderShaderVariantKey`.
+
+The broader `render_product_assets` filter and `cargo check -p zircon_runtime --lib --tests --locked` remain the milestone-level compile/test gates for this surface.

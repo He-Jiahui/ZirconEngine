@@ -32,6 +32,7 @@ impl SceneViewportController {
 
         self.state.camera = Some(camera);
         self.state.orbit_target = target;
+        self.state.orbit_controller.set_target(target);
         self.state.settings.view_orientation = ViewOrientation::User;
         true
     }

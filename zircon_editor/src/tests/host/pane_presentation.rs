@@ -692,6 +692,14 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
     assert!(payload
         .ui_debug_reflector_sections
         .iter()
+        .any(|line| line == "Pipeline:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "ECS Projection:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
         .any(|line| line == "  selected: taffy=1 zircon=1"));
     assert!(payload.ui_debug_reflector_sections.iter().any(|line| {
         line.contains("node=2")

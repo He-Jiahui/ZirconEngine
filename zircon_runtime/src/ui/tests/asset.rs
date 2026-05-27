@@ -957,7 +957,15 @@ fn ui_document_compiler_expands_imported_widget_references_and_applies_styleshee
         open_button.bindings[0].route.as_deref(),
         Some("Toolbar.Open")
     );
-    assert_eq!(open_button.classes, vec!["toolbar-button", "primary"]);
+    assert_eq!(
+        open_button.classes,
+        vec![
+            "toolbar-button",
+            "primary",
+            "MuiHorizontalBox-leading",
+            "MuiButton-root",
+        ]
+    );
     assert_eq!(
         open_button
             .attributes

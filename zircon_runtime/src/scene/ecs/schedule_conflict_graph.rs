@@ -11,6 +11,7 @@ pub struct ScheduleConflictNode {
     system_id: String,
     stage: SystemStage,
     access: SystemParamAccess,
+    kind: ScheduleConflictNodeKind,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -25,6 +26,13 @@ pub struct ScheduleConflictEdge {
 pub struct ScheduleParallelBatch {
     stage: SystemStage,
     system_ids: Vec<String>,
+    has_barrier: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScheduleConflictNodeKind {
+    System,
+    Barrier,
 }
 
 impl ScheduleConflictGraph {
@@ -37,6 +45,9 @@ impl ScheduleConflictGraph {
                 let left = &nodes[left_index];
                 let right = &nodes[right_index];
                 if left.stage != right.stage {
+                    continue;
+                }
+                if left.is_barrier() || right.is_barrier() {
                     continue;
                 }
 
@@ -91,8 +102,21 @@ impl ScheduleConflictGraph {
         let mut batches = Vec::<ScheduleParallelBatch>::new();
 
         for node in &self.nodes {
+            if node.is_barrier() {
+                // Barriers are ordering boundaries, not data-access systems. They occupy
+                // their own batch so future parallel runners never overlap sync work with
+                // producer or consumer systems.
+                batches.push(ScheduleParallelBatch {
+                    stage: node.stage,
+                    system_ids: vec![node.system_id.clone()],
+                    has_barrier: true,
+                });
+                continue;
+            }
+
             if batches.last().is_some_and(|batch| {
                 batch.stage == node.stage
+                    && !batch.has_barrier
                     && batch
                         .system_ids
                         .iter()
@@ -107,6 +131,7 @@ impl ScheduleConflictGraph {
                 batches.push(ScheduleParallelBatch {
                     stage: node.stage,
                     system_ids: vec![node.system_id.clone()],
+                    has_barrier: false,
                 });
             }
         }
@@ -125,6 +150,16 @@ impl ScheduleConflictNode {
             system_id: system_id.into(),
             stage,
             access,
+            kind: ScheduleConflictNodeKind::System,
+        }
+    }
+
+    pub fn barrier(system_id: impl Into<String>, stage: SystemStage) -> Self {
+        Self {
+            system_id: system_id.into(),
+            stage,
+            access: SystemParamAccess::default(),
+            kind: ScheduleConflictNodeKind::Barrier,
         }
     }
 
@@ -138,6 +173,14 @@ impl ScheduleConflictNode {
 
     pub fn access(&self) -> &SystemParamAccess {
         &self.access
+    }
+
+    pub fn kind(&self) -> ScheduleConflictNodeKind {
+        self.kind
+    }
+
+    pub fn is_barrier(&self) -> bool {
+        self.kind == ScheduleConflictNodeKind::Barrier
     }
 }
 
@@ -166,5 +209,9 @@ impl ScheduleParallelBatch {
 
     pub fn system_ids(&self) -> &[String] {
         &self.system_ids
+    }
+
+    pub fn has_barrier(&self) -> bool {
+        self.has_barrier
     }
 }

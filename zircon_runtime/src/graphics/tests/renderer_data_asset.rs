@@ -8,7 +8,7 @@ use crate::asset::{
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
     RenderMaterialValidationError, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderShaderDefinitionValue, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
 use crate::{
@@ -285,6 +285,80 @@ fn asset_aware_compile_reports_shader_contract_expectation_gaps() {
 }
 
 #[test]
+fn asset_aware_compile_reports_shader_payload_readiness_gaps() {
+    let shader = asset_reference("readiness-shader", "res://shaders/readiness.zshader");
+    let pipeline = pipeline_with_mesh_feature(
+        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+            .with_shader_reference(shader.clone()),
+    );
+    let mut shader_asset = shader_contract();
+    shader_asset.uri = shader.locator.clone();
+    shader_asset.source_language = ShaderSourceLanguage::Glsl;
+    shader_asset.source = "void main() {}".to_string();
+    shader_asset.wgsl_source.clear();
+    shader_asset.entry_points.push(ShaderEntryPointAsset {
+        name: "pixel_main".to_string(),
+        stage: "pixel".to_string(),
+    });
+    shader_asset.shader_defs = vec![
+        RenderShaderDefinitionValue::from("USE_FOG"),
+        RenderShaderDefinitionValue::from(" "),
+        RenderShaderDefinitionValue::bool(" USE_FOG ", false),
+    ];
+    let context =
+        InMemoryRenderPipelineAssetContext::default().with_shader(shader.clone(), shader_asset);
+
+    let report = pipeline
+        .compile_with_asset_context(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default(),
+            &context,
+        )
+        .unwrap();
+
+    assert!(report.diagnostics.iter().any(|diagnostic| matches!(
+        diagnostic,
+        RendererFeatureContractDiagnostic::ShaderValidation {
+            feature,
+            shader: diagnostic_shader,
+            diagnostic,
+        } if feature == "mesh"
+            && diagnostic_shader == &shader
+            && diagnostic.contains("does not provide emitted WGSL")
+    )));
+    assert!(report.diagnostics.iter().any(|diagnostic| matches!(
+        diagnostic,
+        RendererFeatureContractDiagnostic::ShaderValidation {
+            feature,
+            shader: diagnostic_shader,
+            diagnostic,
+        } if feature == "mesh"
+            && diagnostic_shader == &shader
+            && diagnostic.contains("unsupported stage `pixel`")
+    )));
+    assert!(report.diagnostics.iter().any(|diagnostic| matches!(
+        diagnostic,
+        RendererFeatureContractDiagnostic::ShaderValidation {
+            feature,
+            shader: diagnostic_shader,
+            diagnostic,
+        } if feature == "mesh"
+            && diagnostic_shader == &shader
+            && diagnostic.contains("empty after trimming")
+    )));
+    assert!(report.diagnostics.iter().any(|diagnostic| matches!(
+        diagnostic,
+        RendererFeatureContractDiagnostic::ShaderValidation {
+            feature,
+            shader: diagnostic_shader,
+            diagnostic,
+        } if feature == "mesh"
+            && diagnostic_shader == &shader
+            && diagnostic.contains("duplicated")
+    )));
+}
+
+#[test]
 fn asset_aware_compile_reports_material_contract_diagnostics() {
     let feature_shader = asset_reference("feature-shader", "res://shaders/feature.zshader");
     let material_shader = asset_reference("material-shader", "res://shaders/material.zshader");
@@ -505,7 +579,10 @@ fn shader_contract() -> ShaderAsset {
         uri: AssetUri::parse("res://shaders/feature.zshader").unwrap(),
         source_language: ShaderSourceLanguage::Wgsl,
         source: String::new(),
-        wgsl_source: String::new(),
+        wgsl_source:
+            "@vertex fn vs_main() -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }"
+                .to_string(),
+        import_path: None,
         entry_points: vec![ShaderEntryPointAsset {
             name: "vs_main".to_string(),
             stage: "vertex".to_string(),
@@ -513,6 +590,7 @@ fn shader_contract() -> ShaderAsset {
         dependencies: Vec::new(),
         source_files: Vec::new(),
         imports: Vec::new(),
+        shader_defs: Vec::new(),
         property_schema: vec![
             ShaderMaterialPropertyAsset {
                 name: "base_color".to_string(),
@@ -532,6 +610,7 @@ fn shader_contract() -> ShaderAsset {
         texture_slots: vec![ShaderTextureSlotAsset {
             name: "base_color".to_string(),
             kind: "texture2d".to_string(),
+            required: false,
             default: Some("white".to_string()),
             sampler: Some("linear_repeat".to_string()),
             group: Some("Surface".to_string()),

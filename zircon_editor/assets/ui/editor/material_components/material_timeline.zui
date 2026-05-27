@@ -58,11 +58,57 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "row / grid", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "row / grid", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 94, preferred = 94, max = 94, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "VerticalBox"
+component = "Timeline"
 control_id = "timeline_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Timeline", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "MuiTimeline-root"]
+props = { text = "Timeline", className = "material-timeline-sample", component = "ul", position = "alternate-reverse", time = 12.0, duration = 48.0, slotProps = { items = { className = "material-timeline-item" }, content = { className = "material-timeline-content" }, separator = { className = "material-timeline-separator" }, connector = { className = "material-timeline-connector" }, dot = { className = "material-timeline-dot" } }, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 3.0 } }
+children = [
+  { node = "timeline_item" },
+]
+
+[nodes.timeline_item]
+component = "TimelineItem"
+control_id = "timeline_Item"
+classes = ["material-timeline-item", "MuiTimelineItem-root"]
+props = { position = "alternate-reverse", hasOppositeContent = false, className = "material-timeline-item", surface_variant = "elevated", text_tone = "primary", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "timeline_separator" },
+  { node = "timeline_content" },
+]
+
+[nodes.timeline_separator]
+component = "TimelineSeparator"
+control_id = "timeline_Separator"
+classes = ["material-timeline-separator", "MuiTimelineSeparator-root"]
+props = { className = "material-timeline-separator", surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 2.0 } }
+children = [
+  { node = "timeline_dot" },
+  { node = "timeline_connector" },
+]
+
+[nodes.timeline_dot]
+component = "TimelineDot"
+control_id = "timeline_Dot"
+classes = ["material-timeline-dot", "MuiTimelineDot-root"]
+props = { variant = "outlined", color = "secondary", className = "material-timeline-dot", surface_variant = "elevated", text_tone = "secondary", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.timeline_connector]
+component = "TimelineConnector"
+control_id = "timeline_Connector"
+classes = ["material-timeline-connector", "MuiTimelineConnector-root"]
+props = { className = "material-timeline-connector", surface_variant = "elevated", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 2.0, preferred = 2.0, max = 2.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.timeline_content]
+component = "TimelineContent"
+control_id = "timeline_Content"
+classes = ["material-timeline-content", "MuiTimelineContent-root"]
+props = { text = "Build", position = "right", className = "material-timeline-content", text_tone = "primary", font_size = 9.0, surface_variant = "elevated", corner_radius = 8.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

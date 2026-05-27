@@ -10,7 +10,10 @@ use resvg::{tiny_skia, usvg};
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime_interface::ui::surface::UiVisualAssetRef;
 
+use super::sprite_atlas::{resolve_editor_sprite_atlas_image, HostPaintAtlasImage};
 use super::theme::PALETTE;
+
+mod mui_icons;
 
 const ICON_TINT: [u8; 4] = PALETTE.text;
 const ICON_TINT_ACTIVE: [u8; 4] = PALETTE.focus_ring;
@@ -18,6 +21,7 @@ const ICON_TINT_DISABLED: [u8; 4] = PALETTE.text_disabled;
 const ICON_TINT_ERROR: [u8; 4] = PALETTE.error;
 const ICON_TINT_WARNING: [u8; 4] = PALETTE.warning;
 const MAX_VECTOR_RASTER_EDGE: u32 = 4096;
+const MUI_ICON_DEFAULT_EDGE: u32 = 24;
 
 #[derive(Clone)]
 pub(super) struct HostPaintImagePixels {
@@ -25,11 +29,17 @@ pub(super) struct HostPaintImagePixels {
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) rgba: Vec<u8>,
+    pub(super) atlas: Option<HostPaintAtlasImage>,
 }
 
 impl HostPaintImagePixels {
     fn with_resource_key(mut self, resource_key: impl Into<String>) -> Self {
         self.resource_key = resource_key.into();
+        self
+    }
+
+    fn with_atlas(mut self, atlas: Option<HostPaintAtlasImage>) -> Self {
+        self.atlas = atlas;
         self
     }
 }
@@ -54,6 +64,7 @@ pub(super) fn retained_image_pixels(
         width: buffer.width(),
         height: buffer.height(),
         rgba,
+        atlas: None,
     };
     image.is_valid().then_some(image)
 }
@@ -69,6 +80,7 @@ pub(super) fn template_image_tint(
     disabled: bool,
     text_tone: &str,
     validation_level: &str,
+    style_tint: Option<[u8; 4]>,
 ) -> Option<[u8; 4]> {
     if !is_icon_like {
         return None;
@@ -82,6 +94,9 @@ pub(super) fn template_image_tint(
     if validation_level.eq_ignore_ascii_case("warning") || text_tone.eq_ignore_ascii_case("warning")
     {
         return Some(ICON_TINT_WARNING);
+    }
+    if let Some(style_tint) = style_tint {
+        return Some(style_tint);
     }
     if active {
         return Some(ICON_TINT_ACTIVE);
@@ -109,11 +124,17 @@ pub(super) fn template_image_pixels(
         )
     };
     let preview_pixels = || retained_image_pixels(preview_image, tint);
-    if prefer_preview_image {
+    let pixels = if prefer_preview_image {
         preview_pixels().or_else(source_pixels)
     } else {
         source_pixels().or_else(preview_pixels)
-    }
+    };
+    pixels.or_else(|| {
+        (!icon_name.trim().is_empty())
+            .then_some(())
+            .and_then(|_| target)
+            .and_then(|target| missing_icon_pixels(&key, target, tint))
+    })
 }
 
 pub(super) fn load_visual_asset_pixels(asset: &UiVisualAssetRef) -> Option<HostPaintImagePixels> {
@@ -135,7 +156,17 @@ fn load_visual_asset_pixels_for_target(
     let key = visual_asset_cache_key(asset);
     match asset {
         UiVisualAssetRef::Icon(icon_name) => {
-            load_pixels_from_candidates(icon_candidates(icon_name), &key, target, Some(ICON_TINT))
+            let target = target.unwrap_or(RasterTargetSize {
+                width: MUI_ICON_DEFAULT_EDGE,
+                height: MUI_ICON_DEFAULT_EDGE,
+            });
+            load_pixels_from_candidates(
+                icon_candidates(icon_name),
+                &key,
+                Some(target),
+                Some(ICON_TINT),
+            )
+            .or_else(|| missing_icon_pixels(&key, target, Some(ICON_TINT)))
         }
         UiVisualAssetRef::Image(source) => {
             load_pixels_from_candidates(image_candidates(source), &key, target, None)
@@ -157,7 +188,12 @@ fn load_pixels_from_candidates(
         );
         first_existing_path(candidates)?
     };
-    let key = image_pixels_cache_key(base_key, &path, target.filter(|_| is_svg_path(&path)), tint);
+    let key = image_pixels_cache_key(
+        base_key,
+        &path,
+        target.filter(|_| is_svg_path(&path) || mui_icons::is_module_path(&path)),
+        tint,
+    );
     let cache = VISUAL_ASSET_CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_cache_lookup");
@@ -172,7 +208,13 @@ fn load_pixels_from_candidates(
 
     let loaded = {
         zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_load_pixels");
-        if is_svg_path(&path) {
+        if mui_icons::is_module_path(&path) {
+            let target = target.unwrap_or(RasterTargetSize {
+                width: MUI_ICON_DEFAULT_EDGE,
+                height: MUI_ICON_DEFAULT_EDGE,
+            });
+            mui_icons::render_module_pixels(&path, target, tint)
+        } else if is_svg_path(&path) {
             target
                 .and_then(|target| render_svg_file_pixels(&path, target, tint))
                 .or_else(|| {
@@ -183,7 +225,13 @@ fn load_pixels_from_candidates(
             load_image_from_path(&path).and_then(|image| retained_image_pixels(&image, tint))
         }
     }
-    .map(|pixels| pixels.with_resource_key(key.clone()));
+    .map(|pixels| {
+        if tint.is_none() {
+            pixels.with_atlas(resolve_editor_sprite_atlas_image(base_key, &path))
+        } else {
+            pixels.with_resource_key(key.clone())
+        }
+    });
 
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_cache_store");
@@ -206,9 +254,49 @@ fn load_image_from_candidates(
     None
 }
 
+fn missing_icon_pixels(
+    base_key: &str,
+    target: RasterTargetSize,
+    tint: Option<[u8; 4]>,
+) -> Option<HostPaintImagePixels> {
+    let color = tint.unwrap_or(ICON_TINT);
+    let mut rgba = vec![0; target.width as usize * target.height as usize * 4];
+    let edge = target.width.min(target.height);
+    let stroke = (edge / 10).clamp(1, 3);
+    let max_x = target.width.saturating_sub(1);
+    let max_y = target.height.saturating_sub(1);
+
+    for y in 0..target.height {
+        for x in 0..target.width {
+            let border = x < stroke
+                || y < stroke
+                || max_x.saturating_sub(x) < stroke
+                || max_y.saturating_sub(y) < stroke;
+            let diagonal = x.abs_diff(y) < stroke || x.abs_diff(max_y.saturating_sub(y)) < stroke;
+            if !border && !diagonal {
+                continue;
+            }
+            let offset = ((y * target.width + x) as usize) * 4;
+            rgba[offset..offset + 4].copy_from_slice(&color);
+        }
+    }
+
+    let image = HostPaintImagePixels {
+        resource_key: format!("missing-icon:{base_key}:{}x{}", target.width, target.height),
+        width: target.width,
+        height: target.height,
+        rgba,
+        atlas: None,
+    };
+    image.is_valid().then_some(image)
+}
+
 fn load_image_from_path(path: &Path) -> Option<crate::ui::retained_host::primitives::Image> {
     if !path.exists() {
         return None;
+    }
+    if mui_icons::is_module_path(path) {
+        return mui_icons::render_module_image(path);
     }
     if is_svg_path(path) {
         return render_svg_file_image(path);
@@ -253,6 +341,9 @@ fn icon_candidates(icon_name: &str) -> Vec<PathBuf> {
             &mut candidates,
             assets.join("icons").join("ionicons").join(&icon),
         );
+        for candidate in mui_icons::module_candidates(icon_name, &workspace_root()) {
+            push_candidate(&mut candidates, candidate);
+        }
     }
     candidates
 }
@@ -303,6 +394,13 @@ fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 fn push_direct_candidate(candidates: &mut Vec<PathBuf>, source: &str) {
     let path = PathBuf::from(source.trim());
     if path.is_absolute() {
@@ -344,6 +442,14 @@ fn render_svg_file_pixels(
     tint: Option<[u8; 4]>,
 ) -> Option<HostPaintImagePixels> {
     let tree = load_svg_tree(path)?;
+    render_svg_tree_pixels(tree, target, tint)
+}
+
+fn render_svg_tree_pixels(
+    tree: Arc<usvg::Tree>,
+    target: RasterTargetSize,
+    tint: Option<[u8; 4]>,
+) -> Option<HostPaintImagePixels> {
     let pixmap = {
         zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_render_svg_raster");
         let svg_size = tree.size();
@@ -366,12 +472,19 @@ fn render_svg_file_pixels(
         width: target.width,
         height: target.height,
         rgba,
+        atlas: None,
     };
     image.is_valid().then_some(image)
 }
 
 fn render_svg_file_image(path: &Path) -> Option<crate::ui::retained_host::primitives::Image> {
     let tree = load_svg_tree(path)?;
+    render_svg_tree_image(tree)
+}
+
+fn render_svg_tree_image(
+    tree: Arc<usvg::Tree>,
+) -> Option<crate::ui::retained_host::primitives::Image> {
     let size = tree.size();
     let width = size
         .width()
@@ -436,15 +549,19 @@ fn parse_svg_tree_file(path: &Path) -> Option<usvg::Tree> {
     let resources_dir = fs::canonicalize(path)
         .ok()
         .and_then(|path| path.parent().map(Path::to_path_buf));
+    parse_svg_tree_data(&svg, resources_dir)
+}
+
+fn parse_svg_tree_data(svg: &[u8], resources_dir: Option<PathBuf>) -> Option<usvg::Tree> {
     let mut options = usvg::Options {
         resources_dir,
         ..usvg::Options::default()
     };
-    if svg_may_need_fonts(&svg) {
+    if svg_may_need_fonts(svg) {
         options.fontdb = cached_svg_font_db();
     }
 
-    usvg::Tree::from_data(&svg, &options).ok()
+    usvg::Tree::from_data(svg, &options).ok()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -605,6 +722,94 @@ mod tests {
     }
 
     #[test]
+    fn editor_pages_template_icons_have_readable_16px_raster_footprints() {
+        let preview = crate::ui::retained_host::primitives::Image::default();
+        for icon in EDITOR_PAGES_WIRED_TEMPLATE_ICONS {
+            let pixels = template_image_pixels(&preview, "", icon, 16, 16, Some(ICON_TINT), false)
+                .unwrap_or_else(|| panic!("{icon} should render through the template icon path"));
+            let footprint = icon_readability_footprint(&pixels)
+                .unwrap_or_else(|| panic!("{icon} should produce visible 16px pixels"));
+
+            println!(
+                "ICON_16PX_READABILITY icon={icon} visible={} span={}x{}",
+                footprint.visible_pixels, footprint.span_width, footprint.span_height
+            );
+            assert_eq!((pixels.width, pixels.height), (16, 16));
+            assert!(
+                footprint.visible_pixels >= 12,
+                "{icon} produced only {} visible pixels at 16px",
+                footprint.visible_pixels
+            );
+            assert!(
+                footprint.span_width >= 6 && footprint.span_height >= 6,
+                "{icon} collapsed to a {}x{} footprint at 16px",
+                footprint.span_width,
+                footprint.span_height
+            );
+            assert!(
+                footprint.visible_pixels < (pixels.width * pixels.height) as usize,
+                "{icon} filled the whole 16px slot instead of a readable icon silhouette"
+            );
+        }
+    }
+
+    #[test]
+    fn mui_material_icon_modules_render_from_local_dev_source() {
+        let add = UiVisualAssetRef::Icon("mui:Add".to_string());
+        let add_pixels = load_visual_asset_pixels_for_size(&add, 24, 24)
+            .expect("MUI Add icon should render from the local dev source");
+        let add_large_pixels = load_visual_asset_pixels_for_size(&add, 36, 36)
+            .expect("MUI Add icon should re-render when target size changes");
+        assert_eq!((add_pixels.width, add_pixels.height), (24, 24));
+        assert_eq!((add_large_pixels.width, add_large_pixels.height), (36, 36));
+        assert!(has_visible_pixel(&add_pixels));
+
+        let search = UiVisualAssetRef::Icon("@mui/icons-material/Search".to_string());
+        let search_pixels = load_visual_asset_pixels_for_size(&search, 32, 32)
+            .expect("prefixed MUI Search icon should render from the local dev source");
+        assert_eq!((search_pixels.width, search_pixels.height), (32, 32));
+        assert!(has_visible_pixel(&search_pixels));
+    }
+
+    #[test]
+    fn template_mui_icon_ligatures_render_from_local_dev_source() {
+        let preview = crate::ui::retained_host::primitives::Image::default();
+
+        let folder = template_image_pixels(&preview, "", "folder", 24, 24, Some(ICON_TINT), false)
+            .expect("MUI Icon ligature should resolve to the local Material icon module");
+        let add_circle =
+            template_image_pixels(&preview, "", "add_circle", 32, 32, Some(ICON_TINT), false)
+                .expect("snake-case MUI Icon ligature should resolve to PascalCase module source");
+
+        assert_eq!((folder.width, folder.height), (24, 24));
+        assert_eq!((add_circle.width, add_circle.height), (32, 32));
+        assert!(has_visible_pixel(&folder));
+        assert!(has_visible_pixel(&add_circle));
+    }
+
+    #[test]
+    fn template_missing_icon_pixels_keep_visible_fallback() {
+        let preview = crate::ui::retained_host::primitives::Image::default();
+
+        let missing = template_image_pixels(
+            &preview,
+            "",
+            "missing_zircon_mui_icon",
+            20,
+            20,
+            Some(ICON_TINT_ERROR),
+            false,
+        )
+        .expect("missing template icons should produce deterministic fallback pixels");
+
+        assert_eq!((missing.width, missing.height), (20, 20));
+        assert!(missing
+            .rgba
+            .chunks_exact(4)
+            .any(|pixel| pixel == ICON_TINT_ERROR.as_slice()));
+    }
+
+    #[test]
     fn svg_font_scan_is_reserved_for_text_svg() {
         assert!(!svg_may_need_fonts(
             br#"<svg viewBox="0 0 16 16"><path d="M0 0h16v16H0z"/></svg>"#
@@ -639,29 +844,108 @@ mod tests {
     #[test]
     fn template_icon_tint_uses_material_state_priority() {
         assert_eq!(
-            template_image_tint(true, true, true, "error", "error"),
+            template_image_tint(true, true, true, "error", "error", Some(ICON_TINT_ACTIVE)),
             Some(ICON_TINT_DISABLED)
         );
         assert_eq!(
-            template_image_tint(true, true, false, "", "error"),
+            template_image_tint(true, true, false, "", "error", Some(ICON_TINT_ACTIVE)),
             Some(ICON_TINT_ERROR)
         );
         assert_eq!(
-            template_image_tint(true, true, false, "warning", "normal"),
+            template_image_tint(
+                true,
+                true,
+                false,
+                "warning",
+                "normal",
+                Some(ICON_TINT_ACTIVE),
+            ),
             Some(ICON_TINT_WARNING)
         );
         assert_eq!(
-            template_image_tint(true, true, false, "", "normal"),
+            template_image_tint(true, true, false, "", "normal", Some(ICON_TINT_ERROR)),
+            Some(ICON_TINT_ERROR)
+        );
+        assert_eq!(
+            template_image_tint(true, true, false, "", "normal", None),
             Some(ICON_TINT_ACTIVE)
         );
         assert_eq!(
-            template_image_tint(false, true, false, "error", "error"),
+            template_image_tint(false, true, false, "error", "error", Some(ICON_TINT_ERROR)),
             None
         );
     }
 
     fn has_visible_pixel(image: &HostPaintImagePixels) -> bool {
         image.rgba.chunks_exact(4).any(|pixel| pixel[3] > 0)
+    }
+
+    const EDITOR_PAGES_WIRED_TEMPLATE_ICONS: &[&str] = &[
+        "editor_pages/workbench/menu/open-project.svg",
+        "editor_pages/workbench/menu/save-all.svg",
+        "editor_pages/workbench/dock/reset-layout.svg",
+        "editor_pages/asset_browser/navigation/folder.svg",
+        "editor_pages/hierarchy/entity/scene.svg",
+        "editor_pages/console_profiler/logs/log-info.svg",
+        "editor_pages/scene_viewport/tools/universal-transform.svg",
+        "editor_pages/scene_viewport/display/lit.svg",
+        "editor_pages/scene_viewport/display/grid-overlay.svg",
+        "editor_pages/scene_viewport/snapping/grid-snap.svg",
+        "editor_pages/scene_viewport/snapping/angle-snap.svg",
+        "editor_pages/scene_viewport/snapping/scale-snap.svg",
+        "editor_pages/scene_viewport/display/gizmo-visibility.svg",
+        "editor_pages/scene_viewport/camera/frame-selection.svg",
+        "editor_pages/scene_viewport/play/play.svg",
+        "editor_pages/scene_viewport/play/stop.svg",
+        "editor_pages/scene_viewport/camera/perspective.svg",
+        "editor_pages/asset_browser/import_pipeline/import-settings.svg",
+        "editor_pages/asset_browser/references/reference.svg",
+        "editor_pages/asset_browser/navigation/search.svg",
+        "editor_pages/asset_browser/import_pipeline/import.svg",
+        "editor_pages/asset_browser/navigation/recent.svg",
+        "editor_pages/workbench/tabs/close-tab.svg",
+        "editor_pages/graph_editor/nodes/state-node.svg",
+        "editor_pages/animation_timeline/transport/timeline-play.svg",
+        "editor_pages/console_profiler/profiling/frame-time.svg",
+        "editor_pages/console_profiler/diagnostics/watch.svg",
+        "editor_pages/build_plugins/package/package.svg",
+        "editor_pages/build_plugins/plugins/plugin.svg",
+    ];
+
+    struct IconReadabilityFootprint {
+        visible_pixels: usize,
+        span_width: u32,
+        span_height: u32,
+    }
+
+    fn icon_readability_footprint(
+        image: &HostPaintImagePixels,
+    ) -> Option<IconReadabilityFootprint> {
+        let mut visible_pixels = 0usize;
+        let mut min_x = image.width;
+        let mut min_y = image.height;
+        let mut max_x = 0u32;
+        let mut max_y = 0u32;
+
+        for y in 0..image.height {
+            for x in 0..image.width {
+                let alpha = image.rgba[((y * image.width + x) as usize * 4) + 3];
+                if alpha == 0 {
+                    continue;
+                }
+                visible_pixels += 1;
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            }
+        }
+
+        (visible_pixels > 0).then_some(IconReadabilityFootprint {
+            visible_pixels,
+            span_width: max_x - min_x + 1,
+            span_height: max_y - min_y + 1,
+        })
     }
 
     fn solid_preview_image(color: [u8; 4]) -> crate::ui::retained_host::primitives::Image {

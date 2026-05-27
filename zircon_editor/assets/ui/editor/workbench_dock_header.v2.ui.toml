@@ -49,7 +49,7 @@ layout = { position = { x = 8.0, y = 1.0 }, width = { min = 92.0, preferred = 92
 [nodes.dock_tab_close_0]
 component = "IconButton"
 control_id = "DockTabClose0"
-props = { surface_variant = "inset", icon = "close-outline", value = "ionicons/close-outline.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
+props = { surface_variant = "inset", icon = "editor_pages/workbench/tabs/close-tab.svg", value = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
 layout = { position = { x = 76.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_1]
@@ -61,7 +61,7 @@ layout = { position = { x = 102.0, y = 1.0 }, width = { min = 92.0, preferred = 
 [nodes.dock_tab_close_1]
 component = "IconButton"
 control_id = "DockTabClose1"
-props = { surface_variant = "inset", icon = "close-outline", value = "ionicons/close-outline.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
+props = { surface_variant = "inset", icon = "editor_pages/workbench/tabs/close-tab.svg", value = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
 layout = { position = { x = 170.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_2]

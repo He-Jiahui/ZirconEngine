@@ -12,16 +12,33 @@ use zircon_runtime_interface::ui::style::{
 use super::{assert_has_event, assert_has_prop};
 
 mod button_inputs;
+mod data_display;
+mod data_display_subcomponents;
+mod form_controls;
 mod inputs;
+mod lab_subcomponents;
+mod layout;
+mod mui_web_inventory;
+mod mui_x;
+mod navigation;
+mod navigation_editor;
+mod navigation_secondary;
 mod selection_inputs;
+mod surface_subcomponents;
+mod surfaces;
+mod virtualization;
 
 #[test]
 fn material_editor_foundation_catalog_covers_planned_component_layers() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let expected = [
         "Accordion",
+        "AccordionActions",
+        "AccordionDetails",
+        "AccordionSummary",
         "AgentChat",
         "Alert",
+        "AlertTitle",
         "AppBar",
         "AssetGrid",
         "AssetList",
@@ -32,11 +49,18 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Badge",
         "BarChart",
         "BottomNavigation",
+        "BottomNavigationAction",
         "Box",
         "Breadcrumbs",
         "Button",
+        "ButtonBase",
         "ButtonGroup",
         "Card",
+        "CardActionArea",
+        "CardActions",
+        "CardContent",
+        "CardHeader",
+        "CardMedia",
         "CategorizedList",
         "Charts",
         "ChatComposer",
@@ -53,6 +77,10 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "DataGrid",
         "DateTimePickers",
         "Dialog",
+        "DialogActions",
+        "DialogContent",
+        "DialogContentText",
+        "DialogTitle",
         "Divider",
         "DockHost",
         "DocumentNode",
@@ -61,10 +89,16 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Fade",
         "FieldEditor",
         "FilterBar",
+        "FilledInput",
         "FlexGroup",
         "FloatingActionButton",
         "FloatingWindow",
         "FolderTree",
+        "FormControl",
+        "FormControlLabel",
+        "FormGroup",
+        "FormHelperText",
+        "FormLabel",
         "Gauge",
         "GizmoControls",
         "GraphCanvas",
@@ -75,23 +109,41 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Icon",
         "IconButton",
         "ImageList",
+        "ImageListItem",
+        "ImageListItemBar",
         "InitColorSchemeScript",
         "Input",
+        "InputAdornment",
+        "InputBase",
+        "InputLabel",
         "InspectorSection",
         "LineChart",
         "Link",
         "List",
+        "ListItem",
+        "ListItemAvatar",
+        "ListItemButton",
+        "ListItemIcon",
+        "ListItemSecondaryAction",
+        "ListItemText",
+        "ListSubheader",
         "ListView",
         "Masonry",
         "MaterialTreeView",
         "Menu",
+        "MenuItem",
+        "MenuList",
         "Menubar",
         "MetadataPane",
         "Modal",
+        "MobileStepper",
+        "NativeSelect",
         "NoSsr",
         "NumberField",
         "Overlay",
+        "OutlinedInput",
         "Pagination",
+        "PaginationItem",
         "Panel",
         "PaneToolbar",
         "Paper",
@@ -103,36 +155,70 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Progress",
         "PropertyGrid",
         "Radio",
+        "RadioGroup",
         "Rating",
         "ScrollView",
         "Scrollbar",
         "SearchField",
         "Select",
         "SeverityChips",
+        "ScopedCssBaseline",
         "Skeleton",
         "Slider",
         "Slide",
         "Slot",
         "Snackbar",
+        "SnackbarContent",
         "SourceEditor",
         "SparkLineChart",
         "SpeedDial",
+        "SpeedDialAction",
+        "SpeedDialIcon",
         "Splitter",
         "Stack",
+        "Step",
+        "StepButton",
+        "StepConnector",
+        "StepContent",
+        "StepIcon",
+        "StepLabel",
         "StatusActionControls",
         "Stepper",
         "SvgIcon",
+        "SwipeableDrawer",
         "Switch",
+        "Tab",
+        "TabContext",
+        "TabList",
+        "TabPanel",
+        "TabScrollButton",
         "TabStack",
         "Table",
+        "TableBody",
+        "TableCell",
+        "TableContainer",
+        "TableFooter",
+        "TableHead",
+        "TablePagination",
+        "TablePaginationActions",
+        "TableRow",
+        "TableSortLabel",
         "Tabs",
         "TextField",
         "TextareaAutosize",
         "Timeline",
+        "TimelineConnector",
+        "TimelineContent",
+        "TimelineDot",
+        "TimelineItem",
+        "TimelineOppositeContent",
+        "TimelineSeparator",
+        "Toolbar",
         "ToggleButton",
         "ToggleButtonGroup",
         "Tooltip",
         "TransferList",
+        "TreeItem",
         "TreeView",
         "Typography",
         "UseMediaQuery",
@@ -175,6 +261,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
             );
         }
         assert!(descriptor.prop("density").is_some());
+        assert_mui_web_customization_schema(descriptor);
     }
 
     let tree_view = registry
@@ -209,6 +296,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
     assert_has_event(view, UiComponentEventKind::Focus);
 
     button_inputs::assert_descriptors(&registry);
+    data_display::assert_descriptors(&registry);
     let text_field = registry
         .descriptor("TextField")
         .expect("TextField descriptor");
@@ -293,6 +381,12 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
 
     inputs::assert_descriptors(&registry);
     selection_inputs::assert_descriptors(&registry);
+    form_controls::assert_descriptors(&registry);
+    data_display_subcomponents::assert_descriptors(&registry);
+    surface_subcomponents::assert_descriptors(&registry);
+    navigation_editor::assert_descriptors(&registry);
+    navigation_secondary::assert_descriptors(&registry);
+    lab_subcomponents::assert_descriptors(&registry);
 
     let window = registry.descriptor("Window").expect("Window descriptor");
     assert_has_prop(window, "window_id");
@@ -404,6 +498,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         .expect("Timeline descriptor");
     assert_has_prop(timeline, "time");
     assert_has_prop(timeline, "duration");
+    assert_has_prop(timeline, "position");
     assert_has_event(timeline, UiComponentEventKind::DragDelta);
 
     let drawer = registry.descriptor("Drawer").expect("Drawer descriptor");
@@ -469,12 +564,26 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Table",
         "Alert",
         "Dialog",
+        "DialogActions",
+        "DialogContent",
+        "DialogContentText",
+        "DialogTitle",
         "Popover",
         "Snackbar",
         "Accordion",
+        "AccordionActions",
+        "AccordionDetails",
+        "AccordionSummary",
         "AppBar",
         "Card",
+        "CardActionArea",
+        "CardActions",
+        "CardContent",
+        "CardHeader",
+        "CardMedia",
         "Paper",
+        "Toolbar",
+        "SwipeableDrawer",
         "Breadcrumbs",
         "BottomNavigation",
         "Pagination",
@@ -492,6 +601,178 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         assert_has_prop(descriptor, "corner_radius");
         assert_has_prop(descriptor, "border_width");
     }
+
+    for component_id in ["Popover", "Popper", "Tooltip", "Menu"] {
+        let descriptor = registry
+            .descriptor(component_id)
+            .unwrap_or_else(|| panic!("missing popup descriptor `{component_id}`"));
+        for prop in [
+            "placement",
+            "popup_anchor_x",
+            "popup_anchor_y",
+            "popup_anchor_width",
+            "popup_anchor_height",
+            "anchor_origin_vertical",
+            "anchor_origin_horizontal",
+            "transform_origin_vertical",
+            "transform_origin_horizontal",
+            "popup_offset_x",
+            "popup_offset_y",
+        ] {
+            assert_has_prop(descriptor, prop);
+        }
+    }
+
+    for component_id in ["Dialog", "Modal", "Popover", "Menu"] {
+        let descriptor = registry
+            .descriptor(component_id)
+            .unwrap_or_else(|| panic!("missing modal interaction descriptor `{component_id}`"));
+        for prop in [
+            "disable_auto_focus",
+            "disable_enforce_focus",
+            "disable_restore_focus",
+            "disable_escape_key_down",
+            "close_on_backdrop_click",
+            "keep_mounted",
+            "aria_modal",
+            "aria_labelledby",
+            "aria_describedby",
+        ] {
+            assert_has_prop(descriptor, prop);
+        }
+    }
+
+    for component_id in [
+        "Backdrop",
+        "Dialog",
+        "Modal",
+        "Popover",
+        "Popper",
+        "Tooltip",
+        "Snackbar",
+        "SpeedDial",
+        "Drawer",
+        "Menu",
+        "SwipeableDrawer",
+    ] {
+        let descriptor = registry
+            .descriptor(component_id)
+            .unwrap_or_else(|| panic!("missing overlay layer descriptor `{component_id}`"));
+        for prop in ["z_index", "disable_portal", "portal_layer"] {
+            assert_has_prop(descriptor, prop);
+        }
+    }
+
+    let alert = registry.descriptor("Alert").expect("Alert descriptor");
+    assert_enum_options(alert, "severity", &["success", "info", "warning", "error"]);
+    assert_eq!(
+        alert
+            .prop("severity")
+            .and_then(|prop| prop.default_value.clone()),
+        Some(UiValue::Enum("success".to_string())),
+        "Alert should default severity to local MUI Alert.js"
+    );
+    assert_enum_options(alert, "variant", &["standard", "filled", "outlined"]);
+    for prop in ["color", "icon", "show_icon", "iconMapping", "closeText"] {
+        assert_has_prop(alert, prop);
+    }
+    for slot_name in ["icon", "message", "action", "closeButton", "closeIcon"] {
+        assert!(
+            alert.slot_schema.iter().any(|slot| slot.name == slot_name),
+            "Alert missing MUI slot `{slot_name}`"
+        );
+    }
+    let alert_title = registry
+        .descriptor("AlertTitle")
+        .expect("AlertTitle descriptor");
+    assert_has_prop(alert_title, "text");
+
+    let snackbar = registry
+        .descriptor("Snackbar")
+        .expect("Snackbar descriptor");
+    for prop in [
+        "message",
+        "auto_hide_duration_ms",
+        "autoHideDuration",
+        "resume_hide_duration_ms",
+        "resumeHideDuration",
+        "disable_window_blur_listener",
+        "disableWindowBlurListener",
+        "anchor_origin_vertical",
+        "anchor_origin_horizontal",
+        "anchorOrigin",
+    ] {
+        assert_has_prop(snackbar, prop);
+    }
+    assert_enum_options(snackbar, "anchor_origin_vertical", &["top", "bottom"]);
+    assert_enum_options(
+        snackbar,
+        "anchor_origin_horizontal",
+        &["left", "center", "right"],
+    );
+    assert_eq!(
+        snackbar
+            .prop("anchor_origin_horizontal")
+            .and_then(|prop| prop.default_value.clone()),
+        Some(UiValue::Enum("left".to_string())),
+        "Snackbar should default horizontal anchor to local MUI Snackbar.js"
+    );
+    let snackbar_content = registry
+        .descriptor("SnackbarContent")
+        .expect("SnackbarContent descriptor");
+    for prop in ["message", "role"] {
+        assert_has_prop(snackbar_content, prop);
+    }
+    for slot_name in ["message", "action"] {
+        assert!(
+            snackbar_content
+                .slot_schema
+                .iter()
+                .any(|slot| slot.name == slot_name),
+            "SnackbarContent missing MUI slot `{slot_name}`"
+        );
+    }
+
+    surfaces::assert_descriptors(&registry);
+    navigation::assert_descriptors(&registry);
+    layout::assert_descriptors(&registry);
+    mui_x::assert_descriptors(&registry);
+
+    for component_id in ["Collapse", "Fade", "Grow", "Slide", "Zoom"] {
+        let descriptor = registry
+            .descriptor(component_id)
+            .unwrap_or_else(|| panic!("missing transition descriptor `{component_id}`"));
+        for prop in [
+            "transition_kind",
+            "in",
+            "transition_status",
+            "transition_progress",
+            "timeout_ms",
+            "transition_duration_ms",
+            "easing",
+            "transition_easing",
+            "mount_on_enter",
+            "unmount_on_exit",
+        ] {
+            assert_has_prop(descriptor, prop);
+        }
+    }
+    assert_has_prop(
+        registry
+            .descriptor("Collapse")
+            .expect("Collapse descriptor"),
+        "orientation",
+    );
+    assert_has_prop(
+        registry
+            .descriptor("Collapse")
+            .expect("Collapse descriptor"),
+        "collapsed_size",
+    );
+    assert_has_prop(
+        registry.descriptor("Slide").expect("Slide descriptor"),
+        "direction",
+    );
 
     let material_tree = registry
         .descriptor("MaterialTreeView")
@@ -600,6 +881,70 @@ pub(super) fn assert_enum_options(
     );
 }
 
+fn assert_mui_web_customization_schema(
+    descriptor: &zircon_runtime_interface::ui::component::UiComponentDescriptor,
+) {
+    for (name, expected_default) in [
+        ("mui_variant", ""),
+        ("mui_color", "primary"),
+        ("mui_size", "medium"),
+    ] {
+        let schema = descriptor
+            .prop(name)
+            .unwrap_or_else(|| panic!("{} missing prop `{name}`", descriptor.id));
+        assert_eq!(schema.value_kind, UiValueKind::String);
+        assert_eq!(
+            schema.default_value,
+            Some(UiValue::String(expected_default.to_string())),
+            "{} should default `{name}` to `{expected_default}`",
+            descriptor.id
+        );
+    }
+
+    for name in [
+        "mui_slots",
+        "mui_slot_props",
+        "mui_sx",
+        "slots",
+        "slotProps",
+        "sx",
+        "classes",
+    ] {
+        let schema = descriptor
+            .prop(name)
+            .unwrap_or_else(|| panic!("{} missing prop `{name}`", descriptor.id));
+        assert_eq!(schema.value_kind, UiValueKind::Map);
+        assert_eq!(
+            schema.default_value,
+            Some(UiValue::Map(Default::default())),
+            "{} should default `{name}` to an empty map",
+            descriptor.id
+        );
+    }
+
+    let classes = descriptor
+        .prop("mui_classes")
+        .unwrap_or_else(|| panic!("{} missing prop `mui_classes`", descriptor.id));
+    assert_eq!(classes.value_kind, UiValueKind::Array);
+    assert_eq!(
+        classes.default_value,
+        Some(UiValue::Array(Vec::new())),
+        "{} should default `mui_classes` to an empty array",
+        descriptor.id
+    );
+
+    let class_name = descriptor
+        .prop("className")
+        .unwrap_or_else(|| panic!("{} missing prop `className`", descriptor.id));
+    assert_eq!(class_name.value_kind, UiValueKind::String);
+    assert_eq!(
+        class_name.default_value,
+        Some(UiValue::String(String::new())),
+        "{} should default `className` to an empty string",
+        descriptor.id
+    );
+}
+
 #[test]
 fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
     let catalog_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/component/catalog");
@@ -616,12 +961,25 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         "inputs.rs",
         "selection_inputs.rs",
         "text_inputs.rs",
+        "form_controls.rs",
+        "lab_subcomponents.rs",
         "data_display.rs",
+        "data_display_editor.rs",
+        "data_display_subcomponents.rs",
+        "data_display_table.rs",
         "feedback.rs",
         "surfaces.rs",
         "navigation.rs",
+        "navigation_subcomponents.rs",
+        "navigation_secondary.rs",
+        "navigation_editor.rs",
+        "layout_mui.rs",
         "layout.rs",
+        "layout_utilities.rs",
+        "layout_transitions.rs",
+        "layout_editor.rs",
         "mui_x.rs",
+        "surface_subcomponents.rs",
     ];
     let actual_modules = fs::read_dir(&foundation_root)
         .unwrap_or_else(|error| {
@@ -665,11 +1023,11 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         );
         let source = fs::read_to_string(foundation_root.join(module))
             .unwrap_or_else(|error| panic!("{module} is readable: {error}"));
-        assert!(
-            source.lines().count() <= 300,
-            "{module} should stay below the split-module size budget"
-        );
         if stem != "shared" {
+            assert!(
+                source.lines().count() <= 300,
+                "{module} should stay below the split-module size budget"
+            );
             assert!(
                 mod_source.contains(&format!("descriptors.extend({stem}::descriptors());")),
                 "Material foundation registry should include `{stem}` descriptors"

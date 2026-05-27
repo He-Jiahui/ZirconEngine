@@ -1,64 +1,14 @@
 import {
-    IconButton,
     MutedText,
-    PillButton,
     SourceBuildHistoryRowData,
     SourceEngineData,
     SourceEngineRowData,
     UiTextData,
 } from "shared.slint";
-import { ActionRow, Badge, BuildHistoryRow, Divider, HubPanel, HubTextField, HubTokens, InfoRow, ListTile, MaterialPalette, MaterialStyleMetrics, PageScrollSurface, PanelHeader, PanelListViewport, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
+import { BuildHistoryRow, Divider, EmptyStateBlock, HubTokens, MaterialStyleMetrics, PageScrollSurface, PanelHeader, PanelSlot, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
+import { EditorActionRow, EditorPathFieldRow, EditorSideListPanel, EditorSourceSummaryRow, SourceEngineRow } from "editor_page_components.slint";
 
-component SourceEngineRow inherits Rectangle {
-    in property <SourceEngineRowData> engine;
-    callback selected(string);
-    callback remove(string);
-
-    private property <length> remove-size: min(HubTokens.icon-lg, root.height - MaterialStyleMetrics.spacing_16);
-
-    height: HubTokens.list-row-md;
-    border-radius: MaterialStyleMetrics.border_radius_12;
-    border-width: HubTokens.border-width;
-    border-color: root.engine.active ? MaterialPalette.primary : MaterialPalette.outline_variant;
-    background: root.engine.active ? MaterialPalette.secondary_container : MaterialPalette.surface_container_low;
-    clip: true;
-
-    ListTile {
-        width: parent.width;
-        height: parent.height;
-        text: root.engine.title;
-        supporting_text: root.engine.version + " / " + root.engine.source-path + " / " + root.engine.last-build;
-        avatar_icon: @image-url("../assets/brand/zircon-mark.svg");
-        avatar_background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
-        avatar_foreground: root.engine.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
-        clicked => {
-            root.selected(root.engine.id);
-        }
-
-        HorizontalLayout {
-            spacing: HubTokens.space-2;
-            alignment: center;
-
-            Badge {
-                text: root.engine.status;
-                tone: root.engine.active ? "accent" : "neutral";
-                badge-width: HubTokens.control-md * 3;
-            }
-
-            IconButton {
-                width: root.remove-size;
-                height: root.remove-size;
-                icon-image: @image-url("../assets/icons/ui/close.svg");
-                has-icon-image: true;
-                clicked => {
-                    root.remove(root.engine.id);
-                }
-            }
-        }
-    }
-}
-export component EditorPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+export component EditorPage inherits PageScrollSurface {
     in-out property <string> source-path;
     in-out property <string> output-path;
     in-out property <string> active-engine-name;
@@ -68,12 +18,17 @@ export component EditorPage inherits Rectangle {
     in property <[SourceBuildHistoryRowData]> source-build-history;
     in property <int> source-build-history-count;
     in property <UiTextData> ui-text;
-    private property <length> content-width: page-surface.content-width;
     private property <length> side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;
     private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
     private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
     private property <length> engine-list-scroll-y: 0px;
     private property <length> build-history-scroll-y: 0px;
+    private property <length> build-row-height: HubTokens.list-row-sm;
+    private property <length> build-summary-height: HubTokens.workspace-row-editor-summary;
+    private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.toolbar-gap * 3 + HubTokens.space-4 * 2;
+    private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
+    private property <length> side-list-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
     callback save-settings();
     callback browse-folder(string);
     callback select-engine(string);
@@ -84,154 +39,111 @@ export component EditorPage inherits Rectangle {
     callback launch-editor();
 
     background: HubTokens.surface-page;
-    forward-focus: page-focus;
     clip: true;
-
-    page-focus := FocusScope {
-        width: HubTokens.border-width;
-        height: HubTokens.border-width;
-    }
-
-    page-surface := PageScrollSurface {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
 
         WorkspacePanelSection {
             compact: root.compact;
-            row-height: HubTokens.workspace-row-editor-summary;
+            row-height: root.build-summary-height;
+            compact-height-override: root.build-summary-section-height;
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
-            ResponsiveSlot {
+            PanelSlot {
                 basis: root.overview-min-width;
+                flex-basis: root.overview-min-width;
                 grow: 2;
+                flex-grow: 2;
                 shrink: 1;
+                flex-shrink: 1;
                 min-width: root.compact ? root.content-width : root.overview-min-width;
-                height: HubTokens.workspace-row-editor-summary;
+                height: root.compact ? root.build-source-summary-height : root.build-summary-height;
+                body-spacing: HubTokens.space-3;
 
-                    HubPanel {
-                        width: parent.width;
-                        height: parent.height;
-
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding: HubTokens.space-4;
-                            spacing: HubTokens.space-3;
-                            alignment: stretch;
-
-                            PanelHeader {
-                                title: root.source-engine.title;
-                                subtitle: root.source-engine.version + " / " + root.source-engine.status;
-                                show-badge: true;
-                                badge-text: root.source-engine.build-profile;
-                                badge-tone: "accent";
-                                show-action: true;
-                                action-text: root.ui-text.open-editor;
-                                action-clicked => {
-                                    root.launch-editor();
-                                }
-                            }
-
-                            Divider {}
-
-                            InfoRow {
-                                row-height: HubTokens.list-row-md;
-                                title: root.ui-text.source-prefix;
-                                detail: root.source-engine.source-path;
-                                meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
-                                leading-image: @image-url("../assets/brand/zircon-mark.svg");
-                                has-leading-image: true;
-                                trailing-text: root.source-engine.status;
-                                trailing-tone: "ok";
-                                show-trailing-badge: true;
-                            }
-
-                            InfoRow {
-                                row-height: HubTokens.list-row-md;
-                                title: root.ui-text.output-prefix;
-                                detail: root.source-engine.output-path;
-                                meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
-                                leading-image: @image-url("../assets/icons/ui/folder.svg");
-                                has-leading-image: true;
-                                trailing-text: root.source-engine.jobs + root.ui-text.jobs-suffix;
-                                trailing-tone: "neutral";
-                                show-trailing-badge: true;
-                            }
-                        }
+                PanelHeader {
+                    title: root.source-engine.title;
+                    subtitle: root.source-engine.version + " / " + root.source-engine.status;
+                    show-badge: true;
+                    badge-text: root.source-engine.build-profile;
+                    badge-tone: "accent";
+                    show-action: true;
+                    action-text: root.ui-text.open-editor;
+                    action-clicked => {
+                        root.launch-editor();
                     }
                 }
 
-            ResponsiveSlot {
+                Divider {}
+
+                EditorSourceSummaryRow {
+                    row-height: root.build-row-height;
+                    summary-title: root.ui-text.source-prefix;
+                    summary-detail: root.source-engine.source-path;
+                    summary-meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
+                    summary-icon: @image-url("../assets/brand/zircon-mark.svg");
+                    summary-status: root.source-engine.status;
+                    summary-tone: "ok";
+                    collapse-label: root.compact-labels;
+                }
+
+                EditorSourceSummaryRow {
+                    row-height: root.build-row-height;
+                    summary-title: root.ui-text.output-prefix;
+                    summary-detail: root.source-engine.output-path;
+                    summary-meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
+                    summary-icon: @image-url("../assets/icons/ui/folder.svg");
+                    summary-status: root.source-engine.jobs + root.ui-text.jobs-suffix;
+                    collapse-label: root.compact-labels;
+                }
+            }
+
+            PanelSlot {
                 basis: root.side-panel-min-width;
+                flex-basis: root.side-panel-min-width;
                 grow: 1;
+                flex-grow: 1;
                 shrink: 1;
+                flex-shrink: 1;
                 min-width: root.compact ? root.content-width : root.side-panel-min-width;
-                height: HubTokens.workspace-row-editor-summary;
+                height: root.build-summary-height;
 
-                    HubPanel {
-                        width: parent.width;
-                        height: parent.height;
+                PanelHeader {
+                    title: root.ui-text.editor-actions;
+                    subtitle: "";
+                }
 
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding: HubTokens.space-4;
-                            spacing: HubTokens.toolbar-gap;
-
-                            PanelHeader {
-                                title: root.ui-text.editor-actions;
-                                subtitle: "";
-                            }
-
-                            ActionRow {
-                                action: {
-                                    id: "save-source",
-                                    icon: "",
-                                    icon-image: @image-url("../assets/icons/ui/settings.svg"),
-                                    has-icon-image: true,
-                                    title: root.ui-text.save-source,
-                                    detail: root.ui-text.source-checkout-path,
-                                    enabled: true,
-                                };
-                                activate(id) => {
-                                    root.save-settings();
-                                }
-                            }
-
-                            ActionRow {
-                                action: {
-                                    id: "build",
-                                    icon: "",
-                                    icon-image: @image-url("../assets/icons/actions/build-project.svg"),
-                                    has-icon-image: true,
-                                    title: root.ui-text.build,
-                                    detail: root.ui-text.compile-editor,
-                                    enabled: true,
-                                };
-                                activate(id) => {
-                                    root.build-engine();
-                                }
-                            }
-
-                            ActionRow {
-                                action: {
-                                    id: "open-output",
-                                    icon: "",
-                                    icon-image: @image-url("../assets/icons/ui/folder.svg"),
-                                    has-icon-image: true,
-                                    title: root.ui-text.open-output,
-                                    detail: root.source-engine.output-path,
-                                    enabled: true,
-                                };
-                                activate(id) => {
-                                    root.open-output();
-                                }
-                            }
-                        }
+                EditorActionRow {
+                    row-height: root.build-row-height;
+                    action-id: "save-source";
+                    action-icon: @image-url("../assets/icons/ui/settings.svg");
+                    action-title: root.ui-text.save-source;
+                    action-detail: root.ui-text.source-checkout-path;
+                    triggered(id) => {
+                        root.save-settings();
                     }
                 }
+
+                EditorActionRow {
+                    row-height: root.build-row-height;
+                    action-id: "build";
+                    action-icon: @image-url("../assets/icons/actions/build-project.svg");
+                    action-title: root.ui-text.build;
+                    action-detail: root.ui-text.compile-editor;
+                    triggered(id) => {
+                        root.build-engine();
+                    }
+                }
+
+                EditorActionRow {
+                    row-height: root.build-row-height;
+                    action-id: "open-output";
+                    action-icon: @image-url("../assets/icons/ui/folder.svg");
+                    action-title: root.ui-text.open-output;
+                    action-detail: root.source-engine.output-path;
+                    triggered(id) => {
+                        root.open-output();
+                    }
+                }
+            }
         }
 
         WorkspacePanelSection {
@@ -240,126 +152,64 @@ export component EditorPage inherits Rectangle {
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
-            ResponsiveSlot {
+            PanelSlot {
                 basis: root.overview-min-width;
+                flex-basis: root.overview-min-width;
                 grow: 2;
+                flex-grow: 2;
                 shrink: 1;
+                flex-shrink: 1;
                 min-width: root.compact ? root.content-width : root.overview-min-width;
                 height: HubTokens.workspace-row-editor-config;
+                body-spacing: HubTokens.space-3;
 
-                HubPanel {
-                    width: parent.width;
-                    height: parent.height;
+                PanelHeader {
+                    title: root.ui-text.source-engine;
+                    subtitle: root.ui-text.source-checkout-path;
+                }
 
-                    VerticalLayout {
-                        width: parent.width;
-                        height: parent.height;
-                        padding: HubTokens.space-4;
-                        spacing: HubTokens.space-3;
-
-                        PanelHeader {
-                            title: root.ui-text.source-engine;
-                            subtitle: root.ui-text.source-checkout-path;
-                        }
-
-                        Rectangle {
-                            horizontal-stretch: 1;
-                            height: HubTokens.input-field;
-
-                            HorizontalLayout {
-                                width: parent.width;
-                                height: parent.height;
-                                spacing: HubTokens.toolbar-gap;
-                                alignment: center;
-
-                                HubTextField {
-                                    horizontal-stretch: 1;
-                                    label: root.ui-text.active-engine-name;
-                                    placeholder: root.ui-text.active-engine-name;
-                                    text <=> root.active-engine-name;
-                                }
-
-                                PillButton {
-                                    height: HubTokens.control-md;
-                                    text: root.ui-text.rename;
-                                    icon-image: @image-url("../assets/icons/ui/edit.svg");
-                                    has-icon-image: true;
-                                    clicked => {
-                                        root.rename-active-engine(root.active-engine-name);
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            horizontal-stretch: 1;
-                            height: HubTokens.input-field;
-
-                            HorizontalLayout {
-                                width: parent.width;
-                                height: parent.height;
-                                spacing: HubTokens.toolbar-gap;
-                                alignment: center;
-
-                                HubTextField {
-                                    horizontal-stretch: 1;
-                                    label: root.ui-text.source-checkout-path;
-                                    placeholder: root.ui-text.source-checkout-path;
-                                    text <=> root.source-path;
-                                }
-
-                                PillButton {
-                                    height: HubTokens.control-md;
-                                    text: root.ui-text.browse;
-                                    icon-image: @image-url("../assets/icons/ui/folder.svg");
-                                    has-icon-image: true;
-                                    clicked => {
-                                        root.browse-folder("source");
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            horizontal-stretch: 1;
-                            height: HubTokens.input-field;
-
-                            HorizontalLayout {
-                                width: parent.width;
-                                height: parent.height;
-                                spacing: HubTokens.toolbar-gap;
-                                alignment: center;
-
-                                HubTextField {
-                                    horizontal-stretch: 1;
-                                    label: root.ui-text.staged-output-directory;
-                                    placeholder: root.ui-text.staged-output-directory;
-                                    text <=> root.output-path;
-                                }
-
-                                PillButton {
-                                    height: HubTokens.control-md;
-                                    text: root.ui-text.browse;
-                                    icon-image: @image-url("../assets/icons/ui/folder.svg");
-                                    has-icon-image: true;
-                                    clicked => {
-                                        root.browse-folder("output");
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            vertical-stretch: 1;
-                        }
+                EditorPathFieldRow {
+                    field-label: root.ui-text.active-engine-name;
+                    field-text <=> root.active-engine-name;
+                    button-text: root.ui-text.rename;
+                    button-icon: @image-url("../assets/icons/ui/edit.svg");
+                    button-clicked => {
+                        root.rename-active-engine(root.active-engine-name);
                     }
+                }
+
+                EditorPathFieldRow {
+                    field-label: root.ui-text.source-checkout-path;
+                    field-text <=> root.source-path;
+                    button-text: root.ui-text.browse;
+                    button-icon: @image-url("../assets/icons/ui/folder.svg");
+                    button-clicked => {
+                        root.browse-folder("source");
+                    }
+                }
+
+                EditorPathFieldRow {
+                    field-label: root.ui-text.staged-output-directory;
+                    field-text <=> root.output-path;
+                    button-text: root.ui-text.browse;
+                    button-icon: @image-url("../assets/icons/ui/folder.svg");
+                    button-clicked => {
+                        root.browse-folder("output");
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
                 }
             }
 
             ResponsiveSlot {
                 basis: root.side-panel-min-width;
+                flex-basis: root.side-panel-min-width;
                 grow: 1;
+                flex-grow: 1;
                 shrink: 1;
+                flex-shrink: 1;
                 min-width: root.compact ? root.content-width : root.side-panel-min-width;
                 height: HubTokens.workspace-row-editor-config;
 
@@ -368,79 +218,54 @@ export component EditorPage inherits Rectangle {
                     height: parent.height;
                     spacing: HubTokens.panel-gap;
 
-                    HubPanel {
-                        vertical-stretch: 1;
+                    EditorSideListPanel {
+                        panel-title: root.ui-text.source-engines;
+                        badge-text: root.source-engine-count + "";
+                        row-count: root.source-engine-count;
+                        row-height: HubTokens.list-row-md;
+                        empty-height: root.side-list-empty-height;
+                        list-scroll-y <=> root.engine-list-scroll-y;
 
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding: HubTokens.space-4;
-                            spacing: HubTokens.toolbar-gap;
-
-                            PanelHeader {
-                                title: root.ui-text.source-engines;
-                                subtitle: "";
-                                show-badge: true;
-                                badge-text: root.source-engine-count + "";
-                                badge-tone: "info";
+                        for engine in root.source-engines: SourceEngineRow {
+                            engine: engine;
+                            collapse-label: root.compact-labels;
+                            selected(id) => {
+                                root.select-engine(id);
                             }
-
-                            PanelListViewport {
-                                scroll-y <=> root.engine-list-scroll-y;
-                                row-count: root.source-engine-count;
-                                row-height: HubTokens.list-row-md;
-
-                                for engine in root.source-engines: SourceEngineRow {
-                                    engine: engine;
-                                    selected(id) => {
-                                        root.select-engine(id);
-                                    }
-                                    remove(id) => {
-                                        root.remove-engine(id);
-                                    }
-                                }
-
-                                if root.source-engine-count == 0: MutedText {
-                                    text: root.ui-text.no-source-engines;
-                                }
+                            remove(id) => {
+                                root.remove-engine(id);
                             }
+                        }
+
+                        if root.source-engine-count == 0: EmptyStateBlock {
+                            height: root.side-list-empty-height;
+                            title: root.ui-text.no-source-engines;
+                            body-padding: MaterialStyleMetrics.padding_16;
+                            center-content: true;
                         }
                     }
 
-                    HubPanel {
-                        vertical-stretch: 1;
+                    EditorSideListPanel {
+                        panel-title: root.ui-text.build-history;
+                        badge-text: root.source-build-history-count + "";
+                        row-count: root.source-build-history-count;
+                        row-height: HubTokens.list-row-md;
+                        empty-height: root.side-list-empty-height;
+                        list-scroll-y <=> root.build-history-scroll-y;
 
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding: HubTokens.space-4;
-                            spacing: HubTokens.toolbar-gap;
+                        for record in root.source-build-history: BuildHistoryRow {
+                            record: record;
+                            collapse-label: root.compact-labels;
+                        }
 
-                            PanelHeader {
-                                title: root.ui-text.build-history;
-                                subtitle: "";
-                                show-badge: true;
-                                badge-text: root.source-build-history-count + "";
-                                badge-tone: "info";
-                            }
-
-                            PanelListViewport {
-                                scroll-y <=> root.build-history-scroll-y;
-                                row-count: root.source-build-history-count;
-                                row-height: HubTokens.list-row-md;
-
-                                for record in root.source-build-history: BuildHistoryRow {
-                                    record: record;
-                                }
-
-                                if root.source-build-history-count == 0: MutedText {
-                                    text: root.ui-text.no-build-history;
-                                }
-                            }
+                        if root.source-build-history-count == 0: EmptyStateBlock {
+                            height: root.side-list-empty-height;
+                            title: root.ui-text.no-build-history;
+                            body-padding: MaterialStyleMetrics.padding_16;
+                            center-content: true;
                         }
                     }
                 }
             }
         }
     }
-}

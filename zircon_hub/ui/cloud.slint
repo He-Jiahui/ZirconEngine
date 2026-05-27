@@ -1,44 +1,9 @@
-import { CloudServiceData, CloudSummaryData, MutedText, UiTextData } from "shared.slint";
-import { HubPanel, HubTokens, InfoRow, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
-
-component CloudMetric inherits HubPanel {
-    in property <string> label;
-    in property <string> value;
-    in property <string> status;
-    in property <bool> compact: false;
-
-    height: root.compact ? HubTokens.list-row-md + HubTokens.space-2 : HubTokens.workspace-row-cloud-metrics;
-
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: MaterialStyleMetrics.padding_16;
-        padding-right: MaterialStyleMetrics.padding_16;
-        padding-top: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_14;
-        padding-bottom: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_14;
-        spacing: root.compact ? HubTokens.space-1 : MaterialStyleMetrics.spacing_6;
-
-        MutedText {
-            text: root.label;
-            overflow: elide;
-        }
-
-        MaterialText {
-            text: root.status;
-            overflow: elide;
-            color: MaterialPalette.on_surface;
-            style: MaterialTypography.title_small;
-        }
-
-        MutedText {
-            text: root.value;
-            overflow: elide;
-        }
-    }
-}
+import { CloudServiceData, CloudSummaryData, UiTextData } from "shared.slint";
+import { EmptyStateBlock, HubTokens, InfoRow, MaterialStyleMetrics, MetricCard, OverviewPanel, PageScrollSurface, PanelHeader, PanelListViewport, PanelSlot, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
 
 component CloudServiceRow inherits InfoRow {
     in property <CloudServiceData> service;
+    in property <bool> collapse-label: false;
 
     title: root.service.title;
     detail: root.service.detail;
@@ -47,20 +12,34 @@ component CloudServiceRow inherits InfoRow {
     has-leading-image: true;
     accent: root.service.accent;
     trailing-text: root.service.status;
-    trailing-tone: root.service.status == "Ready" ? "ok" : (root.service.status == "Not connected" ? "warning" : "neutral");
+    trailing-tone: root.service.status == "Ready" ? "ok" : "neutral";
     show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
     row-height: HubTokens.list-row-lg;
 }
 
-export component CloudPage inherits Rectangle {
-    in-out property <length> scroll-y: 0px;
+component CloudMetricSlot inherits ResponsiveSlot {
+    in property <string> label;
+    in property <string> primary;
+    in property <string> secondary;
+    in property <bool> compact-card: false;
+
+    MetricCard {
+        width: parent.width;
+        height: parent.height;
+        label: root.label;
+        primary: root.primary;
+        secondary: root.secondary;
+        compact: root.compact-card;
+    }
+}
+
+export component CloudPage inherits PageScrollSurface {
     in property <CloudSummaryData> summary;
     in property <[CloudServiceData]> services;
     in property <int> service-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <length> content-width: page-surface.content-width;
-    private property <length> content-height: page-surface.content-height;
     private property <length> header-height: HubTokens.list-row-lg;
     private property <string> overview-title: root.has-selected-project ? root.ui-text.cloud-overview-selected : root.ui-text.cloud-overview;
     private property <string> overview-detail: root.has-selected-project ? root.ui-text.cloud-local-selected-detail : root.ui-text.cloud-local-only;
@@ -69,144 +48,133 @@ export component CloudPage inherits Rectangle {
     private property <length> metric-gap: HubTokens.space-3;
     private property <length> metric-min-width: HubTokens.panel-min-sm * 3 / 4;
     private property <bool> metrics-four-columns: root.content-width >= root.metric-min-width * 4 + root.metric-gap * 4;
-    private property <bool> metrics-two-columns: !root.metrics-four-columns && root.content-width >= HubTokens.panel-min-md * 2 + root.metric-gap;
+    private property <bool> metrics-two-columns: !root.metrics-four-columns && root.content-width >= root.metric-min-width * 2 + root.metric-gap;
     private property <int> metric-row-count: root.metrics-four-columns ? 1 : (root.metrics-two-columns ? 2 : 4);
-    private property <length> metric-slot-basis: root.metrics-four-columns ? root.metric-min-width : (root.metrics-two-columns ? HubTokens.panel-min-md : root.content-width);
+    private property <length> metric-slot-basis: root.metrics-four-columns || root.metrics-two-columns ? root.metric-min-width : root.content-width;
     private property <length> metric-slot-min-width: root.metrics-four-columns || root.metrics-two-columns ? root.metric-min-width : root.content-width;
     private property <float> metric-slot-grow: 1;
     private property <length> metric-section-height: root.metric-row-height * root.metric-row-count + root.metric-gap * (root.metric-row-count - 1);
-    private property <length> services-panel-height: max(HubTokens.list-row-lg * 3, root.content-height - root.header-height - root.metric-section-height - HubTokens.panel-gap * 2);
+    private property <length> service-row-slot-height: HubTokens.list-row-lg + HubTokens.space-2;
+    private property <length> service-panel-chrome-height: HubTokens.control-md + HubTokens.toolbar-gap + HubTokens.space-4 * 2;
+    private property <int> service-visible-rows: root.service-count < 4 ? root.service-count : 4;
+    private property <length> service-available-height: max(root.service-panel-chrome-height + root.service-row-slot-height, root.content-height - root.header-height - root.metric-section-height - HubTokens.panel-gap * 2);
+    private property <length> service-available-list-height: max(root.service-row-slot-height, root.service-available-height - root.service-panel-chrome-height);
+    private property <int> service-fit-row-count: Math.floor(root.service-available-list-height / root.service-row-slot-height);
+    private property <int> service-fit-rows: root.service-fit-row-count < 1 ? 1 : root.service-fit-row-count;
+    private property <int> service-panel-rows: root.service-visible-rows < 1 ? 1 : (root.service-visible-rows < root.service-fit-rows ? root.service-visible-rows : root.service-fit-rows);
+    private property <length> service-list-height: root.service-count == 0 ? HubTokens.list-row-lg + HubTokens.space-4 : root.service-panel-rows * HubTokens.list-row-lg + (root.service-panel-rows - 1) * HubTokens.space-2 + HubTokens.space-1 * 2;
+    private property <length> services-panel-height: root.service-panel-chrome-height + root.service-list-height;
     private property <length> service-scroll-y: 0px;
 
     background: HubTokens.surface-page;
     clip: true;
 
-    page-surface := PageScrollSurface {
-        width: root.width;
-        height: root.height;
-        scroll-y <=> root.scroll-y;
+    OverviewPanel {
+        height: root.header-height;
+        title: root.overview-title;
+        subtitle: root.overview-detail;
+        badge-text: root.summary.status;
+    }
 
-        HubPanel {
-            height: root.header-height;
+    WorkspacePanelSection {
+        compact: root.metric-row-count > 1;
+        compact-stack: false;
+        compact-rows: root.metric-row-count;
+        row-height: root.metric-row-height;
+        spacing-horizontal: root.metric-gap;
+        spacing-vertical: root.metric-gap;
 
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding-left: MaterialStyleMetrics.padding_16;
-                padding-right: MaterialStyleMetrics.padding_16;
-                padding-top: MaterialStyleMetrics.padding_14;
-                padding-bottom: MaterialStyleMetrics.padding_14;
-
-                PanelHeader {
-                    title: root.overview-title;
-                    subtitle: root.overview-detail;
-                    show-badge: true;
-                    badge-text: root.summary.status;
-                    badge-tone: "accent";
-                }
-            }
+        CloudMetricSlot {
+            basis: root.metric-slot-basis;
+            flex-basis: root.metric-slot-basis;
+            grow: root.metric-slot-grow;
+            flex-grow: root.metric-slot-grow;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.metric-slot-min-width;
+            height: root.metric-row-height;
+            label: root.ui-text.cloud-local-mode;
+            primary: root.summary.local-mode-status;
+            secondary: root.ui-text.cloud-local-only;
+            compact-card: root.metrics-compact;
         }
 
-        WorkspacePanelSection {
-            compact: root.metric-row-count > 1;
-            compact-stack: false;
-            compact-rows: root.metric-row-count;
-            row-height: root.metric-row-height;
-            spacing-horizontal: root.metric-gap;
-            spacing-vertical: root.metric-gap;
-
-            ResponsiveSlot {
-                basis: root.metric-slot-basis;
-                grow: root.metric-slot-grow;
-                shrink: 1;
-                min-width: root.metric-slot-min-width;
-                height: root.metric-row-height;
-
-                CloudMetric {
-                    width: parent.width;
-                    height: parent.height;
-                    label: root.ui-text.cloud-account;
-                    value: root.ui-text.cloud-local-only;
-                    status: root.summary.account-status;
-                    compact: root.metrics-compact;
-                }
-            }
-            ResponsiveSlot {
-                basis: root.metric-slot-basis;
-                grow: root.metric-slot-grow;
-                shrink: 1;
-                min-width: root.metric-slot-min-width;
-                height: root.metric-row-height;
-
-                CloudMetric {
-                    width: parent.width;
-                    height: parent.height;
-                    label: root.ui-text.cloud-output;
-                    value: root.summary.output-path;
-                    status: root.summary.output-status;
-                    compact: root.metrics-compact;
-                }
-            }
-            ResponsiveSlot {
-                basis: root.metric-slot-basis;
-                grow: root.metric-slot-grow;
-                shrink: 1;
-                min-width: root.metric-slot-min-width;
-                height: root.metric-row-height;
-
-                CloudMetric {
-                    width: parent.width;
-                    height: parent.height;
-                    label: root.ui-text.cloud-device-install;
-                    value: root.summary.device-path;
-                    status: root.summary.device-status;
-                    compact: root.metrics-compact;
-                }
-            }
-            ResponsiveSlot {
-                basis: root.metric-slot-basis;
-                grow: root.metric-slot-grow;
-                shrink: 1;
-                min-width: root.metric-slot-min-width;
-                height: root.metric-row-height;
-
-                CloudMetric {
-                    width: parent.width;
-                    height: parent.height;
-                    label: root.ui-text.cloud-packages;
-                    value: root.summary.package-path;
-                    status: root.summary.package-status;
-                    compact: root.metrics-compact;
-                }
-            }
+        CloudMetricSlot {
+            basis: root.metric-slot-basis;
+            flex-basis: root.metric-slot-basis;
+            grow: root.metric-slot-grow;
+            flex-grow: root.metric-slot-grow;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.metric-slot-min-width;
+            height: root.metric-row-height;
+            label: root.ui-text.cloud-output;
+            primary: root.summary.output-status;
+            secondary: root.summary.output-path;
+            compact-card: root.metrics-compact;
         }
 
-        HubPanel {
-            horizontal-stretch: 1;
-            height: root.services-panel-height;
+        CloudMetricSlot {
+            basis: root.metric-slot-basis;
+            flex-basis: root.metric-slot-basis;
+            grow: root.metric-slot-grow;
+            flex-grow: root.metric-slot-grow;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.metric-slot-min-width;
+            height: root.metric-row-height;
+            label: root.ui-text.cloud-device-install;
+            primary: root.summary.device-status;
+            secondary: root.summary.device-path;
+            compact-card: root.metrics-compact;
+        }
 
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding: MaterialStyleMetrics.padding_16;
-                spacing: HubTokens.toolbar-gap;
+        CloudMetricSlot {
+            basis: root.metric-slot-basis;
+            flex-basis: root.metric-slot-basis;
+            grow: root.metric-slot-grow;
+            flex-grow: root.metric-slot-grow;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.metric-slot-min-width;
+            height: root.metric-row-height;
+            label: root.ui-text.cloud-packages;
+            primary: root.summary.package-status;
+            secondary: root.summary.package-path;
+            compact-card: root.metrics-compact;
+        }
+    }
 
-                PanelHeader {
-                    title: root.ui-text.cloud-services;
-                    show-badge: true;
-                    badge-text: root.service-count + " " + root.ui-text.cloud-service-slots;
-                    badge-tone: "neutral";
-                }
+    PanelSlot {
+        horizontal-stretch: 1;
+        height: root.services-panel-height;
+        body-padding: MaterialStyleMetrics.padding_16;
+        body-spacing: HubTokens.toolbar-gap;
 
-                PanelListViewport {
-                    scroll-y <=> root.service-scroll-y;
-                    row-count: root.service-count;
-                    row-height: HubTokens.list-row-lg;
+        PanelHeader {
+            title: root.ui-text.cloud-services;
+            show-badge: true;
+            badge-text: root.service-count + " " + root.ui-text.cloud-service-slots;
+            badge-tone: "neutral";
+        }
 
-                    for service in root.services: CloudServiceRow {
-                        service: service;
-                    }
-                }
+        PanelListViewport {
+            scroll-y <=> root.service-scroll-y;
+            row-count: root.service-count;
+            row-height: HubTokens.list-row-lg;
+            empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+
+            for service in root.services: CloudServiceRow {
+                service: service;
+                collapse-label: root.content-width < HubTokens.breakpoint-medium;
+            }
+
+            if root.service-count == 0: EmptyStateBlock {
+                height: HubTokens.list-row-lg + HubTokens.space-4;
+                title: root.ui-text.cloud-local-only;
+                detail: root.overview-detail;
+                body-padding: MaterialStyleMetrics.padding_16;
+                center-content: true;
             }
         }
     }

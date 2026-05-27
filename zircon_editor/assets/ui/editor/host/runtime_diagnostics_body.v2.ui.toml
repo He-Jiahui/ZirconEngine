@@ -23,7 +23,7 @@ children = [{ node = "focus" }]
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusDiagnostics"
-props = { label = "Focus Diagnostics", icon = "pulse-outline" }
+props = { label = "Focus Diagnostics", icon = "editor_pages/console_profiler/diagnostics/watch.svg" }
 layout = { width = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "DockCommand.FocusView" }]
 

@@ -1,7 +1,8 @@
 use crate::scene::components::{Name, RenderLayerMask};
 use crate::scene::ecs::{
     ArchetypeId, Changed, Component, ComponentStorageLocation, Mut, QueryEntityError,
-    QuerySingleError, QueryState, Ref, StableEntityLocation, StorageType, With, Without,
+    QuerySingleError, QueryState, Ref, StableEntityLocation, StorageType, UniqueEntityArray, With,
+    Without,
 };
 use crate::scene::{EntityId, World};
 
@@ -534,6 +535,17 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
             .map(|items| items.map(|(entity, health)| (entity, health.0))),
         Ok([(player, 10), (player, 10)])
     );
+    let unique_player = UniqueEntityArray::new([player]).unwrap();
+    assert_eq!(
+        query
+            .get_many_unique(&world, unique_player)
+            .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        Ok([(player, 10)])
+    );
+    assert_eq!(
+        UniqueEntityArray::new([player, player]),
+        Err(QueryEntityError::DuplicateEntity(player))
+    );
     assert_eq!(
         query
             .iter_many(&world, [enemy, player, 999, player])
@@ -570,6 +582,12 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
         Err(QueryEntityError::QueryDoesNotMatch(enemy))
     );
     assert_eq!(
+        query
+            .get_many_unique(&world, UniqueEntityArray::new([player, enemy]).unwrap())
+            .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        Err(QueryEntityError::QueryDoesNotMatch(enemy))
+    );
+    assert_eq!(
         query.get(&world, enemy),
         Err(QueryEntityError::QueryDoesNotMatch(enemy))
     );
@@ -593,6 +611,30 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
             .get_many_cached(&world, [player, player])
             .map(|items| items.map(|(entity, health)| (entity, health.0))),
         Ok([(player, 10), (player, 10)])
+    );
+    assert_eq!(
+        query
+            .get_many_unique_cached(&world, unique_player)
+            .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        Ok([(player, 10)])
+    );
+    assert_eq!(
+        UniqueEntityArray::new([player, player]),
+        Err(QueryEntityError::DuplicateEntity(player))
+    );
+    assert_eq!(
+        query
+            .iter_many_unique(&world, unique_player)
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>(),
+        vec![(player, 10)]
+    );
+    assert_eq!(
+        query
+            .iter_many_unique_cached(&world, unique_player)
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>(),
+        vec![(player, 10)]
     );
     assert_eq!(
         query
@@ -648,10 +690,27 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
     );
     assert_eq!(
         query
+            .get_many_unique_cached_direct(&world, UniqueEntityArray::new([enemy]).unwrap())
+            .map(|items| items.map(|(entity, health)| (entity, health.0))),
+        Ok([(enemy, 4)])
+    );
+    assert_eq!(
+        UniqueEntityArray::new([enemy, enemy]),
+        Err(QueryEntityError::DuplicateEntity(enemy))
+    );
+    assert_eq!(
+        query
             .iter_many_cached_direct(&world, [player, enemy, enemy, 999])
             .map(|(entity, health)| (entity, health.0))
             .collect::<Vec<_>>(),
         vec![(enemy, 4), (enemy, 4)]
+    );
+    assert_eq!(
+        query
+            .iter_many_unique_cached_direct(&world, UniqueEntityArray::new([enemy]).unwrap())
+            .map(|(entity, health)| (entity, health.0))
+            .collect::<Vec<_>>(),
+        vec![(enemy, 4)]
     );
     assert_eq!(
         query
@@ -735,13 +794,23 @@ fn system_query_iter_many_cached_direct_preserves_order_duplicates_and_run_windo
     let mut system = crate::scene::ecs::SystemState::<ChangedHealth>::new(&mut world).unwrap();
     let requested = vec![marker_only, first, 999, first];
 
+    let unique_first = UniqueEntityArray::new([first]).unwrap();
     let baseline = system.run(&mut world, |mut query| {
-        query
-            .iter_many_cached_direct(&requested)
-            .map(|(entity, health)| (entity, health.0))
-            .collect::<Vec<_>>()
+        (
+            query
+                .iter_many_cached_direct(&requested)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+            query
+                .iter_many_unique_cached_direct(unique_first)
+                .map(|(entity, health)| (entity, health.0))
+                .collect::<Vec<_>>(),
+        )
     });
-    assert_eq!(baseline, vec![(first, 10), (first, 10)]);
+    assert_eq!(
+        baseline,
+        (vec![(first, 10), (first, 10)], vec![(first, 10)])
+    );
 
     let unchanged = system.run(&mut world, |mut query| {
         query
