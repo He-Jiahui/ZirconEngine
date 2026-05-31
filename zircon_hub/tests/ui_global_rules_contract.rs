@@ -110,7 +110,8 @@ fn hub_ui_direct_touch_area_is_reserved_for_window_dragging() {
             if trimmed.starts_with("//") || !trimmed.contains("TouchArea") {
                 continue;
             }
-            if file_name == "shell.slint" && trimmed == "drag-area := TouchArea {" {
+            if file_name == "shell_header_components.slint" && trimmed == "drag-area := TouchArea {"
+            {
                 continue;
             }
             violations.push(format!(
@@ -125,6 +126,49 @@ fn hub_ui_direct_touch_area_is_reserved_for_window_dragging() {
     assert!(
         violations.is_empty(),
         "Hub UI interaction surfaces must use Material controls/ListTile/StateLayerArea; direct TouchArea is reserved for shell window dragging:\n{}",
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn input_and_navigation_state_owners_do_not_bypass_shared_primitives() {
+    let mut violations = Vec::new();
+    let allowed_state_owner_files = [
+        "inputs.slint",
+        "navigation.slint",
+        "shared.slint",
+        "shell_sidebar_components.slint",
+        "app.slint",
+        "project_browser_components.slint",
+        "project_dashboard_components.slint",
+        "settings_page_components.slint",
+        "shell_header_components.slint",
+    ];
+
+    for path in slint_files() {
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        for forbidden in [
+            "NavigationRail as MaterialNavigationRail",
+            "material-field := TextField",
+            "trigger := OutlineButton",
+            "material-segment := SegmentedButton",
+            "FilledIconButton {",
+            "OutlineIconButton {",
+            "MaterialIconButton {",
+        ] {
+            if source.contains(forbidden) && !allowed_state_owner_files.contains(&file_name) {
+                violations.push(format!("{}: {forbidden}", display_path(&path)));
+            }
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "Hub input/navigation primitive state must stay in shared owner wrappers instead of page-local Material bypasses:\n{}",
         violations.join("\n")
     );
 }
@@ -172,7 +216,13 @@ fn page_content_width_arithmetic_stays_in_layout_primitive() {
                 continue;
             }
             if trimmed
-                == "out property <length> content-width: max(1px, root.width - root.page-padding * 2);"
+                == "out property <length> content-width: max(1px, root.width - root.page-padding-x * 2);"
+            {
+                continue;
+            }
+            if path.file_name().and_then(|name| name.to_str())
+                == Some("shell_header_popup_components.slint")
+                && trimmed == "x: root.width - root.popup-width;"
             {
                 continue;
             }
@@ -239,10 +289,12 @@ fn page_compact_breakpoints_use_design_tokens() {
     let layout = read_ui_file("layout.slint");
     for snippet in [
         "export component ResponsiveState",
+        "export component ResponsiveCollapse",
         "out property <bool> compact: root.viewport-width < HubTokens.breakpoint-compact;",
         "out property <bool> medium: root.viewport-width < HubTokens.breakpoint-medium;",
         "out property <bool> wide: root.viewport-width >= HubTokens.breakpoint-wide;",
         "out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;",
+        "out property <bool> collapsed: root.content-width < root.collapse-at;",
     ] {
         assert!(
             layout.contains(snippet),
@@ -270,7 +322,10 @@ fn page_compact_breakpoints_use_design_tokens() {
                     || trimmed
                         == "out property <bool> wide: root.viewport-width >= HubTokens.breakpoint-wide;"
                     || trimmed
-                        == "out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;")
+                        == "out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;"
+                    || trimmed
+                        == "in property <length> page-padding: root.width < HubTokens.breakpoint-compact ? HubTokens.page-padding-compact : HubTokens.page-padding;")
+                || trimmed == "out property <bool> collapsed: root.content-width < root.collapse-at;"
             {
                 continue;
             }
@@ -299,7 +354,13 @@ fn absolute_positioning_stays_out_of_page_layouts() {
         let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
             continue;
         };
-        if matches!(file_name, "app.slint" | "inputs.slint" | "shell.slint") {
+        if matches!(
+            file_name,
+            "app.slint"
+                | "inputs.slint"
+                | "shell_header_components.slint"
+                | "shell_header_popup_components.slint"
+        ) {
             continue;
         }
 

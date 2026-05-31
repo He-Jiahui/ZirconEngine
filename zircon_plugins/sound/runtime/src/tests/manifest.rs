@@ -13,6 +13,23 @@ fn static_plugin_manifest_keeps_runtime_option_keys_in_sync() {
 }
 
 #[test]
+fn static_plugin_manifest_keeps_runtime_option_metadata_in_sync() {
+    let mut static_options =
+        option_manifests_from_plugin_toml(include_str!("../../../plugin.toml"))
+            .into_iter()
+            .map(option_manifest_tuple)
+            .collect::<Vec<_>>();
+    let mut runtime_options = crate::sound_options()
+        .into_iter()
+        .map(option_manifest_tuple)
+        .collect::<Vec<_>>();
+    static_options.sort_unstable_by_key(|option| option.0.clone());
+    runtime_options.sort_unstable_by_key(|option| option.0.clone());
+
+    assert_eq!(static_options, runtime_options);
+}
+
+#[test]
 fn static_plugin_manifest_keeps_runtime_contribution_keys_in_sync() {
     let static_manifest = static_sound_contributions(include_str!("../../../plugin.toml"));
     let runtime_manifest = crate::package_manifest();
@@ -63,6 +80,23 @@ fn static_plugin_manifest_keeps_runtime_contribution_keys_in_sync() {
 
     assert_eq!(static_manifest.dependencies, runtime_dependencies);
     assert_eq!(static_manifest.event_catalogs, runtime_event_catalogs);
+    let sound_event_catalog = runtime_manifest
+        .event_catalogs
+        .iter()
+        .find(|catalog| catalog.namespace == crate::SOUND_DYNAMIC_EVENT_NAMESPACE)
+        .expect("sound dynamic event catalog");
+    assert_eq!(
+        sound_event_catalog
+            .events
+            .iter()
+            .map(|event| event.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "sound.dynamic_events.impact",
+            "sound.dynamic_events.marker",
+            "sound.dynamic_events.ambient_stinger",
+        ]
+    );
     assert_eq!(static_manifest.modules, runtime_modules);
     assert_eq!(descriptor_components.len(), 3);
     assert_eq!(descriptor_components, runtime_components);
@@ -528,25 +562,133 @@ fn push_capability_status(
 }
 
 fn option_keys_from_plugin_toml(manifest: &str) -> Vec<String> {
-    let mut keys = Vec::new();
+    option_manifests_from_plugin_toml(manifest)
+        .into_iter()
+        .map(|option| option.key)
+        .collect()
+}
+
+fn option_manifests_from_plugin_toml(
+    manifest: &str,
+) -> Vec<zircon_runtime::plugin::PluginOptionManifest> {
+    let mut options = Vec::new();
+    let mut key = None;
+    let mut display_name = None;
+    let mut value_type = None;
+    let mut default_value = None;
+    let mut required_capability = None;
     let mut inside_option = false;
+
     for line in manifest.lines().map(str::trim) {
         if line == "[[options]]" {
+            push_option_manifest(
+                &mut options,
+                &mut key,
+                &mut display_name,
+                &mut value_type,
+                &mut default_value,
+                &mut required_capability,
+            );
             inside_option = true;
             continue;
         }
         if line.starts_with("[[") {
+            push_option_manifest(
+                &mut options,
+                &mut key,
+                &mut display_name,
+                &mut value_type,
+                &mut default_value,
+                &mut required_capability,
+            );
             inside_option = false;
         }
         if !inside_option {
             continue;
         }
-        if let Some(key) = line
+        if let Some(value) = line
             .strip_prefix("key = \"")
             .and_then(|value| value.strip_suffix('"'))
         {
-            keys.push(key.to_string());
+            key = Some(value.to_string());
+            continue;
+        }
+        if let Some(value) = line
+            .strip_prefix("display_name = \"")
+            .and_then(|value| value.strip_suffix('"'))
+        {
+            display_name = Some(value.to_string());
+            continue;
+        }
+        if let Some(value) = line
+            .strip_prefix("value_type = \"")
+            .and_then(|value| value.strip_suffix('"'))
+        {
+            value_type = Some(value.to_string());
+            continue;
+        }
+        if let Some(value) = line
+            .strip_prefix("default_value = \"")
+            .and_then(|value| value.strip_suffix('"'))
+        {
+            default_value = Some(value.to_string());
+            continue;
+        }
+        if let Some(value) = line
+            .strip_prefix("required_capability = \"")
+            .and_then(|value| value.strip_suffix('"'))
+        {
+            required_capability = Some(value.to_string());
         }
     }
-    keys
+    push_option_manifest(
+        &mut options,
+        &mut key,
+        &mut display_name,
+        &mut value_type,
+        &mut default_value,
+        &mut required_capability,
+    );
+    options
+}
+
+fn push_option_manifest(
+    options: &mut Vec<zircon_runtime::plugin::PluginOptionManifest>,
+    key: &mut Option<String>,
+    display_name: &mut Option<String>,
+    value_type: &mut Option<String>,
+    default_value: &mut Option<String>,
+    required_capability: &mut Option<String>,
+) {
+    let Some(key) = key.take() else {
+        return;
+    };
+    let mut option = zircon_runtime::plugin::PluginOptionManifest::new(
+        key,
+        display_name
+            .take()
+            .expect("sound option should declare display_name"),
+        value_type
+            .take()
+            .expect("sound option should declare value_type"),
+        default_value
+            .take()
+            .expect("sound option should declare default_value"),
+    );
+    if let Some(capability) = required_capability.take() {
+        option = option.with_required_capability(capability);
+    }
+    options.push(option);
+}
+
+fn option_manifest_tuple(
+    option: zircon_runtime::plugin::PluginOptionManifest,
+) -> (String, String, String, String, Option<String>) {
+    (
+        option.key,
+        option.display_name,
+        option.value_type,
+        option.default_value,
+        option.required_capability,
+    )
 }

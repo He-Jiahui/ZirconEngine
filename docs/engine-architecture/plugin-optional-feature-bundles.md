@@ -36,8 +36,16 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_plugins/sound/plugin.toml
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
@@ -55,6 +63,16 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -72,6 +90,10 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
   - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
@@ -159,12 +181,36 @@ For catalogs that do not yet know an external feature package at source-generati
   - dependencies: `sound/runtime.plugin.sound`, `animation/runtime.feature.animation.timeline_event_track`
   - provides: `runtime.feature.sound.timeline_animation_track`
   - runtime crate: `zircon_plugin_sound_timeline_animation_runtime`
+  - editor capability: `editor.feature.sound.timeline_animation_track`
+  - editor crate: `zircon_plugin_sound_timeline_animation_editor`
 
 - `sound.ray_traced_convolution_reverb`
   - owner: `sound`
   - dependencies: `sound/runtime.plugin.sound`, `physics/runtime.plugin.physics`, `physics/runtime.capability.physics.raycast`
   - provides: `runtime.feature.sound.ray_traced_convolution_reverb`
   - runtime crate: `zircon_plugin_sound_ray_traced_convolution_runtime`
+  - editor capability: `editor.feature.sound.ray_traced_convolution_reverb`
+  - editor crate: `zircon_plugin_sound_ray_traced_convolution_editor`
+
+- Rendering owner-embedded optional features
+  - owner: `rendering`
+  - feature ids: `rendering.post_process`, `rendering.ssao`, `rendering.decals`, `rendering.reflection_probes`, `rendering.baked_lighting`, `rendering.ray_tracing_policy`, `rendering.shader_graph`, `rendering.vfx_graph`
+  - primary dependency: `rendering/runtime.plugin.rendering`
+  - extra dependency: `rendering.vfx_graph` also requires `particles/runtime.plugin.particles` and `rendering/runtime.feature.rendering.shader_graph`
+  - provides: `runtime.feature.rendering.<feature>`
+  - runtime crate: `zircon_plugin_rendering_<feature>_runtime`
+  - editor capability: `editor.feature.rendering.<feature>`
+  - editor crate: `zircon_plugin_rendering_<feature>_editor`
+
+- `net.content_download`
+  - owner: `net`
+  - primary dependency: `net/runtime.plugin.net`
+  - required feature dependency: `net/runtime.feature.net.http`
+  - provides: `runtime.feature.net.cdn_download`
+  - runtime crate: `zircon_plugin_net_content_download_runtime`
+  - transport rule: content downloads use the shared HTTP-capable `NetManager` rather than declaring an independent client stack
+  - catalog rule: static `plugin.toml`, linked Net package manifest, provider manifest, and built-in runtime catalog all expose the same dependency contract
+  - metadata rule: static `plugin.toml`, linked Net package manifest, and built-in catalog classify the Net owner package as category `runtime`, maturity `beta`, and `runtime.plugin.net` status `partial`
 
 - `sound_timeline_animation_track` as an independent provider package
   - package kind: `feature_extension`
@@ -176,6 +222,18 @@ For catalogs that do not yet know an external feature package at source-generati
 ## Validation
 
 Added coverage for manifest roundtrip, project manifest nested feature selections, deterministic catalog completion, dependency availability/blocking, target mismatch diagnostics, disabled provider versus feature-cycle diagnostics, package/runtime declaration default mismatches, runtime blocked optional-vs-required fatal semantics, export linking/diagnostics/fatal diagnostics, native feature registration projection, runtime extension merge ordering, editor Plugin Manager status projection, recursive dependency enablement, native manifest optional-feature projection, native-aware project completion, and editor feature/dependency action projection.
+
+The Sound provider crates now also carry local feature-registration contracts for `sound.timeline_animation_track` and `sound.ray_traced_convolution_reverb`. These tests keep provider-owned runtime `feature_manifest()` output aligned with the owner/static Sound bundle rows for id, display name, owner, dependency set, provided runtime capability, default packaging, runtime module, and editor module metadata, including the editor capability rows projected by the editor host. The provider runtime crates depend on `zircon_runtime` with default features disabled because they only need the plugin/core metadata surface, not the full render/runtime stack. The ray-traced convolution provider display name is intentionally `Ray Traced Convolution Reverb`, matching the static Sound bundle and generated owner descriptor, and the editor feature crates reuse the provider `EDITOR_CAPABILITY` constants.
+
+Fresh focused validation on 2026-05-31 used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-feature-editor-capability`: both Sound feature provider manifest tests passed after the editor-module capability rows were added, the Sound runtime `manifest` filter passed static optional feature parity, the new runtime catalog regression `builtin_sound_optional_features_declare_editor_capabilities` passed, both feature editor crates passed `cargo check`, and locked offline metadata passed for the Sound runtime plus both feature runtime/editor manifests.
+
+Fresh focused validation on 2026-05-31 used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-rendering-feature-editor-capability`: the new red runtime catalog regression first failed because `rendering.post_process.editor` did not project `editor.feature.rendering.post_process`; after the fix, Rendering provider manifests passed `rendering_feature_manifests_declare_editor_capabilities`, the built-in catalog regression `builtin_rendering_optional_features_declare_editor_capabilities` passed, the static `rendering_plugin_toml_roundtrips_owner_features_and_modules` parity test passed, and all eight Rendering feature editor crates passed `cargo check`. A broad package-level `zircon_runtime` test attempt was intentionally not used as acceptance because the current dirty worktree has an unrelated `virtual_geometry_debug_snapshot_contract.rs` compile error for `ModelPrimitiveAsset { .. }` missing `mesh`.
+
+Fresh focused validation on 2026-05-31 used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-content-download-manifest`: red tests first showed that the base Net runtime package manifest and static `zircon_plugins/net/plugin.toml` did not declare the `net.content_download` dependency on `runtime.feature.net.http`; after the fix, `net_plugin_manifest_advertises_layered_optional_features`, `net_plugin_toml_declares_content_download_http_dependency`, and the full `zircon_plugin_net_content_download_runtime` lib test set passed.
+
+Fresh focused validation on 2026-05-31 used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-builtin-catalog`: red testing first showed that `RuntimePluginDescriptor::builtin_catalog()` had no Net optional feature rows; after adding the six owner feature rows, `builtin_net_catalog_declares_layered_optional_features`, `builtin_net_content_download_dependency_report_blocks_without_http_feature`, `net_plugin_toml_declares_content_download_http_dependency`, and `net_plugin_manifest_advertises_layered_optional_features` passed.
+
+Fresh focused validation on 2026-05-31 used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-runtime-metadata`: red testing first showed that the linked Net runtime package still reported `Experimental` maturity and static `zircon_plugins/net/plugin.toml` still defaulted to `uncategorized`; after the fix, `net_plugin_manifest_advertises_layered_optional_features` and `net_plugin_toml_declares_content_download_http_dependency` passed with category `runtime`, maturity `beta`, and `runtime.plugin.net` status `partial`.
 
 Fresh validation on 2026-05-03:
 

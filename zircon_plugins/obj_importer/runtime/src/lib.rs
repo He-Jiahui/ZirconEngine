@@ -1,7 +1,8 @@
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetKind, FunctionAssetImporter, ImportedAsset, ImportedAssetEntry,
-    MeshAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    AssetImporterDescriptor, AssetKind, AssetReference, FunctionAssetImporter, ImportedAsset,
+    ImportedAssetEntry, MeshAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 use zircon_runtime::core::ModuleDescriptor;
@@ -144,15 +145,23 @@ pub fn import_obj(context: &AssetImportContext) -> Result<AssetImportOutcome, As
 
 fn model_outcome_with_mesh_subassets(
     root_uri: zircon_runtime::asset::AssetUri,
-    model: ModelAsset,
+    mut model: ModelAsset,
 ) -> AssetImportOutcome {
-    model.primitives.iter().enumerate().fold(
-        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
-        |outcome, (primitive_index, primitive)| {
-            let mesh_uri = zircon_runtime::asset::AssetUri::parse(&format!(
+    let mesh_uris = (0..model.primitives.len())
+        .map(|primitive_index| {
+            zircon_runtime::asset::AssetUri::parse(&format!(
                 "{root_uri}#Mesh{primitive_index}/Primitive0"
             ))
-            .expect("generated obj mesh subasset uri must be valid");
+            .expect("generated obj mesh subasset uri must be valid")
+        })
+        .collect::<Vec<_>>();
+    for (primitive, mesh_uri) in model.primitives.iter_mut().zip(mesh_uris.iter()) {
+        primitive.mesh = Some(AssetReference::from_locator(mesh_uri.clone()));
+    }
+
+    mesh_uris.into_iter().zip(model.primitives.iter()).fold(
+        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
+        |outcome, (mesh_uri, primitive)| {
             outcome
                 .with_dependency(mesh_uri.clone())
                 .with_entry(ImportedAssetEntry::new(
@@ -228,6 +237,7 @@ fn primitive_from_indexed_mesh(
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
+        mesh: None,
         virtual_geometry,
     })
 }
@@ -330,6 +340,13 @@ f 1/1/1 2/2/1 3/3/1
                 assert_eq!(model.primitives.len(), 1);
                 assert_eq!(model.primitives[0].vertices.len(), 3);
                 assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+                assert_eq!(
+                    model.primitives[0].mesh.as_ref().unwrap().locator,
+                    zircon_runtime::asset::AssetUri::parse(
+                        "res://models/triangle.obj#Mesh0/Primitive0"
+                    )
+                    .unwrap()
+                );
             }
             other => panic!("unexpected imported asset: {other:?}"),
         }
@@ -355,6 +372,86 @@ f 1/1/1 2/2/1 3/3/1
             other => panic!("unexpected mesh subasset: {other:?}"),
         }
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn obj_importer_emits_multi_mesh_subassets() {
+        let path = temp_obj_path();
+        std::fs::write(
+            &path,
+            "\
+o FirstObject
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 0.0 1.0 0.0
+f 1 2 3
+o SecondObject
+v 2.0 0.0 0.0
+v 3.0 0.0 0.0
+v 2.0 1.0 0.0
+f 4 5 6
+",
+        )
+        .unwrap();
+        let report = plugin_registration();
+        let importer = report.extensions.asset_importers().select(&path).unwrap();
+        let root_uri =
+            zircon_runtime::asset::AssetUri::parse("res://models/two_objects.obj").unwrap();
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            path.clone(),
+            root_uri.clone(),
+            Vec::new(),
+            Default::default(),
+        );
+
+        let outcome = importer.import(&context).unwrap();
+        let root_entry = outcome.root_entry().expect("root obj asset entry");
+        match &root_entry.asset {
+            zircon_runtime::asset::ImportedAsset::Model(model) => {
+                assert_eq!(model.primitives.len(), 2);
+                assert_eq!(
+                    model.primitives[0].mesh.as_ref().unwrap().locator,
+                    obj_label_uri(&root_uri, "Mesh0/Primitive0")
+                );
+                assert_eq!(
+                    model.primitives[1].mesh.as_ref().unwrap().locator,
+                    obj_label_uri(&root_uri, "Mesh1/Primitive0")
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+
+        for label in ["Mesh0/Primitive0", "Mesh1/Primitive0"] {
+            let mesh_uri = obj_label_uri(&root_uri, label);
+            assert!(
+                root_entry.dependencies.contains(&mesh_uri),
+                "root dependencies should include {label}"
+            );
+            let mesh_entry = outcome
+                .entries
+                .iter()
+                .find(|entry| entry.locator == mesh_uri)
+                .unwrap_or_else(|| panic!("missing obj mesh subasset {mesh_uri}"));
+            match &mesh_entry.asset {
+                zircon_runtime::asset::ImportedAsset::Mesh(mesh) => {
+                    assert_eq!(mesh.vertex_count().unwrap(), 3);
+                    assert_eq!(mesh.to_model_primitive().unwrap().indices, vec![0, 1, 2]);
+                    assert!(
+                        mesh.virtual_geometry.is_some(),
+                        "{label} should retain cooked virtual geometry"
+                    );
+                }
+                other => panic!("unexpected mesh subasset: {other:?}"),
+            }
+        }
+        let _ = std::fs::remove_file(path);
+    }
+
+    fn obj_label_uri(
+        root_uri: &zircon_runtime::asset::AssetUri,
+        label: &str,
+    ) -> zircon_runtime::asset::AssetUri {
+        zircon_runtime::asset::AssetUri::parse(&format!("{root_uri}#{label}")).unwrap()
     }
 
     fn temp_obj_path() -> std::path::PathBuf {

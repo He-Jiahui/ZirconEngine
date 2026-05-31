@@ -11,8 +11,8 @@ use zircon_hub::projects::{
 };
 use zircon_hub::settings::{HubConfig, HubSettings};
 use zircon_hub::state::{
-    HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
-    TaskStatus,
+    HubActionKind, HubActionRecord, HubActionStatus, HubPage, HubSnapshot, ProjectFilterMode,
+    ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
 };
 use zircon_hub::team::TeamOverview;
 
@@ -66,6 +66,147 @@ fn hub_project_metadata_round_trips_in_hub_config() {
 }
 
 #[test]
+fn hub_config_repair_converges_foundation_registries() {
+    let config = fs::read_to_string(crate_dir().join("src/settings/hub_config.rs"))
+        .expect("hub_config.rs should be readable");
+
+    for snippet in [
+        "pub fn repair_registries(&mut self) -> HubConfigRepairReport",
+        "deduplicate_recent_projects(&mut self.recent_projects)",
+        "prune_unowned_project_metadata(",
+        "truncate_action_history(&mut self.action_history)",
+        "repair_active_engine(",
+        "fn config_repair_deduplicates_and_prunes_foundation_registries()",
+    ] {
+        assert!(
+            config.contains(snippet),
+            "HubConfig should repair persisted project, metadata, engine, and action-history registries; missing {snippet}"
+        );
+    }
+
+    let runtime = fs::read_to_string(crate_dir().join("src/app/runtime/persistence.rs"))
+        .expect("runtime/persistence.rs should be readable");
+    assert!(
+        runtime.matches("config.repair_registries();").count() >= 2,
+        "HubRuntime::load should repair merged editor/Hub config before projecting snapshots and again after Source Engine registration"
+    );
+}
+
+#[test]
+fn runtime_persistence_keeps_editor_recent_writes_in_persistence_owner() {
+    let runtime = fs::read_to_string(crate_dir().join("src/app/runtime.rs"))
+        .expect("runtime.rs should be readable");
+    let workspace = fs::read_to_string(crate_dir().join("src/app/runtime/project_workspace.rs"))
+        .expect("project_workspace.rs should be readable");
+    let persistence = fs::read_to_string(crate_dir().join("src/app/runtime/persistence.rs"))
+        .expect("runtime/persistence.rs should be readable");
+
+    for (name, source) in [("runtime.rs", runtime), ("project_workspace.rs", workspace)] {
+        assert!(
+            !source.contains("save_editor_recent_projects"),
+            "{name} must not write Editor recent JSON directly; route through runtime/persistence.rs"
+        );
+    }
+
+    for snippet in [
+        "pub(super) fn persist(&self) -> Result<(), HubError>",
+        "pub(super) fn persist_hub_config(&self) -> Result<(), HubError>",
+        "pub(super) fn persist_with_last_project(",
+        "save_editor_recent_projects_with_last_project(",
+        "save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)",
+    ] {
+        assert!(
+            persistence.contains(snippet),
+            "runtime/persistence.rs should own Hub TOML and Editor recent save boundaries; missing {snippet}"
+        );
+    }
+}
+
+#[test]
+fn foundation_docs_reference_final_gate_plan_and_contracts() {
+    let foundations =
+        fs::read_to_string(crate_dir().join("../docs/zircon_hub/state/foundations.md"))
+            .expect("docs/zircon_hub/state/foundations.md should be readable");
+
+    for snippet in [
+        "related_code:",
+        "implementation_files:",
+        "plan_sources:",
+        "tests:",
+        ".opencode/workflows/20260528_190023_866_继续完善hub/hub-foundations-contracts-docs/plan.md",
+        ".opencode/workflows/20260528_190023_866_继续完善hub/hub-foundations-contracts-docs/decomposition.md",
+        "zircon_hub/tests/project_management_contract.rs",
+        "zircon_hub/tests/project_quick_actions_contract.rs",
+        "zircon_hub/tests/project_source_engine_contract.rs",
+        "zircon_hub/tests/ui_selected_project_runtime_contract.rs",
+        "cargo test -p zircon_hub --test project_management_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test project_quick_actions_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test project_source_engine_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked -- --nocapture",
+        "## Foundation contract gate",
+    ] {
+        assert!(
+            foundations.contains(snippet),
+            "Foundation docs should record final-gate plans, contracts, and validation evidence; missing {snippet}"
+        );
+    }
+}
+
+#[test]
+fn hub_config_repair_normalizes_registries_before_projection() {
+    let mut config = HubConfig::default();
+    config.recent_projects = vec![
+        RecentProject::new("Older duplicate", "E:/Projects/Game", 10),
+        RecentProject::new("Newest duplicate", "E:/Projects/Game", 30),
+        RecentProject::new("Other", "E:/Projects/Other", 20),
+    ];
+    config.project_metadata.insert(
+        project_metadata_key("E:/Projects/Game"),
+        ProjectMetadata {
+            pinned: true,
+            engine_id: Some("stale-engine".to_string()),
+            last_selected_template: Some("renderable-empty".to_string()),
+        },
+    );
+    config.project_metadata.insert(
+        project_metadata_key("E:/Projects/Removed"),
+        ProjectMetadata {
+            pinned: true,
+            ..ProjectMetadata::default()
+        },
+    );
+    config.active_engine_id = Some("missing-engine".to_string());
+
+    for index in 0..20 {
+        config.action_history.push(HubActionRecord {
+            finished_unix_ms: index,
+            action: HubActionKind::OpenEditor,
+            status: HubActionStatus::Success,
+            target: format!("target {index}"),
+            detail: "opened".to_string(),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: None,
+        });
+    }
+
+    let report = config.repair_registries();
+
+    assert!(report.repaired_anything());
+    assert_eq!(config.recent_projects.len(), 2);
+    assert_eq!(config.recent_projects[0].display_name, "Newest duplicate");
+    assert!(metadata_for_path(&config.project_metadata, "E:/Projects/Game").is_some());
+    assert!(metadata_for_path(&config.project_metadata, "E:/Projects/Removed").is_none());
+    assert_eq!(
+        config.action_history.len(),
+        zircon_hub::state::ACTION_HISTORY_LIMIT
+    );
+    assert_eq!(config.active_engine_id, None);
+}
+
+#[test]
 fn editor_recent_writer_keeps_hub_metadata_out_of_editor_json() {
     let root = temp_test_dir("zircon_hub_recent_metadata_contract");
     let path = root.join("config.json");
@@ -103,12 +244,24 @@ fn new_project_creation_only_accepts_enabled_templates() {
     assert_eq!(ProjectTemplate::from_enabled_id("3d-scene"), None);
 
     let request = CreateProjectRequest::new(
-        "Demo",
+        "  Demo  ",
         "E:/Projects",
         ProjectTemplate::from_enabled_id("renderable-empty").unwrap(),
     );
 
+    assert_eq!(request.project_name, "Demo");
     assert_eq!(request.template.as_editor_arg(), "renderable-empty");
+    assert_eq!(request.validate_launch_fields(), Ok(()));
+    assert_eq!(
+        request.target_root(),
+        PathBuf::from("E:/Projects").join("Demo")
+    );
+
+    let missing_name = CreateProjectRequest::new("   ", "E:/Projects", request.template);
+    assert_eq!(
+        missing_name.validate_launch_fields(),
+        Err("Project name is required")
+    );
 }
 
 #[test]
@@ -229,6 +382,7 @@ fn test_snapshot(recent_projects: Vec<RecentProject>) -> SnapshotBuilder {
             learn_resources: Vec::new(),
             plugins: Vec::new(),
             team: TeamOverview::empty(),
+            action_history: Vec::new(),
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),
@@ -241,6 +395,10 @@ fn temp_test_dir(prefix: &str) -> PathBuf {
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(&root).unwrap();
     root
+}
+
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
 fn unique_suffix() -> u128 {

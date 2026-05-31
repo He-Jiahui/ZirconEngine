@@ -50,6 +50,8 @@ fn taffy_layout_docs_keep_visual_profile_gate() {
         "primaryInteractionEvidence",
         "ui_interaction_evidence.json",
         "Set-Content -Path $interactionEvidencePath",
+        "$afterSplitter = @($afterGeometry.resize_splitters)",
+        "$afterSplitter.frame.x - [double]$Interaction.target_frame.x",
     ] {
         assert!(
             script.contains(token),

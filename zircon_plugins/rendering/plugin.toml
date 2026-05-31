@@ -3,7 +3,10 @@ version = "0.1.0"
 display_name = "Rendering"
 category = "rendering"
 description = "Optional rendering feature owner package for post process, SSAO, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
+sdk_api_version = "0.1.0"
 maturity = "stable"
+supported_targets = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.rendering"]
 default_packaging = ["source_template", "library_embed"]
 
 [[capability_statuses]]
@@ -49,7 +52,7 @@ name = "rendering.post_process.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_post_process_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.post_process"]
 
 [[optional_features]]
 id = "rendering.ssao"
@@ -76,7 +79,7 @@ name = "rendering.ssao.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_ssao_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.ssao"]
 
 [[optional_features]]
 id = "rendering.decals"
@@ -103,7 +106,7 @@ name = "rendering.decals.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_decals_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.decals"]
 
 [[optional_features]]
 id = "rendering.reflection_probes"
@@ -130,7 +133,7 @@ name = "rendering.reflection_probes.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_reflection_probes_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.reflection_probes"]
 
 [[optional_features]]
 id = "rendering.baked_lighting"
@@ -157,7 +160,7 @@ name = "rendering.baked_lighting.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_baked_lighting_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.baked_lighting"]
 
 [[optional_features]]
 id = "rendering.ray_tracing_policy"
@@ -184,7 +187,7 @@ name = "rendering.ray_tracing_policy.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_ray_tracing_policy_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.ray_tracing_policy"]
 
 [[optional_features]]
 id = "rendering.shader_graph"
@@ -211,7 +214,7 @@ name = "rendering.shader_graph.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_shader_graph_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.shader_graph"]
 
 [[optional_features]]
 id = "rendering.vfx_graph"
@@ -248,4 +251,4 @@ name = "rendering.vfx_graph.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_vfx_graph_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.rendering.vfx_graph"]

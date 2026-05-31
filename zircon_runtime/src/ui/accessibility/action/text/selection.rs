@@ -7,17 +7,13 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiSurface;
 
-use super::super::{
-    result::{finish_handled, finish_unhandled, unsupported_role_action},
-    text_state::sync_text_input_selection_metadata,
-};
+use super::super::result::unsupported_role_action;
 
-use self::payload::{
-    set_text_selection_payload, MISSING_TEXT_SELECTION_CODE, MISSING_TEXT_SELECTION_REASON,
-    MISSING_TEXT_SELECTION_STATUS,
-};
+use self::payload::set_text_selection_payload;
+use self::result::{finish_missing_text_selection, finish_set_text_selection};
 
 mod payload;
+mod result;
 
 pub(in crate::ui::accessibility::action) fn dispatch_set_text_selection(
     surface: &mut UiSurface,
@@ -44,23 +40,15 @@ pub(in crate::ui::accessibility::action) fn dispatch_set_text_selection(
         );
     }
     let Some(selection) = set_text_selection_payload(request, snapshot_node) else {
-        return finish_unhandled(
-            result,
-            Some(target),
-            MISSING_TEXT_SELECTION_STATUS,
-            MISSING_TEXT_SELECTION_CODE,
-            MISSING_TEXT_SELECTION_REASON,
-        );
+        return finish_missing_text_selection(result, target);
     };
 
-    let mut result = finish_handled(result, target, "accessibility.set_text_selection");
-    sync_text_input_selection_metadata(
+    finish_set_text_selection(
         surface,
         target,
         selection.caret,
         selection.anchor,
         selection.focus,
-        &mut result,
-    );
-    result
+        result,
+    )
 }

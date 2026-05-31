@@ -1,0 +1,92 @@
+{
+  "name": "Zircon Hub primary structure geometry baseline",
+  "source": "docs/ui-and-layout/hub-design-board/index.html?board=structure",
+  "artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+  "canvas": {
+    "width": 1568,
+    "height": 1003
+  },
+  "measurement_space": ".hub-frame rounded CSS pixels",
+  "dimension_strip": {
+    "height": 32
+  },
+  "regions": [
+    {
+      "id": "hub-frame",
+      "label": "Hub frame",
+      "left": 0,
+      "top": 0,
+      "width": 1100,
+      "height": 612,
+      "right": 1100,
+      "bottom": 612
+    },
+    {
+      "id": "topbar",
+      "label": "Topbar",
+      "left": 1,
+      "top": 1,
+      "width": 1098,
+      "height": 58,
+      "right": 1099,
+      "bottom": 59
+    },
+    {
+      "id": "sidebar",
+      "label": "Sidebar",
+      "left": 1,
+      "top": 59,
+      "width": 178,
+      "height": 552,
+      "right": 179,
+      "bottom": 611
+    },
+    {
+      "id": "workspace",
+      "label": "Workspace",
+      "left": 179,
+      "top": 59,
+      "width": 920,
+      "height": 459,
+      "right": 1099,
+      "bottom": 518
+    },
+    {
+      "id": "bottom-strip",
+      "label": "Bottom strip",
+      "left": 179,
+      "top": 518,
+      "width": 920,
+      "height": 93,
+      "right": 1099,
+      "bottom": 611
+    },
+    {
+      "id": "source-engine-overlay",
+      "label": "Source Engine overlay",
+      "left": 253,
+      "top": 63,
+      "width": 245,
+      "height": 118,
+      "right": 498,
+      "bottom": 181
+    },
+    {
+      "id": "account-overlay",
+      "label": "Account overlay",
+      "left": 841,
+      "top": 63,
+      "width": 190,
+      "height": 136,
+      "right": 1031,
+      "bottom": 199
+    }
+  ],
+  "relationships": [
+    "Topbar spans the full Hub frame width.",
+    "Sidebar starts immediately below Topbar and owns the full left column.",
+    "Workspace starts immediately right of Sidebar and remains above Bottom strip.",
+    "Bottom strip starts at the Workspace left edge and owns the lower shell band.",
+    "Source Engine and Account overlays float above the shell without resizing structural regions."
+  ]
+}

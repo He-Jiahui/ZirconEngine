@@ -124,6 +124,7 @@ events = [
 [nodes.selection_section_root]
 component = "VerticalGroup"
 classes = ["showcase-panel", "material-surface"]
+layout = { width = { stretch = "Stretch" } }
 children = [
   { node = "section_title" },
   { node = "dropdown_demo", slot = { name = "content" } },

@@ -636,6 +636,40 @@ asset_usage = "render_world"
     }
 
     #[test]
+    fn image_importer_normalizes_default_linear_rgba8_format() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("linear-default.png"))
+            .unwrap();
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "linear-default.png".into(),
+            zircon_runtime::asset::AssetUri::parse("res://textures/linear-default.png").unwrap(),
+            tiny_png_bytes(),
+            r#"is_srgb = false"#.parse().expect("valid texture import settings"),
+        );
+
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome
+            .root_entry()
+            .expect("root texture asset entry")
+            .asset;
+
+        match imported {
+            zircon_runtime::asset::ImportedAsset::Texture(texture) => {
+                let descriptor = texture.render_image_descriptor();
+                assert_eq!(descriptor.format, zircon_runtime::asset::RGBA8_UNORM_FORMAT);
+                assert_eq!(
+                    descriptor.color_space,
+                    zircon_runtime::core::framework::render::RenderImageColorSpace::Linear
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+    }
+
+    #[test]
     fn image_importer_reinterprets_stacked_array_layout() {
         let report = plugin_registration();
         let importer = report

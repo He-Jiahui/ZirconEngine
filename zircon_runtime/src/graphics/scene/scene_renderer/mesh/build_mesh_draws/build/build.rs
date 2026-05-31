@@ -310,6 +310,7 @@ mod tests {
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
                 "builtin://test-model/{node_id}"
             ))),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 &format!("builtin://test-material/{node_id}"),
             )),

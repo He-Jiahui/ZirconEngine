@@ -1,6 +1,7 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::{plugin::PluginPackageManifest, RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "runtime_diagnostics";
 pub const RUNTIME_DIAGNOSTICS_VIEW_ID: &str = "editor.runtime_diagnostics";
@@ -60,7 +61,7 @@ pub fn editor_plugin() -> RuntimeDiagnosticsEditorPlugin {
     RuntimeDiagnosticsEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+pub fn package_manifest() -> PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
@@ -75,8 +76,11 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     )
 }
 
-fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Runtime Diagnostics")
+fn base_package_manifest() -> PluginPackageManifest {
+    PluginPackageManifest::new(PLUGIN_ID, "Runtime Diagnostics")
+        .with_category("diagnostics")
+        .with_supported_targets([RuntimeTargetMode::EditorHost])
+        .with_capabilities([zircon_editor::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS])
 }
 
 #[cfg(test)]
@@ -91,6 +95,15 @@ mod tests {
         assert!(registration
             .capabilities
             .contains(&zircon_editor::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
+        assert_eq!(registration.package_manifest.category, "diagnostics");
+        assert_eq!(
+            registration.package_manifest.supported_targets,
+            vec![RuntimeTargetMode::EditorHost]
+        );
+        assert_eq!(
+            registration.package_manifest.capabilities,
+            vec![zircon_editor::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()]
+        );
         assert!(registration
             .extensions
             .views()

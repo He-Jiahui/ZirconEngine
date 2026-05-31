@@ -59,6 +59,12 @@ impl EditorLaunchCommand {
         let executable = sibling_editor_executable().unwrap_or(configured);
         Self::new(executable, request)
     }
+
+    pub fn command_line(&self) -> Vec<String> {
+        std::iter::once(self.executable.to_string_lossy().into_owned())
+            .chain(self.args.iter().cloned())
+            .collect()
+    }
 }
 
 pub fn launch_editor(command: &EditorLaunchCommand) -> Result<Child, HubError> {

@@ -1,4 +1,4 @@
-export { HubTokens } from "tokens.slint";
+export { HubTokens, HubVisualSpec } from "tokens.slint";
 export {
     Fill,
     Divider,
@@ -8,6 +8,7 @@ export {
     Flow,
     ResponsiveSlot,
     ResponsiveState,
+    ResponsiveCollapse,
     PanelGrid,
     Page,
     PageScrollSurface,
@@ -22,6 +23,7 @@ export {
     Badge,
     StatusBadge,
     PanelHeader,
+    HubSection,
     OverviewPanel,
     EmptyStateBlock,
     EmptyStatePanel,
@@ -29,7 +31,12 @@ export {
 } from "surfaces.slint";
 export {
     SelectOptionData,
+    HubCheckBox,
+    HubCheckBoxRow,
+    HubComboBox,
+    HubSwitch,
     HubTextField,
+    HubToggleRow,
     SearchBox,
     ToolbarSelect,
     DropDownButton,
@@ -37,24 +44,46 @@ export {
 } from "inputs.slint";
 export {
     HubTopHeader,
+} from "shell_header_components.slint";
+export {
     HubNavSidebar,
+} from "shell_sidebar_components.slint";
+export {
     HubPageHeader,
     HubStatusBar,
-} from "shell.slint";
+} from "shell_page_components.slint";
+export { HubFloatingIconButton } from "button_components.slint";
 export {
     InfoRow,
     ActionRow,
     MetricCard,
     BuildHistoryRow,
-    TableColumnHeader,
-    ProjectTableRow,
-    DataTable,
+    TreeItemData,
+    HubListPanelSlot,
+    HubListView,
+    HubTreeRow,
+    HubTreeView,
     CatalogListPanel,
     CatalogPage,
     PanelListViewport,
 } from "data_display.slint";
-export { NavRail } from "navigation.slint";
-export { PopupPanel } from "overlays.slint";
+export { TableColumnHeader, HubTableView, HubTableBody, ProjectTableRow, DataTable } from "table_view_components.slint";
+export {
+    OperationTimelineRow,
+    OperationTimelinePanel,
+} from "operation_timeline_components.slint";
+export { HubTabs, NavRail } from "navigation.slint";
+export {
+    HubDropDownSurface,
+    HubDrawer,
+    HubModalDrawer,
+    HubPopupMenu,
+    HubPopupWindow,
+    HubWindowView,
+    PopupPanel,
+} from "overlays.slint";
+export { HubCommandButton, HubIconButton } from "shared.slint";
+export { NavItemData } from "shared.slint";
 export {
     AppBar,
     SmallAppBar,

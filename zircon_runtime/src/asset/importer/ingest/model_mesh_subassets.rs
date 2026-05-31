@@ -1,14 +1,20 @@
 use crate::asset::assets::{ImportedAsset, MeshAsset, ModelAsset};
-use crate::asset::{AssetImportOutcome, AssetUri, ImportedAssetEntry};
+use crate::asset::{AssetImportOutcome, AssetReference, AssetUri, ImportedAssetEntry};
 
 pub(super) fn model_outcome_with_mesh_subassets(
     root_uri: AssetUri,
-    model: ModelAsset,
+    mut model: ModelAsset,
 ) -> AssetImportOutcome {
-    model.primitives.iter().enumerate().fold(
+    let mesh_uris = (0..model.primitives.len())
+        .map(|primitive_index| model_primitive_mesh_uri(&root_uri, primitive_index))
+        .collect::<Vec<_>>();
+    for (primitive, mesh_uri) in model.primitives.iter_mut().zip(mesh_uris.iter()) {
+        primitive.mesh = Some(AssetReference::from_locator(mesh_uri.clone()));
+    }
+
+    mesh_uris.into_iter().zip(model.primitives.iter()).fold(
         AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
-        |outcome, (primitive_index, primitive)| {
-            let mesh_uri = model_primitive_mesh_uri(&root_uri, primitive_index);
+        |outcome, (mesh_uri, primitive)| {
             outcome
                 .with_dependency(mesh_uri.clone())
                 .with_entry(ImportedAssetEntry::new(

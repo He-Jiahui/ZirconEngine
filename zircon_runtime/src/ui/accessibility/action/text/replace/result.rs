@@ -13,6 +13,32 @@ use super::super::super::{
     text_state::sync_text_input_edit_metadata,
 };
 
+pub(super) fn finish_missing_replace_selected_text(
+    result: UiInputDispatchResult,
+    target: UiNodeId,
+) -> UiInputDispatchResult {
+    finish_unhandled(
+        result,
+        Some(target),
+        UiAccessibilityActionStatus::Rejected,
+        "missing_value",
+        "replace selected text action requires value or numeric_value",
+    )
+}
+
+pub(super) fn finish_read_only_replace_selected_text(
+    result: UiInputDispatchResult,
+    target: UiNodeId,
+) -> UiInputDispatchResult {
+    finish_unhandled(
+        result,
+        Some(target),
+        UiAccessibilityActionStatus::Rejected,
+        "read_only",
+        "text input is read-only",
+    )
+}
+
 pub(super) fn finish_replace_selected_text_mutation(
     surface: &mut UiSurface,
     target: UiNodeId,

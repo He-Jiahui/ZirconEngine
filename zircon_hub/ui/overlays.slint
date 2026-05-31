@@ -1,6 +1,78 @@
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { HubPanel } from "surfaces.slint";
+import {
+    Drawer as MaterialDrawer,
+    DropDownMenu,
+    MenuItem,
+    ModalDrawer as MaterialModalDrawer,
+    MaterialStyleMetrics,
+    MaterialWindow,
+    PopupMenu,
+} from "material_bridge.slint";
 
 export component PopupPanel inherits HubPanel {
+    in property <length> panel-width: HubTokens.panel-min-sm - HubTokens.space-6;
+    in property <length> panel-min-height: HubTokens.control-md;
+
+    width: root.panel-width;
+    min-height: root.panel-min-height;
     variant: "elevated";
     clip: true;
+}
+
+export component HubPopupWindow inherits PopupWindow {
+    in property <length> popup-x: 0px;
+    in property <length> popup-y: 0px;
+    in property <length> popup-width: HubTokens.panel-min-sm;
+    in property <length> popup-height: HubTokens.control-lg;
+
+    close-policy: close-on-click-outside;
+    x: root.popup-x;
+    y: root.popup-y;
+    width: root.popup-width;
+    height: root.popup-height;
+
+    @children
+}
+
+export component HubPopupMenu inherits PopupMenu {
+    in property <length> menu-width: MaterialStyleMetrics.size_200;
+    in property <[MenuItem]> menu-items: [];
+
+    width: root.menu-width;
+    items: root.menu-items;
+}
+
+export component HubDropDownSurface inherits DropDownMenu {
+    in property <length> dropdown-width: HubTokens.input-width;
+    in property <length> dropdown-height: HubTokens.input-field;
+    in property <[MenuItem]> dropdown-items: [];
+
+    width: root.dropdown-width;
+    height: root.dropdown-height;
+    items: root.dropdown-items;
+}
+
+export component HubDrawer inherits MaterialDrawer {
+    in property <length> drawer-width: MaterialStyleMetrics.size_360;
+
+    min-width: root.drawer-width;
+}
+
+export component HubModalDrawer inherits MaterialModalDrawer {
+    in property <length> drawer-width: MaterialStyleMetrics.size_360;
+
+    width: root.drawer-width;
+}
+
+export component HubWindowView inherits MaterialWindow {
+    title: "Zircon Hub";
+    no-frame: true;
+    resize-border-width: HubTokens.window-resize-border;
+    min-width: HubTokens.window-min-width;
+    min-height: HubTokens.window-min-height;
+    preferred-width: HubTokens.window-preferred-width;
+    preferred-height: HubTokens.window-preferred-height;
+    background: HubVisualSpec.page-background;
+    disable-hover: false;
 }

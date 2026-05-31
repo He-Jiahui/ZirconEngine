@@ -123,7 +123,7 @@ fn timeline_sequence_advances_sound_automation_and_completes() {
     sound
         .bind_automation(SoundAutomationBinding {
             id: binding,
-            timeline_track_path: "Timeline/Music:intensity".to_string(),
+            timeline_track_path: "Timeline/Music:sound.timeline.intensity".to_string(),
             target: SoundAutomationTarget::SynthParameter(parameter.clone()),
             parameter: SoundParameterId::new("value"),
         })
@@ -174,7 +174,7 @@ fn looping_timeline_sequence_wraps_and_validation_is_typed() {
     sound
         .bind_automation(SoundAutomationBinding {
             id: binding,
-            timeline_track_path: "Timeline/Loop:cutoff".to_string(),
+            timeline_track_path: "Timeline/Loop:sound.timeline.cutoff".to_string(),
             target: SoundAutomationTarget::SynthParameter(parameter.clone()),
             parameter: SoundParameterId::new("value"),
         })

@@ -10,32 +10,29 @@ fn workbench_window_source() -> String {
 }
 
 #[test]
-fn workbench_window_uses_activity_drawer_window_slots() {
+fn workbench_window_uses_reference_image_baseline() {
     let source = workbench_window_source();
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("workbench window v2 asset should parse");
 
     assert_eq!(document.asset.id, "editor.window.workbench");
-    assert!(source.contains("editor.host.activity_drawer_window#ActivityDrawerWindow"));
 
-    for mount in [
-        "left_top_activity",
-        "left_bottom_activity",
-        "right_top_activity",
-        "right_bottom_activity",
-        "bottom_left_activity",
-        "bottom_right_activity",
-        "content",
+    for marker in [
+        "component = \"Image\"",
+        "WorkbenchReferenceImage",
+        "ui/editor/reference/workbench.png",
+        "docs/ui-and-layout/workbench.png",
+        "reference_width = 1672.0",
+        "reference_height = 941.0",
+        "aspect_ratio = 1.7768332",
     ] {
-        assert!(source.contains(&format!("name = \"{mount}\"")));
+        assert!(source.contains(marker), "missing {marker}");
     }
 
     for control in [
-        "WorkbenchHierarchyActivity",
-        "WorkbenchAssetsActivity",
-        "WorkbenchInspectorActivity",
-        "WorkbenchConsoleActivity",
-        "WorkbenchDocumentContent",
+        "WorkbenchWindowRoot",
+        "WorkbenchReferenceFrame",
+        "WorkbenchReferenceImage",
     ] {
         assert!(source.contains(control), "missing {control}");
     }

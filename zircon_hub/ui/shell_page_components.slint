@@ -1,0 +1,147 @@
+import { HubCommandButton, MutedText, ProjectDetailData, SourceEngineData, UiTextData } from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { Badge } from "surfaces.slint";
+import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
+
+export component HubPageHeader inherits Rectangle {
+    in property <string> selected-page;
+    in property <string> selected-page-title;
+    in property <string> selected-page-subtitle;
+    in property <UiTextData> ui-text;
+    in property <bool> header-visible: true;
+    in property <bool> project-actions-visible: true;
+    in property <length> page-title-height: HubTokens.shell-header-height + HubTokens.space-6;
+    in property <length> page-pad-x: HubTokens.page-padding;
+    in property <length> gap: HubTokens.toolbar-gap;
+    in property <length> action-height: HubTokens.control-lg;
+    in property <length> content-offset-y: HubTokens.space-2 + MaterialStyleMetrics.size_2;
+    callback import-project();
+    callback create-project();
+
+    height: root.header-visible ? root.page-title-height : 0px;
+    vertical-stretch: 0;
+    horizontal-stretch: 1;
+    background: HubVisualSpec.page-background;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: root.page-title-height;
+        padding-left: root.page-pad-x;
+        padding-right: root.page-pad-x + (root.selected-page == "projects" && root.project-actions-visible ? MaterialStyleMetrics.size_4 + MaterialStyleMetrics.size_1 : 0px);
+        padding-top: root.content-offset-y;
+        spacing: root.gap;
+        alignment: stretch;
+
+        VerticalLayout {
+            height: parent.height;
+            horizontal-stretch: 0;
+            spacing: MaterialStyleMetrics.spacing_6;
+            Rectangle {
+                vertical-stretch: 1;
+                min-height: 0px;
+            }
+            MaterialText {
+                text: root.selected-page-title;
+                color: MaterialPalette.on_surface;
+                style: MaterialTypography.headline_medium;
+                overflow: elide;
+            }
+            MutedText {
+                text: root.selected-page-subtitle;
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                min-height: 0px;
+            }
+        }
+
+        Rectangle { horizontal-stretch: 1; }
+
+        if root.selected-page == "projects" && root.project-actions-visible: VerticalLayout {
+            height: parent.height;
+            horizontal-stretch: 0;
+
+            Rectangle {
+                vertical-stretch: 1;
+                min-height: 0px;
+            }
+
+            HorizontalLayout {
+                height: root.action-height;
+                spacing: root.gap;
+                alignment: center;
+
+                HubCommandButton {
+                    text: root.ui-text.import-project;
+                    source-image: @image-url("../assets/icons/ui/import.svg");
+                    clicked => { root.import-project(); }
+                }
+
+                HubCommandButton {
+                    text: root.ui-text.create-project;
+                    source-image: @image-url("../assets/icons/ui/plus.svg");
+                    primary: true;
+                    with-menu: true;
+                    clicked => { root.create-project(); }
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                min-height: 0px;
+            }
+        }
+    }
+}
+
+export component HubStatusBar inherits Rectangle {
+    in property <string> status-detail;
+    in property <length> status-height: HubTokens.bottom-status-height;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    in property <bool> compact: false;
+    in property <length> context-badge-width: HubTokens.status-badge-width;
+    private property <string> project-context: root.ui-text.current-project + ": " + (root.project.selected ? root.project.title : root.ui-text.no-project-selected);
+    private property <string> engine-context: root.ui-text.active-source-engine + ": " + root.source-engine.title;
+
+    preferred-height: root.status-height;
+    max-height: root.status-height;
+    horizontal-stretch: 1;
+    background: HubVisualSpec.panel-background;
+    border-color: HubVisualSpec.outline-muted;
+    border-width: HubTokens.border-width;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.panel-gap;
+        padding-right: HubTokens.panel-gap;
+        spacing: HubTokens.toolbar-gap;
+        alignment: center;
+
+        MaterialText {
+            text: root.status-detail;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.label_medium;
+            vertical_alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+
+        if !root.compact: Badge {
+            text: root.project-context;
+            tone: root.project.selected ? "accent" : "neutral";
+            badge-width: root.context-badge-width;
+            badge-height: root.status-height - HubTokens.space-2;
+        }
+
+        if !root.compact: Badge {
+            text: root.engine-context;
+            tone: "neutral";
+            badge-width: root.context-badge-width;
+            badge-height: root.status-height - HubTokens.space-2;
+        }
+    }
+}

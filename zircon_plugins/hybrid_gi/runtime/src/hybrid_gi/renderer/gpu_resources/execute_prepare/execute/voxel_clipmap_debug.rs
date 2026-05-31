@@ -241,6 +241,7 @@ mod tests {
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "builtin://material/default",
             )),

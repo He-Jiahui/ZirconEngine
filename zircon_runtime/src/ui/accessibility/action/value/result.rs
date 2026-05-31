@@ -12,6 +12,34 @@ use super::super::{
     result::{append_binding_report_diagnostic, finish_handled, finish_unhandled},
     text_state::sync_text_input_set_value_edit_metadata,
 };
+use super::text::TextInputSetValueRejection;
+
+pub(super) fn finish_missing_set_value(
+    result: UiInputDispatchResult,
+    target: UiNodeId,
+) -> UiInputDispatchResult {
+    finish_unhandled(
+        result,
+        Some(target),
+        UiAccessibilityActionStatus::Rejected,
+        "missing_value",
+        "set value action requires value or numeric_value",
+    )
+}
+
+pub(super) fn finish_text_input_set_value_rejection(
+    result: UiInputDispatchResult,
+    target: UiNodeId,
+    rejection: TextInputSetValueRejection,
+) -> UiInputDispatchResult {
+    finish_unhandled(
+        result,
+        Some(target),
+        UiAccessibilityActionStatus::Rejected,
+        rejection.code,
+        rejection.reason,
+    )
+}
 
 pub(super) fn finish_set_value_mutation(
     surface: &mut UiSurface,

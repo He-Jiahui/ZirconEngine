@@ -817,6 +817,7 @@ fn build_single_entity_extract_with_clusters(
                     ..Transform::default()
                 },
                 model,
+                mesh: None,
                 material,
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
@@ -885,6 +886,7 @@ fn build_dual_entity_extract_with_clusters(
                         ..Transform::default()
                     },
                     model: first_mesh.1,
+                    mesh: None,
                     material,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
@@ -898,6 +900,7 @@ fn build_dual_entity_extract_with_clusters(
                         ..Transform::default()
                     },
                     model: second_mesh.1,
+                    mesh: None,
                     material,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,

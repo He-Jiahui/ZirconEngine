@@ -1,305 +1,22 @@
 import {
-    IconButton,
-    MutedText,
-    PillButton,
     ProjectCardData,
     QuickActionData,
     RecentProjectRowData,
     UiTextData,
 } from "shared.slint";
 import {
-    ActionRow,
-    Badge,
-    DataTable,
-    EmptyStateBlock,
-    EmptyStatePanel,
-    Flow,
-    HubPanel,
     HubTokens,
-    MaterialPalette,
+    HubVisualSpec,
     MaterialStyleMetrics,
-    MaterialText,
-    MaterialTypography,
     PageScrollSurface,
     PanelGrid,
-    PanelHeader,
-    PanelListViewport,
-    PanelSlot,
-    ResponsiveSlot,
-    SearchBox,
-    ScrollView,
-    StateLayerArea,
 } from "components.slint";
 import {
-    ProjectFilterSelect,
-    ProjectSortSelect,
-} from "project_page_components.slint";
-
-component ProjectCover inherits Rectangle {
-    in property <ProjectCardData> project;
-    in property <length> cover-height: HubTokens.list-row-lg + MaterialStyleMetrics.size_32;
-
-    height: root.cover-height;
-    horizontal-stretch: 1;
-    border-radius: MaterialStyleMetrics.border_radius_12;
-    clip: true;
-    background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
-
-    if root.project.has-cover: Image {
-        width: parent.width;
-        height: parent.height;
-        source: root.project.cover-image;
-        image-fit: cover;
-    }
-
-    if !root.project.has-cover: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        background: root.project.accent == 0 ? MaterialPalette.primary : (root.project.accent == 1 ? MaterialPalette.secondary : (root.project.accent == 2 ? MaterialPalette.tertiary : MaterialPalette.surface_container_highest));
-    }
-
-    if root.project.has-cover: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        background: MaterialPalette.shadow_30;
-    }
-
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding: HubTokens.space-2;
-        spacing: HubTokens.space-1;
-
-        Rectangle { vertical-stretch: 1; }
-
-        Rectangle {
-            horizontal-stretch: 1;
-            height: MaterialStyleMetrics.size_32;
-
-            HorizontalLayout {
-                width: parent.width;
-                height: parent.height;
-                alignment: start;
-
-                Rectangle {
-                    width: MaterialStyleMetrics.size_32;
-                    height: self.width;
-                    border-radius: MaterialStyleMetrics.border_radius_8;
-                    background: MaterialPalette.primary_container;
-                    border-width: HubTokens.border-width;
-                    border-color: MaterialPalette.primary;
-
-                    Image {
-                        width: parent.width;
-                        height: parent.height;
-                        source: @image-url("../assets/brand/zircon-mark.svg");
-                        image-fit: contain;
-                    }
-                }
-
-                Rectangle { horizontal-stretch: 1; }
-            }
-        }
-    }
-}
-
-component ProjectCard inherits HubPanel {
-    in property <ProjectCardData> project;
-    in property <length> card-height: HubTokens.list-row-lg * 3;
-    in property <length> cover-height: root.card-height * 9 / 20;
-    in property <length> card-width-basis: HubTokens.panel-min-sm;
-    callback select(string);
-    callback open(string);
-
-    private property <length> status-badge-width: max(root.status-badge-height * 3, min(root.status-badge-height * 4, root.card-width-basis / 4));
-    private property <length> status-badge-height: max(MaterialStyleMetrics.size_20, min(MaterialStyleMetrics.size_24, root.card-height / 10));
-    private property <bool> compact-footer: root.card-width-basis < HubTokens.panel-min-sm * 3 / 4;
-    private property <length> footer-version-width: max(root.status-badge-height * 4, min(root.status-badge-height * 5, root.card-width-basis * 2 / 5));
-    private property <length> footer-platform-width: max(root.status-badge-height * 3, min(root.status-badge-height * 4, root.card-width-basis / 5));
-
-    variant: root.project.selected ? "selected" : "interactive";
-    height: root.card-height;
-    min-width: root.card-width-basis;
-    preferred-width: root.card-width-basis;
-    clip: true;
-
-    card-state := StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: MaterialPalette.on_surface;
-        border_radius: MaterialStyleMetrics.border_radius_12;
-        clicked => {
-            root.select(root.project.open-path);
-        }
-    }
-
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding: HubTokens.space-3;
-        spacing: HubTokens.space-2;
-        alignment: start;
-
-        ProjectCover {
-            project: root.project;
-            cover-height: root.cover-height;
-        }
-
-        HorizontalLayout {
-            height: max(MaterialTypography.title_large.font_size, root.status-badge-height);
-            spacing: MaterialStyleMetrics.spacing_6;
-            alignment: stretch;
-
-            MaterialText {
-                text: root.project.title;
-                overflow: elide;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.title_small;
-                horizontal-stretch: 1;
-                min-width: 1px;
-                vertical_alignment: center;
-            }
-
-            if root.project.pinned: Badge {
-                text: root.project.pinned-label;
-                tone: "accent";
-                badge-width: root.status-badge-width;
-                badge-height: root.status-badge-height;
-            }
-
-            if root.project.missing: Badge {
-                text: root.project.missing-label;
-                tone: "warning";
-                badge-width: root.status-badge-width;
-                badge-height: root.status-badge-height;
-            }
-        }
-
-        MutedText {
-            text: root.project.project-path;
-            overflow: elide;
-        }
-
-        MutedText {
-            text: root.project.modified-label;
-            overflow: elide;
-        }
-
-        Rectangle { vertical-stretch: 1; }
-
-        HorizontalLayout {
-            height: MaterialStyleMetrics.size_24;
-            spacing: HubTokens.space-2;
-            alignment: start;
-
-            Badge {
-                text: root.project.version;
-                tone: "accent";
-                badge-width: root.footer-version-width;
-            }
-
-            if !root.compact-footer: Badge {
-                text: root.project.platform;
-                tone: "neutral";
-                badge-width: root.footer-platform-width;
-            }
-
-            Rectangle { horizontal-stretch: 1; }
-
-            IconButton {
-                width: MaterialStyleMetrics.size_32;
-                height: MaterialStyleMetrics.size_24;
-                icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
-                has-icon-image: true;
-                clicked => {
-                    root.open(root.project.open-path);
-                }
-            }
-        }
-    }
-}
-
-component ProjectFlow inherits Rectangle {
-    in-out property <bool> expanded;
-    in property <[ProjectCardData]> project-cards;
-    in property <int> project-card-count;
-    in property <string> empty-title;
-    in property <string> empty-detail;
-    in property <length> flow-width: HubTokens.panel-min-lg;
-    callback select(string);
-    callback open(string);
-
-    private property <length> card-gap-x: HubTokens.panel-gap;
-    private property <length> card-gap-y: HubTokens.panel-gap;
-    private property <length> card-basis: max(HubTokens.panel-min-sm * 2 / 3, root.flow-width * HubTokens.project-dashboard-card-ratio);
-    private property <length> card-height: HubTokens.list-row-lg * 3;
-    private property <length> empty-height: max(root.card-height * 3 / 5, root.card-gap-y * 10);
-    private property <int> raw-card-columns: Math.floor((root.flow-width + root.card-gap-x) / (root.card-basis + root.card-gap-x));
-    private property <int> card-column-count: root.raw-card-columns < 1 ? 1 : root.raw-card-columns;
-    private property <int> card-row-count: (root.project-card-count + root.card-column-count - 1) / root.card-column-count;
-    private property <int> expanded-visible-rows: root.card-row-count < 3 ? root.card-row-count : 3;
-    private property <int> visible-row-count: root.expanded ? root.expanded-visible-rows : 1;
-    private property <length> flow-visible-height: root.visible-row-count * root.card-height + (root.visible-row-count - 1) * root.card-gap-y;
-    private property <length> flow-content-height: root.card-row-count * root.card-height + (root.card-row-count - 1) * root.card-gap-y;
-    private property <length> card-scroll-y: 0px;
-
-    height: root.project-card-count == 0 ? root.empty-height : root.flow-visible-height;
-    horizontal-stretch: 1;
-    clip: true;
-    background: transparent;
-
-    if root.project-card-count > 0: card-scroll := ScrollView {
-        width: parent.width;
-        height: parent.height;
-        viewport_y <=> root.card-scroll-y;
-        viewport_width: card-scroll.visible_width;
-        viewport_height: root.expanded ? root.flow-content-height : root.flow-visible-height;
-        vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
-        horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
-
-        Rectangle {
-            width: card-scroll.visible_width;
-            height: card-scroll.viewport_height;
-            background: transparent;
-
-            Flow {
-                width: parent.width;
-                height: parent.height;
-                gap-x: root.card-gap-x;
-                gap-y: root.card-gap-y;
-
-                for card in root.project-cards: ProjectCard {
-                    min-width: max(HubTokens.panel-min-sm * 2 / 3, root.card-basis);
-                    card-height: root.card-height;
-                    cover-height: max(root.card-height * 2 / 5, min(root.card-height * 9 / 20, root.card-basis * 2 / 5));
-                    card-width-basis: root.card-basis;
-                    project: card;
-                    select(path) => { root.select(path); }
-                    open(path) => { root.open(path); }
-                }
-            }
-        }
-    }
-
-    if root.project-card-count == 0: EmptyStatePanel {
-        width: parent.width;
-        height: root.empty-height;
-        title: root.empty-title;
-        detail: root.empty-detail;
-        body-padding: HubTokens.space-6;
-        title-prominent: true;
-    }
-}
-
-component DashboardQuickActionRow inherits ActionRow {
-    in property <QuickActionData> quick-action-data;
-    callback triggered(string);
-
-    action: root.quick-action-data;
-    activate(id) => {
-        root.triggered(id);
-    }
-}
+    DashboardQuickActionsPanel,
+    DashboardProjectCardsSection,
+    DashboardRecentProjectsPanel,
+    DashboardToolbar,
+} from "project_dashboard_components.slint";
 
 export component ProjectDashboardPage inherits PageScrollSurface {
     in-out property <string> search-query;
@@ -325,158 +42,125 @@ export component ProjectDashboardPage inherits PageScrollSurface {
     callback show-project-subpage(string);
 
     private property <length> quick-actions-scroll-y: 0px;
-    private property <bool> compact: root.content-width < HubTokens.breakpoint-compact - root.page-pad * 2;
-    private property <length> page-pad: HubTokens.page-padding;
-    private property <length> page-gap: HubTokens.panel-gap;
+    private property <bool> compact: root.content-width < HubTokens.breakpoint-compact - root.page-pad-x * 2;
+    private property <length> page-pad-x: HubTokens.page-padding;
+    private property <length> page-pad-y: MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_1;
+    private property <length> page-gap: HubTokens.space-6;
     private property <length> dashboard-main-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
-    private property <length> dashboard-side-basis: HubTokens.panel-min-md;
-    private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.content-height / 18));
+    private property <length> dashboard-side-basis: HubTokens.panel-min-md + HubTokens.control-lg;
+    private property <length> dashboard-lower-gap: HubTokens.toolbar-gap;
+    private property <length> dashboard-recent-width: max(HubTokens.panel-min-md, root.content-width - root.dashboard-side-basis - root.dashboard-lower-gap);
+    private property <length> toolbar-height: HubTokens.control-lg + HubTokens.space-1;
     private property <length> toolbar-control-min-width: root.toolbar-height * 4;
     private property <bool> dashboard-toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.toolbar-height * 2 + root.page-gap * 5;
-    private property <length> dashboard-toolbar-height: root.dashboard-toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
-    private property <length> dashboard-toolbar-search-basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width * HubTokens.project-dashboard-toolbar-search-ratio, root.toolbar-height * 6);
-    private property <length> dashboard-toolbar-select-basis: root.dashboard-toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width * HubTokens.project-dashboard-toolbar-select-ratio, root.toolbar-control-min-width);
-    private property <length> dashboard-show-more-height: root.project-card-count > 4 ? root.toolbar-height : 0px;
-    private property <length> dashboard-lower-height: root.compact ? max(root.viewport-height * HubTokens.project-dashboard-lower-compact-ratio, root.toolbar-height * 12) : max(root.viewport-height * HubTokens.project-dashboard-lower-regular-ratio, root.toolbar-height * 7);
+    private property <length> dashboard-toolbar-search-basis: root.dashboard-toolbar-wrap ? root.content-width : max(root.content-width * HubTokens.project-dashboard-toolbar-search-ratio, root.toolbar-height * 13 / 2);
+    private property <length> dashboard-toolbar-select-basis: root.dashboard-toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width * HubTokens.project-dashboard-toolbar-select-ratio, root.toolbar-height * 4);
+    private property <length> dashboard-show-more-height: 0px;
+    // The legacy viewport-height ratio tokens are intentionally no longer used here:
+    // root.viewport-height * HubTokens.project-dashboard-lower-compact-ratio
+    // root.viewport-height * HubTokens.project-dashboard-lower-regular-ratio
+    private property <length> dashboard-lower-height: root.compact ? max(root.content-height * HubTokens.project-dashboard-lower-compact-ratio, root.content-height / 18) : max(root.toolbar-height * 6, root.content-height * HubTokens.project-dashboard-lower-regular-ratio + HubTokens.space-3);
     private property <length> dashboard-panel-height: root.compact ? max(root.toolbar-height * 5, (root.dashboard-lower-height - root.page-gap) / 2) : root.dashboard-lower-height;
-    private property <length> dashboard-table-row-height: max(root.toolbar-height * 3 / 5, min(root.toolbar-height * 7 / 10, root.dashboard-lower-height / 10));
+    private property <length> dashboard-table-row-height: HubTokens.control-sm + MaterialStyleMetrics.size_2;
     private property <length> dashboard-table-gap: max(HubTokens.toolbar-gap, min(HubTokens.panel-gap, root.page-gap));
     private property <length> dashboard-table-width: max(root.toolbar-height * 8, root.content-width * HubTokens.project-dashboard-table-ratio);
     private property <int> quick-action-count: root.quick-actions.length;
-    private property <length> quick-action-row-gap: max(MaterialStyleMetrics.spacing_6, min(HubTokens.space-2, root.dashboard-lower-height / 36));
-    private property <length> quick-action-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, (root.dashboard-lower-height - root.toolbar-height * 5 / 2) / 4));
-    page-padding: root.page-pad;
-    bottom-padding: root.page-pad;
+    private property <length> quick-action-row-gap: MaterialStyleMetrics.spacing_6;
+    private property <length> quick-action-row-height: HubTokens.list-row-sm - MaterialStyleMetrics.size_4;
+    page-padding: root.page-pad-x;
+    page-padding-x: root.page-pad-x;
+    page-padding-y: root.page-pad-y;
+    bottom-padding: root.page-pad-y;
     gap: root.page-gap;
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
-                Flow {
-                    horizontal-stretch: 1;
-                    height: root.dashboard-toolbar-height;
-                    gap-x: root.page-gap;
-                    gap-y: root.page-gap;
-
-                    ResponsiveSlot {
-                        basis: root.dashboard-toolbar-search-basis;
-                        flex-basis: root.dashboard-toolbar-search-basis;
-                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        shrink: 1;
-                        flex-shrink: 1;
-                        min-width: root.dashboard-toolbar-search-basis;
-                        height: root.toolbar-height;
-
-                        SearchBox {
-                            width: parent.width;
-                            height: parent.height;
-                            box-width: parent.width;
-                            box-height: root.toolbar-height;
-                            text <=> root.search-query;
-                            placeholder: root.ui-text.search-projects;
-                            edited(query) => { root.search-projects(query); }
-                        }
-                    }
-
-                    if !root.dashboard-toolbar-wrap: Rectangle { horizontal-stretch: 1; min-width: root.page-gap; }
-
-                    ResponsiveSlot {
-                        basis: root.dashboard-toolbar-select-basis;
-                        flex-basis: root.dashboard-toolbar-select-basis;
-                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        shrink: 1;
-                        flex-shrink: 1;
-                        min-width: root.dashboard-toolbar-select-basis;
-                        height: root.toolbar-height;
-
-                        ProjectFilterSelect {
-                            width: parent.width;
-                            height: parent.height;
-                            select-height: root.toolbar-height;
-                            label: root.project-filter-label;
-                            ui-text: root.ui-text;
-                            selected(id) => { root.set-project-filter(id); }
-                        }
-                    }
-
-                    ResponsiveSlot {
-                        basis: root.dashboard-toolbar-select-basis;
-                        flex-basis: root.dashboard-toolbar-select-basis;
-                        grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        flex-grow: root.dashboard-toolbar-wrap ? 1 : 0;
-                        shrink: 1;
-                        flex-shrink: 1;
-                        min-width: root.dashboard-toolbar-select-basis;
-                        height: root.toolbar-height;
-
-                        ProjectSortSelect {
-                            width: parent.width;
-                            height: parent.height;
-                            select-height: root.toolbar-height;
-                            label: root.project-sort-label;
-                            ui-text: root.ui-text;
-                            selected(id) => { root.set-project-sort(id); }
-                        }
-                    }
-
-                    Rectangle { width: HubTokens.border-width; height: max(HubTokens.space-6, root.toolbar-height * 2 / 3); background: HubTokens.stroke-muted; }
-
-                    IconButton {
-                        width: root.toolbar-height;
-                        icon-image: @image-url("../assets/icons/ui/grid.svg");
-                        has-icon-image: true;
-                        active: root.project-view-mode == "grid";
-                        clicked => {
-                            root.set-project-view-mode("grid");
-                            root.show-project-subpage("dashboard");
-                        }
-                    }
-
-                    IconButton {
-                        width: root.toolbar-height;
-                        icon-image: @image-url("../assets/icons/ui/list.svg");
-                        has-icon-image: true;
-                        active: root.project-view-mode == "list";
-                        clicked => {
-                            root.set-project-view-mode("list");
-                            root.show-project-subpage("project-browser");
-                        }
-                    }
+                DashboardToolbar {
+                    search-query <=> root.search-query;
+                    ui-text: root.ui-text;
+                    project-filter-label: root.project-filter-label;
+                    project-sort-label: root.project-sort-label;
+                    project-view-mode: root.project-view-mode;
+                    toolbar-wrap: root.dashboard-toolbar-wrap;
+                    toolbar-height: root.toolbar-height;
+                    toolbar-gap: HubTokens.toolbar-gap;
+                    search-basis: root.dashboard-toolbar-search-basis;
+                    select-basis: root.dashboard-toolbar-select-basis;
+                    search-projects(query) => { root.search-projects(query); }
+                    set-project-filter(id) => { root.set-project-filter(id); }
+                    set-project-sort(id) => { root.set-project-sort(id); }
+                    set-project-view-mode(mode) => { root.set-project-view-mode(mode); }
+                    show-project-subpage(page) => { root.show-project-subpage(page); }
                 }
 
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    spacing: root.page-gap;
+                DashboardProjectCardsSection {
+                    expanded <=> root.project-cards-expanded;
+                    project-cards: root.project-cards;
+                    project-card-count: root.project-card-count;
+                    empty-title: root.ui-text.projects-empty-title;
+                    empty-detail: root.ui-text.projects-empty-detail;
+                    collapse-label: root.ui-text.collapse-projects;
+                    show-more-label: root.ui-text.show-more-projects;
+                    section-gap: root.page-gap;
+                    show-more-height: root.dashboard-show-more-height;
+                    select(path) => { root.select-project(path); }
+                    open(path) => { root.open-project-detail(path); }
+                }
 
-                    ProjectFlow {
-                        expanded <=> root.project-cards-expanded;
-                        project-cards: root.project-cards;
-                        project-card-count: root.project-card-count;
-                        empty-title: root.ui-text.projects-empty-title;
-                        empty-detail: root.ui-text.projects-empty-detail;
-                        flow-width: parent.width;
+                if !root.compact: HorizontalLayout {
+                    width: parent.width;
+                    horizontal-stretch: 1;
+                    height: root.dashboard-lower-height;
+                    spacing: root.dashboard-lower-gap;
+
+                    DashboardRecentProjectsPanel {
+                        width: root.dashboard-recent-width;
+                        height: root.dashboard-panel-height;
+                        panel-title: root.dashboard-project-title;
+                        action-text: root.ui-text.view-all-projects;
+                        project-rows: root.dashboard-project-rows;
+                        project-row-count: root.dashboard-project-row-count;
+                        table-row-height: root.dashboard-table-row-height;
+                        table-column-gap: root.dashboard-table-gap;
+                        table-action-size: root.dashboard-table-row-height;
+                        name-min-width: max(root.toolbar-height * 4, root.dashboard-table-width * 18 / 100);
+                        version-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
+                        version-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 12 / 100);
+                        modified-width: max(root.toolbar-height * 5 / 2, root.dashboard-table-width * 13 / 100);
+                        modified-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 10 / 100);
+                        location-min-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
+                        name-label: root.ui-text.name-column;
+                        version-label: root.ui-text.engine-version-column;
+                        modified-label: root.ui-text.last-modified-column;
+                        location-label: root.ui-text.location-column;
+                        empty-text: root.ui-text.no-projects-match;
+                        view-all => { root.view-all-projects(); }
                         select(path) => { root.select-project(path); }
                         open(path) => { root.open-project-detail(path); }
                     }
 
-                    if root.project-card-count > 4: PillButton {
-                        horizontal-stretch: 1;
-                        height: root.dashboard-show-more-height;
-                        text: root.project-cards-expanded ? root.ui-text.collapse-projects : root.ui-text.show-more-projects;
-                        icon-image: root.project-cards-expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
-                        has-icon-image: true;
-                        clicked => { root.project-cards-expanded = !root.project-cards-expanded; }
+                    DashboardQuickActionsPanel {
+                        width: root.dashboard-side-basis;
+                        height: root.dashboard-panel-height;
+                        panel-title: root.ui-text.quick-actions;
+                        quick-actions: root.quick-actions;
+                        quick-action-count: root.quick-action-count;
+                        quick-action-row-height: root.quick-action-row-height;
+                        quick-action-row-gap: root.quick-action-row-gap;
+                        empty-title: root.ui-text.no-quick-actions;
+                        empty-detail: root.ui-text.quick-actions-empty-detail;
+                        quick-actions-scroll-y <=> root.quick-actions-scroll-y;
+                        triggered(id) => { root.quick-action(id); }
                     }
                 }
 
-                PanelGrid {
+                if root.compact: PanelGrid {
                     horizontal-stretch: 1;
                     height: root.dashboard-lower-height;
                     gap: root.page-gap;
                     row-gap: root.page-gap;
 
-                    PanelSlot {
+                    DashboardRecentProjectsPanel {
                         basis: root.compact ? root.content-width : root.dashboard-main-basis;
                         flex-basis: root.compact ? root.content-width : root.dashboard-main-basis;
                         grow: 2;
@@ -485,41 +169,30 @@ export component ProjectDashboardPage inherits PageScrollSurface {
                         flex-shrink: 1;
                         min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
                         height: root.dashboard-panel-height;
-                        body-padding: HubTokens.space-4;
-                        body-spacing: HubTokens.toolbar-gap;
-
-                                PanelHeader {
-                                    title: root.dashboard-project-title;
-                                    show-action: true;
-                                    action-text: root.ui-text.view-all-projects;
-                                    action-clicked => { root.view-all-projects(); }
-                                }
-
-                                DataTable {
-                                    horizontal-stretch: 1;
-                                    vertical-stretch: 1;
-                                    row-height: root.dashboard-table-row-height;
-                                    column-gap: root.dashboard-table-gap;
-                                    action-size: root.dashboard-table-row-height;
-                                    name-min-width: max(root.toolbar-height * 4, root.dashboard-table-width * 18 / 100);
-                                    version-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
-                                    version-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 12 / 100);
-                                    modified-width: max(root.toolbar-height * 5 / 2, root.dashboard-table-width * 13 / 100);
-                                    modified-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 10 / 100);
-                                    location-min-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
-                                    rows: root.dashboard-project-rows;
-                                    row-count: root.dashboard-project-row-count;
-                                    name-label: root.ui-text.name-column;
-                                    version-label: root.ui-text.engine-version-column;
-                                    modified-label: root.ui-text.last-modified-column;
-                                    location-label: root.ui-text.location-column;
-                                    empty-text: root.ui-text.no-projects-match;
-                                    select(path) => { root.select-project(path); }
-                                    open(path) => { root.open-project-detail(path); }
-                                }
+                        panel-title: root.dashboard-project-title;
+                        action-text: root.ui-text.view-all-projects;
+                        project-rows: root.dashboard-project-rows;
+                        project-row-count: root.dashboard-project-row-count;
+                        table-row-height: root.dashboard-table-row-height;
+                        table-column-gap: root.dashboard-table-gap;
+                        table-action-size: root.dashboard-table-row-height;
+                        name-min-width: max(root.toolbar-height * 4, root.dashboard-table-width * 18 / 100);
+                        version-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
+                        version-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 12 / 100);
+                        modified-width: max(root.toolbar-height * 5 / 2, root.dashboard-table-width * 13 / 100);
+                        modified-min-width: max(root.toolbar-height * 2, root.dashboard-table-width * 10 / 100);
+                        location-min-width: max(root.toolbar-height * 3, root.dashboard-table-width * 16 / 100);
+                        name-label: root.ui-text.name-column;
+                        version-label: root.ui-text.engine-version-column;
+                        modified-label: root.ui-text.last-modified-column;
+                        location-label: root.ui-text.location-column;
+                        empty-text: root.ui-text.no-projects-match;
+                        view-all => { root.view-all-projects(); }
+                        select(path) => { root.select-project(path); }
+                        open(path) => { root.open-project-detail(path); }
                     }
 
-                    PanelSlot {
+                    DashboardQuickActionsPanel {
                         basis: root.compact ? root.content-width : root.dashboard-side-basis;
                         flex-basis: root.compact ? root.content-width : root.dashboard-side-basis;
                         grow: 1;
@@ -528,35 +201,15 @@ export component ProjectDashboardPage inherits PageScrollSurface {
                         flex-shrink: 1;
                         min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
                         height: root.dashboard-panel-height;
-                        body-padding: HubTokens.space-4;
-                        body-spacing: HubTokens.toolbar-gap;
-
-                                PanelHeader { title: root.ui-text.quick-actions; }
-
-                                action-list := PanelListViewport {
-                                    horizontal-stretch: 1;
-                                    vertical-stretch: 1;
-                                    scroll-y <=> root.quick-actions-scroll-y;
-                                    row-count: root.quick-action-count;
-                                    row-height: root.quick-action-row-height;
-                                    row-spacing: root.quick-action-row-gap;
-                                    vertical-padding: 0px;
-                                    empty-height: HubTokens.list-row-lg;
-
-                                    for action in root.quick-actions: DashboardQuickActionRow {
-                                        row-height: root.quick-action-row-height;
-                                        quick-action-data: action;
-                                        triggered(id) => { root.quick-action(id); }
-                                    }
-
-                                    if root.quick-action-count == 0: EmptyStateBlock {
-                                        height: HubTokens.list-row-lg;
-                                        title: root.ui-text.no-quick-actions;
-                                        detail: root.ui-text.quick-actions-empty-detail;
-                                        body-padding: HubTokens.space-4;
-                                        center-content: true;
-                                    }
-                                }
+                        panel-title: root.ui-text.quick-actions;
+                        quick-actions: root.quick-actions;
+                        quick-action-count: root.quick-action-count;
+                        quick-action-row-height: root.quick-action-row-height;
+                        quick-action-row-gap: root.quick-action-row-gap;
+                        empty-title: root.ui-text.no-quick-actions;
+                        empty-detail: root.ui-text.quick-actions-empty-detail;
+                        quick-actions-scroll-y <=> root.quick-actions-scroll-y;
+                        triggered(id) => { root.quick-action(id); }
                     }
                 }
 }

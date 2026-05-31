@@ -6,6 +6,7 @@ use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::render::{
     RenderShaderBindingResourceType, RenderShaderDefinitionValue, RenderShaderStage,
 };
+use crate::core::resource::ResourceId;
 
 use super::{ShaderAsset, ShaderSourceLanguage};
 
@@ -21,6 +22,123 @@ pub struct ShaderReadinessReport {
     pub has_pipeline_layout: bool,
     #[serde(default)]
     pub pipeline_layout: ShaderPipelineLayoutReadiness,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderAssetReadinessSummary {
+    pub ready: bool,
+    pub uses_runtime_wgsl: bool,
+    pub runtime_source_kind: ShaderRuntimeSourceKind,
+    pub import_count: usize,
+    pub redirected_import_count: usize,
+    pub entry_point_count: usize,
+    pub entry_point_diagnostic_count: usize,
+    pub shader_definition_count: usize,
+    pub shader_definition_diagnostic_count: usize,
+    pub validation_diagnostic_count: usize,
+    pub dependency_count: usize,
+    pub has_pipeline_layout: bool,
+    pub bind_group_count: usize,
+    pub binding_count: usize,
+    pub push_constant_range_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderAssetManagementRecord {
+    pub shader_id: ResourceId,
+    pub summary: ShaderAssetReadinessSummary,
+    pub report: ShaderReadinessReport,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderAssetManagementRecordSetSummary {
+    pub shader_count: usize,
+    pub ready_count: usize,
+    pub not_ready_count: usize,
+    pub runtime_wgsl_count: usize,
+    pub unavailable_runtime_source_count: usize,
+    pub redirected_import_count: usize,
+    pub dependency_count: usize,
+    pub entry_point_diagnostic_count: usize,
+    pub shader_definition_diagnostic_count: usize,
+    pub validation_diagnostic_count: usize,
+    pub pipeline_layout_count: usize,
+    pub bind_group_count: usize,
+    pub binding_count: usize,
+    pub push_constant_range_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderAssetManagementRecordSet {
+    pub records: Vec<ShaderAssetManagementRecord>,
+    pub summary: ShaderAssetManagementRecordSetSummary,
+}
+
+impl ShaderAssetManagementRecordSetSummary {
+    pub fn from_records(records: &[ShaderAssetManagementRecord]) -> Self {
+        Self {
+            shader_count: records.len(),
+            ready_count: records.iter().filter(|record| record.summary.ready).count(),
+            not_ready_count: records
+                .iter()
+                .filter(|record| !record.summary.ready)
+                .count(),
+            runtime_wgsl_count: records
+                .iter()
+                .filter(|record| record.summary.uses_runtime_wgsl)
+                .count(),
+            unavailable_runtime_source_count: records
+                .iter()
+                .filter(|record| {
+                    record.summary.runtime_source_kind == ShaderRuntimeSourceKind::Unavailable
+                })
+                .count(),
+            redirected_import_count: records
+                .iter()
+                .map(|record| record.summary.redirected_import_count)
+                .sum(),
+            dependency_count: records
+                .iter()
+                .map(|record| record.summary.dependency_count)
+                .sum(),
+            entry_point_diagnostic_count: records
+                .iter()
+                .map(|record| record.summary.entry_point_diagnostic_count)
+                .sum(),
+            shader_definition_diagnostic_count: records
+                .iter()
+                .map(|record| record.summary.shader_definition_diagnostic_count)
+                .sum(),
+            validation_diagnostic_count: records
+                .iter()
+                .map(|record| record.summary.validation_diagnostic_count)
+                .sum(),
+            pipeline_layout_count: records
+                .iter()
+                .filter(|record| record.summary.has_pipeline_layout)
+                .count(),
+            bind_group_count: records
+                .iter()
+                .map(|record| record.summary.bind_group_count)
+                .sum(),
+            binding_count: records
+                .iter()
+                .map(|record| record.summary.binding_count)
+                .sum(),
+            push_constant_range_count: records
+                .iter()
+                .map(|record| record.summary.push_constant_range_count)
+                .sum(),
+        }
+    }
+}
+
+impl ShaderAssetManagementRecordSet {
+    pub fn from_records(mut records: Vec<ShaderAssetManagementRecord>) -> Self {
+        records.sort_by_key(|record| record.shader_id);
+        let summary = ShaderAssetManagementRecordSetSummary::from_records(&records);
+        Self { records, summary }
+    }
 }
 
 impl ShaderReadinessReport {
@@ -48,6 +166,46 @@ impl ShaderReadinessReport {
         self.imports
             .iter()
             .any(|import| import.contributes_dependency)
+    }
+
+    pub fn summary(&self) -> ShaderAssetReadinessSummary {
+        ShaderAssetReadinessSummary {
+            ready: self.is_ready(),
+            uses_runtime_wgsl: self.uses_runtime_wgsl(),
+            runtime_source_kind: self.runtime_source.source_kind,
+            import_count: self.imports.len(),
+            redirected_import_count: self
+                .imports
+                .iter()
+                .filter(|import| import.contributes_dependency)
+                .count(),
+            entry_point_count: self.entry_points.len(),
+            entry_point_diagnostic_count: self
+                .entry_points
+                .iter()
+                .filter(|entry| entry.diagnostic.is_some())
+                .count(),
+            shader_definition_count: self.shader_defs.len(),
+            shader_definition_diagnostic_count: self
+                .shader_defs
+                .iter()
+                .filter(|definition| definition.diagnostic.is_some())
+                .count(),
+            validation_diagnostic_count: self.validation_diagnostics.len(),
+            dependency_count: self.dependency_count,
+            has_pipeline_layout: self.has_pipeline_layout,
+            bind_group_count: self.pipeline_layout.bind_group_count,
+            binding_count: self.pipeline_layout.binding_count,
+            push_constant_range_count: self.pipeline_layout.push_constant_range_count,
+        }
+    }
+
+    pub fn management_record(&self, shader_id: ResourceId) -> ShaderAssetManagementRecord {
+        ShaderAssetManagementRecord {
+            shader_id,
+            summary: self.summary(),
+            report: self.clone(),
+        }
     }
 
     fn from_shader(shader: &ShaderAsset) -> Self {
@@ -133,6 +291,14 @@ pub struct ShaderBindingLayoutReadiness {
 impl ShaderAsset {
     pub fn readiness_report(&self) -> ShaderReadinessReport {
         ShaderReadinessReport::from_shader(self)
+    }
+
+    pub fn readiness_summary(&self) -> ShaderAssetReadinessSummary {
+        self.readiness_report().summary()
+    }
+
+    pub fn management_record(&self, shader_id: ResourceId) -> ShaderAssetManagementRecord {
+        self.readiness_report().management_record(shader_id)
     }
 }
 

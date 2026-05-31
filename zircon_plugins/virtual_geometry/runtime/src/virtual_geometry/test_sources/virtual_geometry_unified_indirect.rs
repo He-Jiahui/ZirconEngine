@@ -1308,6 +1308,7 @@ fn build_single_entity_extract(
                     ..Transform::default()
                 },
                 model,
+                mesh: None,
                 material,
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,

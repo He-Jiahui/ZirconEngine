@@ -20,6 +20,7 @@ impl ResourceStreamer {
             asset_manager,
             material_bind_group_layout: material_layout.clone(),
             models: HashMap::new(),
+            meshes: HashMap::new(),
             materials: HashMap::new(),
             textures: HashMap::new(),
             shaders: HashMap::new(),

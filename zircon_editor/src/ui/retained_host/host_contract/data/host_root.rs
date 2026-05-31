@@ -1,8 +1,9 @@
 use super::{
     HostClosePromptData, HostMenuStateData, HostNativeFloatingWindowSurfaceData,
     HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageData,
-    HostWindowLayoutData, HostWindowSceneData, HostWindowShellData,
+    HostWindowLayoutData, HostWindowSceneData, HostWindowShellData, TemplatePaneNodeData,
 };
+use crate::ui::retained_host::primitives::ModelRc;
 
 #[derive(Clone, Default)]
 pub(crate) struct HostWindowPresentationData {
@@ -14,5 +15,6 @@ pub(crate) struct HostWindowPresentationData {
     pub pane_interaction_state: HostPaneInteractionStateData,
     pub text_input_focus: HostTextInputFocusData,
     pub viewport_image: Option<HostViewportImageData>,
+    pub root_template_nodes: ModelRc<TemplatePaneNodeData>,
     pub native_floating_surface_data: HostNativeFloatingWindowSurfaceData,
 }

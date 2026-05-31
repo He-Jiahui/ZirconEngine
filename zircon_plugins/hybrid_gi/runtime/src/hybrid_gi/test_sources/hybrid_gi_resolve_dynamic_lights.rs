@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderMeshSnapshot, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderWorldSnapshotHandle,
-};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -18,6 +13,11 @@ use crate::{
     },
     BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
     RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+};
+use zircon_runtime::core::framework::render::{
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
+    RenderHybridGiTraceRegion, RenderMeshSnapshot, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderWorldSnapshotHandle,
 };
 
 use super::hybrid_gi_scene_prepare_material_fixtures::{
@@ -368,6 +368,7 @@ fn build_extract_with_material_mesh(
         node_id: 11,
         transform: Transform::from_translation(Vec3::new(10_000.0, 10_000.0, 10_000.0)),
         model: model_handle(asset_manager),
+        mesh: None,
         material,
         tint: Vec4::ONE,
         mobility: Mobility::Static,
@@ -493,6 +494,7 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh_and_lights(
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "res://models/card.obj",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/runtime-voxel-spot-light.mat",
             )),

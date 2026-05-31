@@ -1,0 +1,318 @@
+# Editor Workbench Design Notes
+
+These PNG drafts use `docs/ui-and-layout/workbench.png` as the baseline density reference, then shift the editor structure toward a JetBrains-style main-tab workbench with flat modern controls.
+
+## Output Set
+
+- `scene-workbench.png` - full
+- `hierarchy-workbench.png` - full
+- `inspector-workbench.png` - full
+- `asset-browser-workbench.png` - full
+- `console-workbench.png` - full
+- `project-overview-workbench.png` - full
+- `scene-toolbar-focus.png` - focus
+- `scene-gizmo-focus.png` - focus
+- `hierarchy-selection-focus.png` - focus
+- `hierarchy-context-menu-focus.png` - focus
+- `inspector-transform-focus.png` - focus
+- `inspector-material-focus.png` - focus
+- `asset-browser-grid-focus.png` - focus
+- `asset-browser-import-focus.png` - focus
+- `console-log-filter-focus.png` - focus
+- `console-detail-focus.png` - focus
+- `project-overview-dashboard-focus.png` - focus
+- `project-overview-actions-focus.png` - focus
+- `material-lab-workbench.png` - tool
+- `ui-asset-editor-workbench.png` - tool
+- `animation-workbench.png` - tool
+- `performance-workbench.png` - tool
+- `runtime-diagnostics-workbench.png` - tool
+- `plugin-manager-workbench.png` - tool
+- `build-export-workbench.png` - tool
+- `welcome-workbench.png` - tool
+- `prefab-editor-workbench.png` - editor-page
+- `vfx-editor-workbench.png` - editor-page
+- `shader-editor-workbench.png` - editor-page
+- `terrain-editor-workbench.png` - editor-page
+- `audio-editor-workbench.png` - editor-page
+- `behavior-tree-workbench.png` - editor-page
+- `lighting-bake-workbench.png` - editor-page
+- `physics-collision-workbench.png` - editor-page
+- `level-streaming-workbench.png` - editor-page
+- `sequencer-workbench.png` - editor-page
+- `navmesh-ai-workbench.png` - editor-page
+- `render-pipeline-workbench.png` - editor-page
+- `input-mapping-workbench.png` - editor-page
+- `data-table-workbench.png` - editor-page
+- `network-replication-workbench.png` - editor-page
+- `localization-workbench.png` - editor-page
+- `visual-script-workbench.png` - editor-page
+- `state-machine-workbench.png` - editor-page
+- `skeleton-mesh-workbench.png` - editor-page
+- `texture-editor-workbench.png` - editor-page
+- `material-instance-workbench.png` - editor-page
+- `prefab-variant-workbench.png` - editor-page
+- `level-audit-workbench.png` - editor-page
+- `test-runner-workbench.png` - editor-page
+- `frame-debugger-workbench.png` - editor-page
+- `memory-profiler-workbench.png` - editor-page
+- `asset-dependency-workbench.png` - editor-page
+- `reference-finder-workbench.png` - editor-page
+- `cook-package-workbench.png` - editor-page
+- `crash-session-replay-workbench.png` - editor-page
+- `log-analysis-workbench.png` - editor-page
+- `automation-report-workbench.png` - editor-page
+- `layout-manager-workbench.png` - editor-page
+- `theme-token-workbench.png` - editor-page
+- `command-center-workbench.png` - editor-page
+- `module-graph-workbench.png` - editor-page
+- `asset-validation-workbench.png` - editor-page
+- `hot-reload-workbench.png` - editor-page
+- `project-history-workbench.png` - editor-page
+- `task-board-workbench.png` - editor-page
+- `source-control-workbench.png` - editor-page
+- `review-comments-workbench.png` - editor-page
+- `build-farm-workbench.png` - editor-page
+- `release-notes-workbench.png` - editor-page
+- `project-settings-workbench.png` - editor-page
+- `plugin-development-workbench.png` - editor-page
+- `remote-device-workbench.png` - editor-page
+- `session-sync-workbench.png` - editor-page
+- `cutscene-editor-workbench.png` - editor-page
+- `dialogue-editor-workbench.png` - editor-page
+- `quest-editor-workbench.png` - editor-page
+- `camera-rig-workbench.png` - editor-page
+- `control-rig-workbench.png` - editor-page
+- `motion-matching-workbench.png` - editor-page
+- `facial-animation-workbench.png` - editor-page
+- `blend-space-workbench.png` - editor-page
+- `foliage-editor-workbench.png` - editor-page
+- `scatter-editor-workbench.png` - editor-page
+- `volume-editor-workbench.png` - editor-page
+- `weather-editor-workbench.png` - editor-page
+- `post-process-workbench.png` - editor-page
+- `particle-library-workbench.png` - editor-page
+- `collision-proxy-workbench.png` - editor-page
+- `level-variant-workbench.png` - editor-page
+- `gameplay-ability-workbench.png` - editor-page
+- `gameplay-effect-workbench.png` - editor-page
+- `ai-perception-workbench.png` - editor-page
+- `spawn-rules-workbench.png` - editor-page
+- `gameplay-tags-workbench.png` - editor-page
+- `save-data-workbench.png` - editor-page
+- `world-state-workbench.png` - editor-page
+- `telemetry-dashboard-workbench.png` - editor-page
+- `lobby-editor-workbench.png` - editor-page
+- `matchmaking-editor-workbench.png` - editor-page
+- `server-browser-workbench.png` - editor-page
+- `replay-browser-workbench.png` - editor-page
+- `achievements-editor-workbench.png` - editor-page
+- `entitlements-editor-workbench.png` - editor-page
+- `user-profile-editor-workbench.png` - editor-page
+- `online-diagnostics-workbench.png` - editor-page
+- `hud-editor-workbench.png` - editor-page
+- `menu-flow-workbench.png` - editor-page
+- `font-atlas-workbench.png` - editor-page
+- `icon-library-workbench.png` - editor-page
+- `ui-binding-workbench.png` - editor-page
+- `accessibility-audit-workbench.png` - editor-page
+- `input-prompts-workbench.png` - editor-page
+- `ui-motion-workbench.png` - editor-page
+- `shader-permutations-workbench.png` - editor-page
+- `render-target-workbench.png` - editor-page
+- `gpu-profiler-workbench.png` - editor-page
+- `light-probes-workbench.png` - editor-page
+- `reflection-capture-workbench.png` - editor-page
+- `decal-editor-workbench.png` - editor-page
+- `virtual-texture-workbench.png` - editor-page
+- `material-audit-workbench.png` - editor-page
+- `sound-cue-workbench.png` - editor-page
+- `audio-mixer-workbench.png` - editor-page
+- `music-system-workbench.png` - editor-page
+- `audio-occlusion-workbench.png` - editor-page
+- `voice-bank-workbench.png` - editor-page
+- `subtitle-timing-workbench.png` - editor-page
+- `lip-sync-workbench.png` - editor-page
+- `audio-profiler-workbench.png` - editor-page
+- `rigid-body-workbench.png` - editor-page
+- `physics-constraints-workbench.png` - editor-page
+- `destruction-workbench.png` - editor-page
+- `cloth-simulation-workbench.png` - editor-page
+- `vehicle-physics-workbench.png` - editor-page
+- `fluid-simulation-workbench.png` - editor-page
+- `rope-cable-workbench.png` - editor-page
+- `physics-profiler-workbench.png` - editor-page
+- `ai-director-workbench.png` - editor-page
+- `blackboard-workbench.png` - editor-page
+- `eqs-query-workbench.png` - editor-page
+- `crowd-simulation-workbench.png` - editor-page
+- `smart-objects-workbench.png` - editor-page
+- `patrol-routes-workbench.png` - editor-page
+- `cover-system-workbench.png` - editor-page
+- `ai-profiler-workbench.png` - editor-page
+- `mesh-import-workbench.png` - editor-page
+- `lod-chain-workbench.png` - editor-page
+- `redirect-map-workbench.png` - editor-page
+- `texture-compression-queue-workbench.png` - editor-page
+- `source-asset-trace-workbench.png` - editor-page
+- `dcc-live-link-workbench.png` - editor-page
+- `metadata-editor-workbench.png` - editor-page
+- `batch-process-queue-workbench.png` - editor-page
+- `script-editor-workbench.png` - editor-page
+- `api-browser-workbench.png` - editor-page
+- `plugin-packaging-workbench.png` - editor-page
+- `module-settings-workbench.png` - editor-page
+- `automation-suite-workbench.png` - editor-page
+- `build-config-workbench.png` - editor-page
+- `cook-rules-workbench.png` - editor-page
+- `runtime-commands-workbench.png` - editor-page
+- `asset-migration-workbench.png` - editor-page
+- `scene-diff-workbench.png` - editor-page
+- `prefab-diff-workbench.png` - editor-page
+- `performance-budget-workbench.png` - editor-page
+- `memory-budget-workbench.png` - editor-page
+- `dependency-cleanup-workbench.png` - editor-page
+- `naming-rules-workbench.png` - editor-page
+- `release-checklist-workbench.png` - editor-page
+- `gameplay-debugger-workbench.png` - editor-page
+- `replay-timeline-workbench.png` - editor-page
+- `network-packet-inspector-workbench.png` - editor-page
+- `latency-map-workbench.png` - editor-page
+- `input-trace-workbench.png` - editor-page
+- `save-state-diff-workbench.png` - editor-page
+- `repro-recorder-workbench.png` - editor-page
+- `qa-triage-workbench.png` - editor-page
+- `render-graph-workbench.png` - editor-page
+- `shader-debugger-workbench.png` - editor-page
+- `texture-streaming-workbench.png` - editor-page
+- `shadow-map-workbench.png` - editor-page
+- `occlusion-culling-workbench.png` - editor-page
+- `frame-compare-workbench.png` - editor-page
+- `material-layers-workbench.png` - editor-page
+- `gpu-memory-workbench.png` - editor-page
+- `retarget-workbench.png` - editor-page
+- `ik-solver-workbench.png` - editor-page
+- `pose-library-workbench.png` - editor-page
+- `mocap-cleanup-workbench.png` - editor-page
+- `animation-compression-workbench.png` - editor-page
+- `root-motion-workbench.png` - editor-page
+- `event-tracks-workbench.png` - editor-page
+- `montage-debugger-workbench.png` - editor-page
+- `widget-tree-debugger-workbench.png` - editor-page
+- `layout-constraint-solver-workbench.png` - editor-page
+- `theme-variant-preview-workbench.png` - editor-page
+- `localization-preview-workbench.png` - editor-page
+- `focus-navigation-workbench.png` - editor-page
+- `input-glyph-mapper-workbench.png` - editor-page
+- `ui-snapshot-diff-workbench.png` - editor-page
+- `widget-performance-workbench.png` - editor-page
+- `world-partition-workbench.png` - editor-page
+- `hlod-builder-workbench.png` - editor-page
+- `level-instance-workbench.png` - editor-page
+- `streaming-profiler-workbench.png` - editor-page
+- `scene-bookmarks-workbench.png` - editor-page
+- `spawn-point-editor-workbench.png` - editor-page
+- `collision-matrix-workbench.png` - editor-page
+- `environment-probes-workbench.png` - editor-page
+- `feature-flags-workbench.png` - editor-page
+- `remote-config-workbench.png` - editor-page
+- `telemetry-query-workbench.png` - editor-page
+- `patch-planner-workbench.png` - editor-page
+- `dlc-catalog-workbench.png` - editor-page
+- `crash-symbolication-workbench.png` - editor-page
+- `player-segment-workbench.png` - editor-page
+- `experiment-console-workbench.png` - editor-page
+- `material-lab-components-focus.png` - tool-focus
+- `ui-asset-tree-focus.png` - tool-focus
+- `animation-timeline-focus.png` - tool-focus
+- `performance-frame-focus.png` - tool-focus
+- `runtime-diagnostics-events-focus.png` - tool-focus
+- `plugin-manager-detail-focus.png` - tool-focus
+- `build-export-targets-focus.png` - tool-focus
+- `welcome-new-project-focus.png` - tool-focus
+- `main-tabs-layout-spec.png` - layout-spec
+- `tool-drawers-layout-spec.png` - layout-spec
+- `scene-drawer-layout-spec.png` - layout-spec
+- `material-drawer-layout-spec.png` - layout-spec
+- `montage-drawer-layout-spec.png` - layout-spec
+- `ui-asset-drawer-layout-spec.png` - layout-spec
+- `drawer-collapsed-state-spec.png` - state-spec
+- `drawer-expanded-state-spec.png` - state-spec
+- `split-editor-state-spec.png` - state-spec
+- `bottom-timeline-console-state-spec.png` - state-spec
+- `floating-tool-window-state-spec.png` - state-spec
+- `compact-editor-state-spec.png` - state-spec
+- `prefab-drawer-content-spec.png` - content-spec
+- `files-drawer-content-spec.png` - content-spec
+- `hierarchy-drawer-content-spec.png` - content-spec
+- `inspector-drawer-content-spec.png` - content-spec
+- `animation-list-drawer-content-spec.png` - content-spec
+- `console-drawer-content-spec.png` - content-spec
+- `timeline-drawer-content-spec.png` - content-spec
+- `asset-grid-drawer-content-spec.png` - content-spec
+- `command-palette-window-spec.png` - overlay-spec
+- `context-menu-window-spec.png` - overlay-spec
+- `tab-overflow-window-spec.png` - overlay-spec
+- `asset-picker-window-spec.png` - overlay-spec
+- `import-wizard-window-spec.png` - overlay-spec
+- `project-settings-window-spec.png` - overlay-spec
+- `confirm-dialog-window-spec.png` - overlay-spec
+- `notification-center-window-spec.png` - overlay-spec
+- `prefab-placement-workflow-spec.png` - workflow-spec
+- `asset-import-workflow-spec.png` - workflow-spec
+- `shader-error-workflow-spec.png` - workflow-spec
+- `animation-event-workflow-spec.png` - workflow-spec
+- `runtime-debug-workflow-spec.png` - workflow-spec
+- `build-export-workflow-spec.png` - workflow-spec
+- `ui-binding-workflow-spec.png` - workflow-spec
+- `lighting-bake-workflow-spec.png` - workflow-spec
+- `preferences-window-workbench.png` - floating-window
+- `keyboard-shortcuts-window-workbench.png` - floating-window
+- `reimport-conflict-window-workbench.png` - floating-window
+- `source-control-submit-window-workbench.png` - floating-window
+- `crash-report-window-workbench.png` - floating-window
+- `find-in-project-window-workbench.png` - floating-window
+- `startup-tasks-window-workbench.png` - floating-window
+- `editor-update-window-workbench.png` - floating-window
+- `preview-sheet.png` - dense browser review sheet covering every manifest design id
+
+## Workbench Layout Rules
+
+- Canvas size is 1672x941 for every deliverable PNG.
+- UI chrome is generated from HTML/CSS so labels, controls, and panel text remain deterministic.
+- Raster-style imagery is limited to viewport scenery and thumbnail-like content inside UI containers.
+- Main editor pages are represented as top-level tabs, similar to Unreal editor windows inside a JetBrains-like shell: Scene Editor, Material Editor, Montage Editor, UI Asset Editor, Asset Browser, Diagnostics, and Project.
+- Additional editor-page PNGs extend the same main-tab pattern to prefab, VFX, shader, terrain, audio, behavior tree, lighting bake, physics/collision, level streaming, sequencer, NavMesh/AI, render pipeline, input mapping, data table, network replication, and localization workflows.
+- Production editor-page PNGs continue that pattern for visual scripting, state machines, skeletal mesh, texture inspection, material instances, prefab variants, level audit, and editor test running.
+- Diagnostics/resource editor-page PNGs cover frame debugging, memory profiling, asset dependency graphs, reference finding, cook/package queues, crash session replay, log analysis, and automation reporting.
+- Infrastructure/project editor-page PNGs cover layout management, theme tokens, command catalogs, module graphs, asset validation, hot reload, project history, and task boards.
+- Collaboration/release editor-page PNGs cover source control, review comments, build farm, release notes, project settings, plugin development, remote devices, and session sync.
+- Cinematic/animation editor-page PNGs cover cutscenes, dialogue, quests, camera rigs, control rigs, motion matching, facial animation, and blend spaces.
+- World-building/environment editor-page PNGs cover foliage painting, scatter rules, volumes, weather, post process, particle libraries, collision proxies, and level variants.
+- Gameplay/runtime editor-page PNGs cover abilities, effects, AI perception, spawn rules, gameplay tags, save data, world state, and telemetry dashboards.
+- Platform/online editor-page PNGs cover lobbies, matchmaking, server browsing, replays, achievements, entitlements, user profiles, and online diagnostics.
+- UI/UX editor-page PNGs cover HUD editing, menu flow, font atlases, icon libraries, UI data binding, accessibility audits, input prompts, and UI motion clips.
+- Rendering/GPU editor-page PNGs cover shader permutations, render targets, GPU profiling, light probes, reflection captures, decals, virtual textures, and material audits.
+- Audio/voice editor-page PNGs cover sound cues, audio mixing, music systems, occlusion simulation, voice banks, subtitle timing, lip sync, and audio profiling.
+- Physics/simulation editor-page PNGs cover rigid bodies, constraints, destruction, cloth, vehicles, fluids, rope/cable systems, and physics profiling.
+- AI/navigation editor-page PNGs cover AI directors, blackboards, EQS queries, crowd simulation, smart objects, patrol routes, cover systems, and AI profiling.
+- Asset pipeline/DCC editor-page PNGs cover mesh import, LOD chains, redirect maps, texture compression queues, source asset tracing, DCC live links, metadata editing, and batch process queues.
+- Engineering/production editor-page PNGs cover script editing, API browsing, plugin packaging, module settings, automation suites, build configs, cook rules, and runtime commands.
+- Project governance editor-page PNGs cover asset migrations, scene diffs, prefab diffs, performance budgets, memory budgets, dependency cleanup, naming rules, and release checklists.
+- Runtime QA editor-page PNGs cover gameplay debugging, replay timelines, packet inspection, latency maps, input traces, save-state diffs, repro recording, and QA triage.
+- Graphics deep-dive editor-page PNGs cover render graphs, shader debugging, texture streaming, shadow maps, occlusion culling, frame comparison, material layers, and GPU memory.
+- Animation production editor-page PNGs cover retargeting, IK solving, pose libraries, mocap cleanup, animation compression, root motion, event tracks, and montage debugging.
+- UI diagnostics editor-page PNGs cover widget tree debugging, layout constraint solving, theme variants, localization preview, focus navigation, input glyph mapping, UI snapshot diffs, and widget performance.
+- World streaming editor-page PNGs cover world partition, HLOD building, level instances, streaming profiling, scene bookmarks, spawn points, collision matrices, and environment probes.
+- LiveOps editor-page PNGs cover feature flags, remote config, telemetry queries, patch planning, DLC catalogs, crash symbolication, player segments, and experiment consoles.
+- Tool windows use drawer zones: Left Top for placement/prefab tools, Left Bottom for file/project trees, Right Top for hierarchy/structure, Right Bottom for properties/animation lists/details, and Bottom for output consoles, diagnostics, and timelines.
+- Layout-spec PNGs are first-class references for shell structure, drawer role placement, and editor-tab-specific tool allocation.
+- State-spec PNGs describe drawer collapse/expand behavior, split editors, split bottom timelines/consoles, floating tool windows, and compact workspace fallbacks.
+- Content-spec PNGs describe the internal density, controls, row states, and action placement for prefab, files, hierarchy, inspector, animation list, console, timeline, and asset grid drawers.
+- Overlay-spec PNGs describe common floating/editor windows: command palette, context menu, tab overflow, asset picker, import wizard, project settings, confirmation dialog, and notification center.
+- Workflow-spec PNGs combine main editor tabs, drawers, bottom panels, and transient windows into practical task flows for prefab placement, asset import, shader errors, animation events, runtime debugging, build export, UI binding, and lighting bake.
+- Floating-window PNGs cover heavier operational windows that sit above the workbench for preferences, keymaps, reimport conflicts, source-control submit, crash reporting, find-in-project, startup tasks, and editor updates.
+- Surfaces stay near black but cleaner: `#111416`, `#171a1d`, `#1b1f23`, and `#252b31`.
+- Teal `#3cc7d6` is reserved for active tabs, selection, focus, and key state feedback.
+- Controls use rounded rectangle shapes, simple fills, 1px borders, and flat button states; avoid glossy gradients, glow, heavy shadows, and fake depth.
+- Avoid nested card layouts, large hero typography, marketing composition, and AI-generated UI text.

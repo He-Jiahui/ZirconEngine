@@ -1,20 +1,29 @@
 import {
     IconButton,
     PillButton,
+    SourceBuildHistoryRowData,
+    SourceEngineData,
     SourceEngineRowData,
+    UiTextData,
+    WorkspaceActionReadinessData,
 } from "shared.slint";
 import {
     ActionRow,
     Badge,
-    HubPanel,
+    BuildHistoryRow,
+    Divider,
+    EmptyStateBlock,
+    HubListPanelSlot,
+    HubListView,
     HubTextField,
     HubTokens,
+    HubVisualSpec,
     InfoRow,
     ListTile,
     MaterialPalette,
     MaterialStyleMetrics,
     PanelHeader,
-    PanelListViewport,
+    PanelSlot,
 } from "components.slint";
 
 export component SourceEngineRow inherits Rectangle {
@@ -26,10 +35,10 @@ export component SourceEngineRow inherits Rectangle {
     private property <length> remove-size: min(HubTokens.icon-lg, HubTokens.list-row-md - MaterialStyleMetrics.spacing_16);
 
     height: HubTokens.list-row-md;
-    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-radius: HubVisualSpec.panel-radius;
     border-width: HubTokens.border-width;
-    border-color: root.engine.active ? MaterialPalette.primary : MaterialPalette.outline_variant;
-    background: root.engine.active ? MaterialPalette.secondary_container : MaterialPalette.surface_container_low;
+    border-color: root.engine.active ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted;
+    background: root.engine.active ? MaterialPalette.secondary_container : HubVisualSpec.panel-background;
     clip: true;
 
     ListTile {
@@ -39,7 +48,7 @@ export component SourceEngineRow inherits Rectangle {
         supporting_text: root.engine.version + " / " + root.engine.source-path + " / " + root.engine.last-build;
         avatar_icon: @image-url("../assets/brand/zircon-mark.svg");
         avatar_background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
-        avatar_foreground: root.engine.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
+        avatar_foreground: root.engine.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
         clicked => {
             root.selected(root.engine.id);
         }
@@ -67,38 +76,71 @@ export component SourceEngineRow inherits Rectangle {
     }
 }
 
-export component EditorSideListPanel inherits HubPanel {
+export component EditorSideListPanel inherits HubListView {
     in property <string> panel-title;
-    in property <string> badge-text;
-    in property <int> row-count;
-    in property <length> row-height: HubTokens.list-row-md;
-    in property <length> empty-height: HubTokens.list-row-lg + HubTokens.space-4;
     in-out property <length> list-scroll-y: 0px;
 
+    title: root.panel-title;
+    badge-tone: "info";
+    show-header: true;
+    row-height: HubTokens.list-row-md;
+    row-spacing: HubTokens.space-2;
+    body-spacing: HubTokens.toolbar-gap;
+    body-padding: HubTokens.space-4;
+    empty-height: HubTokens.list-row-lg + HubTokens.space-4;
     vertical-stretch: 1;
+    scroll-y <=> root.list-scroll-y;
 
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding: HubTokens.space-4;
-        spacing: HubTokens.toolbar-gap;
+    @children
+}
 
-        PanelHeader {
-            title: root.panel-title;
-            subtitle: "";
-            show-badge: true;
-            badge-text: root.badge-text;
-            badge-tone: "info";
+export component EditorSourceEngineListPanel inherits EditorSideListPanel {
+    in property <[SourceEngineRowData]> source-engines;
+    in property <int> source-engine-count;
+    in property <string> empty-title;
+    in property <bool> collapse-label: false;
+    callback selected(string);
+    callback remove(string);
+
+    row-count: root.source-engine-count;
+
+    for engine in root.source-engines: SourceEngineRow {
+        engine: engine;
+        collapse-label: root.collapse-label;
+        selected(id) => {
+            root.selected(id);
         }
-
-        PanelListViewport {
-            scroll-y <=> root.list-scroll-y;
-            row-count: root.row-count;
-            row-height: root.row-height;
-            empty-height: root.empty-height;
-
-            @children
+        remove(id) => {
+            root.remove(id);
         }
+    }
+
+    if root.source-engine-count == 0: EmptyStateBlock {
+        height: root.empty-height;
+        title: root.empty-title;
+        body-padding: MaterialStyleMetrics.padding_16;
+        center-content: true;
+    }
+}
+
+export component EditorBuildHistoryPanel inherits EditorSideListPanel {
+    in property <[SourceBuildHistoryRowData]> source-build-history;
+    in property <int> source-build-history-count;
+    in property <string> empty-title;
+    in property <bool> collapse-label: false;
+
+    row-count: root.source-build-history-count;
+
+    for record in root.source-build-history: BuildHistoryRow {
+        record: record;
+        collapse-label: root.collapse-label;
+    }
+
+    if root.source-build-history-count == 0: EmptyStateBlock {
+        height: root.empty-height;
+        title: root.empty-title;
+        body-padding: MaterialStyleMetrics.padding_16;
+        center-content: true;
     }
 }
 
@@ -179,4 +221,162 @@ export component EditorSourceSummaryRow inherits InfoRow {
     trailing-tone: root.summary-tone;
     show-trailing-badge: true;
     collapse-trailing-label: root.collapse-label;
+}
+
+export component EditorActionsPanel inherits HubListPanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <UiTextData> ui-text;
+    in property <string> output-path;
+    callback save-settings();
+    callback build-engine();
+    callback open-output();
+    callback launch-editor();
+
+    title: root.ui-text.editor-actions;
+    row-count: 4;
+    row-spacing: HubTokens.toolbar-gap;
+
+    EditorActionRow {
+        row-height: root.row-height;
+        action-id: "save-source";
+        action-icon: @image-url("../assets/icons/ui/settings.svg");
+        action-title: root.ui-text.save-source;
+        action-detail: root.readiness.source-engine-title + " / " + root.ui-text.source-checkout-path;
+        triggered(id) => {
+            root.save-settings();
+        }
+    }
+
+    EditorActionRow {
+        row-height: root.row-height;
+        action-id: "build";
+        action-icon: @image-url("../assets/icons/actions/build-project.svg");
+        action-title: root.ui-text.build;
+        action-detail: root.readiness.build-enabled ? root.readiness.selected-project-title : root.readiness.build-disabled-reason;
+        action-enabled: root.readiness.build-enabled;
+        triggered(id) => {
+            root.build-engine();
+        }
+    }
+
+    EditorActionRow {
+        row-height: root.row-height;
+        action-id: "open-output";
+        action-icon: @image-url("../assets/icons/ui/folder.svg");
+        action-title: root.ui-text.open-output;
+        action-detail: root.readiness.open-output-enabled ? root.output-path : root.readiness.open-output-disabled-reason;
+        action-enabled: root.readiness.open-output-enabled;
+        triggered(id) => {
+            root.open-output();
+        }
+    }
+
+    EditorActionRow {
+        row-height: root.row-height;
+        action-id: "open-editor";
+        action-icon: @image-url("../assets/icons/actions/open-editor.svg");
+        action-title: root.ui-text.open-editor;
+        action-detail: root.readiness.open-editor-enabled ? root.readiness.selected-project-title : root.readiness.open-editor-disabled-reason;
+        action-enabled: root.readiness.open-editor-enabled;
+        triggered(id) => {
+            root.launch-editor();
+        }
+    }
+}
+
+export component EditorSourceSummaryPanel inherits PanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    in property <length> row-height: HubTokens.list-row-sm;
+    in property <bool> collapse-label: false;
+    callback launch-editor();
+
+    body-spacing: HubTokens.space-3;
+
+    PanelHeader {
+        title: root.readiness.selected-project-title;
+        subtitle: root.readiness.source-engine-title + " / " + root.readiness.source-engine-status + " / " + root.readiness.selected-project-status;
+        show-badge: true;
+        badge-text: root.source-engine.build-profile;
+        badge-tone: root.readiness.open-editor-enabled ? "accent" : "warning";
+        show-action: root.readiness.open-editor-enabled;
+        action-text: root.ui-text.open-editor;
+        action-clicked => {
+            root.launch-editor();
+        }
+    }
+
+    Divider {}
+
+    EditorSourceSummaryRow {
+        row-height: root.row-height;
+        summary-title: root.ui-text.source-prefix;
+        summary-detail: root.source-engine.source-path;
+        summary-meta: root.ui-text.last-build-prefix + root.readiness.source-build-summary;
+        summary-icon: @image-url("../assets/brand/zircon-mark.svg");
+        summary-status: root.readiness.source-engine-status;
+        summary-tone: root.readiness.build-enabled ? "ok" : "warning";
+        collapse-label: root.collapse-label;
+    }
+
+    EditorSourceSummaryRow {
+        row-height: root.row-height;
+        summary-title: root.ui-text.output-prefix;
+        summary-detail: root.source-engine.output-path;
+        summary-meta: root.readiness.open-output-enabled ? root.ui-text.profile-prefix + root.source-engine.build-profile : root.readiness.open-output-disabled-reason;
+        summary-icon: @image-url("../assets/icons/ui/folder.svg");
+        summary-status: root.source-engine.jobs + root.ui-text.jobs-suffix;
+        collapse-label: root.collapse-label;
+    }
+}
+
+export component EditorSourceSettingsPanel inherits PanelSlot {
+    in-out property <string> source-path;
+    in-out property <string> output-path;
+    in-out property <string> active-engine-name;
+    in property <UiTextData> ui-text;
+    callback rename-active-engine(string);
+    callback browse-folder(string);
+
+    body-spacing: HubTokens.space-3;
+
+    PanelHeader {
+        title: root.ui-text.source-engine;
+        subtitle: root.ui-text.source-checkout-path;
+    }
+
+    EditorPathFieldRow {
+        field-label: root.ui-text.active-engine-name;
+        field-text <=> root.active-engine-name;
+        button-text: root.ui-text.rename;
+        button-icon: @image-url("../assets/icons/ui/edit.svg");
+        button-clicked => {
+            root.rename-active-engine(root.active-engine-name);
+        }
+    }
+
+    EditorPathFieldRow {
+        field-label: root.ui-text.source-checkout-path;
+        field-text <=> root.source-path;
+        button-text: root.ui-text.browse;
+        button-icon: @image-url("../assets/icons/ui/folder.svg");
+        button-clicked => {
+            root.browse-folder("source");
+        }
+    }
+
+    EditorPathFieldRow {
+        field-label: root.ui-text.staged-output-directory;
+        field-text <=> root.output-path;
+        button-text: root.ui-text.browse;
+        button-icon: @image-url("../assets/icons/ui/folder.svg");
+        button-clicked => {
+            root.browse-folder("output");
+        }
+    }
+
+    Rectangle {
+        vertical-stretch: 1;
+    }
 }

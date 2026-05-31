@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_ray_tracing_policy_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.ray_tracing_policy";
+pub const CAPABILITY: &str = zircon_plugin_rendering_ray_tracing_policy_runtime::EDITOR_CAPABILITY;
 
 #[derive(Clone, Debug)]
 pub struct RenderingRayTracingPolicyEditorFeature {

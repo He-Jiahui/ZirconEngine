@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.shader_graph";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.shader_graph";
 pub const FEATURE_NAME: &str = "shader_graph";
 pub const EXECUTOR_ID: &str = "shader-graph.post-process";
 

@@ -1,13 +1,11 @@
 use slint::SharedString;
 
-use crate::projects::project_paths_match;
-use crate::projects::{metadata_for_path, RecentProject};
 use crate::settings::HubLanguage;
-use crate::state::HubSnapshot;
+use crate::state::{HubSnapshot, ProjectEngineScopeState, ProjectScope};
 
 use super::super::quick_action::HubQuickAction;
 use super::super::QuickActionData;
-use super::{localization, media, project_display_name, shared};
+use super::{localization, media, shared};
 
 pub(super) fn quick_actions(snapshot: &HubSnapshot, language: HubLanguage) -> Vec<QuickActionData> {
     let project_target = quick_action_project_target(snapshot);
@@ -16,65 +14,25 @@ pub(super) fn quick_actions(snapshot: &HubSnapshot, language: HubLanguage) -> Ve
             HubQuickAction::BuildProject,
             "/>",
             localization::text(language, "Build Project", "构建项目"),
-            project_build_target_detail(language, &project_target),
         ),
         (
             HubQuickAction::InstallToDevice,
             "[]",
             localization::text(language, "Install to Device", "安装到设备"),
-            project_target_detail(
-                language,
-                &project_target,
-                ("Install selected project package", "安装选中项目包"),
-                ("Install latest recent project package", "安装最近项目包"),
-                (
-                    "Selected project is no longer available to install",
-                    "选中项目已不可用，无法安装",
-                ),
-                (
-                    "Select or add a project before installing",
-                    "请先选择或添加项目再安装",
-                ),
-            ),
         ),
         (
             HubQuickAction::PackageProject,
             "{}",
             localization::text(language, "Package Project", "打包项目"),
-            project_target_detail(
-                language,
-                &project_target,
-                ("Package selected project", "打包选中项目"),
-                ("Package latest recent project", "打包最近项目"),
-                (
-                    "Selected project is no longer available to package",
-                    "选中项目已不可用，无法打包",
-                ),
-                (
-                    "Select or add a project before packaging",
-                    "请先选择或添加项目再打包",
-                ),
-            ),
         ),
         (
             HubQuickAction::OpenEditor,
             "<>",
             localization::text(language, "Open in Editor", "在编辑器中打开"),
-            project_target_detail(
-                language,
-                &project_target,
-                ("Open selected project", "打开选中项目"),
-                ("Open latest recent project", "打开最近项目"),
-                (
-                    "Selected project unavailable; launch editor without a project",
-                    "选中项目不可用；不带项目启动编辑器",
-                ),
-                ("Launch the editor without a project", "不带项目启动编辑器"),
-            ),
         ),
     ]
     .into_iter()
-    .map(|(action, icon, title, detail)| {
+    .map(|(action, icon, title)| {
         let id = action.id();
         let icon_image = media::quick_action_icon(id);
         QuickActionData {
@@ -83,7 +41,7 @@ pub(super) fn quick_actions(snapshot: &HubSnapshot, language: HubLanguage) -> Ve
             icon_image: icon_image.clone().unwrap_or_default(),
             has_icon_image: icon_image.is_some(),
             title,
-            detail,
+            detail: quick_action_detail(action, &project_target, language),
             enabled: quick_action_enabled(action, &project_target),
         }
     })
@@ -139,171 +97,198 @@ fn quick_action_enabled(action: HubQuickAction, target: &QuickActionProjectTarge
     }
 }
 
-fn quick_action_project_target(snapshot: &HubSnapshot) -> QuickActionProjectTarget {
-    if let Some(selected_path) = snapshot.selected_project_path.as_ref() {
-        if let Some(project) = snapshot
-            .recent_projects
-            .iter()
-            .find(|project| project_paths_match(&project.path, selected_path))
-        {
-            return QuickActionProjectTarget::Selected {
-                name: project_display_name(project),
-                source_engine_state: project_source_engine_state(project, snapshot),
-            };
+fn quick_action_detail(
+    action: HubQuickAction,
+    target: &QuickActionProjectTarget,
+    language: HubLanguage,
+) -> SharedString {
+    let text = match (action, target) {
+        (
+            HubQuickAction::BuildProject,
+            QuickActionProjectTarget::Selected {
+                name,
+                source_engine_state,
+            },
+        ) => build_detail_for_project(name, *source_engine_state, language),
+        (
+            HubQuickAction::BuildProject,
+            QuickActionProjectTarget::LatestRecent {
+                name,
+                source_engine_state,
+            },
+        ) => match source_engine_state {
+            ProjectSourceEngineState::Ready => format_pair(
+                language,
+                format!("Build latest recent project {name}"),
+                format!("构建最近项目 {name}"),
+            ),
+            ProjectSourceEngineState::MissingBinding => format_pair(
+                language,
+                format!("Bind a Source Engine to latest recent project {name} before building"),
+                format!("先为最近项目 {name} 绑定源码引擎"),
+            ),
+            ProjectSourceEngineState::Unavailable => format_pair(
+                language,
+                format!("Bound Source Engine for latest recent project {name} is unavailable"),
+                format!("最近项目 {name} 绑定的源码引擎不可用"),
+            ),
+        },
+        (HubQuickAction::BuildProject, QuickActionProjectTarget::StaleSelection) => {
+            quick_action_reference_detail(
+                language,
+                "Selected project is no longer available",
+                "已选项目不再可用",
+            )
+            .to_string()
         }
-        return QuickActionProjectTarget::StaleSelection;
-    }
-
-    snapshot
-        .recent_projects
-        .iter()
-        .max_by_key(|project| project.last_opened_unix_ms)
-        .map(|project| QuickActionProjectTarget::LatestRecent {
-            name: project_display_name(project),
-            source_engine_state: project_source_engine_state(project, snapshot),
-        })
-        .unwrap_or(QuickActionProjectTarget::None)
-}
-
-fn project_source_engine_state(
-    project: &RecentProject,
-    snapshot: &HubSnapshot,
-) -> ProjectSourceEngineState {
-    let Some(engine_id) = metadata_for_path(&snapshot.project_metadata, &project.path)
-        .and_then(|metadata| metadata.engine_id.as_deref())
-    else {
-        return ProjectSourceEngineState::MissingBinding;
+        (HubQuickAction::BuildProject, QuickActionProjectTarget::None) => localized_pair(
+            language,
+            (
+                "Select a project with a bound Source Engine before building",
+                "先选择已绑定源码引擎的项目",
+            ),
+        )
+        .to_string(),
+        (HubQuickAction::PackageProject, target) => project_action_detail(
+            target,
+            language,
+            "Package selected project",
+            "打包已选项目",
+            "Package latest recent project",
+            "打包最近项目",
+            "Select a project before packaging",
+            "先选择项目再打包",
+        ),
+        (HubQuickAction::InstallToDevice, target) => project_action_detail(
+            target,
+            language,
+            "Install selected project",
+            "安装已选项目",
+            "Install latest recent project",
+            "安装最近项目",
+            "Select a project before installing",
+            "先选择项目再安装",
+        ),
+        (HubQuickAction::OpenEditor, QuickActionProjectTarget::Selected { name, .. }) => {
+            format_pair(
+                language,
+                format!("Open {name} in Editor"),
+                format!("在编辑器中打开 {name}"),
+            )
+        }
+        (HubQuickAction::OpenEditor, QuickActionProjectTarget::LatestRecent { name, .. }) => {
+            format_pair(
+                language,
+                format!("Open latest recent project {name} in Editor"),
+                format!("在编辑器中打开最近项目 {name}"),
+            )
+        }
+        (HubQuickAction::OpenEditor, QuickActionProjectTarget::StaleSelection)
+        | (HubQuickAction::OpenEditor, QuickActionProjectTarget::None) => {
+            quick_action_reference_detail(
+                language,
+                "Open Editor without a project",
+                "不带项目打开编辑器",
+            )
+            .to_string()
+        }
     };
+    shared(text)
+}
 
-    if snapshot.engines.iter().any(|engine| engine.id == engine_id) {
-        ProjectSourceEngineState::Ready
-    } else {
-        ProjectSourceEngineState::Unavailable
+fn build_detail_for_project(
+    name: &str,
+    source_engine_state: ProjectSourceEngineState,
+    language: HubLanguage,
+) -> String {
+    match source_engine_state {
+        ProjectSourceEngineState::Ready => format_pair(
+            language,
+            format!("Build selected project {name}"),
+            format!("构建已选项目 {name}"),
+        ),
+        ProjectSourceEngineState::MissingBinding => format_pair(
+            language,
+            format!("Bind a Source Engine to {name} before building"),
+            format!("先为 {name} 绑定源码引擎"),
+        ),
+        ProjectSourceEngineState::Unavailable => format_pair(
+            language,
+            format!("Bound Source Engine for {name} is unavailable"),
+            format!("{name} 绑定的源码引擎不可用"),
+        ),
     }
 }
 
-fn project_build_target_detail(
-    language: HubLanguage,
+fn project_action_detail(
     target: &QuickActionProjectTarget,
-) -> SharedString {
+    language: HubLanguage,
+    selected_prefix_en: &str,
+    selected_prefix_zh: &str,
+    latest_prefix_en: &str,
+    latest_prefix_zh: &str,
+    none_en: &str,
+    none_zh: &str,
+) -> String {
     match target {
-        QuickActionProjectTarget::Selected {
-            name,
-            source_engine_state: ProjectSourceEngineState::Ready,
-        } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Build selected project's Source Engine",
-                    "构建选中项目的 Source Engine"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::Selected {
-            name,
-            source_engine_state: ProjectSourceEngineState::Unavailable,
-        } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Bound Source Engine is unavailable for selected project",
-                    "选中项目绑定的 Source Engine 不可用"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::Selected { name, .. } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Bind a Source Engine before building selected project",
-                    "请先为选中项目绑定 Source Engine 再构建"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::LatestRecent {
-            name,
-            source_engine_state: ProjectSourceEngineState::Ready,
-        } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Build latest recent project's Source Engine",
-                    "构建最近项目的 Source Engine"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::LatestRecent {
-            name,
-            source_engine_state: ProjectSourceEngineState::Unavailable,
-        } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Bound Source Engine is unavailable for latest recent project",
-                    "最近项目绑定的 Source Engine 不可用"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::LatestRecent { name, .. } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(
-                language,
-                (
-                    "Bind a Source Engine before building latest recent project",
-                    "请先为最近项目绑定 Source Engine 再构建"
-                )
-            ),
-            name
-        )),
-        QuickActionProjectTarget::StaleSelection => SharedString::from(localized_pair(
+        QuickActionProjectTarget::Selected { name, .. } => format_pair(
+            language,
+            format!("{selected_prefix_en} {name}"),
+            format!("{selected_prefix_zh} {name}"),
+        ),
+        QuickActionProjectTarget::LatestRecent { name, .. } => format_pair(
+            language,
+            format!("{latest_prefix_en} {name}"),
+            format!("{latest_prefix_zh} {name}"),
+        ),
+        QuickActionProjectTarget::StaleSelection => localized_pair(
             language,
             (
-                "Selected project is no longer available to build",
-                "选中项目已不可用，无法构建",
+                "Selected project is no longer available",
+                "已选项目不再可用",
             ),
-        )),
-        QuickActionProjectTarget::None => SharedString::from(localized_pair(
-            language,
-            (
-                "Select or add a project before building",
-                "请先选择或添加项目再构建",
-            ),
-        )),
+        )
+        .to_string(),
+        QuickActionProjectTarget::None => localized_pair(language, (none_en, none_zh)).to_string(),
     }
 }
 
-fn project_target_detail(
-    language: HubLanguage,
-    target: &QuickActionProjectTarget,
-    selected: (&str, &str),
-    latest_recent: (&str, &str),
-    stale: (&str, &str),
-    none: (&str, &str),
-) -> SharedString {
-    match target {
-        QuickActionProjectTarget::Selected { name, .. } => {
-            SharedString::from(format!("{}: {}", localized_pair(language, selected), name))
-        }
-        QuickActionProjectTarget::LatestRecent { name, .. } => SharedString::from(format!(
-            "{}: {}",
-            localized_pair(language, latest_recent),
-            name
-        )),
-        QuickActionProjectTarget::StaleSelection => {
-            SharedString::from(localized_pair(language, stale))
-        }
-        QuickActionProjectTarget::None => SharedString::from(localized_pair(language, none)),
+fn format_pair(language: HubLanguage, english: String, chinese: String) -> String {
+    match language {
+        HubLanguage::English => english,
+        HubLanguage::Chinese => chinese,
     }
+}
+
+fn quick_action_project_target(snapshot: &HubSnapshot) -> QuickActionProjectTarget {
+    match snapshot.scope().project {
+        ProjectScope::Selected(project) => QuickActionProjectTarget::Selected {
+            name: project.display_name,
+            source_engine_state: project_source_engine_state(project.engine_state),
+        },
+        ProjectScope::StaleSelection { .. } => QuickActionProjectTarget::StaleSelection,
+        ProjectScope::LatestRecent(project) => QuickActionProjectTarget::LatestRecent {
+            name: project.display_name,
+            source_engine_state: project_source_engine_state(project.engine_state),
+        },
+        ProjectScope::None => QuickActionProjectTarget::None,
+    }
+}
+
+fn project_source_engine_state(state: ProjectEngineScopeState) -> ProjectSourceEngineState {
+    match state {
+        ProjectEngineScopeState::Ready => ProjectSourceEngineState::Ready,
+        ProjectEngineScopeState::MissingBinding => ProjectSourceEngineState::MissingBinding,
+        ProjectEngineScopeState::Unavailable => ProjectSourceEngineState::Unavailable,
+    }
+}
+
+fn quick_action_reference_detail(
+    language: HubLanguage,
+    english: &str,
+    chinese: &str,
+) -> SharedString {
+    SharedString::from(localized_pair(language, (english, chinese)))
 }
 
 fn localized_pair<'a>(language: HubLanguage, pair: (&'a str, &'a str)) -> &'a str {
@@ -341,7 +326,7 @@ mod tests {
         assert!(build.enabled);
         assert_eq!(
             build.detail,
-            SharedString::from("Build selected project's Source Engine: Game")
+            SharedString::from("Build selected project Game")
         );
     }
 
@@ -359,7 +344,7 @@ mod tests {
         assert!(action(&actions, "package-project").enabled);
         assert_eq!(
             action(&actions, "build-project").detail,
-            SharedString::from("Bind a Source Engine before building selected project: Game")
+            SharedString::from("Bind a Source Engine to Game before building")
         );
     }
 
@@ -378,7 +363,7 @@ mod tests {
         assert!(action(&actions, "package-project").enabled);
         assert_eq!(
             action(&actions, "build-project").detail,
-            SharedString::from("Bound Source Engine is unavailable for selected project: Game")
+            SharedString::from("Bound Source Engine for Game is unavailable")
         );
     }
 
@@ -411,11 +396,52 @@ mod tests {
         assert!(!action(&actions, "install-device").enabled);
         assert_eq!(
             action(&actions, "build-project").detail,
-            SharedString::from("Selected project is no longer available to build")
+            SharedString::from("Selected project is no longer available")
         );
         assert_eq!(
             action(&actions, "open-editor").detail,
-            SharedString::from("Selected project unavailable; launch editor without a project")
+            SharedString::from("Open Editor without a project")
+        );
+    }
+
+    #[test]
+    fn quick_actions_describe_no_selection_and_latest_recent_scope() {
+        let latest = PathBuf::from("E:/Projects/Latest");
+        let mut latest_snapshot = snapshot_with_projects(
+            None,
+            vec![
+                RecentProject::new("Old", "E:/Projects/Old", 1),
+                RecentProject::new("Latest", latest.clone(), 20),
+            ],
+        );
+        bind_source_engine(&mut latest_snapshot, &latest);
+
+        let latest_actions = quick_actions(&latest_snapshot, HubLanguage::English);
+        assert!(action(&latest_actions, "build-project").enabled);
+        assert_eq!(
+            action(&latest_actions, "build-project").detail,
+            SharedString::from("Build latest recent project Latest")
+        );
+        assert_eq!(
+            action(&latest_actions, "package-project").detail,
+            SharedString::from("Package latest recent project Latest")
+        );
+
+        let empty_actions = quick_actions(
+            &snapshot_with_projects(None, Vec::new()),
+            HubLanguage::English,
+        );
+        assert_eq!(
+            action(&empty_actions, "build-project").detail,
+            SharedString::from("Select a project with a bound Source Engine before building")
+        );
+        assert_eq!(
+            action(&empty_actions, "package-project").detail,
+            SharedString::from("Select a project before packaging")
+        );
+        assert_eq!(
+            action(&empty_actions, "install-device").detail,
+            SharedString::from("Select a project before installing")
         );
     }
 
@@ -442,6 +468,7 @@ mod tests {
             learn_resources: Vec::new(),
             plugins: Vec::new(),
             team: crate::team::TeamOverview::empty(),
+            action_history: Vec::new(),
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),

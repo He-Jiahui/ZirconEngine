@@ -1,0 +1,33 @@
+recent_projects = []
+engines = []
+
+[settings]
+python_path = "python"
+cargo_path = "cargo"
+rustup_path = "rustup"
+default_project_dir = 'C:\Users\HeJiahui\ZirconProjects'
+default_source_dir = "E:/missing/ZirconEngine"
+default_build_output_dir = 'C:\Users\HeJiahui\ZirconBuilds'
+default_device_install_dir = 'C:\Users\HeJiahui\ZirconDevices\LocalDevice'
+language = "English"
+build_profile = "Debug"
+jobs = 1
+
+[project_metadata]
+
+[window]
+maximized = false
+
+[[action_history]]
+finished_unix_ms = 1780042387709
+action = "build-editor-runtime"
+status = "failed"
+target = "E:/missing/ZirconEngine"
+detail = "Source checkout directory is missing"
+log_excerpt = "Source checkout directory is missing"
+recovery = "Locate an existing ZirconEngine checkout or update Settings > Source Checkout"
+command_line = [
+    "python",
+    "tools/zircon_build.py",
+]
+output_dir = 'C:\Users\HeJiahui\ZirconBuilds'

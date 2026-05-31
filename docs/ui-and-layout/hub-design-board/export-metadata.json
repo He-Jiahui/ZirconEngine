@@ -1,0 +1,45 @@
+{
+  "source": "docs/ui-and-layout/hub-design-board/index.html",
+  "canvas": {
+    "width": 1568,
+    "height": 1003
+  },
+  "hash_algorithm": "sha256",
+  "source_inputs": [
+    {
+      "path": "docs/ui-and-layout/hub-design-board/index.html",
+      "sha256": "2647ebdbc5cfb7542ea1893bc6b7c64994ad63a16d6f267485f1673248b36cff"
+    },
+    {
+      "path": "docs/ui-and-layout/hub-design-board/styles.css",
+      "sha256": "c4867b5ae8d027c2090d2c9454bafd19ecfcd3253367ebf12c9bef0834e9a7e0"
+    },
+    {
+      "path": "docs/ui-and-layout/hub-design-board/board-registry.mjs",
+      "sha256": "e21d5bededd66d27a569592210a0c4f1a3aad80348a57f13f73121e3ad431ce9"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "structure",
+      "output": "hub-design-structure-layout.png",
+      "category": "primary-structure",
+      "sha256": "8688cbcaca5f956d93e988991d629f9559262e0260414ae62492322cbaa29a8e",
+      "bytes": 145423
+    },
+    {
+      "id": "flow",
+      "output": "hub-design-structure-supplement.png",
+      "category": "primary-structure",
+      "sha256": "9e84dfcc09ac3470fbea07d36ad16997d366e73004a1061e5abc7c24183280c8",
+      "bytes": 124084
+    },
+    {
+      "id": "details",
+      "output": "hub-design-functional-details.png",
+      "category": "secondary-functional-detail",
+      "sha256": "87bb5f1bbed207a52bb92b203ffb60a3fb2597272114ac9093cdd43253889150",
+      "bytes": 120389
+    }
+  ]
+}

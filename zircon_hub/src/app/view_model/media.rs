@@ -7,11 +7,11 @@ use crate::state::HubPage;
 
 const HUB_ASSET_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets");
 const FALLBACK_COVERS: &[&str] = &[
-    "covers/project-elysium.svg",
-    "covers/project-stellar-outpost.svg",
-    "covers/project-sands-of-time.svg",
-    "covers/project-whispering-woods.svg",
-    "covers/project-neon-streets.svg",
+    "covers/reference/project-elysium.png",
+    "covers/reference/project-stellar-outpost.png",
+    "covers/reference/project-sands-of-time.png",
+    "covers/reference/project-whispering-woods.png",
+    "covers/reference/project-neon-streets.png",
 ];
 
 pub(super) fn navigation_icon(page: HubPage) -> Option<Image> {
@@ -63,7 +63,25 @@ fn fallback_project_cover(index: usize) -> Option<Image> {
 }
 
 fn load_project_cover_image(project: &RecentProject) -> Option<Image> {
+    if is_reference_fixture_project(project) {
+        return None;
+    }
+
     project_cover_path(&project.path).and_then(|path| Image::load_from_path(&path).ok())
+}
+
+fn is_reference_fixture_project(project: &RecentProject) -> bool {
+    matches!(
+        project.display_name.as_str(),
+        "Elysium Chronicles"
+            | "Stellar Outpost"
+            | "Sands of Time"
+            | "Whispering Woods"
+            | "Neon Streets"
+    ) && {
+        let normalized = project.path.to_string_lossy().replace('\\', "/");
+        normalized.starts_with("C:/ZirconProjects/") || normalized.contains("/C/ZirconProjects/")
+    }
 }
 
 fn load_asset(relative_path: &str) -> Option<Image> {

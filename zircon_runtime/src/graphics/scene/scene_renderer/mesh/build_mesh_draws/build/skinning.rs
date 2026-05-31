@@ -1,8 +1,19 @@
 use std::collections::HashMap;
 
-use crate::asset::{AnimationSkeletonAsset, ModelPrimitiveAsset};
+use crate::asset::{AnimationSkeletonAsset, MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::math::{Mat4, Transform, Vec3};
+
+pub(super) fn skin_mesh_asset_primitive(
+    mesh: &MeshAsset,
+    skeleton: &AnimationSkeletonAsset,
+    pose: &AnimationPoseOutput,
+) -> Result<ModelPrimitiveAsset, String> {
+    let primitive = mesh
+        .to_morphed_model_primitive(&[])
+        .map_err(|error| error.to_string())?;
+    skin_model_primitive(&primitive, skeleton, pose)
+}
 
 pub(super) fn skin_model_primitive(
     primitive: &ModelPrimitiveAsset,
@@ -31,6 +42,7 @@ pub(super) fn skin_model_primitive(
             .map(|vertex| skin_vertex(vertex, &joint_matrices))
             .collect(),
         indices: primitive.indices.clone(),
+        mesh: None,
         virtual_geometry: None,
     })
 }
@@ -146,13 +158,19 @@ fn skin_vertex(
 
 #[cfg(test)]
 mod tests {
-    use super::skin_model_primitive;
+    use std::collections::BTreeMap;
+
+    use super::{skin_mesh_asset_primitive, skin_model_primitive};
     use crate::asset::{
-        AnimationSkeletonAsset, AnimationSkeletonBoneAsset, MeshVertex, ModelPrimitiveAsset,
+        AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetUri, MeshAsset,
+        MeshAttributeValues, MeshIndices, MeshVertex, ModelPrimitiveAsset,
+        MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+        MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
     };
     use crate::core::framework::animation::{
         AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
     };
+    use crate::core::framework::render::RenderMeshTopology;
     use crate::core::math::{Quat, Transform, Vec2, Vec3};
 
     #[test]
@@ -163,9 +181,77 @@ mod tests {
                     .with_skinning([1, 0, 0, 0], [1.0, 0.0, 0.0, 0.0]),
             ],
             indices: vec![0],
+            mesh: None,
             virtual_geometry: None,
         };
-        let skeleton = AnimationSkeletonAsset {
+        let skeleton = unit_test_skeleton();
+        let pose = joint_quarter_turn_pose();
+
+        let skinned = skin_model_primitive(&primitive, &skeleton, &pose)
+            .expect("expected CPU skinning helper to skin a valid weighted primitive");
+        let vertex = &skinned.vertices[0];
+
+        assert!(
+            Vec3::from_array(vertex.position).abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 1.0e-4),
+            "expected joint-space rotation around the bind-space joint origin to move the vertex"
+        );
+        assert!(
+            Vec3::from_array(vertex.normal).abs_diff_eq(Vec3::Y, 1.0e-4),
+            "expected skinned normal to follow the posed joint rotation"
+        );
+    }
+
+    #[test]
+    fn skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning() {
+        let mesh = MeshAsset::new(
+            AssetUri::parse("res://meshes/skinned-direct.zmesh").unwrap(),
+            RenderMeshTopology::PointList,
+            BTreeMap::from([
+                (
+                    MESH_ATTRIBUTE_POSITION.to_string(),
+                    MeshAttributeValues::Float32x3(vec![[2.0, 0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_NORMAL.to_string(),
+                    MeshAttributeValues::Float32x3(vec![[1.0, 0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_UV0.to_string(),
+                    MeshAttributeValues::Float32x2(vec![[0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_JOINT_INDEX.to_string(),
+                    MeshAttributeValues::Uint16x4(vec![[1, 0, 0, 0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_JOINT_WEIGHT.to_string(),
+                    MeshAttributeValues::Float32x4(vec![[1.0, 0.0, 0.0, 0.0]]),
+                ),
+            ]),
+            Some(MeshIndices::U32(vec![0])),
+        )
+        .unwrap();
+        let skeleton = unit_test_skeleton();
+        let pose = joint_quarter_turn_pose();
+
+        let skinned = skin_mesh_asset_primitive(&mesh, &skeleton, &pose)
+            .expect("expected direct mesh payload to skin through the shared primitive helper");
+        let vertex = &skinned.vertices[0];
+
+        assert_eq!(skinned.indices, vec![0]);
+        assert!(skinned.mesh.is_none());
+        assert!(
+            Vec3::from_array(vertex.position).abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 1.0e-4),
+            "expected direct mesh joint attributes to drive the same skinned position"
+        );
+        assert!(
+            Vec3::from_array(vertex.normal).abs_diff_eq(Vec3::Y, 1.0e-4),
+            "expected direct mesh normal to follow the posed joint rotation"
+        );
+    }
+
+    fn unit_test_skeleton() -> AnimationSkeletonAsset {
+        AnimationSkeletonAsset {
             name: Some("unit-test-skeleton".to_string()),
             bones: vec![
                 AnimationSkeletonBoneAsset {
@@ -183,8 +269,11 @@ mod tests {
                     local_scale: Vec3::ONE.to_array(),
                 },
             ],
-        };
-        let pose = AnimationPoseOutput {
+        }
+    }
+
+    fn joint_quarter_turn_pose() -> AnimationPoseOutput {
+        AnimationPoseOutput {
             source: AnimationPoseSource::Clip,
             active_state: None,
             bones: vec![
@@ -198,19 +287,6 @@ mod tests {
                         .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
                 },
             ],
-        };
-
-        let skinned = skin_model_primitive(&primitive, &skeleton, &pose)
-            .expect("expected CPU skinning helper to skin a valid weighted primitive");
-        let vertex = &skinned.vertices[0];
-
-        assert!(
-            Vec3::from_array(vertex.position).abs_diff_eq(Vec3::new(1.0, 1.0, 0.0), 1.0e-4),
-            "expected joint-space rotation around the bind-space joint origin to move the vertex"
-        );
-        assert!(
-            Vec3::from_array(vertex.normal).abs_diff_eq(Vec3::Y, 1.0e-4),
-            "expected skinned normal to follow the posed joint rotation"
-        );
+        }
     }
 }

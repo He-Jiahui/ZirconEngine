@@ -110,6 +110,7 @@ fn virtual_geometry_cook_attaches_to_model_primitive_without_dropping_base_mesh(
         primitives: vec![ModelPrimitiveAsset {
             vertices: vertices.clone(),
             indices: indices.clone(),
+            mesh: None,
             virtual_geometry: Some(cooked.clone()),
         }],
     };

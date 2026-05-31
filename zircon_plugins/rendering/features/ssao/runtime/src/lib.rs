@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.ssao";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.ssao";
 pub const FEATURE_NAME: &str = "screen_space_ambient_occlusion";
 pub const EXECUTOR_ID: &str = "ao.ssao-evaluate";
 

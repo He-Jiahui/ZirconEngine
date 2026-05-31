@@ -42,6 +42,26 @@ fn synth_parameter_source_and_timeline_binding_are_visible_in_snapshot() {
 }
 
 #[test]
+fn automation_binding_normalizes_animation_track_paths_in_snapshot() {
+    let sound = DefaultSoundManager::default();
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: SoundAutomationBindingId::new(2),
+            timeline_track_path: " Root / Synth : sound.synth.cutoff ".to_string(),
+            target: SoundAutomationTarget::SynthParameter(SoundParameterId::new("synth.cutoff")),
+            parameter: SoundParameterId::new("value"),
+        })
+        .unwrap();
+
+    let snapshot = sound.mixer_snapshot().unwrap();
+    assert_eq!(snapshot.graph.automation_bindings.len(), 1);
+    assert_eq!(
+        snapshot.graph.automation_bindings[0].timeline_track_path,
+        "Root/Synth:sound.synth.cutoff"
+    );
+}
+
+#[test]
 fn automation_binding_applies_values_to_synth_track_and_effect_targets() {
     let sound = DefaultSoundManager::default();
     let synth_parameter = SoundParameterId::new("synth.amp");
@@ -128,6 +148,16 @@ fn automation_binding_reports_invalid_paths_and_targets_cleanly() {
         .unwrap_err()
         .to_string()
         .contains("timeline track path"));
+    assert!(sound
+        .bind_automation(SoundAutomationBinding {
+            id: SoundAutomationBindingId::new(23),
+            timeline_track_path: "Root/Master:gain".to_string(),
+            target: SoundAutomationTarget::Track(SoundTrackId::master()),
+            parameter: SoundParameterId::new("gain"),
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("AnimationTrackPath-style"));
 
     let unsupported_binding = SoundAutomationBindingId::new(21);
     sound

@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_shader_graph_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.shader_graph";
+pub const CAPABILITY: &str = zircon_plugin_rendering_shader_graph_runtime::EDITOR_CAPABILITY;
 pub const SHADER_GRAPH_ASSET_VIEW_ID: &str = "rendering.shader_graph.asset";
 
 #[derive(Clone, Debug)]

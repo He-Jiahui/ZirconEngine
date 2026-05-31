@@ -1,7 +1,5 @@
 use zircon_runtime_interface::ui::{
-    accessibility::{UiAccessibilityActionStatus, UiAccessibilityNode},
-    component::UiValue,
-    event_ui::UiNodeId,
+    accessibility::UiAccessibilityNode, component::UiValue, event_ui::UiNodeId,
     surface::UiTextRange,
 };
 
@@ -15,7 +13,6 @@ pub(super) struct TextInputSetValue {
 }
 
 pub(super) struct TextInputSetValueRejection {
-    pub(super) status: UiAccessibilityActionStatus,
     pub(super) code: &'static str,
     pub(super) reason: &'static str,
 }
@@ -28,7 +25,6 @@ pub(super) fn prepare_text_input_set_value(
 ) -> Result<TextInputSetValue, TextInputSetValueRejection> {
     if text_input_is_read_only(surface, target) {
         return Err(TextInputSetValueRejection {
-            status: UiAccessibilityActionStatus::Rejected,
             code: "read_only",
             reason: "text input is read-only",
         });

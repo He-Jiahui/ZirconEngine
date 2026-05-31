@@ -81,24 +81,184 @@ related_code:
   - zircon_runtime/src/core/framework/sound/acoustics.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/module.rs
-  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/service_types/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_trait.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/execution.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/catalog.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/dispatch.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/handlers.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/invocation.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/effects.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/sends.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/snapshot.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/tracks.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/backend.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/catalog.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/configuration.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/lifecycle.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/status.rs
   - zircon_plugins/sound/runtime/src/config.rs
   - zircon_plugins/sound/runtime/src/components.rs
-  - zircon_plugins/sound/runtime/src/automation.rs
-  - zircon_plugins/sound/runtime/src/mixer_configuration.rs
-  - zircon_plugins/sound/runtime/src/descriptor_validation.rs
+  - zircon_plugins/sound/runtime/src/automation/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/binding.rs
+  - zircon_plugins/sound/runtime/src/automation/curve.rs
+  - zircon_plugins/sound/runtime/src/automation/values.rs
+  - zircon_plugins/sound/runtime/src/automation/target/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/target/apply.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/apply.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/common.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/delay.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/dynamics.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/filter.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/gain.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/modulation.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/reverb.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/shaper.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/stereo.rs
+  - zircon_plugins/sound/runtime/src/automation/target/helpers.rs
+  - zircon_plugins/sound/runtime/src/automation/target/listener.rs
+  - zircon_plugins/sound/runtime/src/automation/target/source.rs
+  - zircon_plugins/sound/runtime/src/automation/target/track.rs
+  - zircon_plugins/sound/runtime/src/automation/target/volume.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/mod.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/automation.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/configure.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/runtime_state.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/sources.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/timeline.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/mod.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/common.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/external_source.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/hrtf.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/listener.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/mod.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/bindings.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/clip_range.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/input.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/spatial.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/tracks.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/values.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/volume.rs
   - zircon_plugins/sound/runtime/src/output/mod.rs
-  - zircon_plugins/sound/runtime/src/output/cpal.rs
+  - zircon_plugins/sound/runtime/src/output/catalog.rs
+  - zircon_plugins/sound/runtime/src/output/descriptor_validation.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/mod.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/callback.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/config.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/session.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/start_stop.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/status.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
+  - zircon_plugins/sound/runtime/src/output/status.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/mod.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/capability.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/callback.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/device.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/device_thread.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/error.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/producer_thread.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/selection.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/session.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/shared_state.rs
   - zircon_plugins/sound/runtime/src/output/software.rs
   - zircon_plugins/sound/runtime/src/output/ring_buffer.rs
-  - zircon_plugins/sound/runtime/src/engine/state.rs
-  - zircon_plugins/sound/runtime/src/engine/render.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state.rs
-  - zircon_plugins/sound/runtime/src/engine/filter.rs
-  - zircon_plugins/sound/runtime/src/engine/hrtf.rs
-  - zircon_plugins/sound/runtime/src/engine/occlusion.rs
-  - zircon_plugins/sound/runtime/src/engine/validation.rs
+  - zircon_plugins/sound/runtime/src/engine/state/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/state/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/engine/state/graph.rs
+  - zircon_plugins/sound/runtime/src/engine/state/playback.rs
+  - zircon_plugins/sound/runtime/src/engine/state/snapshot.rs
+  - zircon_plugins/sound/runtime/src/engine/state/source.rs
+  - zircon_plugins/sound/runtime/src/engine/state/storage.rs
+  - zircon_plugins/sound/runtime/src/engine/render/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/orchestration.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/clip.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/finish.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/mixing.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/pan.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/external.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/input.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/parameters.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/range.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/frame.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/interpolation.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/position.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/step.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/convolution.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/loaded.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/tail.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/listener.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/attenuation.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/cone.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/doppler.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/pan.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/profile.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/filter.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/influence.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/weight.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/controls.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/delay.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/chain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/sidechain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/delay_line.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_key.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_runtime.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/history.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/track_runtime.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/shelf.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/state.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/key.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/prune.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/state.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/gain.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/query.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/ray_traced.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/effect.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/graph.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/ordering.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/references.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/track.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/values.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
@@ -283,24 +443,184 @@ implementation_files:
   - zircon_runtime/src/core/framework/sound/acoustics.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/module.rs
-  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/service_types/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_trait.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/execution.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/catalog.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/dispatch.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/handlers.rs
+  - zircon_plugins/sound/runtime/src/service_types/dynamic_events/invocation.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/effects.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/sends.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/snapshot.rs
+  - zircon_plugins/sound/runtime/src/service_types/mixer_graph/tracks.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/mod.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/backend.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/catalog.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/configuration.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/lifecycle.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/status.rs
   - zircon_plugins/sound/runtime/src/config.rs
   - zircon_plugins/sound/runtime/src/components.rs
-  - zircon_plugins/sound/runtime/src/automation.rs
-  - zircon_plugins/sound/runtime/src/mixer_configuration.rs
-  - zircon_plugins/sound/runtime/src/descriptor_validation.rs
+  - zircon_plugins/sound/runtime/src/automation/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/binding.rs
+  - zircon_plugins/sound/runtime/src/automation/curve.rs
+  - zircon_plugins/sound/runtime/src/automation/values.rs
+  - zircon_plugins/sound/runtime/src/automation/target/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/target/apply.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/mod.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/apply.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/common.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/delay.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/dynamics.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/filter.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/gain.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/modulation.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/reverb.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/shaper.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/stereo.rs
+  - zircon_plugins/sound/runtime/src/automation/target/helpers.rs
+  - zircon_plugins/sound/runtime/src/automation/target/listener.rs
+  - zircon_plugins/sound/runtime/src/automation/target/source.rs
+  - zircon_plugins/sound/runtime/src/automation/target/track.rs
+  - zircon_plugins/sound/runtime/src/automation/target/volume.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/mod.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/automation.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/configure.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/runtime_state.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/sources.rs
+  - zircon_plugins/sound/runtime/src/mixer_configuration/timeline.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/mod.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/common.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/external_source.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/hrtf.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/listener.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/mod.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/bindings.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/clip_range.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/input.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/spatial.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/tracks.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/source/values.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/volume.rs
   - zircon_plugins/sound/runtime/src/output/mod.rs
-  - zircon_plugins/sound/runtime/src/output/cpal.rs
+  - zircon_plugins/sound/runtime/src/output/catalog.rs
+  - zircon_plugins/sound/runtime/src/output/descriptor_validation.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/mod.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/callback.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/config.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/session.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/start_stop.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/status.rs
+  - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
+  - zircon_plugins/sound/runtime/src/output/status.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/mod.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/capability.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/callback.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/device.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/device_thread.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/error.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/producer_thread.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/selection.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/session.rs
+  - zircon_plugins/sound/runtime/src/output/cpal/shared_state.rs
   - zircon_plugins/sound/runtime/src/output/software.rs
   - zircon_plugins/sound/runtime/src/output/ring_buffer.rs
-  - zircon_plugins/sound/runtime/src/engine/state.rs
-  - zircon_plugins/sound/runtime/src/engine/render.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp_state.rs
-  - zircon_plugins/sound/runtime/src/engine/filter.rs
-  - zircon_plugins/sound/runtime/src/engine/hrtf.rs
-  - zircon_plugins/sound/runtime/src/engine/occlusion.rs
-  - zircon_plugins/sound/runtime/src/engine/validation.rs
+  - zircon_plugins/sound/runtime/src/engine/state/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/state/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/engine/state/graph.rs
+  - zircon_plugins/sound/runtime/src/engine/state/playback.rs
+  - zircon_plugins/sound/runtime/src/engine/state/snapshot.rs
+  - zircon_plugins/sound/runtime/src/engine/state/source.rs
+  - zircon_plugins/sound/runtime/src/engine/state/storage.rs
+  - zircon_plugins/sound/runtime/src/engine/render/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/orchestration.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/clip.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/finish.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/mixing.rs
+  - zircon_plugins/sound/runtime/src/engine/render/playback/pan.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/external.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/input.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/parameters.rs
+  - zircon_plugins/sound/runtime/src/engine/render/source/range.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/frame.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/interpolation.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/position.rs
+  - zircon_plugins/sound/runtime/src/engine/render/sampling/step.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/convolution.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/loaded.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/tail.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/listener.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/attenuation.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/cone.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/doppler.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/pan.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/profile.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/filter.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/influence.rs
+  - zircon_plugins/sound/runtime/src/engine/source_environment/volume/weight.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/controls.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/delay.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/chain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/effects/sidechain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/delay_line.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_key.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/effect_runtime.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/history.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp_state/track_runtime.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/shelf.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/state.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/apply.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/key.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/prune.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/state.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/constants.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/gain.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/query.rs
+  - zircon_plugins/sound/runtime/src/engine/occlusion/ray_traced.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/effect.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/graph.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/ordering.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/references.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/track.rs
+  - zircon_plugins/sound/runtime/src/engine/validation/values.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
@@ -448,6 +768,33 @@ tests:
   - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 -- --nocapture
   - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dsp_state --locked --offline --jobs 1 -- --nocapture
   - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_curve --locked --offline --jobs 1 -- --nocapture
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml playback --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml playback --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml render --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-output-device-boundary cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-output-device-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-output-device-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml output_device --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-output-device-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-events-boundary cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-events-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-events-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dynamic_events --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-events-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-event-executors-boundary cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-event-executors-boundary cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-event-executors-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dynamic_events --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-event-executors-boundary cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked render_product_sprite -- --nocapture
   - cargo test -p zircon_runtime --lib focus_navigation --locked -- --nocapture
   - cargo test -p zircon_runtime --lib widget_range_navigation --locked -- --nocapture
@@ -644,12 +991,12 @@ M4 is the default-profile audio milestone. Bevy treats audio as part of the ordi
 |---|---|---|---|
 | Default profile membership | `DefaultPlugins` includes `bevy_audio::AudioPlugin` at `dev/bevy/crates/bevy_internal/src/default_plugins.rs:78`; Bevy's crate default feature set includes audio in `dev/bevy/Cargo.toml:134`; public docs begin at `https://docs.rs/bevy_audio/latest/bevy_audio/struct.AudioPlugin.html`. | `zircon_plugins/sound/plugin.toml` marks `sound` as `Beta` and `runtime.plugin.sound = partial`; `zircon_app` can link first-party runtime providers with `first-party-runtime-plugins`; runtime profiles already require sound for client profiles. | Client/editor/dev profiles may require sound only when the linked provider is available and reports structured availability. Sound must not be represented as a generic externalized warning in a profile that claims Bevy default parity. |
 | Plugin build and schedule | `AudioPlugin::build` inserts `GlobalVolume` and `DefaultSpatialScale`, configures `AudioPlaybackSystems` in `PostUpdate`, runs playback only when `audio_output_available`, orders spatial updates after transform propagation, initializes `AudioOutput`, and calls `add_audio_source::<AudioSource>()` in `dev/bevy/crates/bevy_audio/src/lib.rs:81` and `:108`. | `zircon_plugins/sound/runtime/src/module.rs` registers `SoundModule`, `SoundDriver`, and `DefaultSoundManager`; `zircon_runtime/src/core/framework/sound/manager.rs:21` defines the shared manager API. | Document and test the exact Zircon scene/audio tick point: source/listener component projection, mixer render, finished cleanup, and transform-dependent spatial updates must have deterministic order. Output missing must skip or degrade by structured status, not pretend audio ran successfully. |
-| Audio asset and decoding | Bevy `AudioSource` stores bytes, `AudioLoader` handles supported extensions, and `Decodable` provides the decoder hook in `dev/bevy/crates/bevy_audio/src/audio_source.rs:8`, `:39`, and `:83`. | Zircon sound runtime loads `SoundAsset` through `ProjectAssetManager` in `zircon_plugins/sound/runtime/src/service_types.rs`; audio importer readiness is tracked by `zircon_plugins/audio_importer/plugin.toml` and asset readiness plans. | Accept WAV whole-frame validation, duration/frame-count metadata, unsupported-format diagnostics, and importer selection precedence where a diagnostic-only importer cannot hide a real runtime-capable audio importer. OGG/MP3/FLAC can be staged by explicit importer maturity, not implied by Bevy docs. |
+| Audio asset and decoding | Bevy `AudioSource` stores bytes, `AudioLoader` handles supported extensions, and `Decodable` provides the decoder hook in `dev/bevy/crates/bevy_audio/src/audio_source.rs:8`, `:39`, and `:83`. | Zircon sound runtime loads `SoundAsset` through `ProjectAssetManager` in `zircon_plugins/sound/runtime/src/service_types/clip_assets.rs`; audio importer readiness is tracked by `zircon_plugins/audio_importer/plugin.toml` and asset readiness plans. | Accept WAV whole-frame validation, duration/frame-count metadata, unsupported-format diagnostics, and importer selection precedence where a diagnostic-only importer cannot hide a real runtime-capable audio importer. OGG/MP3/FLAC can be staged by explicit importer maturity, not implied by Bevy docs. |
 | Playback settings and lifecycle | Bevy `PlaybackSettings` covers mode, volume, speed, paused, muted, spatial, spatial scale, start position, and duration in `dev/bevy/crates/bevy_audio/src/audio.rs:35`; `PlaybackMode` has `Once`, `Loop`, `Despawn`, and `Remove` in `audio.rs:11`. | `SoundPlaybackSettings` includes gain, speed, looped, completion action, paused, muted, start/duration, output track, and pan in `zircon_runtime/src/core/framework/sound/playback.rs:14`; `SoundPlaybackCompletionAction` has `None`, `DespawnEntity`, and `RemoveAudioComponents` at `playback.rs:151`. | Prove `ONCE`, `LOOP`, `DESPAWN`, and `REMOVE` equivalents with start/duration clipping, loop-boundary behavior, pause/mute defaults, invalid speed/range diagnostics, and finished-action reporting. Any lifecycle divergence must be named and tested. |
-| Sink controls and runtime control API | Bevy `AudioSinkPlayback` exposes volume, speed, play/pause/toggle, seek, stop, empty, mute/unmute, and toggle mute in `dev/bevy/crates/bevy_audio/src/sinks.rs:10`; concrete `AudioSink` and `SpatialAudioSink` wrap the sink at `sinks.rs:139` and `:243`. | `SoundManager` exposes playback/source pause/resume/toggle, gain/speed, seek, mute/unmute, empty/status, and finished drain methods in `zircon_runtime/src/core/framework/sound/manager.rs:38`; `DefaultSoundManager` implements those controls in `zircon_plugins/sound/runtime/src/service_types.rs`. | Add focused tests for idempotent control semantics, invalid handle errors, seek clamping, stop versus natural completion, and parity between direct `play_clip` handles and scene-owned `SoundSourceDescriptor` controls. |
-| Global volume and volume math | Bevy `GlobalVolume` is a resource in `dev/bevy/crates/bevy_audio/src/volume.rs:10`; `Volume` supports linear/decibel conversions at `volume.rs:36` with conversion tests. | Zircon exposes `global_volume_gain` and `set_global_volume_gain` through `SoundManager`; mixer output applies `config.master_gain` and clamps samples in `zircon_plugins/sound/runtime/src/engine/render.rs`. | Lock the public math contract: non-negative finite gain, decibel/linear conversion helper if the editor exposes dB, sample clamp behavior, and regression tests for zero, unity, high gain, NaN/Inf, and negative input. |
-| Spatial audio baseline | Bevy `SpatialListener`, `SpatialScale`, `AudioPlayer`, `SpatialAudioSink`, and emitter/listener update systems are in `dev/bevy/crates/bevy_audio/src/audio.rs:173`, `:205`, `:251`, `dev/bevy/crates/bevy_audio/src/sinks.rs:243`, and `dev/bevy/crates/bevy_audio/src/audio_output.rs:341`. | Zircon has `SoundSourceDescriptor`, `SoundSpatialSourceSettings`, `SoundListenerDescriptor`, and HRTF/occlusion runtime code in `zircon_runtime/src/core/framework/sound/components.rs:13`, `:89`, `:128`, plus `zircon_plugins/sound/runtime/src/engine/hrtf.rs` and `engine/occlusion.rs`. | Baseline Bevy parity is simple source/listener spatial update with default scale and deterministic attenuation. HRTF, Doppler, occlusion, convolution, and ray-traced impulse responses are valuable advanced capabilities but must stay optional or separately gated until their own tests pass. |
-| Output/backend degradation | Bevy `AudioOutput` stores an optional device and logs no-device state; playback systems run behind `audio_output_available` in `dev/bevy/crates/bevy_audio/src/audio_output.rs:84` and `:336`. | Zircon `SoundOutputDeviceDescriptor`, `SoundOutputDeviceInfo`, `SoundOutputLatencyStatus`, and `SoundOutputDeviceStatus` live in `zircon_runtime/src/core/framework/sound/output.rs:42`, `:54`, `:82`, and `:97`; runtime state supports software and CPAL paths in `zircon_plugins/sound/runtime/src/output/mod.rs:46`. | Backend unavailable must return structured `BackendUnavailable`/status diagnostics, keep software-null deterministic for CI, expose device/latency rows for editor tooling, and avoid panic or silent success when no hardware device is available. |
+| Sink controls and runtime control API | Bevy `AudioSinkPlayback` exposes volume, speed, play/pause/toggle, seek, stop, empty, mute/unmute, and toggle mute in `dev/bevy/crates/bevy_audio/src/sinks.rs:10`; concrete `AudioSink` and `SpatialAudioSink` wrap the sink at `sinks.rs:139` and `:243`. | `SoundManager` exposes playback/source pause/resume/toggle, gain/speed, seek, mute/unmute, empty/status, and finished drain methods in `zircon_runtime/src/core/framework/sound/manager.rs:38`; `DefaultSoundManager` implements those controls through `zircon_plugins/sound/runtime/src/service_types/playback_controls.rs`, `source_controls.rs`, `playback_status.rs`, and `source_status.rs`. | Add focused tests for idempotent control semantics, invalid handle errors, seek clamping, stop versus natural completion, and parity between direct `play_clip` handles and scene-owned `SoundSourceDescriptor` controls. |
+| Global volume and volume math | Bevy `GlobalVolume` is a resource in `dev/bevy/crates/bevy_audio/src/volume.rs:10`; `Volume` supports linear/decibel conversions at `volume.rs:36` with conversion tests. | Zircon exposes `global_volume_gain` and `set_global_volume_gain` through `SoundManager`; mixer output applies `config.master_gain` and clamps samples in `zircon_plugins/sound/runtime/src/engine/render/orchestration.rs`. | Lock the public math contract: non-negative finite gain, decibel/linear conversion helper if the editor exposes dB, sample clamp behavior, and regression tests for zero, unity, high gain, NaN/Inf, and negative input. |
+| Spatial audio baseline | Bevy `SpatialListener`, `SpatialScale`, `AudioPlayer`, `SpatialAudioSink`, and emitter/listener update systems are in `dev/bevy/crates/bevy_audio/src/audio.rs:173`, `:205`, `:251`, `dev/bevy/crates/bevy_audio/src/sinks.rs:243`, and `dev/bevy/crates/bevy_audio/src/audio_output.rs:341`. | Zircon has `SoundSourceDescriptor`, `SoundSpatialSourceSettings`, `SoundListenerDescriptor`, and HRTF/occlusion runtime code in `zircon_runtime/src/core/framework/sound/components.rs:13`, `:89`, `:128`, plus folder-backed `zircon_plugins/sound/runtime/src/engine/hrtf/` and `engine/occlusion/`. | Baseline Bevy parity is simple source/listener spatial update with default scale and deterministic attenuation. HRTF, Doppler, occlusion, convolution, and ray-traced impulse responses are valuable advanced capabilities but must stay optional or separately gated until their own tests pass. |
+| Output/backend degradation | Bevy `AudioOutput` stores an optional device and logs no-device state; playback systems run behind `audio_output_available` in `dev/bevy/crates/bevy_audio/src/audio_output.rs:84` and `:336`. | Zircon `SoundOutputDeviceDescriptor`, `SoundOutputDeviceInfo`, `SoundOutputLatencyStatus`, and `SoundOutputDeviceStatus` live in `zircon_runtime/src/core/framework/sound/output.rs:42`, `:54`, `:82`, and `:97`; runtime output lifecycle lives in folder-backed `zircon_plugins/sound/runtime/src/output/lifecycle/` modules for storage, config, start/stop, callback accounting, status projection, and backend-session state. Backend/device listing lives in `output/catalog.rs`, descriptor validation in `output/descriptor_validation.rs`, latency/status diagnostic helpers in `output/status.rs`, and concrete software/CPAL paths in `output/software.rs` plus `output/cpal/`. | Backend unavailable must return structured `BackendUnavailable`/status diagnostics, keep software-null deterministic for CI, expose device/latency rows for editor tooling, and avoid panic or silent success when no hardware device is available. |
 | Cleanup and finished reporting | Bevy inserts `PlaybackDespawnMarker`/remove markers and `cleanup_finished_audio` removes or despawns when sinks are empty in `dev/bevy/crates/bevy_audio/src/audio_output.rs:37` and `:284`. | Zircon has `SoundPlaybackFinished`, `SoundSourceFinished`, completion actions, and `drain_finished_playbacks`/`drain_finished_sources` in `zircon_runtime/src/core/framework/sound/playback.rs` and `manager.rs`. | Test voice cleanup, finished drain stability, double-drain behavior, entity/component cleanup integration, and missing-clip completion. A profile cannot count sound complete while finished playback leaks runtime state. |
 | Advanced features outside default blocker | Bevy's default audio layer is playback, sinks, volume, simple spatial, and output; it does not require a mixer console, timeline authoring, HRTF database, or ray-traced convolution. | Zircon sound already has mixer graph, DSP descriptors, automation, dynamic events, timeline feature, ray-tracing/convolution descriptors, editor live output, and acoustic debug UI. | Keep timeline animation track, ray-traced convolution reverb, geometry-backed occlusion, HRTF database interpolation, live-output editor commands, and dynamic event ABI in optional feature lanes. They improve Zircon beyond Bevy baseline, but cannot substitute for default playback/import/output/profile gates. |
 
@@ -669,7 +1016,7 @@ M4 candidate commands:
 - `cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture`
 - `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1`
 
-M4 debug rule: when a sound profile/importer/playback/output test fails, diagnose the lowest shared layer first in this order: `SoundAsset` import and duration/frame metadata, `SoundPlaybackSettings` and source descriptor validation, `SoundManager` handle/lifecycle semantics, mixer render and finished queues, output backend status, then app profile/provider availability. Do not make M4 pass by weakening required sound profile policy, by treating editor mixer authoring as runtime playback evidence, or by making ray/convolution optional features satisfy default audio gates.
+M4 debug rule: when a sound profile/importer/playback/output test fails, diagnose the lowest shared layer first in this order: `SoundAsset` import and duration/frame metadata, `SoundPlaybackSettings` and folder-backed `descriptor_validation/source/` source descriptor validation, `SoundManager` handle/lifecycle semantics, mixer render and finished queues, output backend status, then app profile/provider availability. Do not make M4 pass by weakening required sound profile policy, by treating editor mixer authoring as runtime playback evidence, or by making ray/convolution optional features satisfy default audio gates.
 
 ## M5 Sprite2D Completion Matrix
 
@@ -1085,6 +1432,32 @@ Review-fix coverage now also pins exact profile-manifest loading for `minimal`, 
 
 Latest attempted validation in this session:
 
+- 2026-05-29 Sound HRTF boundary continuation: focused Sound runtime validation replaced the flat loaded-HRTF runtime helper with folder-backed `zircon_plugins/sound/runtime/src/engine/hrtf/` modules for render-state keys, FIR tail state, loaded-profile convolution, and stale-state pruning. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary Sound evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound occlusion boundary continuation: focused Sound runtime validation replaced the flat occlusion helper with folder-backed `zircon_plugins/sound/runtime/src/engine/occlusion/` modules for query DTOs, fallback gain constants, the render-facing gain entry point, and ray-traced descriptor specificity matching. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after a single rustfmt import-line adjustment. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary Sound evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound source descriptor validation boundary continuation: focused Sound runtime validation replaced the former flat source descriptor helper with folder-backed `zircon_plugins/sound/runtime/src/descriptor_validation/source/` modules for graph-track references, clip ranges, inputs, parameter bindings, spatial settings, and source-local scalar/time guards. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` after tightening an unnecessary internal re-export. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml graph_config --locked --offline --jobs 1 --message-format short --color never` passed with 2 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary Sound evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound filter boundary continuation: focused Sound runtime validation replaced the flat filter helper with folder-backed `zircon_plugins/sound/runtime/src/engine/filter/` modules for state, block application, coefficients, shelf formulas, and constants. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` after removing an internal private coefficient re-export. Direct execution of the generated Sound runtime test binary passed `dsp_state` with 14 tests and 0 failures, and passed the full Sound runtime binary with 97 tests and 0 failures. A later standard Cargo test rerun was blocked before Sound tests by active Texture work in `zircon_runtime/src/asset/assets/texture/upload_support.rs:611`; this records module-boundary Sound evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound DSP boundary continuation: focused Sound runtime validation passed after replacing the flat DSP executor with folder-backed `zircon_plugins/sound/runtime/src/engine/dsp/` modules. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dsp_state --locked --offline --jobs 1 --message-format short --color never` passed with 14 DSP tests, 0 failures, and 83 filtered. The full Sound runtime command `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 --message-format short --color never` passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound DSP effect-chain boundary continuation: focused Sound runtime validation replaced `zircon_plugins/sound/runtime/src/engine/dsp/effects.rs` with folder-backed `zircon_plugins/sound/runtime/src/engine/dsp/effects/` modules for chain orchestration, effect-kind dispatch, and sidechain lookup. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after rustfmt import ordering. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-dsp-effect-chain-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dsp_state --locked --offline --jobs 1 --message-format short --color never` passed with 14 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound engine-validation boundary continuation: focused Sound runtime validation passed after replacing the flat engine validation helper with folder-backed `zircon_plugins/sound/runtime/src/engine/validation/` modules. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml graph_config --locked --offline --jobs 1 --message-format short --color never` passed with 2 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dsp_state --locked --offline --jobs 1 --message-format short --color never` passed with 14 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound render-source boundary continuation: focused Sound runtime validation passed after replacing the flat render-source helper with folder-backed `zircon_plugins/sound/runtime/src/engine/render/source/` modules for orchestration, source input mixing, external provider blocks, parameter bindings, and clip ranges. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-sound-render-source-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml playback --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. Earlier source-input attempts timed out during parallel workspace compilation before Sound diagnostics; the accepted evidence is the isolated serial rerun. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound source-environment apply boundary continuation: focused Sound runtime validation moved `apply_source_environment` orchestration from the source-environment root module into `zircon_plugins/sound/runtime/src/engine/source_environment/apply.rs`, leaving `mod.rs` structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound source-environment HRTF boundary continuation: focused Sound runtime validation replaced the flat source-environment HRTF helper with folder-backed `zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/` modules for loaded-profile dispatch, preview fallback, and tail queries. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` after narrowing moved entry visibility to the source-environment boundary. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound source-environment spatial boundary continuation: focused Sound runtime validation replaced the flat source-environment spatial helper with folder-backed `zircon_plugins/sound/runtime/src/engine/source_environment/spatial/` modules for profile composition, attenuation, cone gain, Doppler preview gain, and source pan. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` after narrowing moved entry visibility to the source-environment boundary. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound source-environment volume boundary continuation: focused Sound runtime validation replaced the flat source-environment volume helper with folder-backed `zircon_plugins/sound/runtime/src/engine/source_environment/volume/` modules for AudioVolume influence selection, sphere/box shape and crossfade weight, and low-pass filter behavior. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound automation target apply boundary continuation: focused Sound runtime validation passed after moving automation target dispatch into `zircon_plugins/sound/runtime/src/automation/target/apply.rs`, leaving `automation/target/mod.rs` structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. After an earlier cold check timed out after 10 minutes before diagnostics, `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-automation-target-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_binding --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_curve --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound automation effect target boundary continuation: focused Sound runtime validation replaced `zircon_plugins/sound/runtime/src/automation/target/effect.rs` with folder-backed `zircon_plugins/sound/runtime/src/automation/target/effect/` modules for effect-kind dispatch, common enabled/bypass/wet parameters, and per-effect gain/filter/reverb/dynamics/modulation/delay/shaper/stereo parameter mapping. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after applying rustfmt to the new files. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the new effect target entry was too private for sibling `target/apply.rs`; after narrowing visibility to `crate::automation::target`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-automation-effect-target-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_binding --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_curve --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service-types root boundary continuation: focused Sound runtime validation passed after converting `zircon_plugins/sound/runtime/src/service_types.rs` into folder-backed `zircon_plugins/sound/runtime/src/service_types/mod.rs` and moving concrete manager state into `service_types/manager_state.rs`. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-types-root-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml runtime_core --locked --offline --jobs 1 --message-format short --color never` passed with 3 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service mixer-graph boundary continuation: focused Sound runtime validation replaced `zircon_plugins/sound/runtime/src/service_types/mixer_graph.rs` with folder-backed `zircon_plugins/sound/runtime/src/service_types/mixer_graph/` modules for full graph import, snapshot, track CRUD, send CRUD, and effect CRUD. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after a rustfmt import adjustment. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the moved service methods were too private for sibling `manager_trait.rs`; after narrowing visibility to `crate::service_types`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-mixer-graph-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml graph_config --locked --offline --jobs 1 --message-format short --color never` passed with 2 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound render-source orchestration boundary continuation: focused Sound runtime validation moved source buffer orchestration, source-environment delegation, sends, and finish reporting out of `zircon_plugins/sound/runtime/src/engine/render/source/mod.rs` and into `zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs`, leaving the source root structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the moved `mix_sources` method was too private for the render root; after narrowing visibility to `crate::engine::render`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-source-orchestration` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound render root orchestration boundary continuation: focused Sound runtime validation moved block-level `render_mix` orchestration, graph validation, track buffer flow, sidechain taps, DSP/meter application, and master gain clamping out of `zircon_plugins/sound/runtime/src/engine/render/mod.rs` and into `zircon_plugins/sound/runtime/src/engine/render/orchestration.rs`, leaving the render root structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-root-orchestration` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml render --locked --offline --jobs 1 --message-format short --color never` passed with 12 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound render sampling boundary continuation: focused Sound runtime validation replaced the flat render sampling helper with folder-backed `zircon_plugins/sound/runtime/src/engine/render/sampling/` modules for resample step calculation, source cursor/range position, interpolation, and frame/channel folding. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-sampling-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml playback --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound render playback boundary continuation: focused Sound runtime validation replaced the flat render playback helper with folder-backed `zircon_plugins/sound/runtime/src/engine/render/playback/` modules for active-playback routing, clip block sampling, pan/gain projection, and finished-playback event reporting. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after a rustfmt import-order adjustment. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-playback-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml playback --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml render --locked --offline --jobs 1 --message-format short --color never` passed with 12 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound engine-state boundary continuation: focused Sound runtime validation passed after replacing the flat engine state helper with folder-backed `zircon_plugins/sound/runtime/src/engine/state/` modules for storage, graph mutation, snapshot projection, dynamic-event executor state, playback records, and source voice records. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-sound-engine-state-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml graph_config --locked --offline --jobs 1 --message-format short --color never` passed with 2 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dynamic_events --locked --offline --jobs 1 --message-format short --color never` passed with 10 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound output-lifecycle boundary continuation: focused Sound runtime validation passed after replacing the flat output lifecycle helper with folder-backed `zircon_plugins/sound/runtime/src/output/lifecycle/` modules for storage, config, start/stop dispatch, callback accounting, status projection, and backend-session state. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-sound-output-lifecycle-boundary`. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml output_device --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml output_device --features cpal-backend --locked --jobs 1 --message-format short --color never` passed with 12 tests and 0 failures using `CARGO_TARGET_DIR=E:\cargo-targets\zircon-sound-output-lifecycle-cpal`. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service output-device boundary continuation: focused Sound runtime validation passed after replacing the flat service output-device helper with folder-backed `zircon_plugins/sound/runtime/src/service_types/output_device/` modules for backend status, catalog listing, descriptor configuration, start/stop lifecycle, and status projection. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-output-device-boundary` and existing `zircon_runtime` warnings only. The first `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml output_device --locked --offline --jobs 1 --message-format short --color never` attempt timed out while cargo/rustc was still compiling `zircon_runtime`; the warmed rerun passed with 8 output-device tests, 0 failures, and 89 filtered tests. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service dynamic-events boundary continuation: focused Sound runtime validation passed after replacing the flat service dynamic-event helper with folder-backed `zircon_plugins/sound/runtime/src/service_types/dynamic_events/` modules for catalog snapshot/registration, handler registration, pending invocation queueing, and deterministic dispatch fan-out. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-events-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dynamic_events --locked --offline --jobs 1 --message-format short --color never` passed with 10 dynamic-event tests, 0 failures, and 87 filtered tests. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service dynamic-event executors boundary continuation: focused Sound runtime validation passed after replacing the flat service dynamic-event executor helper with folder-backed `zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/` modules for executor registration, unregistration, and execution report assembly. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-dynamic-event-executors-boundary` and existing `zircon_runtime` warnings only. The first `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dynamic_events --locked --offline --jobs 1 --message-format short --color never` attempt stopped during cold compilation before the Sound test binary ran; process inspection showed an unrelated editor cargo job active in a separate target directory. The warmed rerun passed with 11 dynamic-event tests, 0 failures, and 87 filtered tests. The full Sound runtime command passed with 98 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-29 Sound DSP-state boundary continuation: focused Sound runtime validation passed after replacing the flat DSP state helper with folder-backed `zircon_plugins/sound/runtime/src/engine/dsp_state/` modules for effect keys, effect runtime fields, track runtime fields, delay-line state, and cross-block history buffers. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-sound-dsp-state-boundary` after an initial private-type visibility error was corrected inside the same boundary. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml dsp_state --locked --offline --jobs 1 --message-format short --color never` passed with 14 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-25 owner-handoff-matrix continuation: V0 docs-only. No Cargo command was run. Static planning update added `Owner Handoff Matrix` to `.codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md` and `Owner Handoff Acceptance` to this matrix. This pass records cross-session owner lanes, Bevy anchors, Zircon source-of-truth paths, acceptable handoff artifacts, and rejection rules; handoffs without current command scope and pass/fail evidence remain context only.
 - 2026-05-25 packet-status-ledger continuation: V0 docs-only. No Cargo command was run. Static planning update added `Current Packet Status Ledger` to `.codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md` and `Current Packet Status Snapshot` to this matrix. This pass records conservative current status and next evidence for W0.1/W1.1/W1.2/W2.1/W2.2/S3/S4/S5/S6/S7/S8/S9/W10.1; no row is promoted by this docs-only snapshot.
 - 2026-05-25 packet-promotion-runbook continuation: V0 docs-only. No Cargo command was run. Static planning update added `Packet Promotion Runbook` to `.codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md` and `Packet Promotion Evidence Checklist` to this matrix. This pass records P0-P6 evidence stages, allowed matrix changes, downgrade/rejection triggers, and required promotion fields so future W/S packet claims cannot use docs-only analysis, UI presentation, or optional advanced behavior as runtime/default completion evidence.

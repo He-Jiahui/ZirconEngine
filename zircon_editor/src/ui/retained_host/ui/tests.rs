@@ -174,6 +174,7 @@ fn apply_presentation(
         runtime_diagnostics,
         &host_window::ModulePluginsPaneViewData::default(),
         &host_window::BuildExportPaneViewData::default(),
+        None,
         shared_root_frames,
         floating_window_projection_bundle,
         None,

@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_baked_lighting_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.baked_lighting";
+pub const CAPABILITY: &str = zircon_plugin_rendering_baked_lighting_runtime::EDITOR_CAPABILITY;
 
 #[derive(Clone, Debug)]
 pub struct RenderingBakedLightingEditorFeature {

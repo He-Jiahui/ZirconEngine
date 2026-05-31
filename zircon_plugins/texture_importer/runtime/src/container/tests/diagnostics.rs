@@ -1,5 +1,5 @@
-use super::super::*;
 use super::common::*;
+use crate::container::support::{KTX2_HEADER_SIZE, KTX2_IDENTIFIER};
 
 #[test]
 fn container_importer_reports_invalid_header_diagnostics() {
@@ -74,7 +74,11 @@ fn container_importer_reports_layer_count_overflow_diagnostics() {
         ),
         (
             "overflow.ktx",
-            ktx1_layer_face_bytes(u32::MAX, 6),
+            {
+                let mut bytes = ktx1_layer_face_bytes(u32::MAX, 6);
+                write_u32(&mut bytes, 40, 32);
+                bytes
+            },
             "ktx array layer count overflows u32",
         ),
         (
@@ -97,9 +101,19 @@ fn container_importer_reports_layer_count_overflow_diagnostics() {
 fn container_importer_rejects_invalid_ktx_face_counts() {
     let cases = [
         (
+            "zero-face.ktx",
+            ktx1_layer_face_bytes(1, 0),
+            "ktx face count must be 1 for ordinary textures or 6 for cubemaps, got 0",
+        ),
+        (
             "invalid-face.ktx",
             ktx1_layer_face_bytes(1, 2),
             "ktx face count must be 1 for ordinary textures or 6 for cubemaps, got 2",
+        ),
+        (
+            "zero-face.ktx2",
+            ktx2_layer_face_bytes(1, 0),
+            "ktx2 face count must be 1 for ordinary textures or 6 for cubemaps, got 0",
         ),
         (
             "invalid-face.ktx2",

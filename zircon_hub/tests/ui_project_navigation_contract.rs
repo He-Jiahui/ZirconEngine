@@ -93,7 +93,7 @@ fn import_project_header_imports_existing_project_without_launching_editor() {
         "self.project_subpage = ProjectSubpage::ProjectDetail;",
         "self.pending_delete_project_path = None;",
         "self.search_query.clear();",
-        "label: \"Project imported\".to_string(),",
+        "TaskStatus::success(\"Project imported\"",
     ] {
         assert!(
             import_project_path.contains(snippet),
@@ -115,12 +115,12 @@ fn import_project_header_imports_existing_project_without_launching_editor() {
 
 #[test]
 fn project_browser_row_selects_and_detail_button_opens_detail() {
-    let components = read_ui_file("project_page_components.slint");
+    let components = read_ui_file("project_browser_components.slint");
     let browser_row = components
         .split("export component ProjectBrowserRow")
         .nth(1)
         .and_then(|source| source.split("export component ").next())
-        .expect("project_page_components.slint must own ProjectBrowserRow");
+        .expect("project_browser_components.slint must own ProjectBrowserRow");
     assert!(
         browser_row
             .matches("root.select(root.project.open-path);")
@@ -138,7 +138,7 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
     assert!(
         browser_row.contains("StateLayerArea {")
             && browser_row.contains("row-state :=")
-            && browser_row.contains("border_radius: MaterialStyleMetrics.border_radius_12;"),
+            && browser_row.contains("border_radius: HubVisualSpec.compact-radius;"),
         "ProjectBrowserRow must use Material StateLayerArea for whole-row hover/press behavior"
     );
     let state_index = browser_row
@@ -169,7 +169,7 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
         browser_row
             .contains("detail-button-size: max(MaterialStyleMetrics.size_40, root.row-height * 2 / 5);")
             && browser_row
-                .contains("detail-hit-width: max(root.detail-button-size, root.row-height * 3 / 5);"),
+                .contains("in property <length> detail-column-width: HubTokens.control-md;"),
         "ProjectBrowserRow detail control should be derived from Material icon-button and row-height tokens instead of fixed pixel coordinates"
     );
     let detail_body = &browser_row[detail_button_index..];
@@ -182,7 +182,7 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
         .next()
         .expect("ProjectBrowserRow detail StateLayerArea must declare its size before color");
     assert!(
-        detail_body.contains("width: root.detail-hit-width;")
+        detail_body.contains("width: root.detail-column-width;")
             && detail_body.contains("height: parent.height;")
             && detail_body.contains("alignment: center;")
             && detail_state_body.contains("width: root.detail-button-size;")
@@ -214,16 +214,17 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
 fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
     let projects_page = read_ui_file("projects.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
+    let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
     let project_projection = read_crate_file("src/app/view_model/projects.rs");
 
-    let show_more_block = dashboard
-        .split("text: root.project-cards-expanded ? root.ui-text.collapse-projects : root.ui-text.show-more-projects;")
+    let show_more_block = dashboard_components
+        .split("text: root.expanded ? root.collapse-label : root.show-more-label;")
         .nth(1)
-        .and_then(|source| source.split("PanelGrid {").next())
-        .expect("ProjectDashboardPage must keep the Show More button before the lower dashboard grid");
+        .and_then(|source| source.split("export component DashboardQuickActionRow").next())
+        .expect("DashboardProjectCardsSection must keep the Show More button inside the dashboard component module");
     assert!(
-        show_more_block
-            .contains("clicked => { root.project-cards-expanded = !root.project-cards-expanded; }"),
+        show_more_block.contains("clicked => { root.expanded = !root.expanded; }"),
         "Dashboard Show More must only expand/collapse project cards"
     );
     for forbidden in [
@@ -239,8 +240,11 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
     }
 
     for snippet in [
+        "DashboardProjectCardsSection {",
+        "expanded <=> root.project-cards-expanded;",
         "action-text: root.ui-text.view-all-projects;",
-        "action-clicked => { root.view-all-projects(); }",
+        "action-clicked => { root.view-all(); }",
+        "view-all => { root.view-all-projects(); }",
         "root.project-view-mode = \"list\";",
         "root.project-subpage = \"project-browser\";",
         "root.view-all-projects();",
@@ -250,25 +254,26 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
         "root.show-project-subpage(\"project-browser\");",
     ] {
         assert!(
-            projects_page.contains(snippet) || dashboard.contains(snippet),
+            projects_page.contains(snippet) || dashboard_surface.contains(snippet),
             "View All Projects and the dashboard list toggle must enter the Project Browser secondary page; missing {snippet}"
         );
     }
 
     assert!(
         projects_page.contains("list-title: root.dashboard-project-title;"),
-        "ProjectBrowserPage must reuse the Pinned/Recent projection title instead of a hard-coded Project List heading"
+        "ProjectBrowserPage must reuse the shared Recent projection title instead of a hard-coded Project List heading"
     );
     for snippet in [
-        "localization::text(language, \"Pinned Projects\", \"置顶项目\")",
         "localization::text(language, \"Recent Projects\", \"最近项目\")",
+        "pub(in crate::app) fn dashboard_project_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData>",
+        ".filtered_recent_projects()",
         "fn project_browser_projects(snapshot: &HubSnapshot) -> Vec<RecentProject>",
         ".filter(|project| project_is_pinned(project, snapshot))",
         "if pinned.is_empty()",
     ] {
         assert!(
             project_projection.contains(snippet),
-            "Project Browser projection must prefer pinned projects and fall back to recent projects; missing {snippet}"
+            "Dashboard must keep the complete recent-project list while Project Browser can prefer pinned projects; missing {snippet}"
         );
     }
 }
@@ -278,10 +283,13 @@ fn new_project_location_state_is_separate_from_settings_default_location() {
     let app = read_ui_file("app.slint");
     let projects = read_ui_file("projects.slint");
     let project_pages = read_ui_file("project_pages.slint");
+    let project_new_page = read_ui_file("project_new_page.slint");
+    let project_components = read_ui_file("project_page_components.slint");
     let binding = read_crate_file("src/app/binding.rs");
     let runtime = read_crate_file("src/app/runtime.rs");
     let folder_picker = read_crate_file("src/app/runtime/folder_picker.rs");
     let project_workspace = read_crate_file("src/app/runtime/project_workspace.rs");
+    let hub_config = read_crate_file("src/settings/hub_config.rs");
     let snapshot = read_crate_file("src/state/hub_snapshot.rs");
 
     for snippet in [
@@ -306,7 +314,9 @@ fn new_project_location_state_is_separate_from_settings_default_location() {
     }
 
     assert!(
-        project_pages.contains("root.browse-folder(\"new-project-location\");"),
+        project_pages.contains("export { ProjectNewPage } from \"project_new_page.slint\";")
+            && project_new_page.contains("browse-folder(kind) => { root.browse-folder(kind); }")
+            && project_components.contains("root.browse-folder(\"new-project-location\");"),
         "ProjectNewPage browse must not mutate Settings' default project location"
     );
     assert!(
@@ -314,14 +324,20 @@ fn new_project_location_state_is_separate_from_settings_default_location() {
             && binding.contains("new_project_location"),
         "binding.rs must drive the New Project location from HubSnapshot, not HubSettings"
     );
+    let runtime_persistence = read_crate_file("src/app/runtime/persistence.rs");
     assert!(
         runtime.contains("new_project_location: PathBuf")
-            && runtime.contains("let new_project_location = config.settings.default_project_dir.clone();")
-            && runtime.contains("new_project_location,")
+            && hub_config.contains("pub new_project_location: PathBuf,")
+            && hub_config.contains("new_project_location: default_project_dir(),")
+            && runtime_persistence
+                .contains("new_project_location: runtime_state.new_project_location,")
+            && runtime_persistence
+                .contains("new_project_location: config.settings.default_project_dir.clone(),")
+            && runtime_persistence.contains("new_project_location: self.new_project_location.clone(),")
             && runtime.contains(
                 "self.new_project_location = PathBuf::from(ui.get_new_project_location().to_string());"
             ),
-        "runtime.rs must keep editable New Project location in runtime state"
+        "runtime and HubConfig must keep editable New Project location in Hub runtime state while retaining the default project directory fallback"
     );
     assert!(
         snapshot.contains("pub new_project_location: PathBuf,"),

@@ -147,12 +147,7 @@ fn push_template_node_commands(
         push_mui_x_primitive_commands(commands, node, &rect, &node_clip, order, opacity);
 
     let draws_text_field_surface = push_material_text_field_surface_commands(
-        commands,
-        node,
-        &rect,
-        &node_clip,
-        order,
-        opacity,
+        commands, node, &rect, &node_clip, order, opacity,
     );
 
     if !draws_mui_x_primitive && !draws_text_field_surface && draws_surface(node) {

@@ -159,7 +159,9 @@ fn assert_chat(registry: &UiComponentDescriptorRegistry) {
         "conversations",
     );
     assert_has_prop(descriptor(registry, "ChatMessageList"), "messages");
-    assert_has_prop(descriptor(registry, "ChatComposer"), "composer_text");
+    let composer = descriptor(registry, "ChatComposer");
+    assert_has_prop(composer, "composer_text");
+    assert_has_slot(composer, "root");
 }
 
 fn descriptor<'a>(

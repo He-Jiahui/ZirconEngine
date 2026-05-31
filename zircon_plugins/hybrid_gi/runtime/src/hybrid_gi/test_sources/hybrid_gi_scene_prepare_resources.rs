@@ -2,17 +2,17 @@ use std::fs;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderMeshSnapshot, RenderPointLightSnapshot, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderWorldSnapshotHandle,
-};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::UVec2;
 use crate::core::math::{Quat, Transform, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::scene::world::World;
 use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
+use zircon_runtime::core::framework::render::{
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe,
+    RenderHybridGiTraceRegion, RenderMeshSnapshot, RenderPointLightSnapshot, RenderSceneSnapshot,
+    RenderSpotLightSnapshot, RenderWorldSnapshotHandle,
+};
 
 use super::hybrid_gi_scene_prepare_material_fixtures::{
     material_capture_test_assets, material_surface_response_test_assets,
@@ -2515,6 +2515,7 @@ fn mesh_with_handles_and_tint(
         node_id,
         transform,
         model,
+        mesh: None,
         material,
         tint,
         mobility: Mobility::Static,

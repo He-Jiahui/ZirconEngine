@@ -19,23 +19,15 @@ impl ResourceStreamer {
         self.last_sprite_ready_count = 0;
         self.last_sprite_texture_fallback_count = 0;
         for mesh in frame.meshes() {
-            self.ensure_model(device, mesh.model)?;
-            self.ensure_material(device, queue, texture_layout, mesh.material)?;
-            self.last_material_count += 1;
-            if let Some(report) = self.material_readiness_report(&mesh.material.id()) {
-                let is_ready = report.is_ready();
-                let uses_fallback = report.uses_fallback();
-                let validation_error_count = report.validation_errors.len();
-                let diagnostic_count = report.diagnostics.len();
-                if is_ready {
-                    self.last_material_ready_count += 1;
-                }
-                if uses_fallback {
-                    self.last_material_fallback_count += 1;
-                }
-                self.last_material_validation_error_count += validation_error_count;
-                self.last_material_diagnostic_count += diagnostic_count;
+            let direct_mesh_ready = mesh
+                .mesh
+                .map(|mesh| self.ensure_mesh(device, mesh).is_ok())
+                .unwrap_or(false);
+            if !direct_mesh_ready {
+                self.ensure_model(device, mesh.model)?;
             }
+            self.ensure_material(device, queue, texture_layout, mesh.material)?;
+            self.record_material_summary(mesh.material.id());
         }
         for sprite in frame.sprites() {
             self.last_sprite_count += 1;
@@ -49,5 +41,19 @@ impl ResourceStreamer {
             }
         }
         Ok(())
+    }
+
+    fn record_material_summary(&mut self, material_id: crate::core::resource::ResourceId) {
+        self.last_material_count += 1;
+        if let Some(summary) = self.material_readiness_summary(&material_id) {
+            if summary.is_ready {
+                self.last_material_ready_count += 1;
+            }
+            if summary.uses_fallback {
+                self.last_material_fallback_count += 1;
+            }
+            self.last_material_validation_error_count += summary.validation_error_count;
+            self.last_material_diagnostic_count += summary.diagnostic_count;
+        }
     }
 }

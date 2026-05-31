@@ -1,5 +1,5 @@
 use zircon_runtime_interface::ui::{
-    accessibility::{UiAccessibilityAction, UiAccessibilityActionStatus, UiAccessibilityNode},
+    accessibility::{UiAccessibilityAction, UiAccessibilityNode},
     dispatch::UiInputDispatchResult,
     event_ui::UiNodeId,
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
@@ -7,7 +7,10 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiSurface;
 
-use super::result::{finish_handled, finish_unhandled, unsupported_role_action};
+use self::result::{finish_focus_rejected, finish_focus_success};
+use super::result::unsupported_role_action;
+
+mod result;
 
 pub(super) fn dispatch_focus(
     surface: &mut UiSurface,
@@ -27,13 +30,7 @@ pub(super) fn dispatch_focus(
         UiFocusChangeReason::Programmatic,
         UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
     ) {
-        Ok(_) => finish_handled(result, target, "accessibility.focus"),
-        Err(error) => finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "focus_rejected",
-            &format!("focus target rejected by runtime focus API: {error}"),
-        ),
+        Ok(_) => finish_focus_success(result, target),
+        Err(error) => finish_focus_rejected(result, target, error),
     }
 }

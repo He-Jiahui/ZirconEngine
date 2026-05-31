@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_vfx_graph_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.vfx_graph";
+pub const CAPABILITY: &str = zircon_plugin_rendering_vfx_graph_runtime::EDITOR_CAPABILITY;
 pub const VFX_GRAPH_ASSET_VIEW_ID: &str = "rendering.vfx_graph.asset";
 
 #[derive(Clone, Debug)]

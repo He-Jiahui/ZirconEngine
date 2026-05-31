@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::{
-    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle,
-};
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::scene::world::World;
 use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
+use zircon_runtime::core::framework::render::{
+    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderSceneSnapshot,
+    RenderWorldSnapshotHandle,
+};
 
 use crate::{
     runtime::HybridGiRuntimeState,
@@ -632,6 +632,7 @@ fn runtime_scene_prepare_from_persisted_page_samples(
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "res://models/card.obj",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/runtime-voxel-persisted-page.mat",
             )),
@@ -676,6 +677,7 @@ fn runtime_scene_prepare_from_persisted_page_samples(
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "res://models/card.obj",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/runtime-voxel-persisted-page.mat",
             )),

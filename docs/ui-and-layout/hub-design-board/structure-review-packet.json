@@ -1,0 +1,189 @@
+{
+  "name": "Zircon Hub structure-first design-board review packet",
+  "schema": "docs/ui-and-layout/hub-design-board/structure-review-packet.schema.json",
+  "source": "docs/ui-and-layout/hub-design-board/index.html",
+  "canvas": {
+    "width": 1568,
+    "height": 1003
+  },
+  "review_priority": "overall-interaction-structure-layout",
+  "manual_signoff": {
+    "status": "pending",
+    "required_primary_artifact": "docs/ui-and-layout/hub-design-structure-layout.png"
+  },
+  "reference_target": {
+    "path": "docs/ui-and-layout/hub.png",
+    "role": "target-ui-reference",
+    "canvas": {
+      "width": 1568,
+      "height": 1003
+    }
+  },
+  "reference_alignment_checks": [
+    {
+      "id": "shell-frame",
+      "target_region": "Topbar, Sidebar, Workspace, and Bottom strip in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "review_focus": "overall-interaction-structure-layout",
+      "acceptance_rule": "Shell regions keep the same ownership and proportions before local functional details are judged."
+    },
+    {
+      "id": "topbar-status-actions",
+      "target_region": "Engine selector, run statuses, utility icons, account, and window controls in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "review_focus": "topbar-command-structure",
+      "acceptance_rule": "Global commands stay in the Topbar and do not consume Workspace content area."
+    },
+    {
+      "id": "sidebar-navigation",
+      "target_region": "Projects through Settings navigation and Engine Status card in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "review_focus": "navigation-ownership",
+      "acceptance_rule": "Navigation changes only replace Workspace content and preserve the Sidebar owner boundary."
+    },
+    {
+      "id": "workspace-projects",
+      "target_region": "Projects title, search/filter controls, project cards, recent list, and quick actions in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-functional-details.png",
+      "review_focus": "workspace-content-density",
+      "acceptance_rule": "Functional density supports the accepted shell structure and never overrides the structure-first decision."
+    },
+    {
+      "id": "overlay-layer",
+      "target_region": "Project menus, sort/filter menus, account menu, and confirm overlays in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-structure-supplement.png",
+      "review_focus": "overlay-ownership",
+      "acceptance_rule": "Overlays float above the shell without resizing Topbar, Sidebar, Workspace, or Bottom strip."
+    },
+    {
+      "id": "bottom-state-strip",
+      "target_region": "Button States strip in docs/ui-and-layout/hub.png",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "review_focus": "bottom-strip-ownership",
+      "acceptance_rule": "The bottom strip remains a separate state-review band and does not merge into the Workspace."
+    }
+  ],
+  "reference_alignment_matrix": "docs/ui-and-layout/hub-design-board/REFERENCE_ALIGNMENT_MATRIX.md",
+  "structure_geometry_baseline": "docs/ui-and-layout/hub-design-board/structure-geometry-baseline.json",
+  "structure_responsive_baseline": "docs/ui-and-layout/hub-design-board/structure-responsive-baseline.json",
+  "structure_review_route_baseline": "docs/ui-and-layout/hub-design-board/structure-review-route-baseline.json",
+  "structure_overlay_baseline": "docs/ui-and-layout/hub-design-board/structure-overlay-baseline.json",
+  "structure_reference_route_baseline": "docs/ui-and-layout/hub-design-board/structure-reference-route-baseline.json",
+  "structure_signoff_checklist": "docs/ui-and-layout/hub-design-board/STRUCTURE_SIGNOFF_CHECKLIST.md",
+  "structure_decision_log": "docs/ui-and-layout/hub-design-board/STRUCTURE_DECISION_LOG.md",
+  "artifacts": [
+    {
+      "id": "structure",
+      "path": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "category": "primary-structure",
+      "review_role": "Primary overall shell, navigation, Workspace, bottom strip, and overlay layout."
+    },
+    {
+      "id": "flow",
+      "path": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "category": "primary-structure",
+      "review_role": "Route grouping, responsive ownership, collapsed-sidebar behavior, and structure invariants."
+    },
+    {
+      "id": "details",
+      "path": "docs/ui-and-layout/hub-design-functional-details.png",
+      "category": "secondary-functional-detail",
+      "review_role": "Local functional-content coverage only; does not override the primary structure artifacts."
+    }
+  ],
+  "review_sequence": [
+    {
+      "step": 1,
+      "artifact_id": "structure",
+      "focus": "overall-interaction-structure-layout",
+      "decision_scope": "Accept or revise shell proportions, navigation ownership, Workspace ownership, overlays, and bottom strip first."
+    },
+    {
+      "step": 2,
+      "artifact_id": "flow",
+      "focus": "route-and-responsive-structure",
+      "decision_scope": "Use route grouping, overlay ownership, responsive ownership, and collapsed-sidebar behavior as secondary structure evidence."
+    },
+    {
+      "step": 3,
+      "artifact_id": "details",
+      "focus": "functional-content-local-detail",
+      "decision_scope": "Confirm local Projects content density only after the primary structure artifacts are acceptable."
+    }
+  ],
+  "manual_review_items": [
+    {
+      "item": "Shell frame",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "secondary_artifact": "hub-design-structure-supplement.png"
+    },
+    {
+      "item": "Navigation",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "secondary_artifact": "hub-design-structure-supplement.png"
+    },
+    {
+      "item": "Workspace",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "secondary_artifact": "hub-design-functional-details.png"
+    },
+    {
+      "item": "Overlay layer",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "secondary_artifact": "hub-design-structure-supplement.png"
+    },
+    {
+      "item": "State layer",
+      "primary_artifact": "hub-design-structure-supplement.png",
+      "secondary_artifact": "hub-design-functional-details.png"
+    },
+    {
+      "item": "Responsive structure",
+      "primary_artifact": "hub-design-structure-supplement.png",
+      "secondary_artifact": "hub-design-structure-layout.png"
+    },
+    {
+      "item": "Bottom strip",
+      "primary_artifact": "hub-design-structure-layout.png",
+      "secondary_artifact": "hub-design-structure-supplement.png"
+    },
+    {
+      "item": "Functional detail",
+      "primary_artifact": "hub-design-functional-details.png",
+      "secondary_artifact": "hub-design-structure-layout.png"
+    }
+  ],
+  "support_documents": [
+    "docs/ui-and-layout/hub-design-board/REVIEW_INDEX.md",
+    "docs/ui-and-layout/hub-design-board/manifest.json",
+    "docs/ui-and-layout/hub-design-board/manifest.schema.json",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_COVERAGE_MATRIX.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_GEOMETRY_EVIDENCE.md",
+    "docs/ui-and-layout/hub-design-board/structure-geometry-baseline.json",
+    "docs/ui-and-layout/hub-design-board/structure-responsive-baseline.json",
+    "docs/ui-and-layout/hub-design-board/structure-review-route-baseline.json",
+    "docs/ui-and-layout/hub-design-board/structure-overlay-baseline.json",
+    "docs/ui-and-layout/hub-design-board/structure-reference-route-baseline.json",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW_GUIDE.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_TO_REFERENCE_MAP.md",
+    "docs/ui-and-layout/hub-design-board/REFERENCE_ALIGNMENT_MATRIX.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_SIGNOFF_CHECKLIST.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_DECISION_LOG.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW_STATUS.md",
+    "docs/ui-and-layout/hub-design-board/STRUCTURE_ACCEPTANCE_RECORD.md",
+    "docs/ui-and-layout/hub-design-board/structure-review-packet.schema.json",
+    "docs/ui-and-layout/hub-design-board/export-metadata.json"
+  ],
+  "validation_commands": [
+    "node docs/ui-and-layout/hub-design-board/export-design-board.mjs",
+    "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
+    "node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs",
+    "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs"
+  ],
+  "acceptance_boundary": [
+    "design-board-and-web-reference-only",
+    "manual-signoff-required",
+    "runtime-behavior-out-of-scope"
+  ]
+}

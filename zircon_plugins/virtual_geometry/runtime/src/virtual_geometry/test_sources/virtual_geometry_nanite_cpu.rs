@@ -351,6 +351,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 node_id: 5,
                 transform: Transform::default(),
                 model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+                mesh: None,
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/cooked.zmaterial",
                 )),
@@ -362,6 +363,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 node_id: 6,
                 transform: Transform::default(),
                 model: ResourceHandle::<ModelMarker>::new(plain_model_id),
+                mesh: None,
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/plain.zmaterial",
                 )),
@@ -376,6 +378,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -384,6 +387,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: None,
                 }],
             }),
@@ -460,6 +464,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -474,6 +479,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -496,6 +502,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -509,6 +516,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -536,6 +544,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -549,6 +558,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -576,6 +586,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -594,6 +605,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -627,6 +639,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -645,6 +658,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -682,6 +696,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -700,6 +715,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -737,6 +753,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -755,6 +772,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -786,6 +804,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -804,6 +823,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -835,6 +855,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -853,6 +874,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -884,6 +906,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -902,6 +925,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -929,6 +953,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -947,6 +972,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -978,6 +1004,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -996,6 +1023,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -1027,6 +1055,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -1045,6 +1074,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),
@@ -1072,6 +1102,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
             node_id: 5,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
@@ -1090,6 +1121,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
                 primitives: vec![ModelPrimitiveAsset {
                     vertices: Vec::new(),
                     indices: Vec::new(),
+                    mesh: None,
                     virtual_geometry: Some(sample_virtual_geometry_asset()),
                 }],
             }),

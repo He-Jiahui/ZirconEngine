@@ -98,7 +98,15 @@ fn missing_shader_readiness_report(reference: &AssetReference) -> RenderMaterial
             },
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }],
+        property_value_summary: None,
+        property_value_states: Vec::new(),
         uniform_summary: None,
+        uniform_fields: Vec::new(),
+        uniform_unsupported: Vec::new(),
+        standard_texture_slot_summary: None,
+        standard_texture_slot_states: Vec::new(),
+        texture_slot_summary: None,
+        non_standard_texture_slot_states: Vec::new(),
         diagnostics: Vec::new(),
     }
 }
@@ -117,7 +125,15 @@ fn missing_runtime_shader_readiness_report(
             },
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }],
+        property_value_summary: None,
+        property_value_states: Vec::new(),
         uniform_summary: None,
+        uniform_fields: Vec::new(),
+        uniform_unsupported: Vec::new(),
+        standard_texture_slot_summary: None,
+        standard_texture_slot_states: Vec::new(),
+        texture_slot_summary: None,
+        non_standard_texture_slot_states: Vec::new(),
         diagnostics: Vec::new(),
     }
 }

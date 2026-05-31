@@ -1,0 +1,359 @@
+import {
+    ProjectDetailData,
+    SourceEngineData,
+    SourceEngineRowData,
+    UiTextData,
+} from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { EmptyStateBlock } from "surfaces.slint";
+import { HubPopupWindow, PopupPanel } from "overlays.slint";
+import { ActionRow, InfoRow, PanelListViewport } from "data_display.slint";
+import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, StateLayerArea } from "material_bridge.slint";
+
+component HeaderUserMenuAction inherits ActionRow {
+    in property <string> action-id;
+    in property <string> title;
+    in property <string> detail;
+    in property <image> icon-image;
+    in property <bool> enabled: true;
+    callback clicked;
+
+    row-height: HubTokens.list-row-sm;
+    show-trailing: false;
+    disabled-shell-opacity: MaterialPalette.disable_opacity;
+    enabled-avatar-foreground: HubVisualSpec.accent-stroke;
+    action: {
+        id: root.action-id,
+        icon: "",
+        icon-image: root.icon-image,
+        has-icon-image: true,
+        title: root.title,
+        detail: root.detail,
+        enabled: root.enabled,
+    };
+
+    activate(id) => {
+        root.clicked();
+    }
+}
+
+export component HeaderEngineOption inherits InfoRow {
+    in property <SourceEngineRowData> engine;
+    callback picked(string);
+
+    title: root.engine.title;
+    detail: root.engine.status;
+    meta: root.engine.last-build;
+    leading-image: @image-url("../assets/brand/zircon-mark.svg");
+    has-leading-image: true;
+    selected: root.engine.active;
+    row-height: HubTokens.list-row-md;
+    idle-border-width: 0px;
+    idle-background: transparent;
+    enabled-avatar-background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
+    enabled-avatar-foreground: root.engine.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+
+    clicked => {
+        root.picked(root.engine.id);
+    }
+}
+
+export component HeaderEngineSelector inherits Rectangle {
+    in property <SourceEngineData> current-engine;
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <UiTextData> ui-text;
+    in property <length> selector-width: HubTokens.nav-width-expanded-min * 4 / 5;
+    in property <length> selector-height: HubTokens.control-md;
+    callback selected(string);
+
+    private property <length> popup-height: root.selector-height * 7;
+    private property <length> popup-header-height: HubTokens.icon-lg;
+    private property <length> popup-list-height: max(HubTokens.list-row-lg, root.popup-height - HubTokens.toolbar-gap * 2 - root.popup-header-height - HubTokens.space-2);
+    private property <length> engine-popup-scroll-y: 0px;
+
+    width: root.selector-width;
+    height: root.selector-height;
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: HubVisualSpec.compact-radius;
+        border-width: HubTokens.border-width;
+        border-color: HubVisualSpec.outline-muted;
+        background: HubVisualSpec.panel-background;
+        clip: true;
+
+        StateLayerArea {
+            width: parent.width;
+            height: parent.height;
+            color: HubVisualSpec.accent-stroke;
+            border_radius: HubVisualSpec.compact-radius;
+            clicked => { popup.show(); }
+        }
+
+        HorizontalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: HubTokens.space-4;
+            padding-right: HubTokens.space-3;
+            spacing: HubTokens.space-2;
+            alignment: center;
+
+            MaterialText {
+                horizontal-stretch: 1;
+                text: root.current-engine.title;
+                color: MaterialPalette.on_surface;
+                style: MaterialTypography.label_medium;
+                overflow: elide;
+                vertical_alignment: center;
+            }
+
+            Image {
+                width: HubTokens.icon-xs;
+                height: HubTokens.icon-xs;
+                source: @image-url("../assets/icons/ui/chevron-down.svg");
+                colorize: MaterialPalette.on_surface_variant;
+            }
+        }
+    }
+
+    popup := HubPopupWindow {
+        popup-x: 0px;
+        popup-y: root.height + MaterialStyleMetrics.spacing_6;
+        popup-width: max(root.selector-width * 2, HubTokens.panel-min-sm);
+        popup-height: root.popup-height;
+
+        PopupPanel {
+            width: parent.width;
+            height: parent.height;
+            border-radius: HubVisualSpec.panel-radius;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: HubTokens.toolbar-gap;
+                spacing: HubTokens.space-2;
+
+                HorizontalLayout {
+                    height: HubTokens.icon-lg;
+                    spacing: HubTokens.space-2;
+
+                    MaterialText {
+                        text: root.ui-text.source-engines;
+                        color: MaterialPalette.on_surface;
+                        style: MaterialTypography.label_large;
+                    }
+
+                    Rectangle { horizontal-stretch: 1; }
+
+                    MaterialText {
+                        text: root.ui-text.registered;
+                        color: MaterialPalette.on_surface_variant;
+                        style: MaterialTypography.label_medium;
+                    }
+                }
+
+                engine-list := PanelListViewport {
+                    height: root.popup-list-height;
+                    scroll-y <=> root.engine-popup-scroll-y;
+                    row-count: root.engine-count;
+                    row-height: HubTokens.list-row-md;
+                    row-spacing: HubTokens.space-2;
+                    vertical-padding: 0px;
+                    empty-height: HubTokens.list-row-lg;
+
+                    for engine in root.engines: HeaderEngineOption {
+                        engine: engine;
+                        picked(id) => {
+                            popup.close();
+                            root.selected(id);
+                        }
+                    }
+
+                    if root.engine-count == 0: EmptyStateBlock {
+                        height: HubTokens.list-row-lg;
+                        title: root.ui-text.no-source-engines;
+                        body-padding: HubTokens.space-3;
+                        center-content: true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component HeaderUserMenu inherits Rectangle {
+    in property <UiTextData> ui-text;
+    in property <ProjectDetailData> project;
+    in property <length> menu-width: HubTokens.user-menu-min-width;
+    in property <length> menu-height: HubTokens.control-lg;
+    in property <bool> tight: false;
+    callback settings-clicked();
+
+    private property <length> popup-width: max(HubTokens.panel-min-sm, root.menu-width * 2);
+    private property <length> popup-height: HubTokens.list-row-lg + HubTokens.list-row-sm * 3 + HubTokens.toolbar-gap * 5;
+    private property <string> project-label: root.project.selected ? root.project.title : root.ui-text.no-project-selected;
+
+    width: root.menu-width;
+    height: root.menu-height;
+    clip: false;
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: HubVisualSpec.compact-radius;
+        background: transparent;
+        clip: true;
+
+        StateLayerArea {
+            width: parent.width;
+            height: parent.height;
+            color: HubVisualSpec.accent-stroke;
+            border_radius: HubVisualSpec.compact-radius;
+            clicked => {
+                user-menu-popup.show();
+            }
+        }
+
+        HorizontalLayout {
+            width: parent.width;
+            height: parent.height;
+            spacing: HubTokens.space-2;
+            alignment: center;
+
+            Rectangle {
+                width: HubTokens.icon-xl;
+                height: HubTokens.icon-xl;
+                border-radius: HubTokens.icon-xl / 2;
+                background: MaterialPalette.secondary_container;
+
+                MaterialText {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.ui-text.local-user-initials;
+                    color: MaterialPalette.on_secondary_container;
+                    style: MaterialTypography.label_medium_prominent;
+                    horizontal_alignment: center;
+                    vertical_alignment: center;
+                }
+            }
+
+            if !root.tight: MaterialText {
+                text: root.ui-text.local-user;
+                color: MaterialPalette.on_surface;
+                style: MaterialTypography.label_medium;
+                vertical_alignment: center;
+                horizontal-stretch: 1;
+                overflow: elide;
+            }
+
+            if !root.tight: Image {
+                width: MaterialStyleMetrics.size_14;
+                height: MaterialStyleMetrics.size_14;
+                source: @image-url("../assets/icons/ui/chevron-down.svg");
+                image-fit: contain;
+                colorize: MaterialPalette.on_surface_variant;
+            }
+        }
+    }
+
+    user-menu-popup := HubPopupWindow {
+        popup-x: root.width - root.popup-width;
+        popup-y: root.height + MaterialStyleMetrics.spacing_6;
+        popup-width: root.popup-width;
+        popup-height: root.popup-height;
+
+        PopupPanel {
+            width: parent.width;
+            height: parent.height;
+            border-radius: HubVisualSpec.panel-radius;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: HubTokens.toolbar-gap;
+                spacing: HubTokens.space-2;
+
+                HorizontalLayout {
+                    height: HubTokens.list-row-lg;
+                    spacing: HubTokens.space-3;
+                    alignment: center;
+
+                    Rectangle {
+                        width: HubTokens.icon-xl + HubTokens.space-2;
+                        height: HubTokens.icon-xl + HubTokens.space-2;
+                        border-radius: (HubTokens.icon-xl + HubTokens.space-2) / 2;
+                        border-width: HubTokens.border-width;
+                        border-color: HubVisualSpec.accent-stroke;
+                        background: MaterialPalette.secondary_container;
+
+                        MaterialText {
+                            width: parent.width;
+                            height: parent.height;
+                            text: root.ui-text.local-user-initials;
+                            color: MaterialPalette.on_secondary_container;
+                            style: MaterialTypography.title_small;
+                            horizontal_alignment: center;
+                            vertical_alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        min-width: 1px;
+                        height: parent.height;
+                        spacing: HubTokens.space-0;
+
+                        Rectangle { vertical-stretch: 1; min-height: 0px; }
+                        MaterialText {
+                            text: root.ui-text.local-user;
+                            color: MaterialPalette.on_surface;
+                            style: MaterialTypography.label_large;
+                            overflow: elide;
+                        }
+                        MaterialText {
+                            text: root.project-label;
+                            color: MaterialPalette.on_surface_variant;
+                            style: MaterialTypography.body_small;
+                            overflow: elide;
+                        }
+                        Rectangle { vertical-stretch: 1; min-height: 0px; }
+                    }
+                }
+
+                Rectangle {
+                    height: HubTokens.border-width;
+                    horizontal-stretch: 1;
+                    background: HubVisualSpec.outline-muted;
+                }
+
+                HeaderUserMenuAction {
+                    title: root.ui-text.project-detail-title;
+                    detail: root.project-label;
+                    icon-image: @image-url("../assets/icons/ui/folder.svg");
+                    enabled: root.project.selected;
+                }
+
+                HeaderUserMenuAction {
+                    title: root.ui-text.save-settings;
+                    detail: root.ui-text.configuration-health;
+                    icon-image: @image-url("../assets/icons/ui/settings.svg");
+                    clicked => {
+                        user-menu-popup.close();
+                        root.settings-clicked();
+                    }
+                }
+
+                HeaderUserMenuAction {
+                    title: root.ui-text.check-for-updates;
+                    detail: root.ui-text.engine-status;
+                    icon-image: @image-url("../assets/icons/ui/refresh.svg");
+                    enabled: false;
+                }
+            }
+        }
+    }
+}

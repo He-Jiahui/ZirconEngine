@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::{RenderDirectionalLightSnapshot, RenderMeshSnapshot};
-use zircon_runtime::core::framework::render::{
-    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle,
-};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::scene::world::World;
 use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
+use zircon_runtime::core::framework::render::{RenderDirectionalLightSnapshot, RenderMeshSnapshot};
+use zircon_runtime::core::framework::render::{
+    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderSceneSnapshot,
+    RenderWorldSnapshotHandle,
+};
 
 use crate::{
     runtime::HybridGiRuntimeState,
@@ -2935,6 +2935,7 @@ fn mesh_at(
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
             "res://models/card.obj",
         )),
+        mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(material)),
         tint: Vec4::ONE,
         mobility: Mobility::Static,

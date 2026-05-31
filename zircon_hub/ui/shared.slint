@@ -3,7 +3,6 @@ import {
     FilledButton,
     FilledIconButton,
     IconButton as MaterialIconButton,
-    ListTile,
     OutlineButton,
     OutlineIconButton,
     TonalButton,
@@ -12,7 +11,9 @@ import {
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialTypography,
+    StateLayerArea,
 } from "material_bridge.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 
 export struct NavItemData {
     id: string,
@@ -51,6 +52,7 @@ export struct RecentProjectRowData {
     version: string,
     engine-id: string,
     engine-label: string,
+    status: string,
     cover-image: image,
     has-cover: bool,
     selected: bool,
@@ -150,12 +152,19 @@ export struct CloudSummaryData {
     status: string,
     account-status: string,
     local-mode-status: string,
+    package-action-detail: string,
+    package-action-enabled: bool,
+    install-action-detail: string,
+    install-action-enabled: bool,
     output-path: string,
     output-status: string,
     device-path: string,
     device-status: string,
     package-path: string,
     package-status: string,
+    operation-timeline-title: string,
+    operation-timeline-empty-title: string,
+    operation-timeline-empty-detail: string,
 }
 
 export struct CloudServiceData {
@@ -168,7 +177,12 @@ export struct CloudServiceData {
 export struct SettingStatusData {
     label: string,
     detail: string,
+    scope: string,
     state: string,
+    action-id: string,
+    action-label: string,
+    disabled-reason: string,
+    actionable: bool,
 }
 
 export struct HeaderStatusData {
@@ -207,7 +221,45 @@ export struct SourceBuildHistoryRowData {
     profile: string,
     output-path: string,
     detail: string,
+    log: string,
+    command: string,
+    target: string,
+    process-id: string,
     success: bool,
+}
+
+export struct OperationTimelineRowData {
+    action: string,
+    status: string,
+    finished: string,
+    target: string,
+    detail: string,
+    log: string,
+    recovery: string,
+    command: string,
+    output-path: string,
+    process-id: string,
+    success: bool,
+}
+
+export struct WorkspaceActionReadinessData {
+    selected-project-title: string,
+    selected-project-path: string,
+    selected-project-status: string,
+    source-engine-title: string,
+    source-engine-status: string,
+    source-build-summary: string,
+    operation-summary: string,
+    build-enabled: bool,
+    build-disabled-reason: string,
+    open-editor-enabled: bool,
+    open-editor-disabled-reason: string,
+    open-output-enabled: bool,
+    open-output-disabled-reason: string,
+    package-enabled: bool,
+    package-disabled-reason: string,
+    install-enabled: bool,
+    install-disabled-reason: string,
 }
 
 export struct UiTextData {
@@ -299,6 +351,9 @@ export struct UiTextData {
     staged-output-directory: string,
     build-history: string,
     no-build-history: string,
+    operation-timeline: string,
+    no-operation-timeline: string,
+    operation-timeline-empty-detail: string,
     toolchain: string,
     python-executable: string,
     cargo-executable: string,
@@ -377,6 +432,8 @@ export struct UiTextData {
     cloud-output: string,
     cloud-device-install: string,
     cloud-packages: string,
+    cloud-package-action: string,
+    cloud-install-action: string,
     cloud-services: string,
     cloud-service-slots: string,
     plugin-catalog: string,
@@ -393,7 +450,7 @@ export struct UiTextData {
 export component BrandMark inherits Rectangle {
     width: MaterialStyleMetrics.size_36;
     height: root.width;
-    border-radius: MaterialStyleMetrics.border_radius_8;
+    border-radius: HubVisualSpec.compact-radius;
     background: transparent;
 
     Image {
@@ -445,24 +502,31 @@ export component PillButton inherits Rectangle {
     in property <string> text;
     in property <string> icon;
     in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
     in property <bool> has-icon-image: false;
     in property <bool> primary: false;
     in property <bool> enabled: true;
+    in property <bool> focused: false;
     callback clicked;
+
+    private property <length> focus-radius: root.height / 2;
 
     height: MaterialStyleMetrics.size_40;
     min-width: root.height * 3;
     preferred-width: root.height * 4;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
     if root.primary && (root.has-icon-image || root.icon != ""): FilledButton {
         width: parent.width;
         height: parent.height;
         text: root.text;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
         enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
     }
 
@@ -472,7 +536,9 @@ export component PillButton inherits Rectangle {
         text: root.text;
         enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
     }
 
@@ -480,10 +546,12 @@ export component PillButton inherits Rectangle {
         width: parent.width;
         height: parent.height;
         text: root.text;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
         enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
     }
 
@@ -493,66 +561,273 @@ export component PillButton inherits Rectangle {
         text: root.text;
         enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
+    }
+
+    // Focus is a Hub-level state because the Material template buttons own hover/pressed
+    // behavior but do not expose a shared focus-ring API across all button variants.
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubCommandButton inherits Rectangle {
+    in property <string> text;
+    in property <image> source-image;
+    in property <bool> has-source-image: true;
+    in property <bool> primary: false;
+    in property <bool> with-menu: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> button-width: root.primary ? HubTokens.control-lg * 4 + HubTokens.space-7 + HubTokens.space-1 : HubTokens.control-lg * 4 + HubTokens.space-1;
+    in property <length> button-height: HubTokens.control-lg;
+    callback clicked;
+
+    width: root.button-width;
+    height: root.button-height;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.primary ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted);
+    background: root.primary ? HubVisualSpec.accent-fill : HubVisualSpec.panel-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.primary ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    HorizontalLayout {
+        x: 0px;
+        width: root.with-menu ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;
+        height: parent.height;
+        padding-left: root.primary ? HubTokens.space-6 + MaterialStyleMetrics.size_4 : HubTokens.space-4;
+        padding-right: root.primary ? HubTokens.space-2 : (root.with-menu ? HubTokens.space-3 : HubTokens.space-4);
+        spacing: root.primary ? HubTokens.space-3 : HubTokens.space-2;
+        alignment: root.primary ? start : center;
+
+        CenteredIcon {
+            width: HubTokens.icon-md;
+            height: parent.height;
+            icon-size: HubTokens.icon-md;
+            source-image: root.source-image;
+            has-source-image: root.has-source-image;
+        }
+
+        MaterialText {
+            horizontal-stretch: root.primary ? 0 : 1;
+            text: root.text;
+            color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+            style: MaterialTypography.label_medium;
+            overflow: elide;
+            vertical_alignment: center;
+        }
+    }
+
+    if root.with-menu: Rectangle {
+        x: parent.width - root.height - MaterialStyleMetrics.size_2;
+        y: 0px;
+        width: HubTokens.border-width;
+        height: parent.height;
+        background: HubVisualSpec.accent-stroke.with_alpha(0.22);
+    }
+
+    if root.with-menu: Image {
+        width: HubTokens.icon-xs;
+        height: HubTokens.icon-xs;
+        x: parent.width - root.height - MaterialStyleMetrics.size_2 + (root.height + MaterialStyleMetrics.size_2 - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/chevron-down.svg");
+        colorize: MaterialPalette.on_primary_container;
     }
 }
 
 export component IconButton inherits Rectangle {
     in property <string> icon;
     in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
     in property <bool> has-icon-image: false;
     in property <bool> active: false;
     in property <bool> enabled: true;
+    in property <bool> focused: false;
     callback clicked;
+
+    private property <length> focus-radius: HubVisualSpec.compact-radius;
 
     width: MaterialStyleMetrics.size_40;
     height: root.width;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
     if root.active: FilledIconButton {
         width: parent.width;
         height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
         enabled: root.enabled;
+        tooltip: root.icon;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
     }
 
-    if !root.active: TonalIconButton {
+    if !root.active: OutlineIconButton {
         width: parent.width;
         height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
         enabled: root.enabled;
+        tooltip: root.icon;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubIconButton inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
+    in property <bool> has-icon-image: false;
+    in property <bool> active: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> button-width: MaterialStyleMetrics.size_40;
+    in property <length> button-height: root.button-width;
+    in property <length> button-radius: HubVisualSpec.compact-radius;
+    in property <length> button-border-width: HubTokens.border-width;
+    in property <length> icon-size: HubTokens.icon-md;
+    in property <color> active-background: HubVisualSpec.accent-fill;
+    in property <color> idle-background: HubVisualSpec.panel-background;
+    in property <color> active-border: HubVisualSpec.accent-stroke;
+    in property <color> idle-border: HubVisualSpec.outline-muted;
+    in property <color> active-foreground: HubVisualSpec.accent-stroke;
+    in property <color> idle-foreground: MaterialPalette.on_surface;
+    in property <color> state-layer-color: root.active ? root.active-foreground : MaterialPalette.on_surface;
+    in property <float> disabled-opacity: HubVisualSpec.disabled-opacity;
+    callback clicked;
+
+    width: root.button-width;
+    height: root.button-height;
+    border-radius: root.button-radius;
+    border-width: root.button-border-width;
+    border-color: root.active ? root.active-border : root.idle-border;
+    background: root.active ? root.active-background : root.idle-background;
+    opacity: root.enabled ? 1.0 : root.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.state-layer-color;
+        border_radius: root.button-radius;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    Image {
+        width: root.icon-size;
+        height: root.icon-size;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        colorize: root.active ? root.active-foreground : root.idle-foreground;
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.button-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
     }
 }
 
 export component NavButton inherits Rectangle {
     in property <NavItemData> item;
     in property <bool> collapsed: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
     callback clicked(string);
 
-    height: MaterialStyleMetrics.size_56;
-    border-radius: root.height / 2;
-    border-width: root.item.active ? MaterialStyleMetrics.size_1 : 0px;
-    border-color: MaterialPalette.primary;
-    background: root.item.active ? MaterialPalette.secondary_container : transparent;
+    height: MaterialStyleMetrics.size_48 + MaterialStyleMetrics.size_2;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : (root.item.active ? HubTokens.border-width : 0px);
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.accent-stroke;
+    background: root.item.active ? HubVisualSpec.nav-active-fill : transparent;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
-    ListTile {
+    StateLayerArea {
         width: parent.width;
         height: parent.height;
-        text: root.collapsed ? "" : root.item.title;
-        supporting_text: "";
-        avatar_icon: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/icons/nav/projects.svg");
-        avatar_background: transparent;
-        avatar_foreground: root.item.active ? MaterialPalette.on_secondary_container : MaterialPalette.primary;
+        color: root.item.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.compact-radius;
         clicked => {
-            root.clicked(root.item.id);
+            if (root.enabled) {
+                root.clicked(root.item.id);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.collapsed ? 0px : HubTokens.space-3;
+        padding-right: root.collapsed ? 0px : HubTokens.space-3;
+        spacing: HubTokens.space-3;
+        alignment: start;
+
+        Rectangle {
+            width: HubTokens.icon-lg;
+            height: parent.height;
+
+            Image {
+                width: HubTokens.icon-lg;
+                height: HubTokens.icon-lg;
+                source: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/icons/nav/projects.svg");
+                colorize: root.item.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+            }
+        }
+
+        if !root.collapsed: MaterialText {
+            horizontal-stretch: 1;
+            height: parent.height;
+            text: root.item.title;
+            color: root.item.active ? MaterialPalette.on_surface : MaterialPalette.on_surface_variant;
+            style: MaterialTypography.label_large;
+            overflow: elide;
+            vertical_alignment: center;
         }
     }
 }
@@ -560,56 +835,108 @@ export component NavButton inherits Rectangle {
 export component StatusPill inherits Rectangle {
     in property <string> icon;
     in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
     in property <bool> has-icon-image: false;
     in property <string> text;
     in property <color> accent-color;
+    in property <string> tone: "custom";
 
-    height: MaterialStyleMetrics.size_40;
+    height: MaterialStyleMetrics.size_40 - MaterialStyleMetrics.size_2;
     min-width: root.height * 5 / 2;
-    border-radius: root.height / 2;
+    border-radius: HubVisualSpec.compact-radius;
     border-width: MaterialStyleMetrics.size_1;
-    border-color: root.accent-color;
-    background: MaterialPalette.surface_container_low;
+    border-color: root.tone == "success" || root.tone == "ok" ? HubVisualSpec.status-success-stroke : (root.tone == "warning" ? HubVisualSpec.status-warning-stroke : (root.tone == "error" ? HubVisualSpec.status-error-stroke : (root.tone == "neutral" ? HubVisualSpec.status-neutral-stroke : (root.tone == "info" ? HubVisualSpec.status-info-stroke : root.accent-color))));
+    background: root.tone == "success" || root.tone == "ok" ? HubVisualSpec.status-success-fill : (root.tone == "warning" ? HubVisualSpec.status-warning-fill : (root.tone == "error" ? HubVisualSpec.status-error-fill : (root.tone == "neutral" ? HubVisualSpec.status-neutral-fill : (root.tone == "info" ? HubVisualSpec.status-info-fill : root.accent-color.with-alpha(0.11)))));
     clip: true;
 
-    ActionChip {
+    HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/status/running.svg");
-        text: root.text;
-        tooltip: root.text;
+        padding-left: MaterialStyleMetrics.spacing_12;
+        padding-right: MaterialStyleMetrics.spacing_12;
+        spacing: MaterialStyleMetrics.spacing_8;
+        alignment: center;
+
+        Rectangle {
+            width: HubTokens.icon-xs;
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+                Image {
+                    width: HubTokens.icon-xs;
+                    height: HubTokens.icon-xs;
+                    source: root.icon == ">" ? @image-url("../assets/icons/status/reference-running.svg") : (root.icon == "!" ? @image-url("../assets/icons/status/reference-warning.svg") : (root.icon == "x" ? @image-url("../assets/icons/status/reference-error.svg") : @image-url("../assets/icons/status/reference-success.svg")));
+                    image-fit: contain;
+                }
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            }
+        }
+
+        MaterialText {
+            height: parent.height;
+            text: root.text;
+            color: root.tone == "success" || root.tone == "ok" ? HubVisualSpec.status-success-foreground : (root.tone == "warning" ? HubVisualSpec.status-warning-foreground : (root.tone == "error" ? HubVisualSpec.status-error-foreground : (root.tone == "neutral" ? HubVisualSpec.status-neutral-foreground : (root.tone == "info" ? HubVisualSpec.status-info-foreground : root.accent-color))));
+            style: MaterialTypography.label_medium;
+            overflow: elide;
+            vertical_alignment: center;
+        }
     }
 }
 
 export component WindowButton inherits Rectangle {
     in property <string> icon;
     in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/close.svg");
     in property <bool> has-icon-image: false;
     in property <bool> danger: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
     callback clicked;
+
+    private property <length> focus-radius: HubVisualSpec.compact-radius;
 
     width: MaterialStyleMetrics.size_40;
     height: root.width;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
     MaterialIconButton {
         width: parent.width;
         height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/close.svg");
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
         inline: true;
         has_error: root.danger;
+        enabled: root.enabled;
         tooltip: root.icon;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
     }
 }
 
 export component Panel inherits Rectangle {
-    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-radius: HubVisualSpec.panel-radius;
     border-width: MaterialStyleMetrics.size_1;
-    border-color: MaterialPalette.outline_variant;
-    background: MaterialPalette.surface_container_low;
+    border-color: HubVisualSpec.outline-muted;
+    background: HubVisualSpec.panel-background;
 }
 
 export component FieldLabel inherits MaterialText {

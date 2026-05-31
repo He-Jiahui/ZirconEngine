@@ -162,6 +162,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         )
         .with_prop(string_prop("composer_text"))
         .with_prop(bool_prop("streaming", false))
+        .slot(UiSlotSchema::new("root"))
         .events([
             UiComponentEventKind::Focus,
             UiComponentEventKind::ValueChanged,

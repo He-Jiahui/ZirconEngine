@@ -4,7 +4,7 @@
 
 **Goal:** Improve deterministic sound runtime quality with stateful biquad filters and cross-block loaded HRTF FIR continuity.
 
-**Architecture:** Neutral sound contracts stay unchanged. Concrete DSP/HRTF state lives in `zircon_plugins/sound/runtime`, with focused `engine/filter.rs` and `engine/hrtf.rs` modules to keep `engine/render.rs` from growing another responsibility.
+**Architecture:** Neutral sound contracts stay unchanged. Concrete DSP/HRTF state lives in `zircon_plugins/sound/runtime`, with focused `engine/filter.rs` and `engine/hrtf.rs` modules to keep render orchestration from growing another responsibility.
 
 **Tech Stack:** Rust, Cargo, existing sound runtime manager/tests, current `SoundFilterEffect` and `SoundHrtfProfileDescriptor` DTOs.
 
@@ -18,7 +18,7 @@
 - Modify `zircon_plugins/sound/runtime/src/engine/dsp_state.rs`: add filter state storage to `SoundEffectRuntimeState`.
 - Modify `zircon_plugins/sound/runtime/src/engine/dsp.rs`: call stateful biquad filtering instead of the old local filter helper.
 - Modify `zircon_plugins/sound/runtime/src/engine/state.rs`: store HRTF render state.
-- Modify `zircon_plugins/sound/runtime/src/engine/render.rs`: pass source/listener/profile identity into the HRTF module and prune stale HRTF state.
+- Modify `zircon_plugins/sound/runtime/src/engine/render/mod.rs`: pass source/listener/profile identity into the HRTF module and prune stale HRTF state.
 - Modify `zircon_plugins/sound/runtime/src/tests/dsp_state.rs`: add filter continuity and mode tests.
 - Modify `zircon_plugins/sound/runtime/src/tests/spatial.rs`: add loaded-HRTF cross-block continuity test.
 - Update `docs/engine-architecture/runtime-sound-extension.md` and `.codex/sessions/20260503-0228-sound-mixer-graph-continuation.md`.
@@ -48,7 +48,7 @@
 
 ```powershell
 cargo fmt --check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_sound_runtime
-rustfmt --check "zircon_plugins\sound\runtime\src\engine\filter.rs" "zircon_plugins\sound\runtime\src\engine\hrtf.rs" "zircon_plugins\sound\runtime\src\engine\dsp.rs" "zircon_plugins\sound\runtime\src\engine\dsp_state.rs" "zircon_plugins\sound\runtime\src\engine\render.rs" "zircon_plugins\sound\runtime\src\engine\state.rs"
+rustfmt --check "zircon_plugins\sound\runtime\src\engine\filter.rs" "zircon_plugins\sound\runtime\src\engine\hrtf.rs" "zircon_plugins\sound\runtime\src\engine\dsp.rs" "zircon_plugins\sound\runtime\src\engine\dsp_state.rs" "zircon_plugins\sound\runtime\src\engine\render\mod.rs" "zircon_plugins\sound\runtime\src\engine\state.rs"
 ```
 
 - [x] Run focused tests:
@@ -70,5 +70,5 @@ git diff --check -- "zircon_plugins\sound\runtime\src\engine" "zircon_plugins\so
 - Filter modes use the existing `cutoff_hz`, `resonance`, and `gain_db` descriptor fields instead of ignoring resonance/gain.
 - Loaded HRTF profiles keep FIR tails across render blocks.
 - Missing HRTF profiles still use the preview fallback.
-- `engine/render.rs` delegates loaded HRTF rendering to a focused module instead of growing another inline DSP section.
+- Render orchestration delegates loaded HRTF rendering to a focused module instead of growing another inline DSP section.
 - Docs and session notes identify remaining production DSP/HRTF gaps.

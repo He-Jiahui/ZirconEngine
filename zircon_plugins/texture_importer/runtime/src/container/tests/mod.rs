@@ -1,7 +1,10 @@
 mod astc;
 mod common;
 mod dds;
+mod dds_header_pixel_format;
 mod diagnostics;
 mod ktx1;
+mod ktx1_metadata;
 mod ktx2;
+mod ktx2_metadata;
 mod settings;

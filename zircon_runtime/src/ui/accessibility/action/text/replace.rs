@@ -1,7 +1,6 @@
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
-        UiAccessibilityActionStatus, UiAccessibilityNode,
+        UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityNode,
     },
     component::UiValue,
     dispatch::UiInputDispatchResult,
@@ -11,13 +10,15 @@ use zircon_runtime_interface::ui::{
 use crate::ui::surface::{UiPropertyMutationRequest, UiSurface};
 
 use super::super::{
-    result::{finish_unhandled, unsupported_role_action},
-    text_state::text_input_is_read_only,
+    result::unsupported_role_action, text_state::text_input_is_read_only,
     value_target::set_value_property,
 };
 
 use self::replacement::selected_text_replacement;
-use self::result::finish_replace_selected_text_mutation;
+use self::result::{
+    finish_missing_replace_selected_text, finish_read_only_replace_selected_text,
+    finish_replace_selected_text_mutation,
+};
 
 mod replacement;
 mod result;
@@ -58,22 +59,10 @@ pub(in crate::ui::accessibility::action) fn dispatch_replace_selected_text(
         .clone()
         .or_else(|| request.numeric_value.map(|value| value.to_string()))
     else {
-        return finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "missing_value",
-            "replace selected text action requires value or numeric_value",
-        );
+        return finish_missing_replace_selected_text(result, target);
     };
     if text_input_is_read_only(surface, target) {
-        return finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "read_only",
-            "text input is read-only",
-        );
+        return finish_read_only_replace_selected_text(result, target);
     }
 
     let replacement = selected_text_replacement(surface, target, snapshot_node, &replacement);

@@ -1,0 +1,349 @@
+import { RecentProjectRowData } from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { EmptyStateBlock, HubPanel, PanelHeader } from "surfaces.slint";
+import { PanelListViewport } from "data_display.slint";
+import {
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
+} from "material_bridge.slint";
+
+export component TableColumnHeader inherits Rectangle {
+    in property <string> text;
+    in property <length> row-height: MaterialStyleMetrics.size_24 + MaterialStyleMetrics.size_2;
+
+    height: root.row-height;
+    background: transparent;
+
+    MaterialText {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        overflow: elide;
+        color: MaterialPalette.on_surface_variant;
+        style: MaterialTypography.label_medium;
+        vertical_alignment: center;
+    }
+}
+
+export component ProjectTableRow inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    in property <string> action-tooltip: "";
+    in property <length> row-height: HubVisualSpec.visual-table-row-height;
+    in property <length> row-gap: HubTokens.toolbar-gap;
+    in property <length> content-gap: HubTokens.space-2;
+    in property <length> name-min-width: HubTokens.panel-min-sm * 2 / 5;
+    in property <length> version-width: HubTokens.control-md * 3;
+    in property <length> version-min-width: HubTokens.control-md * 5 / 2;
+    in property <length> modified-width: HubTokens.control-md * 5 / 2;
+    in property <length> modified-min-width: HubTokens.control-md * 2;
+    in property <length> location-min-width: HubTokens.control-md * 3;
+    in property <length> action-size: HubTokens.table-row;
+    callback select(string);
+    callback open(string);
+
+    private property <length> thumb-size: max(root.row-height * 6 / 7, min(root.action-size, root.row-height));
+    private property <string> visible-modified: root.project.modified == "1d ago" ? "Yesterday" : root.project.modified;
+
+    height: root.row-height;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.project.selected ? HubTokens.border-width : 0px;
+    border-color: root.project.selected ? HubVisualSpec.accent-stroke : transparent;
+    background: root.project.selected ? HubVisualSpec.accent-fill : transparent;
+    clip: true;
+
+    row-state := StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.project.selected ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            root.select(root.project.open-path);
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.row-gap;
+        alignment: stretch;
+
+        Rectangle {
+            horizontal-stretch: 2;
+            min-width: root.name-min-width;
+            height: parent.height;
+            clip: true;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: root.content-gap;
+                alignment: start;
+
+                Rectangle {
+                    width: root.thumb-size;
+                    height: root.thumb-size;
+                    border-radius: HubVisualSpec.compact-radius;
+                    border-width: HubTokens.border-width;
+                    border-color: HubVisualSpec.accent-stroke;
+                    background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
+                    clip: true;
+                    if root.project.has-cover: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.project.cover-image;
+                        image-fit: cover;
+                    }
+                    if !root.project.has-cover: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: @image-url("../assets/brand/zircon-mark.svg");
+                        image-fit: contain;
+                    }
+                }
+
+                MaterialText {
+                    text: root.project.title;
+                    overflow: elide;
+                    color: root.project.selected ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+                    style: MaterialTypography.label_large;
+                    vertical_alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        MaterialText {
+            text: root.project.version;
+            overflow: elide;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.body_small;
+            vertical_alignment: center;
+            preferred-width: root.version-width;
+            min-width: root.version-min-width;
+        }
+
+        MaterialText {
+            text: root.visible-modified;
+            overflow: elide;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.body_small;
+            vertical_alignment: center;
+            preferred-width: root.modified-width;
+            min-width: root.modified-min-width;
+        }
+
+        MaterialText {
+            text: root.project.project-path;
+            overflow: elide;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.body_small;
+            vertical_alignment: center;
+            horizontal-stretch: 3;
+            min-width: root.location-min-width;
+        }
+
+        Rectangle {
+            width: root.action-size;
+            height: root.action-size;
+            clip: true;
+
+            StateLayerArea {
+                width: parent.width;
+                height: parent.height;
+                color: MaterialPalette.on_surface;
+                border_radius: HubVisualSpec.compact-radius;
+                clicked => {
+                    root.open(root.project.open-path);
+                }
+            }
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+                HorizontalLayout {
+                    height: HubTokens.icon-sm;
+                    alignment: center;
+
+                    Image {
+                        width: HubTokens.icon-sm;
+                        height: HubTokens.icon-sm;
+                        source: @image-url("../assets/icons/ui/more-vertical.svg");
+                        colorize: MaterialPalette.on_surface_variant;
+                    }
+                }
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            }
+        }
+    }
+}
+
+export component HubTableBody inherits PanelListViewport {
+    row-height: HubVisualSpec.visual-table-row-height;
+    row-spacing: HubTokens.space-1;
+    vertical-padding: HubTokens.space-0;
+}
+
+export component DataTable inherits Rectangle {
+    in property <[RecentProjectRowData]> rows;
+    in property <int> row-count;
+    in property <string> name-label;
+    in property <string> version-label;
+    in property <string> modified-label;
+    in property <string> location-label;
+    in property <string> empty-text;
+    callback select(string);
+    callback open(string);
+
+    in property <length> row-height: HubVisualSpec.visual-table-row-height;
+    in property <length> header-height: max(root.row-height * 9 / 10, MaterialStyleMetrics.size_24 + MaterialStyleMetrics.size_2);
+    in property <length> row-gap: max(MaterialStyleMetrics.spacing_2, min(MaterialStyleMetrics.spacing_4, root.row-height / 8));
+    in property <length> column-gap: HubTokens.toolbar-gap;
+    in property <length> action-size: root.row-height;
+    in property <length> name-min-width: HubTokens.panel-min-sm * 2 / 5;
+    in property <length> version-width: HubTokens.control-md * 3;
+    in property <length> version-min-width: HubTokens.control-md * 5 / 2;
+    in property <length> modified-width: HubTokens.control-md * 5 / 2;
+    in property <length> modified-min-width: HubTokens.control-md * 2;
+    in property <length> location-min-width: HubTokens.control-md * 3;
+
+    private property <length> scroll-y: 0px;
+
+    clip: true;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: MaterialStyleMetrics.spacing_4;
+
+        HorizontalLayout {
+            height: root.header-height;
+            spacing: root.column-gap;
+            alignment: stretch;
+
+            TableColumnHeader {
+                text: root.name-label;
+                row-height: root.header-height;
+                horizontal-stretch: 2;
+                min-width: root.name-min-width;
+            }
+            TableColumnHeader {
+                text: root.version-label;
+                row-height: root.header-height;
+                preferred-width: root.version-width;
+                min-width: root.version-min-width;
+            }
+            TableColumnHeader {
+                text: root.modified-label;
+                row-height: root.header-height;
+                preferred-width: root.modified-width;
+                min-width: root.modified-min-width;
+            }
+            TableColumnHeader {
+                text: root.location-label;
+                row-height: root.header-height;
+                horizontal-stretch: 2;
+                min-width: root.location-min-width;
+            }
+            Rectangle {
+                width: root.action-size;
+                height: root.action-size;
+            }
+        }
+
+        Rectangle {
+            height: HubTokens.border-width;
+            horizontal-stretch: 1;
+            background: HubTokens.stroke-muted;
+        }
+
+        table-scroll := HubTableBody {
+            scroll-y <=> root.scroll-y;
+            row-count: root.row-count;
+            row-height: root.row-height;
+            row-spacing: root.row-gap;
+            vertical-padding: root.row-gap * 2;
+            empty-height: root.row-height + root.row-gap * 4;
+
+            for row in root.rows: ProjectTableRow {
+                width: parent.width;
+                horizontal-stretch: 1;
+                project: row;
+                row-height: root.row-height;
+                row-gap: root.column-gap;
+                content-gap: max(MaterialStyleMetrics.spacing_6, root.column-gap * 2 / 3);
+                name-min-width: root.name-min-width;
+                version-width: root.version-width;
+                version-min-width: root.version-min-width;
+                modified-width: root.modified-width;
+                modified-min-width: root.modified-min-width;
+                location-min-width: root.location-min-width;
+                action-size: root.action-size;
+                select(path) => {
+                    root.select(path);
+                }
+                open(path) => {
+                    root.open(path);
+                }
+            }
+
+            if root.row-count == 0: EmptyStateBlock {
+                horizontal-stretch: 1;
+                height: max(root.row-height, table-scroll.visible_height);
+                title: root.empty-text;
+                body-padding: root.row-gap;
+                center-content: true;
+            }
+        }
+    }
+}
+
+export component HubTableView inherits HubPanel {
+    in property <length> basis: HubTokens.panel-min-md;
+    in property <float> grow: 1;
+    in property <float> shrink: 1;
+    in property <int> order: 0;
+    in property <string> title;
+    in property <string> badge-text;
+    in property <string> badge-tone: "info";
+    in property <bool> show-header: false;
+    in property <length> header-height: HubTokens.control-md;
+    in property <length> minimum-row-height: HubVisualSpec.visual-table-row-height;
+    in property <length> body-spacing: HubTokens.space-1;
+    in property <length> body-padding: HubTokens.space-4;
+    in property <bool> show-divider: true;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-height: root.minimum-row-height * 2 + root.body-padding * 2;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: root.body-padding;
+        spacing: root.body-spacing;
+
+        if root.show-header: PanelHeader {
+            height: root.header-height;
+            title: root.title;
+            show-badge: root.badge-text != "";
+            badge-text: root.badge-text;
+            badge-tone: root.badge-tone;
+        }
+
+        if root.show-divider: Rectangle {
+            horizontal-stretch: 1;
+            height: HubTokens.border-width;
+            background: HubVisualSpec.outline-muted;
+        }
+
+        @children
+    }
+}

@@ -64,7 +64,7 @@ fn assert_timeline_family(registry: &UiComponentDescriptorRegistry) {
     for prop in ["component", "time", "duration"] {
         assert_has_prop(timeline, prop);
     }
-    for slot in ["items", "content"] {
+    for slot in ["items", "content", "separator", "connector", "dot"] {
         assert_has_slot(timeline, slot);
     }
 

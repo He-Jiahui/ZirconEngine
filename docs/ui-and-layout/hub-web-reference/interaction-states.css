@@ -1,0 +1,74 @@
+.is-filter-hidden,
+.is-state-hidden {
+  display: none !important;
+}
+
+.hub-shell.sidebar-collapsed {
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+.hub-shell.sidebar-collapsed .brand-block {
+  width: 184px;
+}
+
+.hub-shell.sidebar-collapsed .sidebar {
+  padding: 16px 8px;
+}
+
+.hub-shell.sidebar-collapsed .nav-item {
+  width: 56px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.hub-shell.sidebar-collapsed .nav-item span,
+.hub-shell.sidebar-collapsed .engine-card {
+  display: none;
+}
+
+.hub-shell.sidebar-collapsed .collapse-button {
+  width: 56px;
+  justify-content: center;
+  padding-inline: 0;
+  font-size: 0;
+}
+
+.hub-shell.sidebar-collapsed .collapse-button img {
+  margin: 0;
+}
+
+.hub-shell.window-minimized .workspace,
+.hub-shell.window-minimized .button-states {
+  opacity: 0.58;
+}
+
+.hub-shell.window-maximized {
+  box-shadow: 0 0 0 2px rgba(39, 209, 207, 0.36), 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.hub-shell.window-closed .workspace,
+.hub-shell.window-closed .button-states,
+.hub-shell.window-closed .sidebar {
+  opacity: 0.42;
+  filter: grayscale(0.35);
+}
+
+.button-states button.is-demo-selected,
+.mode-button.is-demo-selected {
+  outline: 2px solid rgba(39, 209, 207, 0.66);
+  outline-offset: 2px;
+}
+
+.browser-footer button.active,
+.engine-option.is-menu-selected,
+.popover-row.is-menu-selected {
+  color: #f6fffd;
+  background: rgba(39, 209, 207, 0.14);
+  border-color: rgba(39, 209, 207, 0.42);
+}
+
+.engine-option[aria-selected="true"],
+.popover-row[aria-selected="true"] {
+  outline: 1px solid rgba(39, 209, 207, 0.46);
+  outline-offset: -1px;
+}

@@ -15,11 +15,11 @@ impl HubRuntime {
             self.folder_picker_initial_dir(ui, "import-project"),
         ))?
         else {
-            self.task_status = TaskStatus {
-                label: "Import cancelled".to_string(),
-                detail: folder_picker_title("import-project").to_string(),
-                running: false,
-            };
+            self.task_status = TaskStatus::warning(
+                "Import cancelled",
+                folder_picker_title("import-project"),
+                "Choose a project folder when ready",
+            );
             return Ok(());
         };
 
@@ -33,11 +33,11 @@ impl HubRuntime {
             self.folder_picker_initial_dir(ui, target),
         ))?
         else {
-            self.task_status = TaskStatus {
-                label: "Browse cancelled".to_string(),
-                detail: folder_picker_title(target).to_string(),
-                running: false,
-            };
+            self.task_status = TaskStatus::warning(
+                "Browse cancelled",
+                folder_picker_title(target),
+                "Choose a folder when ready",
+            );
             return Ok(());
         };
 
@@ -74,11 +74,7 @@ impl HubRuntime {
                 )))
             }
         }
-        self.task_status = TaskStatus {
-            label: "Folder selected".to_string(),
-            detail: selected,
-            running: false,
-        };
+        self.task_status = TaskStatus::success("Folder selected", selected);
         Ok(())
     }
 

@@ -15,6 +15,10 @@ pub struct SourceBuildRecord {
     pub jobs: Option<u16>,
     pub output_dir: PathBuf,
     pub detail: String,
+    #[serde(default)]
+    pub log_excerpt: String,
+    #[serde(default)]
+    pub command_line: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +63,8 @@ mod tests {
                 jobs: Some(1),
                 output_dir: PathBuf::from("E:/out"),
                 detail: format!("run {index}"),
+                log_excerpt: format!("log {index}"),
+                command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
             });
         }
 

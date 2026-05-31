@@ -118,6 +118,19 @@ fn runtime_scoped_roots_share_project_filesystem_path_key() {
         "runtime.rs must register the focused root_paths module instead of keeping root-list helpers in page refresh modules"
     );
 
+    let scoped_views = read_crate_file("src/app/runtime/source_scoped_views.rs");
+    for snippet in [
+        "use super::{root_paths::push_development_roots, HubRuntime};",
+        "pub(super) fn selected_project_catalog_root(&self) -> Option<std::path::PathBuf>",
+        "pub(super) fn source_engine_catalog_roots(&self) -> Vec<std::path::PathBuf>",
+        "push_development_roots(&mut roots, engine.source_dir.clone());",
+    ] {
+        assert!(
+            scoped_views.contains(snippet),
+            "Scoped view roots should collect source/current/compiled roots once through shared runtime root logic; missing {snippet}"
+        );
+    }
+
     for (label, file) in [
         ("Asset refresh", "src/app/runtime/asset_catalog.rs"),
         ("Learn refresh", "src/app/runtime/learn_catalog.rs"),
@@ -125,16 +138,13 @@ fn runtime_scoped_roots_share_project_filesystem_path_key() {
     ] {
         let source = read_crate_file(file);
         assert!(
-            source.contains("root_paths::push_development_roots"),
-            "{label} should collect source/current/compiled roots through shared runtime root logic"
-        );
-        assert!(
-            source.contains("push_development_roots(&mut roots, source_dir);"),
-            "{label} should not rebuild development root fallback ordering locally"
+            source.contains("self.source_engine_catalog_roots()"),
+            "{label} should consume scope-derived engine roots instead of rebuilding development root fallback locally"
         );
         assert!(
             !source.contains("fn push_non_empty")
                 && !source.contains("fn compiled_repo_root")
+                && !source.contains("push_development_roots(")
                 && !source.contains("roots.iter().any(|root| root == &path)"),
             "{label} must not keep direct PathBuf equality root de-duplication after root_paths convergence"
         );
@@ -142,8 +152,9 @@ fn runtime_scoped_roots_share_project_filesystem_path_key() {
 
     let team = read_crate_file("src/app/runtime/team_overview.rs");
     for snippet in [
-        "push_unique_root(&mut roots, selected_project_path);",
-        "push_development_roots(&mut roots, source_dir);",
+        "push_unique_root(&mut roots, project_root);",
+        "for source_root in self.source_engine_catalog_roots()",
+        "push_unique_root(&mut roots, source_root);",
     ] {
         assert!(
             team.contains(snippet),
@@ -190,10 +201,7 @@ fn source_engine_refreshes_use_one_scoped_view_helper() {
         !runtime.contains(repeated_refresh_chain),
         "runtime.rs should call refresh_source_scoped_views instead of repeating the full refresh chain"
     );
-    for snippet in [
-        "runtime.refresh_source_scoped_views()?;",
-        "self.refresh_source_scoped_views()?;",
-    ] {
+    for snippet in ["self.refresh_source_scoped_views()?;"] {
         assert!(
             runtime.contains(snippet),
             "runtime.rs must use the shared Source Engine scoped refresh helper; missing {snippet}"
@@ -232,9 +240,11 @@ fn source_engine_refreshes_use_one_scoped_view_helper() {
 
     assert!(
         runtime.contains(
-            "self.register_source_engine_from_settings();\n        self.refresh_source_scoped_views()?;\n        let validation = validate_source_engine"
+            "self.register_source_engine_from_settings();\n        self.refresh_source_scoped_views()?;"
+        ) && runtime.contains(
+            "self.validate_active_source_engine_for_build(command_line.clone())?;"
         ),
-        "Build should refresh Source Engine scoped views after registering settings and before projecting the building snapshot"
+        "Build should refresh Source Engine scoped views after registering settings and before validating/projecting the building snapshot"
     );
 
     let workspace = read_crate_file("src/app/runtime/project_workspace.rs");

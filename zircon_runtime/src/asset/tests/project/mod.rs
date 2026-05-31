@@ -1,3 +1,4 @@
+mod asset_flow_sample;
 mod manager;
 mod manifest;
 mod package_assets;

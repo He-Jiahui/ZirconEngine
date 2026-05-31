@@ -610,10 +610,7 @@ fn mui_web_form_utility_classes_match_local_material_contracts() {
         str_attr(text_field, "surface_variant"),
         Some("textfield-root")
     );
-    assert_eq!(
-        str_attr(text_field, "component_variant"),
-        Some("outlined")
-    );
+    assert_eq!(str_attr(text_field, "component_variant"), Some("outlined"));
     assert_classes(
         text_field,
         &[

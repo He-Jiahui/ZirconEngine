@@ -1,8 +1,10 @@
 use super::gltf_labeled_subassets::{
     add_gltf_animation_and_skin_placeholders, add_gltf_material_subassets, add_gltf_mesh_subassets,
-    add_gltf_scene_subassets, add_gltf_texture_subassets, GltfMeshSubasset, GltfPrimitiveSubasset,
+    add_gltf_scene_subassets, add_gltf_texture_subassets, gltf_label_reference, GltfMeshSubasset,
+    GltfPrimitiveSubasset,
 };
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
 use crate::asset::assets::{
@@ -14,6 +16,7 @@ use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, Imp
 pub(crate) fn import_gltf(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
+    validate_external_gltf_buffers(context)?;
     let (document, buffers, images) = gltf::import(&context.source_path)
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
     let mut primitives = Vec::new();
@@ -25,6 +28,14 @@ pub(crate) fn import_gltf(
         let mut mesh_primitives = Vec::new();
         let mesh_name = mesh.name();
         for primitive in mesh.primitives() {
+            let mode = primitive.mode();
+            if mode != gltf::mesh::Mode::Triangles {
+                return Err(AssetImportError::Parse(format!(
+                    "unsupported gltf primitive mode {mode:?} at Mesh{}/Primitive{}; only Triangles is supported",
+                    mesh.index(),
+                    primitive.index()
+                )));
+            }
             let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()].0));
             let positions = reader
                 .read_positions()
@@ -64,7 +75,7 @@ pub(crate) fn import_gltf(
                     (0..vertex_count as u32).collect()
                 });
 
-            let primitive_asset = primitive_from_indexed_mesh(
+            let mut primitive_asset = primitive_from_indexed_mesh(
                 &positions,
                 &normals,
                 &texcoords,
@@ -74,6 +85,10 @@ pub(crate) fn import_gltf(
                 mesh_name,
                 &source_hint,
             )?;
+            primitive_asset.mesh = Some(gltf_label_reference(
+                &context.uri,
+                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
+            ));
             primitives.push(primitive_asset.clone());
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
@@ -100,6 +115,35 @@ pub(crate) fn import_gltf(
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_animation_and_skin_placeholders(outcome, &context.uri, &document);
     Ok(outcome)
+}
+
+fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), AssetImportError> {
+    let gltf = gltf::Gltf::from_slice(&context.source_bytes)
+        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
+    let base_dir = context
+        .source_path
+        .parent()
+        .unwrap_or_else(|| Path::new(""));
+    for buffer in gltf.document.buffers() {
+        let gltf::buffer::Source::Uri(uri) = buffer.source() else {
+            continue;
+        };
+        if uri
+            .get(..5)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("data:"))
+        {
+            continue;
+        }
+        let buffer_path = base_dir.join(uri);
+        if !buffer_path.exists() {
+            return Err(AssetImportError::Parse(format!(
+                "parse gltf: missing external buffer `{uri}` referenced by Buffer{} at {}",
+                buffer.index(),
+                buffer_path.display()
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn morph_targets_from_reader<'a, 's, F>(

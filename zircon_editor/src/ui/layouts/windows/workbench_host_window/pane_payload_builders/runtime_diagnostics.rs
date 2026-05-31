@@ -16,7 +16,8 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
     let (reflector, overlay_primitives) = active_ui_debug_snapshot
         .map(|snapshot| {
             (
-                EditorUiDebugReflectorModel::from_snapshot(snapshot).with_schedule_sections(snapshot),
+                EditorUiDebugReflectorModel::from_snapshot(snapshot)
+                    .with_schedule_sections(snapshot),
                 EditorUiDebugReflectorOverlayState::default().primitives_from_snapshot(snapshot),
             )
         })

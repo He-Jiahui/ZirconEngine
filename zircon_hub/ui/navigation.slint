@@ -1,8 +1,11 @@
 import { NavButton, NavItemData } from "shared.slint";
-import { HubTokens } from "tokens.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 import {
     NavigationItem,
     NavigationRail as MaterialNavigationRail,
+    SecondaryTabBar,
+    TabBar,
+    MaterialPalette,
     MaterialStyleMetrics,
 } from "material_bridge.slint";
 
@@ -11,10 +14,13 @@ export component NavRail inherits Rectangle {
     in property <[NavigationItem]> material-items;
     in-out property <int> current-index: 0;
     in property <bool> collapsed: false;
-    in property <length> rail-padding: root.collapsed ? HubTokens.space-2 : HubTokens.space-3;
-    in property <length> rail-gap: HubTokens.toolbar-gap;
-    in property <brush> rail-background: HubTokens.surface-page;
+    in property <length> rail-padding: root.collapsed ? HubTokens.space-2 : HubTokens.space-4;
+    in property <length> rail-gap: HubTokens.space-3;
+    in property <brush> rail-background: HubVisualSpec.chrome-background;
+    in property <bool> enabled: true;
     callback clicked(string);
+
+    private property <[NavigationItem]> enabled-material-items: root.enabled ? root.material-items : [];
 
     min-width: root.collapsed ? MaterialStyleMetrics.size_80 : 0px;
     background: root.rail-background;
@@ -22,13 +28,13 @@ export component NavRail inherits Rectangle {
     if root.collapsed: MaterialNavigationRail {
         width: parent.width;
         height: parent.height;
-        items: root.material-items;
+        items: root.enabled-material-items;
         current_index <=> root.current-index;
         alignment: start;
         has_menu: false;
 
         index_changed(index) => {
-            if index >= 0 && index < root.items.length {
+            if root.enabled && index >= 0 && index < root.items.length {
                 root.clicked(root.items[index].id);
             }
         }
@@ -41,10 +47,56 @@ export component NavRail inherits Rectangle {
         spacing: root.rail-gap;
 
         for item in root.items: NavButton {
+            width: parent.width - root.rail-padding * 2;
             item: item;
             collapsed: false;
+            enabled: root.enabled;
             clicked(id) => {
                 root.clicked(id);
+            }
+        }
+    }
+}
+
+export component HubTabs inherits Rectangle {
+    in property <[NavigationItem]> items;
+    in-out property <int> current-index: 0;
+    in property <bool> secondary: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> tabs-height: MaterialStyleMetrics.size_56;
+    callback selected(int);
+
+    horizontal-stretch: 1;
+    height: root.tabs-height;
+    min-width: 1px;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : transparent;
+    background: MaterialPalette.surface;
+    clip: true;
+
+    if !root.secondary: TabBar {
+        width: parent.width;
+        height: parent.height;
+        items: root.items;
+        current_index <=> root.current-index;
+        index_changed(index) => {
+            if root.enabled {
+                root.selected(index);
+            }
+        }
+    }
+
+    if root.secondary: SecondaryTabBar {
+        width: parent.width;
+        height: parent.height;
+        items: root.items;
+        current_index <=> root.current-index;
+        index_changed(index) => {
+            if root.enabled {
+                root.selected(index);
             }
         }
     }

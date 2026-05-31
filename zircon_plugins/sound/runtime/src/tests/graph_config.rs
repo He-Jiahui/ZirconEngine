@@ -26,7 +26,7 @@ fn configure_mixer_imports_graph_sources_and_automation_bindings() {
     graph.sources.push(source);
     graph.automation_bindings.push(SoundAutomationBinding {
         id: binding_id,
-        timeline_track_path: "Root/Sound/ConfiguredSource:gain".to_string(),
+        timeline_track_path: " Root / Sound / ConfiguredSource : sound.source.gain ".to_string(),
         target: SoundAutomationTarget::Source(source_id),
         parameter: SoundParameterId::new("gain"),
     });
@@ -37,6 +37,10 @@ fn configure_mixer_imports_graph_sources_and_automation_bindings() {
     assert_eq!(snapshot.graph.sources.len(), 1);
     assert_eq!(snapshot.graph.sources[0].id, Some(source_id));
     assert_eq!(snapshot.graph.automation_bindings.len(), 1);
+    assert_eq!(
+        snapshot.graph.automation_bindings[0].timeline_track_path,
+        "Root/Sound/ConfiguredSource:sound.source.gain"
+    );
     assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.25, 0.25]);
 
     sound.apply_automation_value(binding_id, 0.5).unwrap();

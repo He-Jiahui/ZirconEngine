@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.decals";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.decals";
 pub const FEATURE_NAME: &str = "decals";
 pub const EXECUTOR_ID: &str = "decals.projector-composite";
 pub const DECAL_PROJECTOR_COMPONENT_TYPE: &str = "rendering.Component.DecalProjector";

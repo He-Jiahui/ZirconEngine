@@ -1,6 +1,7 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::{plugin::PluginPackageManifest, RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "native_window_hosting";
 pub const WORKBENCH_WINDOW_VIEW_ID: &str = "editor.workbench_window";
@@ -69,7 +70,7 @@ pub fn editor_plugin() -> NativeWindowHostingEditorPlugin {
     NativeWindowHostingEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+pub fn package_manifest() -> PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
@@ -84,8 +85,11 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     )
 }
 
-fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Native Window Hosting")
+fn base_package_manifest() -> PluginPackageManifest {
+    PluginPackageManifest::new(PLUGIN_ID, "Native Window Hosting")
+        .with_category("platform")
+        .with_supported_targets([RuntimeTargetMode::EditorHost])
+        .with_capabilities([zircon_editor::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING])
 }
 
 #[cfg(test)]
@@ -100,6 +104,15 @@ mod tests {
         assert!(registration
             .capabilities
             .contains(&zircon_editor::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING.to_string()));
+        assert_eq!(registration.package_manifest.category, "platform");
+        assert_eq!(
+            registration.package_manifest.supported_targets,
+            vec![RuntimeTargetMode::EditorHost]
+        );
+        assert_eq!(
+            registration.package_manifest.capabilities,
+            vec![zircon_editor::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING.to_string()]
+        );
         let views = registration.extensions.views();
         assert!(views
             .iter()

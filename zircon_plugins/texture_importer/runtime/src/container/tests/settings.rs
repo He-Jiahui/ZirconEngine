@@ -1,5 +1,6 @@
-use super::super::*;
 use super::common::*;
+use zircon_runtime::asset::ImportedAsset;
+use zircon_runtime::asset::TexturePayload;
 
 #[test]
 fn container_importer_applies_descriptor_settings_without_expanding_payload() {

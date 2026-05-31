@@ -4,6 +4,7 @@ sdk_api_version = "0.1.0"
 display_name = "Plugin SDK Examples"
 description = "Editor SDK fixture package containing a window plugin and an importer plus inspector plugin."
 category = "sdk"
+maturity = "experimental"
 supported_targets = ["editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = [

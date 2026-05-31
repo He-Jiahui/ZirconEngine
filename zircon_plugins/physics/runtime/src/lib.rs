@@ -52,6 +52,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimePluginId::Physics,
         "zircon_plugin_physics_runtime",
     )
+    .with_category("runtime")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::ServerRuntime,
@@ -59,6 +61,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     ])
     .with_capability("runtime.plugin.physics")
     .with_capability("runtime.capability.physics.raycast")
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.plugin.physics",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.raycast",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
 }
 
 pub fn runtime_plugin() -> PhysicsRuntimePlugin {
@@ -108,6 +118,28 @@ mod tests {
                 zircon_runtime::RuntimeTargetMode::EditorHost,
             ]
         );
+        assert_eq!(report.package_manifest.category, "runtime");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Experimental
+        );
+        for capability in [
+            "runtime.plugin.physics",
+            "runtime.capability.physics.raycast",
+        ] {
+            assert!(report
+                .package_manifest
+                .capabilities
+                .contains(&capability.to_string()));
+            assert!(report
+                .package_manifest
+                .capability_statuses
+                .iter()
+                .any(|status| {
+                    status.capability == capability
+                        && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                }));
+        }
     }
 
     #[test]

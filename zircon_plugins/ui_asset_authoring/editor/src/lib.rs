@@ -77,6 +77,9 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 
 fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
     zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "UI Asset Authoring")
+        .with_category("authoring")
+        .with_supported_targets([zircon_runtime::RuntimeTargetMode::EditorHost])
+        .with_capabilities([zircon_editor::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING])
 }
 
 #[cfg(test)]
@@ -91,6 +94,15 @@ mod tests {
         assert!(registration
             .capabilities
             .contains(&zircon_editor::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING.to_string()));
+        assert_eq!(registration.package_manifest.category, "authoring");
+        assert_eq!(
+            registration.package_manifest.supported_targets,
+            vec![zircon_runtime::RuntimeTargetMode::EditorHost]
+        );
+        assert_eq!(
+            registration.package_manifest.capabilities,
+            vec![zircon_editor::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING.to_string()]
+        );
         assert!(registration
             .extensions
             .views()

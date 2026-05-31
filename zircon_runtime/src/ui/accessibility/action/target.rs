@@ -1,15 +1,17 @@
 use zircon_runtime_interface::ui::{
-    accessibility::{
-        UiAccessibilityAction, UiAccessibilityActionStatus, UiAccessibilityNode,
-        UiAccessibilityTreeSnapshot,
-    },
+    accessibility::{UiAccessibilityAction, UiAccessibilityNode, UiAccessibilityTreeSnapshot},
     dispatch::UiInputDispatchResult,
     event_ui::UiNodeId,
 };
 
 use crate::ui::surface::UiSurface;
 
-use super::result::finish_unhandled;
+use self::result::{
+    reject_disabled_action, reject_excluded_target, reject_hidden_snapshot_target,
+    reject_hidden_tree_target, reject_stale_target,
+};
+
+mod result;
 
 pub(super) fn validate_included_target(
     snapshot: &UiAccessibilityTreeSnapshot,
@@ -20,22 +22,10 @@ pub(super) fn validate_included_target(
 ) -> Result<UiInputDispatchResult, UiInputDispatchResult> {
     append_target_diagnostics(snapshot, target, &mut result);
     if snapshot_node.state.hidden {
-        return Err(finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "hidden_target",
-            "target is hidden in the accessibility snapshot",
-        ));
+        return Err(reject_hidden_snapshot_target(result, target));
     }
     if snapshot_node.state.disabled && action != UiAccessibilityAction::Focus {
-        return Err(finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "disabled_action",
-            "disabled accessibility target rejected non-focus action",
-        ));
+        return Err(reject_disabled_action(result, target));
     }
 
     Ok(result)
@@ -48,33 +38,15 @@ pub(super) fn reject_missing_target(
     mut result: UiInputDispatchResult,
 ) -> UiInputDispatchResult {
     if !surface.tree.nodes.contains_key(&target) {
-        return finish_unhandled(
-            result,
-            None,
-            UiAccessibilityActionStatus::StaleTarget,
-            "stale_target",
-            "target is not in the runtime UI tree",
-        );
+        return reject_stale_target(result);
     }
 
     append_target_diagnostics(snapshot, target, &mut result);
     if is_effectively_hidden(surface, target) {
-        return finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "hidden_target",
-            "target is hidden and excluded from accessibility action dispatch",
-        );
+        return reject_hidden_tree_target(result, target);
     }
 
-    finish_unhandled(
-        result,
-        Some(target),
-        UiAccessibilityActionStatus::Rejected,
-        "excluded_target",
-        "target is not included in the current accessibility snapshot",
-    )
+    reject_excluded_target(result, target)
 }
 
 pub(super) fn append_target_diagnostics(

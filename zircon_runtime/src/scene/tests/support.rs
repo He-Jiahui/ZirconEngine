@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -8,22 +9,24 @@ use crate::asset::assets::{
     AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
     AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
-    MaterialAsset, PhysicsMaterialAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
-    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
-    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneColliderAsset,
-    SceneColliderShapeAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    TransformAsset,
+    MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, PhysicsMaterialAsset,
+    SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
+    SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
+    SceneCameraAsset, SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset,
+    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
+use crate::core::framework::render::RenderMeshTopology;
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::EntityPath;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
     ResourceHandle, ResourceId,
 };
 use image::{ImageBuffer, ImageFormat, Rgba};
@@ -54,6 +57,14 @@ pub(super) fn project_material_handle(
     project: &ProjectManager,
     uri: &str,
 ) -> ResourceHandle<MaterialMarker> {
+    let uri = AssetUri::parse(uri).unwrap();
+    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+}
+
+pub(super) fn project_mesh_handle(
+    project: &ProjectManager,
+    uri: &str,
+) -> ResourceHandle<MeshMarker> {
     let uri = AssetUri::parse(uri).unwrap();
     ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
 }
@@ -128,6 +139,7 @@ pub(super) fn create_test_project(root: &PathBuf) -> ProjectManager {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_triangle_zmesh(paths.assets_root().join("meshes").join("triangle.zmesh"));
     write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_physics_material(
         paths
@@ -229,6 +241,33 @@ f 1/1/1 2/2/1 3/3/1
     .unwrap();
 }
 
+fn write_triangle_zmesh(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let mut attributes = BTreeMap::new();
+    attributes.insert(
+        MESH_ATTRIBUTE_POSITION.to_string(),
+        MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
+    );
+    attributes.insert(
+        MESH_ATTRIBUTE_NORMAL.to_string(),
+        MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 1.0]; 3]),
+    );
+    attributes.insert(
+        MESH_ATTRIBUTE_UV0.to_string(),
+        MeshAttributeValues::Float32x2(vec![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
+    );
+    let mesh = MeshAsset::new(
+        AssetUri::parse("res://meshes/triangle.zmesh").unwrap(),
+        RenderMeshTopology::TriangleList,
+        attributes,
+        Some(MeshIndices::U32(vec![0, 1, 2])),
+    )
+    .unwrap();
+    fs::write(path, mesh.to_toml_string().unwrap()).unwrap();
+}
+
 fn write_default_material(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -311,7 +350,9 @@ fn write_default_scene(path: PathBuf) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.obj"),
+                    mesh: Some(asset_reference("res://meshes/triangle.zmesh")),
                     material: asset_reference("res://materials/grid.zmaterial"),
+                    primitives: Vec::new(),
                 }),
                 ambient_light: None,
                 directional_light: None,

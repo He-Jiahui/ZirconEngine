@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
@@ -46,6 +47,7 @@ plan_sources:
   - user: 2026-05-16 continue precise VM host reflection macro implementation
 tests:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime: passed 2026-05-15"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm: passed 2026-05-15 with ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm: extended 2026-05-16 to load a discovered zr_vm:project package, register Zircon host modules, run lifecycle exports, hot reload, and unload"
@@ -75,6 +77,8 @@ tests:
   - "cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros-plugins: passed 2026-05-18"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros-plugins: passed 2026-05-18; 3 unit tests plus doc-tests"
   - "cargo fmt --manifest-path zircon_plugins/Cargo.toml --all --check: attempted 2026-05-18; blocked by unrelated unformatted hybrid_gi/runtime and runtime asset/render/scene files owned by concurrent sessions"
+  - "2026-05-31: cargo test --manifest-path .\\zircon_plugins\\zr_vm_language\\runtime\\Cargo.toml zr_vm_language_registration_reports_backend_capability --locked --offline --jobs 1 --target-dir D:\\cargo-targets\\zircon-authoring-runtime-metadata --color never --quiet: red before linked capability-status metadata, then passed with existing runtime warnings"
+  - "2026-05-31: cargo test --manifest-path .\\Cargo.toml -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --offline --jobs 1 --target-dir D:\\cargo-targets\\zircon-authoring-runtime-metadata --color never --quiet: passed with existing runtime warnings"
 doc_type: module-detail
 ---
 
@@ -93,6 +97,8 @@ The plugin is optional and disabled by default in project selection. This keeps 
 - the runtime builtin catalog used by export and plugin manifest projection.
 
 The descriptor uses package id `zr_vm_language`, runtime id `RuntimePluginId::ZrVmLanguage`, crate `zircon_plugin_zr_vm_language_runtime`, target modes `client_runtime`/`server_runtime`/`editor_host`, and capabilities `runtime.plugin.zr_vm_language` plus `runtime.script.backend.zr_vm_project`. Both capabilities are marked partial because the default build registers the backend family but the real native binding remains feature-gated.
+
+The linked runtime package manifest now carries the same category `runtime`, maturity `experimental`, and partial status rows as static `zircon_plugins/zr_vm_language/plugin.toml` and the built-in catalog. This keeps Plugin Manager/export metadata consistent even when the real ZrVM backend remains opt-in through `real-zr-vm`.
 
 ## Build Modes
 

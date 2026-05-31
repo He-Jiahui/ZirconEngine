@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::math::{UVec2, Vec3};
+use crate::scene::world::World;
+use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
     RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
-use crate::core::math::{UVec2, Vec3};
-use crate::scene::world::World;
-use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 
 use crate::{
     runtime::HybridGiRuntimeState,
@@ -4357,6 +4357,7 @@ fn hybrid_gi_resolve_changes_when_runtime_scene_voxel_owner_matches_scene_card_c
             model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
                 crate::core::resource::ResourceId::from_stable_label("builtin://cube"),
             ),
+            mesh: None,
             material:
                 crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
                     crate::core::resource::ResourceId::from_stable_label(
@@ -4393,6 +4394,7 @@ fn hybrid_gi_resolve_changes_when_runtime_scene_voxel_owner_matches_scene_card_c
             model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
                 crate::core::resource::ResourceId::from_stable_label("builtin://cube"),
             ),
+            mesh: None,
             material:
                 crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
                     crate::core::resource::ResourceId::from_stable_label(
@@ -6500,6 +6502,7 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
             model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
                 crate::core::resource::ResourceId::from_stable_label("res://models/card.obj"),
             ),
+            mesh: None,
             material:
                 crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
                     crate::core::resource::ResourceId::from_stable_label(
@@ -6540,6 +6543,7 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh_with_persisted_page_sample(
             model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
                 crate::core::resource::ResourceId::from_stable_label("res://models/card.obj"),
             ),
+            mesh: None,
             material:
                 crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
                     crate::core::resource::ResourceId::from_stable_label(
@@ -6589,6 +6593,7 @@ fn runtime_voxel_scene_prepare_from_tinted_mesh_and_lights(
             model: crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(
                 crate::core::resource::ResourceId::from_stable_label("res://models/card.obj"),
             ),
+            mesh: None,
             material:
                 crate::core::resource::ResourceHandle::<crate::core::resource::MaterialMarker>::new(
                     crate::core::resource::ResourceId::from_stable_label(

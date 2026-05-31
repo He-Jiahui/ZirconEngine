@@ -1,0 +1,156 @@
+import {
+    PillButton,
+    ProjectDetailData,
+    SourceEngineRowData,
+    UiTextData,
+} from "shared.slint";
+import {
+    Badge,
+    HubSection,
+    HubToggleRow,
+    HubTokens,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+} from "components.slint";
+import {
+    ProjectEngineChoiceList,
+    ProjectSettingSummaryRow,
+} from "project_page_components.slint";
+
+export component ProjectDetailActionButton inherits PillButton {
+    in property <length> action-height;
+    in property <image> action-icon;
+
+    horizontal-stretch: 1;
+    height: root.action-height;
+    icon-image: root.action-icon;
+    has-icon-image: true;
+}
+
+export component ProjectDetailPinToggleRow inherits HubToggleRow {
+    in property <ProjectDetailData> detail;
+    in property <UiTextData> copy;
+
+    row-height: HubTokens.list-row-sm;
+    checked: root.detail.pinned;
+    label: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;
+    supporting-text: root.detail.pinned ? root.copy.unpin-project : root.copy.pin-project;
+}
+
+export component ProjectDetailStatusStrip inherits Rectangle {
+    in property <ProjectDetailData> detail;
+    in property <UiTextData> copy;
+    in property <length> row-height;
+    in property <length> row-spacing;
+    in property <length> version-badge-width;
+    in property <length> pin-badge-width;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.row-height;
+    background: transparent;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.row-spacing;
+
+        Badge {
+            text: root.detail.version;
+            tone: "accent";
+            badge-width: root.version-badge-width;
+        }
+
+        Badge {
+            text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;
+            tone: root.detail.pinned ? "accent" : "neutral";
+            badge-width: root.pin-badge-width;
+        }
+
+        MaterialText {
+            text: root.copy.modified-prefix + root.detail.modified;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.body_small;
+            vertical_alignment: center;
+        }
+    }
+}
+
+export component ProjectDetailInfoSection inherits HubSection {
+    in property <ProjectDetailData> project;
+    in property <UiTextData> ui-text;
+    in property <length> row-height;
+    in property <length> row-spacing;
+    in property <string> header-subtitle;
+
+    section-spacing: root.row-spacing;
+    title: root.ui-text.project-info-title;
+    subtitle: root.header-subtitle;
+
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.ui-text.project-status;
+        value: root.project.status;
+        badge-value: true;
+        badge-tone: root.project.missing ? "warning" : "accent";
+    }
+
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.ui-text.project-root-path;
+        value: root.project.project-path;
+    }
+
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.ui-text.source-engine;
+        value: root.project.engine-label;
+    }
+
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.ui-text.engine-version-column;
+        value: root.project.version;
+    }
+
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.ui-text.last-modified-column;
+        value: root.project.modified;
+    }
+}
+
+export component ProjectDetailEngineSection inherits HubSection {
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <ProjectDetailData> detail;
+    in property <UiTextData> copy;
+    in property <length> list-height;
+    in-out property <length> list-scroll-y: 0px;
+    in property <length> row-height;
+    in property <length> row-spacing;
+    in property <length> empty-height;
+    in property <bool> collapse-label;
+    callback selected(string);
+
+    title: root.copy.change-source-engine;
+    subtitle: root.copy.bound-source-engine + ": " + root.detail.engine-label;
+
+    ProjectEngineChoiceList {
+        engines: root.engines;
+        engine-count: root.engine-count;
+        list-height: root.list-height;
+        list-scroll-y <=> root.list-scroll-y;
+        row-height: root.row-height;
+        row-spacing: root.row-spacing;
+        empty-height: root.empty-height;
+        selected-label: root.copy.selected-label;
+        registered-label: root.copy.registered;
+        empty-title: root.copy.no-source-engine-available;
+        collapse-label: root.collapse-label;
+        selected(id) => { root.selected(id); }
+    }
+}

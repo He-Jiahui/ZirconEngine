@@ -1,12 +1,20 @@
-import { MutedText, ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData } from "shared.slint";
-import { Badge, BuildHistoryRow, Divider, EmptyStateBlock, HubTokens, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, PanelSlot, WorkspacePanelSection } from "components.slint";
-import { BuildControlAction, BuildPipelineStep, BuildSourceSummaryRow } from "builds_page_components.slint";
+import { OperationTimelineRowData, ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData, WorkspaceActionReadinessData } from "shared.slint";
+import { HubTokens, HubVisualSpec, OperationTimelinePanel, PageScrollSurface, WorkspacePanelSection } from "components.slint";
+import {
+    BuildControlsPanel,
+    BuildPipelinePanel,
+    BuildSourceSummaryPanel,
+    BuildTaskHistoryPanel,
+} from "builds_page_components.slint";
 
 export component BuildsPage inherits PageScrollSurface {
+    in property <WorkspaceActionReadinessData> readiness;
     in property <ProjectDetailData> project;
     in property <SourceEngineData> source-engine;
     in property <[SourceBuildHistoryRowData]> source-build-history;
     in property <int> source-build-history-count;
+    in property <[OperationTimelineRowData]> operation-timeline;
+    in property <int> operation-timeline-count;
     in property <string> status-label;
     in property <string> status-detail;
     in property <UiTextData> ui-text;
@@ -19,15 +27,17 @@ export component BuildsPage inherits PageScrollSurface {
     private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
     private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
     private property <length> build-history-scroll-y: 0px;
+    private property <length> operation-timeline-scroll-y: 0px;
     private property <length> build-row-height: HubTokens.list-row-sm;
     private property <length> build-summary-height: HubTokens.control-md + root.build-row-height * 5 + HubTokens.toolbar-gap * 5 + HubTokens.space-4 * 2;
     private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.control-md + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
     private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
     private property <length> build-detail-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
+    private property <length> operation-timeline-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap + HubTokens.space-4 * 2;
     private property <bool> controls-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
     private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
     WorkspacePanelSection {
@@ -37,7 +47,7 @@ export component BuildsPage inherits PageScrollSurface {
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
-        PanelSlot {
+        BuildSourceSummaryPanel {
             basis: root.overview-min-width;
             flex-basis: root.overview-min-width;
             grow: 2;
@@ -48,62 +58,16 @@ export component BuildsPage inherits PageScrollSurface {
             flex-order: root.controls-first ? 1 : 0;
             min-width: root.compact ? root.content-width : root.overview-min-width;
             height: root.compact ? root.build-source-summary-height : root.build-summary-height;
-            body-spacing: HubTokens.space-3;
-
-            PanelHeader {
-                title: root.ui-text.source-build;
-                subtitle: root.project.title + " / " + root.source-engine.version + " / " + root.source-engine.status;
-                show-badge: true;
-                badge-text: root.status-label;
-                badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
-                show-action: false;
-                action-text: root.ui-text.build-now;
-                action-clicked => {
-                    root.build-engine();
-                }
-            }
-
-            Divider {}
-
-            BuildSourceSummaryRow {
-                row-height: root.build-row-height;
-                summary-title: root.ui-text.source-prefix;
-                summary-detail: root.source-engine.source-path;
-                summary-meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
-                summary-icon: @image-url("../assets/icons/nav/builds.svg");
-                summary-status: root.source-engine.status;
-                summary-tone: "ok";
-                collapse-label: root.compact-labels;
-            }
-
-            BuildSourceSummaryRow {
-                row-height: root.build-row-height;
-                summary-title: root.ui-text.output-prefix;
-                summary-detail: root.source-engine.output-path;
-                summary-meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
-                summary-icon: @image-url("../assets/icons/ui/folder.svg");
-                summary-status: root.source-engine.jobs + root.ui-text.jobs-suffix;
-                collapse-label: root.compact-labels;
-            }
-
-            HorizontalLayout {
-                spacing: HubTokens.toolbar-gap;
-
-                Badge {
-                    text: root.source-engine.build-profile;
-                    tone: "accent";
-                    badge-width: HubTokens.control-md * 2 + HubTokens.space-2;
-                }
-
-                Badge {
-                    text: root.source-engine.jobs + root.ui-text.jobs-suffix;
-                    tone: "neutral";
-                    badge-width: HubTokens.control-md * 2 + HubTokens.space-2;
-                }
-            }
+            readiness: root.readiness;
+            project: root.project;
+            source-engine: root.source-engine;
+            status-label: root.status-label;
+            ui-text: root.ui-text;
+            row-height: root.build-row-height;
+            collapse-label: root.compact-labels;
         }
 
-        PanelSlot {
+        BuildControlsPanel {
             basis: root.side-panel-min-width;
             flex-basis: root.side-panel-min-width;
             grow: 1;
@@ -114,70 +78,16 @@ export component BuildsPage inherits PageScrollSurface {
             flex-order: root.controls-first ? 0 : 1;
             min-width: root.compact ? root.content-width : root.side-panel-min-width;
             height: root.build-summary-height;
-
-            PanelHeader {
-                title: root.ui-text.build-controls;
-                subtitle: "";
-            }
-
-            BuildControlAction {
-                row-height: root.build-row-height;
-                action-id: "build-editor";
-                action-icon: @image-url("../assets/icons/actions/build-project.svg");
-                action-title: root.ui-text.build-editor;
-                action-detail: root.project.can-build ? root.project.title : (root.project.can-open ? root.project.engine-label : root.ui-text.select-project-before-building);
-                action-enabled: root.project.can-build;
-                triggered(id) => {
-                    root.build-engine();
-                }
-            }
-
-            BuildControlAction {
-                row-height: root.build-row-height;
-                action-id: "open-output";
-                action-icon: @image-url("../assets/icons/ui/folder.svg");
-                action-title: root.ui-text.open-output;
-                action-detail: root.source-engine.output-path;
-                triggered(id) => {
-                    root.open-output();
-                }
-            }
-
-            BuildControlAction {
-                row-height: root.build-row-height;
-                action-id: "open-editor";
-                action-icon: @image-url("../assets/icons/actions/open-editor.svg");
-                action-title: root.ui-text.open-editor;
-                action-detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-opening;
-                action-enabled: root.project.can-open;
-                triggered(id) => {
-                    root.launch-editor();
-                }
-            }
-
-            BuildControlAction {
-                row-height: root.build-row-height;
-                action-id: "package-project";
-                action-icon: @image-url("../assets/icons/actions/package-project.svg");
-                action-title: root.ui-text.package-project;
-                action-detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-packaging;
-                action-enabled: root.project.can-open;
-                triggered(id) => {
-                    root.package-project();
-                }
-            }
-
-            BuildControlAction {
-                row-height: root.build-row-height;
-                action-id: "install-device";
-                action-icon: @image-url("../assets/icons/actions/install-device.svg");
-                action-title: root.ui-text.install-to-device;
-                action-detail: root.project.can-open ? root.project.title : root.ui-text.select-project-before-installing;
-                action-enabled: root.project.can-open;
-                triggered(id) => {
-                    root.install-device();
-                }
-            }
+            readiness: root.readiness;
+            project: root.project;
+            source-engine: root.source-engine;
+            ui-text: root.ui-text;
+            row-height: root.build-row-height;
+            build-engine => { root.build-engine(); }
+            open-output => { root.open-output(); }
+            launch-editor => { root.launch-editor(); }
+            package-project => { root.package-project(); }
+            install-device => { root.install-device(); }
         }
     }
 
@@ -187,7 +97,7 @@ export component BuildsPage inherits PageScrollSurface {
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
-        PanelSlot {
+        BuildPipelinePanel {
             basis: root.overview-min-width;
             flex-basis: root.overview-min-width;
             grow: 2;
@@ -196,57 +106,16 @@ export component BuildsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : root.overview-min-width;
             height: root.build-detail-height;
-
-            PanelHeader {
-                title: root.ui-text.build-pipeline;
-                subtitle: "";
-                show-badge: true;
-                badge-text: "4";
-                badge-tone: "info";
-            }
-
-            BuildPipelineStep {
-                row-height: root.build-row-height;
-                step-title: root.ui-text.validate-source;
-                step-detail: root.source-engine.source-path;
-                step-icon: @image-url("../assets/icons/status/success.svg");
-                step-status: root.source-engine.status;
-                step-tone: "ok";
-                collapse-label: root.compact-labels;
-            }
-
-            BuildPipelineStep {
-                row-height: root.build-row-height;
-                step-title: root.ui-text.compile-editor;
-                step-detail: "tools/zircon_build.py --targets editor,runtime";
-                step-icon: @image-url("../assets/icons/actions/build-project.svg");
-                step-status: root.status-label;
-                step-tone: root.status-label == "Building" ? "accent" : "neutral";
-                collapse-label: root.compact-labels;
-            }
-
-            BuildPipelineStep {
-                row-height: root.build-row-height;
-                step-title: root.ui-text.stage-runtime;
-                step-detail: root.source-engine.output-path;
-                step-icon: @image-url("../assets/icons/ui/folder.svg");
-                step-status: root.source-engine.last-build;
-                step-tone: "info";
-                collapse-label: root.compact-labels;
-            }
-
-            BuildPipelineStep {
-                row-height: root.build-row-height;
-                step-title: root.ui-text.package-project;
-                step-detail: root.project.project-path != "" ? root.project.project-path : root.ui-text.select-project-before-packaging;
-                step-icon: @image-url("../assets/icons/actions/package-project.svg");
-                step-status: root.project.can-open ? root.project.status : root.ui-text.unavailable;
-                step-tone: root.project.can-open ? "ok" : "warning";
-                collapse-label: root.compact-labels;
-            }
+            readiness: root.readiness;
+            project: root.project;
+            source-engine: root.source-engine;
+            status-label: root.status-label;
+            ui-text: root.ui-text;
+            row-height: root.build-row-height;
+            collapse-label: root.compact-labels;
         }
 
-        PanelSlot {
+        BuildTaskHistoryPanel {
             basis: root.side-panel-min-width;
             flex-basis: root.side-panel-min-width;
             grow: 1;
@@ -255,61 +124,44 @@ export component BuildsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : root.side-panel-min-width;
             height: root.build-detail-height;
-            body-spacing: HubTokens.panel-gap;
-
-            PanelHeader {
-                title: root.ui-text.current-task;
-                subtitle: "";
-                show-badge: true;
-                badge-text: root.status-label;
-                badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
-            }
-
-            MaterialText {
-                text: root.status-label;
-                overflow: elide;
-                color: MaterialPalette.primary;
-                style: MaterialTypography.headline_small;
-            }
-
-            MutedText {
-                text: root.status-detail;
-                overflow: elide;
-            }
-
-            Rectangle {
-                vertical-stretch: 1;
-            }
-
-            Divider {}
-
-            PanelHeader {
-                title: root.ui-text.build-history;
-                subtitle: "";
-                show-badge: true;
-                badge-text: root.source-build-history-count + "";
-                badge-tone: "info";
-            }
-
-            PanelListViewport {
-                scroll-y <=> root.build-history-scroll-y;
-                row-count: root.source-build-history-count;
-                row-height: root.build-row-height;
-                vertical-padding: HubTokens.space-0;
-                empty-height: HubTokens.list-row-lg + HubTokens.space-4;
-
-                for record in root.source-build-history: BuildHistoryRow {
-                    record: record;
-                    collapse-label: root.compact-labels;
-                }
-
-                if root.source-build-history-count == 0: EmptyStateBlock {
-                    height: HubTokens.list-row-lg + HubTokens.space-4;
-                    title: root.ui-text.no-build-history;
-                    body-padding: MaterialStyleMetrics.padding_16;
-                    center-content: true;
-                }
-            }
+            readiness: root.readiness;
+            status-label: root.status-label;
+            status-detail: root.status-detail;
+            current-task-title: root.ui-text.current-task;
+            build-history-title: root.ui-text.build-history;
+            no-build-history-title: root.ui-text.no-build-history;
+            source-build-history: root.source-build-history;
+            source-build-history-count: root.source-build-history-count;
+            row-height: root.build-row-height;
+            history-scroll-y <=> root.build-history-scroll-y;
+            collapse-label: root.compact-labels;
         }
     }
+
+    WorkspacePanelSection {
+        compact: root.compact;
+        row-height: root.operation-timeline-height;
+        spacing-horizontal: HubTokens.panel-gap;
+        spacing-vertical: HubTokens.panel-gap;
+
+        OperationTimelinePanel {
+            basis: root.overview-min-width;
+            flex-basis: root.overview-min-width;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.compact ? root.content-width : root.overview-min-width;
+            height: root.operation-timeline-height;
+            timeline-title: root.ui-text.operation-timeline;
+            empty-title: root.ui-text.no-operation-timeline;
+            empty-detail: root.ui-text.operation-timeline-empty-detail;
+            operation-timeline: root.operation-timeline;
+            operation-timeline-count: root.operation-timeline-count;
+            row-height: root.build-row-height;
+            timeline-scroll-y <=> root.operation-timeline-scroll-y;
+            collapse-label: root.compact-labels;
+        }
+    }
+
 }

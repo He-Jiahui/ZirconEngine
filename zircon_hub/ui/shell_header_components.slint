@@ -1,0 +1,376 @@
+import {
+    BrandMark,
+    HeaderStatusData,
+    HubIconButton,
+    MutedText,
+    ProjectDetailData,
+    SourceEngineData,
+    SourceEngineRowData,
+    StatusPill,
+    UiTextData,
+    WindowButton,
+} from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { HeaderGroup } from "surfaces.slint";
+import { HeaderEngineSelector } from "shell_header_popup_components.slint";
+import { HeaderUserMenu } from "shell_header_popup_components.slint";
+import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
+
+component WindowDragRegion inherits Rectangle {
+    in property <length> region-height: HubTokens.space-2;
+    callback drag-start(float, float);
+    callback drag-move(float, float);
+    callback drag-end();
+
+    height: root.region-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    background: transparent;
+
+    drag-area := TouchArea {
+        width: root.width;
+        height: root.height;
+
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                root.drag-start(drag-area.mouse-x / 1px, drag-area.mouse-y / 1px);
+            }
+            if (event.kind == PointerEventKind.up) {
+                root.drag-end();
+            }
+        }
+        moved => {
+            root.drag-move(drag-area.mouse-x / 1px, drag-area.mouse-y / 1px);
+        }
+    }
+}
+
+component HeaderControlSlot inherits Rectangle {
+    in property <length> slot-width: HubTokens.control-lg;
+    in property <length> slot-height: HubTokens.shell-header-height;
+
+    width: root.slot-width;
+    height: root.slot-height;
+    clip: false;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+
+        @children
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+    }
+}
+
+export component HubTopHeader inherits HeaderGroup {
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <[SourceEngineRowData]> source-engines;
+    in property <int> source-engine-count;
+    in property <[HeaderStatusData]> header-statuses;
+    in property <UiTextData> ui-text;
+    in property <bool> compact: false;
+    in property <bool> tight: false;
+    in property <bool> minimal: false;
+    in property <length> header-height: HubTokens.shell-header-height;
+    in property <length> drag-height: HubTokens.shell-drag-min;
+    in property <length> row-height: HubTokens.shell-row-min;
+    in property <length> pad-x: HubTokens.shell-pad-x-min;
+    in property <length> gap: HubTokens.toolbar-gap;
+    in property <length> nav-width: HubTokens.nav-width-expanded-min;
+    in property <length> action-height: HubTokens.control-lg;
+    callback select-engine(string);
+    callback settings-clicked();
+    callback window-minimize();
+    callback window-toggle-maximize();
+    callback window-close();
+    callback window-drag-start(float, float);
+    callback window-drag-move(float, float);
+    callback window-drag-end();
+    private property <length> header-button-size: min(root.action-height, root.row-height);
+    private property <length> brand-width: root.minimal ? HubTokens.icon-xl + root.gap : root.nav-width - root.pad-x;
+    private property <length> engine-selector-width: root.minimal ? max(HubTokens.control-md * 3, min(HubTokens.nav-width-expanded-min, root.nav-width + root.header-button-size)) : max(HubTokens.nav-width-collapsed-max * 2, min(HubTokens.nav-width-expanded-min - HubTokens.space-6, root.nav-width));
+    private property <length> status-running-pill-width: HubTokens.control-md * 3;
+    private property <length> status-standard-pill-width: HubTokens.control-md * 5 / 2 + HubTokens.space-2;
+    private property <length> status-error-pill-width: HubTokens.control-md * 2 + HubTokens.space-2;
+    private property <length> status-cluster-width: root.header-statuses.length == 0 ? 0px : root.status-running-pill-width + root.status-standard-pill-width * 2 + root.status-error-pill-width + root.gap * (root.header-statuses.length - 1);
+    private property <length> user-menu-width: root.tight ? root.header-button-size : max(HubTokens.user-menu-min-width, min(HubTokens.user-menu-max-width, root.nav-width * 2 / 3));
+    private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;
+
+    group-height: root.header-height;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        WindowDragRegion {
+            width: parent.width;
+            region-height: root.drag-height;
+            drag-start(x, y) => { root.window-drag-start(x, y); }
+            drag-move(x, y) => { root.window-drag-move(x, y); }
+            drag-end => { root.window-drag-end(); }
+        }
+
+        HorizontalLayout {
+            width: parent.width;
+            height: root.row-height;
+            horizontal-stretch: 1;
+            padding-left: root.pad-x;
+            padding-right: max(HubTokens.space-2, root.pad-x / 3);
+            spacing: root.gap;
+            alignment: stretch;
+
+            Rectangle {
+                width: root.brand-width;
+                height: parent.height;
+                clip: true;
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: root.gap + MaterialStyleMetrics.size_6;
+                    alignment: start;
+                    HeaderControlSlot {
+                        slot-width: HubTokens.icon-xl;
+                        slot-height: parent.height;
+
+                        BrandMark {}
+                    }
+                    if !root.minimal: VerticalLayout {
+                        height: parent.height;
+                        spacing: HubTokens.space-0;
+                        Rectangle {
+                            vertical-stretch: 1;
+                            min-height: 0px;
+                        }
+                        MaterialText {
+                            text: "ZIRCON HUB";
+                            color: MaterialPalette.on_surface;
+                            style: MaterialTypography.title_medium;
+                            overflow: elide;
+                        }
+                        MutedText {
+                            text: root.brand-subtitle;
+                            overflow: elide;
+                        }
+                        Rectangle {
+                            vertical-stretch: 1;
+                            min-height: 0px;
+                        }
+                    }
+                }
+
+                WindowDragRegion {
+                    width: parent.width;
+                    height: parent.height;
+                    region-height: parent.height;
+                    drag-start(x, y) => { root.window-drag-start(x, y); }
+                    drag-move(x, y) => { root.window-drag-move(x, y); }
+                    drag-end => { root.window-drag-end(); }
+                }
+            }
+
+            HeaderControlSlot {
+                slot-width: root.engine-selector-width;
+                slot-height: parent.height;
+
+                HeaderEngineSelector {
+                    selector-width: root.engine-selector-width;
+                    selector-height: max(HubTokens.control-sm, min(HubTokens.control-md, root.row-height * 2 / 3));
+                    current-engine: root.source-engine;
+                    engines: root.source-engines;
+                    engine-count: root.source-engine-count;
+                    ui-text: root.ui-text;
+                    selected(id) => {
+                        root.select-engine(id);
+                    }
+                }
+            }
+
+            if !root.compact: Rectangle {
+                width: root.gap * 13 / 2;
+                height: parent.height;
+                background: transparent;
+            }
+
+            if !root.compact: HeaderControlSlot {
+                slot-width: root.status-cluster-width;
+                slot-height: parent.height;
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: HubTokens.control-md;
+                    spacing: root.gap;
+                    alignment: stretch;
+
+                    for pill in root.header-statuses: StatusPill {
+                        width: pill.icon == ">" ? root.status-running-pill-width : (pill.state == "error" ? root.status-error-pill-width : root.status-standard-pill-width);
+                        icon: pill.icon;
+                        icon-image: pill.icon-image;
+                        has-icon-image: pill.has-icon-image;
+                        text: pill.text;
+                        accent-color: pill.icon == ">" ? HubVisualSpec.accent-stroke : (pill.state == "running" ? HubVisualSpec.accent-stroke : (pill.state == "ok" ? HubVisualSpec.success-stroke : (pill.state == "warn" ? HubVisualSpec.warning-stroke : (pill.state == "error" ? HubVisualSpec.error-stroke : HubVisualSpec.outline-strong))));
+                    }
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                min-width: 1px;
+                preferred-width: 0px;
+                height: root.action-height;
+                background: transparent;
+
+                WindowDragRegion {
+                    width: parent.width;
+                    height: parent.height;
+                    region-height: parent.height;
+                    drag-start(x, y) => { root.window-drag-start(x, y); }
+                    drag-move(x, y) => { root.window-drag-move(x, y); }
+                    drag-end => { root.window-drag-end(); }
+                }
+            }
+
+            if !root.tight: HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                HubIconButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    button-width: root.header-button-size;
+                    button-height: root.header-button-size;
+                    button-border-width: 0px;
+                    idle-background: transparent;
+                    idle-border: transparent;
+                    idle-foreground: MaterialPalette.on_surface_variant;
+                    state-layer-color: MaterialPalette.on_surface;
+                    disabled-opacity: 0.58;
+                    icon-size: HubTokens.icon-md;
+                    icon-image: @image-url("../assets/icons/ui/bell.svg");
+                    has-icon-image: true;
+                }
+            }
+            if !root.tight: HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                HubIconButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    button-width: root.header-button-size;
+                    button-height: root.header-button-size;
+                    button-border-width: 0px;
+                    idle-background: transparent;
+                    idle-border: transparent;
+                    idle-foreground: MaterialPalette.on_surface_variant;
+                    state-layer-color: MaterialPalette.on_surface;
+                    disabled-opacity: 0.58;
+                    icon-size: HubTokens.icon-md;
+                    icon-image: @image-url("../assets/icons/ui/help.svg");
+                    has-icon-image: true;
+                }
+            }
+            HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                HubIconButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    button-width: root.header-button-size;
+                    button-height: root.header-button-size;
+                    button-border-width: 0px;
+                    idle-background: transparent;
+                    idle-border: transparent;
+                    idle-foreground: MaterialPalette.on_surface_variant;
+                    state-layer-color: MaterialPalette.on_surface;
+                    disabled-opacity: 0.58;
+                    icon-size: HubTokens.icon-md;
+                    icon-image: @image-url("../assets/icons/ui/settings.svg");
+                    has-icon-image: true;
+                    clicked => {
+                        root.settings-clicked();
+                    }
+                }
+            }
+
+            if !root.tight: HeaderControlSlot {
+                slot-width: HubTokens.border-width;
+                slot-height: parent.height;
+
+                Rectangle {
+                    width: HubTokens.border-width;
+                    height: root.row-height * 3 / 5;
+                    background: HubTokens.stroke-muted;
+                }
+            }
+
+            HeaderControlSlot {
+                slot-width: root.user-menu-width;
+                slot-height: parent.height;
+
+                HeaderUserMenu {
+                    menu-width: root.user-menu-width;
+                    menu-height: root.action-height;
+                    tight: root.tight;
+                    ui-text: root.ui-text;
+                    project: root.project;
+                    settings-clicked => {
+                        root.settings-clicked();
+                    }
+                }
+            }
+
+            HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                WindowButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    icon-image: @image-url("../assets/icons/ui/minimize.svg");
+                    has-icon-image: true;
+                    clicked => { root.window-minimize(); }
+                }
+            }
+            HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                WindowButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    icon-image: @image-url("../assets/icons/ui/maximize.svg");
+                    has-icon-image: true;
+                    clicked => { root.window-toggle-maximize(); }
+                }
+            }
+            HeaderControlSlot {
+                slot-width: root.header-button-size;
+                slot-height: parent.height;
+
+                WindowButton {
+                    width: root.header-button-size;
+                    height: root.header-button-size;
+                    icon-image: @image-url("../assets/icons/ui/close.svg");
+                    has-icon-image: true;
+                    danger: true;
+                    clicked => { root.window-close(); }
+                }
+            }
+        }
+    }
+}

@@ -461,6 +461,7 @@ fn extract_with_camera_and_mesh(
                     model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                         "history-test-model",
                     )),
+                    mesh: None,
                     material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                         "history-test-material",
                     )),

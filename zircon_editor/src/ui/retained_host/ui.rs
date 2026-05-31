@@ -5,6 +5,11 @@ mod pane_data_conversion;
 #[path = "ui/reference_component_tests.rs"]
 mod reference_component_tests;
 #[cfg(test)]
+#[path = "ui/reference_overlay_apply_tests.rs"]
+mod reference_overlay_apply_tests;
+#[path = "ui/root_template_overlay.rs"]
+mod root_template_overlay;
+#[cfg(test)]
 #[path = "ui/structure_component_tests.rs"]
 mod structure_component_tests;
 #[path = "ui/template_node_conversion.rs"]

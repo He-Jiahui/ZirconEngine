@@ -79,6 +79,8 @@ pub fn editor_plugin() -> AnimationGraphEditorPlugin {
 fn base_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
     zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Animation Graph")
         .with_category("authoring")
+        .with_supported_targets([zircon_runtime::RuntimeTargetMode::EditorHost])
+        .with_capabilities([CAPABILITY])
         .with_dependency(
             zircon_runtime::plugin::PluginDependencyManifest::new("animation", true)
                 .with_capability("runtime.plugin.animation"),
@@ -486,6 +488,24 @@ mod tests {
         assert!(registry.menu_items().iter().any(|item| {
             item.path() == "Plugins/Animation Graph/Compile" && item.operation() == &operation
         }));
+    }
+
+    #[test]
+    fn animation_graph_package_manifest_declares_editor_only_metadata() {
+        let manifest = package_manifest();
+        let editor_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Editor)
+            .expect("animation graph editor module");
+
+        assert_eq!(manifest.category, "authoring");
+        assert_eq!(
+            manifest.supported_targets,
+            vec![zircon_runtime::RuntimeTargetMode::EditorHost]
+        );
+        assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
+        assert_eq!(editor_module.capabilities, manifest.capabilities);
     }
 
     #[test]

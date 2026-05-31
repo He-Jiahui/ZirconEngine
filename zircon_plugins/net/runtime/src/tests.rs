@@ -4,7 +4,10 @@ use zircon_runtime::core::framework::net::{
     NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
     NetWebSocketListenerDescriptor, RpcDescriptor, RpcDirection,
 };
-use zircon_runtime::{plugin::RuntimePlugin, plugin::RuntimePluginRegistrationReport};
+use zircon_runtime::{
+    plugin::CapabilityStatus, plugin::PluginMaturity, plugin::RuntimePlugin,
+    plugin::RuntimePluginRegistrationReport,
+};
 
 use super::{runtime_plugin, DefaultNetManager, NET_MODULE_NAME};
 
@@ -23,6 +26,7 @@ fn net_plugin_registration_contributes_runtime_module() {
         vec![
             zircon_runtime::RuntimeTargetMode::ServerRuntime,
             zircon_runtime::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::RuntimeTargetMode::EditorHost,
         ]
     );
 }
@@ -31,6 +35,11 @@ fn net_plugin_registration_contributes_runtime_module() {
 fn net_plugin_manifest_advertises_layered_optional_features() {
     let manifest = runtime_plugin().package_manifest();
 
+    assert_eq!(manifest.category, "runtime");
+    assert_eq!(manifest.maturity, PluginMaturity::Beta);
+    assert!(manifest.capability_statuses.iter().any(|status| {
+        status.capability == "runtime.plugin.net" && status.status == CapabilityStatus::Partial
+    }));
     let feature_ids = manifest
         .optional_features
         .iter()
@@ -51,10 +60,40 @@ fn net_plugin_manifest_advertises_layered_optional_features() {
         .options
         .iter()
         .any(|option| option.key == "net.runtime_mode"));
-    assert!(manifest
+    let event_catalog = manifest
         .event_catalogs
         .iter()
-        .any(|catalog| catalog.namespace == "net.runtime_events"));
+        .find(|catalog| catalog.namespace == "net.runtime_events")
+        .expect("net runtime event catalog");
+    assert_eq!(
+        event_catalog
+            .events
+            .iter()
+            .map(|event| event.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "net.runtime_events.listener_started",
+            "net.runtime_events.connection_state_changed",
+            "net.runtime_events.http_route_registered",
+            "net.runtime_events.websocket_frame_queued",
+        ]
+    );
+
+    let content_download = manifest
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "net.content_download")
+        .expect("content download feature");
+    assert!(content_download.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "net"
+            && dependency.capability == "runtime.plugin.net"
+            && dependency.primary
+    }));
+    assert!(content_download.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "net"
+            && dependency.capability == "runtime.feature.net.http"
+            && !dependency.primary
+    }));
 }
 
 #[test]

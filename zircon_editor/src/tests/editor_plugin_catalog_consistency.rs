@@ -2,9 +2,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
+use zircon_runtime::{
+    plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::RuntimePluginCatalog,
+    RuntimeTargetMode,
+};
 
-use crate::core::editor_plugin::EditorPluginDescriptor;
+use crate::core::editor_plugin::{EditorPluginCatalog, EditorPluginDescriptor};
 
 #[test]
 fn builtin_editor_catalog_entries_have_matching_plugin_manifests_and_workspace_members() {
@@ -57,6 +60,100 @@ fn editor_workspace_plugin_manifests_are_present_in_builtin_catalog() {
                 manifest.id
             );
         }
+    }
+}
+
+#[test]
+fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_manifests() {
+    let plugins_root = plugins_workspace_root();
+    let catalog = EditorPluginCatalog::builtin(RuntimePluginCatalog::builtin().package_manifests());
+    let catalog_manifests = catalog.package_manifests();
+
+    for (package_id, category, capabilities) in [
+        (
+            "material_editor",
+            "authoring",
+            vec!["editor.extension.material_editor_authoring"],
+        ),
+        (
+            "timeline_sequence",
+            "authoring",
+            vec!["editor.extension.timeline_sequence_authoring"],
+        ),
+        (
+            "animation_graph",
+            "authoring",
+            vec!["editor.extension.animation_graph_authoring"],
+        ),
+        (
+            "runtime_diagnostics",
+            "diagnostics",
+            vec!["editor.extension.runtime_diagnostics"],
+        ),
+        (
+            "ui_asset_authoring",
+            "authoring",
+            vec!["editor.extension.ui_asset_authoring"],
+        ),
+        (
+            "native_window_hosting",
+            "platform",
+            vec!["editor.extension.native_window_hosting"],
+        ),
+        (
+            "editor_build_export_desktop",
+            "platform",
+            vec![
+                "editor.extension.build_export_desktop",
+                "editor.extension.build_export_desktop.diagnostics",
+                "editor.extension.build_export_desktop.native_dynamic_report",
+            ],
+        ),
+        (
+            "plugin_sdk_examples",
+            "sdk",
+            vec![
+                "editor.extension.plugin_sdk_examples",
+                "editor.extension.plugin_sdk_examples.window",
+                "editor.extension.plugin_sdk_examples.asset_fixture",
+            ],
+        ),
+    ] {
+        let static_manifest = read_plugin_manifest(&plugins_root, package_id);
+        let catalog_manifest = catalog_manifests
+            .iter()
+            .find(|manifest| manifest.id == package_id)
+            .expect("editor-only package should be in builtin editor catalog");
+        let capabilities = capabilities
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            static_manifest.category, category,
+            "static plugin.toml for `{package_id}` should declare the expected category"
+        );
+        assert_eq!(
+            static_manifest.supported_targets,
+            vec![RuntimeTargetMode::EditorHost],
+            "static plugin.toml for `{package_id}` should declare editor_host support"
+        );
+        assert_eq!(
+            static_manifest.capabilities, capabilities,
+            "static plugin.toml for `{package_id}` should declare package-level editor capabilities"
+        );
+        assert_eq!(
+            catalog_manifest.category, static_manifest.category,
+            "builtin editor catalog for `{package_id}` should preserve static category"
+        );
+        assert_eq!(
+            catalog_manifest.supported_targets, static_manifest.supported_targets,
+            "builtin editor catalog for `{package_id}` should preserve static supported targets"
+        );
+        assert_eq!(
+            catalog_manifest.capabilities, static_manifest.capabilities,
+            "builtin editor catalog for `{package_id}` should preserve static package capabilities"
+        );
     }
 }
 

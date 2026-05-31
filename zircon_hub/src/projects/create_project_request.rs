@@ -15,11 +15,26 @@ impl CreateProjectRequest {
         location: impl Into<PathBuf>,
         template: ProjectTemplate,
     ) -> Self {
+        let project_name = project_name.into().trim().to_string();
         Self {
-            project_name: project_name.into(),
+            project_name,
             location: location.into(),
             template,
         }
+    }
+
+    pub fn validate_launch_fields(&self) -> Result<(), &'static str> {
+        if self.project_name.is_empty() {
+            return Err("Project name is required");
+        }
+        if self.location.as_os_str().is_empty() {
+            return Err("Project location is required");
+        }
+        Ok(())
+    }
+
+    pub fn target_root(&self) -> PathBuf {
+        self.location.join(&self.project_name)
     }
 }
 
@@ -110,6 +125,33 @@ mod tests {
                 .map(|template| template.id)
                 .collect::<Vec<_>>(),
             vec!["renderable-empty"]
+        );
+    }
+
+    #[test]
+    fn create_request_trims_name_and_validates_launch_fields() {
+        let request = CreateProjectRequest::new(
+            "  My Game  ",
+            "E:/Projects",
+            ProjectTemplate::RenderableEmpty,
+        );
+
+        assert_eq!(request.project_name, "My Game");
+        assert_eq!(
+            request.target_root(),
+            PathBuf::from("E:/Projects").join("My Game")
+        );
+        assert_eq!(request.validate_launch_fields(), Ok(()));
+
+        let missing_name = CreateProjectRequest::new("   ", "E:/Projects", request.template);
+        assert_eq!(
+            missing_name.validate_launch_fields(),
+            Err("Project name is required")
+        );
+        let missing_location = CreateProjectRequest::new("Game", "", request.template);
+        assert_eq!(
+            missing_location.validate_launch_fields(),
+            Err("Project location is required")
         );
     }
 }

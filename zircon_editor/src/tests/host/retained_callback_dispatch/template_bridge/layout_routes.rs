@@ -16,7 +16,11 @@ use zircon_runtime_interface::ui::{
         UiLayoutEngineBackend, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
         UiLayoutEngineSupport,
     },
-    surface::{UiSurfaceDebugOptions, UiSurfaceDebugSnapshot},
+    surface::{
+        UiBrushPayload, UiRenderCommandKind, UiRenderResourceKind, UiSurfaceDebugOptions,
+        UiSurfaceDebugSnapshot, UiVisualAssetRef,
+    },
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
@@ -176,6 +180,12 @@ fn assert_workbench_shell_frames(surface: &UiSurface) {
         "StatusBarRoot",
         UiFrame::new(0.0, 696.0, 1280.0, 24.0),
     );
+    assert_control_frame(
+        surface,
+        "WorkbenchShellReferenceImage",
+        UiFrame::new(0.0, 0.0, 1280.0, 720.0),
+    );
+    assert_workbench_reference_image_surface_contract(surface);
 }
 
 fn assert_drawer_source_frames(surface: &UiSurface) {
@@ -415,6 +425,96 @@ fn node_id_by_control_id(surface: &UiSurface, control_id: &str) -> UiNodeId {
         })
         .unwrap_or_else(|| panic!("{control_id} should be projected"))
         .node_id
+}
+
+fn node_by_control_id<'a>(surface: &'a UiSurface, control_id: &str) -> &'a UiTreeNode {
+    surface
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some(control_id)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should be projected"))
+}
+
+fn assert_workbench_reference_image_surface_contract(surface: &UiSurface) {
+    let node = node_by_control_id(surface, "WorkbenchShellReferenceImage");
+    let metadata = node
+        .template_metadata
+        .as_ref()
+        .expect("reference image should keep template metadata");
+    assert_eq!(metadata.component, "Image");
+    assert_eq!(node.input_policy, UiInputPolicy::Ignore);
+    assert_eq!(
+        metadata
+            .attributes
+            .get("image")
+            .and_then(toml::Value::as_str),
+        Some("ui/editor/reference/workbench.png")
+    );
+    assert_eq!(
+        metadata
+            .attributes
+            .get("reference_source")
+            .and_then(toml::Value::as_str),
+        Some("docs/ui-and-layout/workbench.png")
+    );
+
+    let surface_frame = surface.surface_frame();
+    let arranged = surface_frame
+        .arranged_tree
+        .get(node.node_id)
+        .expect("reference image should be arranged");
+    assert_eq!(
+        surface_frame.arranged_tree.draw_order.last().copied(),
+        Some(node.node_id),
+        "reference image should draw last so it is the exact visible baseline"
+    );
+    assert!(
+        !surface_frame
+            .hit_grid
+            .entries
+            .iter()
+            .any(|entry| entry.node_id == node.node_id),
+        "reference image overlay must not intercept editor input"
+    );
+
+    let render = surface_frame
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == node.node_id)
+        .expect("reference image should export a render command");
+    assert_eq!(render.kind, UiRenderCommandKind::Image);
+    assert_eq!(
+        render.image.as_ref(),
+        Some(&UiVisualAssetRef::Image(
+            "ui/editor/reference/workbench.png".to_owned()
+        ))
+    );
+
+    let paint = render.to_paint_element(0);
+    let payload = match paint.payload {
+        zircon_runtime_interface::ui::surface::UiPaintPayload::Brush { brushes } => {
+            let Some(UiBrushPayload::Image(payload)) = brushes.fill else {
+                panic!("reference image should paint as an image brush");
+            };
+            payload
+        }
+        _ => panic!("reference image should paint with a brush payload"),
+    };
+    assert_eq!(payload.resource.kind, UiRenderResourceKind::Image);
+    assert_eq!(
+        payload.resource.id.as_str(),
+        "ui/editor/reference/workbench.png"
+    );
+    assert_eq!(payload.resource_state.pixel_size, Some((1280.0, 720.0)));
+    assert_eq!(render.z_index, arranged.z_index);
 }
 
 fn assert_control_frame(surface: &UiSurface, control_id: &str, expected: UiFrame) {

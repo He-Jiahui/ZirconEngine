@@ -15,7 +15,7 @@
 - Modify `zircon_runtime/src/core/framework/sound/events.rs`: add execution status/result/report DTOs.
 - Modify `zircon_runtime/src/core/framework/sound/manager.rs`: add execute API. Runtime-local executor registration will be an inherent `DefaultSoundManager` API because callback trait objects are not neutral DTOs.
 - Modify `zircon_runtime/src/core/framework/sound/mod.rs`: export new DTOs.
-- Modify `zircon_plugins/sound/runtime/src/dynamic_events.rs`: add helper for deterministic deliveries without duplicating ordering logic if needed.
+- Modify `zircon_plugins/sound/runtime/src/dynamic_events/dispatch.rs`: add helper for deterministic deliveries without duplicating ordering logic if needed.
 - Modify `zircon_plugins/sound/runtime/src/engine/state.rs`: store executor callbacks.
 - Modify `zircon_plugins/sound/runtime/src/service_types.rs`: implement executor registration/unregistration and `SoundManager::execute_dynamic_events`.
 - Modify `zircon_plugins/sound/runtime/src/tests/dynamic_events.rs`: add execution tests.
@@ -136,7 +136,7 @@ git diff --check -- "zircon_runtime\src\core\framework\sound" "zircon_plugins\so
 - [x] Add generic plugin-event callback ABI contracts to `zircon_runtime_interface/src/plugin_events.rs`.
 - [x] Append optional `ZrPluginApiV1::invoke_event` to the plugin API table.
 - [x] Add interface contract tests for plugin API table layout and callback request/result payloads.
-- [x] Add `zircon_plugins/sound/runtime/src/dynamic_event_abi.rs` so the sound runtime can adapt `SoundDynamicEventDelivery` to `ZrPluginEventCallbackFnV1` without moving function pointers into the neutral sound framework.
+- [x] Add `zircon_plugins/sound/runtime/src/dynamic_event_abi/` so the sound runtime can adapt `SoundDynamicEventDelivery` to `ZrPluginEventCallbackFnV1` without moving function pointers into the neutral sound framework.
 - [x] Add sound runtime tests for projected ABI callback delivery and callback-level failure reporting.
 - [x] Run focused formatting and validation for `zircon_runtime_interface` and `zircon_plugin_sound_runtime`.
 - [x] Record final validation evidence in this plan, `docs/engine-architecture/runtime-sound-extension.md`, `docs/engine-architecture/runtime-interface-cdylib-loader.md`, and `.codex/sessions/20260523-0748-sound-sequential-milestones.md`.

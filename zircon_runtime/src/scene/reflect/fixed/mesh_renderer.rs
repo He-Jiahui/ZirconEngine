@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldValue, ReflectedValue,
 };
@@ -17,7 +19,9 @@ pub(super) fn register(registry: &mut TypeRegistry) -> Result<(), ReflectError> 
         "MeshRenderer",
         vec![
             shared::readonly_field("model", "Resource", ReflectEditorHint::Resource),
+            shared::readonly_field("mesh", "Resource", ReflectEditorHint::Resource),
             shared::readonly_field("material", "Resource", ReflectEditorHint::Resource),
+            shared::readonly_field("primitives", "List", ReflectEditorHint::None),
             shared::field("tint", "Vec4", ReflectEditorHint::Vec4),
         ],
         adapter(),
@@ -48,8 +52,29 @@ fn read_field(
     let component = shared::get_component::<MeshRenderer>(world, entity, TYPE_PATH)?;
     match field_name {
         "model" => Ok(ReflectedValue::Resource(component.model.id().to_string())),
+        "mesh" => Ok(component.mesh.map_or(ReflectedValue::Null, |mesh| {
+            ReflectedValue::Resource(mesh.id().to_string())
+        })),
         "material" => Ok(ReflectedValue::Resource(
             component.material.id().to_string(),
+        )),
+        "primitives" => Ok(ReflectedValue::List(
+            component
+                .primitives
+                .iter()
+                .map(|primitive| {
+                    ReflectedValue::Map(BTreeMap::from([
+                        (
+                            "mesh".to_string(),
+                            ReflectedValue::Resource(primitive.mesh.id().to_string()),
+                        ),
+                        (
+                            "material".to_string(),
+                            ReflectedValue::Resource(primitive.material.id().to_string()),
+                        ),
+                    ]))
+                })
+                .collect(),
         )),
         "tint" => Ok(ReflectedValue::Vec4(component.tint.to_array())),
         _ => Err(shared::unknown_field(TYPE_PATH, field_name)),
@@ -63,9 +88,14 @@ fn read_fields(
 ) -> Result<Vec<ReflectFieldValue>, ReflectError> {
     Ok(vec![
         ReflectFieldValue::new("model", read_field(world, entity, TYPE_PATH, "model")?),
+        ReflectFieldValue::new("mesh", read_field(world, entity, TYPE_PATH, "mesh")?),
         ReflectFieldValue::new(
             "material",
             read_field(world, entity, TYPE_PATH, "material")?,
+        ),
+        ReflectFieldValue::new(
+            "primitives",
+            read_field(world, entity, TYPE_PATH, "primitives")?,
         ),
         ReflectFieldValue::new("tint", read_field(world, entity, TYPE_PATH, "tint")?),
     ])
@@ -88,7 +118,9 @@ fn write_field(
             shared::get_component_mut::<MeshRenderer>(world, entity, TYPE_PATH)?.tint = next;
             Ok(true)
         }
-        "model" | "material" => Err(shared::non_editable_field(TYPE_PATH, field_name)),
+        "model" | "mesh" | "material" | "primitives" => {
+            Err(shared::non_editable_field(TYPE_PATH, field_name))
+        }
         _ => Err(shared::unknown_field(TYPE_PATH, field_name)),
     }
 }

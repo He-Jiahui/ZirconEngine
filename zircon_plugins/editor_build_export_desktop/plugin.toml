@@ -4,6 +4,7 @@ sdk_api_version = "0.1.0"
 display_name = "Desktop Build Export"
 description = "Editor-only desktop export panel, compatibility diagnostics, and packaging report surface."
 category = "platform"
+maturity = "experimental"
 supported_targets = ["editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = [

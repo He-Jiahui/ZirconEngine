@@ -1,10 +1,14 @@
 mod subassets;
+#[cfg(test)]
+mod test_fixtures;
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use subassets::{
     add_gltf_animation_and_skin_placeholders, add_gltf_material_subassets, add_gltf_mesh_subassets,
-    add_gltf_scene_subassets, add_gltf_texture_subassets, GltfMeshSubasset, GltfPrimitiveSubasset,
+    add_gltf_scene_subassets, add_gltf_texture_subassets, gltf_label_reference, GltfMeshSubasset,
+    GltfPrimitiveSubasset,
 };
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
@@ -124,6 +128,7 @@ pub fn register_runtime_extensions(
 }
 
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
+    validate_external_gltf_buffers(context)?;
     let (document, buffers, images) = gltf::import(&context.source_path)
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
     let mut primitives = Vec::new();
@@ -135,6 +140,14 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
         let mut mesh_primitives = Vec::new();
         let mesh_name = mesh.name();
         for primitive in mesh.primitives() {
+            let mode = primitive.mode();
+            if mode != gltf::mesh::Mode::Triangles {
+                return Err(AssetImportError::Parse(format!(
+                    "unsupported gltf primitive mode {mode:?} at Mesh{}/Primitive{}; only Triangles is supported",
+                    mesh.index(),
+                    primitive.index()
+                )));
+            }
             let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()].0));
             let positions = reader
                 .read_positions()
@@ -174,7 +187,7 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                     (0..vertex_count as u32).collect()
                 });
 
-            let primitive_asset = primitive_from_indexed_mesh(
+            let mut primitive_asset = primitive_from_indexed_mesh(
                 &positions,
                 &normals,
                 &texcoords,
@@ -184,6 +197,10 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                 mesh_name,
                 &source_hint,
             )?;
+            primitive_asset.mesh = Some(gltf_label_reference(
+                &context.uri,
+                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
+            ));
             primitives.push(primitive_asset.clone());
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
@@ -210,6 +227,35 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_animation_and_skin_placeholders(outcome, &context.uri, &document);
     Ok(outcome)
+}
+
+fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), AssetImportError> {
+    let gltf = gltf::Gltf::from_slice(&context.source_bytes)
+        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
+    let base_dir = context
+        .source_path
+        .parent()
+        .unwrap_or_else(|| Path::new(""));
+    for buffer in gltf.document.buffers() {
+        let gltf::buffer::Source::Uri(uri) = buffer.source() else {
+            continue;
+        };
+        if uri
+            .get(..5)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("data:"))
+        {
+            continue;
+        }
+        let buffer_path = base_dir.join(uri);
+        if !buffer_path.exists() {
+            return Err(AssetImportError::Parse(format!(
+                "parse gltf: missing external buffer `{uri}` referenced by Buffer{} at {}",
+                buffer.index(),
+                buffer_path.display()
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn morph_targets_from_reader<'a, 's, F>(
@@ -353,6 +399,7 @@ fn primitive_from_indexed_mesh(
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
+        mesh: None,
         virtual_geometry,
     })
 }
@@ -386,353 +433,4 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
-    use zircon_runtime::asset::{AssetUri, ImportedAssetEntry};
-
-    #[test]
-    fn package_declares_gltf_importer() {
-        let manifest = package_manifest();
-
-        assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(manifest
-            .capabilities
-            .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(manifest
-            .asset_importers
-            .iter()
-            .any(|importer| importer.source_extensions.contains(&"glb".to_string())));
-    }
-
-    #[test]
-    fn registration_contributes_module_and_importer() {
-        let report = plugin_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == MODULE_NAME));
-        assert!(report
-            .extensions
-            .asset_importers()
-            .descriptors()
-            .iter()
-            .any(|importer| importer.id == "gltf_importer.gltf"));
-    }
-
-    #[test]
-    fn importer_decodes_triangle_gltf_into_model_asset() {
-        let root = unique_temp_root("gltf_importer_decode");
-        fs::create_dir_all(&root).unwrap();
-        let gltf_path = write_triangle_gltf(&root);
-        let source_bytes = fs::read(&gltf_path).unwrap();
-        let outcome = import_gltf(&AssetImportContext::new(
-            gltf_path,
-            AssetUri::parse("res://models/triangle.gltf").unwrap(),
-            source_bytes,
-            toml::Table::new(),
-        ))
-        .unwrap();
-
-        let entry = outcome.root_entry().expect("root gltf asset entry");
-        match &entry.asset {
-            ImportedAsset::Model(model) => {
-                assert_eq!(model.primitives.len(), 1);
-                assert_eq!(model.primitives[0].vertices.len(), 3);
-                assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
-                let virtual_geometry = model.primitives[0]
-                    .virtual_geometry
-                    .as_ref()
-                    .expect("plugin importer should cook virtual geometry");
-                assert_eq!(
-                    virtual_geometry.debug.source_hint.as_deref(),
-                    Some("res://models/triangle.gltf")
-                );
-            }
-            other => panic!("unexpected imported asset: {other:?}"),
-        }
-        assert!(outcome
-            .entries
-            .iter()
-            .any(|entry| matches!(&entry.asset, ImportedAsset::Mesh(_))));
-        assert!(entry.dependencies.contains(&label_uri("Scene0")));
-        assert!(entry.dependencies.contains(&label_uri("Node0")));
-        assert!(entry.dependencies.contains(&label_uri("Mesh0")));
-        assert!(entry.dependencies.contains(&label_uri("Mesh0/Primitive0")));
-        assert!(entry.dependencies.contains(&label_uri("Material0")));
-        assert!(entry.dependencies.contains(&label_uri("Texture0")));
-        assert!(entry.dependencies.contains(&label_uri("DefaultMaterial")));
-        assert!(entry.dependencies.contains(&label_uri("Animation0")));
-        assert!(entry.dependencies.contains(&label_uri("Skin0")));
-        assert!(entry
-            .dependencies
-            .contains(&label_uri("Skin0/InverseBindMatrices")));
-
-        match &entry_for_label(&outcome, "Texture0").asset {
-            ImportedAsset::Texture(texture) => {
-                assert_eq!(texture.width, 1);
-                assert_eq!(texture.height, 1);
-                assert_eq!(texture.rgba.len(), 4);
-            }
-            other => panic!("unexpected Texture0 asset: {other:?}"),
-        }
-        let material_entry = entry_for_label(&outcome, "Material0");
-        assert!(material_entry.dependencies.contains(&label_uri("Texture0")));
-        assert!(material_entry
-            .dependencies
-            .contains(&default_pbr_shader_uri()));
-        match &material_entry.asset {
-            ImportedAsset::Material(material) => {
-                assert_eq!(material.name.as_deref(), Some("TriangleMaterial"));
-                assert_eq!(material.base_color, [0.2, 0.3, 0.4, 1.0]);
-                assert_eq!(material.metallic, 0.5);
-                assert_eq!(material.roughness, 0.6);
-                assert_eq!(
-                    material.base_color_texture.as_ref().unwrap().locator,
-                    label_uri("Texture0")
-                );
-            }
-            other => panic!("unexpected Material0 asset: {other:?}"),
-        }
-        match &entry_for_label(&outcome, "Mesh0").asset {
-            ImportedAsset::Model(model) => assert_eq!(model.primitives.len(), 1),
-            other => panic!("unexpected Mesh0 asset: {other:?}"),
-        }
-        match &entry_for_label(&outcome, "Mesh0/Primitive0").asset {
-            ImportedAsset::Mesh(mesh) => {
-                assert_eq!(mesh.vertex_count().unwrap(), 3);
-                assert_eq!(
-                    mesh.skin
-                        .as_ref()
-                        .expect("skinned gltf mesh primitive should keep inverse bind matrices")
-                        .inverse_bind_matrices,
-                    vec![identity_bind_matrix()]
-                );
-                assert_eq!(mesh.morph_targets.len(), 1);
-                assert_eq!(
-                    mesh.morph_targets[0]
-                        .attributes
-                        .get(MESH_ATTRIBUTE_POSITION),
-                    Some(&MeshAttributeValues::Float32x3(vec![
-                        [0.1, 0.0, 0.0],
-                        [0.0, 0.1, 0.0],
-                        [0.0, 0.0, 0.1],
-                    ]))
-                );
-            }
-            other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
-        }
-        match &entry_for_label(&outcome, "Node0").asset {
-            ImportedAsset::Scene(scene) => {
-                assert_eq!(scene.entities.len(), 1);
-                let entity = &scene.entities[0];
-                assert_eq!(entity.name, "TriangleNode");
-                let mesh = entity.mesh.as_ref().expect("node mesh instance");
-                assert_eq!(mesh.model.locator, label_uri("Mesh0"));
-                assert_eq!(mesh.material.locator, label_uri("Material0"));
-            }
-            other => panic!("unexpected Node0 asset: {other:?}"),
-        }
-        match &entry_for_label(&outcome, "Scene0").asset {
-            ImportedAsset::Scene(scene) => assert_eq!(scene.entities.len(), 1),
-            other => panic!("unexpected Scene0 asset: {other:?}"),
-        }
-        let default_material_entry = entry_for_label(&outcome, "DefaultMaterial");
-        assert!(default_material_entry
-            .dependencies
-            .contains(&default_pbr_shader_uri()));
-        assert!(matches!(
-            &default_material_entry.asset,
-            ImportedAsset::Material(_)
-        ));
-        for label in ["Animation0", "Skin0", "Skin0/InverseBindMatrices"] {
-            match &entry_for_label(&outcome, label).asset {
-                ImportedAsset::Data(data) => assert!(
-                    data.text.contains("not implemented yet"),
-                    "{label} should carry a diagnostic placeholder"
-                ),
-                other => panic!("unexpected {label} asset: {other:?}"),
-            }
-        }
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    fn entry_for_label<'a>(outcome: &'a AssetImportOutcome, label: &str) -> &'a ImportedAssetEntry {
-        let locator = label_uri(label);
-        outcome
-            .entries
-            .iter()
-            .find(|entry| entry.locator == locator)
-            .unwrap_or_else(|| panic!("missing gltf subasset {locator}"))
-    }
-
-    fn label_uri(label: &str) -> AssetUri {
-        AssetUri::parse(&format!("res://models/triangle.gltf#{label}")).unwrap()
-    }
-
-    fn default_pbr_shader_uri() -> AssetUri {
-        AssetUri::parse("res://shaders/default_pbr.zshader").unwrap()
-    }
-
-    fn identity_bind_matrix() -> [[f32; 4]; 4] {
-        [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    }
-
-    fn unique_temp_root(label: &str) -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        std::env::temp_dir().join(format!("zircon_plugin_{label}_{unique}"))
-    }
-
-    fn write_triangle_gltf(root: &Path) -> PathBuf {
-        let buffer_path = root.join("triangle.bin");
-        let gltf_path = root.join("triangle.gltf");
-
-        let mut bytes = Vec::new();
-        for value in [
-            0.0_f32, 0.0, 0.0, //
-            1.0, 0.0, 0.0, //
-            0.0, 1.0, 0.0,
-        ] {
-            bytes.extend_from_slice(&value.to_le_bytes());
-        }
-        for index in [0_u16, 1, 2] {
-            bytes.extend_from_slice(&index.to_le_bytes());
-        }
-        bytes.extend_from_slice(&[0, 0]);
-        for value in [
-            1.0_f32, 0.0, 0.0, 0.0, //
-            0.0, 1.0, 0.0, 0.0, //
-            0.0, 0.0, 1.0, 0.0, //
-            0.0, 0.0, 0.0, 1.0,
-        ] {
-            bytes.extend_from_slice(&value.to_le_bytes());
-        }
-        bytes.extend_from_slice(&0.0_f32.to_le_bytes());
-        for value in [0.0_f32, 0.0, 0.0] {
-            bytes.extend_from_slice(&value.to_le_bytes());
-        }
-        for value in [0.1_f32, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.1] {
-            bytes.extend_from_slice(&value.to_le_bytes());
-        }
-        fs::write(&buffer_path, bytes).unwrap();
-
-        fs::write(
-            &gltf_path,
-            r#"{
-  "asset": { "version": "2.0" },
-  "buffers": [
-    { "uri": "triangle.bin", "byteLength": 160 }
-  ],
-  "bufferViews": [
-    { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
-    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 },
-    { "buffer": 0, "byteOffset": 44, "byteLength": 64 },
-    { "buffer": 0, "byteOffset": 108, "byteLength": 4 },
-    { "buffer": 0, "byteOffset": 112, "byteLength": 12 },
-    { "buffer": 0, "byteOffset": 124, "byteLength": 36, "target": 34962 }
-  ],
-  "accessors": [
-    {
-      "bufferView": 0,
-      "componentType": 5126,
-      "count": 3,
-      "type": "VEC3",
-      "min": [0.0, 0.0, 0.0],
-      "max": [1.0, 1.0, 0.0]
-    },
-    {
-      "bufferView": 1,
-      "componentType": 5123,
-      "count": 3,
-      "type": "SCALAR"
-    },
-    {
-      "bufferView": 2,
-      "componentType": 5126,
-      "count": 1,
-      "type": "MAT4"
-    },
-    {
-      "bufferView": 3,
-      "componentType": 5126,
-      "count": 1,
-      "type": "SCALAR",
-      "min": [0.0],
-      "max": [0.0]
-    },
-    {
-      "bufferView": 4,
-      "componentType": 5126,
-      "count": 1,
-      "type": "VEC3"
-    },
-    {
-      "bufferView": 5,
-      "componentType": 5126,
-      "count": 3,
-      "type": "VEC3"
-    }
-  ],
-  "images": [
-    {
-      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
-    }
-  ],
-  "textures": [
-    { "source": 0 }
-  ],
-  "materials": [
-    {
-      "name": "TriangleMaterial",
-      "pbrMetallicRoughness": {
-        "baseColorFactor": [0.2, 0.3, 0.4, 1.0],
-        "baseColorTexture": { "index": 0 },
-        "metallicFactor": 0.5,
-        "roughnessFactor": 0.6
-      }
-    }
-  ],
-  "meshes": [
-    {
-      "name": "TriangleMesh",
-      "primitives": [
-        {
-          "attributes": { "POSITION": 0 },
-          "indices": 1,
-          "material": 0,
-          "targets": [{ "POSITION": 5 }]
-        }
-      ]
-    }
-  ],
-  "nodes": [{ "name": "TriangleNode", "mesh": 0, "skin": 0 }],
-  "skins": [{ "inverseBindMatrices": 2, "joints": [0] }],
-  "animations": [
-    {
-      "samplers": [{ "input": 3, "output": 4, "interpolation": "LINEAR" }],
-      "channels": [{ "sampler": 0, "target": { "node": 0, "path": "translation" } }]
-    }
-  ],
-  "scenes": [{ "name": "SceneRoot", "nodes": [0] }],
-  "scene": 0
-}"#,
-        )
-        .unwrap();
-
-        gltf_path
-    }
-}
+mod tests;

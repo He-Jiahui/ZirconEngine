@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::error::HubError;
 
-use super::metadata::project_metadata_key;
+use super::metadata::{project_metadata_key, project_paths_match};
 use super::recent_project::{RecentProject, RECENT_PROJECT_LIMIT};
 
 const EDITOR_STARTUP_SESSION_KEY: &str = "editor.startup.session";
@@ -90,7 +90,12 @@ pub fn save_editor_recent_projects_with_last_project(
         .transpose()?;
     let last_project_path = last_project_path
         .map(|path| path.to_string_lossy().into_owned())
-        .or_else(|| existing_session.and_then(|session| session.last_project_path));
+        .or_else(|| existing_session.and_then(|session| session.last_project_path))
+        .filter(|path| {
+            recent_projects
+                .iter()
+                .any(|project| project_paths_match(&project.path, Path::new(path)))
+        });
     let session = EditorStartupSession {
         last_project_path,
         recent_projects: recent_projects
@@ -248,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn editor_recent_writer_preserves_existing_last_project_without_override() {
+    fn editor_recent_writer_preserves_existing_last_project_without_override_when_recent() {
         let root = std::env::temp_dir().join(format!(
             "zircon_hub_recent_last_project_{}",
             std::process::id()
@@ -262,8 +267,14 @@ mod tests {
         )
         .unwrap();
 
-        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
-            .unwrap();
+        save_editor_recent_projects(
+            &path,
+            &[
+                RecentProject::new("Last", "E:/Projects/Last", 99),
+                RecentProject::new("Game", "E:/Projects/Game", 42),
+            ],
+        )
+        .unwrap();
 
         let values =
             serde_json::from_str::<HashMap<String, Value>>(&fs::read_to_string(&path).unwrap())
@@ -272,6 +283,31 @@ mod tests {
             values[EDITOR_STARTUP_SESSION_KEY]["last_project_path"],
             Value::String("E:/Projects/Last".to_string())
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn editor_recent_writer_clears_last_project_when_it_is_no_longer_recent() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_hub_recent_last_project_clear_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("config.json");
+        fs::write(
+            &path,
+            r#"{"editor.startup.session":{"last_project_path":"E:/Projects/Removed","recent_projects":[]}}"#,
+        )
+        .unwrap();
+
+        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
+            .unwrap();
+
+        let values =
+            serde_json::from_str::<HashMap<String, Value>>(&fs::read_to_string(&path).unwrap())
+                .unwrap();
+        assert!(values[EDITOR_STARTUP_SESSION_KEY]["last_project_path"].is_null());
         let _ = fs::remove_dir_all(root);
     }
 

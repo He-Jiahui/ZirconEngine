@@ -1,0 +1,48 @@
+{
+  "name": "Zircon Hub overlay ownership baseline",
+  "source": "docs/ui-and-layout/hub-design-board/index.html",
+  "review_focus": "overlay-ownership-no-reflow",
+  "overlay_layers": [
+    {
+      "id": "header-source-popup",
+      "owner": "topbar-global-commands",
+      "primary_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "anchor_region": "Topbar Source Engine control",
+      "layout_effect": "floating-no-reflow"
+    },
+    {
+      "id": "header-account-menu",
+      "owner": "topbar-global-commands",
+      "primary_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "anchor_region": "Topbar account control",
+      "layout_effect": "floating-no-reflow"
+    },
+    {
+      "id": "workspace-filter-sort-menus",
+      "owner": "workspace-page-owner",
+      "primary_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "anchor_region": "Workspace toolbar",
+      "layout_effect": "floating-no-reflow"
+    },
+    {
+      "id": "project-card-overflow-menu",
+      "owner": "workspace-page-owner",
+      "primary_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "anchor_region": "Workspace project card",
+      "layout_effect": "floating-no-reflow"
+    },
+    {
+      "id": "delete-confirm-overlay",
+      "owner": "overlay-layer-owner",
+      "primary_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "anchor_region": "Workspace modal overlay layer",
+      "layout_effect": "floating-no-reflow"
+    }
+  ],
+  "invariants": [
+    "Overlays float above the accepted shell and never resize Topbar, Sidebar, Workspace, or Bottom strip.",
+    "Header overlays remain owned by Topbar global commands even when they visually overlap Workspace.",
+    "Workspace menus remain owned by Workspace page content and do not become global shell chrome.",
+    "Confirm overlays use the overlay layer and do not change route ownership or page geometry."
+  ]
+}

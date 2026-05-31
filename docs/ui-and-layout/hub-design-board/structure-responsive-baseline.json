@@ -1,0 +1,51 @@
+{
+  "name": "Zircon Hub responsive structure baseline",
+  "source": "docs/ui-and-layout/hub-design-board/index.html?board=flow",
+  "artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+  "review_focus": "route-and-responsive-structure",
+  "breakpoints": [
+    {
+      "id": "desktop-1568x1003",
+      "label": "Desktop 1568x1003",
+      "sidebar_mode": "full-sidebar",
+      "workspace_rule": "Complete Topbar, Sidebar, Workspace, and Bottom strip are visible.",
+      "must_preserve": [
+        "topbar-global-commands",
+        "sidebar-navigation-owner",
+        "workspace-page-owner",
+        "bottom-state-strip-owner"
+      ]
+    },
+    {
+      "id": "compact-window",
+      "label": "Compact Window",
+      "sidebar_mode": "compact-sidebar",
+      "workspace_rule": "Workspace content compresses before shell ownership changes.",
+      "must_preserve": [
+        "topbar-global-commands",
+        "sidebar-navigation-owner",
+        "workspace-page-owner",
+        "bottom-state-strip-owner"
+      ]
+    },
+    {
+      "id": "collapsed-sidebar",
+      "label": "Collapsed Sidebar",
+      "sidebar_mode": "icon-sidebar",
+      "workspace_rule": "Sidebar width collapses while navigation ownership remains in the Sidebar lane.",
+      "must_preserve": [
+        "topbar-global-commands",
+        "sidebar-navigation-owner",
+        "workspace-page-owner",
+        "bottom-state-strip-owner"
+      ]
+    }
+  ],
+  "invariants": [
+    "Topbar owns global source, task status, account, and window controls.",
+    "Sidebar owns primary navigation and the Engine Status card.",
+    "Workspace owns page title, toolbar, cards, tables, and page content.",
+    "Bottom strip owns button-state visual samples.",
+    "Overlays float above the shell and do not consume layout space."
+  ]
+}

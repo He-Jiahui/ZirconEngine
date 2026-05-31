@@ -13,7 +13,7 @@ import {
     ProjectDetailPage,
     ProjectNewPage,
 } from "project_pages.slint";
-import { Fill, HubTokens } from "components.slint";
+import { Fill, HubTokens, HubVisualSpec } from "components.slint";
 
 export component ProjectsPage inherits Fill {
     in-out property <string> project-subpage: "dashboard";
@@ -66,7 +66,7 @@ export component ProjectsPage inherits Fill {
     callback cancel-delete-project();
     callback confirm-delete-project();
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
     if root.project-subpage == "dashboard": ProjectDashboardPage {

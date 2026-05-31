@@ -1,5 +1,5 @@
 import { HorizontalDivider, ScrollView, VerticalDivider } from "material_bridge.slint";
-import { HubTokens } from "tokens.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 
 export component Fill inherits Rectangle {
     in property <length> fill-spacing: HubTokens.space-0;
@@ -109,9 +109,24 @@ export component ResponsiveState inherits Rectangle {
     background: transparent;
 }
 
+export component ResponsiveCollapse inherits Rectangle {
+    in property <length> content-width: 0px;
+    in property <length> collapse-at: HubTokens.breakpoint-medium;
+    out property <bool> collapsed: root.content-width < root.collapse-at;
+
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
 export component PanelGrid inherits Rectangle {
     in property <length> gap: HubTokens.panel-gap;
     in property <length> row-gap: root.gap;
+    in property <length> grid-padding: HubTokens.space-0;
+    in property <length> grid-padding-left: root.grid-padding;
+    in property <length> grid-padding-right: root.grid-padding;
+    in property <length> grid-padding-top: root.grid-padding;
+    in property <length> grid-padding-bottom: root.grid-padding;
     in property <bool> compact: false;
     in property <bool> clip-content: true;
 
@@ -130,6 +145,10 @@ export component PanelGrid inherits Rectangle {
         align-items: root.compact ? FlexboxLayoutAlignItems.stretch : FlexboxLayoutAlignItems.start;
         spacing-horizontal: root.gap;
         spacing-vertical: root.row-gap;
+        padding-left: root.grid-padding-left;
+        padding-right: root.grid-padding-right;
+        padding-top: root.grid-padding-top;
+        padding-bottom: root.grid-padding-bottom;
 
         @children
     }
@@ -137,14 +156,16 @@ export component PanelGrid inherits Rectangle {
 
 export component Page inherits Rectangle {
     in-out property <length> scroll-y: 0px;
-    in property <length> page-padding: HubTokens.page-padding;
+    in property <length> page-padding: root.width < HubTokens.breakpoint-compact ? HubTokens.page-padding-compact : HubTokens.page-padding;
+    in property <length> page-padding-x: root.page-padding;
+    in property <length> page-padding-y: root.page-padding;
     in property <length> bottom-padding: HubTokens.space-6;
     in property <length> gap: HubTokens.panel-gap;
-    out property <length> content-width: max(1px, root.width - root.page-padding * 2);
+    out property <length> content-width: max(1px, root.width - root.page-padding-x * 2);
     out property <length> viewport-height: max(HubTokens.control-md, root.height - HubTokens.bottom-status-height);
-    out property <length> content-height: max(HubTokens.control-md, root.viewport-height - root.page-padding * 2);
+    out property <length> content-height: max(HubTokens.control-md, root.viewport-height - root.page-padding-y - root.bottom-padding);
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
     page-scroll := ScrollView {
@@ -159,14 +180,14 @@ export component Page inherits Rectangle {
         Rectangle {
             width: page-scroll.visible_width;
             height: page-scroll.viewport_height;
-            background: HubTokens.surface-page;
+            background: HubVisualSpec.page-background;
 
             content-layout := VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding-left: root.page-padding;
-                padding-right: root.page-padding;
-                padding-top: root.page-padding;
+                padding-left: root.page-padding-x;
+                padding-right: root.page-padding-x;
+                padding-top: root.page-padding-y;
                 padding-bottom: root.bottom-padding;
                 spacing: root.gap;
                 alignment: stretch;
@@ -200,9 +221,15 @@ export component WorkspacePanelSection inherits Rectangle {
     in property <length> compact-height-override: 0px;
     in property <length> spacing-horizontal: HubTokens.panel-gap;
     in property <length> spacing-vertical: HubTokens.panel-gap;
+    in property <length> section-padding: HubTokens.space-0;
+    in property <length> section-padding-left: root.section-padding;
+    in property <length> section-padding-right: root.section-padding;
+    in property <length> section-padding-top: root.section-padding;
+    in property <length> section-padding-bottom: root.section-padding;
     private property <int> compact-row-count: root.compact-rows < 1 ? 1 : root.compact-rows;
-    private property <length> compact-height: root.row-height * root.compact-row-count + root.spacing-vertical * (root.compact-row-count - 1);
-    private property <length> section-height: root.compact ? (root.compact-height-override > 0px ? root.compact-height-override : root.compact-height) : root.row-height;
+    private property <length> compact-height: root.row-height * root.compact-row-count + root.spacing-vertical * (root.compact-row-count - 1) + root.section-padding-top + root.section-padding-bottom;
+    private property <length> regular-height: root.row-height + root.section-padding-top + root.section-padding-bottom;
+    private property <length> section-height: root.compact ? (root.compact-height-override > 0px ? root.compact-height-override : root.compact-height) : root.regular-height;
 
     min-width: 0px;
     preferred-width: 0px;
@@ -223,6 +250,10 @@ export component WorkspacePanelSection inherits Rectangle {
         align-items: root.compact && root.compact-stack ? FlexboxLayoutAlignItems.stretch : FlexboxLayoutAlignItems.start;
         spacing-horizontal: root.spacing-horizontal;
         spacing-vertical: root.spacing-vertical;
+        padding-left: root.section-padding-left;
+        padding-right: root.section-padding-right;
+        padding-top: root.section-padding-top;
+        padding-bottom: root.section-padding-bottom;
 
         @children
     }

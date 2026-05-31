@@ -1,0 +1,333 @@
+.workbench-shell {
+  display: grid;
+  grid-template-rows: 64px 54px minmax(0, 1fr) 30px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid #0e171b;
+  background: var(--canvas);
+}
+
+.top-bar,
+.page-tabs,
+.status-bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    linear-gradient(180deg, #0d1418, #070c0f);
+}
+
+.top-bar {
+  gap: 14px;
+  padding: 0 18px;
+}
+
+.brand-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 176px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-bright);
+  border-radius: 3px;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.brand-title {
+  font-weight: 650;
+}
+
+.command-group,
+.view-toggles,
+.layout-preset-group,
+.stage-tools,
+.panel-actions,
+.bottom-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tool-command,
+.view-toggles button,
+.layout-preset-group button,
+.stage-tools button,
+.bottom-tabs button,
+.panel-actions button,
+.asset-toolbar button {
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.layout-preset-group {
+  flex: 0 1 auto;
+  overflow-x: auto;
+  max-width: min(360px, 28vw);
+}
+
+.layout-preset-group button {
+  height: 28px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.layout-preset-group button.active {
+  border-color: rgba(53, 199, 208, 0.72);
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+
+.context-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  overflow: hidden;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.context-strip b {
+  color: var(--faint);
+  font-weight: 400;
+}
+
+.view-toggles {
+  margin-left: auto;
+}
+
+.page-tabs {
+  gap: 1px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-left: 68px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+    #0b1114;
+  scrollbar-width: thin;
+}
+
+.page-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+  height: 100%;
+  padding: 0 20px;
+  color: var(--muted);
+  text-decoration: none;
+  border-top: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: #0e1519;
+}
+
+.page-tab small {
+  display: none;
+}
+
+.page-tab.active {
+  background: linear-gradient(180deg, #151f24, #0f171b);
+  color: var(--text);
+}
+
+.page-tab.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  content: "";
+}
+
+.page-tab.add-tab {
+  min-width: 44px;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.workbench-grid {
+  display: grid;
+  grid-template-columns: 56px var(--left-drawer-width, clamp(260px, 20vw, 360px)) minmax(360px, 1fr) var(--right-drawer-width, clamp(300px, 25vw, 430px));
+  grid-template-rows: minmax(0, 1fr) var(--bottom-output-height, clamp(160px, 22vh, 250px));
+  grid-template-areas:
+    "rail left center right"
+    "rail left bottom right";
+  min-height: 0;
+  background: #05090b;
+}
+
+.app-root.left-compact {
+  --left-drawer-width: clamp(280px, 17vw, 340px);
+}
+
+.app-root.left-regular {
+  --left-drawer-width: clamp(360px, 22vw, 460px);
+}
+
+.app-root.left-wide {
+  --left-drawer-width: clamp(450px, 28vw, 560px);
+}
+
+.app-root.right-compact {
+  --right-drawer-width: clamp(320px, 19vw, 390px);
+}
+
+.app-root.right-regular {
+  --right-drawer-width: clamp(400px, 25vw, 520px);
+}
+
+.app-root.right-wide {
+  --right-drawer-width: clamp(500px, 31vw, 640px);
+}
+
+.app-root.bottom-compact {
+  --bottom-output-height: clamp(116px, 16vh, 170px);
+}
+
+.app-root.bottom-regular {
+  --bottom-output-height: clamp(220px, 25vh, 300px);
+}
+
+.app-root.bottom-tall {
+  --bottom-output-height: clamp(300px, 34vh, 400px);
+}
+
+.tool-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px 7px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, #10181c, #081014);
+}
+
+.rail-tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rail-tool span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rail-tool.active,
+.rail-tool:hover {
+  border-color: rgba(53, 199, 208, 0.72);
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+
+.rail-spacer {
+  flex: 1;
+}
+
+.drawer-column {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: #0a1013;
+}
+
+.left-column {
+  grid-area: left;
+  grid-template-rows: minmax(240px, 0.55fr) minmax(220px, 0.45fr);
+}
+
+.right-column {
+  grid-area: right;
+  grid-template-rows: minmax(240px, 0.5fr) minmax(260px, 0.5fr);
+  border-left: 1px solid var(--line);
+}
+
+.drawer-column.closed {
+  display: none;
+}
+
+.center-stage {
+  grid-area: center;
+  display: grid;
+  grid-template-rows: 50px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.bottom-output {
+  grid-area: bottom;
+  display: grid;
+  grid-template-rows: 46px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.bottom-output.closed {
+  grid-template-rows: 34px 0;
+}
+
+.status-bar {
+  gap: 16px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.status-action {
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #0f171b;
+  color: var(--muted);
+  padding: 0 8px;
+}
+
+.status-action.active {
+  border-color: rgba(53, 199, 208, 0.72);
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ok);
+}
+
+.status-spacer {
+  flex: 1;
+}

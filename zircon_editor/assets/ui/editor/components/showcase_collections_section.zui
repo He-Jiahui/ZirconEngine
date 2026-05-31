@@ -159,6 +159,7 @@ events = [
 [nodes.collections_section_root]
 component = "VerticalGroup"
 classes = ["showcase-panel", "material-surface"]
+layout = { width = { stretch = "Stretch" } }
 children = [
   { node = "section_title" },
   { node = "group_demo", slot = { name = "content" } },

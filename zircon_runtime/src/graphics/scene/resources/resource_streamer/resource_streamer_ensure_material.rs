@@ -4,6 +4,8 @@ use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
     RenderMaterialAlphaMode, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
     RenderMaterialFallbackUsage, RenderMaterialPropertyUniformPayload,
+    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
+    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
     RenderMaterialValidationError,
 };
 use crate::core::math::{Vec3, Vec4};
@@ -128,6 +130,50 @@ impl ResourceStreamer {
             descriptor.emissive_texture.as_ref(),
             texture_support,
         );
+        let standard_texture_slots = [
+            descriptor.base_color_texture.as_ref().map(|_| {
+                (
+                    "base_color",
+                    base_color_texture.id(),
+                    base_color_texture.slot_fallback.clone(),
+                )
+            }),
+            descriptor.normal_texture.as_ref().map(|_| {
+                (
+                    "normal",
+                    normal_texture.id(),
+                    normal_texture.slot_fallback.clone(),
+                )
+            }),
+            descriptor.metallic_roughness_texture.as_ref().map(|_| {
+                (
+                    "metallic_roughness",
+                    metallic_roughness_texture.id(),
+                    metallic_roughness_texture.slot_fallback.clone(),
+                )
+            }),
+            descriptor.occlusion_texture.as_ref().map(|_| {
+                (
+                    "occlusion",
+                    occlusion_texture.id(),
+                    occlusion_texture.slot_fallback.clone(),
+                )
+            }),
+            descriptor.emissive_texture.as_ref().map(|_| {
+                (
+                    "emissive",
+                    emissive_texture.id(),
+                    emissive_texture.slot_fallback.clone(),
+                )
+            }),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+        let standard_texture_slot_ids = standard_texture_slots
+            .iter()
+            .map(|(_, texture_id, _)| *texture_id)
+            .collect::<Vec<_>>();
         let shader_slot_textures = material
             .all_texture_slots()
             .into_iter()
@@ -145,12 +191,20 @@ impl ResourceStreamer {
             .as_ref()
             .map(|shader| material.shader_property_values_for_shader(shader))
             .unwrap_or_default();
+        let shader_property_value_summary =
+            RenderMaterialPropertyValueSummary::from_values(&shader_property_values);
+        let shader_property_value_states =
+            RenderMaterialPropertyValueState::from_values(&shader_property_values);
         let shader_property_uniform_payload =
             RenderMaterialPropertyUniformPayload::from_values(&shader_property_values);
         for diagnostic in shader_property_uniform_payload.unsupported_diagnostics() {
             readiness.push_diagnostic_once(diagnostic);
         }
+        readiness.property_value_summary = Some(shader_property_value_summary);
+        readiness.property_value_states = shader_property_value_states;
         readiness.uniform_summary = Some(shader_property_uniform_payload.summary());
+        readiness.uniform_fields = shader_property_uniform_payload.layout.clone();
+        readiness.uniform_unsupported = shader_property_uniform_payload.unsupported.clone();
         let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
             device,
             &self.material_bind_group_layout,
@@ -178,6 +232,26 @@ impl ResourceStreamer {
                 readiness.push_fallback_usage_once(usage.clone());
             }
         }
+        let non_standard_texture_slots = shader_slot_textures
+            .iter()
+            .map(|(slot, texture)| (slot.clone(), texture.id()))
+            .collect::<BTreeMap<_, _>>();
+        readiness.standard_texture_slot_summary = Some(
+            RenderMaterialTextureSlotSummary::from_texture_ids(&standard_texture_slot_ids),
+        );
+        readiness.standard_texture_slot_states =
+            RenderMaterialTextureSlotState::from_resolved_slots(
+                standard_texture_slots
+                    .iter()
+                    .map(|(slot, texture_id, fallback)| (*slot, *texture_id, fallback.clone())),
+            );
+        readiness.texture_slot_summary = Some(
+            RenderMaterialTextureSlotSummary::from_non_standard_slots(&non_standard_texture_slots),
+        );
+        readiness.non_standard_texture_slot_states =
+            RenderMaterialTextureSlotState::from_resolved_slots(shader_slot_textures.iter().map(
+                |(slot, texture)| (slot.clone(), texture.id(), texture.slot_fallback.clone()),
+            ));
         let (shader_id, shader_revision, shader_readiness) =
             self.ensure_shader_source(&descriptor.dependencies.shader)?;
         if let Some(shader_readiness) = shader_readiness {
@@ -214,10 +288,7 @@ impl ResourceStreamer {
             emissive_texture: emissive_texture.id(),
             shader_property_values,
             shader_property_uniform_payload,
-            non_standard_texture_slots: shader_slot_textures
-                .iter()
-                .map(|(slot, texture)| (slot.clone(), texture.id()))
-                .collect::<BTreeMap<_, _>>(),
+            non_standard_texture_slots,
             pipeline_key: PipelineKey {
                 shader_id,
                 shader_revision,
@@ -292,6 +363,8 @@ fn is_standard_texture_slot(slot: &str) -> bool {
         slot,
         "base_color"
             | "base_color_texture"
+            | "albedo"
+            | "diffuse"
             | "normal"
             | "normal_texture"
             | "metallic_roughness"

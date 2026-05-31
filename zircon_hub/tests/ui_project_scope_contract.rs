@@ -1,4 +1,8 @@
-//! Static contracts for Hub selected-project scope projection and page data surfacing.
+//! Static contracts for passive selected-project scope projection.
+//!
+//! This milestone owns Slint DTO shape and view-model copy only. Catalog refresh,
+//! Cloud/package/install status, and command behavior are intentionally outside
+//! this file.
 
 use std::{fs, path::PathBuf};
 
@@ -31,96 +35,52 @@ fn read_crate_file(name: &str) -> String {
 }
 
 #[test]
-fn cloud_package_status_uses_package_manifest_for_selected_project_scope() {
-    let cloud = read_crate_file("src/app/view_model/cloud.rs");
-    let cloud_page = read_ui_file("cloud.slint");
-    let localization = read_crate_file("src/app/localization.rs");
+fn shared_scope_dtos_are_available_to_pages() {
+    let shared = read_ui_file("shared.slint");
     for snippet in [
-        "const PACKAGE_MANIFEST_FILE: &str = \"zircon-package.toml\";",
-        "const PACKAGE_SOURCE_PROJECT_KEY: &str = \"source_project\";",
-        "selected_project_package_count(package_root, path)",
-        "selected_project_install_count(install_root, selected_project)",
-        "package_matches_selected_project",
-        "manifest.parse::<toml::Value>()",
-        "use crate::projects::project_paths_match;",
-        "project_paths_match(Path::new(source_project), selected_project_path)",
-        "{package_count} local {noun} for selected project",
-        "{install_count} local {noun} for selected project",
-        "No local install for selected project yet",
+        "export struct ProjectDetailData",
+        "selected: bool,",
+        "missing: bool,",
+        "can-open: bool,",
+        "can-build: bool,",
+        "export struct QuickActionData",
+        "detail: string,",
+        "enabled: bool,",
+        "export struct SourceEngineData",
+        "status: string,",
+        "export struct WorkspaceActionReadinessData",
+        "selected-project-status: string,",
+        "source-engine-status: string,",
+        "build-disabled-reason: string,",
     ] {
         assert!(
-            cloud.contains(snippet),
-            "Cloud package/install status must scope selected-project local outputs through zircon-package.toml source_project; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "fn paths_match_for_summary(",
-        "fn normalized_path_key(",
-        "left.canonicalize(), right.canonicalize()",
-    ] {
-        assert!(
-            !cloud.contains(forbidden),
-            "Cloud selected-project package/install matching must reuse project_paths_match instead of a local duplicate path matcher; found {forbidden}"
-        );
-    }
-    for snippet in [
-        "HubPage::Cloud => text(language, \"Packages\", \"本地包\"),",
-        "cloud_overview: text(language, \"Local Package Overview\", \"本地包状态概览\"),",
-        "Local Packages - Selected Project",
-        "Local packages, installs, output status, and reserved service slots.",
-        "local_mode_status: localization::text(language, \"Local only\", \"仅本地\"),",
-        "Profile Sync Slot",
-        "Remote Build Slot",
-        "Artifact Upload Slot",
-        "cloud_local_mode: text(language, \"Local Mode\", \"本地模式\"),",
-        "label: root.ui-text.cloud-local-mode;",
-        "primary: root.summary.local-mode-status;",
-    ] {
-        assert!(
-            cloud.contains(snippet) || cloud_page.contains(snippet) || localization.contains(snippet),
-            "Cloud page copy must stay local/offline rather than presenting a real cloud account surface; missing {snippet}"
-        );
-    }
-    for alias in [
-        "account_status: localization::text(language, \"Local only\", \"仅本地\"),",
-        "cloud_account: text(language, \"Local Mode\", \"本地模式\"),",
-    ] {
-        assert!(
-            cloud.contains(alias) || localization.contains(alias),
-            "Cloud retains additive legacy local-mode aliases for generated binding compatibility; missing {alias}"
-        );
-    }
-    for forbidden in [
-        "label: root.ui-text.cloud-account;",
-        "primary: root.summary.account-status;",
-    ] {
-        assert!(
-            !cloud_page.contains(forbidden),
-            "CloudPage visible metric bindings should use local-mode field names instead of account aliases: {forbidden}"
-        );
-    }
-    for forbidden in [
-        "HubPage::Cloud => text(language, \"Cloud\", \"云服务\"),",
-        "account_status: localization::text(language, \"Not connected\"",
-        "Account Sync",
-        "Reserved for sign-in, license",
-        "cloud_account: text(language, \"Account\"",
-        "Local Cloud Overview",
-        "Local Cloud - Selected Project",
-        "Local cloud readiness",
-        "本地云服务",
-    ] {
-        assert!(
-            !cloud.contains(forbidden) && !localization.contains(forbidden),
-            "Cloud page copy must not return to account-service wording: {forbidden}"
+            shared.contains(snippet),
+            "shared.slint must expose passive scope DTO field {snippet}"
         );
     }
 }
 
 #[test]
-fn dashboard_project_card_labels_are_view_model_data() {
+fn app_forwards_selected_project_and_source_engine_scope_copy() {
+    let app = read_ui_file("app.slint");
+    for snippet in [
+        "project: root.project-detail;",
+        "source-engine: root.source-engine;",
+        "readiness: root.workspace-action-readiness;",
+        "quick-actions: root.quick-actions;",
+        "has-selected-project: root.project-detail.selected;",
+    ] {
+        assert!(
+            app.contains(snippet),
+            "app.slint must forward Rust-projected scope DTOs without recomputing them; missing {snippet}"
+        );
+    }
+}
+
+#[test]
+fn project_card_and_detail_labels_are_view_model_data() {
     let shared = read_ui_file("shared.slint");
-    let dashboard = read_ui_file("project_dashboard.slint");
+    let dashboard_components = read_ui_file("project_dashboard_components.slint");
     let project_view_model = read_crate_file("src/app/view_model/projects.rs");
 
     let project_card_data = shared
@@ -139,13 +99,14 @@ fn dashboard_project_card_labels_are_view_model_data() {
         );
     }
 
-    let project_card = dashboard
-        .split("component ProjectCard")
+    let project_card = dashboard_components
+        .split("export component ProjectCard")
         .nth(1)
-        .and_then(|source| source.split("component ProjectFlow").next())
-        .expect("project_dashboard.slint must declare ProjectCard before ProjectFlow");
+        .and_then(|source| source.split("export component ProjectFlow").next())
+        .expect("project_dashboard_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
-        "text: root.project.modified-label;",
+        "text: root.visible-modified-label;",
+        "text: root.visible-platform;",
         "text: root.project.pinned-label;",
         "text: root.project.missing-label;",
     ] {
@@ -159,8 +120,6 @@ fn dashboard_project_card_labels_are_view_model_data() {
         "root.ui-text.pinned",
         "root.ui-text.missing",
         "\"Modified \" +",
-        "\"Pinned\"",
-        "\"Missing\"",
     ] {
         assert!(
             !project_card.contains(forbidden),
@@ -173,10 +132,12 @@ fn dashboard_project_card_labels_are_view_model_data() {
         "pinned_label: localization::text(language, \"Pinned\", \"置顶\"),",
         "missing_label: localization::text(language, \"Missing\", \"缺失\"),",
         "fn project_card_modified_label(modified: &str, language: HubLanguage) -> String",
+        "fn project_detail_status_label(",
+        "fn empty_project_detail(language: HubLanguage) -> ProjectDetailData",
     ] {
         assert!(
             project_view_model.contains(snippet),
-            "Project card label localization must stay in the Rust view model; missing {snippet}"
+            "Project view-model copy must own visible project labels and detail state; missing {snippet}"
         );
     }
 }

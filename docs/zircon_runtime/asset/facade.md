@@ -24,6 +24,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
@@ -72,6 +73,7 @@ tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs::project_manager_imports_minimal_gltf_material_shader_mesh_sample
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/core/resource/tests.rs
@@ -160,9 +162,16 @@ The readiness diagnostics coverage includes `readiness_report_exposes_loaded_dep
 
 `zircon_runtime/src/asset/tests/assets/importer.rs` covers importer capability reports, including diagnostic-only model formats that remain intentionally non-producing. `zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open` covers the service-trait path before a project is open and after the pending importer registry is applied to the active project. `zircon_runtime/src/asset/tests/project/manager.rs` covers entry dependency resolution into `ResourceRecord.dependency_ids`, unresolved dependency diagnostics, restart restore through the meta-persisted dependency locator list, root plus labeled subasset artifact persistence, duplicate label failure records, and structured unknown-label load errors. `zircon_runtime/src/asset/tests/project/package_assets.rs` covers direct and manifest-based package asset roots, package subasset UUID/artifact restore, unknown package lookup, malformed package roots, and structured missing-label errors for `package://` sources. `zircon_runtime/src/asset/tests/project/zmeta.rs` covers `.zmeta` schema generation, ignored old sidecars, UUID-first stale-URL lookup, restored entry URL remapping after source rename, and subasset UUID preservation across transient failed reimport. `zircon_runtime/src/core/resource/tests.rs` covers dependency ID changes as revision-bearing record changes.
 
+`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` now exercises the same facade state surface against a scanned project instead of a hand-built resource graph. The sample opens the generated project through `ProjectAssetManager`, loads typed handles for `SceneAsset`, `ModelAsset`, `MeshAsset`, `MaterialAsset`, `ShaderAsset`, and `TextureAsset`, and asserts `AssetLoadState::Loaded`, direct `DependencyLoadState::Loaded`, recursive `RecursiveDependencyLoadState::Loaded`, the combined `AssetLoadStates` tuple, and `is_loaded_with_dependencies(...)`. The same project graph now also checks that `Scene0` depends on the labeled `Mesh0/Primitive0` mesh subasset and that scene/entity/aggregate management counters see the primitive mesh/material binding.
+
 The 2026-05-20 runtime `--tests` check also covers the facade-level `validate_wgsl_captures(...)` re-export used by the documented `.zshader` fixture; the first run exposed the missing top-level export and the rerun passed after restoring that public surface.
 
 ## Validation Evidence
+
+2026-05-31 M6 minimal asset-flow facade state closeout:
+
+- `rustfmt --edition 2021 --check zircon_runtime/src/asset/tests/project/asset_flow_sample.rs zircon_runtime/src/asset/tests/project/mod.rs` passed.
+- `cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture` passed: 1 passed, 0 failed, 2211 filtered out; existing zircon_runtime lib-test warnings only.
 
 2026-05-26 asset event metadata accessor closeout:
 

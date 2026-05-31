@@ -135,9 +135,14 @@ pub(super) fn parse_error_value(
 pub(super) const DDSD_CAPS: u32 = 0x0000_0001;
 pub(super) const DDSD_HEIGHT: u32 = 0x0000_0002;
 pub(super) const DDSD_WIDTH: u32 = 0x0000_0004;
+pub(super) const DDSD_PITCH: u32 = 0x0000_0008;
 pub(super) const DDSD_PIXELFORMAT: u32 = 0x0000_1000;
 pub(super) const DDSD_MIPMAPCOUNT: u32 = 0x0002_0000;
+pub(super) const DDSD_LINEARSIZE: u32 = 0x0008_0000;
+pub(super) const DDSD_DEPTH: u32 = 0x0080_0000;
 pub(super) const DDSD_REQUIRED_FLAGS: u32 = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
+pub(super) const DDSCAPS_COMPLEX: u32 = 0x0000_0008;
+pub(super) const DDSCAPS_MIPMAP: u32 = 0x0040_0000;
 pub(super) const DDSCAPS_TEXTURE: u32 = 0x0000_1000;
 pub(super) const DDSCAPS2_CUBEMAP: u32 = 0x0000_0200;
 pub(super) const DDSCAPS2_CUBEMAP_POSITIVEX: u32 = 0x0000_0400;
@@ -147,7 +152,13 @@ pub(super) const DDSCAPS2_CUBEMAP_NEGATIVEY: u32 = 0x0000_2000;
 pub(super) const DDSCAPS2_CUBEMAP_POSITIVEZ: u32 = 0x0000_4000;
 pub(super) const DDSCAPS2_CUBEMAP_NEGATIVEZ: u32 = 0x0000_8000;
 pub(super) const DDSCAPS2_VOLUME: u32 = 0x0020_0000;
+pub(super) const DDPF_ALPHAPIXELS: u32 = 0x0000_0001;
+pub(super) const DDPF_ALPHA: u32 = 0x0000_0002;
 pub(super) const DDPF_FOURCC: u32 = 0x0000_0004;
+pub(super) const DDPF_RGB: u32 = 0x0000_0040;
+pub(super) const DDPF_YUV: u32 = 0x0000_0200;
+pub(super) const DDPF_LUMINANCE: u32 = 0x0002_0000;
+pub(super) const DDPF_BUMPDUDV: u32 = 0x0008_0000;
 pub(super) const DDSCAPS2_CUBEMAP_ALL_FACES: u32 = DDSCAPS2_CUBEMAP
     | DDSCAPS2_CUBEMAP_POSITIVEX
     | DDSCAPS2_CUBEMAP_NEGATIVEX

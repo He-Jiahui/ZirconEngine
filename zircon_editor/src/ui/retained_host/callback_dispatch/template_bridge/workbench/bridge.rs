@@ -125,7 +125,6 @@ impl BuiltinHostWindowTemplateBridge {
         Ok(())
     }
 
-    #[cfg(test)]
     pub(crate) fn host_projection(&self) -> &RetainedUiHostProjection {
         &self.host_projection
     }

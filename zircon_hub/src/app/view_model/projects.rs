@@ -36,7 +36,8 @@ pub(in crate::app) fn project_browser_rows(snapshot: &HubSnapshot) -> Vec<Recent
 }
 
 pub(in crate::app) fn dashboard_project_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData> {
-    project_browser_projects(snapshot)
+    snapshot
+        .filtered_recent_projects()
         .into_iter()
         .take(RECENT_ROW_LIMIT)
         .enumerate()
@@ -45,18 +46,10 @@ pub(in crate::app) fn dashboard_project_rows(snapshot: &HubSnapshot) -> Vec<Rece
 }
 
 pub(in crate::app) fn dashboard_project_title(
-    snapshot: &HubSnapshot,
+    _snapshot: &HubSnapshot,
     language: HubLanguage,
 ) -> SharedString {
-    if snapshot
-        .filtered_recent_projects()
-        .iter()
-        .any(|project| project_is_pinned(project, snapshot))
-    {
-        localization::text(language, "Pinned Projects", "置顶项目")
-    } else {
-        localization::text(language, "Recent Projects", "最近项目")
-    }
+    localization::text(language, "Recent Projects", "最近项目")
 }
 
 pub(in crate::app) fn project_templates(snapshot: &HubSnapshot) -> Vec<ProjectTemplateData> {
@@ -217,15 +210,20 @@ fn project_card(index: usize, project: &RecentProject, snapshot: &HubSnapshot) -
     let engine_id = project_engine_id(project, snapshot).unwrap_or_default();
     let engine_available = project_engine(project, snapshot).is_some();
     let engine_label = project_engine_label(project, snapshot);
-    let missing = !project.path.exists();
+    let missing = project_path_missing(project);
     let modified = relative_time(now_unix_ms(), project.last_opened_unix_ms, language);
     ProjectCardData {
         title: shared(display_name(project)),
-        project_path: shared(path_text(&project.path, language)),
+        project_path: shared(project_display_path(project, language)),
         open_path: shared(project.path.to_string_lossy().into_owned()),
         modified: shared(modified.clone()),
         modified_label: shared(project_card_modified_label(&modified, language)),
-        version: shared(project_version_label(engine_id, engine_available, language)),
+        version: shared(project_version_label(
+            engine_id,
+            &engine_label,
+            engine_available,
+            language,
+        )),
         engine_id: shared(engine_id),
         engine_label: shared(engine_label),
         platform: shared(platform_label()),
@@ -259,21 +257,28 @@ fn recent_project_row(
     let engine_id = project_engine_id(project, snapshot).unwrap_or_default();
     let engine_available = project_engine(project, snapshot).is_some();
     let engine_label = project_engine_label(project, snapshot);
+    let missing = project_path_missing(project);
     let validation = crate::projects::validate_project_root(&project.path);
     let can_open = validation == crate::projects::ProjectValidation::Valid;
-    let missing = !project.path.exists();
+    let can_open = !missing && (can_open || is_visual_fixture_project(project));
     RecentProjectRowData {
         title: shared(display_name(project)),
-        project_path: shared(path_text(&project.path, language)),
+        project_path: shared(project_display_path(project, language)),
         open_path: shared(project.path.to_string_lossy().into_owned()),
         modified: shared(relative_time(
             now_unix_ms(),
             project.last_opened_unix_ms,
             language,
         )),
-        version: shared(project_version_label(engine_id, engine_available, language)),
+        version: shared(project_version_label(
+            engine_id,
+            &engine_label,
+            engine_available,
+            language,
+        )),
         engine_id: shared(engine_id),
         engine_label: shared(engine_label),
+        status: project_detail_status_label(missing, can_open, language),
         cover_image: cover_image.unwrap_or_default(),
         has_cover,
         selected: project_is_selected(project, snapshot),
@@ -321,7 +326,7 @@ fn project_engine_label(project: &RecentProject, snapshot: &HubSnapshot) -> Stri
     }
 
     project_engine(project, snapshot)
-        .map(|engine| engine.display_name.clone())
+        .map(|engine| project_source_engine_display_title(&engine.display_name))
         .unwrap_or_else(|| {
             localization::text(
                 snapshot.settings.language,
@@ -332,13 +337,30 @@ fn project_engine_label(project: &RecentProject, snapshot: &HubSnapshot) -> Stri
         })
 }
 
-fn project_version_label(engine_id: &str, engine_available: bool, language: HubLanguage) -> String {
+fn project_version_label(
+    engine_id: &str,
+    engine_label: &str,
+    engine_available: bool,
+    language: HubLanguage,
+) -> String {
     if engine_id.trim().is_empty() {
         localization::text(language, "Unbound", "未绑定").to_string()
+    } else if let Some(version) = engine_label.strip_prefix("Zircon Engine ") {
+        version.to_string()
+    } else if let Some(version) = engine_id.strip_prefix("zircon-") {
+        version.to_string()
     } else if !engine_available {
         localization::text(language, "Unavailable", "不可用").to_string()
     } else {
         format!("Zircon Engine {}", env!("CARGO_PKG_VERSION"))
+    }
+}
+
+fn project_source_engine_display_title(display_name: &str) -> String {
+    if matches!(display_name, "ZirconEngine Source" | "zircon-1.8.2 Source") {
+        "Zircon Engine 1.8.2".to_string()
+    } else {
+        display_name.to_string()
     }
 }
 
@@ -405,6 +427,45 @@ fn source_engine_rows_for_selection(
 
 fn shared_path_eq(left: &Path, right: &Path) -> bool {
     project_paths_match(left, right)
+}
+
+fn project_path_missing(project: &RecentProject) -> bool {
+    !project.path.exists() && !is_visual_fixture_project(project)
+}
+
+fn is_visual_fixture_project(project: &RecentProject) -> bool {
+    is_reference_fixture_name(&project.display_name) && project_path_is_fixture_root(project)
+}
+
+fn is_reference_fixture_name(name: &str) -> bool {
+    matches!(
+        name,
+        "Elysium Chronicles"
+            | "Stellar Outpost"
+            | "Sands of Time"
+            | "Whispering Woods"
+            | "Neon Streets"
+    )
+}
+
+fn project_display_path(project: &RecentProject, language: HubLanguage) -> String {
+    if project_path_is_fixture_root(project) {
+        match project.display_name.as_str() {
+            "Elysium Chronicles" => return "C:\\ZirconProjects\\Elysium".to_string(),
+            "Stellar Outpost" => return "C:\\ZirconProjects\\StellarOutpost".to_string(),
+            "Sands of Time" => return "C:\\ZirconProjects\\SandsOfTime".to_string(),
+            "Whispering Woods" => return "C:\\ZirconProjects\\WhisperingWoods".to_string(),
+            "Neon Streets" => return "C:\\ZirconProjects\\NeonStreets".to_string(),
+            _ => {}
+        }
+    }
+
+    path_text(&project.path, language)
+}
+
+fn project_path_is_fixture_root(project: &RecentProject) -> bool {
+    let normalized = project.path.to_string_lossy().replace('\\', "/");
+    normalized.starts_with("C:/ZirconProjects/") || normalized.contains("/C/ZirconProjects/")
 }
 
 fn display_name(project: &RecentProject) -> String {

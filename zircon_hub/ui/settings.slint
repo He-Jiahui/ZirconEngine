@@ -1,123 +1,18 @@
-import { FieldLabel, PillButton, SettingStatusData, UiTextData } from "shared.slint";
+import { OperationTimelineRowData, SettingStatusData, UiTextData } from "shared.slint";
 import {
-    EmptyStateBlock,
-    HubTextField,
     HubTokens,
-    InfoRow,
+    HubVisualSpec,
+    OperationTimelinePanel,
     PageScrollSurface,
-    PanelHeader,
-    PanelListViewport,
-    PanelSlot,
-    SegmentButton,
     WorkspacePanelSection,
 } from "components.slint";
-
-component PathSettingRow inherits Rectangle {
-    in property <string> label;
-    in property <string> browse-label;
-    in property <length> row-preferred-width: HubTokens.input-width + HubTokens.control-md * 3 + HubTokens.toolbar-gap;
-    in-out property <string> value;
-    callback browse;
-
-    min-width: 1px;
-    preferred-width: root.row-preferred-width;
-    horizontal-stretch: 1;
-    height: HubTokens.input-field;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        spacing: HubTokens.toolbar-gap;
-        alignment: stretch;
-
-        HubTextField {
-            label: root.label;
-            placeholder: root.label;
-            text <=> root.value;
-            horizontal-stretch: 1;
-        }
-
-        PillButton {
-            width: HubTokens.control-md * 3;
-            height: HubTokens.control-md;
-            text: root.browse-label;
-            icon-image: @image-url("../assets/icons/ui/folder.svg");
-            has-icon-image: true;
-            clicked => {
-                root.browse();
-            }
-        }
-    }
-}
-
-component SettingStatusRow inherits InfoRow {
-    in property <SettingStatusData> status;
-    in property <bool> collapse-label: false;
-
-    title: root.status.label;
-    detail: "";
-    meta: "";
-    leading-image: root.status.state == "ok" ? @image-url("../assets/icons/status/success.svg") : (root.status.state == "warn" ? @image-url("../assets/icons/status/warning.svg") : (root.status.state == "error" ? @image-url("../assets/icons/status/error.svg") : @image-url("../assets/icons/status/running.svg")));
-    has-leading-image: true;
-    accent: root.status.state == "ok" ? 3 : (root.status.state == "warn" ? 2 : (root.status.state == "error" ? 2 : 1));
-    trailing-text: root.status.detail;
-    trailing-tone: root.status.state == "ok" ? "ok" : (root.status.state == "warn" ? "warning" : (root.status.state == "error" ? "error" : "info"));
-    show-trailing-badge: true;
-    collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-md;
-}
-
-component SettingsToolchainField inherits HubTextField {
-    in property <string> field-label;
-    in-out property <string> field-value;
-
-    label: root.field-label;
-    placeholder: root.field-label;
-    text <=> root.field-value;
-}
-
-component SettingsSegmentChoice inherits Rectangle {
-    in property <string> label;
-    in property <string> first-label;
-    in property <string> first-value;
-    in property <string> second-label;
-    in property <string> second-value;
-    in-out property <string> selected-value;
-
-    horizontal-stretch: 1;
-    height: HubTokens.control-md + HubTokens.space-2 + HubTokens.control-sm;
-
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        spacing: HubTokens.space-2;
-
-        FieldLabel { text: root.label; }
-
-        HorizontalLayout {
-            height: HubTokens.control-md;
-            spacing: HubTokens.space-2;
-
-            SegmentButton {
-                horizontal-stretch: 1;
-                text: root.first-label;
-                active: root.selected-value == root.first-value;
-                clicked => {
-                    root.selected-value = root.first-value;
-                }
-            }
-
-            SegmentButton {
-                horizontal-stretch: 1;
-                text: root.second-label;
-                active: root.selected-value == root.second-value;
-                clicked => {
-                    root.selected-value = root.second-value;
-                }
-            }
-        }
-    }
-}
+import {
+    SettingsBuildDefaultsPanel,
+    SettingsConfigurationHealthPanel,
+    SettingsDefaultPathsPanel,
+    SettingsSaveActionRow,
+    SettingsToolchainPanel,
+} from "settings_page_components.slint";
 
 export component SettingsPage inherits PageScrollSurface {
     in-out property <string> python-path;
@@ -131,6 +26,8 @@ export component SettingsPage inherits PageScrollSurface {
     in-out property <string> build-profile;
     in-out property <string> language;
     in property <[SettingStatusData]> settings-statuses;
+    in property <[OperationTimelineRowData]> operation-timeline;
+    in property <int> operation-timeline-count;
     in property <UiTextData> ui-text;
     private property <bool> compact: root.content-width < HubTokens.panel-min-lg + HubTokens.control-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
     private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
@@ -139,10 +36,11 @@ export component SettingsPage inherits PageScrollSurface {
     private property <length> health-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
     private property <length> paths-scroll-y: 0px;
     private property <length> health-scroll-y: 0px;
+    private property <length> operation-timeline-scroll-y: 0px;
     callback browse-folder(string);
     callback save-settings();
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
     WorkspacePanelSection {
@@ -151,7 +49,7 @@ export component SettingsPage inherits PageScrollSurface {
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
-        PanelSlot {
+        SettingsToolchainPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
             flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
             grow: 1;
@@ -160,30 +58,14 @@ export component SettingsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
             height: HubTokens.workspace-row-settings-controls;
-
-            PanelHeader { title: root.ui-text.toolchain; }
-
-            VerticalLayout {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                spacing: HubTokens.space-2;
-
-                SettingsToolchainField {
-                    field-label: root.ui-text.python-executable;
-                    field-value <=> root.python-path;
-                }
-                SettingsToolchainField {
-                    field-label: root.ui-text.cargo-executable;
-                    field-value <=> root.cargo-path;
-                }
-                SettingsToolchainField {
-                    field-label: root.ui-text.rustup-executable;
-                    field-value <=> root.rustup-path;
-                }
-            }
+            panel-title: root.ui-text.toolchain;
+            ui-text: root.ui-text;
+            python-path <=> root.python-path;
+            cargo-path <=> root.cargo-path;
+            rustup-path <=> root.rustup-path;
         }
 
-        PanelSlot {
+        SettingsBuildDefaultsPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
             flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
             grow: 1;
@@ -192,38 +74,11 @@ export component SettingsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
             height: HubTokens.workspace-row-settings-controls;
-
-            PanelHeader { title: root.ui-text.build-defaults; }
-
-            VerticalLayout {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                spacing: HubTokens.space-2;
-
-                SettingsSegmentChoice {
-                    label: root.ui-text.build-profile;
-                    first-label: root.ui-text.debug;
-                    first-value: "debug";
-                    second-label: root.ui-text.release;
-                    second-value: "release";
-                    selected-value <=> root.build-profile;
-                }
-
-                HubTextField {
-                    label: root.ui-text.build-jobs;
-                    placeholder: root.ui-text.build-jobs;
-                    text <=> root.build-jobs;
-                }
-
-                SettingsSegmentChoice {
-                    label: root.ui-text.language;
-                    first-label: root.ui-text.english;
-                    first-value: "English";
-                    second-label: root.ui-text.chinese;
-                    second-value: "Chinese";
-                    selected-value <=> root.language;
-                }
-            }
+            panel-title: root.ui-text.build-defaults;
+            ui-text: root.ui-text;
+            build-jobs <=> root.build-jobs;
+            build-profile <=> root.build-profile;
+            language <=> root.language;
         }
     }
 
@@ -233,7 +88,7 @@ export component SettingsPage inherits PageScrollSurface {
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
-        PanelSlot {
+        SettingsDefaultPathsPanel {
             basis: HubTokens.panel-min-lg + HubTokens.control-lg;
             flex-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
             grow: 2;
@@ -242,52 +97,19 @@ export component SettingsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
             height: HubTokens.workspace-row-settings-detail;
-
-            PanelHeader { title: root.ui-text.default-paths; }
-
-            PanelListViewport {
-                scroll-y <=> root.paths-scroll-y;
-                row-count: 4;
-                row-height: HubTokens.input-field;
-                row-spacing: HubTokens.space-2;
-                vertical-padding: 0px;
-
-                PathSettingRow {
-                    label: root.ui-text.default-project-directory;
-                    browse-label: root.ui-text.browse;
-                    value <=> root.project-location;
-                    browse => {
-                        root.browse-folder("project-location");
-                    }
-                }
-                PathSettingRow {
-                    label: root.ui-text.default-source-directory;
-                    browse-label: root.ui-text.browse;
-                    value <=> root.source-path;
-                    browse => {
-                        root.browse-folder("source");
-                    }
-                }
-                PathSettingRow {
-                    label: root.ui-text.default-staged-output-directory;
-                    browse-label: root.ui-text.browse;
-                    value <=> root.output-path;
-                    browse => {
-                        root.browse-folder("output");
-                    }
-                }
-                PathSettingRow {
-                    label: root.ui-text.default-device-install-directory;
-                    browse-label: root.ui-text.browse;
-                    value <=> root.device-install-path;
-                    browse => {
-                        root.browse-folder("device-install");
-                    }
-                }
+            panel-title: root.ui-text.default-paths;
+            ui-text: root.ui-text;
+            project-location <=> root.project-location;
+            source-path <=> root.source-path;
+            output-path <=> root.output-path;
+            device-install-path <=> root.device-install-path;
+            paths-scroll-y <=> root.paths-scroll-y;
+            browse-folder(id) => {
+                root.browse-folder(id);
             }
         }
 
-        PanelSlot {
+        SettingsConfigurationHealthPanel {
             basis: HubTokens.panel-min-md;
             flex-basis: HubTokens.panel-min-md;
             grow: 1;
@@ -296,49 +118,60 @@ export component SettingsPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
             height: HubTokens.workspace-row-settings-detail;
-
-            PanelHeader { title: root.ui-text.configuration-health; }
-
-            PanelListViewport {
-                scroll-y <=> root.health-scroll-y;
-                row-count: root.settings-status-count;
-                row-height: HubTokens.list-row-md;
-                row-spacing: HubTokens.space-2;
-                empty-height: root.health-empty-height;
-
-                if root.settings-status-count == 0: EmptyStateBlock {
-                    height: root.health-empty-height;
-                    title: root.ui-text.no-configuration-checks;
-                    detail: root.ui-text.configuration-health-empty-detail;
-                    body-padding: HubTokens.space-4;
-                    center-content: true;
-                }
-
-                for status in root.settings-statuses: SettingStatusRow {
-                    status: status;
-                    collapse-label: root.compact-labels;
+            panel-title: root.ui-text.configuration-health;
+            ui-text: root.ui-text;
+            settings-statuses: root.settings-statuses;
+            settings-status-count: root.settings-status-count;
+            compact-labels: root.compact-labels;
+            health-empty-height: root.health-empty-height;
+            health-scroll-y <=> root.health-scroll-y;
+            status-action(action-id) => {
+                if (action-id == "save-settings") {
+                    root.save-settings();
+                } else if (action-id == "browse-project-location") {
+                    root.browse-folder("project-location");
+                } else if (action-id == "browse-source") {
+                    root.browse-folder("source");
+                } else if (action-id == "browse-output") {
+                    root.browse-folder("output");
+                } else if (action-id == "browse-device-install") {
+                    root.browse-folder("device-install");
                 }
             }
         }
     }
 
-    HorizontalLayout {
-        horizontal-stretch: 1;
-        height: HubTokens.control-lg;
-        spacing: HubTokens.toolbar-gap;
+    SettingsSaveActionRow {
+        button-width: root.save-button-width;
+        action-label: root.ui-text.save-settings;
+        action-clicked => {
+            root.save-settings();
+        }
+    }
 
-        Rectangle { horizontal-stretch: 1; }
+    WorkspacePanelSection {
+        compact: root.compact;
+        row-height: HubTokens.workspace-row-settings-detail;
+        spacing-horizontal: HubTokens.panel-gap;
+        spacing-vertical: HubTokens.panel-gap;
 
-        PillButton {
-            width: root.save-button-width;
-            height: HubTokens.control-md;
-            text: root.ui-text.save-settings;
-            icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
-            has-icon-image: true;
-            primary: true;
-            clicked => {
-                root.save-settings();
-            }
+        OperationTimelinePanel {
+            basis: HubTokens.panel-min-lg;
+            flex-basis: HubTokens.panel-min-lg;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
+            height: HubTokens.workspace-row-settings-detail;
+            timeline-title: root.ui-text.operation-timeline;
+            empty-title: root.ui-text.no-operation-timeline;
+            empty-detail: root.ui-text.operation-timeline-empty-detail;
+            operation-timeline: root.operation-timeline;
+            operation-timeline-count: root.operation-timeline-count;
+            row-height: HubTokens.list-row-md;
+            timeline-scroll-y <=> root.operation-timeline-scroll-y;
+            collapse-label: root.compact-labels;
         }
     }
 }

@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docs/ui-and-layout/hub-ai-reference-manifest.schema.json",
+  "title": "Zircon Hub AI Reference Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "name",
+    "source_reference",
+    "prompt_family",
+    "draft_status",
+    "draft_kind",
+    "draft_usage",
+    "ai_draft_root",
+    "streaming_generation",
+    "supplemental_design_mode_artifacts",
+    "design_board_workflow",
+    "final_source",
+    "export_command",
+    "acceptance_evidence",
+    "canvas",
+    "references"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "docs/ui-and-layout/hub-ai-reference-manifest.schema.json"
+    },
+    "name": {
+      "type": "string"
+    },
+    "source_reference": {
+      "const": "docs/ui-and-layout/hub.png"
+    },
+    "prompt_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "draft_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "draft_kind": {
+      "const": "overall-interaction-structure-layout"
+    },
+    "draft_usage": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ai_draft_root": {
+      "const": "docs/ui-and-layout/hub-ai-drafts"
+    },
+    "streaming_generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "model", "size", "partial_images", "fallback"],
+      "properties": {
+        "endpoint": {
+          "const": "https://www.niumacode.cc/v1/images/generations"
+        },
+        "model": {
+          "const": "gpt-image-2"
+        },
+        "size": {
+          "const": "1024x1024"
+        },
+        "partial_images": {
+          "const": 2
+        },
+        "fallback": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "supplemental_design_mode_artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "role", "acceptance"],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptance": {
+            "const": "Not final acceptance evidence."
+          }
+        }
+      }
+    },
+    "design_board_workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "manifest",
+        "registry",
+        "export_command",
+        "validate_command",
+        "review_checklist",
+        "coverage_matrix",
+        "review_priority"
+      ],
+      "properties": {
+        "source": {
+          "const": "docs/ui-and-layout/hub-design-board/index.html"
+        },
+        "manifest": {
+          "const": "docs/ui-and-layout/hub-design-board/manifest.json"
+        },
+        "registry": {
+          "const": "docs/ui-and-layout/hub-design-board/board-registry.mjs"
+        },
+        "export_command": {
+          "const": "node docs/ui-and-layout/hub-design-board/export-design-board.mjs"
+        },
+        "validate_command": {
+          "const": "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs"
+        },
+        "review_checklist": {
+          "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md"
+        },
+        "coverage_matrix": {
+          "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_COVERAGE_MATRIX.md"
+        },
+        "review_priority": {
+          "const": "overall-interaction-structure-layout"
+        }
+      }
+    },
+    "final_source": {
+      "const": "docs/ui-and-layout/hub-web-reference/index.html"
+    },
+    "export_command": {
+      "const": "node docs/ui-and-layout/hub-web-reference/export-pages.mjs"
+    },
+    "acceptance_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ledger",
+        "final_png_inventory",
+        "spot_checks",
+        "web_exports",
+        "visual_validation",
+        "interaction_validation",
+        "design_board_validation",
+        "rust_contract",
+        "known_limit"
+      ],
+      "properties": {
+        "ledger": {
+          "const": "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md"
+        },
+        "final_png_inventory": {
+          "const": "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md#generated-final-png-inventory"
+        },
+        "spot_checks": {
+          "const": "docs/ui-and-layout/hub-web-reference/SPOT_CHECKS.md"
+        },
+        "web_exports": {
+          "const": "docs/ui-and-layout/hub-web-reference/EXPORTS.md"
+        },
+        "visual_validation": {
+          "const": "node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs"
+        },
+        "interaction_validation": {
+          "const": "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs"
+        },
+        "design_board_validation": {
+          "const": "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs"
+        },
+        "rust_contract": {
+          "const": "cargo test --manifest-path zircon_hub/Cargo.toml --locked --offline --jobs 1 --test ui_visual_standard_contract"
+        },
+        "known_limit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "canvas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": {
+          "const": 1568
+        },
+        "height": {
+          "const": 1003
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["page_id", "output", "ai_draft", "selected_draft", "prompt_focus"],
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string",
+            "pattern": "^hub-.+\\.png$"
+          },
+          "ai_draft": {
+            "type": "string",
+            "pattern": "^docs/ui-and-layout/hub-ai-drafts/hub-.+\\.png$"
+          },
+          "selected_draft": {
+            "const": "html-final-reference"
+          },
+          "prompt_focus": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

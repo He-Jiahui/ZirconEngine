@@ -28,7 +28,14 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_project_view_mode(view_model::project_view_mode_id(snapshot.project_view_mode));
     ui.set_search_query(snapshot.search_query.clone().into());
     ui.set_status_label(snapshot.task_status.label.clone().into());
-    ui.set_status_detail(snapshot.task_status.detail.clone().into());
+    ui.set_status_detail(
+        format!(
+            "{} — {}",
+            snapshot.task_status.operation_summary(),
+            snapshot.task_status.detail_with_recovery()
+        )
+        .into(),
+    );
     ui.set_task_running(snapshot.task_status.running);
     ui.set_header_statuses(view_model::model_from(view_model::header_statuses(
         snapshot,
@@ -88,16 +95,20 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_cloud_services(view_model::model_from(cloud_services));
     let source_engine_rows = view_model::source_engine_rows(snapshot);
     let source_build_history_rows = view_model::source_build_history_rows(snapshot);
+    let operation_timeline_rows = view_model::operation_timeline_rows(snapshot);
     ui.set_source_engine_count(source_engine_rows.len() as i32);
     ui.set_source_engines(view_model::model_from(source_engine_rows));
     ui.set_source_build_history_count(source_build_history_rows.len() as i32);
     ui.set_source_build_history(view_model::model_from(source_build_history_rows));
+    ui.set_operation_timeline_count(operation_timeline_rows.len() as i32);
+    ui.set_operation_timeline(view_model::model_from(operation_timeline_rows));
     ui.set_settings_statuses(view_model::model_from(view_model::settings_statuses(
-        &snapshot.settings,
+        snapshot,
     )));
     let source_engine = view_model::source_engine_data(snapshot);
     ui.set_active_engine_name(source_engine.title.clone());
     ui.set_source_engine(source_engine);
+    ui.set_workspace_action_readiness(view_model::workspace_action_readiness(snapshot));
     apply_settings(ui, &snapshot.settings);
     reset_page_scroll_offsets(ui);
 }

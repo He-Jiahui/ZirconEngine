@@ -1,45 +1,17 @@
-import { CloudServiceData, CloudSummaryData, UiTextData } from "shared.slint";
-import { EmptyStateBlock, HubTokens, InfoRow, MaterialStyleMetrics, MetricCard, OverviewPanel, PageScrollSurface, PanelHeader, PanelListViewport, PanelSlot, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
-
-component CloudServiceRow inherits InfoRow {
-    in property <CloudServiceData> service;
-    in property <bool> collapse-label: false;
-
-    title: root.service.title;
-    detail: root.service.detail;
-    meta: "";
-    leading-image: root.service.accent == 0 ? @image-url("../assets/icons/nav/cloud.svg") : (root.service.accent == 1 ? @image-url("../assets/icons/actions/build-project.svg") : @image-url("../assets/icons/actions/package-project.svg"));
-    has-leading-image: true;
-    accent: root.service.accent;
-    trailing-text: root.service.status;
-    trailing-tone: root.service.status == "Ready" ? "ok" : "neutral";
-    show-trailing-badge: true;
-    collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-lg;
-}
-
-component CloudMetricSlot inherits ResponsiveSlot {
-    in property <string> label;
-    in property <string> primary;
-    in property <string> secondary;
-    in property <bool> compact-card: false;
-
-    MetricCard {
-        width: parent.width;
-        height: parent.height;
-        label: root.label;
-        primary: root.primary;
-        secondary: root.secondary;
-        compact: root.compact-card;
-    }
-}
+import { CloudServiceData, CloudSummaryData, OperationTimelineRowData, UiTextData } from "shared.slint";
+import { HubTokens, HubVisualSpec, OperationTimelinePanel, OverviewPanel, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
+import { CloudMetricSlot, CloudPackageActionsPanel, CloudServicesPanel } from "cloud_page_components.slint";
 
 export component CloudPage inherits PageScrollSurface {
     in property <CloudSummaryData> summary;
     in property <[CloudServiceData]> services;
     in property <int> service-count;
+    in property <[OperationTimelineRowData]> operation-timeline;
+    in property <int> operation-timeline-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
+    callback package-project();
+    callback install-device();
     private property <length> header-height: HubTokens.list-row-lg;
     private property <string> overview-title: root.has-selected-project ? root.ui-text.cloud-overview-selected : root.ui-text.cloud-overview;
     private property <string> overview-detail: root.has-selected-project ? root.ui-text.cloud-local-selected-detail : root.ui-text.cloud-local-only;
@@ -63,11 +35,18 @@ export component CloudPage inherits PageScrollSurface {
     private property <int> service-fit-rows: root.service-fit-row-count < 1 ? 1 : root.service-fit-row-count;
     private property <int> service-panel-rows: root.service-visible-rows < 1 ? 1 : (root.service-visible-rows < root.service-fit-rows ? root.service-visible-rows : root.service-fit-rows);
     private property <length> service-list-height: root.service-count == 0 ? HubTokens.list-row-lg + HubTokens.space-4 : root.service-panel-rows * HubTokens.list-row-lg + (root.service-panel-rows - 1) * HubTokens.space-2 + HubTokens.space-1 * 2;
+    private property <length> actions-panel-height: root.service-panel-chrome-height + HubTokens.list-row-sm * 2 + HubTokens.toolbar-gap;
     private property <length> services-panel-height: root.service-panel-chrome-height + root.service-list-height;
     private property <length> service-scroll-y: 0px;
+    private property <length> operation-timeline-scroll-y: 0px;
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
+
+    label-collapse := ResponsiveCollapse {
+        content-width: root.content-width;
+        collapse-at: HubTokens.breakpoint-medium;
+    }
 
     OverviewPanel {
         height: root.header-height;
@@ -145,37 +124,40 @@ export component CloudPage inherits PageScrollSurface {
         }
     }
 
-    PanelSlot {
+    CloudPackageActionsPanel {
+        horizontal-stretch: 1;
+        height: root.actions-panel-height;
+        summary: root.summary;
+        ui-text: root.ui-text;
+        overview-detail: root.overview-detail;
+        package-project => {
+            root.package-project();
+        }
+        install-device => {
+            root.install-device();
+        }
+    }
+
+    CloudServicesPanel {
         horizontal-stretch: 1;
         height: root.services-panel-height;
-        body-padding: MaterialStyleMetrics.padding_16;
-        body-spacing: HubTokens.toolbar-gap;
+        ui-text: root.ui-text;
+        services: root.services;
+        service-count: root.service-count;
+        overview-detail: root.overview-detail;
+        collapse-label: label-collapse.collapsed;
+        service-scroll-y <=> root.service-scroll-y;
+    }
 
-        PanelHeader {
-            title: root.ui-text.cloud-services;
-            show-badge: true;
-            badge-text: root.service-count + " " + root.ui-text.cloud-service-slots;
-            badge-tone: "neutral";
-        }
-
-        PanelListViewport {
-            scroll-y <=> root.service-scroll-y;
-            row-count: root.service-count;
-            row-height: HubTokens.list-row-lg;
-            empty-height: HubTokens.list-row-lg + HubTokens.space-4;
-
-            for service in root.services: CloudServiceRow {
-                service: service;
-                collapse-label: root.content-width < HubTokens.breakpoint-medium;
-            }
-
-            if root.service-count == 0: EmptyStateBlock {
-                height: HubTokens.list-row-lg + HubTokens.space-4;
-                title: root.ui-text.cloud-local-only;
-                detail: root.overview-detail;
-                body-padding: MaterialStyleMetrics.padding_16;
-                center-content: true;
-            }
-        }
+    OperationTimelinePanel {
+        horizontal-stretch: 1;
+        height: root.actions-panel-height;
+        timeline-title: root.summary.operation-timeline-title;
+        empty-title: root.summary.operation-timeline-empty-title;
+        empty-detail: root.summary.operation-timeline-empty-detail;
+        operation-timeline: root.operation-timeline;
+        operation-timeline-count: root.operation-timeline-count;
+        collapse-label: label-collapse.collapsed;
+        timeline-scroll-y <=> root.operation-timeline-scroll-y;
     }
 }

@@ -20,6 +20,8 @@ related_code:
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/net/runtime/Cargo.toml
@@ -78,6 +80,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/sync.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/core/framework/net/websocket.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/net/runtime/Cargo.toml
@@ -127,6 +130,7 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/net/runtime/src/tests.rs
   - zircon_plugins/net/features/http/runtime/src/tests.rs
   - zircon_plugins/net/features/rpc/runtime/src/tests.rs
@@ -415,6 +419,26 @@ the shared HTTP-capable `NetManager` instead of owning a second client stack. `n
 `net.rpc`, `net.replication`, `net.reliable_udp`, and `net.content_download` now have runtime crates in the plugin workspace. The base plugin declares and gates all features but only
 advertises the base `runtime.plugin.net` capability from `runtime_capabilities()`.
 
+The 2026-05-31 metadata parity follow-up keeps that HTTP dependency synchronized
+across the linked `zircon_plugin_net_runtime::package_manifest()`, static
+`zircon_plugins/net/plugin.toml`, and the `net.content_download` provider crate.
+This prevents editor/plugin catalog surfaces from offering Content Download
+without the HTTP feature that the provider uses for shared `NetManager`
+transfers.
+
+The same 2026-05-31 continuation now mirrors the six Net feature rows into
+`RuntimePluginDescriptor::builtin_catalog()`, so built-in Plugin Manager,
+profile, and export dependency views can see the same `net.http`,
+`net.websocket`, `net.rpc`, `net.replication`, `net.reliable_udp`, and
+`net.content_download` feature bundle definitions as the static and linked Net
+package manifests.
+
+The linked Net runtime descriptor now also carries the same base package
+metadata as the static and built-in catalog rows: category `runtime`, maturity
+`beta`, and `runtime.plugin.net` capability status `partial` with the Bevy
+Remote reference. Linked provider reports therefore no longer look
+experimental while the static and built-in catalog rows classify Net as beta.
+
 ## Reference Alignment
 
 The shape follows Unreal's split between socket subsystem, net driver, connections, channels,
@@ -453,6 +477,9 @@ Unit-test coverage now spans the base runtime and optional net feature crates:
 - `net.replication` feature registration, dirty-field delta reporting, interest-group snapshot filtering, late-join snapshot copyout, despawn lifecycle removal, update-frequency scheduling, priority ordering, per-session snapshot/byte budgets, and budget deferral diagnostics
 - `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, ack removal, resend batch copyout, deterministic resend-timeout ticks, resend attempt-cap disconnect, deterministic loss/reorder simulation, out-of-order fragment reassembly, recovery/disconnect state reporting, dropped-packet accounting, and RTT stats
 - `net.content_download` feature registration, HTTP feature dependency declaration, manifest progress accounting, invalid/partial manifest rejection, primary/mirror candidate URLs, cache-hit completion, range-resume attempt descriptors, shared-`NetManager` full/range chunk fetch, mirror failover state, cancellation, partial-prefix preservation, and chunk hash mismatch failure diagnostics
+- base Net package and static `plugin.toml` parity for the `net.content_download` required `runtime.feature.net.http` dependency
+- built-in runtime catalog parity for all six Net optional feature rows plus the Content Download HTTP dependency diagnostic
+- linked Net runtime package metadata parity for category, maturity, and `runtime.plugin.net` capability status
 - base runtime state extraction into `runtime_state.rs`, reducing `service_types.rs` from 1045 lines to 910 lines in this continuation
 - listener shutdown for TCP listeners through `close_listener`, with HTTP/WebSocket listener-map removal sharing the same manager contract
 - runtime mode diagnostics and listener events
@@ -461,6 +488,9 @@ Unit-test coverage now spans the base runtime and optional net feature crates:
 Validation status for the net package is now:
 
 - The earlier asset metadata duplicate-field blocker no longer reproduces.
+- 2026-05-31 content-download dependency parity passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-content-download-manifest`: the red base Net package test first failed because `net.content_download` lacked `runtime.feature.net.http`, the red static `plugin.toml` test failed for the same reason, and after the fix `net_plugin_manifest_advertises_layered_optional_features`, `net_plugin_toml_declares_content_download_http_dependency`, and the full `zircon_plugin_net_content_download_runtime` lib test set passed.
+- 2026-05-31 built-in catalog parity passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-builtin-catalog`: the red catalog test first failed because the built-in Net descriptor had no optional features, then `builtin_net_catalog_declares_layered_optional_features`, `builtin_net_content_download_dependency_report_blocks_without_http_feature`, `net_plugin_toml_declares_content_download_http_dependency`, and `net_plugin_manifest_advertises_layered_optional_features` passed after the catalog rows were added.
+- 2026-05-31 linked runtime metadata parity passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-net-runtime-metadata`: the red linked package test first failed because `zircon_plugin_net_runtime::package_manifest()` reported `Experimental` instead of `Beta`, and the red static manifest test first failed because `zircon_plugins/net/plugin.toml` defaulted to category `uncategorized`; after the fix, the linked Net package and static TOML metadata checks passed.
 - The earlier navigation runtime manifest target blocker no longer reproduces.
 - The plugin workspace member blocker for missing `asset_importers/{model,texture,audio,shader,data}/runtime`
   crates was cleared with minimal runtime skeleton packages.

@@ -1,7 +1,7 @@
 use crate::asset::{AssetReference, TextureUploadSupport};
 use crate::core::framework::render::{
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialValidationError,
+    RenderMaterialTextureSlotFallback, RenderMaterialValidationError,
 };
 use crate::core::resource::ResourceId;
 
@@ -13,6 +13,8 @@ pub(in crate::graphics::scene::resources) struct ResolvedTextureReference {
     pub(in crate::graphics::scene::resources) validation_error:
         Option<RenderMaterialValidationError>,
     pub(in crate::graphics::scene::resources) fallback_usage: Option<RenderMaterialFallbackUsage>,
+    pub(in crate::graphics::scene::resources) slot_fallback:
+        Option<RenderMaterialTextureSlotFallback>,
 }
 
 impl ResolvedTextureReference {
@@ -45,6 +47,7 @@ impl ResourceStreamer {
                 id: None,
                 validation_error: None,
                 fallback_usage: None,
+                slot_fallback: None,
             };
         };
 
@@ -68,6 +71,9 @@ impl ResourceStreamer {
                     },
                     fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
                 }),
+                slot_fallback: Some(RenderMaterialTextureSlotFallback::unresolved_reference(
+                    reference.clone(),
+                )),
             };
         };
 
@@ -89,6 +95,9 @@ impl ResourceStreamer {
                         },
                         fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
                     }),
+                    slot_fallback: Some(RenderMaterialTextureSlotFallback::unresolved_reference(
+                        reference.clone(),
+                    )),
                 };
             }
         };
@@ -108,6 +117,10 @@ impl ResourceStreamer {
                     },
                     fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
                 }),
+                slot_fallback: Some(RenderMaterialTextureSlotFallback::not_upload_ready(
+                    reference.clone(),
+                    reason,
+                )),
             };
         }
 
@@ -115,6 +128,7 @@ impl ResourceStreamer {
             id: Some(id),
             validation_error: None,
             fallback_usage: None,
+            slot_fallback: None,
         }
     }
 

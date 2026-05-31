@@ -1510,6 +1510,7 @@ fn build_overlapping_extract(
                         ..Transform::default()
                     },
                     model: model.clone(),
+                    mesh: None,
                     material: materials[0].1,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
@@ -1523,6 +1524,7 @@ fn build_overlapping_extract(
                         ..Transform::default()
                     },
                     model,
+                    mesh: None,
                     material: materials[1].1,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,

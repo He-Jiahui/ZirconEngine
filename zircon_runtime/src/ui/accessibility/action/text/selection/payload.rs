@@ -1,11 +1,9 @@
 use zircon_runtime_interface::ui::accessibility::{
-    UiAccessibilityActionRequest, UiAccessibilityActionStatus, UiAccessibilityNode,
+    UiAccessibilityActionRequest, UiAccessibilityNode,
 };
 
 use super::super::super::text_state::clamp_text_boundary;
 
-pub(super) const MISSING_TEXT_SELECTION_STATUS: UiAccessibilityActionStatus =
-    UiAccessibilityActionStatus::Rejected;
 pub(super) const MISSING_TEXT_SELECTION_CODE: &str = "missing_text_selection";
 pub(super) const MISSING_TEXT_SELECTION_REASON: &str =
     "set text selection action requires text_selection";

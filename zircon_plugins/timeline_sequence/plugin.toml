@@ -1,8 +1,12 @@
 id = "timeline_sequence"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Timeline Sequence"
 category = "authoring"
 description = "Optional editor-only timeline authoring package for animation sequences."
+maturity = "experimental"
+supported_targets = ["editor_host"]
+capabilities = ["editor.extension.timeline_sequence_authoring"]
 default_packaging = ["source_template", "library_embed"]
 
 [[dependencies]]

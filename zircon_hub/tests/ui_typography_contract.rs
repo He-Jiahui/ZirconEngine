@@ -60,26 +60,41 @@ fn shared_typography_wrappers_use_material_text() {
 #[test]
 fn builds_current_task_status_uses_material_text() {
     let builds = read_ui_file("builds.slint");
+    let builds_components = read_ui_file("builds_page_components.slint");
 
     for snippet in [
+        "HubSection,",
+        "HubSection {",
+        "section-height: root.current-task-section-height;",
+        "section-height: root.history-section-height;",
+        "title: root.current-task-title;",
+        "title: root.build-history-title;",
         "MaterialText,",
         "MaterialText {",
         "text: root.status-label;",
         "style: MaterialTypography.headline_small;",
     ] {
         assert!(
-            builds.contains(snippet),
-            "BuildsPage current task status should delegate typography to MaterialText; missing {snippet}"
+            builds_components.contains(snippet),
+            "BuildTaskHistoryPanel current task status should delegate typography to MaterialText; missing {snippet}"
         );
     }
     assert!(
-        !builds.lines().any(|line| line.trim() == "Text {"),
-        "BuildsPage should not return to raw Text nodes"
+        builds.contains("BuildTaskHistoryPanel {")
+            && !builds.contains("MaterialText {")
+            && !builds.contains("MutedText {"),
+        "BuildsPage should compose BuildTaskHistoryPanel instead of owning current-task text nodes"
+    );
+    assert!(
+        !builds_components
+            .lines()
+            .any(|line| line.trim() == "Text {"),
+        "BuildTaskHistoryPanel should not return to raw Text nodes"
     );
     for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
         assert!(
-            !builds.contains(forbidden),
-            "BuildsPage should not return to raw Text font bindings: {forbidden}"
+            !builds.contains(forbidden) && !builds_components.contains(forbidden),
+            "BuildsPage and BuildTaskHistoryPanel should not return to raw Text font bindings: {forbidden}"
         );
     }
 }
@@ -87,8 +102,9 @@ fn builds_current_task_status_uses_material_text() {
 #[test]
 fn editor_empty_states_use_shared_material_text_block() {
     let editor = read_ui_file("editor.slint");
+    let editor_components = read_ui_file("editor_page_components.slint");
     let surfaces = read_ui_file("surfaces.slint");
-    let source_empty = editor
+    let source_empty = editor_components
         .split("if root.source-engine-count == 0: EmptyStateBlock")
         .nth(1)
         .and_then(|source| {
@@ -97,12 +113,12 @@ fn editor_empty_states_use_shared_material_text_block() {
                 .next()
         })
         .expect(
-            "editor.slint must declare source-engine EmptyStateBlock before build-history block",
+            "editor_page_components.slint must declare source-engine EmptyStateBlock before build-history block",
         );
-    let history_empty = editor
+    let history_empty = editor_components
         .split("if root.source-build-history-count == 0: EmptyStateBlock")
         .nth(1)
-        .expect("editor.slint must declare source build-history EmptyStateBlock");
+        .expect("editor_page_components.slint must declare source build-history EmptyStateBlock");
     let empty_block = surfaces
         .split("export component EmptyStateBlock")
         .nth(1)
@@ -110,8 +126,8 @@ fn editor_empty_states_use_shared_material_text_block() {
         .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
 
     for snippet in [
-        "height: root.side-list-empty-height;",
-        "title: root.ui-text.no-source-engines;",
+        "height: root.empty-height;",
+        "title: root.empty-title;",
         "body-padding: MaterialStyleMetrics.padding_16;",
         "center-content: true;",
     ] {
@@ -121,8 +137,8 @@ fn editor_empty_states_use_shared_material_text_block() {
         );
     }
     for snippet in [
-        "height: root.side-list-empty-height;",
-        "title: root.ui-text.no-build-history;",
+        "height: root.empty-height;",
+        "title: root.empty-title;",
         "body-padding: MaterialStyleMetrics.padding_16;",
         "center-content: true;",
     ] {
@@ -142,13 +158,24 @@ fn editor_empty_states_use_shared_material_text_block() {
             && !history_empty.lines().any(|line| line.trim() == "Text {"),
         "Editor empty states should not return to raw Text nodes"
     );
+    assert!(
+        editor.contains("EditorSourceEngineListPanel {")
+            && editor.contains("EditorBuildHistoryPanel {")
+            && !editor.contains("if root.source-engine-count == 0: EmptyStateBlock")
+            && !editor.contains("if root.source-build-history-count == 0: EmptyStateBlock"),
+        "editor.slint should compose typed side-list panels instead of owning empty-state text blocks inline"
+    );
 }
 
 #[test]
 fn cloud_and_team_workspace_typography_uses_material_text() {
     let data_display = read_ui_file("data_display.slint");
     let cloud = read_ui_file("cloud.slint");
+    let cloud_components = read_ui_file("cloud_page_components.slint");
+    let cloud_surface = format!("{cloud}\n{cloud_components}");
     let team = read_ui_file("team.slint");
+    let team_components = read_ui_file("team_page_components.slint");
+    let team_surface = format!("{team}\n{team_components}");
 
     let metric_card = data_display
         .split("export component MetricCard")
@@ -175,14 +202,14 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
             "MetricCard should not return to raw Text font bindings: {forbidden}"
         );
     }
-    for (page_name, source) in [("CloudPage", &cloud), ("TeamPage", &team)] {
+    for (page_name, source) in [("CloudPage", &cloud_surface), ("TeamPage", &team_surface)] {
         assert!(
             source.contains("MetricCard {"),
             "{page_name} should reuse the shared data-display MetricCard for summary metrics"
         );
         assert!(
-            source.contains("PanelListViewport {"),
-            "{page_name} should route its lower row list through the shared PanelListViewport scroll body"
+            source.contains("HubListPanelSlot,"),
+            "{page_name} should route its lower row list through the shared HubListPanelSlot shell"
         );
     }
     for forbidden in [
@@ -191,10 +218,19 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
         "component TeamSummaryCard",
     ] {
         assert!(
-            !cloud.contains(forbidden) && !team.contains(forbidden),
+            !cloud_surface.contains(forbidden) && !team_surface.contains(forbidden),
             "Cloud/Team should not keep page-local metric card components after MetricCard extraction: {forbidden}"
         );
     }
+    assert!(
+        !cloud.contains("component CloudMetricSlot")
+            && !cloud.contains("component CloudServiceRow")
+            && !cloud.contains("component CloudServicesPanel")
+            && !team.contains("component TeamSummarySlot")
+            && !team.contains("component TeamMemberRow")
+            && !team.contains("component TeamMembersPanel"),
+        "Cloud/Team pages should import page-specific panel/row wrappers from component modules instead of defining them inline"
+    );
 
     let surfaces = read_ui_file("surfaces.slint");
     let empty_block = surfaces
@@ -202,15 +238,15 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
         .nth(1)
         .and_then(|source| source.split("export component EmptyStatePanel").next())
         .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
-    let team_empty = team
+    let team_empty = team_components
         .split("if root.member-count == 0: EmptyStateBlock")
         .nth(1)
         .and_then(|source| source.split("for member in root.members").next())
-        .expect("team.slint must declare member empty state before member rows");
+        .expect("team_page_components.slint must declare member empty state before member rows");
     for snippet in [
         "title: root.ui-text.no-team-members-found;",
         "detail: root.members-empty-detail;",
-        "extra-detail: root.summary.repository-path;",
+        "extra-detail: root.repository-path;",
         "body-padding: MaterialStyleMetrics.padding_16;",
     ] {
         assert!(
@@ -218,6 +254,12 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
             "Team empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
         );
     }
+    assert!(
+        team.contains("TeamMembersPanel {")
+            && !team.contains("if root.member-count == 0: EmptyStateBlock")
+            && !team.contains("for member in root.members: TeamMemberRow {"),
+        "team.slint should compose TeamMembersPanel instead of owning member empty-state or row repetition inline"
+    );
     for snippet in [
         "MaterialText {",
         "style: root.title-prominent ? MaterialTypography.title_medium : MaterialTypography.label_large;",
@@ -243,12 +285,14 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
 #[test]
 fn dashboard_project_card_and_empty_titles_use_material_text() {
     let dashboard = read_ui_file("project_dashboard.slint");
+    let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
     let surfaces = read_ui_file("surfaces.slint");
-    let project_card = dashboard
-        .split("component ProjectCard")
+    let project_card = dashboard_components
+        .split("export component ProjectCard")
         .nth(1)
-        .and_then(|source| source.split("component ProjectFlow").next())
-        .expect("project_dashboard.slint must declare ProjectCard before ProjectFlow");
+        .and_then(|source| source.split("export component ProjectFlow").next())
+        .expect("project_dashboard_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
         "MaterialText,",
         "MaterialText {",
@@ -257,7 +301,7 @@ fn dashboard_project_card_and_empty_titles_use_material_text() {
         "vertical_alignment: center;",
     ] {
         assert!(
-            dashboard.contains(snippet) || project_card.contains(snippet),
+            dashboard_surface.contains(snippet) || project_card.contains(snippet),
             "ProjectCard title should delegate typography to MaterialText; missing {snippet}"
         );
     }
@@ -268,11 +312,17 @@ fn dashboard_project_card_and_empty_titles_use_material_text() {
         );
     }
 
-    let project_flow = dashboard
-        .split("component ProjectFlow")
+    let project_flow = dashboard_components
+        .split("export component ProjectFlow")
         .nth(1)
-        .and_then(|source| source.split("export component ProjectDashboardPage").next())
-        .expect("project_dashboard.slint must declare ProjectFlow before ProjectDashboardPage");
+        .and_then(|source| {
+            source
+                .split("export component DashboardQuickActionRow")
+                .next()
+        })
+        .expect(
+            "project_dashboard_components.slint must export ProjectFlow before DashboardQuickActionRow",
+        );
     for snippet in [
         "if root.project-card-count == 0: EmptyStatePanel",
         "title: root.empty-title;",
@@ -326,8 +376,16 @@ fn dashboard_project_card_and_empty_titles_use_material_text() {
 #[test]
 fn project_workflow_typography_uses_material_text() {
     let components = read_ui_file("project_page_components.slint");
+    let browser_components = read_ui_file("project_browser_components.slint");
+    let detail_components = read_ui_file("project_detail_components.slint");
+    let new_page = read_ui_file("project_new_page.slint");
+    let browser_page = read_ui_file("project_browser_page.slint");
+    let detail_page = read_ui_file("project_detail_page.slint");
     let project_pages = read_ui_file("project_pages.slint");
     let surfaces = read_ui_file("surfaces.slint");
+    let project_text_surface = format!(
+        "{components}\n{browser_components}\n{detail_components}\n{new_page}\n{browser_page}\n{detail_page}"
+    );
 
     for snippet in [
         "MaterialText,",
@@ -338,7 +396,7 @@ fn project_workflow_typography_uses_material_text() {
         "vertical_alignment: center;",
     ] {
         assert!(
-            components.contains(snippet),
+            project_text_surface.contains(snippet),
             "Project workflow shared components should delegate typography to MaterialText; missing {snippet}"
         );
     }
@@ -346,16 +404,30 @@ fn project_workflow_typography_uses_material_text() {
     for component_name in [
         "PageHeader",
         "ProjectSettingSummaryRow",
+        "ProjectCreateSettingsPanel",
+        "ProjectCreateCompactSummaryPanel",
         "ProjectDetailStatusStrip",
+        "ProjectDetailPinToggleRow",
         "ProjectDetailInfoSection",
         "ProjectDetailEngineSection",
         "ProjectBrowserRow",
     ] {
-        let component = components
+        let component_source = if component_name == "ProjectBrowserRow" {
+            &browser_components
+        } else if component_name.starts_with("ProjectDetail") {
+            &detail_components
+        } else {
+            &components
+        };
+        let component = component_source
             .split(&format!("export component {component_name}"))
             .nth(1)
             .and_then(|source| {
                 if component_name == "ProjectDetailStatusStrip" {
+                    source
+                        .split("export component ProjectDetailPinToggleRow")
+                        .next()
+                } else if component_name == "ProjectDetailPinToggleRow" {
                     source
                         .split("export component ProjectDetailInfoSection")
                         .next()
@@ -370,14 +442,33 @@ fn project_workflow_typography_uses_material_text() {
                 }
             })
             .unwrap_or_else(|| panic!("Project workflow UI must declare {component_name}"));
-        if component_name == "ProjectDetailInfoSection"
-            || component_name == "ProjectDetailEngineSection"
-        {
+        if component_name == "ProjectCreateCompactSummaryPanel" {
+            assert!(
+                component.contains("ProjectCreateSummary {"),
+                "{component_name} should delegate visible text to MaterialText-backed project summary components"
+            );
+        } else if component_name == "ProjectCreateSettingsPanel" {
             assert!(
                 component.contains("PanelHeader {")
                     && (component.contains("ProjectSettingSummaryRow {")
                         || component.contains("ProjectEngineChoiceList {")),
                 "{component_name} should delegate visible text to MaterialText-backed project workflow components"
+            );
+        } else if component_name == "ProjectDetailInfoSection"
+            || component_name == "ProjectDetailEngineSection"
+        {
+            assert!(
+                component.contains("inherits HubSection")
+                    && (component.contains("ProjectSettingSummaryRow {")
+                        || component.contains("ProjectEngineChoiceList {")),
+                "{component_name} should delegate section text through the MaterialText-backed HubSection primitive"
+            );
+        } else if component_name == "ProjectDetailPinToggleRow" {
+            assert!(
+                component.contains("inherits HubToggleRow")
+                    && component.contains("label: root.detail.pinned")
+                    && component.contains("supporting-text: root.detail.pinned"),
+                "{component_name} should delegate visible text to the MaterialText-backed HubToggleRow primitive"
             );
         } else {
             assert!(
@@ -405,20 +496,30 @@ fn project_workflow_typography_uses_material_text() {
         "vertical_alignment: center;",
     ] {
         assert!(
-            components.contains(snippet) || project_pages.contains(snippet),
+            components.contains(snippet)
+                || detail_components.contains(snippet)
+                || new_page.contains(snippet)
+                || detail_page.contains(snippet)
+                || project_pages.contains(snippet)
+                || browser_page.contains(snippet),
             "Project workflow pages should use MaterialText for section/status labels; missing {snippet}"
         );
     }
-    let browser_empty = project_pages
+    let browser_results_panel = browser_components
+        .split("export component ProjectBrowserResultsPanel")
+        .nth(1)
+        .expect("project_browser_components.slint must declare ProjectBrowserResultsPanel");
+    let browser_empty = browser_results_panel
         .split("if root.row-count == 0: EmptyStateBlock")
         .nth(1)
         .and_then(|source| source.split("}").next())
-        .expect("ProjectBrowserPage must declare an EmptyStateBlock for empty browser results");
+        .expect(
+            "ProjectBrowserResultsPanel must declare an EmptyStateBlock for empty browser results",
+        );
     let engine_choice_list = components
         .split("export component ProjectEngineChoiceList")
         .nth(1)
-        .and_then(|source| source.split("export component ProjectDetailActionButton").next())
-        .expect("project_page_components.slint must declare ProjectEngineChoiceList before ProjectDetailActionButton");
+        .expect("project_page_components.slint must declare ProjectEngineChoiceList");
     let engine_choice_empty = engine_choice_list
         .split("if root.engine-count == 0: EmptyStateBlock")
         .nth(1)
@@ -426,15 +527,6 @@ fn project_workflow_typography_uses_material_text() {
         .expect(
             "ProjectEngineChoiceList must declare an EmptyStateBlock for missing source engines",
         );
-    let new_page = project_pages
-        .split("export component ProjectNewPage")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectBrowserPage").next())
-        .expect("project_pages.slint must declare ProjectNewPage before ProjectBrowserPage");
-    let detail_page = project_pages
-        .split("export component ProjectDetailPage")
-        .nth(1)
-        .expect("project_pages.slint must declare ProjectDetailPage");
     let empty_block = surfaces
         .split("export component EmptyStateBlock")
         .nth(1)
@@ -463,8 +555,9 @@ fn project_workflow_typography_uses_material_text() {
         );
     }
     assert!(
-        new_page.contains("empty-title: root.ui-text.register-source-engine-before-create;")
-            && components.contains("empty-title: root.copy.no-source-engine-available;")
+        components.contains("empty-title: root.ui-text.register-source-engine-before-create;")
+            && new_page.contains("ui-text: root.ui-text;")
+            && detail_components.contains("empty-title: root.copy.no-source-engine-available;")
             && detail_page.contains("copy: root.ui-text;"),
         "ProjectNewPage and ProjectDetailEngineSection should provide their own Source Engine empty-state copy to ProjectEngineChoiceList"
     );
@@ -481,27 +574,48 @@ fn project_workflow_typography_uses_material_text() {
         "Project workflow empty states should not return to local MutedText/raw Text nodes"
     );
     assert!(
-        !project_pages.lines().any(|line| line.trim() == "Text {"),
-        "project_pages.slint should not return to raw Text nodes"
+        browser_page.contains("ProjectBrowserResultsPanel {")
+            && !browser_page.contains("EmptyStateBlock {")
+            && !browser_page.contains("PanelHeader {"),
+        "ProjectBrowserPage should compose the typed results panel instead of owning browser result text"
+    );
+    assert!(
+        !project_pages.lines().any(|line| line.trim() == "Text {")
+            && !new_page.lines().any(|line| line.trim() == "Text {")
+            && !browser_page.lines().any(|line| line.trim() == "Text {")
+            && !detail_page.lines().any(|line| line.trim() == "Text {"),
+        "Project workflow page modules should not return to raw Text nodes"
     );
     for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
         assert!(
-            !project_pages.contains(forbidden),
-            "project_pages.slint should not return to raw Text font bindings: {forbidden}"
+            !project_pages.contains(forbidden)
+                && !new_page.contains(forbidden)
+                && !browser_page.contains(forbidden)
+                && !detail_page.contains(forbidden),
+            "Project workflow page modules should not return to raw Text font bindings: {forbidden}"
         );
     }
+    assert!(
+        project_pages.contains("export { ProjectNewPage } from \"project_new_page.slint\";")
+            && project_pages
+                .contains("export { ProjectBrowserPage } from \"project_browser_page.slint\";")
+            && project_pages
+                .contains("export { ProjectDetailPage } from \"project_detail_page.slint\";")
+            && !project_pages.contains("export component ProjectDetailPage inherits"),
+        "project_pages.slint should keep New, Browser, and Detail pages available through dedicated page modules"
+    );
 }
 
 #[test]
 fn settings_health_empty_state_uses_material_text() {
-    let settings = read_ui_file("settings.slint");
+    let settings_components = read_ui_file("settings_page_components.slint");
     let surfaces = read_ui_file("surfaces.slint");
-    let health_empty = settings
+    let health_empty = settings_components
         .split("if root.settings-status-count == 0: EmptyStateBlock")
         .nth(1)
         .and_then(|source| source.split("for status in root.settings-statuses").next())
         .expect(
-            "settings.slint must declare configuration health EmptyStateBlock before status rows",
+            "settings_page_components.slint must declare configuration health EmptyStateBlock before status rows",
         );
     let empty_block = surfaces
         .split("export component EmptyStateBlock")

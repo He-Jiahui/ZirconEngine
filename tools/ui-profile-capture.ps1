@@ -958,6 +958,21 @@ function Export-UiInteractionEvidence {
             [Math]::Abs([double]$layoutDeltas.document_width) -ge 1.0 -or
             [Math]::Abs([double]$layoutDeltas.document_height) -ge 1.0
     }
+    if (-not $resizeChanged -and
+        $interactionScenario -eq "drawer_resize" -and
+        $null -ne $Interaction -and
+        [bool]$Interaction.used_geometry -and
+        $null -ne $afterGeometry) {
+        $afterSplitter = @($afterGeometry.resize_splitters) |
+            Where-Object { $_.id -eq $Interaction.target_id } |
+            Select-Object -First 1
+        if ($null -ne $afterSplitter -and $null -ne $afterSplitter.frame -and $null -ne $Interaction.target_frame) {
+            $resizeChanged = [Math]::Abs([double]$afterSplitter.frame.x - [double]$Interaction.target_frame.x) -ge 1.0 -or
+                [Math]::Abs([double]$afterSplitter.frame.y - [double]$Interaction.target_frame.y) -ge 1.0 -or
+                [Math]::Abs([double]$afterSplitter.frame.width - [double]$Interaction.target_frame.width) -ge 1.0 -or
+                [Math]::Abs([double]$afterSplitter.frame.height - [double]$Interaction.target_frame.height) -ge 1.0
+        }
+    }
 
     $artifact = [pscustomobject]@{
         schema_version = 1

@@ -1,0 +1,164 @@
+import {
+    RecentProjectRowData,
+    UiTextData,
+} from "shared.slint";
+import {
+    HubTokens,
+    HubVisualSpec,
+    MaterialStyleMetrics,
+    PageScrollSurface,
+    ResponsiveSlot,
+    SearchBox,
+} from "components.slint";
+import {
+    PageHeader,
+} from "project_page_components.slint";
+import {
+    ProjectBrowserResultsPanel,
+    ProjectFilterSelect,
+    ProjectSortSelect,
+} from "project_browser_components.slint";
+
+export component ProjectBrowserPage inherits PageScrollSurface {
+    in-out property <string> search-query;
+    in property <string> project-filter-label;
+    in property <string> project-sort-label;
+    in property <string> list-title: "Project List";
+    in property <[RecentProjectRowData]> rows;
+    in property <int> row-count;
+    in property <bool> viewport-compact: false;
+    in property <UiTextData> ui-text;
+    callback back;
+    callback search-projects(string);
+    callback set-project-filter(string);
+    callback set-project-sort(string);
+    callback select-project(string);
+    callback open-detail(string);
+
+    private property <length> browser-scroll-y: 0px;
+    private property <bool> compact-page: root.viewport-compact;
+    private property <length> page-pad: root.compact-page ? HubTokens.page-padding-compact : HubTokens.page-padding;
+    private property <length> page-gap: root.compact-page ? HubTokens.toolbar-gap : HubTokens.panel-gap;
+    private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.content-height / 18));
+    private property <length> toolbar-control-min-width: root.toolbar-height * 18 / 5;
+    private property <bool> toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.page-gap * 3;
+    private property <length> browser-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg + MaterialStyleMetrics.spacing_16, root.content-height / 11));
+    private property <length> browser-row-gap: max(MaterialStyleMetrics.spacing_6, min(MaterialStyleMetrics.spacing_12, root.content-height / 90));
+    private property <length> toolbar-row-height: root.toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
+    private property <length> toolbar-search-basis: root.toolbar-wrap ? root.content-width : root.content-width * HubTokens.project-browser-toolbar-search-ratio;
+    private property <length> toolbar-select-basis: root.toolbar-wrap ? root.toolbar-control-min-width : max(root.content-width * HubTokens.project-browser-toolbar-select-ratio, root.toolbar-control-min-width);
+    private property <length> browser-row-slot-height: root.browser-row-height + root.browser-row-gap;
+    private property <length> browser-table-header-height: HubTokens.control-md;
+    private property <length> browser-panel-chrome-height: HubTokens.control-md + root.browser-table-header-height + root.page-gap * 4;
+    private property <int> browser-visible-rows: root.row-count < 5 ? root.row-count : 5;
+    private property <length> browser-available-height: max(root.browser-panel-chrome-height + root.browser-row-slot-height, root.content-height - root.toolbar-height * 6 / 5 - root.toolbar-row-height - root.page-gap * 2);
+    private property <length> browser-available-list-height: max(root.browser-row-slot-height, root.browser-available-height - root.browser-panel-chrome-height);
+    private property <int> browser-fit-row-count: Math.floor(root.browser-available-list-height / root.browser-row-slot-height);
+    private property <int> browser-fit-rows: root.browser-fit-row-count < 1 ? 1 : root.browser-fit-row-count;
+    private property <int> browser-panel-rows: root.browser-visible-rows < 1 ? 1 : (root.browser-visible-rows < root.browser-fit-rows ? root.browser-visible-rows : root.browser-fit-rows);
+    private property <length> browser-list-height: root.row-count == 0 ? HubTokens.list-row-lg : root.browser-panel-rows * root.browser-row-height + (root.browser-panel-rows - 1) * root.browser-row-gap;
+    private property <length> browser-panel-height: root.browser-panel-chrome-height + root.browser-list-height;
+    page-padding: root.page-pad;
+    bottom-padding: root.page-pad;
+    gap: root.page-gap;
+    background: HubVisualSpec.page-background;
+    clip: true;
+
+        PageHeader {
+            header-height: root.toolbar-height * 6 / 5;
+            title: root.ui-text.project-browser-title;
+            subtitle: root.ui-text.project-browser-subtitle;
+            back => { root.back(); }
+        }
+
+        FlexboxLayout {
+            height: root.toolbar-row-height;
+            flex-direction: FlexboxLayoutDirection.row;
+            flex-wrap: FlexboxLayoutWrap.wrap;
+            align-content: FlexboxLayoutAlignContent.start;
+            align-items: FlexboxLayoutAlignItems.start;
+            spacing-horizontal: root.page-gap;
+            spacing-vertical: root.page-gap;
+
+            ResponsiveSlot {
+                basis: root.toolbar-search-basis;
+                flex-basis: root.toolbar-search-basis;
+                grow: 1;
+                flex-grow: 1;
+                shrink: 1;
+                flex-shrink: 1;
+                min-width: root.toolbar-search-basis;
+                height: root.toolbar-height;
+
+                SearchBox {
+                    width: parent.width;
+                    height: parent.height;
+                    box-width: parent.width;
+                    box-height: root.toolbar-height;
+                    text <=> root.search-query;
+                    placeholder: root.ui-text.search-projects;
+                    edited(query) => { root.search-projects(query); }
+                }
+            }
+
+            ResponsiveSlot {
+                basis: root.toolbar-select-basis;
+                flex-basis: root.toolbar-select-basis;
+                grow: 1;
+                flex-grow: 1;
+                shrink: 1;
+                flex-shrink: 1;
+                min-width: root.toolbar-select-basis;
+                height: root.toolbar-height;
+
+                ProjectFilterSelect {
+                    width: parent.width;
+                    height: parent.height;
+                    select-height: root.toolbar-height;
+                    label: root.project-filter-label;
+                    ui-text: root.ui-text;
+                    selected(id) => { root.set-project-filter(id); }
+                }
+            }
+
+            ResponsiveSlot {
+                basis: root.toolbar-select-basis;
+                flex-basis: root.toolbar-select-basis;
+                grow: 1;
+                flex-grow: 1;
+                shrink: 1;
+                flex-shrink: 1;
+                min-width: root.toolbar-select-basis;
+                height: root.toolbar-height;
+
+                ProjectSortSelect {
+                    width: parent.width;
+                    height: parent.height;
+                    select-height: root.toolbar-height;
+                    label: root.project-sort-label;
+                    ui-text: root.ui-text;
+                    selected(id) => { root.set-project-sort(id); }
+                }
+            }
+        }
+
+        ProjectBrowserResultsPanel {
+            panel-height: root.browser-panel-height;
+            list-height: root.browser-list-height;
+            table-header-height: root.browser-table-header-height;
+            panel-spacing: root.page-gap;
+            list-scroll-y <=> root.browser-scroll-y;
+            list-title: root.list-title;
+            rows: root.rows;
+            row-count: root.row-count;
+            row-height: root.browser-row-height;
+            row-spacing: root.browser-row-gap;
+            ui-text: root.ui-text;
+            select-project(path) => {
+                root.select-project(path);
+            }
+            open-detail(path) => {
+                root.open-detail(path);
+            }
+        }
+    }

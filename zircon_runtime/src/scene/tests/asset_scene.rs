@@ -1,6 +1,9 @@
 use std::fs;
 
-use crate::asset::{AssetUri, SceneCameraTargetAsset};
+use crate::asset::{
+    AssetReference, AssetUri, SceneAsset, SceneCameraTargetAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TransformAsset,
+};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::render::{
@@ -17,8 +20,8 @@ use crate::scene::world::World;
 use super::support::{
     create_test_project, project_animation_clip_handle, project_animation_graph_handle,
     project_animation_sequence_handle, project_animation_skeleton_handle,
-    project_animation_state_machine_handle, project_material_handle, project_model_handle,
-    project_physics_material_handle, unique_temp_project_root,
+    project_animation_state_machine_handle, project_material_handle, project_mesh_handle,
+    project_model_handle, project_physics_material_handle, unique_temp_project_root,
 };
 
 #[test]
@@ -42,9 +45,14 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
         project_model_handle(&project, "res://models/triangle.obj")
     );
     assert_eq!(
+        mesh.mesh,
+        Some(project_mesh_handle(&project, "res://meshes/triangle.zmesh"))
+    );
+    assert_eq!(
         mesh.material,
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
+    assert!(mesh.primitives.is_empty());
 
     let saved = world.to_scene_asset(&project).unwrap();
     let saved_mesh = saved
@@ -54,9 +62,14 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
         .unwrap();
     assert_eq!(saved_mesh.model.to_string(), "res://models/triangle.obj");
     assert_eq!(
+        saved_mesh.mesh.as_ref().map(ToString::to_string),
+        Some("res://meshes/triangle.zmesh".to_string())
+    );
+    assert_eq!(
         saved_mesh.material.to_string(),
         "res://materials/grid.zmaterial"
     );
+    assert!(saved_mesh.primitives.is_empty());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -89,6 +102,10 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         project_model_handle(&project, "res://models/triangle.obj")
     );
     assert_eq!(
+        mesh.mesh,
+        Some(project_mesh_handle(&project, "res://meshes/triangle.zmesh"))
+    );
+    assert_eq!(
         mesh.material,
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
@@ -98,6 +115,89 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         .meshes
         .iter()
         .any(|mesh| mesh.node_id == mesh_node));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
+    let root = unique_temp_project_root("scene_primitive_bindings");
+    let project = create_test_project(&root);
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 77,
+            name: "PrimitiveBindings".to_string(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 0x0000_0001,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: Some(SceneMeshInstanceAsset {
+                model: asset_reference("res://models/triangle.obj"),
+                mesh: None,
+                material: asset_reference("res://materials/grid.zmaterial"),
+                primitives: vec![SceneMeshPrimitiveBindingAsset {
+                    mesh: asset_reference("res://meshes/triangle.zmesh"),
+                    material: asset_reference("res://materials/grid.zmaterial"),
+                }],
+            }),
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+        }],
+    };
+
+    let world = World::from_scene_asset(&project, &scene).unwrap();
+    let mesh_node = world
+        .nodes()
+        .iter()
+        .find(|node| matches!(node.kind, NodeKind::Mesh))
+        .unwrap();
+    let mesh = mesh_node.mesh.as_ref().unwrap();
+    assert_eq!(mesh.primitives.len(), 1);
+    assert_eq!(
+        mesh.primitives[0].mesh,
+        project_mesh_handle(&project, "res://meshes/triangle.zmesh")
+    );
+    assert_eq!(
+        mesh.primitives[0].material,
+        project_material_handle(&project, "res://materials/grid.zmaterial")
+    );
+
+    let extract = world.to_render_extract();
+    let render_mesh = extract
+        .scene
+        .meshes
+        .iter()
+        .find(|mesh| mesh.node_id == mesh_node.id)
+        .unwrap();
+    assert_eq!(render_mesh.mesh, Some(mesh.primitives[0].mesh));
+    assert_eq!(render_mesh.material, mesh.primitives[0].material);
+
+    let saved = world.to_scene_asset(&project).unwrap();
+    let saved_binding = &saved.entities[0].mesh.as_ref().unwrap().primitives[0];
+    assert_eq!(
+        saved_binding.mesh.to_string(),
+        "res://meshes/triangle.zmesh"
+    );
+    assert_eq!(
+        saved_binding.material.to_string(),
+        "res://materials/grid.zmaterial"
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -375,4 +475,8 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
     assert_eq!(loaded.rect_light(rect).unwrap().size, Vec2::new(3.5, 1.5));
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn asset_reference(uri: &str) -> AssetReference {
+    AssetReference::from_locator(AssetUri::parse(uri).unwrap())
 }

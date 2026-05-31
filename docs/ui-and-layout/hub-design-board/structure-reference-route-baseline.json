@@ -1,0 +1,111 @@
+{
+  "name": "Zircon Hub structure to final reference route baseline",
+  "source": "docs/ui-and-layout/hub-design-board/STRUCTURE_TO_REFERENCE_MAP.md",
+  "reference_target": "docs/ui-and-layout/hub.png",
+  "review_focus": "structure-to-final-reference-route",
+  "routes": [
+    {
+      "id": "shell-frame",
+      "review_item": "Shell frame",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "final_reference": "hub-web-reference-1568x1003.png",
+      "verify_rule": "Topbar, Sidebar, Workspace, and Bottom strip proportions match the accepted shell."
+    },
+    {
+      "id": "navigation",
+      "review_item": "Navigation",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "final_reference": "hub-editor.png",
+      "verify_rule": "Sidebar keeps shell geometry while switching global pages."
+    },
+    {
+      "id": "projects-dashboard",
+      "review_item": "Projects dashboard",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "final_reference": "hub-web-reference-1568x1003.png",
+      "verify_rule": "Search, cards, Recent Projects, and Quick Actions stay inside Workspace."
+    },
+    {
+      "id": "projects-secondary-pages",
+      "review_item": "Projects secondary pages",
+      "design_artifact": "docs/ui-and-layout/hub-design-functional-details.png",
+      "final_reference": "hub-projects-new.png",
+      "verify_rule": "Secondary pages replace Workspace content only."
+    },
+    {
+      "id": "project-browser",
+      "review_item": "Project browser",
+      "design_artifact": "docs/ui-and-layout/hub-design-functional-details.png",
+      "final_reference": "hub-projects-browser.png",
+      "verify_rule": "Browser list and toolbar remain Workspace-local."
+    },
+    {
+      "id": "project-detail",
+      "review_item": "Project detail",
+      "design_artifact": "docs/ui-and-layout/hub-design-functional-details.png",
+      "final_reference": "hub-projects-detail.png",
+      "verify_rule": "Detail action areas stay inside Workspace and overlays remain separate."
+    },
+    {
+      "id": "header-source-overlay",
+      "review_item": "Header Source overlay",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "final_reference": "hub-source-engine-popup.png",
+      "verify_rule": "Source Engine popup floats without reflowing shell regions."
+    },
+    {
+      "id": "user-menu-overlay",
+      "review_item": "User menu overlay",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "final_reference": "hub-user-menu.png",
+      "verify_rule": "User menu floats from Topbar and does not resize Workspace."
+    },
+    {
+      "id": "browser-filter-menu",
+      "review_item": "Browser filter menu",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-projects-browser-filter-menu.png",
+      "verify_rule": "Filter menu overlays the Workspace toolbar area."
+    },
+    {
+      "id": "browser-sort-menu",
+      "review_item": "Browser sort menu",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-projects-browser-sort-menu.png",
+      "verify_rule": "Sort menu overlays the Workspace toolbar area."
+    },
+    {
+      "id": "delete-confirm",
+      "review_item": "Delete confirm",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-projects-detail-delete-confirm.png",
+      "verify_rule": "Confirm layer remains an overlay over the detail page."
+    },
+    {
+      "id": "state-empty",
+      "review_item": "Empty state",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-state-empty.png",
+      "verify_rule": "Empty state reuses Workspace canvas without shell changes."
+    },
+    {
+      "id": "state-loading",
+      "review_item": "Loading state",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-state-loading.png",
+      "verify_rule": "Loading state reuses Workspace canvas without shell changes."
+    },
+    {
+      "id": "state-error",
+      "review_item": "Error state",
+      "design_artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "final_reference": "hub-state-error.png",
+      "verify_rule": "Error state reuses Workspace canvas without shell changes."
+    }
+  ],
+  "invariants": [
+    "Every route starts from a design-board structure decision before checking final visual detail.",
+    "docs/ui-and-layout/hub.png remains the target-ui-reference for shell structure and palette comparison.",
+    "Final web-reference PNGs confirm visual detail and cannot override the accepted design-board structure."
+  ]
+}

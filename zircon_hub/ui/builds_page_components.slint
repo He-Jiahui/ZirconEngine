@@ -1,4 +1,30 @@
-import { ActionRow, InfoRow } from "components.slint";
+import {
+    MutedText,
+    ProjectDetailData,
+    SourceBuildHistoryRowData,
+    SourceEngineData,
+    UiTextData,
+    WorkspaceActionReadinessData,
+} from "shared.slint";
+import {
+    ActionRow,
+    Badge,
+    BuildHistoryRow,
+    Divider,
+    EmptyStateBlock,
+    HubListPanelSlot,
+    HubSection,
+    HubTokens,
+    HubVisualSpec,
+    InfoRow,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    PanelHeader,
+    PanelListViewport,
+    PanelSlot,
+} from "components.slint";
 
 export component BuildControlAction inherits ActionRow {
     in property <string> action-id;
@@ -60,4 +86,277 @@ export component BuildSourceSummaryRow inherits InfoRow {
     trailing-tone: root.summary-tone;
     show-trailing-badge: true;
     collapse-trailing-label: root.collapse-label;
+}
+
+export component BuildSourceSummaryPanel inherits PanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <string> status-label;
+    in property <UiTextData> ui-text;
+    in property <length> row-height: HubTokens.list-row-sm;
+    in property <bool> collapse-label: false;
+
+    body-spacing: HubTokens.space-3;
+
+    PanelHeader {
+        title: root.ui-text.source-build;
+        subtitle: root.readiness.selected-project-title + " / " + root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
+        show-badge: true;
+        badge-text: root.status-label;
+        badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
+        show-action: false;
+        action-text: root.ui-text.build-now;
+    }
+
+    Divider {}
+
+    BuildSourceSummaryRow {
+        row-height: root.row-height;
+        summary-title: root.ui-text.source-prefix;
+        summary-detail: root.source-engine.source-path;
+        summary-meta: root.ui-text.last-build-prefix + root.readiness.source-build-summary;
+        summary-icon: @image-url("../assets/icons/nav/builds.svg");
+        summary-status: root.readiness.source-engine-status;
+        summary-tone: root.readiness.build-enabled ? "ok" : "warning";
+        collapse-label: root.collapse-label;
+    }
+
+    BuildSourceSummaryRow {
+        row-height: root.row-height;
+        summary-title: root.ui-text.output-prefix;
+        summary-detail: root.source-engine.output-path;
+        summary-meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
+        summary-icon: @image-url("../assets/icons/ui/folder.svg");
+        summary-status: root.source-engine.jobs + root.ui-text.jobs-suffix;
+        collapse-label: root.collapse-label;
+    }
+
+    HorizontalLayout {
+        spacing: HubTokens.toolbar-gap;
+
+        Badge {
+            text: root.source-engine.build-profile;
+            tone: "accent";
+            badge-width: HubTokens.control-md * 2 + HubTokens.space-2;
+        }
+
+        Badge {
+            text: root.source-engine.jobs + root.ui-text.jobs-suffix;
+            tone: "neutral";
+            badge-width: HubTokens.control-md * 2 + HubTokens.space-2;
+        }
+    }
+}
+
+export component BuildControlsPanel inherits HubListPanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    callback build-engine();
+    callback open-output();
+    callback launch-editor();
+    callback package-project();
+    callback install-device();
+
+    title: root.ui-text.build-controls;
+    row-count: 5;
+    row-height: HubTokens.list-row-sm;
+    row-spacing: HubTokens.toolbar-gap;
+
+    BuildControlAction {
+        row-height: root.row-height;
+        action-id: "build-editor";
+        action-icon: @image-url("../assets/icons/actions/build-project.svg");
+        action-title: root.ui-text.build-editor;
+        action-detail: root.readiness.build-enabled ? root.readiness.selected-project-title : root.readiness.build-disabled-reason;
+        action-enabled: root.readiness.build-enabled;
+        triggered(id) => {
+            root.build-engine();
+        }
+    }
+
+    BuildControlAction {
+        row-height: root.row-height;
+        action-id: "open-output";
+        action-icon: @image-url("../assets/icons/ui/folder.svg");
+        action-title: root.ui-text.open-output;
+        action-detail: root.readiness.open-output-enabled ? root.source-engine.output-path : root.readiness.open-output-disabled-reason;
+        action-enabled: root.readiness.open-output-enabled;
+        triggered(id) => {
+            root.open-output();
+        }
+    }
+
+    BuildControlAction {
+        row-height: root.row-height;
+        action-id: "open-editor";
+        action-icon: @image-url("../assets/icons/actions/open-editor.svg");
+        action-title: root.ui-text.open-editor;
+        action-detail: root.readiness.open-editor-enabled ? root.readiness.selected-project-title : root.readiness.open-editor-disabled-reason;
+        action-enabled: root.readiness.open-editor-enabled;
+        triggered(id) => {
+            root.launch-editor();
+        }
+    }
+
+    BuildControlAction {
+        row-height: root.row-height;
+        action-id: "package-project";
+        action-icon: @image-url("../assets/icons/actions/package-project.svg");
+        action-title: root.ui-text.package-project;
+        action-detail: root.readiness.package-enabled ? root.readiness.selected-project-title : root.readiness.package-disabled-reason;
+        action-enabled: root.readiness.package-enabled;
+        triggered(id) => {
+            root.package-project();
+        }
+    }
+
+    BuildControlAction {
+        row-height: root.row-height;
+        action-id: "install-device";
+        action-icon: @image-url("../assets/icons/actions/install-device.svg");
+        action-title: root.ui-text.install-to-device;
+        action-detail: root.readiness.install-enabled ? root.readiness.selected-project-title : root.readiness.install-disabled-reason;
+        action-enabled: root.readiness.install-enabled;
+        triggered(id) => {
+            root.install-device();
+        }
+    }
+}
+
+export component BuildPipelinePanel inherits HubListPanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <string> status-label;
+    in property <UiTextData> ui-text;
+    in property <bool> collapse-label: false;
+
+    title: root.ui-text.build-pipeline;
+    show-badge: true;
+    badge-text: "4";
+    badge-tone: "info";
+    row-count: 4;
+    row-height: HubTokens.list-row-sm;
+    row-spacing: HubTokens.toolbar-gap;
+
+    BuildPipelineStep {
+        row-height: root.row-height;
+        step-title: root.ui-text.validate-source;
+        step-detail: root.source-engine.source-path;
+        step-icon: @image-url("../assets/icons/status/success.svg");
+        step-status: root.readiness.source-engine-status;
+        step-tone: root.readiness.build-enabled ? "ok" : "warning";
+        collapse-label: root.collapse-label;
+    }
+
+    BuildPipelineStep {
+        row-height: root.row-height;
+        step-title: root.ui-text.compile-editor;
+        step-detail: root.readiness.build-enabled ? "tools/zircon_build.py --targets editor,runtime" : root.readiness.build-disabled-reason;
+        step-icon: @image-url("../assets/icons/actions/build-project.svg");
+        step-status: root.readiness.build-enabled ? root.status-label : root.ui-text.unavailable;
+        step-tone: root.readiness.build-enabled ? (root.status-label == "Building" ? "accent" : "neutral") : "warning";
+        collapse-label: root.collapse-label;
+    }
+
+    BuildPipelineStep {
+        row-height: root.row-height;
+        step-title: root.ui-text.stage-runtime;
+        step-detail: root.source-engine.output-path;
+        step-icon: @image-url("../assets/icons/ui/folder.svg");
+        step-status: root.source-engine.last-build;
+        step-tone: "info";
+        collapse-label: root.collapse-label;
+    }
+
+    BuildPipelineStep {
+        row-height: root.row-height;
+        step-title: root.ui-text.package-project;
+        step-detail: root.readiness.package-enabled ? root.readiness.selected-project-path : root.readiness.package-disabled-reason;
+        step-icon: @image-url("../assets/icons/actions/package-project.svg");
+        step-status: root.readiness.package-enabled ? root.readiness.selected-project-status : root.ui-text.unavailable;
+        step-tone: root.readiness.package-enabled ? "ok" : "warning";
+        collapse-label: root.collapse-label;
+    }
+}
+
+export component BuildTaskHistoryPanel inherits PanelSlot {
+    in property <WorkspaceActionReadinessData> readiness;
+    in property <string> status-label;
+    in property <string> status-detail;
+    in property <string> current-task-title;
+    in property <string> build-history-title;
+    in property <string> no-build-history-title;
+    in property <[SourceBuildHistoryRowData]> source-build-history;
+    in property <int> source-build-history-count;
+    in property <length> row-height: HubTokens.list-row-sm;
+    in-out property <length> history-scroll-y: 0px;
+    in property <bool> collapse-label: false;
+
+    private property <length> current-task-section-height: HubTokens.control-md + root.row-height + HubTokens.panel-gap + HubTokens.control-sm;
+    private property <int> history-panel-rows: root.source-build-history-count < 1 ? 1 : (root.source-build-history-count > 3 ? 3 : root.source-build-history-count);
+    private property <length> history-list-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    private property <length> history-list-height: root.source-build-history-count == 0 ? root.history-list-empty-height : root.history-panel-rows * root.row-height + (root.history-panel-rows - 1) * HubTokens.space-2;
+    private property <length> history-section-height: HubTokens.control-md + HubTokens.panel-gap + root.history-list-height;
+
+    body-spacing: HubTokens.panel-gap;
+
+    HubSection {
+        section-height: root.current-task-section-height;
+        section-spacing: HubTokens.panel-gap;
+        title: root.current-task-title;
+        show-badge: true;
+        badge-text: root.status-label;
+        badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
+
+        MaterialText {
+            text: root.status-label;
+            overflow: elide;
+            color: HubVisualSpec.accent-stroke;
+            style: MaterialTypography.headline_small;
+        }
+
+        MutedText {
+            text: root.readiness.operation-summary;
+            overflow: elide;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+
+    Divider {}
+
+    HubSection {
+        section-height: root.history-section-height;
+        section-spacing: HubTokens.panel-gap;
+        title: root.build-history-title;
+        show-badge: true;
+        badge-text: root.source-build-history-count + "";
+        badge-tone: "info";
+
+        PanelListViewport {
+            scroll-y <=> root.history-scroll-y;
+            row-count: root.source-build-history-count;
+            row-height: root.row-height;
+            vertical-padding: HubTokens.space-0;
+            empty-height: root.history-list-empty-height;
+
+            for record in root.source-build-history: BuildHistoryRow {
+                record: record;
+                collapse-label: root.collapse-label;
+            }
+
+            if root.source-build-history-count == 0: EmptyStateBlock {
+                height: root.history-list-empty-height;
+                title: root.no-build-history-title;
+                body-padding: MaterialStyleMetrics.padding_16;
+                center-content: true;
+            }
+        }
+    }
 }

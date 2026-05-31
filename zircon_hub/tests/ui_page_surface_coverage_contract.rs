@@ -27,25 +27,53 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
 
     let components = read_ui_file("components.slint");
     let data_display = read_ui_file("data_display.slint");
+    let table_view = read_ui_file("table_view_components.slint");
+    let data_surface = format!("{data_display}\n{table_view}");
     let layout = read_ui_file("layout.slint");
     let inputs = read_ui_file("inputs.slint");
     let surfaces = read_ui_file("surfaces.slint");
     let shared = read_ui_file("shared.slint");
     let material_bridge = read_ui_file("material_bridge.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
+    let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
     let project_pages = read_ui_file("project_pages.slint");
+    let project_new_page = read_ui_file("project_new_page.slint");
+    let project_browser_page = read_ui_file("project_browser_page.slint");
+    let project_detail_page = read_ui_file("project_detail_page.slint");
+    let project_components = read_ui_file("project_page_components.slint");
+    let project_browser_components = read_ui_file("project_browser_components.slint");
+    let project_detail_components = read_ui_file("project_detail_components.slint");
+    let project_surface = format!(
+        "{project_pages}\n{project_new_page}\n{project_browser_page}\n{project_detail_page}\n{project_components}\n{project_browser_components}\n{project_detail_components}"
+    );
     let editor = read_ui_file("editor.slint");
+    let editor_components = read_ui_file("editor_page_components.slint");
+    let editor_surface = format!("{editor}\n{editor_components}");
     let builds = read_ui_file("builds.slint");
+    let builds_components = read_ui_file("builds_page_components.slint");
+    let builds_surface = format!("{builds}\n{builds_components}");
     let settings = read_ui_file("settings.slint");
+    let settings_components = read_ui_file("settings_page_components.slint");
+    let settings_surface = format!("{settings}\n{settings_components}");
     let cloud = read_ui_file("cloud.slint");
+    let cloud_components = read_ui_file("cloud_page_components.slint");
+    let cloud_surface = format!("{cloud}\n{cloud_components}");
     let team = read_ui_file("team.slint");
+    let team_components = read_ui_file("team_page_components.slint");
+    let team_surface = format!("{team}\n{team_components}");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
     let assets = read_ui_file("assets.slint");
+    let assets_surface = format!("{assets}\n{catalog_components}");
     let plugins = read_ui_file("plugins.slint");
+    let plugins_surface = format!("{plugins}\n{catalog_components}");
     let learn = read_ui_file("learn.slint");
+    let learn_surface = format!("{learn}\n{catalog_components}");
 
     for (name, source) in [
         ("components.slint", &components),
         ("data_display.slint", &data_display),
+        ("table_view_components.slint", &table_view),
     ] {
         for removed_sample in ["ButtonStates", "Button States", "ComponentSamples"] {
             assert!(
@@ -58,6 +86,9 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     for (name, source) in [
         ("project_dashboard.slint", &dashboard),
         ("project_pages.slint", &project_pages),
+        ("project_new_page.slint", &project_new_page),
+        ("project_browser_page.slint", &project_browser_page),
+        ("project_detail_page.slint", &project_detail_page),
     ] {
         assert!(
             !source.contains("ComponentSamples"),
@@ -70,6 +101,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "export component PanelGrid",
         "export component WorkspacePanelSection",
         "export component ResponsiveSlot",
+        "export component ResponsiveCollapse",
     ] {
         assert!(
             layout.contains(snippet),
@@ -82,11 +114,15 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "material-segment := SegmentedButton",
         "export component ToolbarSelect",
         "trigger := OutlineButton",
-        "menu := PopupMenu",
+        "menu := HubPopupMenu",
         "export component HubTextField",
         "material-field := TextField",
         "export component SearchBox",
-        "search-field := SearchBar",
+        "search-field := TextInput",
+        "border-radius: HubVisualSpec.compact-radius;",
+        "out property <bool> focused: search-field.has-focus;",
+        "private property <color> state-border:",
+        "border-color: root.state-border;",
     ] {
         assert!(
             inputs.contains(snippet),
@@ -95,7 +131,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     }
 
     for snippet in [
-        "if root.variant != \"elevated\": OutlinedCard",
+        "root.variant == \"selected\" ? HubVisualSpec.panel-hover-background : HubVisualSpec.panel-background",
         "if root.show-action: OutlineButton",
         "export component OverviewPanel inherits HubPanel",
         "export component EmptyStateBlock inherits Rectangle",
@@ -114,7 +150,8 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "OutlineButton,",
         "OutlineIconButton,",
         "if root.primary &&",
-        "if root.active: FilledIconButton",
+        "export component IconButton",
+        "StateLayerArea {",
     ] {
         assert!(
             shared.contains(snippet),
@@ -144,28 +181,31 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "ActionRow",
         "MetricCard",
         "BuildHistoryRow",
+        "HubTableView",
+        "HubTableBody",
         "EmptyStateBlock",
         "ListTile",
         "ScrollView",
     ] {
         assert!(
-            data_display.contains(snippet),
-            "data_display.slint must keep real list/table surfaces backed by Material wrappers: {snippet}"
+            data_surface.contains(snippet),
+            "data-display and table-view modules must keep real list/table surfaces backed by Material wrappers: {snippet}"
         );
     }
 
     for (page, source, snippets) in [
         (
             "project_dashboard.slint",
-            &dashboard,
+            &dashboard_surface,
             &[
                 "Flow",
                 "PanelGrid",
-                "PanelSlot",
+                "HubTableView",
                 "ResponsiveSlot",
                 "SearchBox",
                 "ProjectFilterSelect",
                 "ProjectSortSelect",
+                "HubListPanelSlot",
                 "ActionRow",
                 "EmptyStateBlock",
                 "EmptyStatePanel",
@@ -173,7 +213,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         ),
         (
             "project_pages.slint",
-            &project_pages,
+            &project_surface,
             &[
                 "PanelSlot",
                 "ResponsiveSlot",
@@ -184,8 +224,56 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             ][..],
         ),
         (
+            "project_new_page.slint",
+            &project_surface,
+            &[
+                "PageScrollSurface",
+                "PanelSlot",
+                "ProjectCreateSettingsPanel",
+                "ProjectCreateCompactSummaryPanel",
+                "ProjectCreateField",
+                "ProjectCreateActionRow",
+                "ProjectCreateSummary",
+                "ProjectEngineChoiceList",
+                "ProjectTemplateRailPanel",
+                "TemplateChoiceRow",
+                "HubCheckBox",
+                "HubListPanelSlot",
+                "PanelListViewport",
+            ][..],
+        ),
+        (
+            "project_browser_page.slint",
+            &project_surface,
+            &[
+                "PageScrollSurface",
+                "ResponsiveSlot",
+                "SearchBox",
+                "ProjectFilterSelect",
+                "ProjectSortSelect",
+                "ProjectBrowserResultsPanel",
+                "ProjectBrowserTableHeader",
+                "ProjectBrowserRow",
+                "EmptyStateBlock",
+            ][..],
+        ),
+        (
+            "project_detail_page.slint",
+            &project_surface,
+            &[
+                "PageScrollSurface",
+                "PanelSlot",
+                "ProjectDetailStatusStrip",
+                "ProjectDetailInfoSection",
+                "ProjectDetailActionButton",
+                "ProjectDetailPinToggleRow",
+                "ProjectDetailEngineSection",
+                "StatusBanner",
+            ][..],
+        ),
+        (
             "editor.slint",
-            &editor,
+            &editor_surface,
             &[
                 "WorkspacePanelSection",
                 "PanelSlot",
@@ -193,12 +281,15 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "HubTextField",
                 "InfoRow",
                 "ActionRow",
+                "export component EditorActionsPanel inherits HubListPanelSlot",
+                "export component EditorSourceSummaryPanel inherits PanelSlot",
+                "export component EditorSourceSettingsPanel inherits PanelSlot",
                 "EmptyStateBlock",
             ][..],
         ),
         (
             "builds.slint",
-            &builds,
+            &builds_surface,
             &[
                 "WorkspacePanelSection",
                 "PanelSlot",
@@ -210,72 +301,87 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         ),
         (
             "settings.slint",
-            &settings,
+            &settings_surface,
             &[
                 "WorkspacePanelSection",
                 "PanelSlot",
                 "EmptyStateBlock",
                 "HubTextField",
-                "SegmentButton",
-                "PanelListViewport",
+                "HubComboBox",
+                "HubListPanelSlot",
                 "PathSettingRow",
                 "SettingStatusRow",
+                "SettingsComboChoice",
+                "SettingsSaveActionRow",
             ][..],
         ),
         (
             "cloud.slint",
-            &cloud,
+            &cloud_surface,
             &[
                 "WorkspacePanelSection",
                 "OverviewPanel",
                 "PanelSlot",
                 "ResponsiveSlot",
                 "MetricCard",
-                "PanelListViewport",
+                "HubListPanelSlot",
+                "export component CloudMetricSlot inherits ResponsiveSlot",
+                "export component CloudPackageActionRow inherits ActionRow",
+                "export component CloudPackageActionsPanel inherits HubListPanelSlot",
+                "export component CloudServiceRow inherits InfoRow",
+                "export component CloudServicesPanel inherits HubListPanelSlot",
+                "collapse-label: label-collapse.collapsed;",
                 "EmptyStateBlock",
             ][..],
         ),
         (
             "team.slint",
-            &team,
+            &team_surface,
             &[
                 "WorkspacePanelSection",
                 "OverviewPanel",
                 "PanelSlot",
                 "ResponsiveSlot",
                 "MetricCard",
-                "PanelListViewport",
+                "HubListPanelSlot",
+                "export component TeamSummarySlot inherits ResponsiveSlot",
+                "export component TeamMemberRow inherits InfoRow",
+                "export component TeamMembersPanel inherits HubListPanelSlot",
+                "collapse-label: label-collapse.collapsed;",
                 "EmptyStateBlock",
             ][..],
         ),
         (
             "assets.slint",
-            &assets,
+            &assets_surface,
             &[
                 "CatalogPage",
                 "InfoRow",
+                "export component AssetRow inherits InfoRow",
                 "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
-                "collapse-label: root.content-width < HubTokens.breakpoint-medium;",
+                "collapse-label: label-collapse.collapsed;",
             ][..],
         ),
         (
             "plugins.slint",
-            &plugins,
+            &plugins_surface,
             &[
                 "CatalogPage",
                 "InfoRow",
+                "export component PluginRow inherits InfoRow",
                 "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
-                "collapse-label: root.content-width < HubTokens.breakpoint-medium;",
+                "collapse-label: label-collapse.collapsed;",
             ][..],
         ),
         (
             "learn.slint",
-            &learn,
+            &learn_surface,
             &[
                 "CatalogPage",
                 "InfoRow",
+                "export component LearnRow inherits InfoRow",
                 "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
-                "collapse-label: root.content-width < HubTokens.breakpoint-medium;",
+                "collapse-label: label-collapse.collapsed;",
             ][..],
         ),
     ] {

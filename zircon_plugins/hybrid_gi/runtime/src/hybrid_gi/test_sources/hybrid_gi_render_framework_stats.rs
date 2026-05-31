@@ -139,6 +139,7 @@ fn mesh(
         node_id,
         transform: Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale)),
         model,
+        mesh: None,
         material,
         tint: Vec4::ONE,
         mobility: Mobility::Static,

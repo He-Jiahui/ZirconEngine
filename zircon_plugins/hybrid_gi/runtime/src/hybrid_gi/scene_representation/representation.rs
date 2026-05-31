@@ -483,6 +483,7 @@ fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/card/{card_id}/model"
         ))),
+        mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/card/{card_id}/material"
         ))),

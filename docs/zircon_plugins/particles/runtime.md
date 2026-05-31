@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/runtime/src/lib.rs
   - zircon_plugins/particles/runtime/src/asset.rs
   - zircon_plugins/particles/runtime/src/component.rs
@@ -55,7 +56,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
+  - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/runtime/src/lib.rs
   - zircon_plugins/particles/runtime/src/asset.rs
   - zircon_plugins/particles/runtime/src/component.rs
@@ -103,6 +107,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 plan_sources:
   - user: 2026-05-02 ZirconEngine Particles 插件完善计划
   - .codex/plans/ZirconEngine Particles 插件完善计划.md
@@ -112,6 +117,7 @@ plan_sources:
 tests:
   - zircon_plugins/particles/runtime/src/tests.rs
   - zircon_plugins/particles/editor/src/tests.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -132,6 +138,8 @@ validation:
   - 2026-05-04: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_editor --locked --offline --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (passed 1/1 test with existing runtime/editor warnings)
   - 2026-05-04: rustfmt --edition 2021 --check <scoped render graph/runtime prepare/particles files> (passed)
   - 2026-05-04: git diff --check -- <scoped render graph/runtime prepare/particles/docs/session/plan files> (no whitespace errors; LF-to-CRLF warnings only)
+  - 2026-05-31: cargo test --manifest-path .\zircon_plugins\particles\runtime\Cargo.toml particles_plugin_registration_contributes_runtime_module_render_feature_and_component --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-particles-runtime-metadata --color never --quiet (red before linked status metadata, then passed with existing runtime warnings)
+  - 2026-05-31: cargo test --manifest-path .\Cargo.toml -p zircon_runtime --lib particles_plugin_toml_matches_catalog_optional_feature_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-particles-runtime-metadata --color never --quiet (red before static category/catalog feature parity, then passed with existing runtime warnings)
 doc_type: module-detail
 ---
 
@@ -148,6 +156,7 @@ The first implemented backend is CPU sprite simulation. GPU simulation now has t
 - `ParticleSystemAsset` contains one or more `ParticleEmitterAsset` records. Each emitter defines capacity, spawn rate, bursts, lifetime, spawn shape, initial velocity, gravity, drag, material and texture handles, optional physics options, optional animation bindings, color over lifetime, size over lifetime, and local/world coordinate space.
 - `ParticleSystemComponent` binds an asset to an entity, transform, play state, and time scale. The plugin registers `particles.Component.ParticleSystem` as a dynamic component type.
 - `ParticlesManager` instantiates components into stable `ParticleEmitterHandle` values, then controls play, pause, stop, explicit tick, preview rewind, state snapshots, and neutral `ParticleExtract` generation.
+- Package metadata now classifies Particles consistently as runtime, experimental, and partial across `zircon_plugins/particles/plugin.toml`, the linked runtime descriptor, and `RuntimePluginDescriptor::builtin_catalog()`. The same three owner optional feature rows are exposed everywhere: `particles.physics`, `particles.animation_control`, and `particles.gpu_simulation`; this is manifest/dependency gating only and does not promote advanced VFX parity.
 - CPU simulation stores particle channels in a structure-of-arrays pool with an explicit free list. The GPU layout uses the same channel names as SoA buffer sections: alive, age, lifetime, position, previous position, velocity, size, initial size, color, start color, rotation, angular velocity, seed, and emitter index.
 - `build_particle_extract` turns runtime snapshots into neutral render DTOs and can sort sprites back-to-front when the caller provides a camera position. The extract also carries per-entity particle bounds and the camera position used for sorting, so renderer and editor consumers can reason about culling/debug metadata without depending on the particles plugin.
 - CPU sprite snapshots preserve per-emitter material handles, texture handles, and particle rotation. The built-in runtime particle billboard builder applies rotation around the camera-facing right/up basis while retaining the existing alpha-preserving transparent path.
@@ -223,6 +232,8 @@ Runtime submission feedback tests in `prepared_runtime_submission.rs`, `submit/c
 2026-05-04 scoped validation for the M6 graph refactor used `target\codex-shared-a` with `--locked --offline`. Runtime test targets compiled, runtime graph execution tests passed 16/16 filtered tests, the pipeline stage-preservation regression passed, particles runtime passed 20/20 tests, and particles editor passed 1/1 test. These are scoped gates for the particles/render-graph lane; full workspace validation was not run from this dirty checkout.
 
 2026-05-04 scoped validation for the particle feedback continuation used `target\codex-shared-a` with `--locked --offline` after an offline `zircon_plugins/Cargo.lock` refresh added the dependency edges Cargo required. Runtime and particle test targets compiled, targeted particle feedback merge/sideband/direct-submit tests passed, the manager feedback ingest regression passed, scoped `rustfmt --check` passed, and scoped `git diff --check` found no whitespace errors beyond LF-to-CRLF warnings. Full workspace validation was still not run from this dirty checkout.
+
+2026-05-31 metadata parity validation used `D:\cargo-targets\zircon-particles-runtime-metadata` with `--locked --offline`. The linked particles registration test first failed because `runtime.plugin.particles` lacked a partial status row in the linked package manifest, then passed after the descriptor gained explicit runtime/experimental/partial metadata. The static runtime manifest test first failed because `zircon_plugins/particles/plugin.toml` defaulted to `uncategorized`, then passed after static TOML and the built-in catalog exposed the same three owner optional features and dependency rows. Existing runtime warnings were left unchanged.
 
 ## Open Issues
 

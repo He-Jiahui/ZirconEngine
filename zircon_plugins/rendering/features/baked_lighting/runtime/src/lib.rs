@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.baked_lighting";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.baked_lighting";
 pub const FEATURE_NAME: &str = "baked_lighting";
 pub const EXECUTOR_ID: &str = "lighting.baked-composite";
 

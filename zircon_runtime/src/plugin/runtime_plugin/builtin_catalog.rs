@@ -52,6 +52,7 @@ impl RuntimePluginDescriptor {
                 &[
                     RuntimeTargetMode::ServerRuntime,
                     RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
                 ][..],
             ),
             (
@@ -258,7 +259,9 @@ impl RuntimePluginDescriptor {
                 descriptor.with_capability("runtime.feature.animation.timeline_event_track")
             }
             "zr_vm_language" => descriptor.with_capability("runtime.script.backend.zr_vm_project"),
+            "texture" => descriptor.with_category("runtime"),
             "terrain" | "tilemap_2d" | "prefab_tools" => descriptor.with_category("authoring"),
+            "virtual_geometry" | "hybrid_gi" | "solari" => descriptor.with_category("rendering"),
             "physics" => descriptor.with_capability("runtime.capability.physics.raycast"),
             "gltf_importer" => descriptor
                 .with_category("asset_importer")
@@ -281,6 +284,101 @@ impl RuntimePluginDescriptor {
             "sound" => descriptor
                 .with_optional_feature(sound_timeline_animation_track_feature())
                 .with_optional_feature(sound_ray_traced_convolution_reverb_feature()),
+            "net" => descriptor
+                .with_optional_feature(net_feature(
+                    "http",
+                    "HTTP(S)",
+                    "runtime.feature.net.http",
+                    "zircon_plugin_net_http_runtime",
+                    vec![
+                        RuntimeTargetMode::ServerRuntime,
+                        RuntimeTargetMode::ClientRuntime,
+                    ],
+                    Vec::new(),
+                ))
+                .with_optional_feature(net_feature(
+                    "websocket",
+                    "WebSocket",
+                    "runtime.feature.net.websocket",
+                    "zircon_plugin_net_websocket_runtime",
+                    vec![
+                        RuntimeTargetMode::ServerRuntime,
+                        RuntimeTargetMode::ClientRuntime,
+                    ],
+                    Vec::new(),
+                ))
+                .with_optional_feature(net_feature(
+                    "rpc",
+                    "Network RPC",
+                    "runtime.feature.net.rpc",
+                    "zircon_plugin_net_rpc_runtime",
+                    vec![
+                        RuntimeTargetMode::ServerRuntime,
+                        RuntimeTargetMode::ClientRuntime,
+                    ],
+                    Vec::new(),
+                ))
+                .with_optional_feature(net_feature(
+                    "replication",
+                    "State Replication",
+                    "runtime.feature.net.replication",
+                    "zircon_plugin_net_replication_runtime",
+                    vec![
+                        RuntimeTargetMode::ServerRuntime,
+                        RuntimeTargetMode::ClientRuntime,
+                    ],
+                    Vec::new(),
+                ))
+                .with_optional_feature(net_feature(
+                    "reliable_udp",
+                    "Reliable UDP",
+                    "runtime.feature.net.reliable_udp",
+                    "zircon_plugin_net_reliable_udp_runtime",
+                    vec![
+                        RuntimeTargetMode::ServerRuntime,
+                        RuntimeTargetMode::ClientRuntime,
+                    ],
+                    Vec::new(),
+                ))
+                .with_optional_feature(net_feature(
+                    "content_download",
+                    "Content Download",
+                    "runtime.feature.net.cdn_download",
+                    "zircon_plugin_net_content_download_runtime",
+                    vec![RuntimeTargetMode::ClientRuntime],
+                    vec![PluginFeatureDependency::required(
+                        "net",
+                        "runtime.feature.net.http",
+                    )],
+                )),
+            "particles" => descriptor
+                .with_optional_feature(particles_feature(
+                    "physics",
+                    "Physical Particles",
+                    "runtime.feature.particles.physics",
+                    vec![PluginFeatureDependency::required(
+                        "physics",
+                        "runtime.plugin.physics",
+                    )],
+                ))
+                .with_optional_feature(particles_feature(
+                    "animation_control",
+                    "Animation Controlled Particles",
+                    "runtime.feature.particles.animation_control",
+                    vec![PluginFeatureDependency::required(
+                        "animation",
+                        "runtime.plugin.animation",
+                    )],
+                ))
+                .with_optional_feature(particles_feature(
+                    "gpu_simulation",
+                    "GPU Particle Simulation",
+                    "runtime.feature.particles.gpu_simulation",
+                    vec![PluginFeatureDependency::required(
+                        "render_graph",
+                        "runtime.module.render_graph",
+                    )],
+                )),
             "rendering" => descriptor
                 .with_category("rendering")
                 .with_optional_feature(rendering_feature(
@@ -457,7 +555,7 @@ fn classify_descriptor(descriptor: RuntimePluginDescriptor) -> RuntimePluginDesc
                     CapabilityStatus::Partial,
                 )
                 .with_note(
-                    "SolariExperimental provider contract is wired; realtime pass execution remains unavailable.",
+                    "Solari realtime raytraced lighting pass executor is not implemented yet",
                 ),
             ),
         "zr_vm_language" => descriptor
@@ -500,6 +598,51 @@ fn capability_status(
     CapabilityStatusManifest::new(capability, status)
 }
 
+fn net_feature(
+    id_suffix: &str,
+    display_name: &str,
+    capability: &str,
+    runtime_crate: &str,
+    target_modes: Vec<RuntimeTargetMode>,
+    extra_dependencies: Vec<PluginFeatureDependency>,
+) -> PluginFeatureBundleManifest {
+    let feature_id = format!("net.{id_suffix}");
+    let mut manifest = PluginFeatureBundleManifest::new(feature_id.clone(), display_name, "net")
+        .with_dependency(PluginFeatureDependency::primary(
+            "net",
+            "runtime.plugin.net",
+        ))
+        .with_capability(capability)
+        .with_runtime_module(
+            PluginModuleManifest::runtime(format!("{feature_id}.runtime"), runtime_crate)
+                .with_target_modes(target_modes)
+                .with_capabilities([capability.to_string()]),
+        );
+    for dependency in extra_dependencies {
+        manifest = manifest.with_dependency(dependency);
+    }
+    manifest
+}
+
+fn particles_feature(
+    id_suffix: &str,
+    display_name: &str,
+    capability: &str,
+    extra_dependencies: Vec<PluginFeatureDependency>,
+) -> PluginFeatureBundleManifest {
+    let feature_id = format!("particles.{id_suffix}");
+    let mut manifest = PluginFeatureBundleManifest::new(feature_id, display_name, "particles")
+        .with_dependency(PluginFeatureDependency::primary(
+            "particles",
+            "runtime.plugin.particles",
+        ))
+        .with_capability(capability);
+    for dependency in extra_dependencies {
+        manifest = manifest.with_dependency(dependency);
+    }
+    manifest
+}
+
 fn rendering_feature(
     id_suffix: &str,
     display_name: &str,
@@ -508,6 +651,7 @@ fn rendering_feature(
 ) -> PluginFeatureBundleManifest {
     let feature_id = format!("rendering.{id_suffix}");
     let capability = format!("runtime.feature.rendering.{id_suffix}");
+    let editor_capability = format!("editor.feature.rendering.{id_suffix}");
     let runtime_crate = format!("zircon_plugin_rendering_{id_suffix}_runtime");
     let editor_crate = format!("zircon_plugin_rendering_{id_suffix}_editor");
     let mut manifest =
@@ -525,10 +669,10 @@ fn rendering_feature(
                     ])
                     .with_capabilities([capability.clone()]),
             )
-            .with_editor_module(PluginModuleManifest::editor(
-                format!("{feature_id}.editor"),
-                editor_crate,
-            ))
+            .with_editor_module(
+                PluginModuleManifest::editor(format!("{feature_id}.editor"), editor_crate)
+                    .with_capabilities([editor_capability]),
+            )
             .enabled_by_default(enabled_by_default);
     for dependency in extra_dependencies {
         manifest = manifest.with_dependency(dependency);
@@ -562,10 +706,13 @@ fn sound_timeline_animation_track_feature() -> PluginFeatureBundleManifest {
         ])
         .with_capabilities(["runtime.feature.sound.timeline_animation_track".to_string()]),
     )
-    .with_editor_module(PluginModuleManifest::editor(
-        "sound.timeline_animation_track.editor",
-        "zircon_plugin_sound_timeline_animation_editor",
-    ))
+    .with_editor_module(
+        PluginModuleManifest::editor(
+            "sound.timeline_animation_track.editor",
+            "zircon_plugin_sound_timeline_animation_editor",
+        )
+        .with_capabilities(["editor.feature.sound.timeline_animation_track".to_string()]),
+    )
 }
 
 fn sound_ray_traced_convolution_reverb_feature() -> PluginFeatureBundleManifest {
@@ -598,8 +745,11 @@ fn sound_ray_traced_convolution_reverb_feature() -> PluginFeatureBundleManifest 
         ])
         .with_capabilities(["runtime.feature.sound.ray_traced_convolution_reverb".to_string()]),
     )
-    .with_editor_module(PluginModuleManifest::editor(
-        "sound.ray_traced_convolution_reverb.editor",
-        "zircon_plugin_sound_ray_traced_convolution_editor",
-    ))
+    .with_editor_module(
+        PluginModuleManifest::editor(
+            "sound.ray_traced_convolution_reverb.editor",
+            "zircon_plugin_sound_ray_traced_convolution_editor",
+        )
+        .with_capabilities(["editor.feature.sound.ray_traced_convolution_reverb".to_string()]),
+    )
 }

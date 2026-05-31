@@ -457,7 +457,10 @@ fn append_text_field_form_helper_text_slot_classes(
         }
     }
     if string_from_attributes_any(owner_attributes, &["size"]).as_deref() == Some("small") {
-        append_class(&mut child.classes, "MuiFormHelperText-sizeSmall".to_string());
+        append_class(
+            &mut child.classes,
+            "MuiFormHelperText-sizeSmall".to_string(),
+        );
     }
 }
 

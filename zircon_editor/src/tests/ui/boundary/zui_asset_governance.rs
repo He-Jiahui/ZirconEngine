@@ -7,8 +7,23 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION
 
 mod support;
 
+mod class;
+mod component;
+mod component_root;
+mod control;
+mod event;
 mod graph;
+mod layout;
+mod layout_axis;
+mod metadata;
+mod node_component;
+mod node_metadata;
+mod props;
+mod slot;
+mod slot_schema;
+mod style;
 
+use self::metadata::string_metadata_offender;
 use self::support::{
     builtin_zui_asset_id_alias_for, collect_v2_ui_toml_files, collect_zui_files, editor_asset_root,
     is_component_directory_path, is_zui_component_import_asset_id, pascal_case_file_stem,
@@ -29,6 +44,44 @@ fn duplicate_entries<'a>(values: impl IntoIterator<Item = &'a String>) -> Vec<St
         .into_iter()
         .filter_map(|(value, count)| (count > 1).then(|| value.to_string()))
         .collect()
+}
+
+fn import_entry_metadata_offenders(
+    path: &PathBuf,
+    import_section: &str,
+    imports: &[String],
+) -> (usize, Vec<String>) {
+    let mut offenders = Vec::new();
+
+    for (import_index, import) in imports.iter().enumerate() {
+        if let Some(invalid_import) = string_metadata_offender(import, "import entry") {
+            offenders.push(format!(
+                "{} {import_section} #{} declares {invalid_import}",
+                path.display(),
+                import_index + 1
+            ));
+        }
+    }
+
+    (imports.len(), offenders)
+}
+
+fn push_asset_header_metadata_offenders(
+    path: &PathBuf,
+    asset_id: &str,
+    display_name: &str,
+    offenders: &mut Vec<String>,
+) {
+    if let Some(invalid_asset_id) = string_metadata_offender(asset_id, "asset id") {
+        offenders.push(format!("{} declares {invalid_asset_id}", path.display()));
+    }
+    if let Some(invalid_display_name) = string_metadata_offender(display_name, "asset display_name")
+    {
+        offenders.push(format!(
+            "{} declares {invalid_display_name}",
+            path.display()
+        ));
+    }
 }
 
 #[test]
@@ -246,6 +299,65 @@ fn production_v2_widget_imports_use_zui_component_assets_only() {
     assert!(
         offenders.is_empty(),
         "production v2 widget imports must point at .zui component assets or registered builtin .zui aliases: {offenders:#?}"
+    );
+}
+
+#[test]
+fn production_ui_import_entries_are_non_empty_and_trimmed() {
+    let asset_roots = [editor_asset_root(), runtime_asset_root()];
+    let mut checked_assets = 0usize;
+    let mut checked_imports = 0usize;
+    let mut offenders = Vec::new();
+
+    for asset_root in &asset_roots {
+        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
+            checked_assets += 1;
+            let source = fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+            let document = UiV2AssetLoader::load_toml_str(&source)
+                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+
+            for (import_section, imports) in [
+                ("imports.widgets", document.imports.widgets.as_slice()),
+                ("imports.styles", document.imports.styles.as_slice()),
+            ] {
+                let (section_checked_imports, section_offenders) =
+                    import_entry_metadata_offenders(&path, import_section, imports);
+                checked_imports += section_checked_imports;
+                offenders.extend(section_offenders);
+            }
+        }
+
+        for path in collect_zui_files(&asset_root.join("ui")) {
+            checked_assets += 1;
+            let source = fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+            let document = UiZuiAssetLoader::load_zui_str(&source)
+                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+
+            for (import_section, imports) in [
+                ("imports.widgets", document.imports.widgets.as_slice()),
+                ("imports.styles", document.imports.styles.as_slice()),
+            ] {
+                let (section_checked_imports, section_offenders) =
+                    import_entry_metadata_offenders(&path, import_section, imports);
+                checked_imports += section_checked_imports;
+                offenders.extend(section_offenders);
+            }
+        }
+    }
+
+    assert!(
+        checked_assets > 0,
+        "production asset roots should contain UI v2 or .zui assets"
+    );
+    assert!(
+        checked_imports > 0,
+        "production UI assets should declare widget or style imports"
+    );
+    assert!(
+        offenders.is_empty(),
+        "production UI import entries must be non-empty and trimmed before dependency resolution: {offenders:#?}"
     );
 }
 
@@ -790,12 +902,12 @@ fn production_ui_asset_headers_are_authorable_and_current() {
                     UI_V2_ASSET_SCHEMA_VERSION
                 ));
             }
-            if document.asset.display_name.trim().is_empty() {
-                offenders.push(format!(
-                    "{} declares an empty asset display_name",
-                    path.display()
-                ));
-            }
+            push_asset_header_metadata_offenders(
+                &path,
+                &document.asset.id,
+                &document.asset.display_name,
+                &mut offenders,
+            );
         }
 
         for path in collect_zui_files(&asset_root.join("ui")) {
@@ -813,12 +925,12 @@ fn production_ui_asset_headers_are_authorable_and_current() {
                     UI_V2_ASSET_SCHEMA_VERSION
                 ));
             }
-            if document.asset.display_name.trim().is_empty() {
-                offenders.push(format!(
-                    "{} declares an empty asset display_name",
-                    path.display()
-                ));
-            }
+            push_asset_header_metadata_offenders(
+                &path,
+                &document.asset.id,
+                &document.asset.display_name,
+                &mut offenders,
+            );
         }
     }
 
@@ -828,7 +940,7 @@ fn production_ui_asset_headers_are_authorable_and_current() {
     );
     assert!(
         offenders.is_empty(),
-        "production UI asset headers must use the current schema version and a non-empty author-facing display_name: {offenders:#?}"
+        "production UI asset headers must use the current schema version and non-empty, trimmed author-facing asset id/display_name fields: {offenders:#?}"
     );
 }
 

@@ -1,8 +1,12 @@
 id = "net"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Network"
+category = "runtime"
 description = "Optional networking runtime and editor diagnostics package."
 maturity = "beta"
+supported_targets = ["server_runtime", "client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.net"]
 default_packaging = ["source_template", "library_embed"]
 
 [[capability_statuses]]
@@ -10,11 +14,21 @@ capability = "runtime.plugin.net"
 status = "partial"
 bevy_references = ["dev/bevy/crates/bevy_remote/src/lib.rs"]
 
+[[event_catalogs]]
+namespace = "net.runtime_events"
+version = 1
+events = [
+    { id = "net.runtime_events.listener_started", display_name = "Listener Started", payload_schema = "net.runtime.listener_started.v1" },
+    { id = "net.runtime_events.connection_state_changed", display_name = "Connection State Changed", payload_schema = "net.runtime.connection_state_changed.v1" },
+    { id = "net.runtime_events.http_route_registered", display_name = "HTTP Route Registered", payload_schema = "net.runtime.http_route_registered.v1" },
+    { id = "net.runtime_events.websocket_frame_queued", display_name = "WebSocket Frame Queued", payload_schema = "net.runtime.websocket_frame_queued.v1" },
+]
+
 [[modules]]
 name = "net.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_runtime"
-target_modes = ["server_runtime", "client_runtime"]
+target_modes = ["server_runtime", "client_runtime", "editor_host"]
 capabilities = ["runtime.plugin.net"]
 
 [[modules]]
@@ -29,6 +43,7 @@ id = "net.http"
 display_name = "HTTP(S)"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.http"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -48,6 +63,7 @@ id = "net.websocket"
 display_name = "WebSocket"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.websocket"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -67,6 +83,7 @@ id = "net.rpc"
 display_name = "Network RPC"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.rpc"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -86,6 +103,7 @@ id = "net.replication"
 display_name = "State Replication"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.replication"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -105,6 +123,7 @@ id = "net.reliable_udp"
 display_name = "Reliable UDP"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.reliable_udp"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -124,12 +143,18 @@ id = "net.content_download"
 display_name = "Content Download"
 owner_plugin_id = "net"
 capabilities = ["runtime.feature.net.cdn_download"]
+default_packaging = ["source_template", "library_embed"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
 plugin_id = "net"
 capability = "runtime.plugin.net"
 primary = true
+
+[[optional_features.dependencies]]
+plugin_id = "net"
+capability = "runtime.feature.net.http"
+primary = false
 
 [[optional_features.modules]]
 name = "net.content_download.runtime"

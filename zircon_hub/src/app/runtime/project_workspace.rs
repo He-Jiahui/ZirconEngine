@@ -9,7 +9,8 @@ use crate::projects::{
     ProjectTemplate, ProjectValidation, RecentProject,
 };
 use crate::state::{
-    ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
+    HubActionKind, HubActionRecord, HubActionStatus, ProjectFilterMode, ProjectSortMode,
+    ProjectSubpage, ProjectViewMode, TaskOperationKind, TaskStatus,
 };
 
 use super::super::HubWindow;
@@ -93,11 +94,9 @@ impl HubRuntime {
             true,
             self.config.active_engine_id != active_engine_before,
         )?;
-        self.task_status = TaskStatus {
-            label: "Project selected".to_string(),
-            detail: recent_project_display_name(&project),
-            running: false,
-        };
+        let display_name = recent_project_display_name(&project);
+        self.task_status = TaskStatus::success("Project selected", display_name.clone())
+            .with_operation(TaskOperationKind::Project, display_name);
         Ok(())
     }
 
@@ -106,11 +105,7 @@ impl HubRuntime {
         self.project_filter = ProjectFilterMode::All;
         self.project_view_mode = ProjectViewMode::List;
         self.project_subpage = ProjectSubpage::ProjectBrowser;
-        self.task_status = TaskStatus {
-            label: "All projects".to_string(),
-            detail: "Showing all recent projects".to_string(),
-            running: false,
-        };
+        self.task_status = TaskStatus::success("All projects", "Showing all recent projects");
     }
 
     pub(super) fn set_project_filter_by_id(&mut self, filter_id: &str) -> Result<(), HubError> {
@@ -120,11 +115,10 @@ impl HubRuntime {
             )));
         };
         self.project_filter = filter;
-        self.task_status = TaskStatus {
-            label: "Projects filtered".to_string(),
-            detail: format!("Showing {}", self.project_filter.label()),
-            running: false,
-        };
+        self.task_status = TaskStatus::success(
+            "Projects filtered",
+            format!("Showing {}", self.project_filter.label()),
+        );
         Ok(())
     }
 
@@ -135,11 +129,10 @@ impl HubRuntime {
             )));
         };
         self.project_sort = sort;
-        self.task_status = TaskStatus {
-            label: "Projects sorted".to_string(),
-            detail: format!("Sorting by {}", self.project_sort.label()),
-            running: false,
-        };
+        self.task_status = TaskStatus::success(
+            "Projects sorted",
+            format!("Sorting by {}", self.project_sort.label()),
+        );
         Ok(())
     }
 
@@ -216,13 +209,29 @@ impl HubRuntime {
         display_name_hint: Option<String>,
     ) -> Result<(), HubError> {
         if project_path.as_os_str().is_empty() {
-            return Err(HubError::message("Project path is required"));
+            let detail = "Project path is required".to_string();
+            self.record_editor_launch_failure(
+                "Project".to_string(),
+                detail.clone(),
+                Vec::new(),
+                "Choose a valid Zircon project before opening it in Editor",
+            )?;
+            return Err(HubError::message(detail));
         }
         if validate_project_root(&project_path) != ProjectValidation::Valid {
-            return Err(HubError::message(format!(
+            let detail = format!(
                 "Project root is not valid: {}",
                 project_path.to_string_lossy()
-            )));
+            );
+            self.record_editor_launch_failure(
+                display_name_hint
+                    .clone()
+                    .unwrap_or_else(|| project_path.to_string_lossy().into_owned()),
+                detail.clone(),
+                Vec::new(),
+                "Check that the selected project directory contains a Zircon project manifest",
+            )?;
+            return Err(HubError::message(detail));
         }
         let display_name = display_name_hint.unwrap_or_else(|| {
             project_path
@@ -232,20 +241,55 @@ impl HubRuntime {
                 .to_string()
         });
         self.activate_project_engine_for_path(&project_path);
-        self.ensure_editor_available(ui)?;
+        if let Err(error) = self.ensure_editor_available(ui) {
+            let detail = error.to_string();
+            self.record_editor_launch_failure(
+                display_name.clone(),
+                detail,
+                Vec::new(),
+                "Build the editor/runtime payload or fix Source Engine settings before opening the project",
+            )?;
+            return Err(error);
+        }
         let command = EditorLaunchCommand::from_preferred_engine(
             self.staged_engine_dir(),
             EditorLaunchRequest::OpenProject {
                 project_path: project_path.clone(),
             },
         );
-        launch_editor(&command)?;
-        self.remember_project(RecentProject::with_now(display_name.clone(), project_path))?;
-        self.task_status = TaskStatus {
-            label: "Editor launched".to_string(),
-            detail: format!("Opening {display_name}"),
-            running: false,
+        let command_line = command.command_line();
+        let child = match launch_editor(&command) {
+            Ok(child) => child,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_editor_launch_failure(
+                    display_name.clone(),
+                    detail,
+                    command_line,
+                    "Verify the staged zircon_editor executable exists and the project path is accessible",
+                )?;
+                return Err(error);
+            }
         };
+        let process_id = child.id();
+        self.remember_project(RecentProject::with_now(display_name.clone(), project_path))?;
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::OpenEditor,
+            status: HubActionStatus::Success,
+            target: display_name.clone(),
+            detail: format!("Started process {process_id}"),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: Some(process_id),
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::success(
+            "Editor launched",
+            format!("Opening {display_name} (process {process_id})"),
+        )
+        .with_operation(TaskOperationKind::Project, display_name);
         Ok(())
     }
 
@@ -273,11 +317,9 @@ impl HubRuntime {
         self.project_subpage = ProjectSubpage::ProjectDetail;
         self.pending_delete_project_path = None;
         self.search_query.clear();
-        self.task_status = TaskStatus {
-            label: "Project imported".to_string(),
-            detail: format!("Added {display_name} to Hub"),
-            running: false,
-        };
+        self.task_status =
+            TaskStatus::success("Project imported", format!("Added {display_name} to Hub"))
+                .with_operation(TaskOperationKind::Project, display_name);
         Ok(())
     }
 
@@ -285,26 +327,47 @@ impl HubRuntime {
         &mut self,
         ui: &HubWindow,
     ) -> Result<(), HubError> {
-        let package_report = self.package_recent_project_to_output_with_messages(
+        let package_report = match self.package_recent_project_to_output_with_messages(
             ui,
             "No recent project is available to install",
             "Selected project is no longer available to install",
-        )?;
-        let project_name = self.selected_project_label();
-        let install_report = install_package_to_device(&DeviceInstallRequest::new(
-            package_report.package_dir,
-            self.config.settings.default_device_install_dir.clone(),
-        ))?;
-        self.task_status = TaskStatus {
-            label: "Installed to device".to_string(),
-            detail: format!(
-                "{} -> {} ({} files)",
-                project_name,
-                install_report.install_dir.to_string_lossy(),
-                install_report.files_copied
-            ),
-            running: false,
+        ) {
+            Ok(report) => report,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::InstallProject,
+                    self.action_target_for_project_failure(),
+                    detail,
+                    "Select a valid project and package it before installing to a device",
+                    Some(self.config.settings.default_device_install_dir.clone()),
+                )?;
+                return Err(error);
+            }
         };
+        let project_name = self.selected_project_label();
+        let install_report =
+            self.install_package_for_project(project_name.clone(), package_report)?;
+        let detail = format!(
+            "{} -> {} ({} files)",
+            project_name,
+            install_report.install_dir.to_string_lossy(),
+            install_report.files_copied
+        );
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::InstallProject,
+            status: HubActionStatus::Success,
+            target: project_name.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: Some(install_report.install_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::success("Installed to device", detail)
+            .with_operation(TaskOperationKind::Project, project_name);
         Ok(())
     }
 
@@ -312,54 +375,99 @@ impl HubRuntime {
         &mut self,
         ui: &HubWindow,
     ) -> Result<(), HubError> {
-        let package_report = self.package_selected_project_to_output(ui)?;
-        let project_name = self.selected_project_label();
-        let install_report = install_package_to_device(&DeviceInstallRequest::new(
-            package_report.package_dir,
-            self.config.settings.default_device_install_dir.clone(),
-        ))?;
-        self.task_status = TaskStatus {
-            label: "Installed to device".to_string(),
-            detail: format!(
-                "{} -> {} ({} files)",
-                project_name,
-                install_report.install_dir.to_string_lossy(),
-                install_report.files_copied
-            ),
-            running: false,
+        let package_report = match self.package_selected_project_to_output_with_messages(
+            ui,
+            "Select a project before installing",
+            "Selected project is no longer available to install",
+        ) {
+            Ok(report) => report,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::InstallProject,
+                    self.action_target_for_project_failure(),
+                    detail,
+                    "Select a valid project and package it before installing to a device",
+                    Some(self.config.settings.default_device_install_dir.clone()),
+                )?;
+                return Err(error);
+            }
         };
+        let project_name = self.selected_project_label();
+        let install_report =
+            self.install_package_for_project(project_name.clone(), package_report)?;
+        let detail = format!(
+            "{} -> {} ({} files)",
+            project_name,
+            install_report.install_dir.to_string_lossy(),
+            install_report.files_copied
+        );
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::InstallProject,
+            status: HubActionStatus::Success,
+            target: project_name.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: Some(install_report.install_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::success("Installed to device", detail)
+            .with_operation(TaskOperationKind::Project, project_name);
         Ok(())
     }
 
     pub(super) fn package_recent_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         let report = self.package_recent_project_to_output(ui)?;
         let project_name = self.selected_project_label();
-        self.task_status = TaskStatus {
-            label: "Package created".to_string(),
-            detail: format!(
-                "{} -> {} ({} files)",
-                project_name,
-                report.package_dir.to_string_lossy(),
-                report.files_copied
-            ),
-            running: false,
-        };
+        let detail = format!(
+            "{} -> {} ({} files)",
+            project_name,
+            report.package_dir.to_string_lossy(),
+            report.files_copied
+        );
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::PackageProject,
+            status: HubActionStatus::Success,
+            target: project_name.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: Some(report.package_dir),
+        })?;
+        self.task_status = TaskStatus::success("Package created", detail)
+            .with_operation(TaskOperationKind::Project, project_name);
         Ok(())
     }
 
     pub(super) fn package_selected_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         let report = self.package_selected_project_to_output(ui)?;
         let project_name = self.selected_project_label();
-        self.task_status = TaskStatus {
-            label: "Package created".to_string(),
-            detail: format!(
-                "{} -> {} ({} files)",
-                project_name,
-                report.package_dir.to_string_lossy(),
-                report.files_copied
-            ),
-            running: false,
-        };
+        let detail = format!(
+            "{} -> {} ({} files)",
+            project_name,
+            report.package_dir.to_string_lossy(),
+            report.files_copied
+        );
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::PackageProject,
+            status: HubActionStatus::Success,
+            target: project_name.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: Some(report.package_dir),
+        })?;
+        self.task_status = TaskStatus::success("Package created", detail)
+            .with_operation(TaskOperationKind::Project, project_name);
         Ok(())
     }
 
@@ -381,10 +489,23 @@ impl HubRuntime {
         stale_project_message: &str,
     ) -> Result<ProjectPackageReport, HubError> {
         self.sync_from_ui(ui);
-        let project = self.selected_or_latest_recent_project_for_named_action(
+        let project = match self.selected_or_latest_recent_project_for_named_action(
             missing_project_message,
             stale_project_message,
-        )?;
+        ) {
+            Ok(project) => project,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::PackageProject,
+                    self.action_target_for_project_failure(),
+                    detail,
+                    "Select an available project before packaging",
+                    Some(self.config.settings.default_build_output_dir.clone()),
+                )?;
+                return Err(error);
+            }
+        };
         self.package_project_to_output(project)
     }
 
@@ -392,20 +513,56 @@ impl HubRuntime {
         &mut self,
         ui: &HubWindow,
     ) -> Result<ProjectPackageReport, HubError> {
+        self.package_selected_project_to_output_with_messages(
+            ui,
+            "Select a project before packaging",
+            "Selected project is no longer available to package",
+        )
+    }
+
+    fn package_selected_project_to_output_with_messages(
+        &mut self,
+        ui: &HubWindow,
+        missing_project_message: &str,
+        stale_project_message: &str,
+    ) -> Result<ProjectPackageReport, HubError> {
         self.sync_from_ui(ui);
-        let project = self.selected_project_for_action()?;
+        let project = match self
+            .selected_project_for_named_action(missing_project_message, stale_project_message)
+        {
+            Ok(project) => project,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::PackageProject,
+                    self.action_target_for_project_failure(),
+                    detail,
+                    "Select an available project before packaging",
+                    Some(self.config.settings.default_build_output_dir.clone()),
+                )?;
+                return Err(error);
+            }
+        };
         self.package_project_to_output(project)
     }
 
-    fn package_project_to_output(
+    pub(super) fn package_project_to_output(
         &mut self,
         project: RecentProject,
     ) -> Result<ProjectPackageReport, HubError> {
         if validate_project_root(&project.path) != ProjectValidation::Valid {
-            return Err(HubError::message(format!(
+            let detail = format!(
                 "Project root is not valid: {}",
                 project.path.to_string_lossy()
-            )));
+            );
+            self.record_project_action_failure(
+                HubActionKind::PackageProject,
+                recent_project_display_name(&project),
+                detail.clone(),
+                "Check that the selected project directory contains a Zircon project manifest",
+                Some(self.config.settings.default_build_output_dir.clone()),
+            )?;
+            return Err(HubError::message(detail));
         }
         let display_name = recent_project_display_name(&project);
         let request = ProjectPackageRequest::new(
@@ -413,7 +570,20 @@ impl HubRuntime {
             project.path.clone(),
             self.config.settings.default_build_output_dir.clone(),
         );
-        crate::projects::package_project(&request)
+        match crate::projects::package_project(&request) {
+            Ok(report) => Ok(report),
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::PackageProject,
+                    display_name,
+                    detail,
+                    "Check that the project root exists and the package output is outside the project",
+                    Some(self.config.settings.default_build_output_dir.clone()),
+                )?;
+                Err(error)
+            }
+        }
     }
 
     pub(super) fn open_selected_project_in_editor(
@@ -421,7 +591,22 @@ impl HubRuntime {
         ui: &HubWindow,
     ) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        let project = self.selected_project_for_action()?;
+        let project = match self.selected_project_for_named_action(
+            "Select a project before opening",
+            "Selected project is no longer available to open",
+        ) {
+            Ok(project) => project,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_editor_launch_failure(
+                    self.action_target_for_project_failure(),
+                    detail,
+                    Vec::new(),
+                    "Select an available project before opening it in Editor",
+                )?;
+                return Err(error);
+            }
+        };
         let display_name = recent_project_display_name(&project);
         self.open_project_path(ui, project.path, Some(display_name))
     }
@@ -431,7 +616,19 @@ impl HubRuntime {
         ui: &HubWindow,
     ) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
+        let Some(project) = (match self.selected_or_latest_recent_project_for_action() {
+            Ok(project) => project,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_editor_launch_failure(
+                    self.action_target_for_project_failure(),
+                    detail,
+                    Vec::new(),
+                    "Select an available project or launch Editor without a project",
+                )?;
+                return Err(error);
+            }
+        }) else {
             return self.launch_editor_without_project(ui);
         };
         let display_name = recent_project_display_name(&project);
@@ -445,13 +642,10 @@ impl HubRuntime {
             self.new_project_location.clone(),
             self.selected_template_for_create()?,
         );
-        if request.project_name.trim().is_empty() {
-            return Err(HubError::message("Project name is required"));
-        }
-        if request.location.as_os_str().is_empty() {
-            return Err(HubError::message("Project location is required"));
-        }
-        let root = request.location.join(&request.project_name);
+        request
+            .validate_launch_fields()
+            .map_err(HubError::message)?;
+        let root = request.target_root();
         let display_name = request.project_name.clone();
         let engine_id = self
             .new_project_engine_id
@@ -460,23 +654,56 @@ impl HubRuntime {
         self.require_engine(&engine_id)?;
         self.config.active_engine_id = Some(engine_id.clone());
         self.sync_settings_from_active_engine();
-        self.ensure_editor_available(ui)?;
+        if let Err(error) = self.ensure_editor_available(ui) {
+            let detail = error.to_string();
+            self.record_editor_launch_failure(
+                display_name.clone(),
+                detail,
+                Vec::new(),
+                "Build the editor/runtime payload or fix Source Engine settings before creating the project",
+            )?;
+            return Err(error);
+        }
         let command = EditorLaunchCommand::from_preferred_engine(
             self.staged_engine_dir(),
             EditorLaunchRequest::CreateProject(request),
         );
-        launch_editor(&command)?;
+        let command_line = command.command_line();
+        let child = match launch_editor(&command) {
+            Ok(child) => child,
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_editor_launch_failure(
+                    display_name.clone(),
+                    detail,
+                    command_line,
+                    "Verify the staged zircon_editor executable exists and the target project location is writable",
+                )?;
+                return Err(error);
+            }
+        };
+        let process_id = child.id();
         self.remember_project_metadata_for_path(
             &root,
             Some(engine_id),
             Some(self.selected_template_id.clone()),
         );
-        self.remember_project(RecentProject::with_now(display_name, root))?;
-        self.task_status = TaskStatus {
-            label: "Editor launched".to_string(),
-            detail: "Creating renderable empty project".to_string(),
-            running: false,
-        };
+        self.remember_project(RecentProject::with_now(display_name.clone(), root))?;
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::OpenEditor,
+            status: HubActionStatus::Success,
+            target: display_name.clone(),
+            detail: format!("Started process {process_id}"),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: Some(process_id),
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.task_status =
+            TaskStatus::success("Editor launched", "Creating renderable empty project")
+                .with_operation(TaskOperationKind::Project, display_name);
         Ok(())
     }
 
@@ -506,11 +733,12 @@ impl HubRuntime {
             self.config.active_engine_id != active_engine_before,
         )?;
         self.persist_hub_config()?;
-        self.task_status = TaskStatus {
-            label: "Project engine updated".to_string(),
-            detail: self.engine_label(engine_id),
-            running: false,
-        };
+        self.task_status =
+            TaskStatus::success("Project engine updated", self.engine_label(engine_id))
+                .with_operation(
+                    TaskOperationKind::Project,
+                    path.to_string_lossy().into_owned(),
+                );
         Ok(())
     }
 
@@ -521,15 +749,14 @@ impl HubRuntime {
         let pinned = metadata.pinned;
         prune_empty_metadata(&mut self.config.project_metadata);
         self.persist_hub_config()?;
-        self.task_status = TaskStatus {
-            label: if pinned {
-                "Project pinned".to_string()
+        self.task_status = TaskStatus::success(
+            if pinned {
+                "Project pinned"
             } else {
-                "Project unpinned".to_string()
+                "Project unpinned"
             },
-            detail: path.to_string_lossy().into_owned(),
-            running: false,
-        };
+            path.to_string_lossy().into_owned(),
+        );
         Ok(())
     }
 
@@ -539,11 +766,10 @@ impl HubRuntime {
         self.project_subpage = ProjectSubpage::ProjectBrowser;
         self.refresh_selected_project_scoped_views()?;
         self.persist()?;
-        self.task_status = TaskStatus {
-            label: "Project removed from Hub".to_string(),
-            detail: path.to_string_lossy().into_owned(),
-            running: false,
-        };
+        self.task_status = TaskStatus::success(
+            "Project removed from Hub",
+            path.to_string_lossy().into_owned(),
+        );
         Ok(())
     }
 
@@ -561,21 +787,18 @@ impl HubRuntime {
             )));
         }
         self.pending_delete_project_path = Some(path.clone());
-        self.task_status = TaskStatus {
-            label: "Confirm project deletion".to_string(),
-            detail: "The project will be moved to the Windows Recycle Bin".to_string(),
-            running: false,
-        };
+        self.task_status = TaskStatus::warning(
+            "Confirm project deletion",
+            "The project will be moved to the Windows Recycle Bin",
+            "Confirm only if the selected project directory should leave the Hub and filesystem",
+        );
         Ok(())
     }
 
     pub(super) fn cancel_delete_project(&mut self) {
         self.pending_delete_project_path = None;
-        self.task_status = TaskStatus {
-            label: "Delete cancelled".to_string(),
-            detail: "Project files were not changed".to_string(),
-            running: false,
-        };
+        self.task_status =
+            TaskStatus::success("Delete cancelled", "Project files were not changed");
     }
 
     pub(super) fn confirm_delete_project(&mut self) -> Result<(), HubError> {
@@ -589,11 +812,10 @@ impl HubRuntime {
         self.project_subpage = ProjectSubpage::ProjectBrowser;
         self.refresh_selected_project_scoped_views()?;
         self.persist()?;
-        self.task_status = TaskStatus {
-            label: "Project moved to Recycle Bin".to_string(),
-            detail: path.to_string_lossy().into_owned(),
-            running: false,
-        };
+        self.task_status = TaskStatus::success(
+            "Project moved to Recycle Bin",
+            path.to_string_lossy().into_owned(),
+        );
         Ok(())
     }
 
@@ -760,16 +982,25 @@ impl HubRuntime {
         Ok(project)
     }
 
-    pub(super) fn selected_project_for_action(&mut self) -> Result<RecentProject, HubError> {
+    pub(super) fn selected_project_for_named_action(
+        &mut self,
+        missing_project_message: &str,
+        stale_project_message: &str,
+    ) -> Result<RecentProject, HubError> {
         let selected_before = self.selected_project_path.clone();
         let active_engine_before = self.config.active_engine_id.clone();
+        let had_selected_project = self.selected_project_path.is_some();
         let Some(project) = self.selected_recent_project() else {
             let selected_project_changed = selected_project_path_changed(
                 selected_before.as_deref(),
                 self.selected_project_path.as_deref(),
             );
             self.refresh_project_context_views(selected_project_changed, false)?;
-            return Err(HubError::message("No project is selected"));
+            return Err(HubError::message(if had_selected_project {
+                stale_project_message
+            } else {
+                missing_project_message
+            }));
         };
         self.activate_project_engine_for_path(&project.path);
         let selected_project_changed = selected_project_path_changed(
@@ -783,10 +1014,13 @@ impl HubRuntime {
         Ok(project)
     }
 
-    pub(super) fn selected_project_with_engine_for_action(
+    pub(super) fn selected_project_with_engine_for_named_action(
         &mut self,
+        missing_project_message: &str,
+        stale_project_message: &str,
     ) -> Result<RecentProject, HubError> {
-        let project = self.selected_project_for_action()?;
+        let project =
+            self.selected_project_for_named_action(missing_project_message, stale_project_message)?;
         self.require_project_bound_engine(&project)?;
         Ok(project)
     }
@@ -813,6 +1047,86 @@ impl HubRuntime {
             recent_project_display_name(project),
             engine_id
         )))
+    }
+
+    fn install_package_for_project(
+        &mut self,
+        project_name: String,
+        package_report: ProjectPackageReport,
+    ) -> Result<crate::projects::DeviceInstallReport, HubError> {
+        let package_dir = package_report.package_dir;
+        let install_request = DeviceInstallRequest::new(
+            package_dir.clone(),
+            self.config.settings.default_device_install_dir.clone(),
+        );
+        match install_package_to_device(&install_request) {
+            Ok(report) => Ok(report),
+            Err(error) => {
+                let detail = error.to_string();
+                self.record_project_action_failure(
+                    HubActionKind::InstallProject,
+                    project_name,
+                    detail,
+                    "Check the package output and configured local device install directory before retrying",
+                    Some(self.config.settings.default_device_install_dir.clone()),
+                )?;
+                Err(error)
+            }
+        }
+    }
+
+    fn record_editor_launch_failure(
+        &mut self,
+        target: String,
+        detail: String,
+        command_line: Vec<String>,
+        recovery: &str,
+    ) -> Result<(), HubError> {
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::OpenEditor,
+            status: HubActionStatus::Failed,
+            target: target.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: Some(recovery.to_string()),
+            process_id: None,
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.set_action_failure_status(HubActionKind::OpenEditor, target, detail, recovery);
+        Ok(())
+    }
+
+    pub(super) fn record_project_action_failure(
+        &mut self,
+        action: HubActionKind,
+        target: String,
+        detail: String,
+        recovery: &str,
+        output_dir: Option<PathBuf>,
+    ) -> Result<(), HubError> {
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action,
+            status: HubActionStatus::Failed,
+            target: target.clone(),
+            detail: detail.clone(),
+            log_excerpt: String::new(),
+            recovery: Some(recovery.to_string()),
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir,
+        })?;
+        self.set_action_failure_status(action, target, detail, recovery);
+        Ok(())
+    }
+
+    pub(super) fn action_target_for_project_failure(&self) -> String {
+        self.selected_project_path
+            .as_ref()
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Project".to_string())
     }
 
     pub(super) fn selected_project_label(&mut self) -> String {

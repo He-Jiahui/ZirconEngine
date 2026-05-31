@@ -64,6 +64,6 @@ The ABI follow-up keeps the original ownership rule: `zircon_runtime::core::fram
 
 - `zircon_runtime_interface::plugin_events` defines `ZrPluginEventCallbackFnV1`, `ZrPluginEventCallbackRequestV1`, and `ZrPluginEventCallbackResultV1`.
 - `ZrPluginApiV1` gains an optional trailing `invoke_event` callback slot so older prefix-gated table readers can ignore it by advertised `size_bytes`.
-- `zircon_plugins/sound/runtime/src/dynamic_event_abi.rs` projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace and maps callback/result status into the existing per-handler execution report.
+- `zircon_plugins/sound/runtime/src/dynamic_event_abi/` projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace and maps callback/result status into the existing per-handler execution report.
 
 This resolves the stable ABI shape and sound runtime adapter portion of the follow-up. Generic native-dynamic plugin loader discovery and automatic attachment of `invoke_event` to handler descriptors remains separate loader integration work. Editor-host operation routing also remains separate.

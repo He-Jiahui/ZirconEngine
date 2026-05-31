@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_post_process_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.post_process";
+pub const CAPABILITY: &str = zircon_plugin_rendering_post_process_runtime::EDITOR_CAPABILITY;
 
 #[derive(Clone, Debug)]
 pub struct RenderingPostProcessEditorFeature {

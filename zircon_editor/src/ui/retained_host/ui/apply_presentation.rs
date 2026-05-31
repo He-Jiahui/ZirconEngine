@@ -16,12 +16,13 @@ use crate::ui::retained_host::root_shell_projection::{
     resolve_root_status_bar_frame, resolve_root_viewport_content_frame,
 };
 use crate::ui::retained_host::{self as host_contract, HostWindowPresentationData, UiHostWindow};
-use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiHostProjection};
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;
 
+use super::root_template_overlay::to_host_contract_root_template_overlay_nodes;
 use super::template_node_conversion::to_host_contract_template_nodes;
 
 pub(crate) fn apply_presentation(
@@ -42,6 +43,7 @@ pub(crate) fn apply_presentation(
     runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
     module_plugins: &host_window::ModulePluginsPaneViewData,
     build_export: &host_window::BuildExportPaneViewData,
+    root_template_projection: Option<&RetainedUiHostProjection>,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
@@ -201,6 +203,7 @@ pub(crate) fn apply_presentation(
         pane_interaction_state: current_host_presentation.pane_interaction_state,
         text_input_focus: current_host_presentation.text_input_focus,
         viewport_image: current_host_presentation.viewport_image,
+        root_template_nodes: to_host_contract_root_template_overlay_nodes(root_template_projection),
     };
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");

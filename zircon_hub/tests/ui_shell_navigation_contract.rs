@@ -20,21 +20,20 @@ fn read_ui_file(name: &str) -> String {
 
 #[test]
 fn sidebar_collapse_uses_material_state_layer() {
-    let shell = read_ui_file("shell.slint");
-    let sidebar = shell
+    let shell_sidebar_components = read_ui_file("shell_sidebar_components.slint");
+    let sidebar = shell_sidebar_components
         .split("export component HubNavSidebar")
         .nth(1)
-        .and_then(|source| source.split("export component HubPageHeader").next())
-        .expect("shell.slint must declare HubNavSidebar before HubPageHeader");
+        .expect("shell_sidebar_components.slint must export HubNavSidebar");
 
     for snippet in [
         "StateLayerArea,",
         "collapse-state := StateLayerArea {",
-        "border_radius: MaterialStyleMetrics.border_radius_12;",
+        "border_radius: HubVisualSpec.panel-radius;",
         "root.toggle-collapse();",
     ] {
         assert!(
-            shell.contains(snippet) || sidebar.contains(snippet),
+            shell_sidebar_components.contains(snippet) || sidebar.contains(snippet),
             "HubNavSidebar collapse control must use Material StateLayerArea; missing {snippet}"
         );
     }
@@ -47,7 +46,7 @@ fn sidebar_collapse_uses_material_state_layer() {
     }
 
     assert!(
-        shell.matches("TouchArea").count() <= 1 && shell.contains("drag-area := TouchArea"),
-        "shell.slint should reserve TouchArea for window dragging after Materializing collapse controls"
+        !ui_dir().join("shell.slint").exists(),
+        "shell.slint was a migration-only compatibility note and must stay deleted; sidebar implementation belongs in shell_sidebar_components.slint and window drag TouchArea belongs in shell_header_components.slint"
     );
 }

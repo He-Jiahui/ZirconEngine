@@ -1671,6 +1671,7 @@ fn sample_virtual_geometry_model_asset_with_root_page_table(
                 MeshVertex::new(Vec3::Z, Vec3::Y, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
+            mesh: None,
             virtual_geometry: Some(virtual_geometry),
         }],
     }

@@ -9,11 +9,116 @@ use crate::core::framework::render::{
     RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
     RenderMaterialValidationError, StandardMaterialDescriptor,
 };
+use crate::core::resource::ResourceId;
 
 use super::{
     dependency_set, shader_property_values_for_shader, validate_alpha_mode,
     validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
 };
+
+/// Asset-level material summary that does not require renderer preparation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterialAssetOverview {
+    pub name: Option<String>,
+    pub shader: AssetReference,
+    pub property_override_count: usize,
+    pub texture_slot_count: usize,
+    pub texture_reference_count: usize,
+    pub fallback_texture_slot_count: usize,
+    pub validation_error_count: usize,
+    pub validation_diagnostic_count: usize,
+    pub direct_reference_count: usize,
+}
+
+/// Stable list row for registered `.zmaterial` assets.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterialAssetManagementRecord {
+    pub material_id: ResourceId,
+    pub overview: MaterialAssetOverview,
+}
+
+/// Cross-row totals for material assets before renderer readiness is considered.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterialAssetManagementRecordSetSummary {
+    pub material_count: usize,
+    pub ready_count: usize,
+    pub issue_material_count: usize,
+    pub property_override_count: usize,
+    pub texture_slot_count: usize,
+    pub texture_reference_count: usize,
+    pub fallback_texture_slot_count: usize,
+    pub validation_error_count: usize,
+    pub validation_diagnostic_count: usize,
+    pub direct_reference_count: usize,
+}
+
+/// Sorted material asset rows plus aggregate authoring/dependency counts.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterialAssetManagementRecordSet {
+    pub records: Vec<MaterialAssetManagementRecord>,
+    pub summary: MaterialAssetManagementRecordSetSummary,
+}
+
+impl MaterialAssetManagementRecordSetSummary {
+    pub fn from_records(records: &[MaterialAssetManagementRecord]) -> Self {
+        let issue_material_count = records
+            .iter()
+            .filter(|record| {
+                record.overview.validation_error_count + record.overview.validation_diagnostic_count
+                    > 0
+            })
+            .count();
+        Self {
+            material_count: records.len(),
+            ready_count: records.len() - issue_material_count,
+            issue_material_count,
+            property_override_count: records
+                .iter()
+                .map(|record| record.overview.property_override_count)
+                .sum(),
+            texture_slot_count: records
+                .iter()
+                .map(|record| record.overview.texture_slot_count)
+                .sum(),
+            texture_reference_count: records
+                .iter()
+                .map(|record| record.overview.texture_reference_count)
+                .sum(),
+            fallback_texture_slot_count: records
+                .iter()
+                .map(|record| record.overview.fallback_texture_slot_count)
+                .sum(),
+            validation_error_count: records
+                .iter()
+                .map(|record| record.overview.validation_error_count)
+                .sum(),
+            validation_diagnostic_count: records
+                .iter()
+                .map(|record| record.overview.validation_diagnostic_count)
+                .sum(),
+            direct_reference_count: records
+                .iter()
+                .map(|record| record.overview.direct_reference_count)
+                .sum(),
+        }
+    }
+
+    pub fn degraded_count(&self) -> usize {
+        self.issue_material_count
+    }
+
+    pub fn issue_row_count(&self) -> usize {
+        self.validation_error_count + self.validation_diagnostic_count
+    }
+}
+
+impl MaterialAssetManagementRecordSet {
+    pub fn from_records(mut records: Vec<MaterialAssetManagementRecord>) -> Self {
+        records.sort_by_key(|record| record.material_id);
+        let summary = MaterialAssetManagementRecordSetSummary::from_records(&records);
+        Self { records, summary }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MaterialAsset {
@@ -116,6 +221,31 @@ impl MaterialAsset {
         validate_alpha_mode(&self.alpha_mode)
     }
 
+    pub fn overview(&self) -> MaterialAssetOverview {
+        MaterialAssetOverview {
+            name: self.name.clone(),
+            shader: self.shader.clone(),
+            property_override_count: self.property_overrides().len(),
+            texture_slot_count: self.texture_slots.len(),
+            texture_reference_count: self.all_texture_slots().len(),
+            fallback_texture_slot_count: self
+                .texture_slots
+                .values()
+                .filter(|slot| slot.fallback.is_some())
+                .count(),
+            validation_error_count: self.validation_errors().len(),
+            validation_diagnostic_count: self.validation_diagnostics.len(),
+            direct_reference_count: self.direct_references().len(),
+        }
+    }
+
+    pub fn management_record(&self, material_id: ResourceId) -> MaterialAssetManagementRecord {
+        MaterialAssetManagementRecord {
+            material_id,
+            overview: self.overview(),
+        }
+    }
+
     pub fn shader_property_diagnostics(&self, shader: &ShaderAsset) -> Vec<String> {
         self.shader_contract_diagnostics(shader)
             .into_iter()
@@ -164,47 +294,15 @@ impl MaterialAsset {
         shader_resolves: impl Fn(&AssetReference) -> bool,
         texture_resolves: impl Fn(&AssetReference) -> bool,
     ) -> RenderMaterialReadinessReport {
-        let fallback_policy = RenderMaterialFallbackPolicy::DefaultMaterial;
-        let mut validation_errors = self.validation_errors();
-        let mut fallback_usages = Vec::new();
-
-        if !shader_resolves(&self.shader) {
-            validation_errors.push(RenderMaterialValidationError::UnresolvedShaderReference {
-                reference: self.shader.clone(),
-            });
-            fallback_usages.push(RenderMaterialFallbackUsage {
-                reason: RenderMaterialFallbackReason::Shader {
-                    reference: self.shader.clone(),
-                },
-                fallback_policy,
-            });
-        }
-
-        for (slot, texture) in self.all_texture_slots() {
-            if !texture_resolves(texture) {
-                validation_errors.push(RenderMaterialValidationError::UnresolvedTextureReference {
-                    slot: slot.to_string(),
-                    reference: texture.clone(),
-                });
-                fallback_usages.push(RenderMaterialFallbackUsage {
-                    reason: RenderMaterialFallbackReason::Texture {
-                        slot: slot.to_string(),
-                        reference: texture.clone(),
-                    },
-                    fallback_policy,
-                });
-            }
-        }
-
-        RenderMaterialReadinessReport {
-            material_name: self.name.clone(),
-            dependencies: self.dependency_set(),
-            fallback_policy,
-            validation_errors,
-            fallback_usages,
-            uniform_summary: None,
-            diagnostics: material_readiness_diagnostics(self),
-        }
+        self.readiness_report_from_texture_slots(
+            self.dependency_set(),
+            self.all_texture_slots()
+                .into_iter()
+                .map(|(slot, reference)| (slot, reference.clone()))
+                .collect(),
+            shader_resolves,
+            texture_resolves,
+        )
     }
 
     pub fn readiness_report_with_shader_contract(
@@ -213,7 +311,14 @@ impl MaterialAsset {
         shader_resolves: impl Fn(&AssetReference) -> bool,
         texture_resolves: impl Fn(&AssetReference) -> bool,
     ) -> RenderMaterialReadinessReport {
-        let mut report = self.readiness_report_with_resolution(shader_resolves, texture_resolves);
+        let descriptor = self.standard_material_descriptor_for_shader(shader);
+        let texture_slots = self.shader_aware_texture_slots_from_descriptor(&descriptor);
+        let mut report = self.readiness_report_from_texture_slots(
+            descriptor.dependencies,
+            texture_slots,
+            shader_resolves,
+            texture_resolves,
+        );
         for error in self.shader_contract_diagnostics(shader) {
             report.push_validation_error_once(error);
         }
@@ -267,6 +372,7 @@ impl MaterialAsset {
         descriptor.emissive_texture = self
             .shader_texture_slot_reference(shader, &["emissive", "emissive_texture"])
             .or(descriptor.emissive_texture);
+        descriptor.dependencies = self.shader_aware_dependency_set_from_descriptor(&descriptor);
         descriptor
     }
 
@@ -376,6 +482,135 @@ impl MaterialAsset {
         }
         overrides
     }
+}
+
+impl MaterialAsset {
+    fn readiness_report_from_texture_slots(
+        &self,
+        dependencies: RenderMaterialDependencySet,
+        texture_slots: Vec<(String, AssetReference)>,
+        shader_resolves: impl Fn(&AssetReference) -> bool,
+        texture_resolves: impl Fn(&AssetReference) -> bool,
+    ) -> RenderMaterialReadinessReport {
+        let fallback_policy = RenderMaterialFallbackPolicy::DefaultMaterial;
+        let mut validation_errors = self.validation_errors();
+        let mut fallback_usages = Vec::new();
+
+        if !shader_resolves(&dependencies.shader) {
+            validation_errors.push(RenderMaterialValidationError::UnresolvedShaderReference {
+                reference: dependencies.shader.clone(),
+            });
+            fallback_usages.push(RenderMaterialFallbackUsage {
+                reason: RenderMaterialFallbackReason::Shader {
+                    reference: dependencies.shader.clone(),
+                },
+                fallback_policy,
+            });
+        }
+
+        for texture in &dependencies.textures {
+            if !texture_resolves(texture) {
+                let slot = texture_slots
+                    .iter()
+                    .find_map(|(slot, reference)| (reference == texture).then(|| slot.clone()))
+                    .unwrap_or_else(|| "texture".to_string());
+                validation_errors.push(RenderMaterialValidationError::UnresolvedTextureReference {
+                    slot: slot.clone(),
+                    reference: texture.clone(),
+                });
+                fallback_usages.push(RenderMaterialFallbackUsage {
+                    reason: RenderMaterialFallbackReason::Texture {
+                        slot,
+                        reference: texture.clone(),
+                    },
+                    fallback_policy,
+                });
+            }
+        }
+
+        RenderMaterialReadinessReport {
+            material_name: self.name.clone(),
+            dependencies,
+            fallback_policy,
+            validation_errors,
+            fallback_usages,
+            property_value_summary: None,
+            property_value_states: Vec::new(),
+            uniform_summary: None,
+            uniform_fields: Vec::new(),
+            uniform_unsupported: Vec::new(),
+            standard_texture_slot_summary: None,
+            standard_texture_slot_states: Vec::new(),
+            texture_slot_summary: None,
+            non_standard_texture_slot_states: Vec::new(),
+            diagnostics: material_readiness_diagnostics(self),
+        }
+    }
+
+    fn shader_aware_dependency_set_from_descriptor(
+        &self,
+        descriptor: &StandardMaterialDescriptor,
+    ) -> RenderMaterialDependencySet {
+        let mut dependencies =
+            RenderMaterialDependencySet::new(descriptor.dependencies.shader.clone());
+        for (_slot, reference) in self.shader_aware_texture_slots_from_descriptor(descriptor) {
+            dependencies.push_texture(reference);
+        }
+        dependencies
+    }
+
+    fn shader_aware_texture_slots_from_descriptor(
+        &self,
+        descriptor: &StandardMaterialDescriptor,
+    ) -> Vec<(String, AssetReference)> {
+        let mut slots = self.standard_texture_slots_from_descriptor(descriptor);
+        for (slot, texture) in &self.texture_slots {
+            if is_standard_texture_slot_alias(slot) {
+                continue;
+            }
+            if let Some(reference) = texture.reference.clone() {
+                slots.push((slot.clone(), reference));
+            }
+        }
+        slots
+    }
+
+    fn standard_texture_slots_from_descriptor(
+        &self,
+        descriptor: &StandardMaterialDescriptor,
+    ) -> Vec<(String, AssetReference)> {
+        [
+            ("base_color_texture", descriptor.base_color_texture.clone()),
+            ("normal_texture", descriptor.normal_texture.clone()),
+            (
+                "metallic_roughness_texture",
+                descriptor.metallic_roughness_texture.clone(),
+            ),
+            ("occlusion_texture", descriptor.occlusion_texture.clone()),
+            ("emissive_texture", descriptor.emissive_texture.clone()),
+        ]
+        .into_iter()
+        .filter_map(|(slot, reference)| reference.map(|reference| (slot.to_string(), reference)))
+        .collect()
+    }
+}
+
+fn is_standard_texture_slot_alias(slot: &str) -> bool {
+    matches!(
+        slot,
+        "base_color"
+            | "base_color_texture"
+            | "albedo"
+            | "diffuse"
+            | "normal"
+            | "normal_texture"
+            | "metallic_roughness"
+            | "metallic_roughness_texture"
+            | "occlusion"
+            | "occlusion_texture"
+            | "emissive"
+            | "emissive_texture"
+    )
 }
 
 fn texture_slot_reference(

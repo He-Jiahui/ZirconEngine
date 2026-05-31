@@ -236,6 +236,35 @@ fn runtime_component_projection_preserves_material_visual_metadata() {
 }
 
 #[test]
+fn runtime_component_projection_loads_workbench_reference_image_preview() {
+    let image = host_template_node(projected_node(
+        "Image",
+        [
+            (
+                "image",
+                Value::String("ui/editor/reference/workbench.png".to_owned()),
+            ),
+            (
+                "value",
+                Value::String("ui/editor/reference/workbench.png".to_owned()),
+            ),
+        ],
+    ))
+    .expect("workbench reference image should project into the host contract");
+
+    assert_eq!(image.component_role.as_str(), "image");
+    assert_eq!(
+        image.media_source.as_str(),
+        "ui/editor/reference/workbench.png"
+    );
+    assert!(image.has_preview_image);
+
+    let preview_size = image.preview_image.size();
+    assert_eq!(preview_size.width, 1672);
+    assert_eq!(preview_size.height, 941);
+}
+
+#[test]
 fn runtime_component_projection_preserves_mui_divider_visual_metadata() {
     let divider = host_template_node(projected_node(
         "Divider",

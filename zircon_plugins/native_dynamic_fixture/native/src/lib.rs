@@ -21,8 +21,13 @@ const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
 const PLUGIN_MANIFEST: &str = concat!(
     r#"id = "native_dynamic_fixture"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Native Dynamic Fixture"
+category = "sdk"
 description = "Real dynamic library fixture for ABI v2 native plugin loading."
+maturity = "experimental"
+supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
 default_packaging = ["native_dynamic"]
 
 [[modules]]

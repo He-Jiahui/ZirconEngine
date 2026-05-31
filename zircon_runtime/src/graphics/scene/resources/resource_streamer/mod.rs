@@ -1,6 +1,7 @@
 mod resource_streamer;
 mod resource_streamer_accessors;
 mod resource_streamer_ensure_material;
+mod resource_streamer_ensure_mesh;
 mod resource_streamer_ensure_model;
 mod resource_streamer_ensure_scene_resources;
 mod resource_streamer_ensure_shader_source;

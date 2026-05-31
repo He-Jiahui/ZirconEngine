@@ -9,6 +9,7 @@ use crate::core::framework::render::{
 use super::TexturePayload;
 
 pub const RGBA8_UNORM_SRGB_FORMAT: &str = "rgba8unorm_srgb";
+pub const RGBA8_UNORM_FORMAT: &str = "rgba8unorm";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -97,6 +98,7 @@ impl TextureAssetDescriptor {
         self.array_layer_count = self.array_layer_count.max(1);
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
         self.normalize_extent_fields();
+        self.normalize_rgba8_color_space_format();
         self
     }
 
@@ -160,6 +162,7 @@ impl TextureAssetDescriptor {
         self.array_layer_count = self.array_layer_count.max(1);
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
         self.normalize_import_extent_fields(extent_keys)?;
+        self.normalize_rgba8_color_space_format();
         Ok(self)
     }
 
@@ -232,6 +235,17 @@ impl TextureAssetDescriptor {
             ));
         }
         Ok(())
+    }
+
+    fn normalize_rgba8_color_space_format(&mut self) {
+        if self.color_space == RenderImageColorSpace::Linear
+            && self
+                .format
+                .trim()
+                .eq_ignore_ascii_case(RGBA8_UNORM_SRGB_FORMAT)
+        {
+            self.format = RGBA8_UNORM_FORMAT.to_string();
+        }
     }
 }
 
@@ -602,5 +616,20 @@ depth = 4
                 "expected `{expected}` in `{error}`"
             );
         }
+    }
+
+    #[test]
+    fn linear_color_space_normalizes_default_rgba8_format_to_linear() {
+        let settings = r#"color_space = "linear""#.parse::<toml::Table>().expect("valid toml");
+
+        let descriptor = TextureAssetDescriptor::default()
+            .with_import_settings(&settings)
+            .expect("valid linear color space");
+
+        assert_eq!(descriptor.format, RGBA8_UNORM_FORMAT);
+        assert_eq!(
+            descriptor.to_render_image_descriptor(2, 2).format,
+            RGBA8_UNORM_FORMAT
+        );
     }
 }

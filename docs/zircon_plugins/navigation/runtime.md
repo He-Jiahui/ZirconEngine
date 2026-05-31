@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_plugins/navigation/plugin.toml
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/components.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
@@ -53,6 +54,10 @@ plan_sources:
   - user: 2026-05-10 retained-host workspace validation handoff: navigation runtime world scans
   - .codex/sessions/20260510-0050-navigation-runtime-world-scan.md
 tests:
+  - navigation_registration_contributes_runtime_module_and_components
+  - navigation_plugin_toml_matches_catalog_beta_partial_metadata
+  - cargo test --manifest-path zircon_plugins\navigation\runtime\Cargo.toml navigation_registration_contributes_runtime_module_and_components --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet
+  - cargo test --manifest-path Cargo.toml -p zircon_runtime --lib navigation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never
   - cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never
@@ -82,6 +87,7 @@ Registration contributes:
 
 - `NavigationModule` with lazy manager `NavigationModule.Manager.NavigationManager`
 - runtime capabilities `runtime.plugin.navigation` and `runtime.plugin.navigation.recast`
+- package metadata category `runtime`, maturity `beta`, and `runtime.plugin.navigation = partial` status with an explicit note that gameplay navmesh/pathfinding is separate from Bevy-style UI navigation parity
 - the five `navigation.Component.*` dynamic component descriptors
 - plugin options for the default agent type, default settings asset, debug gizmos, and bake backend
 - event catalog entries for bake completion, path query completion/failure, and agent ticks
@@ -107,6 +113,8 @@ At runtime query time, `load_nav_mesh` stores the asset, `find_path` delegates t
 Agent movement can be blocked by missing transforms or immutable/static entity transforms, and those failures are reported in `NavAgentTickReport`. Obstacle support is intentionally scoped: bake-time carving removes intersecting collected static sources before rasterization, runtime path queries can carve transient TileCache obstacles for loaded navmeshes, and runtime avoidance applies simple local separation from obstacle centers and neighboring agents. The bake backend is now a real Recast voxel/raster/poly-mesh pipeline for the triangles the runtime collector provides, and the query backend owns Detour/TileCache query objects internally, but render-mesh collection still falls back to cube/mesh node footprints until imported model vertex payloads are exposed through the world or asset pipeline. The manager does not yet persist tiled Detour cache data in `NavMeshAsset`, update obstacles incrementally across frames, run DetourCrowd simulation, or support full native off-mesh cost/corridor traversal; the DTO and component surface are in place for those follow-up backend upgrades.
 
 ## Test Coverage
+
+2026-05-31 linked metadata parity first failed `cargo test --manifest-path zircon_plugins\navigation\runtime\Cargo.toml navigation_registration_contributes_runtime_module_and_components --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet` because the linked package manifest still reported `Experimental` instead of `Beta`. After adding the linked descriptor maturity/status metadata and static `plugin.toml` category, the same command passed with 1 Navigation runtime test and 0 failures. `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib navigation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet` also passed with 1 static TOML/catalog test and 0 failures. Existing output was limited to unrelated `zircon_runtime` warnings.
 
 Prior to the TileCache slice, `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never` passed: 12 unit tests and doctests. The tests cover runtime registration, dynamic component descriptor JSON conversion, typed resource properties, native Recast-backed surface baking, bake modifier/off-mesh-link embedding, link-generation disablement and settings hash stamping, obstacle carving, basic obstacle avoidance/stats, path queries over loaded navmeshes, deterministic default mesh selection, loaded-navmesh no-path agent blocking, invalid settings rejection, and agent ticking.
 

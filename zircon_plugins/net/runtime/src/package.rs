@@ -1,7 +1,8 @@
 use zircon_runtime::{
-    plugin::PluginEventCatalogManifest, plugin::PluginFeatureBundleManifest,
-    plugin::PluginFeatureDependency, plugin::PluginModuleManifest, plugin::PluginOptionManifest,
-    plugin::PluginPackageManifest, RuntimeTargetMode,
+    plugin::PluginEventCatalogManifest, plugin::PluginEventManifest,
+    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
+    plugin::PluginModuleManifest, plugin::PluginOptionManifest, plugin::PluginPackageManifest,
+    RuntimeTargetMode,
 };
 
 pub const NET_RUNTIME_EVENT_NAMESPACE: &str = "net.runtime_events";
@@ -78,7 +79,11 @@ pub fn net_optional_features() -> Vec<PluginFeatureBundleManifest> {
             "runtime.feature.net.cdn_download",
             "zircon_plugin_net_content_download_runtime",
             &[RuntimeTargetMode::ClientRuntime],
-        ),
+        )
+        .with_dependency(PluginFeatureDependency::required(
+            "net",
+            "runtime.feature.net.http",
+        )),
     ]
 }
 
@@ -117,10 +122,40 @@ pub fn net_options() -> Vec<PluginOptionManifest> {
 }
 
 pub fn net_event_catalogs() -> Vec<PluginEventCatalogManifest> {
-    vec![PluginEventCatalogManifest::empty(
-        NET_RUNTIME_EVENT_NAMESPACE,
-        1,
-    )]
+    vec![PluginEventCatalogManifest {
+        namespace: NET_RUNTIME_EVENT_NAMESPACE.to_string(),
+        version: 1,
+        events: vec![
+            event(
+                "net.runtime_events.listener_started",
+                "Listener Started",
+                "net.runtime.listener_started.v1",
+            ),
+            event(
+                "net.runtime_events.connection_state_changed",
+                "Connection State Changed",
+                "net.runtime.connection_state_changed.v1",
+            ),
+            event(
+                "net.runtime_events.http_route_registered",
+                "HTTP Route Registered",
+                "net.runtime.http_route_registered.v1",
+            ),
+            event(
+                "net.runtime_events.websocket_frame_queued",
+                "WebSocket Frame Queued",
+                "net.runtime.websocket_frame_queued.v1",
+            ),
+        ],
+    }]
+}
+
+fn event(id: &str, display_name: &str, payload_schema: &str) -> PluginEventManifest {
+    PluginEventManifest {
+        id: id.to_string(),
+        display_name: display_name.to_string(),
+        payload_schema: payload_schema.to_string(),
+    }
 }
 
 fn feature(

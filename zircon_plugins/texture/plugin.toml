@@ -2,7 +2,11 @@ id = "texture"
 version = "0.1.0"
 display_name = "Texture"
 description = "Optional texture processing runtime and editor package."
+sdk_api_version = "0.1.0"
+category = "runtime"
 maturity = "stable"
+supported_targets = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.texture"]
 default_packaging = ["source_template", "library_embed"]
 
 [[capability_statuses]]

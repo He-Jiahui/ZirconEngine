@@ -125,6 +125,7 @@ fn render_product_assets_model_metadata_exposes_mesh_bounds_and_vg_presence() {
                 MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
+            mesh: None,
             virtual_geometry: Some(VirtualGeometryAsset::default()),
         }],
     };

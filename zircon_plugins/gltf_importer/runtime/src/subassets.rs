@@ -5,7 +5,8 @@ use zircon_runtime::asset::{
     AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset,
     DataAssetFormat, ImportedAsset, ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue,
     MeshAsset, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TextureAsset, TransformAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset,
+    TextureAsset, TransformAsset,
 };
 
 #[derive(Clone)]
@@ -406,17 +407,28 @@ fn push_node_dependencies(
     node: &gltf::Node<'_>,
     entry: &mut ImportedAssetEntry,
 ) {
-    entry
-        .dependencies
-        .push(gltf_label_uri(root_uri, &format!("Node{}", node.index())));
+    push_dependency_once(
+        entry,
+        gltf_label_uri(root_uri, &format!("Node{}", node.index())),
+    );
     if let Some(mesh) = node.mesh() {
-        entry
-            .dependencies
-            .push(gltf_label_uri(root_uri, &format!("Mesh{}", mesh.index())));
-        let material_index = first_mesh_material_index(&mesh);
-        entry
-            .dependencies
-            .push(material_uri_for_index(root_uri, material_index));
+        push_dependency_once(
+            entry,
+            gltf_label_uri(root_uri, &format!("Mesh{}", mesh.index())),
+        );
+        for primitive in mesh.primitives() {
+            push_dependency_once(
+                entry,
+                gltf_label_uri(
+                    root_uri,
+                    &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
+                ),
+            );
+            push_dependency_once(
+                entry,
+                material_uri_for_index(root_uri, primitive.material().index()),
+            );
+        }
     }
     for child in node.children() {
         push_node_dependencies(root_uri, &child, entry);
@@ -480,7 +492,9 @@ fn mesh_instance_from_gltf_node(
     let mesh = node.mesh()?;
     Some(SceneMeshInstanceAsset {
         model: gltf_label_reference(root_uri, &format!("Mesh{}", mesh.index())),
+        mesh: None,
         material: material_reference_for_index(root_uri, first_mesh_material_index(&mesh)),
+        primitives: mesh_primitive_bindings_from_gltf_mesh(root_uri, &mesh),
     })
 }
 
@@ -488,6 +502,21 @@ fn first_mesh_material_index(mesh: &gltf::Mesh<'_>) -> Option<usize> {
     mesh.primitives()
         .next()
         .and_then(|primitive| primitive.material().index())
+}
+
+fn mesh_primitive_bindings_from_gltf_mesh(
+    root_uri: &AssetUri,
+    mesh: &gltf::Mesh<'_>,
+) -> Vec<SceneMeshPrimitiveBindingAsset> {
+    mesh.primitives()
+        .map(|primitive| SceneMeshPrimitiveBindingAsset {
+            mesh: gltf_label_reference(
+                root_uri,
+                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
+            ),
+            material: material_reference_for_index(root_uri, primitive.material().index()),
+        })
+        .collect()
 }
 
 fn transform_from_gltf_node(node: &gltf::Node<'_>) -> TransformAsset {
@@ -517,6 +546,12 @@ fn with_root_dependency_and_entry(
         .with_entry(entry)
 }
 
+fn push_dependency_once(entry: &mut ImportedAssetEntry, locator: AssetUri) {
+    if !entry.dependencies.contains(&locator) {
+        entry.dependencies.push(locator);
+    }
+}
+
 fn texture_reference(root_uri: &AssetUri, texture_index: usize) -> AssetReference {
     gltf_label_reference(root_uri, &format!("Texture{texture_index}"))
 }
@@ -542,11 +577,11 @@ fn default_pbr_shader_reference() -> AssetReference {
     )
 }
 
-fn gltf_label_reference(root_uri: &AssetUri, label: &str) -> AssetReference {
+pub(crate) fn gltf_label_reference(root_uri: &AssetUri, label: &str) -> AssetReference {
     AssetReference::from_locator(gltf_label_uri(root_uri, label))
 }
 
-fn gltf_label_uri(root_uri: &AssetUri, label: &str) -> AssetUri {
+pub(crate) fn gltf_label_uri(root_uri: &AssetUri, label: &str) -> AssetUri {
     AssetUri::parse(&format!("{root_uri}#{label}"))
         .expect("generated gltf subasset locator must be valid")
 }

@@ -1,6 +1,6 @@
 use crate::asset::assets::{
     TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport,
+    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDimension, RenderSamplerAddressMode, RenderSamplerFilter,
@@ -29,6 +29,7 @@ impl GpuTextureResource {
                     texture_layout,
                     id,
                     payload,
+                    plan,
                 ))
             }
             TextureUploadReadiness::Ready { plan } => {
@@ -47,7 +48,9 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         id: ResourceId,
         payload: TextureAsset,
+        plan: TextureUploadPlan,
     ) -> Self {
+        let descriptor = payload.render_image_descriptor();
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-texture"),
             size: wgpu::Extent3d {
@@ -58,7 +61,7 @@ impl GpuTextureResource {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: crate::graphics::scene::OFFSCREEN_FORMAT,
+            format: rgba8_wgpu_format(&plan.format),
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -77,14 +80,7 @@ impl GpuTextureResource {
             },
         );
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-            address_mode_u: wgpu::AddressMode::Repeat,
-            address_mode_v: wgpu::AddressMode::Repeat,
-            ..Default::default()
-        });
+        let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-texture-bind-group"),
             layout: texture_layout,
@@ -235,6 +231,16 @@ pub(crate) fn texture_upload_support_from_device(device: &wgpu::Device) -> Textu
         etc2: features.contains(wgpu::Features::TEXTURE_COMPRESSION_ETC2),
         astc_ldr: features.contains(wgpu::Features::TEXTURE_COMPRESSION_ASTC),
         astc_sliced_3d: features.contains(wgpu::Features::TEXTURE_COMPRESSION_ASTC_SLICED_3D),
+    }
+}
+
+fn rgba8_wgpu_format(format: &str) -> wgpu::TextureFormat {
+    if format.trim().eq_ignore_ascii_case(RGBA8_UNORM_FORMAT) {
+        wgpu::TextureFormat::Rgba8Unorm
+    } else if format.trim().eq_ignore_ascii_case(RGBA8_UNORM_SRGB_FORMAT) {
+        wgpu::TextureFormat::Rgba8UnormSrgb
+    } else {
+        wgpu::TextureFormat::Rgba8UnormSrgb
     }
 }
 
@@ -481,4 +487,49 @@ fn address_mode(mode: RenderSamplerAddressMode) -> wgpu::AddressMode {
 
 fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor.max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{
+        RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+    };
+
+    #[test]
+    fn rgba8_wgpu_format_uses_upload_plan_format() {
+        assert_eq!(
+            rgba8_wgpu_format(RGBA8_UNORM_FORMAT),
+            wgpu::TextureFormat::Rgba8Unorm
+        );
+        assert_eq!(
+            rgba8_wgpu_format(RGBA8_UNORM_SRGB_FORMAT),
+            wgpu::TextureFormat::Rgba8UnormSrgb
+        );
+        assert_eq!(
+            rgba8_wgpu_format("rgba16float"),
+            wgpu::TextureFormat::Rgba8UnormSrgb
+        );
+    }
+
+    #[test]
+    fn sampler_descriptor_maps_texture_asset_sampler_settings() {
+        let descriptor = RenderSamplerDescriptor {
+            address_mode_u: RenderSamplerAddressMode::Repeat,
+            address_mode_v: RenderSamplerAddressMode::MirrorRepeat,
+            address_mode_w: RenderSamplerAddressMode::ClampToEdge,
+            mag_filter: RenderSamplerFilter::Nearest,
+            min_filter: RenderSamplerFilter::Linear,
+            mipmap_filter: RenderSamplerFilter::Nearest,
+        };
+
+        let sampler = sampler_descriptor(&descriptor);
+
+        assert_eq!(sampler.address_mode_u, wgpu::AddressMode::Repeat);
+        assert_eq!(sampler.address_mode_v, wgpu::AddressMode::MirrorRepeat);
+        assert_eq!(sampler.address_mode_w, wgpu::AddressMode::ClampToEdge);
+        assert_eq!(sampler.mag_filter, wgpu::FilterMode::Nearest);
+        assert_eq!(sampler.min_filter, wgpu::FilterMode::Linear);
+        assert_eq!(sampler.mipmap_filter, wgpu::MipmapFilterMode::Nearest);
+    }
 }

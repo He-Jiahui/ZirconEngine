@@ -8,6 +8,19 @@ use crate::ui::surface::UiSurface;
 use super::super::result::{finish_handled, finish_unhandled};
 use super::binding::{append_scroll_binding_report, scroll_state_offset};
 
+pub(super) fn finish_missing_scroll_to(
+    result: UiInputDispatchResult,
+    target: UiNodeId,
+) -> UiInputDispatchResult {
+    finish_unhandled(
+        result,
+        Some(target),
+        UiAccessibilityActionStatus::Rejected,
+        "missing_value",
+        "scroll to action requires value or numeric_value",
+    )
+}
+
 pub(super) fn finish_scroll_to_mutation(
     surface: &UiSurface,
     target: UiNodeId,

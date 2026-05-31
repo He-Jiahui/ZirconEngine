@@ -661,6 +661,7 @@ mod tests {
                 model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                     "res://models/hgi-card.obj",
                 )),
+                mesh: None,
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/hgi-card.mat",
                 )),

@@ -5,6 +5,7 @@ import {
     HeaderStatusData,
     LearnData,
     NavItemData,
+    OperationTimelineRowData,
     PluginData,
     ProjectCardData,
     ProjectDetailData,
@@ -18,8 +19,10 @@ import {
     TeamData,
     TeamMemberData,
     UiTextData,
+    WorkspaceActionReadinessData,
 } from "shared.slint";
 import { ProjectsPage } from "projects.slint";
+import { DashboardButtonStatesStrip } from "project_dashboard_components.slint";
 import { EditorPage } from "editor.slint";
 import { BuildsPage } from "builds.slint";
 import { AssetsPage } from "assets.slint";
@@ -29,17 +32,9 @@ import { LearnPage } from "learn.slint";
 import { TeamPage } from "team.slint";
 import { SettingsPage } from "settings.slint";
 import { ZirconMaterialTheme } from "theme.slint";
-import { Fill, HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, MaterialWindow, NavigationItem, ResponsiveState } from "components.slint";
+import { Fill, HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, HubVisualSpec, HubWindowView, NavigationItem, ResponsiveState } from "components.slint";
 
-export component HubWindow inherits MaterialWindow {
-    title: "Zircon Hub";
-    no-frame: true;
-    resize-border-width: HubTokens.window-resize-border;
-    min-width: HubTokens.window-min-width;
-    min-height: HubTokens.window-min-height;
-    preferred-width: HubTokens.window-preferred-width;
-    preferred-height: HubTokens.window-preferred-height;
-
+export component HubWindow inherits HubWindowView {
     in-out property <bool> nav-collapsed: false;
     in-out property <bool> engine-picker-open: false;
     in-out property <string> selected-page: "projects";
@@ -110,25 +105,32 @@ export component HubWindow inherits MaterialWindow {
     in property <int> source-engine-count;
     in property <[SourceBuildHistoryRowData]> source-build-history;
     in property <int> source-build-history-count;
+    in property <[OperationTimelineRowData]> operation-timeline;
+    in property <int> operation-timeline-count;
     in property <SourceEngineData> source-engine;
+    in property <WorkspaceActionReadinessData> workspace-action-readiness;
     in property <string> status-label: "Ready";
     in property <string> status-detail: "Hub is ready";
     in property <bool> task-running: false;
     in property <UiTextData> ui-text;
-    private property <length> shell-header-height: HubTokens.shell-header-height;
+    private property <length> shell-header-height: responsive-state.compact ? HubTokens.shell-row-min : HubTokens.shell-header-height;
     private property <length> shell-drag-height: HubTokens.space-0;
     private property <length> shell-row-height: root.shell-header-height;
-    private property <length> shell-gap: HubTokens.toolbar-gap;
-    private property <length> shell-pad-x: HubTokens.space-6;
-    private property <length> nav-width: root.nav-collapsed ? ((HubTokens.nav-width-collapsed-min + HubTokens.nav-width-collapsed-max) / 2) : ((HubTokens.nav-width-expanded-min + HubTokens.nav-width-expanded-max) / 2);
-    private property <length> nav-pad: root.nav-collapsed ? max(HubTokens.space-2, min(HubTokens.space-3, root.nav-width / 7)) : max(HubTokens.space-3, min(HubTokens.space-4, root.nav-width / 16));
-    private property <length> nav-status-height: root.shell-row-height * 4;
-    private property <length> page-title-height: root.shell-header-height + HubTokens.space-6;
-    private property <length> page-pad-x: HubTokens.page-padding;
-    private property <length> page-action-height: HubTokens.control-lg;
-    private property <length> bottom-status-height: HubTokens.bottom-status-height;
+    private property <length> shell-gap: responsive-state.compact ? HubTokens.shell-gap-min : HubTokens.shell-gap-max;
+    private property <length> shell-pad-x: responsive-state.compact ? HubTokens.shell-pad-x-min : HubTokens.shell-pad-x-max;
+    private property <bool> nav-auto-collapsed: responsive-state.compact;
+    private property <bool> nav-effective-collapsed: root.nav-collapsed || root.nav-auto-collapsed;
+    private property <length> nav-width: root.nav-effective-collapsed ? ((HubTokens.nav-width-collapsed-min + HubTokens.nav-width-collapsed-max) / 2) : HubTokens.nav-width-expanded-max;
+    private property <length> nav-pad: root.nav-effective-collapsed ? max(HubTokens.space-2, min(HubTokens.space-3, root.nav-width / 7)) : HubTokens.space-4;
+    private property <length> nav-status-height: (root.project-detail.selected ? root.shell-row-height * 3 : root.shell-row-height * 2) + HubTokens.space-6;
+    private property <length> dashboard-bottom-strip-height: HubTokens.list-row-lg + HubTokens.space-6 + HubTokens.toolbar-gap + HubTokens.border-width * 3 + HubTokens.panel-gap;
+    private property <bool> dashboard-reference-visible: root.selected-page == "projects" && root.project-subpage == "dashboard";
+    private property <length> page-title-height: responsive-state.medium ? HubTokens.shell-header-height : HubTokens.shell-header-height + HubTokens.toolbar-gap;
+    private property <length> page-pad-x: responsive-state.compact ? HubTokens.page-padding-compact : HubTokens.page-padding;
+    private property <length> page-action-height: responsive-state.compact ? HubTokens.control-md : HubTokens.control-lg;
+    private property <length> bottom-status-height: responsive-state.medium ? HubTokens.control-md : HubTokens.bottom-status-height;
     private property <bool> header-compact: !responsive-state.wide;
-    private property <bool> header-tight: responsive-state.medium;
+    private property <bool> header-tight: responsive-state.compact;
     private property <bool> header-minimal: responsive-state.compact;
     private property <bool> status-compact: responsive-state.medium;
     private property <bool> sidebar-compact-height: responsive-state.short;
@@ -191,7 +193,7 @@ export component HubWindow inherits MaterialWindow {
     Rectangle {
         width: root.width;
         height: root.height;
-        background: HubTokens.surface-page;
+        background: HubVisualSpec.page-background;
 
         ZirconMaterialTheme { }
 
@@ -247,7 +249,7 @@ export component HubWindow inherits MaterialWindow {
                 vertical-stretch: 1;
                 min-height: 0px;
                 preferred-height: 0px;
-                background: HubTokens.surface-page;
+                background: HubVisualSpec.page-background;
 
                 HorizontalLayout {
                     width: parent.width;
@@ -263,8 +265,9 @@ export component HubWindow inherits MaterialWindow {
                         nav-items: root.nav-items;
                         material-nav-items: root.material-nav-items;
                         selected-nav-index <=> root.selected-nav-index;
-                        collapsed: root.nav-collapsed;
+                        collapsed: root.nav-effective-collapsed;
                         compact-height: root.sidebar-compact-height;
+                        bottom-reserved-height: root.dashboard-reference-visible ? HubTokens.list-row-lg + HubTokens.space-6 : 0px;
                         task-running: root.task-running;
                         project: root.project-detail;
                         source-engine: root.source-engine;
@@ -285,7 +288,7 @@ export component HubWindow inherits MaterialWindow {
                         preferred-width: 0px;
                         min-height: 0px;
                         preferred-height: 0px;
-                        background: HubTokens.surface-page;
+                        background: HubVisualSpec.page-background;
 
                         VerticalLayout {
                             width: parent.width;
@@ -384,15 +387,16 @@ export component HubWindow inherits MaterialWindow {
                                 source-engine-count: root.source-engine-count;
                                 source-build-history: root.source-build-history;
                                 source-build-history-count: root.source-build-history-count;
+                                readiness: root.workspace-action-readiness;
                                 ui-text: root.ui-text;
                                 save-settings => { root.save-settings(); }
                                 browse-folder(target) => { root.browse-folder(target); }
                                 select-engine(id) => { root.select-engine(id); }
                                 rename-active-engine(name) => { root.rename-active-engine(name); }
                                 remove-engine(id) => { root.remove-engine(id); }
-                                build-engine => { root.build-engine(); }
+                                build-engine => { root.build-selected-project-engine(); }
                                 open-output => { root.open-output(); }
-                                launch-editor => { root.launch-editor(); }
+                                launch-editor => { root.launch-selected-project(); }
                             }
                             if root.selected-page == "settings": SettingsPage {
                                 horizontal-stretch: 1;
@@ -409,6 +413,8 @@ export component HubWindow inherits MaterialWindow {
                                 build-profile <=> root.build-profile;
                                 language <=> root.language;
                                 settings-statuses: root.settings-statuses;
+                                operation-timeline: root.operation-timeline;
+                                operation-timeline-count: root.operation-timeline-count;
                                 ui-text: root.ui-text;
                                 browse-folder(target) => { root.browse-folder(target); }
                                 save-settings => { root.save-settings(); }
@@ -417,10 +423,13 @@ export component HubWindow inherits MaterialWindow {
                                 horizontal-stretch: 1;
                                 vertical-stretch: 1;
                                 scroll-y <=> root.builds-scroll-y;
+                                readiness: root.workspace-action-readiness;
                                 project: root.project-detail;
                                 source-engine: root.source-engine;
                                 source-build-history: root.source-build-history;
                                 source-build-history-count: root.source-build-history-count;
+                                operation-timeline: root.operation-timeline;
+                                operation-timeline-count: root.operation-timeline-count;
                                 status-label: root.status-label;
                                 status-detail: root.status-detail;
                                 ui-text: root.ui-text;
@@ -455,8 +464,12 @@ export component HubWindow inherits MaterialWindow {
                                 summary: root.cloud-summary;
                                 services: root.cloud-services;
                                 service-count: root.cloud-service-count;
+                                operation-timeline: root.operation-timeline;
+                                operation-timeline-count: root.operation-timeline-count;
                                 has-selected-project: root.project-detail.selected;
                                 ui-text: root.ui-text;
+                                package-project => { root.package-selected-project(); }
+                                install-device => { root.install-selected-project(); }
                             }
                             if root.selected-page == "team": TeamPage {
                                 horizontal-stretch: 1;
@@ -480,7 +493,7 @@ export component HubWindow inherits MaterialWindow {
                             }
                         }
 
-                        HubStatusBar {
+                            HubStatusBar {
                             status-height: root.bottom-status-height;
                             status-detail: root.status-detail;
                             project: root.project-detail;
@@ -493,6 +506,13 @@ export component HubWindow inherits MaterialWindow {
                     }
                 }
             }
+        }
+
+        if root.dashboard-reference-visible: DashboardButtonStatesStrip {
+            x: 0px;
+            y: root.height - root.dashboard-bottom-strip-height;
+            width: root.width;
+            height: root.dashboard-bottom-strip-height;
         }
 
     }

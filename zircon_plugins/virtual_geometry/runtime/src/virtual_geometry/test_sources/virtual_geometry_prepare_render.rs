@@ -3219,6 +3219,7 @@ fn build_extract(
                         ..Transform::default()
                     },
                     model,
+                    mesh: None,
                     material: red_material,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
@@ -3232,6 +3233,7 @@ fn build_extract(
                         ..Transform::default()
                     },
                     model,
+                    mesh: None,
                     material: green_material,
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
@@ -3409,6 +3411,7 @@ fn build_single_entity_extract_with_clusters(
                     ..Transform::default()
                 },
                 model,
+                mesh: None,
                 material,
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,

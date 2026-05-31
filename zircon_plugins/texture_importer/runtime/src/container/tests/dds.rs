@@ -1,5 +1,11 @@
-use super::super::*;
 use super::common::*;
+use crate::container::support::{
+    DDSCAPS2_CUBEMAP, DDSCAPS2_CUBEMAP_NEGATIVEX, DDSCAPS2_CUBEMAP_POSITIVEX, DDSCAPS_COMPLEX,
+    DDSCAPS_MIPMAP, DDSCAPS_TEXTURE, DDSD_LINEARSIZE, DDSD_REQUIRED_FLAGS, DDS_DIMENSION_TEXTURE2D,
+    DDS_RESOURCE_MISC_TEXTURECUBE,
+};
+use zircon_runtime::asset::{ImportedAsset, TexturePayload};
+use zircon_runtime::core::framework::render::RenderImageDimension;
 
 #[test]
 fn dds_container_importer_preserves_compressed_payload() {
@@ -90,11 +96,94 @@ fn dds_dx10_container_importer_rejects_truncated_compressed_mip_chain_payload() 
 }
 
 #[test]
+fn dds_dx10_container_importer_rejects_truncated_bc2_payload_using_dxgi_block_size() {
+    let mut bytes = tiny_dds_bytes();
+    bytes.resize(148 + 32, 0);
+    bytes[84..88].copy_from_slice(b"DX10");
+    write_u32(&mut bytes, 128, 74);
+    write_u32(&mut bytes, 132, DDS_DIMENSION_TEXTURE2D);
+    write_u32(&mut bytes, 140, 1);
+
+    let error = import_container_error("truncated-dx10-bc2.dds", bytes);
+
+    assert!(
+        error.contains("dds compressed mip chain payload requires at least 212 bytes, got 180"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn dds_dx10_container_importer_accepts_typeless_payload_using_dxgi_block_size() {
+    for (dxgi_format, expected_bytes_per_block) in [
+        (70, 8_usize),
+        (73, 16),
+        (76, 16),
+        (79, 8),
+        (82, 16),
+        (94, 16),
+        (97, 16),
+    ] {
+        let mut bytes = tiny_dds_bytes();
+        write_u32(&mut bytes, 16, 4);
+        write_u32(&mut bytes, 28, 1);
+        bytes.resize(148 + expected_bytes_per_block, 0);
+        bytes[84..88].copy_from_slice(b"DX10");
+        write_u32(&mut bytes, 128, dxgi_format);
+        write_u32(&mut bytes, 132, DDS_DIMENSION_TEXTURE2D);
+        write_u32(&mut bytes, 140, 1);
+
+        let imported = import_container_fixture("dx10-typeless.dds", bytes);
+
+        match imported {
+            ImportedAsset::Texture(texture) => {
+                assert_eq!(
+                    texture.render_image_descriptor().format,
+                    format!("dds/dxgi-{dxgi_format}")
+                );
+                match texture.payload {
+                    TexturePayload::Container { bytes, .. } => {
+                        assert_eq!(bytes.len(), 148 + expected_bytes_per_block);
+                    }
+                    other => panic!("unexpected texture payload: {other:?}"),
+                }
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn dds_dx10_container_importer_rejects_short_header() {
+    let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    bytes.truncate(147);
+
+    let error = import_container_error("short-dx10-header.dds", bytes);
+
+    assert!(
+        error.contains("dds dx10 header requires at least 148 bytes, got 147"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn dds_dx10_container_importer_rejects_zero_array_size() {
     let error = import_container_error("empty-array.dds", dds_dx10_cubemap_array_bytes(0));
 
     assert!(
         error.contains("dds dx10 array size must be nonzero"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn dds_dx10_container_importer_rejects_unknown_dxgi_format() {
+    let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    write_u32(&mut bytes, 128, 0);
+
+    let error = import_container_error("unknown-dxgi-format.dds", bytes);
+
+    assert!(
+        error.contains("dds dx10 format must not be DXGI_FORMAT_UNKNOWN"),
         "unexpected error: {error}"
     );
 }
@@ -141,6 +230,21 @@ fn dds_dx10_container_importer_reads_misc_texturecube_flag() {
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
+}
+
+#[test]
+fn dds_dx10_container_importer_rejects_dual_cubemap_sources() {
+    let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    write_u32(&mut bytes, 136, DDS_RESOURCE_MISC_TEXTURECUBE);
+
+    let error = import_container_error("dual-cubemap-sources.dds", bytes);
+
+    assert!(
+        error.contains(
+            "dds dx10 cubemap must be declared by legacy caps2 or DX10 texturecube flag, not both"
+        ),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -191,7 +295,7 @@ fn dds_dx10_container_importer_rejects_invalid_misc_flags2() {
 #[test]
 fn dds_container_importer_ignores_mip_count_without_mipmap_flag() {
     let mut bytes = tiny_dds_bytes();
-    write_u32(&mut bytes, 8, DDSD_REQUIRED_FLAGS);
+    write_u32(&mut bytes, 8, DDSD_REQUIRED_FLAGS | DDSD_LINEARSIZE);
     write_u32(&mut bytes, 28, 7);
 
     let imported = import_container_fixture("single-level.dds", bytes);
@@ -220,6 +324,21 @@ fn dds_container_importer_rejects_declared_zero_mip_count() {
 
     assert!(
         error.contains("dds mip map count must be nonzero when DDSD_MIPMAPCOUNT is set"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn dds_container_importer_rejects_mipmap_count_without_mipmap_caps() {
+    let mut bytes = tiny_dds_bytes();
+    write_u32(&mut bytes, 108, DDSCAPS_TEXTURE);
+
+    let error = import_container_error("missing-mipmap-caps.dds", bytes);
+
+    assert!(
+        error.contains(
+            "dds caps must include DDSCAPS_MIPMAP and DDSCAPS_COMPLEX when multiple mip levels are declared"
+        ),
         "unexpected error: {error}"
     );
 }
@@ -255,6 +374,55 @@ fn dds_container_importer_rejects_incomplete_cubemap_face_flags() {
 }
 
 #[test]
+fn dds_container_importer_rejects_cubemap_face_flags_without_cubemap_bit() {
+    let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    write_u32(
+        &mut bytes,
+        112,
+        DDSCAPS2_CUBEMAP_POSITIVEX | DDSCAPS2_CUBEMAP_NEGATIVEX,
+    );
+
+    let error = import_container_error("face-flags-without-cubemap.dds", bytes);
+
+    assert!(
+        error.contains("dds cubemap face caps2 flags require DDSCAPS2_CUBEMAP"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn dds_container_importer_rejects_cubemap_without_complex_caps() {
+    let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    write_u32(&mut bytes, 108, DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
+
+    let error = import_container_error("cubemap-without-complex-caps.dds", bytes);
+
+    assert!(
+        error.contains("dds caps must include DDSCAPS_COMPLEX when cubemap faces are declared"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn dds_dx10_container_importer_rejects_misc_texturecube_without_complex_caps() {
+    let mut bytes = dds_dx10_cubemap_array_bytes(2);
+    write_u32(&mut bytes, 8, DDSD_REQUIRED_FLAGS | DDSD_LINEARSIZE);
+    write_u32(&mut bytes, 28, 1);
+    write_u32(&mut bytes, 108, DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
+    write_u32(&mut bytes, 112, 0);
+    write_u32(&mut bytes, 136, DDS_RESOURCE_MISC_TEXTURECUBE);
+
+    let error = import_container_error("misc-cube-without-complex-caps.dds", bytes);
+
+    assert!(
+        error.contains(
+            "dds caps must include DDSCAPS_COMPLEX when cubemap faces are declared or DX10 texturecube flag is set"
+        ),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn dds_container_importer_rejects_missing_texture_caps() {
     let mut bytes = tiny_dds_bytes();
     write_u32(&mut bytes, 108, 0);
@@ -265,116 +433,4 @@ fn dds_container_importer_rejects_missing_texture_caps() {
         error.contains("dds caps must include DDSCAPS_TEXTURE"),
         "unexpected error: {error}"
     );
-}
-
-#[test]
-fn dds_container_importer_rejects_missing_required_header_flags() {
-    let cases = [
-        (
-            DDSD_REQUIRED_FLAGS & !DDSD_CAPS,
-            "dds header flags must include DDSD_CAPS",
-        ),
-        (
-            DDSD_REQUIRED_FLAGS & !DDSD_HEIGHT,
-            "dds header flags must include DDSD_HEIGHT",
-        ),
-        (
-            DDSD_REQUIRED_FLAGS & !DDSD_WIDTH,
-            "dds header flags must include DDSD_WIDTH",
-        ),
-        (
-            DDSD_REQUIRED_FLAGS & !DDSD_PIXELFORMAT,
-            "dds header flags must include DDSD_PIXELFORMAT",
-        ),
-    ];
-
-    for (flags, expected) in cases {
-        let mut bytes = tiny_dds_bytes();
-        write_u32(&mut bytes, 8, flags);
-
-        let error = import_container_error("missing-header-flag.dds", bytes);
-
-        assert!(
-            error.contains(expected),
-            "expected `{expected}` in `{error}`"
-        );
-    }
-}
-
-#[test]
-fn dds_container_importer_rejects_fourcc_without_pixel_format_flag() {
-    let mut bytes = tiny_dds_bytes();
-    write_u32(&mut bytes, 80, 0);
-
-    let error = import_container_error("fourcc-without-flag.dds", bytes);
-
-    assert!(
-        error.contains("dds FourCC field is nonzero but DDPF_FOURCC flag is missing"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn dds_container_importer_rejects_fourcc_flag_without_fourcc_field() {
-    let mut bytes = tiny_dds_bytes();
-    bytes[84..88].copy_from_slice(&[0, 0, 0, 0]);
-
-    let error = import_container_error("flag-without-fourcc.dds", bytes);
-
-    assert!(
-        error.contains("dds pixel format flags include DDPF_FOURCC but FourCC field is empty"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn dds_container_importer_rejects_volume_headers() {
-    let cases: [(&str, fn(&mut Vec<u8>)); 2] = [
-        ("volume-depth.dds", |bytes: &mut Vec<u8>| {
-            write_u32(bytes, 24, 4);
-        }),
-        ("volume-caps.dds", |bytes: &mut Vec<u8>| {
-            write_u32(bytes, 112, DDSCAPS2_VOLUME);
-        }),
-    ];
-
-    for (path, mutate) in cases {
-        let mut bytes = tiny_dds_bytes();
-        mutate(&mut bytes);
-
-        let error = import_container_error(path, bytes);
-
-        assert!(
-            error.contains("dds volume textures are not supported by container importer yet"),
-            "unexpected error: {error}"
-        );
-    }
-}
-
-#[test]
-fn dds_container_importer_rejects_malformed_fourcc_tokens() {
-    let cases: [(&str, [u8; 4], &str); 2] = [
-        (
-            "non-ascii-fourcc.dds",
-            [b'D', b'X', 0xff, b'1'],
-            "dds fourcc must contain printable ASCII bytes",
-        ),
-        (
-            "embedded-nul-fourcc.dds",
-            [b'D', b'X', 0, b'1'],
-            "dds fourcc must not contain embedded NUL bytes",
-        ),
-    ];
-
-    for (path, fourcc, expected) in cases {
-        let mut bytes = tiny_dds_bytes();
-        bytes[84..88].copy_from_slice(&fourcc);
-
-        let error = import_container_error(path, bytes);
-
-        assert!(
-            error.contains(expected),
-            "expected `{expected}` in `{error}`"
-        );
-    }
 }

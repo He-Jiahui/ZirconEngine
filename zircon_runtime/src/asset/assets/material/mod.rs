@@ -7,7 +7,10 @@ mod validation;
 mod zmaterial;
 
 pub use alpha_mode::AlphaMode;
-pub use material_asset::MaterialAsset;
+pub use material_asset::{
+    MaterialAsset, MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
+    MaterialAssetManagementRecordSetSummary, MaterialAssetOverview,
+};
 pub use property_values::shader_property_values_for_shader;
 pub use texture_slot::MaterialTextureSlotValue;
 pub use validation::{validate_alpha_mode, validate_shader_contract, validate_wgsl_captures};

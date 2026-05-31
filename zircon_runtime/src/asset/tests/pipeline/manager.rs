@@ -655,6 +655,7 @@ fn sample_virtual_geometry_model_asset() -> ModelAsset {
                 MeshVertex::new(Vec3::Z, Vec3::Y, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
+            mesh: None,
             virtual_geometry: Some(VirtualGeometryAsset {
                 hierarchy_buffer: vec![
                     VirtualGeometryHierarchyNodeAsset {

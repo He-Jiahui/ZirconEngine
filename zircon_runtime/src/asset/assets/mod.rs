@@ -34,16 +34,23 @@ pub use data::{DataAsset, DataAssetFormat};
 pub use font::{FontAsset, FontAssetError};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
-    validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialTextureSlotValue, ZMaterialDocument,
+    validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
+    MaterialAssetManagementRecordSet, MaterialAssetManagementRecordSetSummary,
+    MaterialAssetOverview, MaterialTextureSlotValue, ZMaterialDocument,
 };
 pub use mesh::{
-    MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MeshAsset, MeshAssetManagementRecord, MeshAssetManagementRecordFailure,
+    MeshAssetManagementRecordSet, MeshAssetManagementRecordSetSummary, MeshAssetOverview,
+    MeshAssetUsage, MeshAttributeFormat, MeshAttributeSummary, MeshAttributeValues,
+    MeshIndexFormat, MeshIndices, MeshMorphTargetAsset, MeshMorphTargetAttributeSummary,
     MeshSkinAsset, MeshValidationError, ZMeshDocument, MESH_ATTRIBUTE_COLOR,
     MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
     MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, ZMESH_DOCUMENT_VERSION,
 };
 pub use model::{
-    ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
+    ModelAsset, ModelAssetManagementRecord, ModelAssetManagementRecordSet,
+    ModelAssetManagementRecordSetSummary, ModelAssetOverview, ModelPrimitiveAsset,
+    ModelPrimitiveOverview, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
     VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
     VirtualGeometryRootClusterRangeAsset,
@@ -56,21 +63,26 @@ pub use physics_material::PhysicsMaterialAsset;
 pub use scene::{
     SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
     SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
-    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
-    SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
-    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset, SceneViewportRectAsset,
-    TransformAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneAssetManagementRecord,
+    SceneAssetManagementRecordSet, SceneAssetManagementRecordSetSummary, SceneAssetOverview,
+    SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneDirectionalLightAsset, SceneEntityAsset, SceneEntityManagementRecord,
+    SceneEntityManagementRecordSet, SceneEntityManagementRecordSetSummary, SceneEntityOverview,
+    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset,
+    SceneMobilityAsset, ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset,
+    SceneRigidBodyTypeAsset, SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset,
+    SceneViewportRectAsset, TransformAsset,
 };
 pub use shader::{
-    ShaderAsset, ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness,
-    ShaderDefinitionReadiness, ShaderDependencyAsset, ShaderEntryPointAsset,
-    ShaderEntryPointReadiness, ShaderImportReadiness, ShaderImportRedirectAsset,
-    ShaderMaterialPropertyAsset, ShaderPipelineLayoutReadiness, ShaderReadinessReport,
-    ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness, ShaderSourceFileAsset,
-    ShaderSourceLanguage, ShaderTextureSlotAsset, ZShaderDefinitionValueDocument, ZShaderDocument,
-    ZShaderEntryPointDocument, ZShaderImportDocument, ZShaderTextureSlotDocument,
+    ShaderAsset, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
+    ShaderAssetManagementRecordSetSummary, ShaderAssetReadinessSummary,
+    ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness, ShaderDefinitionReadiness,
+    ShaderDependencyAsset, ShaderEntryPointAsset, ShaderEntryPointReadiness, ShaderImportReadiness,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderPipelineLayoutReadiness,
+    ShaderReadinessReport, ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness,
+    ShaderSourceFileAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
+    ZShaderDefinitionValueDocument, ZShaderDocument, ZShaderEntryPointDocument,
+    ZShaderImportDocument, ZShaderTextureSlotDocument,
 };
 pub use sound::SoundAsset;
 pub use sprite_atlas::{
@@ -80,7 +92,7 @@ pub use sprite_atlas::{
 pub use texture::{
     TextureArrayLayout, TextureAsset, TextureAssetDescriptor, TexturePayload,
     TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, RGBA8_UNORM_SRGB_FORMAT,
+    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset,

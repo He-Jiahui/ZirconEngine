@@ -59,6 +59,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimePluginId::ZrVmLanguage,
         "zircon_plugin_zr_vm_language_runtime",
     )
+    .with_category("runtime")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::ServerRuntime,
@@ -67,6 +69,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     .with_enabled_by_default(false)
     .with_capability("runtime.plugin.zr_vm_language")
     .with_capability("runtime.script.backend.zr_vm_project")
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.plugin.zr_vm_language",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.script.backend.zr_vm_project",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
 }
 
 pub fn runtime_plugin() -> ZrVmLanguageRuntimePlugin {
@@ -110,6 +120,28 @@ mod tests {
             .package_manifest
             .capabilities
             .contains(&"runtime.script.backend.zr_vm_project".to_string()));
+        assert_eq!(report.package_manifest.category, "runtime");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Experimental
+        );
+        for capability in [
+            "runtime.plugin.zr_vm_language",
+            "runtime.script.backend.zr_vm_project",
+        ] {
+            assert!(report
+                .package_manifest
+                .capabilities
+                .contains(&capability.to_string()));
+            assert!(report
+                .package_manifest
+                .capability_statuses
+                .iter()
+                .any(|status| {
+                    status.capability == capability
+                        && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                }));
+        }
     }
 
     #[test]

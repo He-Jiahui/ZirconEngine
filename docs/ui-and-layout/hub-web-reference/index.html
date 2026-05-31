@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zircon Hub Web Reference</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="covers.css">
+  <link rel="stylesheet" href="responsive.css">
+  <link rel="stylesheet" href="fullscreen-preview.css">
+  <link rel="stylesheet" href="interaction-states.css">
+  <script src="cover-rendering.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="interaction-enhancements.js" defer></script>
+</head>
+<body>
+  <main class="hub-shell" aria-label="Zircon Hub reference layout">
+    <header class="topbar">
+      <section class="brand-block" aria-label="Zircon Hub">
+        <img class="brand-logo" src="../../../zircon_hub/assets/brand/zircon-mark.svg" alt="">
+        <div>
+          <h1>ZIRCON HUB</h1>
+          <p>Game Engine</p>
+        </div>
+      </section>
+
+      <button class="engine-select" type="button" data-route="hub-source-engine-popup">
+        <span>Zircon Engine 1.8.2</span>
+        <img src="../../../zircon_hub/assets/icons/ui/chevron-down.svg" alt="">
+      </button>
+
+      <section class="status-group" aria-label="Engine status">
+        <span class="status-pill running"><img src="../../../zircon_hub/assets/icons/status/reference-running.svg" alt="">Running</span>
+        <span class="status-pill success"><img src="../../../zircon_hub/assets/icons/status/reference-success.svg" alt="">Success</span>
+        <span class="status-pill warning"><img src="../../../zircon_hub/assets/icons/status/reference-warning.svg" alt="">Warning</span>
+        <span class="status-pill error"><img src="../../../zircon_hub/assets/icons/status/reference-error.svg" alt="">Error</span>
+      </section>
+
+      <section class="top-actions" aria-label="Window actions">
+        <button class="icon-only" type="button" data-route="hub-state-loading"><img src="../../../zircon_hub/assets/icons/ui/bell.svg" alt=""></button>
+        <button class="icon-only" type="button" data-route="hub-learn"><img src="../../../zircon_hub/assets/icons/ui/help.svg" alt=""></button>
+        <button class="icon-only" type="button" data-route="hub-settings"><img src="../../../zircon_hub/assets/icons/ui/settings.svg" alt=""></button>
+        <span class="divider"></span>
+        <button class="user-menu" type="button" data-route="hub-user-menu"><span>AD</span> Alex Developer <img src="../../../zircon_hub/assets/icons/ui/chevron-down.svg" alt=""></button>
+        <span class="divider"></span>
+        <button class="window-control" type="button" data-ui-action="window-minimize">-</button>
+        <button class="window-control square" type="button" data-ui-action="window-maximize"></button>
+        <button class="window-control close" type="button" data-ui-action="window-close">x</button>
+      </section>
+    </header>
+
+    <aside class="sidebar">
+      <nav id="hub-nav" class="nav-list" aria-label="Hub sections"></nav>
+
+      <section class="engine-card">
+        <strong><span></span>Engine Status</strong>
+        <p>Zircon Engine 1.8.2</p>
+        <em>Up to date</em>
+        <button type="button"><img src="../../../zircon_hub/assets/icons/ui/refresh.svg" alt="">Check for Updates</button>
+      </section>
+
+      <button class="collapse-button" type="button" data-ui-action="toggle-sidebar"><img src="../../../zircon_hub/assets/icons/ui/collapse.svg" alt="">Collapse</button>
+    </aside>
+
+    <section id="workspace" class="workspace" aria-live="polite"></section>
+
+    <section class="button-states" aria-label="Button states">
+      <div class="state-group primary-states">
+        <h3>Button States</h3>
+        <p>Primary</p>
+        <div><button type="button" data-ui-action="demo-state">Default</button><button type="button" data-ui-action="demo-state">Hover</button><button type="button" data-ui-action="demo-state">Pressed</button><button type="button" disabled>Disabled</button></div>
+      </div>
+      <div class="state-group secondary-states">
+        <p>Secondary</p>
+        <div><button type="button" data-ui-action="demo-state">Default</button><button type="button" data-ui-action="demo-state">Hover</button><button type="button" data-ui-action="demo-state">Pressed</button><button type="button" disabled>Disabled</button></div>
+      </div>
+      <div class="state-group tertiary-states">
+        <p>Tertiary</p>
+        <div><button type="button" data-ui-action="demo-state">Default</button><button type="button" data-ui-action="demo-state">Hover</button><button type="button" data-ui-action="demo-state">Pressed</button><button type="button" disabled>Disabled</button></div>
+      </div>
+      <div class="state-group icon-states">
+        <p>Icon</p>
+        <div><button type="button" data-ui-action="demo-state"><img src="../../../zircon_hub/assets/icons/ui/plus.svg" alt=""></button><button type="button" data-ui-action="demo-state"><img src="../../../zircon_hub/assets/icons/ui/plus.svg" alt=""></button><button type="button" data-ui-action="demo-state"><img src="../../../zircon_hub/assets/icons/ui/plus.svg" alt=""></button><button type="button" disabled><img src="../../../zircon_hub/assets/icons/ui/plus.svg" alt=""></button></div>
+      </div>
+    </section>
+
+    <div id="overlay-root" class="overlay-root" aria-hidden="true"></div>
+  </main>
+</body>
+</html>

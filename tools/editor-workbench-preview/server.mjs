@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { extname, join, resolve } from "node:path";
 
 const host = "127.0.0.1";
-const port = 5173;
+const port = Number.parseInt(process.env.ZIRCON_WORKBENCH_PREVIEW_PORT ?? "5173", 10);
 const rootDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const fixtureDir = resolve(rootDir, "../../zircon_editor/fixtures/workbench");
 const iconDir = resolve(rootDir, "../../zircon_editor/assets/icons/ionicons");
@@ -13,6 +13,7 @@ const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
 };

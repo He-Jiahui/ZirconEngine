@@ -11,6 +11,18 @@ fn source(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
+fn png_dimensions(bytes: &[u8]) -> (u32, u32) {
+    assert!(bytes.len() >= 24, "PNG data should include an IHDR header");
+    assert_eq!(
+        &bytes[..8],
+        b"\x89PNG\r\n\x1a\n",
+        "reference asset should be a PNG"
+    );
+    let width = u32::from_be_bytes(bytes[16..20].try_into().expect("PNG width bytes"));
+    let height = u32::from_be_bytes(bytes[20..24].try_into().expect("PNG height bytes"));
+    (width, height)
+}
+
 fn assert_no_files_with_extension(root: PathBuf, extension: &str) {
     if !root.exists() {
         return;
@@ -148,8 +160,14 @@ fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
 #[test]
 fn build_script_tracks_editor_assets_not_deleted_ui_sources() {
     let build = source("build.rs");
+    let workbench_reference =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui/editor/reference/workbench.png");
 
     assert!(build.contains("emit_rerun_if_changed_recursive(\"assets\")"));
+    assert!(
+        workbench_reference.exists(),
+        "workbench reference baseline must live under tracked editor assets"
+    );
     assert!(!build.contains("emit_rerun_if_changed_recursive(\"ui\")"));
     assert!(!build.contains("compile_retained_ui"));
 }
@@ -261,7 +279,23 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
         ),
         (
             "assets/ui/editor/host/workbench_shell.v2.ui.toml",
-            &["UiHostWindow", "activity_rail", "document_host", "menu_bar"],
+            &[
+                "UiHostWindow",
+                "activity_rail",
+                "document_host",
+                "menu_bar",
+                "WorkbenchShellReferenceImage",
+                "ui/editor/reference/workbench.png",
+            ],
+        ),
+        (
+            "assets/ui/editor/windows/workbench_window.v2.ui.toml",
+            &[
+                "WorkbenchReferenceImage",
+                "ui/editor/reference/workbench.png",
+                "reference_width = 1672.0",
+                "reference_height = 941.0",
+            ],
         ),
         (
             "assets/ui/editor/host/workbench_drawer_source.v2.ui.toml",
@@ -298,6 +332,82 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
         for &marker in *markers {
             assert!(asset.contains(marker), "{relative} missing `{marker}`");
         }
+    }
+}
+
+#[test]
+fn workbench_reference_visual_asset_matches_docs_baseline() {
+    let editor_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let repo_root = editor_root
+        .parent()
+        .expect("zircon_editor lives directly under workspace root");
+    let docs_path = repo_root.join("docs/ui-and-layout/workbench.png");
+    let asset_path = editor_root.join("assets/ui/editor/reference/workbench.png");
+
+    let docs_bytes = fs::read(&docs_path)
+        .unwrap_or_else(|error| panic!("read `{}`: {error}", docs_path.display()));
+    let asset_bytes = fs::read(&asset_path)
+        .unwrap_or_else(|error| panic!("read `{}`: {error}", asset_path.display()));
+
+    assert_eq!(
+        asset_bytes.len(),
+        docs_bytes.len(),
+        "editor workbench reference asset should keep the docs baseline byte length"
+    );
+    assert!(
+        asset_bytes == docs_bytes,
+        "editor workbench reference asset should stay byte-identical to docs/ui-and-layout/workbench.png"
+    );
+    assert_eq!(png_dimensions(&asset_bytes), (1672, 941));
+
+    let workbench = source("assets/ui/editor/windows/workbench_window.v2.ui.toml");
+    for required in [
+        "component = \"Image\"",
+        "WorkbenchReferenceFrame",
+        "WorkbenchReferenceImage",
+        "ui/editor/reference/workbench.png",
+        "docs/ui-and-layout/workbench.png",
+    ] {
+        assert!(
+            workbench.contains(required),
+            "workbench window visual baseline missing `{required}`"
+        );
+    }
+
+    let shell = source("assets/ui/editor/host/workbench_shell.v2.ui.toml");
+    for required in [
+        "component = \"Image\"",
+        "WorkbenchShellReferenceImage",
+        "ui/editor/reference/workbench.png",
+        "docs/ui-and-layout/workbench.png",
+        "input_policy = \"Ignore\"",
+    ] {
+        assert!(
+            shell.contains(required),
+            "workbench shell visual baseline missing `{required}`"
+        );
+    }
+
+    let builtin_documents = crate::ui::template_runtime::builtin::builtin_template_documents();
+    for (document_id, expected_suffix) in [
+        (
+            "ui.host_window",
+            "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+        ),
+        (
+            "editor.window.workbench",
+            "assets/ui/editor/windows/workbench_window.v2.ui.toml",
+        ),
+    ] {
+        let route_path = builtin_documents
+            .iter()
+            .find_map(|(candidate, path)| (*candidate == document_id).then_some(path))
+            .unwrap_or_else(|| panic!("builtin template registry missing `{document_id}`"));
+        let normalized = route_path.to_string_lossy().replace('\\', "/");
+        assert!(
+            normalized.ends_with(expected_suffix),
+            "builtin template `{document_id}` should route to `{expected_suffix}`, got `{normalized}`"
+        );
     }
 }
 

@@ -275,6 +275,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
@@ -331,6 +332,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
@@ -558,6 +560,7 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         node_id: 600,
         transform: Transform::default(),
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
+        mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
             "res://materials/not-registered",
         )),

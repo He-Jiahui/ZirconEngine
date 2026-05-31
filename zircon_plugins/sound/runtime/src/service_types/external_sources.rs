@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock,
 };
 
-use crate::descriptor_validation::{
+use crate::descriptor_validation::external_source::{
     validate_external_source_block, validate_external_source_handle,
 };
 

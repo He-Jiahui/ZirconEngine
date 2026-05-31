@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod export;
 mod model;
+mod overlay;
 mod schedule_sections;
 #[cfg(test)]
 mod schedule_sections_tests;
-mod overlay;
 #[cfg(test)]
 mod selection;
 #[cfg(test)]

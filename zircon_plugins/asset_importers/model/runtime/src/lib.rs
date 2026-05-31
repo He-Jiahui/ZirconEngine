@@ -6,9 +6,9 @@ use cad::import_dxf_model;
 use ply_rs_bw as ply;
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetKind, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
-    ImportedAsset, ImportedAssetEntry, MeshAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
-    VirtualGeometryCookConfig,
+    AssetImporterDescriptor, AssetKind, AssetReference, DiagnosticOnlyAssetImporter,
+    FunctionAssetImporter, ImportedAsset, ImportedAssetEntry, MeshAsset, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 use zircon_runtime::core::ModuleDescriptor;
@@ -319,15 +319,23 @@ pub(crate) fn model_outcome(
 
 fn model_outcome_with_mesh_subassets(
     root_uri: zircon_runtime::asset::AssetUri,
-    model: ModelAsset,
+    mut model: ModelAsset,
 ) -> AssetImportOutcome {
-    model.primitives.iter().enumerate().fold(
-        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
-        |outcome, (primitive_index, primitive)| {
-            let mesh_uri = zircon_runtime::asset::AssetUri::parse(&format!(
+    let mesh_uris = (0..model.primitives.len())
+        .map(|primitive_index| {
+            zircon_runtime::asset::AssetUri::parse(&format!(
                 "{root_uri}#Mesh{primitive_index}/Primitive0"
             ))
-            .expect("generated model mesh subasset uri must be valid");
+            .expect("generated model mesh subasset uri must be valid")
+        })
+        .collect::<Vec<_>>();
+    for (primitive, mesh_uri) in model.primitives.iter_mut().zip(mesh_uris.iter()) {
+        primitive.mesh = Some(AssetReference::from_locator(mesh_uri.clone()));
+    }
+
+    mesh_uris.into_iter().zip(model.primitives.iter()).fold(
+        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
+        |outcome, (mesh_uri, primitive)| {
             outcome
                 .with_dependency(mesh_uri.clone())
                 .with_entry(ImportedAssetEntry::new(
@@ -404,6 +412,7 @@ pub(crate) fn primitive_from_indexed_mesh(
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
+        mesh: None,
         virtual_geometry,
     })
 }
@@ -638,6 +647,13 @@ mod tests {
             root.dependencies.contains(&mesh_uri),
             "root dependencies should include {mesh_uri}"
         );
+        match &root.asset {
+            ImportedAsset::Model(model) => {
+                assert_eq!(model.primitives.len(), 1);
+                assert_eq!(model.primitives[0].mesh.as_ref().unwrap().locator, mesh_uri);
+            }
+            other => panic!("unexpected root model asset: {other:?}"),
+        }
         let mesh_entry = outcome
             .entries
             .iter()

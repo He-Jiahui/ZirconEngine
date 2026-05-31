@@ -61,8 +61,8 @@ impl World {
         let mut meshes = self
             .mesh_renderers
             .iter()
-            .filter_map(|(entity, mesh)| {
-                self.render_mesh_snapshot_for_camera(*entity, mesh, &camera_layers)
+            .flat_map(|(entity, mesh)| {
+                self.render_mesh_snapshots_for_camera(*entity, mesh, &camera_layers)
             })
             .collect::<Vec<_>>();
         meshes.sort_by_key(|mesh| mesh.node_id);
@@ -166,8 +166,9 @@ impl World {
         let mut mesh_entries = self
             .mesh_renderers
             .iter()
-            .filter_map(|(entity, mesh)| {
-                self.render_mesh_snapshot_for_camera(*entity, mesh, camera_layers)
+            .flat_map(|(entity, mesh)| {
+                self.render_mesh_snapshots_for_camera(*entity, mesh, camera_layers)
+                    .into_iter()
                     .map(|snapshot| (snapshot, mesh.material_alpha_mode))
             })
             .collect::<Vec<_>>();
@@ -175,7 +176,7 @@ impl World {
 
         let meshes = mesh_entries
             .iter()
-            .map(|(mesh, _)| mesh.clone())
+            .map(|(mesh, _)| (*mesh).clone())
             .collect::<Vec<_>>();
         let phase_inputs = mesh_entries
             .iter()
@@ -193,31 +194,51 @@ impl World {
         (meshes, phase_inputs)
     }
 
-    fn render_mesh_snapshot_for_camera(
+    fn render_mesh_snapshots_for_camera(
         &self,
         entity: crate::scene::EntityId,
         mesh: &MeshRenderer,
         camera_layers: &RenderLayerSet,
-    ) -> Option<RenderMeshSnapshot> {
+    ) -> Vec<RenderMeshSnapshot> {
         if self.active_in_hierarchy(entity) != Some(true) {
-            return None;
+            return Vec::new();
         }
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
         if !camera_layers.intersects_legacy_mask(render_layer_mask) {
-            return None;
+            return Vec::new();
         }
 
-        Some(RenderMeshSnapshot {
+        let transform = self.world_transform(entity).unwrap_or_default();
+        let mobility = self.mobility(entity).unwrap_or_default();
+        if !mesh.primitives.is_empty() {
+            return mesh
+                .primitives
+                .iter()
+                .map(|primitive| RenderMeshSnapshot {
+                    node_id: entity,
+                    transform,
+                    model: mesh.model,
+                    mesh: Some(primitive.mesh),
+                    material: primitive.material,
+                    tint: mesh.tint,
+                    mobility,
+                    render_layer_mask,
+                })
+                .collect();
+        }
+
+        vec![RenderMeshSnapshot {
             node_id: entity,
-            transform: self.world_transform(entity).unwrap_or_default(),
+            transform,
             model: mesh.model,
+            mesh: mesh.mesh,
             material: mesh.material,
             tint: mesh.tint,
-            mobility: self.mobility(entity).unwrap_or_default(),
+            mobility,
             render_layer_mask,
-        })
+        }]
     }
 
     fn collect_render_sprites(&self, camera_layers: &RenderLayerSet) -> Vec<RenderSpriteSnapshot> {

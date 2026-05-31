@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.post_process";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.post_process";
 pub const FEATURE_NAME: &str = "post_process";
 pub const EXECUTOR_ID: &str = "post.stack";
 

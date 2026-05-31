@@ -1,37 +1,6 @@
 import { TeamData, TeamMemberData, UiTextData } from "shared.slint";
-import { EmptyStateBlock, HubTokens, InfoRow, MaterialStyleMetrics, MetricCard, OverviewPanel, PageScrollSurface, PanelHeader, PanelListViewport, PanelSlot, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
-
-component TeamMemberRow inherits InfoRow {
-    in property <TeamMemberData> member;
-    in property <UiTextData> ui-text;
-    in property <bool> collapse-label: false;
-
-    title: root.member.name;
-    detail: root.member.email;
-    meta: "";
-    leading-image: @image-url("../assets/icons/nav/team.svg");
-    has-leading-image: true;
-    accent: root.member.accent;
-    trailing-text: root.member.commits + " " + root.ui-text.team-commits;
-    trailing-tone: "accent";
-    show-trailing-badge: true;
-    collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-lg;
-}
-
-component TeamSummarySlot inherits ResponsiveSlot {
-    in property <string> label;
-    in property <string> primary;
-    in property <string> secondary;
-
-    MetricCard {
-        width: parent.width;
-        height: parent.height;
-        label: root.label;
-        primary: root.primary;
-        secondary: root.secondary;
-    }
-}
+import { HubTokens, HubVisualSpec, OverviewPanel, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
+import { TeamMembersPanel, TeamSummarySlot } from "team_page_components.slint";
 
 export component TeamPage inherits PageScrollSurface {
     in property <TeamData> summary;
@@ -57,8 +26,13 @@ export component TeamPage inherits PageScrollSurface {
     private property <string> workspace-title: root.has-selected-project ? root.ui-text.team-workspace-selected : root.ui-text.team-workspace;
     private property <string> members-empty-detail: root.has-selected-project ? root.ui-text.team-empty-selected-detail : root.ui-text.team-empty-global-detail;
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
+
+    label-collapse := ResponsiveCollapse {
+        content-width: root.content-width;
+        collapse-at: HubTokens.breakpoint-medium;
+    }
 
     OverviewPanel {
         height: root.header-height;
@@ -103,40 +77,16 @@ export component TeamPage inherits PageScrollSurface {
         }
     }
 
-    PanelSlot {
+    TeamMembersPanel {
         horizontal-stretch: 1;
         height: root.members-panel-height;
-        body-padding: MaterialStyleMetrics.padding_16;
-        body-spacing: HubTokens.toolbar-gap;
-
-        PanelHeader {
-            title: root.ui-text.team-members-found;
-            show-badge: true;
-            badge-text: root.member-count + "";
-            badge-tone: "neutral";
-        }
-
-        PanelListViewport {
-            scroll-y <=> root.member-scroll-y;
-            row-count: root.member-count;
-            row-height: root.member-row-height;
-            empty-height: HubTokens.list-row-lg + HubTokens.space-4;
-
-            if root.member-count == 0: EmptyStateBlock {
-                height: HubTokens.list-row-lg + HubTokens.space-4;
-                title: root.ui-text.no-team-members-found;
-                detail: root.members-empty-detail;
-                extra-detail: root.summary.repository-path;
-                body-padding: MaterialStyleMetrics.padding_16;
-                center-content: true;
-            }
-
-            for member in root.members: TeamMemberRow {
-                row-height: root.member-row-height;
-                member: member;
-                ui-text: root.ui-text;
-                collapse-label: root.content-width < HubTokens.breakpoint-medium;
-            }
-        }
+        members: root.members;
+        member-count: root.member-count;
+        member-row-height: root.member-row-height;
+        members-empty-detail: root.members-empty-detail;
+        repository-path: root.summary.repository-path;
+        ui-text: root.ui-text;
+        collapse-label: label-collapse.collapsed;
+        member-scroll-y <=> root.member-scroll-y;
     }
 }

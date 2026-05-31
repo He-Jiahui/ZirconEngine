@@ -73,7 +73,7 @@ fn builds_navigation_copy_targets_selected_project() {
 fn shell_context_copy_uses_selected_project_label() {
     let localization = read_crate_file("src/app/localization.rs");
     let shared = read_crate_file("ui/shared.slint");
-    let shell = read_crate_file("ui/shell.slint");
+    let shell_page = read_crate_file("ui/shell_page_components.slint");
 
     assert!(
         localization.contains("current_project: text(language, \"Selected Project\", \"选中项目\"),"),
@@ -84,8 +84,8 @@ fn shell_context_copy_uses_selected_project_label() {
         "UiTextData should retain the current-project field as an additive-compatible Slint interface"
     );
     assert!(
-        shell.contains("root.ui-text.current-project"),
-        "Shell chrome should continue consuming the shared project-context label from UiTextData"
+        shell_page.contains("root.ui-text.current-project"),
+        "Bottom shell context should continue consuming the shared project-context label from UiTextData"
     );
     assert!(
         !localization
@@ -171,15 +171,17 @@ fn plugins_navigation_copy_targets_project_manifests_and_source_engine() {
 fn cloud_navigation_copy_stays_local_and_offline() {
     let navigation = read_crate_file("src/state/navigation.rs");
     let cloud_ui = read_crate_file("ui/cloud.slint");
+    let cloud_components = read_crate_file("ui/cloud_page_components.slint");
     let shared = read_crate_file("ui/shared.slint");
     let localization = read_crate_file("src/app/localization.rs");
+    let cloud_projection = read_crate_file("src/app/view_model/cloud.rs");
     assert!(
-        navigation.contains("Self::Cloud => \"Packages\","),
-        "Cloud route should present as Packages in the navigation title while keeping the stable cloud id"
+        navigation.contains("Self::Cloud => \"Cloud\","),
+        "Cloud route should keep the reference navigation title while retaining the local package implementation"
     );
     assert!(
-        localization.contains("HubPage::Cloud => text(language, \"Packages\", \"本地包\"),"),
-        "Localized Cloud page title should present as Packages/local package instead of a remote cloud service"
+        localization.contains("HubPage::Cloud => text(language, \"Cloud\", \"云服务\"),"),
+        "Localized Cloud page title should match the reference navigation label while local package sections keep their own copy"
     );
     assert!(
         navigation.contains("Self::Cloud => \"Local packages, installs, and reserved service slots.\","),
@@ -190,13 +192,35 @@ fn cloud_navigation_copy_stays_local_and_offline() {
         "Local Packages - Selected Project",
         "Local packages, installs, output status, and reserved service slots.",
         "local-mode-status: string,",
+        "package-action-detail: string,",
+        "package-action-enabled: bool,",
+        "install-action-detail: string,",
+        "install-action-enabled: bool,",
+        "operation-timeline-title: string,",
+        "operation-timeline-empty-title: string,",
+        "operation-timeline-empty-detail: string,",
         "cloud-local-mode: string,",
+        "cloud-package-action: string,",
+        "cloud-install-action: string,",
         "cloud_local_mode: text(language, \"Local Mode\", \"本地模式\"),",
+        "cloud_package_action: text(language, \"Package Selected Project\", \"打包选中项目\"),",
+        "cloud_install_action: text(language, \"Install Selected Project\", \"安装选中项目\"),",
+        "Cloud Operation Status",
+        "No package or install operations yet",
         "label: root.ui-text.cloud-local-mode;",
         "primary: root.summary.local-mode-status;",
+        "action-title: root.ui-text.cloud-package-action;",
+        "action-title: root.ui-text.cloud-install-action;",
+        "OperationTimelinePanel {",
+        "timeline-title: root.summary.operation-timeline-title;",
+        "operation-timeline: root.operation-timeline;",
     ] {
         assert!(
-            shared.contains(snippet) || localization.contains(snippet) || cloud_ui.contains(snippet),
+            shared.contains(snippet)
+                || localization.contains(snippet)
+                || cloud_projection.contains(snippet)
+                || cloud_ui.contains(snippet)
+                || cloud_components.contains(snippet),
             "Cloud visible local-mode metric should use local/offline field names while retaining additive compatibility; missing {snippet}"
         );
     }
@@ -207,8 +231,6 @@ fn cloud_navigation_copy_stays_local_and_offline() {
         );
     }
     for forbidden in [
-        "Self::Cloud => \"Cloud\",",
-        "HubPage::Cloud => text(language, \"Cloud\", \"云服务\"),",
         "Self::Cloud => \"Cloud services and account connections.\"",
         "account connections",
         "Local Cloud Overview",
@@ -226,7 +248,9 @@ fn cloud_navigation_copy_stays_local_and_offline() {
         );
     }
     assert!(
-        cloud_ui.contains("trailing-tone: root.service.status == \"Ready\" ? \"ok\" : \"neutral\";"),
+        cloud_ui.contains("trailing-tone: root.service.status == \"Ready\" ? \"ok\" : \"neutral\";")
+            || cloud_components
+                .contains("trailing-tone: root.service.status == \"Ready\" ? \"ok\" : \"neutral\";"),
         "Cloud service rows should use local/offline neutral status tones without a stale Not connected branch"
     );
 }

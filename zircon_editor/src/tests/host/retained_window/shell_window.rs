@@ -20,14 +20,13 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
-fn workbench_shell_window_can_resize_and_toggle_maximize() {
+fn workbench_shell_window_starts_at_reference_size_and_can_resize() {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
         .expect("workbench shell should show in test backend");
 
     let initial = ui.window().size();
-    assert!(initial.width > 0);
-    assert!(initial.height > 0);
+    assert_eq!(initial, PhysicalSize::new(1672, 941));
 
     ui.window()
         .set_size(PhysicalSize::new(initial.width + 120, initial.height + 80));

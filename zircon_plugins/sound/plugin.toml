@@ -2,7 +2,11 @@ id = "sound"
 version = "0.1.0"
 display_name = "Sound"
 description = "Optional runtime audio and editor sound authoring package."
+sdk_api_version = "0.1.0"
+category = "runtime"
 maturity = "beta"
+supported_targets = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.sound"]
 content_roots = ["editor"]
 default_packaging = ["source_template", "library_embed"]
 
@@ -29,7 +33,7 @@ capability = "runtime.capability.ray_query"
 [[dependencies]]
 id = "timeline_sequence"
 required = false
-capability = "editor.extension.timeline_authoring"
+capability = "editor.extension.timeline_sequence_authoring"
 
 [[options]]
 key = "sound.backend"
@@ -134,7 +138,7 @@ key = "sound.timeline_integration"
 display_name = "Timeline Automation"
 value_type = "bool"
 default_value = "true"
-required_capability = "editor.extension.timeline_authoring"
+required_capability = "editor.extension.timeline_sequence_authoring"
 
 [[options]]
 key = "sound.dynamic_events_enabled"
@@ -145,7 +149,11 @@ default_value = "true"
 [[event_catalogs]]
 namespace = "sound.dynamic_events"
 version = 1
-events = []
+events = [
+    { id = "sound.dynamic_events.impact", display_name = "Impact", payload_schema = "sound.dynamic.impact.v1" },
+    { id = "sound.dynamic_events.marker", display_name = "Marker", payload_schema = "sound.dynamic.marker.v1" },
+    { id = "sound.dynamic_events.ambient_stinger", display_name = "Ambient Stinger", payload_schema = "sound.dynamic.ambient_stinger.v1" },
+]
 
 [[modules]]
 name = "sound.runtime"
@@ -191,7 +199,7 @@ name = "sound.timeline_animation_track.editor"
 kind = "editor"
 crate_name = "zircon_plugin_sound_timeline_animation_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.sound.timeline_animation_track"]
 
 [[optional_features]]
 id = "sound.ray_traced_convolution_reverb"
@@ -228,4 +236,4 @@ name = "sound.ray_traced_convolution_reverb.editor"
 kind = "editor"
 crate_name = "zircon_plugin_sound_ray_traced_convolution_editor"
 target_modes = ["editor_host"]
-capabilities = []
+capabilities = ["editor.feature.sound.ray_traced_convolution_reverb"]

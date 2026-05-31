@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundPlaybackSettings};
 
-use crate::automation::ensure_finite_value;
+use crate::automation::values::ensure_finite_value;
 use crate::engine::LoadedClip;
 
 pub(super) fn validate_playback_speed(speed: f32) -> Result<f32, SoundError> {

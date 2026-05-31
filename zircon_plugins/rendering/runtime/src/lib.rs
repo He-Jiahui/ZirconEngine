@@ -67,6 +67,10 @@ impl RenderingFeatureKind {
         format!("runtime.feature.rendering.{}", self.id_suffix())
     }
 
+    pub fn editor_capability(self) -> String {
+        format!("editor.feature.rendering.{}", self.id_suffix())
+    }
+
     pub fn runtime_crate(self) -> String {
         format!("zircon_plugin_rendering_{}_runtime", self.id_suffix())
     }
@@ -134,6 +138,7 @@ pub fn feature_manifest(
 ) -> zircon_runtime::plugin::PluginFeatureBundleManifest {
     let feature_id = feature.feature_id();
     let capability = feature.runtime_capability();
+    let editor_capability = feature.editor_capability();
     let mut manifest = zircon_runtime::plugin::PluginFeatureBundleManifest::new(
         feature_id.clone(),
         feature.display_name(),
@@ -155,10 +160,13 @@ pub fn feature_manifest(
         ])
         .with_capabilities([capability]),
     )
-    .with_editor_module(zircon_runtime::plugin::PluginModuleManifest::editor(
-        format!("{feature_id}.editor"),
-        feature.editor_crate(),
-    ))
+    .with_editor_module(
+        zircon_runtime::plugin::PluginModuleManifest::editor(
+            format!("{feature_id}.editor"),
+            feature.editor_crate(),
+        )
+        .with_capabilities([editor_capability]),
+    )
     .enabled_by_default(feature.enabled_by_default());
 
     if feature == RenderingFeatureKind::VfxGraph {
@@ -220,6 +228,25 @@ mod tests {
                 "rendering.baked_lighting",
             ]
         );
+    }
+
+    #[test]
+    fn rendering_feature_manifests_declare_editor_capabilities() {
+        for feature_kind in RENDERING_FEATURES {
+            let manifest = feature_manifest(*feature_kind);
+            let editor_capability = feature_kind.editor_capability();
+            let editor_module = manifest
+                .modules
+                .iter()
+                .find(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Editor)
+                .expect("rendering feature editor module");
+
+            assert!(
+                editor_module.capabilities.contains(&editor_capability),
+                "{} editor module should project {editor_capability}",
+                manifest.id
+            );
+        }
     }
 
     #[test]

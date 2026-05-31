@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "design:export": "node export-designs.mjs",
+    "design:export:only": "node export-designs.mjs",
+    "design:verify": "node verify-designs.mjs",
+    "design:verify:reference-negative": "node verify-reference-negative-guard.mjs"
   }
 }

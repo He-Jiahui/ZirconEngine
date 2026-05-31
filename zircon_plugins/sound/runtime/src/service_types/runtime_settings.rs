@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixBlock};
 
-use crate::automation::ensure_finite_value;
+use crate::automation::values::ensure_finite_value;
 
 use super::DefaultSoundManager;
 

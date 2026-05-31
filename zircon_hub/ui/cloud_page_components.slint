@@ -1,0 +1,140 @@
+import { CloudServiceData, CloudSummaryData, UiTextData } from "shared.slint";
+import {
+    ActionRow,
+    EmptyStateBlock,
+    HubListPanelSlot,
+    HubTokens,
+    InfoRow,
+    MaterialStyleMetrics,
+    MetricCard,
+    ResponsiveSlot,
+} from "components.slint";
+
+export component CloudPackageActionRow inherits ActionRow {
+    in property <string> action-id;
+    in property <image> action-icon;
+    in property <string> action-title;
+    in property <string> action-detail;
+    in property <bool> action-enabled: true;
+    callback triggered(string);
+
+    action: {
+        id: root.action-id,
+        icon: "",
+        icon-image: root.action-icon,
+        has-icon-image: true,
+        title: root.action-title,
+        detail: root.action-detail,
+        enabled: root.action-enabled,
+    };
+
+    activate(id) => {
+        root.triggered(id);
+    }
+}
+
+export component CloudServiceRow inherits InfoRow {
+    in property <CloudServiceData> service;
+    in property <bool> collapse-label: false;
+
+    title: root.service.title;
+    detail: root.service.detail;
+    meta: "";
+    leading-image: root.service.accent == 0 ? @image-url("../assets/icons/nav/cloud.svg") : (root.service.accent == 1 ? @image-url("../assets/icons/actions/build-project.svg") : @image-url("../assets/icons/actions/package-project.svg"));
+    has-leading-image: true;
+    accent: root.service.accent;
+    trailing-text: root.service.status;
+    trailing-tone: root.service.status == "Ready" ? "ok" : "neutral";
+    show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
+    row-height: HubTokens.list-row-lg;
+}
+
+export component CloudMetricSlot inherits ResponsiveSlot {
+    in property <string> label;
+    in property <string> primary;
+    in property <string> secondary;
+    in property <bool> compact-card: false;
+
+    MetricCard {
+        width: parent.width;
+        height: parent.height;
+        label: root.label;
+        primary: root.primary;
+        secondary: root.secondary;
+        compact: root.compact-card;
+    }
+}
+
+export component CloudPackageActionsPanel inherits HubListPanelSlot {
+    in property <CloudSummaryData> summary;
+    in property <UiTextData> ui-text;
+    in property <string> overview-detail;
+    callback package-project();
+    callback install-device();
+
+    body-padding: MaterialStyleMetrics.padding_16;
+    body-spacing: HubTokens.toolbar-gap;
+    title: root.ui-text.cloud-packages;
+    subtitle: root.overview-detail;
+    row-count: 2;
+    row-height: HubTokens.list-row-sm;
+    row-spacing: HubTokens.toolbar-gap;
+
+    CloudPackageActionRow {
+        row-height: root.row-height;
+        action-id: "package-selected-project";
+        action-icon: @image-url("../assets/icons/actions/package-project.svg");
+        action-title: root.ui-text.cloud-package-action;
+        action-detail: root.summary.package-action-detail;
+        action-enabled: root.summary.package-action-enabled;
+        triggered(id) => {
+            root.package-project();
+        }
+    }
+
+    CloudPackageActionRow {
+        row-height: root.row-height;
+        action-id: "install-selected-project";
+        action-icon: @image-url("../assets/icons/actions/install-device.svg");
+        action-title: root.ui-text.cloud-install-action;
+        action-detail: root.summary.install-action-detail;
+        action-enabled: root.summary.install-action-enabled;
+        triggered(id) => {
+            root.install-device();
+        }
+    }
+}
+
+export component CloudServicesPanel inherits HubListPanelSlot {
+    in property <UiTextData> ui-text;
+    in property <[CloudServiceData]> services;
+    in property <int> service-count;
+    in property <string> overview-detail;
+    in property <bool> collapse-label: false;
+    in-out property <length> service-scroll-y;
+
+    body-padding: MaterialStyleMetrics.padding_16;
+    body-spacing: HubTokens.toolbar-gap;
+    title: root.ui-text.cloud-services;
+    show-badge: true;
+    badge-text: root.service-count + " " + root.ui-text.cloud-service-slots;
+    badge-tone: "neutral";
+    scroll-y <=> root.service-scroll-y;
+    row-count: root.service-count;
+    row-height: HubTokens.list-row-lg;
+    empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+
+    for service in root.services: CloudServiceRow {
+        service: service;
+        collapse-label: root.collapse-label;
+    }
+
+    if root.service-count == 0: EmptyStateBlock {
+        height: HubTokens.list-row-lg + HubTokens.space-4;
+        title: root.ui-text.cloud-local-only;
+        detail: root.overview-detail;
+        body-padding: MaterialStyleMetrics.padding_16;
+        center-content: true;
+    }
+}

@@ -41,6 +41,7 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
             node_id: 77,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/imported.zmaterial",
             )),
@@ -82,6 +83,7 @@ fn uncooked_triangle_model_asset(uri: AssetUri) -> ModelAsset {
                 MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
+            mesh: None,
             virtual_geometry: None,
         }],
     }

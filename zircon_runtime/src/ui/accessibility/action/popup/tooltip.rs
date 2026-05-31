@@ -1,12 +1,12 @@
 use zircon_runtime_interface::ui::{
-    accessibility::{UiA11yRole, UiAccessibilityActionStatus, UiAccessibilityNode},
+    accessibility::{UiA11yRole, UiAccessibilityNode},
     dispatch::{UiDispatchEffect, UiDispatchReply, UiInputDispatchResult, UiTooltipEffectKind},
     event_ui::UiNodeId,
 };
 
 use crate::ui::surface::UiSurface;
 
-use super::super::result::action_note;
+use super::result::finish_tooltip_dismiss;
 
 pub(super) fn tooltip_dismissal_target(
     surface: &UiSurface,
@@ -41,17 +41,5 @@ pub(super) fn dispatch_tooltip_dismiss(
     let mut result = surface.apply_dispatch_reply(event, reply);
     notes.extend(result.diagnostics.notes);
     result.diagnostics.notes = notes;
-    result.diagnostics.routed = true;
-    result.diagnostics.route_target = Some(target);
-    result.diagnostics.handled_phase = Some("accessibility.dismiss_tooltip".to_string());
-    result.diagnostics.notes.push(action_note(
-        UiAccessibilityActionStatus::Accepted,
-        None,
-        None,
-    ));
-    result
-        .diagnostics
-        .notes
-        .push(format!("accessibility_tooltip_hidden:{tooltip_id}"));
-    result
+    finish_tooltip_dismiss(result, target, tooltip_id)
 }

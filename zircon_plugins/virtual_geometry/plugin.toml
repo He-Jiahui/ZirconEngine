@@ -1,8 +1,11 @@
 id = "virtual_geometry"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Virtual Geometry"
+category = "rendering"
 description = "Optional virtualized geometry runtime and editor package."
 maturity = "experimental"
+supported_targets = ["client_runtime", "editor_host"]
 default_packaging = ["source_template", "library_embed"]
 capabilities = ["runtime.plugin.virtual_geometry", "runtime.render.advanced.virtual_geometry"]
 

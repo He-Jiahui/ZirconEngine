@@ -107,11 +107,20 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimePluginId::Particles,
         "zircon_plugin_particles_runtime",
     )
+    .with_category("runtime")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
     .with_capability(PARTICLES_RUNTIME_CAPABILITY)
+    .with_capability_status(
+        zircon_runtime::plugin::CapabilityStatusManifest::new(
+            PARTICLES_RUNTIME_CAPABILITY,
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        )
+        .with_note("Advanced optional VFX capability; not a Bevy default parity blocker."),
+    )
     .with_optional_feature(particle_physics_feature_manifest())
     .with_optional_feature(particle_animation_feature_manifest())
     .with_optional_feature(particle_gpu_feature_manifest())

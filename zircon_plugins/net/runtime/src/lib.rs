@@ -69,11 +69,21 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimePluginId::Net,
         "zircon_plugin_net_runtime",
     )
+    .with_category("runtime")
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ServerRuntime,
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.net")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
+    .with_capability_status(
+        zircon_runtime::plugin::CapabilityStatusManifest::new(
+            "runtime.plugin.net",
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        )
+        .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
+    )
 }
 
 pub fn runtime_plugin() -> NetRuntimePlugin {

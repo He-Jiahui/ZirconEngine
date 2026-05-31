@@ -162,6 +162,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     ])
     .with_capability("runtime.plugin.navigation")
     .with_capability("runtime.plugin.navigation.recast")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
+    .with_capability_status(
+        zircon_runtime::plugin::CapabilityStatusManifest::new(
+            "runtime.plugin.navigation",
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        )
+        .with_note("Gameplay navmesh/pathfinding is optional; UI navigation parity is separate."),
+    )
 }
 
 pub fn runtime_plugin() -> NavigationRuntimePlugin {
@@ -251,6 +259,23 @@ mod tests {
                 zircon_runtime::RuntimeTargetMode::EditorHost,
             ]
         );
+        assert_eq!(report.package_manifest.category, "runtime");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Beta
+        );
+        assert!(report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == "runtime.plugin.navigation"
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                    && status.note.as_deref()
+                        == Some(
+                            "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
+                        )
+            }));
     }
 
     #[test]

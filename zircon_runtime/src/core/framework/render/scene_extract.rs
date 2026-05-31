@@ -1,6 +1,6 @@
 use crate::core::math::{Real, Transform, Vec3, Vec4};
 use crate::core::resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+    MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
 };
 
 use crate::core::framework::scene::{EntityId, Mobility};
@@ -16,6 +16,7 @@ pub struct RenderMeshSnapshot {
     pub node_id: EntityId,
     pub transform: Transform,
     pub model: ResourceHandle<ModelMarker>,
+    pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
     pub tint: Vec4,
     pub mobility: Mobility,

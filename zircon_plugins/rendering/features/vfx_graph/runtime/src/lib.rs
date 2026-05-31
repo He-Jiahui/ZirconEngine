@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.vfx_graph";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.vfx_graph";
 pub const FEATURE_NAME: &str = "vfx_graph";
 pub const SIMULATION_EXECUTOR_ID: &str = "vfx-graph.simulate";
 pub const TRANSPARENT_EXECUTOR_ID: &str = "vfx-graph.transparent";

@@ -1,6 +1,5 @@
 use super::super::*;
-use zircon_runtime::asset::{AssetImportContext, AssetUri};
-pub(super) use zircon_runtime::asset::{ImportedAsset, TexturePayload};
+use zircon_runtime::asset::{AssetImportContext, AssetUri, ImportedAsset};
 
 pub(super) fn import_container_fixture(path: &str, bytes: Vec<u8>) -> ImportedAsset {
     import_container_fixture_with_settings(path, bytes, "")
@@ -56,14 +55,23 @@ pub(super) fn tiny_dds_bytes() -> Vec<u8> {
     let mut bytes = vec![0; 128];
     bytes[0..4].copy_from_slice(b"DDS ");
     write_u32(&mut bytes, 4, 124);
-    write_u32(&mut bytes, 8, DDSD_REQUIRED_FLAGS | DDSD_MIPMAPCOUNT);
+    write_u32(
+        &mut bytes,
+        8,
+        DDSD_REQUIRED_FLAGS | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE,
+    );
     write_u32(&mut bytes, 12, 4);
     write_u32(&mut bytes, 16, 8);
+    write_u32(&mut bytes, 20, 16);
     write_u32(&mut bytes, 28, 3);
     write_u32(&mut bytes, 76, 32);
     write_u32(&mut bytes, 80, DDPF_FOURCC);
     bytes[84..88].copy_from_slice(b"DXT1");
-    write_u32(&mut bytes, 108, DDSCAPS_TEXTURE);
+    write_u32(
+        &mut bytes,
+        108,
+        DDSCAPS_TEXTURE | DDSCAPS_MIPMAP | DDSCAPS_COMPLEX,
+    );
     bytes.resize(128 + dds_compressed_payload_len(8, 4, 8, 1, 3), 0);
     bytes
 }
@@ -79,6 +87,11 @@ pub(super) fn dds_dx10_cubemap_array_bytes(array_size: u32) -> Vec<u8> {
     write_u32(&mut bytes, 16, 32);
     write_u32(&mut bytes, 28, 5);
     bytes[84..88].copy_from_slice(b"DX10");
+    write_u32(
+        &mut bytes,
+        108,
+        DDSCAPS_TEXTURE | DDSCAPS_MIPMAP | DDSCAPS_COMPLEX,
+    );
     write_u32(&mut bytes, 112, DDSCAPS2_CUBEMAP_ALL_FACES);
     write_u32(&mut bytes, 128, 98);
     write_u32(&mut bytes, 132, DDS_DIMENSION_TEXTURE2D);
@@ -117,7 +130,11 @@ pub(super) fn ktx1_layer_face_bytes(array_elements: u32, faces: u32) -> Vec<u8> 
     let mut bytes = vec![0; 68];
     bytes[0..12].copy_from_slice(KTX1_IDENTIFIER);
     write_u32(&mut bytes, 12, KTX_LITTLE_ENDIAN);
+    write_u32(&mut bytes, 16, 0x1401);
+    write_u32(&mut bytes, 20, 1);
+    write_u32(&mut bytes, 24, 0x1908);
     write_u32(&mut bytes, 28, 0x8058);
+    write_u32(&mut bytes, 32, 0x1908);
     write_u32(&mut bytes, 36, 32);
     write_u32(&mut bytes, 40, 0);
     write_u32(&mut bytes, 44, 0);
@@ -172,33 +189,60 @@ pub(super) fn tiny_ktx2_bytes() -> Vec<u8> {
     ktx2_layer_face_bytes(2, 6)
 }
 
+pub(super) const KTX2_DEFAULT_LEVEL_COUNT: u32 = 4;
+pub(super) const KTX2_DEFAULT_DFD_OFFSET: usize =
+    KTX2_HEADER_SIZE + KTX2_LEVEL_INDEX_ENTRY_SIZE * KTX2_DEFAULT_LEVEL_COUNT as usize;
+pub(super) const KTX2_DEFAULT_DFD_BYTE_LENGTH: usize = 28;
+pub(super) const KTX2_AFTER_DEFAULT_DFD_OFFSET: usize =
+    KTX2_DEFAULT_DFD_OFFSET + KTX2_DEFAULT_DFD_BYTE_LENGTH;
+pub(super) const KTX2_AFTER_DEFAULT_DFD_8_BYTE_OFFSET: usize =
+    (KTX2_AFTER_DEFAULT_DFD_OFFSET + 7) & !7;
+
 pub(super) fn ktx2_layer_face_bytes(layer_count: u32, face_count: u32) -> Vec<u8> {
-    let level_count = 4_u32;
-    let mut bytes = vec![
-        0;
-        KTX2_HEADER_SIZE
-            + KTX2_LEVEL_INDEX_ENTRY_SIZE * usize::try_from(level_count).unwrap()
-    ];
+    ktx2_layer_face_level_bytes(layer_count, face_count, KTX2_DEFAULT_LEVEL_COUNT)
+}
+
+pub(super) fn ktx2_layer_face_level_bytes(
+    layer_count: u32,
+    face_count: u32,
+    level_count: u32,
+) -> Vec<u8> {
+    let level_index_end =
+        KTX2_HEADER_SIZE + KTX2_LEVEL_INDEX_ENTRY_SIZE * usize::try_from(level_count).unwrap();
+    let mut bytes = vec![0; level_index_end + KTX2_DEFAULT_DFD_BYTE_LENGTH];
     bytes[0..12].copy_from_slice(KTX2_IDENTIFIER);
     write_u32(&mut bytes, 12, 37);
     write_u32(&mut bytes, 16, 1);
     write_u32(&mut bytes, 20, 16);
-    write_u32(&mut bytes, 24, 8);
+    write_u32(&mut bytes, 24, 16);
     write_u32(&mut bytes, 32, layer_count);
     write_u32(&mut bytes, 36, face_count);
     write_u32(&mut bytes, 40, level_count);
-    write_u32(&mut bytes, 44, 1);
-    write_u64(&mut bytes, KTX2_HEADER_SIZE, 176);
+    write_u32(&mut bytes, 44, 0);
+    write_u32(&mut bytes, 48, u32::try_from(level_index_end).unwrap());
+    write_u32(
+        &mut bytes,
+        52,
+        u32::try_from(KTX2_DEFAULT_DFD_BYTE_LENGTH).unwrap(),
+    );
+    write_u64(&mut bytes, KTX2_HEADER_SIZE, 0);
     write_u64(&mut bytes, KTX2_HEADER_SIZE + 8, 0);
+    write_minimal_ktx2_dfd(&mut bytes, level_index_end);
     bytes
 }
 
+pub(super) fn write_minimal_ktx2_dfd(bytes: &mut [u8], offset: usize) {
+    write_u32(
+        bytes,
+        offset,
+        u32::try_from(KTX2_DEFAULT_DFD_BYTE_LENGTH).unwrap(),
+    );
+    write_u32(bytes, offset + 8, (24 << 16) | 2);
+}
+
 pub(super) fn tiny_ktx2_3d_bytes() -> Vec<u8> {
-    let mut bytes = tiny_ktx2_bytes();
+    let mut bytes = ktx2_layer_face_level_bytes(0, 1, 1);
     write_u32(&mut bytes, 28, 5);
-    write_u32(&mut bytes, 32, 0);
-    write_u32(&mut bytes, 36, 1);
-    write_u32(&mut bytes, 40, 1);
     bytes
 }
 
@@ -217,9 +261,9 @@ pub(super) fn tiny_astc_bytes() -> Vec<u8> {
 
 pub(super) fn tiny_astc_3d_bytes() -> Vec<u8> {
     let mut bytes = tiny_astc_bytes();
-    bytes[6] = 4;
+    bytes[6] = 6;
     write_u24(&mut bytes, 13, 8);
-    bytes.resize(astc_total_len(6, 6, 4, 32, 16, 8), 0);
+    bytes.resize(astc_total_len(6, 6, 6, 32, 16, 8), 0);
     bytes
 }
 

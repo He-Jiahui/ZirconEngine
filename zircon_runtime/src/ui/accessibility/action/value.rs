@@ -1,7 +1,6 @@
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
-        UiAccessibilityActionStatus, UiAccessibilityNode,
+        UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityNode,
     },
     dispatch::UiInputDispatchResult,
     event_ui::UiReflectedPropertySource,
@@ -9,11 +8,13 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiSurface};
 
-use super::result::{finish_unhandled, unsupported_role_action};
+use super::result::unsupported_role_action;
 use super::value_target::set_value_property;
 
 use self::payload::set_value_payload;
-use self::result::finish_set_value_mutation;
+use self::result::{
+    finish_missing_set_value, finish_set_value_mutation, finish_text_input_set_value_rejection,
+};
 use self::text::prepare_text_input_set_value;
 
 mod payload;
@@ -51,26 +52,14 @@ pub(super) fn dispatch_set_value(
         );
     };
     let Some(mut value) = set_value_payload(request, snapshot_node.role) else {
-        return finish_unhandled(
-            result,
-            Some(target),
-            UiAccessibilityActionStatus::Rejected,
-            "missing_value",
-            "set value action requires value or numeric_value",
-        );
+        return finish_missing_set_value(result, target);
     };
     let mut text_constraint_note = None;
     if snapshot_node.role == UiA11yRole::TextInput {
         let prepared = match prepare_text_input_set_value(surface, target, snapshot_node, value) {
             Ok(prepared) => prepared,
             Err(rejection) => {
-                return finish_unhandled(
-                    result,
-                    Some(target),
-                    rejection.status,
-                    rejection.code,
-                    rejection.reason,
-                );
+                return finish_text_input_set_value_rejection(result, target, rejection);
             }
         };
         value = prepared.value;

@@ -53,11 +53,16 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         "zircon_plugin_terrain_runtime",
     )
     .with_category("authoring")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.terrain")
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.plugin.terrain",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
 }
 
 pub fn terrain_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
@@ -122,5 +127,18 @@ mod tests {
             report.package_manifest.asset_importers[0].source_extensions,
             vec!["raw".to_string(), "r16".to_string(), "png".to_string()]
         );
+        assert_eq!(report.package_manifest.category, "authoring");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Beta
+        );
+        assert!(report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == "runtime.plugin.terrain"
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+            }));
     }
 }

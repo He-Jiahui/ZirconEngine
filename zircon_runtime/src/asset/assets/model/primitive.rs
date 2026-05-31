@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::asset::MeshVertex;
+use crate::asset::{AssetReference, MeshVertex};
 use crate::core::framework::render::{
     RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology,
 };
@@ -11,6 +11,9 @@ use super::VirtualGeometryAsset;
 pub struct ModelPrimitiveAsset {
     pub vertices: Vec<MeshVertex>,
     pub indices: Vec<u32>,
+    /// Optional assetized mesh subasset that mirrors this primitive payload.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh: Option<AssetReference>,
     #[serde(default)]
     pub virtual_geometry: Option<VirtualGeometryAsset>,
 }

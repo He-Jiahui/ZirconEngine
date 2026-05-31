@@ -1,22 +1,6 @@
 import { AssetData, UiTextData } from "shared.slint";
-import { CatalogPage, HubTokens, InfoRow } from "components.slint";
-
-component AssetRow inherits InfoRow {
-    in property <AssetData> asset;
-    in property <UiTextData> ui-text;
-    in property <bool> collapse-label: false;
-
-    title: root.asset.name;
-    detail: root.asset.path;
-    meta: root.ui-text.asset-source + ": " + root.asset.source + "    " + root.ui-text.asset-size + ": " + root.asset.size;
-    leading-image: @image-url("../assets/icons/nav/assets.svg");
-    has-leading-image: true;
-    trailing-text: root.asset.kind;
-    trailing-tone: "accent";
-    show-trailing-badge: true;
-    collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
-}
+import { CatalogPage, HubTokens, ResponsiveCollapse } from "components.slint";
+import { AssetRow } from "catalog_page_components.slint";
 
 export component AssetsPage inherits CatalogPage {
     in property <[AssetData]> assets;
@@ -34,9 +18,14 @@ export component AssetsPage inherits CatalogPage {
     row-count: root.asset-count;
     row-height: HubTokens.list-row-lg + HubTokens.space-6;
 
+    label-collapse := ResponsiveCollapse {
+        content-width: root.content-width;
+        collapse-at: HubTokens.breakpoint-medium;
+    }
+
     for asset in root.assets: AssetRow {
         asset: asset;
         ui-text: root.ui-text;
-        collapse-label: root.content-width < HubTokens.breakpoint-medium;
+        collapse-label: label-collapse.collapsed;
     }
 }

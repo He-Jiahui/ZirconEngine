@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use super::*;
+use crate::ui::layouts::views::load_preview_image;
 use crate::ui::retained_host::host_contract::data::{
     HostClosePromptData, HostDocumentDockSurfaceData, HostWindowLayoutData, PaneData,
     TemplateNodeFrameData, TemplatePaneNodeData,
@@ -8,7 +10,15 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::painter::{
     paint_host_frame, repaint_host_frame_region,
 };
-use crate::ui::retained_host::primitives::{ModelRc, VecModel};
+use crate::ui::retained_host::primitives::{Image, ModelRc, VecModel};
+
+const WORKBENCH_REFERENCE_IMAGE_CONTROL_ID: &str = "WorkbenchShellReferenceImage";
+const WORKBENCH_REFERENCE_IMAGE_PATH: &str = "ui/editor/reference/workbench.png";
+const WORKBENCH_REFERENCE_SOURCE_PATH: &str = "docs/ui-and-layout/workbench.png";
+const WORKBENCH_REFERENCE_WIDTH: u32 = 1672;
+const WORKBENCH_REFERENCE_HEIGHT: u32 = 941;
+const WORKBENCH_REFERENCE_UPLOAD_BYTES: u64 =
+    (WORKBENCH_REFERENCE_WIDTH as u64) * (WORKBENCH_REFERENCE_HEIGHT as u64) * 4;
 
 fn presentation_with_viewport_image() -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
@@ -54,6 +64,12 @@ fn presentation_with_viewport_image() -> HostWindowPresentationData {
     presentation
 }
 
+fn presentation_with_workbench_reference_overlay() -> HostWindowPresentationData {
+    let mut presentation = HostWindowPresentationData::default();
+    presentation.root_template_nodes = model_rc(vec![workbench_reference_image_node()]);
+    presentation
+}
+
 fn test_layout() -> HostWindowLayoutData {
     HostWindowLayoutData {
         center_band_frame: FrameRect {
@@ -84,6 +100,25 @@ fn test_layout() -> HostWindowLayoutData {
     }
 }
 
+fn workbench_reference_image_node() -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        node_id: "workbench_reference_image".into(),
+        control_id: WORKBENCH_REFERENCE_IMAGE_CONTROL_ID.into(),
+        role: "Image".into(),
+        component_role: "image".into(),
+        media_source: WORKBENCH_REFERENCE_IMAGE_PATH.into(),
+        has_preview_image: true,
+        preview_image: load_preview_image(WORKBENCH_REFERENCE_IMAGE_PATH, ""),
+        frame: TemplateNodeFrameData {
+            x: 0.0,
+            y: 0.0,
+            width: WORKBENCH_REFERENCE_WIDTH as f32,
+            height: WORKBENCH_REFERENCE_HEIGHT as f32,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
 fn template_node(control_id: &str, role: &str, text: &str) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
         control_id: control_id.into(),
@@ -99,6 +134,13 @@ fn template_node(control_id: &str, role: &str, text: &str) -> TemplatePaneNodeDa
         },
         ..TemplatePaneNodeData::default()
     }
+}
+
+fn reference_png_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_editor manifest should live under the repository root")
+        .join(WORKBENCH_REFERENCE_SOURCE_PATH)
 }
 
 fn model_rc<T: Clone + 'static>(values: Vec<T>) -> ModelRc<T> {
@@ -347,6 +389,54 @@ fn full_command_stream_matches_legacy_painter_pixels() {
 }
 
 #[test]
+fn full_command_stream_replays_workbench_reference_overlay_pixels() {
+    let presentation = presentation_with_workbench_reference_overlay();
+    let legacy = paint_host_frame(
+        WORKBENCH_REFERENCE_WIDTH,
+        WORKBENCH_REFERENCE_HEIGHT,
+        &presentation,
+    );
+    let stream = build_chrome_command_stream(
+        &presentation,
+        (WORKBENCH_REFERENCE_WIDTH, WORKBENCH_REFERENCE_HEIGHT),
+        None,
+        true,
+    );
+    let replayed = paint_chrome_command_stream_to_frame(
+        WORKBENCH_REFERENCE_WIDTH,
+        WORKBENCH_REFERENCE_HEIGHT,
+        &stream,
+    );
+    let reference = Image::load_from_path(&reference_png_path())
+        .expect("docs workbench reference image should load")
+        .to_rgba8()
+        .expect("docs workbench reference image should convert to RGBA");
+
+    let image = workbench_reference_image_command(&stream, reference.as_bytes())
+        .expect("workbench reference overlay should be recorded as an image command");
+    assert!(!image.resource_key.is_empty());
+    assert_eq!(image.width, WORKBENCH_REFERENCE_WIDTH);
+    assert_eq!(image.height, WORKBENCH_REFERENCE_HEIGHT);
+    assert_eq!(image.upload_bytes, WORKBENCH_REFERENCE_UPLOAD_BYTES);
+    assert_eq!(
+        first_pixel_difference(
+            legacy.as_bytes(),
+            reference.as_bytes(),
+            WORKBENCH_REFERENCE_WIDTH
+        ),
+        None
+    );
+    assert_eq!(
+        first_pixel_difference(
+            replayed.as_bytes(),
+            reference.as_bytes(),
+            WORKBENCH_REFERENCE_WIDTH
+        ),
+        None
+    );
+}
+
+#[test]
 fn patch_command_stream_matches_legacy_region_repaint_pixels() {
     let mut presentation = presentation_with_viewport_image();
     let damage = FrameRect {
@@ -378,6 +468,81 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
         first_pixel_difference(replayed.as_bytes(), legacy.as_bytes(), 200),
         None
     );
+}
+
+#[test]
+fn patch_command_stream_repaints_workbench_reference_overlay_damage_pixels() {
+    let presentation = presentation_with_workbench_reference_overlay();
+    let damage = FrameRect {
+        x: 512.0,
+        y: 300.0,
+        width: 320.0,
+        height: 220.0,
+    };
+    let mut legacy = paint_host_frame(
+        WORKBENCH_REFERENCE_WIDTH,
+        WORKBENCH_REFERENCE_HEIGHT,
+        &presentation,
+    );
+    let mut replayed = paint_host_frame(
+        WORKBENCH_REFERENCE_WIDTH,
+        WORKBENCH_REFERENCE_HEIGHT,
+        &presentation,
+    );
+    let stream = build_chrome_command_stream(
+        &presentation,
+        (WORKBENCH_REFERENCE_WIDTH, WORKBENCH_REFERENCE_HEIGHT),
+        Some(&damage),
+        true,
+    );
+    let reference = Image::load_from_path(&reference_png_path())
+        .expect("docs workbench reference image should load")
+        .to_rgba8()
+        .expect("docs workbench reference image should convert to RGBA");
+
+    let legacy_damage = repaint_host_frame_region(&mut legacy, &presentation, &damage)
+        .expect("legacy painter should repaint visible workbench reference damage");
+    let replayed_damage = repaint_chrome_command_stream_region(&mut replayed, &stream)
+        .expect("command stream should repaint visible workbench reference damage");
+
+    assert_eq!(replayed_damage, legacy_damage);
+    assert!(workbench_reference_image_command(&stream, reference.as_bytes()).is_some());
+    assert_eq!(
+        first_pixel_difference(
+            replayed.as_bytes(),
+            legacy.as_bytes(),
+            WORKBENCH_REFERENCE_WIDTH
+        ),
+        None
+    );
+    assert_eq!(
+        first_pixel_difference(
+            replayed.as_bytes(),
+            reference.as_bytes(),
+            WORKBENCH_REFERENCE_WIDTH
+        ),
+        None
+    );
+}
+
+fn workbench_reference_image_command<'a>(
+    stream: &'a ChromeCommandStream,
+    reference_rgba: &[u8],
+) -> Option<&'a ChromeImagePayload> {
+    stream
+        .commands()
+        .iter()
+        .find_map(|command| match &command.kind {
+            ChromeCommandKind::Image { payload }
+                if payload.width == WORKBENCH_REFERENCE_WIDTH
+                    && payload.height == WORKBENCH_REFERENCE_HEIGHT
+                    && payload.upload_bytes == WORKBENCH_REFERENCE_UPLOAD_BYTES
+                    && payload.rgba.as_deref() == Some(reference_rgba) =>
+            {
+                Some(payload)
+            }
+            _ => None,
+        })
 }
 
 fn first_pixel_difference(

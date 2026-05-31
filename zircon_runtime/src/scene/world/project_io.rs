@@ -6,16 +6,16 @@ use crate::asset::assets::{
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
     SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
-    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
+    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset,
+    SceneMobilityAsset, ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset,
+    SceneRigidBodyTypeAsset, SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
 };
 use crate::asset::importer::AssetImportError;
 use crate::asset::project::ProjectManager;
 use crate::asset::AssetReference;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
     ResourceHandle, ResourceId, ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
 };
 use serde::{Deserialize, Serialize};
@@ -27,8 +27,8 @@ use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, ColliderShape,
-    JointComponent, JointKind, Mobility, NodeKind, PointLight, RectLight, RigidBodyComponent,
-    RigidBodyType, SpotLight,
+    JointComponent, JointKind, MeshRendererPrimitiveBinding, Mobility, NodeKind, PointLight,
+    RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
 };
 use crate::scene::ecs::Schedule;
 
@@ -101,10 +101,26 @@ impl World {
             };
 
             let mesh = entity.mesh.as_ref().map(|mesh| {
-                crate::scene::components::MeshRenderer::from_handles(
+                let mut renderer = crate::scene::components::MeshRenderer::from_handles(
                     model_handle_for_reference(project, &mesh.model),
                     material_handle_for_reference(project, &mesh.material),
-                )
+                );
+                renderer.mesh = mesh
+                    .mesh
+                    .as_ref()
+                    .map(|reference| handle_for_reference::<MeshMarker>(project, reference));
+                renderer.primitives = mesh
+                    .primitives
+                    .iter()
+                    .map(|primitive| MeshRendererPrimitiveBinding {
+                        mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
+                        material: handle_for_reference::<MaterialMarker>(
+                            project,
+                            &primitive.material,
+                        ),
+                    })
+                    .collect();
+                renderer
             });
 
             world
@@ -302,7 +318,29 @@ impl World {
                     .map(|mesh| {
                         Ok::<SceneMeshInstanceAsset, SceneProjectError>(SceneMeshInstanceAsset {
                             model: reference_for_model_handle(project, mesh.model)?,
+                            mesh: mesh
+                                .mesh
+                                .map(|mesh| reference_for_mesh_handle(project, mesh))
+                                .transpose()?,
                             material: reference_for_material_handle(project, mesh.material)?,
+                            primitives: mesh
+                                .primitives
+                                .into_iter()
+                                .map(|primitive| {
+                                    Ok::<SceneMeshPrimitiveBindingAsset, SceneProjectError>(
+                                        SceneMeshPrimitiveBindingAsset {
+                                            mesh: reference_for_mesh_handle(
+                                                project,
+                                                primitive.mesh,
+                                            )?,
+                                            material: reference_for_material_handle(
+                                                project,
+                                                primitive.material,
+                                            )?,
+                                        },
+                                    )
+                                })
+                                .collect::<Result<Vec<_>, _>>()?,
                         })
                     })
                     .transpose()?;
@@ -634,6 +672,13 @@ fn reference_for_model_handle(
     handle: ResourceHandle<ModelMarker>,
 ) -> Result<AssetReference, SceneProjectError> {
     reference_for_handle(project, handle.id(), "model")
+}
+
+fn reference_for_mesh_handle(
+    project: &ProjectManager,
+    handle: ResourceHandle<MeshMarker>,
+) -> Result<AssetReference, SceneProjectError> {
+    reference_for_handle(project, handle.id(), "mesh")
 }
 
 fn reference_for_material_handle(

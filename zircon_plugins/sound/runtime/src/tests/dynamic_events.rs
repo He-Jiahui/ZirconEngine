@@ -8,6 +8,113 @@ use zircon_runtime_interface::{
 static ABI_CALLBACK_FAILURE_DETAIL: &[u8] = b"abi callback rejected event";
 
 #[test]
+fn dynamic_event_boundary_remains_folder_backed() {
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+
+    assert_structural_module(
+        &src,
+        "service_types/dynamic_events/mod.rs",
+        &[
+            "mod catalog;",
+            "mod dispatch;",
+            "mod handlers;",
+            "mod invocation;",
+        ],
+    );
+    assert_structural_module(
+        &src,
+        "service_types/dynamic_event_executors/mod.rs",
+        &["mod execution;", "mod registration;", "mod unregistration;"],
+    );
+    assert_structural_module(
+        &src,
+        "dynamic_events/mod.rs",
+        &[
+            "pub(crate) mod catalog;",
+            "pub(crate) mod dispatch;",
+            "pub(crate) mod handlers;",
+            "pub(crate) mod invocation;",
+        ],
+    );
+    assert_structural_module(
+        &src,
+        "dynamic_event_abi/mod.rs",
+        &[
+            "pub(crate) mod callback;",
+            "pub(crate) mod executor;",
+            "pub(crate) mod request;",
+            "pub(crate) mod slice;",
+            "pub(crate) mod status;",
+        ],
+    );
+
+    assert_source_contains(
+        &src,
+        "service_types/mod.rs",
+        &["mod dynamic_event_executors;", "mod dynamic_events;"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_events/catalog.rs",
+        &["dynamic_event_catalog_impl", "register_dynamic_event_impl"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_events/handlers.rs",
+        &[
+            "dynamic_event_handlers_impl",
+            "register_dynamic_event_handler_impl",
+        ],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_events/invocation.rs",
+        &["submit_dynamic_event_impl", "drain_dynamic_events_impl"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_events/dispatch.rs",
+        &["dispatch_dynamic_events_impl"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_event_executors/registration.rs",
+        &["register_dynamic_event_executor"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_event_executors/unregistration.rs",
+        &["unregister_dynamic_event_executor"],
+    );
+    assert_source_contains(
+        &src,
+        "service_types/dynamic_event_executors/execution.rs",
+        &[
+            "execute_dynamic_events_impl",
+            "SoundDynamicEventExecutionReport",
+        ],
+    );
+    assert_source_contains(
+        &src,
+        "engine/state/dynamic_events.rs",
+        &["SoundDynamicEventExecutor", "SoundDynamicEventExecutorKey"],
+    );
+
+    for retired_flat_file in [
+        retired_flat_module(&src, "", "dynamic_events"),
+        retired_flat_module(&src, "", "dynamic_event_abi"),
+        retired_flat_module(&src, "service_types", "dynamic_events"),
+        retired_flat_module(&src, "service_types", "dynamic_event_executors"),
+    ] {
+        assert!(
+            !retired_flat_file.exists(),
+            "{} must stay retired; dynamic event behavior belongs in folder-backed modules",
+            retired_flat_file.display()
+        );
+    }
+}
+
+#[test]
 fn dynamic_event_registry_accepts_descriptors_and_drains_invocations() {
     let sound = DefaultSoundManager::default();
     assert!(sound.dynamic_event_catalog().unwrap().events.is_empty());
@@ -582,4 +689,41 @@ unsafe extern "C" fn failing_abi_callback(
         );
     }
     ZrStatus::ok()
+}
+
+fn assert_structural_module(src: &std::path::Path, relative_path: &str, expected_lines: &[&str]) {
+    let content = read_source(src, relative_path);
+    let actual_lines = content
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual_lines, expected_lines,
+        "{relative_path} should remain a structural module declaration file"
+    );
+}
+
+fn assert_source_contains(src: &std::path::Path, relative_path: &str, expected_fragments: &[&str]) {
+    let content = read_source(src, relative_path);
+    for fragment in expected_fragments {
+        assert!(
+            content.contains(fragment),
+            "{relative_path} should contain {fragment}"
+        );
+    }
+}
+
+fn read_source(src: &std::path::Path, relative_path: &str) -> String {
+    std::fs::read_to_string(src.join(relative_path))
+        .unwrap_or_else(|error| panic!("failed to read {relative_path}: {error}"))
+}
+
+fn retired_flat_module(src: &std::path::Path, directory: &str, module: &str) -> std::path::PathBuf {
+    let file_name = format!("{module}.rs");
+    if directory.is_empty() {
+        src.join(file_name)
+    } else {
+        src.join(directory).join(file_name)
+    }
 }

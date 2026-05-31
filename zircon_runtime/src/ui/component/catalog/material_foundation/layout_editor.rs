@@ -50,6 +50,9 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(float_prop("duration", 0.0))
         .slot(UiSlotSchema::new("items").multiple(true))
         .slot(UiSlotSchema::new("content").multiple(true))
+        .slot(UiSlotSchema::new("separator").multiple(true))
+        .slot(UiSlotSchema::new("connector").multiple(true))
+        .slot(UiSlotSchema::new("dot").multiple(true))
         .events([
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::DragDelta,

@@ -1,0 +1,191 @@
+import {
+    ProjectTemplateData,
+    SourceEngineRowData,
+    UiTextData,
+} from "shared.slint";
+import {
+    HubTokens,
+    HubVisualSpec,
+    MaterialStyleMetrics,
+    MaterialTypography,
+    PageScrollSurface,
+} from "components.slint";
+
+import {
+    PageHeader,
+    ProjectCreateCompactSummaryPanel,
+    ProjectCreateSettingsPanel,
+    ProjectTemplateRailPanel,
+} from "project_page_components.slint";
+
+export component ProjectNewPage inherits PageScrollSurface {
+    in-out property <string> project-name;
+    in-out property <string> project-location;
+    in property <[ProjectTemplateData]> templates;
+    in property <int> template-count;
+    in property <bool> create-enabled: true;
+    in property <string> selected-template-label;
+    in property <string> selected-engine-label;
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <bool> viewport-compact: false;
+    in property <UiTextData> ui-text;
+    callback back;
+    callback browse-folder(string);
+    callback create-project;
+    callback select-template(string);
+    callback select-engine(string);
+
+    private property <bool> compact-page: root.viewport-compact;
+    private property <length> page-pad: root.compact-page ? HubTokens.page-padding-compact : HubTokens.page-padding;
+    private property <length> page-gap: root.compact-page ? HubTokens.toolbar-gap : HubTokens.panel-gap;
+    private property <length> field-height: HubTokens.input-field;
+    private property <length> header-height: max(root.field-height * 11 / 10, min(root.field-height * 3 / 2, root.content-height / 13));
+    private property <length> choice-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, root.content-height / 10));
+    private property <length> template-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, root.content-height / 9));
+    private property <length> summary-row-height: max(HubTokens.control-sm, min(root.field-height, root.content-height / 18));
+    private property <length> section-label-height: MaterialTypography.body_small.font_size * 3 / 2;
+    private property <int> engine-panel-rows: root.engine-count < 1 ? 1 : (root.engine-count > 3 ? 3 : root.engine-count);
+    private property <length> engine-row-gap: MaterialStyleMetrics.spacing_8;
+    private property <length> engine-list-height: root.engine-count == 0 ? root.choice-row-height : root.engine-panel-rows * root.choice-row-height + (root.engine-panel-rows - 1) * root.engine-row-gap;
+    private property <length> engine-section-height: root.section-label-height + MaterialStyleMetrics.spacing_8 + root.engine-list-height;
+    private property <length> summary-header-height: root.narrow-flow ? HubTokens.control-md : HubTokens.list-row-sm;
+    private property <length> summary-section-height: root.summary-header-height + root.summary-row-height * 2 + root.page-gap;
+    private property <bool> narrow-flow: root.content-width < HubTokens.panel-min-md + HubTokens.panel-min-sm + root.page-gap;
+    private property <length> main-panel-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
+    private property <length> template-panel-basis: HubTokens.panel-min-md;
+    private property <length> create-action-row-height: root.field-height;
+    private property <length> form-panel-height: HubTokens.space-4 * 2 + HubTokens.list-row-sm + root.field-height * 2 + root.engine-section-height + root.create-action-row-height + root.page-gap * 4;
+    private property <length> summary-panel-padding: root.narrow-flow ? HubTokens.space-3 : HubTokens.space-4;
+    private property <length> summary-panel-height: root.summary-panel-padding * 2 + root.summary-section-height;
+    private property <length> project-settings-panel-height: root.narrow-flow ? root.form-panel-height : root.form-panel-height + root.summary-section-height + root.page-gap;
+    private property <int> template-panel-rows: root.template-count < 1 ? 1 : (root.template-count > 4 ? 4 : root.template-count);
+    private property <length> template-list-height: root.template-count == 0 ? HubTokens.list-row-lg : root.template-panel-rows * root.template-row-height + (root.template-panel-rows - 1) * root.page-gap;
+    private property <length> template-panel-height: HubTokens.space-4 * 2 + HubTokens.control-md + root.template-list-height + root.page-gap;
+    private property <bool> compact-choice-labels: root.narrow-flow;
+    private property <length> flow-visible-height: max(root.content-height - root.header-height - root.page-gap, root.project-settings-panel-height);
+    private property <string> summary-title: root.ui-text.project-summary-title;
+    private property <string> summary-subtitle: root.ui-text.project-summary-subtitle;
+    private property <string> summary-root-path-label: root.ui-text.project-root-path;
+    private property <string> summary-create-label: root.ui-text.create;
+    private property <string> summary-ready-label: root.ui-text.ready-to-create;
+    private property <string> summary-complete-label: root.ui-text.complete-project-settings;
+    private property <bool> project-name-ready: root.project-name != "";
+    private property <bool> project-location-ready: root.project-location != "";
+    private property <bool> form-ready: root.create-enabled && root.project-name-ready && root.project-location-ready;
+    private property <length> flow-height: root.narrow-flow ? root.project-settings-panel-height + root.page-gap + root.summary-panel-height + root.page-gap + root.template-panel-height : max(root.flow-visible-height, root.template-panel-height);
+    private property <length> new-engine-scroll-y: 0px;
+    private property <length> template-scroll-y: 0px;
+
+    page-padding: root.page-pad;
+    bottom-padding: root.page-pad;
+    gap: root.page-gap;
+    background: HubVisualSpec.page-background;
+    clip: true;
+
+                PageHeader {
+                    header-height: root.header-height;
+                    title: root.ui-text.new-project-title;
+                    subtitle: root.ui-text.new-project-subtitle;
+                    back => { root.back(); }
+                }
+
+                FlexboxLayout {
+                    horizontal-stretch: 1;
+                    height: root.flow-height;
+                    flex-direction: FlexboxLayoutDirection.row;
+                    flex-wrap: root.narrow-flow ? FlexboxLayoutWrap.wrap : FlexboxLayoutWrap.no-wrap;
+                    align-content: FlexboxLayoutAlignContent.start;
+                    align-items: FlexboxLayoutAlignItems.start;
+                    spacing-horizontal: root.page-gap;
+                    spacing-vertical: root.page-gap;
+
+                    ProjectCreateSettingsPanel {
+                        basis: root.narrow-flow ? root.content-width : root.main-panel-basis;
+                        flex-basis: root.narrow-flow ? root.content-width : root.main-panel-basis;
+                        grow: root.narrow-flow ? 1 : 2;
+                        flex-grow: root.narrow-flow ? 1 : 2;
+                        shrink: 1;
+                        flex-shrink: 1;
+                        min-width: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
+                        height: root.narrow-flow ? root.project-settings-panel-height : root.flow-height;
+
+                        project-name <=> root.project-name;
+                        project-location <=> root.project-location;
+                        engines: root.engines;
+                        engine-count: root.engine-count;
+                        ui-text: root.ui-text;
+                        field-height: root.field-height;
+                        page-gap: root.page-gap;
+                        section-label-height: root.section-label-height;
+                        engine-section-height: root.engine-section-height;
+                        engine-list-height: root.engine-list-height;
+                        engine-row-gap: root.engine-row-gap;
+                        choice-row-height: root.choice-row-height;
+                        engine-scroll-y <=> root.new-engine-scroll-y;
+                        collapse-label: root.compact-choice-labels;
+                        create-action-row-height: root.create-action-row-height;
+                        form-ready: root.form-ready;
+                        show-summary: !root.narrow-flow;
+                        summary-title: root.summary-title;
+                        summary-subtitle: root.summary-subtitle;
+                        summary-root-path-label: root.summary-root-path-label;
+                        summary-create-label: root.summary-create-label;
+                        summary-ready-label: root.summary-ready-label;
+                        summary-complete-label: root.summary-complete-label;
+                        summary-row-height: root.summary-row-height;
+                        summary-section-height: root.summary-section-height;
+
+                        browse-folder(kind) => { root.browse-folder(kind); }
+                        create-project => { root.create-project(); }
+                        select-engine(id) => { root.select-engine(id); }
+                    }
+
+                    ProjectCreateCompactSummaryPanel {
+                        visible: root.narrow-flow;
+                        basis: root.narrow-flow ? root.content-width : 0px;
+                        flex-basis: root.narrow-flow ? root.content-width : 0px;
+                        grow: root.narrow-flow ? 1 : 0;
+                        flex-grow: root.narrow-flow ? 1 : 0;
+                        shrink: 1;
+                        flex-shrink: 1;
+                        min-width: root.narrow-flow ? root.content-width : 0px;
+                        height: root.narrow-flow ? root.summary-panel-height : 0px;
+
+                        panel-padding: root.summary-panel-padding;
+                        page-gap: root.page-gap;
+                        title: root.summary-title;
+                        subtitle: root.narrow-flow ? "" : root.summary-subtitle;
+                        root-path-label: root.summary-root-path-label;
+                        create-label: root.summary-create-label;
+                        ready-label: root.summary-ready-label;
+                        complete-label: root.summary-complete-label;
+                        project-location: root.project-location;
+                        project-name: root.project-name;
+                        form-ready: root.form-ready;
+                        row-height: root.summary-row-height;
+                        summary-height: root.narrow-flow ? root.summary-section-height : 0px;
+                    }
+
+                    ProjectTemplateRailPanel {
+                        basis: root.narrow-flow ? root.content-width : root.template-panel-basis;
+                        flex-basis: root.narrow-flow ? root.content-width : root.template-panel-basis;
+                        grow: 1;
+                        flex-grow: 1;
+                        shrink: 1;
+                        flex-shrink: 1;
+                        min-width: root.narrow-flow ? root.content-width : HubTokens.panel-min-sm;
+                        height: root.narrow-flow ? root.template-panel-height : root.flow-height;
+                        panel-title: root.ui-text.templates-title;
+                        templates: root.templates;
+                        template-count: root.template-count;
+                        list-height: root.template-list-height;
+                        list-scroll-y <=> root.template-scroll-y;
+                        row-height: root.template-row-height;
+                        row-spacing: root.page-gap;
+                        soon-label: root.ui-text.soon-label;
+                        collapse-label: root.compact-choice-labels;
+                        selected(id) => { root.select-template(id); }
+                }
+    }
+}

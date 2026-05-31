@@ -123,12 +123,22 @@ impl World {
                         }
                         mesh.model = crate::core::resource::ResourceHandle::new(resource);
                     }
+                    [field] if field == "mesh" => {
+                        return Err(format!(
+                            "property {property_path} is read-only optional mesh resource"
+                        ));
+                    }
                     [field] if field == "material" => {
                         let resource = expect_resource_id(value, property_path)?;
                         if mesh.material.id() == resource {
                             return Ok(false);
                         }
                         mesh.material = crate::core::resource::ResourceHandle::new(resource);
+                    }
+                    [field] if field == "primitivebindingcount" || field == "primitives" => {
+                        return Err(format!(
+                            "property {property_path} is read-only mesh primitive binding data"
+                        ));
                     }
                     [field] if field == "tint" => {
                         let next = expect_vec4(value, property_path)?;

@@ -1,12 +1,12 @@
 import {
-    MutedText,
     SourceBuildHistoryRowData,
     SourceEngineData,
     SourceEngineRowData,
     UiTextData,
+    WorkspaceActionReadinessData,
 } from "shared.slint";
-import { BuildHistoryRow, Divider, EmptyStateBlock, HubTokens, MaterialStyleMetrics, PageScrollSurface, PanelHeader, PanelSlot, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
-import { EditorActionRow, EditorPathFieldRow, EditorSideListPanel, EditorSourceSummaryRow, SourceEngineRow } from "editor_page_components.slint";
+import { HubTokens, HubVisualSpec, PageScrollSurface, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
+import { EditorActionsPanel, EditorBuildHistoryPanel, EditorSourceEngineListPanel, EditorSourceSettingsPanel, EditorSourceSummaryPanel } from "editor_page_components.slint";
 
 export component EditorPage inherits PageScrollSurface {
     in-out property <string> source-path;
@@ -17,6 +17,7 @@ export component EditorPage inherits PageScrollSurface {
     in property <int> source-engine-count;
     in property <[SourceBuildHistoryRowData]> source-build-history;
     in property <int> source-build-history-count;
+    in property <WorkspaceActionReadinessData> readiness;
     in property <UiTextData> ui-text;
     private property <length> side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;
     private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
@@ -27,6 +28,7 @@ export component EditorPage inherits PageScrollSurface {
     private property <length> build-summary-height: HubTokens.workspace-row-editor-summary;
     private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.toolbar-gap * 3 + HubTokens.space-4 * 2;
     private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
+    private property <bool> actions-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
     private property <length> side-list-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
     private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
     callback save-settings();
@@ -38,7 +40,7 @@ export component EditorPage inherits PageScrollSurface {
     callback open-output();
     callback launch-editor();
 
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.page-background;
     clip: true;
 
         WorkspacePanelSection {
@@ -48,100 +50,53 @@ export component EditorPage inherits PageScrollSurface {
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
-            PanelSlot {
+            EditorSourceSummaryPanel {
                 basis: root.overview-min-width;
                 flex-basis: root.overview-min-width;
                 grow: 2;
                 flex-grow: 2;
                 shrink: 1;
                 flex-shrink: 1;
+                order: root.actions-first ? 1 : 0;
+                flex-order: root.actions-first ? 1 : 0;
                 min-width: root.compact ? root.content-width : root.overview-min-width;
                 height: root.compact ? root.build-source-summary-height : root.build-summary-height;
-                body-spacing: HubTokens.space-3;
-
-                PanelHeader {
-                    title: root.source-engine.title;
-                    subtitle: root.source-engine.version + " / " + root.source-engine.status;
-                    show-badge: true;
-                    badge-text: root.source-engine.build-profile;
-                    badge-tone: "accent";
-                    show-action: true;
-                    action-text: root.ui-text.open-editor;
-                    action-clicked => {
-                        root.launch-editor();
-                    }
-                }
-
-                Divider {}
-
-                EditorSourceSummaryRow {
-                    row-height: root.build-row-height;
-                    summary-title: root.ui-text.source-prefix;
-                    summary-detail: root.source-engine.source-path;
-                    summary-meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
-                    summary-icon: @image-url("../assets/brand/zircon-mark.svg");
-                    summary-status: root.source-engine.status;
-                    summary-tone: "ok";
-                    collapse-label: root.compact-labels;
-                }
-
-                EditorSourceSummaryRow {
-                    row-height: root.build-row-height;
-                    summary-title: root.ui-text.output-prefix;
-                    summary-detail: root.source-engine.output-path;
-                    summary-meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
-                    summary-icon: @image-url("../assets/icons/ui/folder.svg");
-                    summary-status: root.source-engine.jobs + root.ui-text.jobs-suffix;
-                    collapse-label: root.compact-labels;
+                readiness: root.readiness;
+                source-engine: root.source-engine;
+                ui-text: root.ui-text;
+                row-height: root.build-row-height;
+                collapse-label: root.compact-labels;
+                launch-editor => {
+                    root.launch-editor();
                 }
             }
 
-            PanelSlot {
+            EditorActionsPanel {
                 basis: root.side-panel-min-width;
                 flex-basis: root.side-panel-min-width;
                 grow: 1;
                 flex-grow: 1;
                 shrink: 1;
                 flex-shrink: 1;
+                order: root.actions-first ? 0 : 1;
+                flex-order: root.actions-first ? 0 : 1;
                 min-width: root.compact ? root.content-width : root.side-panel-min-width;
                 height: root.build-summary-height;
-
-                PanelHeader {
-                    title: root.ui-text.editor-actions;
-                    subtitle: "";
+                readiness: root.readiness;
+                ui-text: root.ui-text;
+                output-path: root.source-engine.output-path;
+                row-height: root.build-row-height;
+                save-settings => {
+                    root.save-settings();
                 }
-
-                EditorActionRow {
-                    row-height: root.build-row-height;
-                    action-id: "save-source";
-                    action-icon: @image-url("../assets/icons/ui/settings.svg");
-                    action-title: root.ui-text.save-source;
-                    action-detail: root.ui-text.source-checkout-path;
-                    triggered(id) => {
-                        root.save-settings();
-                    }
+                build-engine => {
+                    root.build-engine();
                 }
-
-                EditorActionRow {
-                    row-height: root.build-row-height;
-                    action-id: "build";
-                    action-icon: @image-url("../assets/icons/actions/build-project.svg");
-                    action-title: root.ui-text.build;
-                    action-detail: root.ui-text.compile-editor;
-                    triggered(id) => {
-                        root.build-engine();
-                    }
+                open-output => {
+                    root.open-output();
                 }
-
-                EditorActionRow {
-                    row-height: root.build-row-height;
-                    action-id: "open-output";
-                    action-icon: @image-url("../assets/icons/ui/folder.svg");
-                    action-title: root.ui-text.open-output;
-                    action-detail: root.source-engine.output-path;
-                    triggered(id) => {
-                        root.open-output();
-                    }
+                launch-editor => {
+                    root.launch-editor();
                 }
             }
         }
@@ -152,7 +107,7 @@ export component EditorPage inherits PageScrollSurface {
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
-            PanelSlot {
+            EditorSourceSettingsPanel {
                 basis: root.overview-min-width;
                 flex-basis: root.overview-min-width;
                 grow: 2;
@@ -161,45 +116,15 @@ export component EditorPage inherits PageScrollSurface {
                 flex-shrink: 1;
                 min-width: root.compact ? root.content-width : root.overview-min-width;
                 height: HubTokens.workspace-row-editor-config;
-                body-spacing: HubTokens.space-3;
-
-                PanelHeader {
-                    title: root.ui-text.source-engine;
-                    subtitle: root.ui-text.source-checkout-path;
+                active-engine-name <=> root.active-engine-name;
+                source-path <=> root.source-path;
+                output-path <=> root.output-path;
+                ui-text: root.ui-text;
+                rename-active-engine(name) => {
+                    root.rename-active-engine(name);
                 }
-
-                EditorPathFieldRow {
-                    field-label: root.ui-text.active-engine-name;
-                    field-text <=> root.active-engine-name;
-                    button-text: root.ui-text.rename;
-                    button-icon: @image-url("../assets/icons/ui/edit.svg");
-                    button-clicked => {
-                        root.rename-active-engine(root.active-engine-name);
-                    }
-                }
-
-                EditorPathFieldRow {
-                    field-label: root.ui-text.source-checkout-path;
-                    field-text <=> root.source-path;
-                    button-text: root.ui-text.browse;
-                    button-icon: @image-url("../assets/icons/ui/folder.svg");
-                    button-clicked => {
-                        root.browse-folder("source");
-                    }
-                }
-
-                EditorPathFieldRow {
-                    field-label: root.ui-text.staged-output-directory;
-                    field-text <=> root.output-path;
-                    button-text: root.ui-text.browse;
-                    button-icon: @image-url("../assets/icons/ui/folder.svg");
-                    button-clicked => {
-                        root.browse-folder("output");
-                    }
-                }
-
-                Rectangle {
-                    vertical-stretch: 1;
+                browse-folder(kind) => {
+                    root.browse-folder(kind);
                 }
             }
 
@@ -218,52 +143,34 @@ export component EditorPage inherits PageScrollSurface {
                     height: parent.height;
                     spacing: HubTokens.panel-gap;
 
-                    EditorSideListPanel {
+                    EditorSourceEngineListPanel {
                         panel-title: root.ui-text.source-engines;
                         badge-text: root.source-engine-count + "";
-                        row-count: root.source-engine-count;
                         row-height: HubTokens.list-row-md;
                         empty-height: root.side-list-empty-height;
                         list-scroll-y <=> root.engine-list-scroll-y;
-
-                        for engine in root.source-engines: SourceEngineRow {
-                            engine: engine;
-                            collapse-label: root.compact-labels;
-                            selected(id) => {
-                                root.select-engine(id);
-                            }
-                            remove(id) => {
-                                root.remove-engine(id);
-                            }
+                        source-engines: root.source-engines;
+                        source-engine-count: root.source-engine-count;
+                        empty-title: root.ui-text.no-source-engines;
+                        collapse-label: root.compact-labels;
+                        selected(id) => {
+                            root.select-engine(id);
                         }
-
-                        if root.source-engine-count == 0: EmptyStateBlock {
-                            height: root.side-list-empty-height;
-                            title: root.ui-text.no-source-engines;
-                            body-padding: MaterialStyleMetrics.padding_16;
-                            center-content: true;
+                        remove(id) => {
+                            root.remove-engine(id);
                         }
                     }
 
-                    EditorSideListPanel {
+                    EditorBuildHistoryPanel {
                         panel-title: root.ui-text.build-history;
                         badge-text: root.source-build-history-count + "";
-                        row-count: root.source-build-history-count;
                         row-height: HubTokens.list-row-md;
                         empty-height: root.side-list-empty-height;
                         list-scroll-y <=> root.build-history-scroll-y;
-
-                        for record in root.source-build-history: BuildHistoryRow {
-                            record: record;
-                            collapse-label: root.compact-labels;
-                        }
-
-                        if root.source-build-history-count == 0: EmptyStateBlock {
-                            height: root.side-list-empty-height;
-                            title: root.ui-text.no-build-history;
-                            body-padding: MaterialStyleMetrics.padding_16;
-                            center-content: true;
-                        }
+                        source-build-history: root.source-build-history;
+                        source-build-history-count: root.source-build-history-count;
+                        empty-title: root.ui-text.no-build-history;
+                        collapse-label: root.compact-labels;
                     }
                 }
             }

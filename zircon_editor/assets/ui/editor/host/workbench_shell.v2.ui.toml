@@ -18,6 +18,7 @@ children = [
   { node = "left_drawer_shell" },
   { node = "right_drawer_shell" },
   { node = "bottom_drawer_shell" },
+  { node = "workbench_reference_image" },
 ]
 
 [nodes.scaffold]
@@ -181,3 +182,9 @@ layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch
 component = "Container"
 control_id = "BottomDrawerContentRoot"
 layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+
+[nodes.workbench_reference_image]
+component = "Image"
+control_id = "WorkbenchShellReferenceImage"
+props = { image = "ui/editor/reference/workbench.png", value = "ui/editor/reference/workbench.png", reference_source = "docs/ui-and-layout/workbench.png", reference_width = 1672.0, reference_height = 941.0 }
+layout = { input_policy = "Ignore", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

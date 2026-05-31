@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MeshIndexFormat {
+    U16,
+    U32,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "format", content = "values", rename_all = "snake_case")]
 pub enum MeshIndices {
@@ -8,6 +15,13 @@ pub enum MeshIndices {
 }
 
 impl MeshIndices {
+    pub fn format(&self) -> MeshIndexFormat {
+        match self {
+            Self::U16(_) => MeshIndexFormat::U16,
+            Self::U32(_) => MeshIndexFormat::U32,
+        }
+    }
+
     pub fn len(&self) -> usize {
         match self {
             Self::U16(values) => values.len(),

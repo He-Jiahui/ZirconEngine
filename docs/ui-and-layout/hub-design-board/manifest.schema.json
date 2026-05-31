@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docs/ui-and-layout/hub-design-board/manifest.schema.json",
+  "title": "Zircon Hub design-board manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "schema",
+    "source",
+    "canvas",
+    "review_priority",
+    "manual_signoff",
+    "reference_target",
+    "reference_alignment_checks",
+    "structure_review_checklist",
+    "structure_coverage_matrix",
+    "structure_geometry_evidence",
+    "structure_geometry_baseline",
+    "structure_responsive_baseline",
+    "structure_review_route_baseline",
+    "structure_overlay_baseline",
+    "structure_reference_route_baseline",
+    "structure_review_guide",
+    "review_index",
+    "structure_to_reference_map",
+    "reference_alignment_matrix",
+    "structure_signoff_checklist",
+    "structure_decision_log",
+    "structure_review_status",
+    "structure_acceptance_record",
+    "structure_review_packet",
+    "structure_review_packet_schema",
+    "export_metadata",
+    "support_documents",
+    "validation_commands",
+    "acceptance_boundary",
+    "artifacts",
+    "review_sequence",
+    "manual_review_items"
+  ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "docs/ui-and-layout/hub-design-board/manifest.schema.json"
+    },
+    "source": {
+      "const": "docs/ui-and-layout/hub-design-board/index.html"
+    },
+    "canvas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "const": 1568
+        },
+        "height": {
+          "const": 1003
+        }
+      }
+    },
+    "review_priority": {
+      "const": "overall-interaction-structure-layout"
+    },
+    "manual_signoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "required_primary_artifact"
+      ],
+      "properties": {
+        "status": {
+          "const": "pending"
+        },
+        "required_primary_artifact": {
+          "const": "docs/ui-and-layout/hub-design-structure-layout.png"
+        }
+      }
+    },
+    "reference_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "role",
+        "canvas"
+      ],
+      "properties": {
+        "path": {
+          "const": "docs/ui-and-layout/hub.png"
+        },
+        "role": {
+          "const": "target-ui-reference"
+        },
+        "canvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "width",
+            "height"
+          ],
+          "properties": {
+            "width": {
+              "const": 1568
+            },
+            "height": {
+              "const": 1003
+            }
+          }
+        }
+      }
+    },
+    "reference_alignment_checks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "target_region",
+          "primary_artifact",
+          "review_focus",
+          "acceptance_rule"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target_region": {
+            "type": "string"
+          },
+          "primary_artifact": {
+            "type": "string",
+            "pattern": "^hub-design-.*\\.png$"
+          },
+          "review_focus": {
+            "type": "string"
+          },
+          "acceptance_rule": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "structure_review_checklist": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md"
+    },
+    "structure_coverage_matrix": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_COVERAGE_MATRIX.md"
+    },
+    "structure_geometry_evidence": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_GEOMETRY_EVIDENCE.md"
+    },
+    "structure_geometry_baseline": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-geometry-baseline.json"
+    },
+    "structure_responsive_baseline": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-responsive-baseline.json"
+    },
+    "structure_review_route_baseline": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-review-route-baseline.json"
+    },
+    "structure_overlay_baseline": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-overlay-baseline.json"
+    },
+    "structure_reference_route_baseline": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-reference-route-baseline.json"
+    },
+    "structure_review_guide": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW_GUIDE.md"
+    },
+    "review_index": {
+      "const": "docs/ui-and-layout/hub-design-board/REVIEW_INDEX.md"
+    },
+    "structure_to_reference_map": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_TO_REFERENCE_MAP.md"
+    },
+    "reference_alignment_matrix": {
+      "const": "docs/ui-and-layout/hub-design-board/REFERENCE_ALIGNMENT_MATRIX.md"
+    },
+    "structure_signoff_checklist": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_SIGNOFF_CHECKLIST.md"
+    },
+    "structure_decision_log": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_DECISION_LOG.md"
+    },
+    "structure_review_status": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW_STATUS.md"
+    },
+    "structure_acceptance_record": {
+      "const": "docs/ui-and-layout/hub-design-board/STRUCTURE_ACCEPTANCE_RECORD.md"
+    },
+    "structure_review_packet": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-review-packet.json"
+    },
+    "structure_review_packet_schema": {
+      "const": "docs/ui-and-layout/hub-design-board/structure-review-packet.schema.json"
+    },
+    "export_metadata": {
+      "const": "docs/ui-and-layout/hub-design-board/export-metadata.json"
+    },
+    "support_documents": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation_commands": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "string"
+      }
+    },
+    "acceptance_boundary": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "enum": [
+          "design-board-and-web-reference-only",
+          "manual-signoff-required",
+          "runtime-behavior-out-of-scope"
+        ]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "output",
+          "category",
+          "purpose"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "structure",
+              "flow",
+              "details"
+            ]
+          },
+          "output": {
+            "type": "string",
+            "pattern": "^hub-design-.*\\.png$"
+          },
+          "category": {
+            "enum": [
+              "primary-structure",
+              "secondary-functional-detail"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "review_sequence": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step",
+          "artifact_id",
+          "focus"
+        ],
+        "properties": {
+          "step": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "artifact_id": {
+            "enum": [
+              "structure",
+              "flow",
+              "details"
+            ]
+          },
+          "focus": {
+            "enum": [
+              "overall-interaction-structure-layout",
+              "route-and-responsive-structure",
+              "functional-content-local-detail"
+            ]
+          }
+        }
+      }
+    },
+    "manual_review_items": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "primary_artifact",
+          "secondary_artifact"
+        ],
+        "properties": {
+          "item": {
+            "enum": [
+              "Shell frame",
+              "Navigation",
+              "Workspace",
+              "Overlay layer",
+              "State layer",
+              "Responsive structure",
+              "Bottom strip",
+              "Functional detail"
+            ]
+          },
+          "primary_artifact": {
+            "type": "string",
+            "pattern": "^hub-design-.*\\.png$"
+          },
+          "secondary_artifact": {
+            "type": "string",
+            "pattern": "^hub-design-.*\\.png$"
+          }
+        }
+      }
+    }
+  }
+}

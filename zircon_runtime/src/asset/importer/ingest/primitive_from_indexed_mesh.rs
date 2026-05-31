@@ -85,6 +85,7 @@ pub(super) fn primitive_from_indexed_mesh(
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
+        mesh: None,
         virtual_geometry,
     })
 }

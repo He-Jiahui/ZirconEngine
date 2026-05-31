@@ -11,7 +11,7 @@ use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec2, Vec3, Vec4};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, ModelMarker, PhysicsMaterialMarker,
+    AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
     ResourceHandle, ResourceId,
 };
 use serde::{Deserialize, Serialize};
@@ -154,9 +154,19 @@ impl Default for CameraComponent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MeshRendererPrimitiveBinding {
+    pub mesh: ResourceHandle<MeshMarker>,
+    pub material: ResourceHandle<MaterialMarker>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MeshRenderer {
     pub model: ResourceHandle<ModelMarker>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub primitives: Vec<MeshRendererPrimitiveBinding>,
     pub tint: Vec4,
     #[serde(default)]
     pub material_alpha_mode: RenderMaterialAlphaMode,
@@ -169,7 +179,9 @@ impl MeshRenderer {
     ) -> Self {
         Self {
             model,
+            mesh: None,
             material,
+            primitives: Vec::new(),
             tint: Vec4::ONE,
             material_alpha_mode: RenderMaterialAlphaMode::Opaque,
         }

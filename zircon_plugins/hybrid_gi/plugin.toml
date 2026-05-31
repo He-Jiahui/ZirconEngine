@@ -1,8 +1,11 @@
 id = "hybrid_gi"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Hybrid GI"
+category = "rendering"
 description = "Optional hybrid global illumination runtime and editor package."
 maturity = "experimental"
+supported_targets = ["client_runtime", "editor_host"]
 default_packaging = ["source_template", "library_embed"]
 capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
 

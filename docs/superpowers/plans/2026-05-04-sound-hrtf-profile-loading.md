@@ -17,9 +17,9 @@
 - Modify `zircon_runtime/src/core/framework/sound/manager.rs`: add HRTF profile load/remove/list APIs.
 - Modify `zircon_runtime/src/core/framework/sound/mod.rs`: export HRTF profile DTO.
 - Modify `zircon_plugins/sound/runtime/src/engine/state.rs`: store loaded HRTF profiles.
-- Modify `zircon_plugins/sound/runtime/src/descriptor_validation.rs`: validate HRTF profile descriptors.
+- Modify `zircon_plugins/sound/runtime/src/descriptor_validation/hrtf.rs`: validate HRTF profile descriptors.
 - Modify `zircon_plugins/sound/runtime/src/service_types.rs`: implement manager APIs.
-- Modify `zircon_plugins/sound/runtime/src/engine/render.rs`: apply loaded HRTF kernels during source environment rendering.
+- Modify `zircon_plugins/sound/runtime/src/engine/render/mod.rs`: apply loaded HRTF kernels during source environment rendering.
 - Modify `zircon_plugins/sound/runtime/src/tests/spatial.rs`: add HRTF profile tests.
 - Update `docs/engine-architecture/runtime-sound-extension.md` and `.codex/sessions/20260503-0228-sound-mixer-graph-continuation.md`.
 

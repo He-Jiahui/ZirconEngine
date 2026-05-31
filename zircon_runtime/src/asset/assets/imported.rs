@@ -51,6 +51,7 @@ impl ImportedAsset {
             Self::AnimationStateMachine(asset) => asset.direct_references(),
             Self::Material(asset) => asset.direct_references(),
             Self::MaterialGraph(asset) => asset.direct_references(),
+            Self::Model(asset) => asset.direct_references(),
             Self::Scene(asset) => asset.direct_references(),
             Self::Terrain(asset) => asset.direct_references(),
             Self::TerrainLayerStack(asset) => asset.direct_references(),

@@ -1,0 +1,34 @@
+{
+  "name": "Zircon Hub structure-first review route baseline",
+  "source": "docs/ui-and-layout/hub-design-board/index.html",
+  "review_focus": "overall-structure-first-review-route",
+  "review_order": [
+    {
+      "step": 1,
+      "artifact_id": "structure",
+      "artifact": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "focus": "overall-interaction-structure-layout",
+      "decision_gate": "overall-shell-accepted"
+    },
+    {
+      "step": 2,
+      "artifact_id": "flow",
+      "artifact": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "focus": "route-and-responsive-structure",
+      "decision_gate": "route-responsive-ownership-accepted"
+    },
+    {
+      "step": 3,
+      "artifact_id": "details",
+      "artifact": "docs/ui-and-layout/hub-design-functional-details.png",
+      "focus": "functional-content-local-detail",
+      "decision_gate": "local-content-reviewed-after-structure"
+    }
+  ],
+  "blocking_rules": [
+    "Do not approve functional-content-local-detail before overall-interaction-structure-layout is accepted.",
+    "Do not let hub-design-functional-details.png change shell, Topbar, Sidebar, Workspace, overlay, or Bottom strip ownership.",
+    "If structure and details disagree, revise structure artifacts before judging local detail.",
+    "Manual sign-off remains pending until docs/ui-and-layout/hub-design-structure-layout.png is accepted against docs/ui-and-layout/hub.png."
+  ]
+}

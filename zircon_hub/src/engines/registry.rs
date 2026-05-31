@@ -41,6 +41,23 @@ pub fn upsert_source_engine(engines: &mut Vec<SourceEngineInstall>, engine: Sour
     }
 }
 
+pub fn prune_project_engine_bindings(
+    metadata: &mut crate::projects::ProjectMetadataMap,
+    engines: &[SourceEngineInstall],
+) -> usize {
+    let mut pruned = 0;
+    metadata.retain(|_, project| {
+        if let Some(engine_id) = project.engine_id.as_deref() {
+            if !engines.iter().any(|engine| engine.id == engine_id) {
+                project.engine_id = None;
+                pruned += 1;
+            }
+        }
+        !project.is_empty()
+    });
+    pruned
+}
+
 pub fn remove_source_engine(
     engines: &mut Vec<SourceEngineInstall>,
     active_engine_id: &mut Option<String>,
@@ -84,6 +101,21 @@ mod tests {
     }
 
     #[test]
+    fn active_source_engine_mut_updates_selected_or_first_record() {
+        let mut engines = vec![engine("first"), engine("second")];
+
+        active_source_engine_mut(&mut engines, Some("second"))
+            .expect("selected engine should be mutable")
+            .display_name = "Selected".to_string();
+        active_source_engine_mut(&mut engines, Some("missing"))
+            .expect("missing selection should fallback to first engine")
+            .display_name = "Fallback".to_string();
+
+        assert_eq!(engines[0].display_name, "Fallback");
+        assert_eq!(engines[1].display_name, "Selected");
+    }
+
+    #[test]
     fn upsert_source_engine_replaces_existing_record() {
         let mut engines = vec![engine("local")];
         let mut updated = engine("local");
@@ -105,5 +137,64 @@ mod tests {
         assert_eq!(removed.map(|engine| engine.id), Some("second".to_string()));
         assert_eq!(active.as_deref(), Some("first"));
         assert_eq!(engines.len(), 1);
+    }
+
+    #[test]
+    fn remove_source_engine_keeps_active_selection_when_removing_inactive_engine() {
+        let mut engines = vec![engine("first"), engine("second"), engine("third")];
+        let mut active = Some("second".to_string());
+
+        let removed = remove_source_engine(&mut engines, &mut active, "first");
+
+        assert_eq!(removed.map(|engine| engine.id), Some("first".to_string()));
+        assert_eq!(active.as_deref(), Some("second"));
+        assert_eq!(engines.len(), 2);
+    }
+
+    #[test]
+    fn remove_last_source_engine_clears_active_selection() {
+        let mut engines = vec![engine("only")];
+        let mut active = Some("only".to_string());
+
+        let removed = remove_source_engine(&mut engines, &mut active, "only");
+
+        assert_eq!(removed.map(|engine| engine.id), Some("only".to_string()));
+        assert!(active.is_none());
+        assert!(engines.is_empty());
+    }
+
+    #[test]
+    fn prune_project_engine_bindings_removes_stale_engine_ids() {
+        let mut metadata = crate::projects::ProjectMetadataMap::new();
+        metadata.insert(
+            "bound".to_string(),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("first".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        metadata.insert(
+            "stale".to_string(),
+            crate::projects::ProjectMetadata {
+                engine_id: Some("missing".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        metadata.insert(
+            "pinned-stale".to_string(),
+            crate::projects::ProjectMetadata {
+                pinned: true,
+                engine_id: Some("missing".to_string()),
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+
+        let pruned = prune_project_engine_bindings(&mut metadata, &[engine("first")]);
+
+        assert_eq!(pruned, 2);
+        assert_eq!(metadata["bound"].engine_id.as_deref(), Some("first"));
+        assert!(!metadata.contains_key("stale"));
+        assert!(metadata["pinned-stale"].pinned);
+        assert!(metadata["pinned-stale"].engine_id.is_none());
     }
 }

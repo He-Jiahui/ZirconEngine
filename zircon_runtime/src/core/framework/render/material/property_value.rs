@@ -17,6 +17,13 @@ pub enum RenderMaterialPropertyValue {
     Vec4 { value: [f32; 4] },
 }
 
+impl RenderMaterialPropertyValue {
+    pub const fn is_uniform_eligible(&self) -> bool {
+        !matches!(self, Self::String { .. })
+    }
+}
+
+// Compact inspection data for prepared shader property values before uniform byte encoding.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderMaterialPropertyValueSummary {
     pub total_count: usize,
@@ -63,6 +70,28 @@ impl RenderMaterialPropertyValueSummary {
 
     pub const fn non_uniform_count(&self) -> usize {
         self.string_count
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RenderMaterialPropertyValueState {
+    pub name: String,
+    pub value: RenderMaterialPropertyValue,
+}
+
+impl RenderMaterialPropertyValueState {
+    pub fn from_values(values: &BTreeMap<String, RenderMaterialPropertyValue>) -> Vec<Self> {
+        values
+            .iter()
+            .map(|(name, value)| Self {
+                name: name.clone(),
+                value: value.clone(),
+            })
+            .collect()
+    }
+
+    pub const fn is_uniform_eligible(&self) -> bool {
+        self.value.is_uniform_eligible()
     }
 }
 
@@ -125,5 +154,38 @@ mod tests {
         assert_eq!(summary.vec4_count, 1);
         assert_eq!(summary.uniform_eligible_count(), 7);
         assert_eq!(summary.non_uniform_count(), 1);
+    }
+
+    #[test]
+    fn material_property_value_state_lists_property_names_and_uniform_eligibility() {
+        let mut values = BTreeMap::new();
+        values.insert(
+            "debug_label".to_string(),
+            RenderMaterialPropertyValue::String {
+                value: "debug".to_string(),
+            },
+        );
+        values.insert(
+            "gain".to_string(),
+            RenderMaterialPropertyValue::Float { value: 1.0 },
+        );
+
+        let states = RenderMaterialPropertyValueState::from_values(&values);
+
+        assert_eq!(states.len(), 2);
+        assert_eq!(states[0].name, "debug_label");
+        assert_eq!(
+            states[0].value,
+            RenderMaterialPropertyValue::String {
+                value: "debug".to_string()
+            }
+        );
+        assert!(!states[0].is_uniform_eligible());
+        assert_eq!(states[1].name, "gain");
+        assert_eq!(
+            states[1].value,
+            RenderMaterialPropertyValue::Float { value: 1.0 }
+        );
+        assert!(states[1].is_uniform_eligible());
     }
 }

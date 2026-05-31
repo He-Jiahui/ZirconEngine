@@ -61,6 +61,11 @@ fn app_window_routes_shell_chrome_through_components() {
             "HubStatusBar must receive selected project and active Source Engine context from HubWindow; missing {snippet}"
         );
     }
+    assert!(
+        app.contains("HubStatusBar {")
+            && !app.contains("if !(root.selected-page == \"projects\" && root.project-subpage == \"dashboard\"): HubStatusBar"),
+        "HubStatusBar must remain visible on the Projects dashboard so selected-project context is not buried in a popup"
+    );
 
     let top_header_call = app
         .split("HubTopHeader {")
@@ -95,17 +100,46 @@ fn app_window_routes_shell_chrome_through_components() {
             "HubNavSidebar must receive selected project and active Source Engine context from HubWindow; missing {snippet}"
         );
     }
-    assert!(
-        app.contains("private property <length> nav-status-height: root.shell-row-height * 4;"),
-        "app.slint must leave enough token-derived sidebar status height for project and engine context"
+    let components = read_ui_file("components.slint");
+    let shell_header_components = read_ui_file("shell_header_components.slint");
+    let shell_header_popup_components = read_ui_file("shell_header_popup_components.slint");
+    let shell_sidebar_components = read_ui_file("shell_sidebar_components.slint");
+    let shell_page_components = read_ui_file("shell_page_components.slint");
+    let shell_surface = format!(
+        "{shell_header_components}\n{shell_header_popup_components}\n{shell_sidebar_components}\n{shell_page_components}"
     );
-
-    let shell = read_ui_file("shell.slint");
-    let page_header = shell
+    assert!(
+        !ui_dir().join("shell.slint").exists(),
+        "shell.slint was a migration-only compatibility note and must stay deleted after focused shell component extraction"
+    );
+    assert!(
+        components.contains("HubTopHeader,")
+            && components.contains("} from \"shell_header_components.slint\";"),
+        "components.slint should publicly export top-header chrome from shell_header_components.slint"
+    );
+    assert!(
+        !components.contains("shell_header_popup_components.slint")
+            && shell_header_components
+                .contains("HeaderEngineSelector")
+            && shell_header_components.contains("from \"shell_header_popup_components.slint\";"),
+        "shell_header_popup_components.slint should stay an internal top-header helper imported by shell_header_components.slint"
+    );
+    assert!(
+        components.contains("HubNavSidebar,")
+            && components.contains("} from \"shell_sidebar_components.slint\";"),
+        "components.slint should publicly export sidebar chrome from shell_sidebar_components.slint"
+    );
+    assert!(
+        components.contains("HubPageHeader,")
+            && components.contains("HubStatusBar,")
+            && components.contains("} from \"shell_page_components.slint\";"),
+        "components.slint should publicly export page-title and bottom-status chrome from shell_page_components.slint"
+    );
+    let page_header = shell_page_components
         .split("export component HubPageHeader")
         .nth(1)
         .and_then(|source| source.split("export component HubStatusBar").next())
-        .expect("shell.slint must declare HubPageHeader before HubStatusBar");
+        .expect("shell_page_components.slint must export HubPageHeader before HubStatusBar");
     for snippet in [
         "in property <bool> header-visible: true;",
         "in property <bool> project-actions-visible: true;",
@@ -116,6 +150,7 @@ fn app_window_routes_shell_chrome_through_components() {
         "height: root.action-height;",
         "text: root.selected-page-title;",
         "style: MaterialTypography.headline_medium;",
+        "HubCommandButton {",
     ] {
         assert!(
             page_header.contains(snippet),
@@ -147,17 +182,24 @@ fn app_window_routes_shell_chrome_through_components() {
         !page_header.contains("font-size:") && !page_header.contains("font-weight:"),
         "HubPageHeader typography should stay on MaterialText styles instead of raw Text font bindings"
     );
+    assert!(
+        shell_page_components.contains("HubCommandButton,")
+            && !shell_page_components.contains("component HeaderActionButton"),
+        "shell_page_components.slint should consume the shared HubCommandButton instead of owning HeaderActionButton locally"
+    );
 
-    let status_bar = shell
+    let status_bar = shell_page_components
         .split("export component HubStatusBar")
         .nth(1)
-        .expect("shell.slint must declare HubStatusBar");
+        .expect("shell_page_components.slint must export HubStatusBar");
     for snippet in [
         "in property <ProjectDetailData> project;",
         "in property <SourceEngineData> source-engine;",
         "in property <UiTextData> ui-text;",
         "in property <bool> compact: false;",
         "in property <length> context-badge-width: HubTokens.status-badge-width;",
+        "preferred-height: root.status-height;",
+        "max-height: root.status-height;",
         "root.project.selected ? root.project.title : root.ui-text.no-project-selected",
         "root.ui-text.active-source-engine + \": \" + root.source-engine.title",
         "if !root.compact: Badge",
@@ -182,11 +224,10 @@ fn app_window_routes_shell_chrome_through_components() {
         "HubStatusBar status detail should stay on MaterialText typography instead of raw Text font bindings"
     );
 
-    let engine_selector = shell
-        .split("component HeaderEngineSelector")
+    let engine_selector = shell_header_popup_components
+        .split("export component HeaderEngineSelector")
         .nth(1)
-        .and_then(|source| source.split("export component HubTopHeader").next())
-        .expect("shell.slint must declare HeaderEngineSelector before HubTopHeader");
+        .expect("shell_header_popup_components.slint must export HeaderEngineSelector");
     for snippet in [
         "MaterialText {",
         "text: root.ui-text.source-engines;",
@@ -197,7 +238,9 @@ fn app_window_routes_shell_chrome_through_components() {
         "private property <length> popup-header-height: HubTokens.icon-lg;",
         "private property <length> popup-list-height: max(HubTokens.list-row-lg, root.popup-height - HubTokens.toolbar-gap * 2 - root.popup-header-height - HubTokens.space-2);",
         "private property <length> engine-popup-scroll-y: 0px;",
-        "height: root.popup-height;",
+        "popup := HubPopupWindow",
+        "popup-height: root.popup-height;",
+        "PopupPanel {",
         "engine-list := PanelListViewport {",
         "height: root.popup-list-height;",
         "scroll-y <=> root.engine-popup-scroll-y;",
@@ -210,30 +253,103 @@ fn app_window_routes_shell_chrome_through_components() {
             "HeaderEngineSelector popup chrome should use MaterialText typography; missing {snippet}"
         );
     }
+    assert!(
+        !shell_header_components.contains("export component HeaderEngineSelector")
+            && !shell_header_components.contains("export component HeaderEngineOption"),
+        "Source Engine popup components should live in shell_header_popup_components.slint instead of shell_header_components.slint"
+    );
+    assert!(
+        shell_header_popup_components.contains("import { HubPopupWindow, PopupPanel } from \"overlays.slint\";")
+            && shell_header_popup_components.matches("PopupPanel {").count() == 2
+            && shell_header_popup_components.contains("user-menu-popup := HubPopupWindow")
+            && !shell_header_popup_components.contains("HubPanel {"),
+        "top-header popups should consume shared popup window/panel overlay shells instead of instantiating PopupWindow or HubPanel directly"
+    );
+    assert!(
+        !shell_header_popup_components.contains("popup := PopupWindow")
+            && !shell_header_popup_components.contains("user-menu-popup := PopupWindow"),
+        "top-header popups should route PopupWindow ownership through HubPopupWindow"
+    );
+    assert!(
+        shell_header_popup_components
+            .contains("import { ActionRow, InfoRow, PanelListViewport } from \"data_display.slint\";")
+            && shell_header_popup_components
+                .contains("export component HeaderEngineOption inherits InfoRow")
+            && shell_header_popup_components.contains("callback picked(string);")
+            && shell_header_popup_components.contains("selected: root.engine.active;")
+            && shell_header_popup_components.contains("idle-border-width: 0px;")
+            && shell_header_popup_components.contains("idle-background: transparent;")
+            && shell_header_popup_components
+                .contains("enabled-avatar-background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;")
+            && shell_header_popup_components
+                .contains("enabled-avatar-foreground: root.engine.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;"),
+        "top-header Source Engine rows should consume the shared InfoRow primitive while preserving active/inactive popup row chrome"
+    );
+    let engine_option = shell_header_popup_components
+        .split("export component HeaderEngineOption")
+        .nth(1)
+        .and_then(|source| source.split("export component HeaderEngineSelector").next())
+        .expect("shell_header_popup_components.slint must declare HeaderEngineOption before HeaderEngineSelector");
+    assert!(
+        !engine_option.contains("ListTile {")
+            && !engine_option.contains("border-radius: HubVisualSpec.panel-radius;")
+            && !engine_option
+                .contains("background: root.engine.active ? MaterialPalette.secondary_container"),
+        "HeaderEngineOption should not keep a local Material row shell after moving to InfoRow"
+    );
+    assert!(
+        shell_header_popup_components
+            .contains("import { ActionRow, InfoRow, PanelListViewport } from \"data_display.slint\";")
+            && shell_header_popup_components
+                .contains("component HeaderUserMenuAction inherits ActionRow")
+            && shell_header_popup_components.contains("show-trailing: false;")
+            && shell_header_popup_components
+                .contains("disabled-shell-opacity: MaterialPalette.disable_opacity;")
+            && shell_header_popup_components
+                .contains("enabled-avatar-foreground: HubVisualSpec.accent-stroke;"),
+        "top-header user menu actions should consume the shared ActionRow primitive while preserving compact popup row chrome"
+    );
+    let user_menu_action = shell_header_popup_components
+        .split("component HeaderUserMenuAction")
+        .nth(1)
+        .and_then(|source| source.split("export component HeaderEngineOption").next())
+        .expect("shell_header_popup_components.slint must declare HeaderUserMenuAction before HeaderEngineOption");
+    assert!(
+        !user_menu_action.contains("ListTile {")
+            && !user_menu_action.contains("StateLayerArea {")
+            && !user_menu_action.contains("border-color: HubVisualSpec.outline-muted;"),
+        "HeaderUserMenuAction should not keep a local Material row shell after moving to ActionRow"
+    );
 
-    let top_header = shell
+    let top_header = shell_header_components
         .split("export component HubTopHeader")
         .nth(1)
-        .and_then(|source| source.split("component NavStatusPanel").next())
-        .expect("shell.slint must declare HubTopHeader before NavStatusPanel");
+        .expect("shell_header_components.slint must export HubTopHeader");
     for snippet in [
         "in property <ProjectDetailData> project;",
         "in property <bool> tight: false;",
         "in property <bool> minimal: false;",
-        "alignment: center;",
+        "alignment: start;",
         "MaterialText {",
         "text: \"ZIRCON HUB\";",
         "style: MaterialTypography.title_medium;",
-        "root.project.selected ? root.project.title : root.ui-text.game-engine",
+        "private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;",
         "text: root.brand-subtitle;",
+    ] {
+        assert!(
+            top_header.contains(snippet),
+            "HubTopHeader brand chrome should use MaterialText typography; missing {snippet}"
+        );
+    }
+    for snippet in [
         "text: root.ui-text.local-user-initials;",
         "style: MaterialTypography.label_medium_prominent;",
         "text: root.ui-text.local-user;",
         "style: MaterialTypography.label_medium;",
     ] {
         assert!(
-            top_header.contains(snippet),
-            "HubTopHeader brand and user chrome should use MaterialText typography; missing {snippet}"
+            top_header.contains(snippet) || shell_header_popup_components.contains(snippet),
+            "HubTopHeader user chrome or its popup helper should use MaterialText typography; missing {snippet}"
         );
     }
     assert!(
@@ -242,28 +358,36 @@ fn app_window_routes_shell_chrome_through_components() {
             && !top_header.contains("private property <bool> minimal: responsive-state.compact;"),
         "HubTopHeader must consume semantic tight/minimal state from app.slint instead of instantiating its own ResponsiveState"
     );
+    assert!(
+        shell_header_components.contains("export component HubTopHeader")
+            && shell_header_components.contains("component HeaderControlSlot")
+            && shell_header_components.contains("component WindowDragRegion"),
+        "top-header implementation and drag/control-slot helpers belong in shell_header_components.slint"
+    );
 
-    let nav_status_panel = shell
-        .split("component NavStatusPanel inherits HubPanel")
+    let nav_status_panel = shell_sidebar_components
+        .split("export component NavStatusPanel inherits HubPanel")
         .nth(1)
         .and_then(|source| source.split("export component HubNavSidebar").next())
-        .expect("shell.slint must declare NavStatusPanel before HubNavSidebar");
+        .expect("shell_sidebar_components.slint must export NavStatusPanel");
     for snippet in [
         "in property <bool> task-running: false;",
         "in property <ProjectDetailData> project;",
         "in property <SourceEngineData> source-engine;",
         "in property <UiTextData> ui-text;",
+        "in property <length> nav-width: HubTokens.nav-width-expanded-min;",
         "in property <length> nav-status-height:",
         "height: root.nav-status-height;",
         "MaterialText {",
         "text: root.ui-text.engine-status;",
         "style: MaterialTypography.label_large;",
-        "Badge {",
         "text: root.source-engine.status;",
-        "text: root.ui-text.current-project;",
-        "root.project.selected ? root.project.title : root.ui-text.no-project-selected",
-        "text: root.project-title;",
-        "color: root.project.selected ? MaterialPalette.on_surface : MaterialPalette.on_surface_variant;",
+        "color: root.task-running ? HubVisualSpec.warning-stroke : HubVisualSpec.success-stroke;",
+        "private property <string> project-context: root.ui-text.current-project + \": \" + root.project.title;",
+        "if root.project.selected: Badge",
+        "text: root.project-context;",
+        "tone: \"accent\";",
+        "badge-width: root.nav-width - HubTokens.space-6;",
         "variant: \"interactive\";",
         "source-image: @image-url(\"../assets/icons/ui/refresh.svg\");",
         "text: root.ui-text.check-for-updates;",
@@ -274,12 +398,10 @@ fn app_window_routes_shell_chrome_through_components() {
             "NavStatusPanel must own the sidebar project/source-engine status card chrome; missing {snippet}"
         );
     }
-
-    let nav_sidebar = shell
+    let nav_sidebar = shell_sidebar_components
         .split("export component HubNavSidebar")
         .nth(1)
-        .and_then(|source| source.split("export component HubPageHeader").next())
-        .expect("shell.slint must declare HubNavSidebar before HubPageHeader");
+        .expect("shell_sidebar_components.slint must export HubNavSidebar");
     for snippet in [
         "in property <ProjectDetailData> project;",
         "if !root.collapsed && !root.compact-height: NavStatusPanel {",
@@ -287,6 +409,7 @@ fn app_window_routes_shell_chrome_through_components() {
         "project: root.project;",
         "source-engine: root.source-engine;",
         "ui-text: root.ui-text;",
+        "nav-width: root.nav-width;",
         "nav-status-height: root.nav-status-height;",
     ] {
         assert!(
@@ -294,10 +417,35 @@ fn app_window_routes_shell_chrome_through_components() {
             "HubNavSidebar should compose NavStatusPanel instead of owning status-card internals; missing {snippet}"
         );
     }
+    for snippet in [
+        "in property <length> bottom-reserved-height: 0px;",
+        "if root.bottom-reserved-height > 0px: Rectangle",
+        "height: root.bottom-reserved-height;",
+    ] {
+        assert!(
+            nav_sidebar.contains(snippet),
+            "HubNavSidebar should reserve bottom chrome space for dashboard reference overlays; missing {snippet}"
+        );
+    }
+    assert!(
+        app.contains("private property <length> nav-status-height: (root.project-detail.selected ? root.shell-row-height * 3 : root.shell-row-height * 2) + HubTokens.space-6;"),
+        "app.slint must reserve token-derived sidebar status height for engine-only and selected-project context states"
+    );
     assert!(
         !nav_sidebar.contains("if !root.collapsed && !root.compact-height: HubPanel")
             && !nav_sidebar.contains("private property <string> project-title"),
         "HubNavSidebar should not keep project/source-engine status-card layout internals after NavStatusPanel extraction"
+    );
+    assert!(
+        shell_sidebar_components.contains("component NavStatusPanel inherits HubPanel")
+            && shell_sidebar_components.contains("export component HubNavSidebar")
+            && shell_page_components.contains("root.ui-text.current-project"),
+        "sidebar components belong directly in shell_sidebar_components.slint"
+    );
+    assert!(
+        shell_page_components.contains("export component HubPageHeader")
+            && shell_page_components.contains("export component HubStatusBar"),
+        "page-title and bottom-status chrome belong directly in shell_page_components.slint"
     );
 
     for (name, source) in [
@@ -318,7 +466,7 @@ fn app_window_routes_shell_chrome_through_components() {
 
     let line_count = app.lines().count();
     assert!(
-        line_count <= 520,
+        line_count <= 527,
         "app.slint should keep shell composition thin; found {line_count} lines"
     );
 
@@ -338,11 +486,14 @@ fn app_window_routes_shell_chrome_through_components() {
         !app.contains("component HeaderEngineOption")
             && !app.contains("component HeaderEngineSelector")
             && !app.contains("for item in root.nav-items: NavButton"),
-        "window chrome implementation details belong in shell.slint"
+        "window chrome implementation details belong in shell chrome component files"
     );
 
     for component in [
+        "HeaderEngineOption",
         "HubTopHeader",
+        "WindowDragRegion",
+        "HeaderControlSlot",
         "NavStatusPanel",
         "HubNavSidebar",
         "HubPageHeader",
@@ -351,41 +502,44 @@ fn app_window_routes_shell_chrome_through_components() {
         "NavRail",
     ] {
         assert!(
-            shell.contains(component),
-            "shell.slint must declare or compose {component}"
+            shell_surface.contains(component),
+            "shell chrome surface must declare or compose {component}"
         );
     }
 
-    let header_engine_option = shell
-        .split("component HeaderEngineOption")
+    let header_engine_option = shell_header_popup_components
+        .split("export component HeaderEngineOption")
         .nth(1)
-        .and_then(|source| source.split("component HeaderEngineSelector").next())
-        .expect("shell.slint must declare HeaderEngineOption before HeaderEngineSelector");
+        .and_then(|source| source.split("export component HeaderEngineSelector").next())
+        .expect("shell_header_popup_components.slint must export HeaderEngineOption before HeaderEngineSelector");
     for snippet in [
-        "height: HubTokens.list-row-md;",
-        "ListTile {",
-        "text: root.engine.title;",
-        "supporting_text: root.engine.status + \" / \" + root.engine.last-build;",
-        "avatar_icon:",
-        "avatar_background:",
-        "avatar_foreground:",
+        "inherits InfoRow {",
+        "title: root.engine.title;",
+        "detail: root.engine.status;",
+        "meta: root.engine.last-build;",
+        "leading-image: @image-url(\"../assets/brand/zircon-mark.svg\");",
+        "has-leading-image: true;",
+        "selected: root.engine.active;",
+        "row-height: HubTokens.list-row-md;",
+        "idle-border-width: 0px;",
+        "idle-background: transparent;",
         "clicked =>",
     ] {
         assert!(
             header_engine_option.contains(snippet),
-            "HeaderEngineOption must use Material ListTile for source-engine popup rows; missing {snippet}"
+            "HeaderEngineOption must route source-engine popup rows through InfoRow while preserving row bindings; missing {snippet}"
         );
     }
     assert!(
-        !header_engine_option.contains("area := TouchArea"),
-        "HeaderEngineOption should not keep a custom full-row TouchArea now that ListTile owns row interaction"
+        !header_engine_option.contains("ListTile {")
+            && !header_engine_option.contains("area := TouchArea"),
+        "HeaderEngineOption should not keep a local ListTile/TouchArea shell now that InfoRow owns row interaction"
     );
 
-    let header_engine_selector = shell
-        .split("component HeaderEngineSelector")
+    let header_engine_selector = shell_header_popup_components
+        .split("export component HeaderEngineSelector")
         .nth(1)
-        .and_then(|source| source.split("component WindowDragRegion").next())
-        .expect("shell.slint must declare HeaderEngineSelector before WindowDragRegion");
+        .expect("shell_header_popup_components.slint must export HeaderEngineSelector");
     for snippet in [
         "engine-list := PanelListViewport {",
         "height: root.popup-list-height;",

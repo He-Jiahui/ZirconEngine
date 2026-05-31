@@ -23,9 +23,11 @@ pub(super) fn parse(
     let block_x = read_nonzero_u8(context, 4, "astc block x")?;
     let block_y = read_nonzero_u8(context, 5, "astc block y")?;
     let block_z = read_nonzero_u8(context, 6, "astc block z")?;
+    validate_block_footprint(context, block_x, block_y, block_z)?;
     let width = read_nonzero_u24_le(context, 7, "astc width")?;
     let height = read_nonzero_u24_le(context, 10, "astc height")?;
     let depth = read_nonzero_u24_le(context, 13, "astc depth")?;
+    validate_block_depth_pair(context, block_z, depth)?;
     let payload_len = astc_payload_len(context, block_x, block_y, block_z, width, height, depth)?;
     let required_len = ASTC_HEADER_SIZE
         .checked_add(payload_len)
@@ -46,6 +48,65 @@ pub(super) fn parse(
         mip_count: 1,
         array_layers: array_layers(dimension, depth),
     })
+}
+
+fn validate_block_footprint(
+    context: &AssetImportContext,
+    block_x: u8,
+    block_y: u8,
+    block_z: u8,
+) -> Result<(), AssetImportError> {
+    if !is_supported_block_footprint(block_x, block_y, block_z) {
+        return parse_error(
+            context,
+            format!("astc block footprint {block_x}x{block_y}x{block_z} is not supported"),
+        );
+    }
+    Ok(())
+}
+
+fn is_supported_block_footprint(block_x: u8, block_y: u8, block_z: u8) -> bool {
+    matches!(
+        (block_x, block_y, block_z),
+        (4, 4, 1)
+            | (5, 4, 1)
+            | (5, 5, 1)
+            | (6, 5, 1)
+            | (6, 6, 1)
+            | (8, 5, 1)
+            | (8, 6, 1)
+            | (8, 8, 1)
+            | (10, 5, 1)
+            | (10, 6, 1)
+            | (10, 8, 1)
+            | (10, 10, 1)
+            | (12, 10, 1)
+            | (12, 12, 1)
+            | (3, 3, 3)
+            | (4, 3, 3)
+            | (4, 4, 3)
+            | (4, 4, 4)
+            | (5, 4, 4)
+            | (5, 5, 4)
+            | (5, 5, 5)
+            | (6, 5, 5)
+            | (6, 6, 5)
+            | (6, 6, 6)
+    )
+}
+
+fn validate_block_depth_pair(
+    context: &AssetImportContext,
+    block_z: u8,
+    depth: u32,
+) -> Result<(), AssetImportError> {
+    if block_z == 1 && depth > 1 {
+        return parse_error(
+            context,
+            format!("astc 2d block footprint requires depth 1, got {depth}"),
+        );
+    }
+    Ok(())
 }
 
 fn astc_payload_len(

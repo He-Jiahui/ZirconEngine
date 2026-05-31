@@ -1,30 +1,35 @@
 import { MutedText } from "shared.slint";
 import { ResponsiveSlot } from "layout.slint";
-import { HubTokens } from "tokens.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
 
 export component HubPanel inherits Rectangle {
     in property <string> variant: "default";
 
-    background: transparent;
+    border-radius: HubVisualSpec.panel-radius;
+    border-width: HubTokens.border-width;
+    border-color: root.variant == "danger" ? HubVisualSpec.error-stroke : (root.variant == "warning" ? HubVisualSpec.warning-stroke : (root.variant == "selected" ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted));
+    background: root.variant == "danger" ? HubVisualSpec.error-fill : (root.variant == "warning" ? HubVisualSpec.warning-fill : (root.variant == "selected" ? HubVisualSpec.panel-hover-background : HubVisualSpec.panel-background));
     clip: true;
 
     if root.variant == "elevated": ElevatedCard {
         width: parent.width;
         height: parent.height;
+        opacity: 0.0;
     }
 
     if root.variant != "elevated": OutlinedCard {
         width: parent.width;
         height: parent.height;
+        opacity: 0.0;
     }
 
     Rectangle {
         width: parent.width;
         height: parent.height;
-        border-radius: MaterialStyleMetrics.border_radius_12;
-        border-width: root.variant == "selected" || root.variant == "danger" ? HubTokens.border-width : 0px;
-        border-color: root.variant == "danger" ? MaterialPalette.error : (root.variant == "selected" ? MaterialPalette.primary : transparent);
+        border-radius: HubVisualSpec.panel-radius;
+        border-width: 0px;
+        border-color: transparent;
         background: transparent;
         clip: true;
 
@@ -65,9 +70,9 @@ export component HeaderGroup inherits Rectangle {
     horizontal-stretch: 1;
     min-width: 1px;
     preferred-width: 0px;
-    background: HubTokens.surface-page;
+    background: HubVisualSpec.chrome-background;
     border-width: HubTokens.border-width;
-    border-color: HubTokens.stroke-muted;
+    border-color: HubVisualSpec.chrome-outline-muted;
     clip: true;
 }
 
@@ -76,20 +81,22 @@ export component Badge inherits Rectangle {
     in property <string> tone: "neutral";
     in property <length> badge-width: MaterialStyleMetrics.size_64;
     in property <length> badge-height: MaterialStyleMetrics.size_24;
+    private property <bool> accent-tone: root.tone == "accent";
+    private property <bool> success-tone: root.tone == "ok" || root.tone == "success";
 
     width: root.badge-width;
     height: root.badge-height;
-    border-radius: MaterialStyleMetrics.border_radius_4;
+    border-radius: HubVisualSpec.badge-radius;
     border-width: HubTokens.border-width;
-    border-color: root.tone == "warning" ? MaterialPalette.tertiary : (root.tone == "error" ? MaterialPalette.error : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary : MaterialPalette.outline_variant));
-    background: root.tone == "warning" ? MaterialPalette.tertiary_container : (root.tone == "error" ? MaterialPalette.error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary_container : MaterialPalette.surface_container_highest));
+    border-color: root.tone == "warning" ? HubVisualSpec.status-warning-stroke : (root.tone == "error" ? HubVisualSpec.status-error-stroke : (root.tone == "info" ? HubVisualSpec.status-info-stroke : (root.accent-tone ? HubVisualSpec.badge-accent-stroke : (root.success-tone ? HubVisualSpec.status-success-stroke : HubVisualSpec.status-neutral-stroke))));
+    background: root.tone == "warning" ? HubVisualSpec.status-warning-fill : (root.tone == "error" ? HubVisualSpec.status-error-fill : (root.tone == "info" ? HubVisualSpec.status-info-fill : (root.accent-tone ? HubVisualSpec.badge-accent-fill : (root.success-tone ? HubVisualSpec.status-success-fill : HubVisualSpec.status-neutral-fill))));
 
     MaterialText {
         width: parent.width;
         height: parent.height;
         text: root.text;
         overflow: elide;
-        color: root.tone == "warning" ? MaterialPalette.on_tertiary_container : (root.tone == "error" ? MaterialPalette.on_error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.on_primary_container : MaterialPalette.on_surface_variant));
+        color: root.tone == "warning" ? HubVisualSpec.status-warning-foreground : (root.tone == "error" ? HubVisualSpec.status-error-foreground : (root.tone == "info" ? HubVisualSpec.status-info-foreground : (root.accent-tone ? HubVisualSpec.badge-accent-foreground : (root.success-tone ? HubVisualSpec.status-success-foreground : HubVisualSpec.status-neutral-foreground))));
         style: MaterialTypography.label_medium;
         horizontal_alignment: center;
         vertical_alignment: center;
@@ -157,7 +164,7 @@ export component PanelHeader inherits Rectangle {
 
         if root.show-action: OutlineButton {
             width: root.action-width;
-            height: HubTokens.control-md;
+            height: HubVisualSpec.toolbar-density-height;
             text: root.action-text;
             icon: @image-url("../assets/icons/ui/chevron-right.svg");
             clicked => {
@@ -302,5 +309,40 @@ export component StatusBanner inherits HubPanel {
             text: root.detail;
             overflow: elide;
         }
+    }
+}
+
+export component HubSection inherits Rectangle {
+    in property <length> section-height: HubTokens.list-row-lg;
+    in property <length> section-spacing: HubTokens.toolbar-gap;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-badge: false;
+    in property <bool> stretch: false;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.section-height;
+    vertical-stretch: root.stretch ? 1 : 0;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        vertical-stretch: 0;
+        spacing: root.section-spacing;
+
+        PanelHeader {
+            title: root.title;
+            subtitle: root.subtitle;
+            show-badge: root.show-badge;
+            badge-text: root.badge-text;
+            badge-tone: root.badge-tone;
+        }
+
+        @children
     }
 }

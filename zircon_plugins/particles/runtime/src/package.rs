@@ -1,6 +1,6 @@
 use zircon_runtime::{
     plugin::PluginDependencyManifest, plugin::PluginEventCatalogManifest,
-    plugin::PluginOptionManifest, plugin::PluginPackageManifest,
+    plugin::PluginEventManifest, plugin::PluginOptionManifest, plugin::PluginPackageManifest,
 };
 
 use crate::component::particle_component_descriptors;
@@ -71,8 +71,33 @@ pub fn particle_options() -> Vec<PluginOptionManifest> {
 }
 
 pub fn particle_event_catalogs() -> Vec<PluginEventCatalogManifest> {
-    vec![PluginEventCatalogManifest::empty(
-        PARTICLES_DYNAMIC_EVENT_NAMESPACE,
-        1,
-    )]
+    vec![PluginEventCatalogManifest {
+        namespace: PARTICLES_DYNAMIC_EVENT_NAMESPACE.to_string(),
+        version: 1,
+        events: vec![
+            event(
+                "particles.dynamic_events.spawn_once",
+                "Spawn Once",
+                "particles.dynamic.spawn_once.v1",
+            ),
+            event(
+                "particles.dynamic_events.begin_emission",
+                "Begin Emission",
+                "particles.dynamic.begin_emission.v1",
+            ),
+            event(
+                "particles.dynamic_events.end_emission",
+                "End Emission",
+                "particles.dynamic.end_emission.v1",
+            ),
+        ],
+    }]
+}
+
+fn event(id: &str, display_name: &str, payload_schema: &str) -> PluginEventManifest {
+    PluginEventManifest {
+        id: id.to_string(),
+        display_name: display_name.to_string(),
+        payload_schema: payload_schema.to_string(),
+    }
 }

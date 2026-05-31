@@ -108,3 +108,58 @@ fn global_volume_gain_scales_final_mix_and_rejects_invalid_values() {
     assert!(sound.set_global_volume_gain(f32::NAN).is_err());
     assert!(sound.set_global_volume_gain(-0.1).is_err());
 }
+
+#[test]
+fn sound_config_preserves_neutral_plugin_option_values() {
+    let options = SoundPluginOptions {
+        enabled: true,
+        backend: "software-null".to_string(),
+        sample_rate_hz: 44_100,
+        channel_count: 6,
+        global_volume_gain: 0.25,
+        block_size_frames: 128,
+        max_voices: 32,
+        max_tracks: 12,
+        default_spatial_scale: 2.5,
+        hrtf_enabled: true,
+        hrtf_profile: "cinematic-room".to_string(),
+        convolution_enabled: false,
+        convolution_budget: SoundConvolutionBudget {
+            max_impulse_responses: 7,
+            max_partition_frames: 512,
+            rays_per_update: 64,
+        },
+        ray_tracing_quality: SoundRayTracingQuality::Balanced,
+        default_mixer_preset: "sound://mixer/cinematic".to_string(),
+        timeline_integration: false,
+        dynamic_events_enabled: false,
+    };
+
+    let config = SoundConfig::from_plugin_options(options);
+    assert_eq!(config.backend, "software-null");
+    assert_eq!(config.sample_rate_hz, 44_100);
+    assert_eq!(config.channel_count, 6);
+    assert_eq!(config.master_gain, 0.25);
+    assert_eq!(config.block_size_frames, 128);
+    assert_eq!(config.max_voices, 32);
+    assert_eq!(config.max_tracks, 12);
+    assert_eq!(config.default_spatial_scale, 2.5);
+    assert!(config.hrtf_enabled);
+    assert_eq!(config.hrtf_profile, "cinematic-room");
+    assert!(!config.convolution_enabled);
+    assert_eq!(config.convolution_budget.max_impulse_responses, 7);
+    assert_eq!(config.convolution_budget.max_partition_frames, 512);
+    assert_eq!(config.convolution_budget.rays_per_update, 64);
+    assert_eq!(config.ray_tracing_quality, SoundRayTracingQuality::Balanced);
+    assert_eq!(config.default_mixer_preset, "sound://mixer/cinematic");
+    assert!(!config.timeline_integration);
+    assert!(!config.dynamic_events_enabled);
+
+    let sound = DefaultSoundManager::with_config(None, config);
+    assert_eq!(sound.global_volume_gain().unwrap(), 0.25);
+    assert_eq!(sound.default_spatial_scale().unwrap(), 2.5);
+    let mix = sound.render_mix(1).unwrap();
+    assert_eq!(mix.sample_rate_hz, 44_100);
+    assert_eq!(mix.channel_count, 6);
+    assert_eq!(mix.samples, vec![0.0; 6]);
+}

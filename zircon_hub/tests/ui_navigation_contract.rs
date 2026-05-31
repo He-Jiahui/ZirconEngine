@@ -31,7 +31,7 @@ fn read_crate_file(name: &str) -> String {
 }
 
 #[test]
-fn expanded_nav_button_uses_material_list_tile() {
+fn expanded_nav_button_uses_reference_state_layer_row() {
     let shared = read_ui_file("shared.slint");
     let nav_button = shared
         .split("export component NavButton")
@@ -40,25 +40,32 @@ fn expanded_nav_button_uses_material_list_tile() {
         .expect("shared.slint must declare NavButton before StatusPill");
 
     for snippet in [
-        "ListTile,",
-        "ListTile {",
-        "text: root.collapsed ? \"\" : root.item.title;",
-        "supporting_text: \"\";",
-        "avatar_icon: root.item.has-icon-image ? root.item.icon-image : @image-url(\"../assets/icons/nav/projects.svg\");",
-        "avatar_background: transparent;",
-        "avatar_foreground: root.item.active ? MaterialPalette.on_secondary_container : MaterialPalette.primary;",
+        "StateLayerArea,",
+        "StateLayerArea {",
+        "border-radius: HubVisualSpec.compact-radius;",
+        "in property <bool> enabled: true;",
+        "in property <bool> focused: false;",
+        "border-width: root.focused ? HubVisualSpec.focus-ring-width : (root.item.active ? HubTokens.border-width : 0px);",
+        "border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.accent-stroke;",
+        "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
+        "background: root.item.active ? HubVisualSpec.accent-fill : transparent;",
+        "source: root.item.has-icon-image ? root.item.icon-image : @image-url(\"../assets/icons/nav/projects.svg\");",
+        "MaterialText {",
+        "text: root.item.title;",
         "clicked =>",
+        "if (root.enabled) {",
         "root.clicked(root.item.id);",
     ] {
         assert!(
             shared.contains(snippet) || nav_button.contains(snippet),
-            "NavButton must preserve the Hub navigation API while delegating its row body to Material ListTile; missing {snippet}"
+            "NavButton must preserve the Hub navigation API while matching the reference square-rounded state-layer row; missing {snippet}"
         );
     }
 
     for forbidden in [
         "area := TouchArea",
         "CenteredIcon",
+        "ListTile {",
         "padding-left: MaterialStyleMetrics.padding_16;",
         "font-size: MaterialTypography.label_large.font_size;",
         "background: root.item.active ? MaterialPalette.secondary_container : (area.has-hover",
@@ -77,16 +84,21 @@ fn collapsed_nav_rail_uses_material_navigation_rail() {
         "NavigationRail as MaterialNavigationRail",
         "in property <[NavigationItem]> material-items;",
         "in-out property <int> current-index: 0;",
+        "in property <bool> enabled: true;",
+        "private property <[NavigationItem]> enabled-material-items: root.enabled ? root.material-items : [];",
         "min-width: root.collapsed ? MaterialStyleMetrics.size_80 : 0px;",
         "if root.collapsed: MaterialNavigationRail",
-        "items: root.material-items;",
+        "items: root.enabled-material-items;",
         "current_index <=> root.current-index;",
         "alignment: start;",
         "has_menu: false;",
         "index_changed(index) =>",
+        "if root.enabled && index >= 0 && index < root.items.length",
         "root.clicked(root.items[index].id);",
         "if !root.collapsed: VerticalLayout",
+        "width: parent.width - root.rail-padding * 2;",
         "collapsed: false;",
+        "enabled: root.enabled;",
     ] {
         assert!(
             navigation.contains(snippet),
@@ -112,8 +124,12 @@ fn collapsed_nav_rail_uses_material_navigation_rail() {
         "ResponsiveState } from \"components.slint\";",
         "in property <[NavigationItem]> material-nav-items;",
         "in-out property <int> selected-nav-index: 0;",
+        "private property <bool> nav-auto-collapsed: responsive-state.compact;",
+        "private property <bool> nav-effective-collapsed: root.nav-collapsed || root.nav-auto-collapsed;",
+        "private property <length> nav-pad: root.nav-effective-collapsed ? max(HubTokens.space-2, min(HubTokens.space-3, root.nav-width / 7)) : HubTokens.space-4;",
         "material-nav-items: root.material-nav-items;",
         "selected-nav-index <=> root.selected-nav-index;",
+        "collapsed: root.nav-effective-collapsed;",
     ] {
         assert!(
             app.contains(snippet),
@@ -121,7 +137,11 @@ fn collapsed_nav_rail_uses_material_navigation_rail() {
         );
     }
 
-    let shell = read_ui_file("shell.slint");
+    let shell_sidebar_components = read_ui_file("shell_sidebar_components.slint");
+    let sidebar = shell_sidebar_components
+        .split("export component HubNavSidebar")
+        .nth(1)
+        .expect("shell_sidebar_components.slint must export HubNavSidebar");
     for snippet in [
         "in property <[NavigationItem]> material-nav-items;",
         "in-out property <int> selected-nav-index: 0;",
@@ -129,8 +149,8 @@ fn collapsed_nav_rail_uses_material_navigation_rail() {
         "current-index <=> root.selected-nav-index;",
     ] {
         assert!(
-            shell.contains(snippet),
-            "HubNavSidebar must forward Material navigation data into NavRail; missing {snippet}"
+            sidebar.contains(snippet),
+            "HubNavSidebar must forward Material navigation data into NavRail from shell_sidebar_components.slint; missing {snippet}"
         );
     }
 
@@ -159,6 +179,48 @@ fn collapsed_nav_rail_uses_material_navigation_rail() {
         assert!(
             view_model.contains(snippet),
             "view_model.rs must adapt Hub nav rows to Material NavigationItem without changing page business state; missing {snippet}"
+        );
+    }
+}
+
+#[test]
+fn hub_tabs_wrap_material_tab_bars() {
+    let components = read_ui_file("components.slint");
+    assert!(
+        components.contains("HubTabs"),
+        "components.slint must re-export the Hub Material-backed tabs wrapper"
+    );
+
+    let navigation = read_ui_file("navigation.slint");
+    for snippet in [
+        "SecondaryTabBar,",
+        "TabBar,",
+        "export component HubTabs",
+        "in property <[NavigationItem]> items;",
+        "in-out property <int> current-index: 0;",
+        "in property <bool> secondary: false;",
+        "if !root.secondary: TabBar",
+        "if root.secondary: SecondaryTabBar",
+        "items: root.items;",
+        "current_index <=> root.current-index;",
+        "index_changed(index) =>",
+        "root.selected(index);",
+        "border-color: root.focused ? HubVisualSpec.focus-ring-color : transparent;",
+    ] {
+        assert!(
+            navigation.contains(snippet),
+            "HubTabs must delegate primary/secondary tab layout to the local Material TabBar API; missing {snippet}"
+        );
+    }
+
+    let tabs = navigation
+        .split("export component HubTabs")
+        .nth(1)
+        .expect("navigation.slint must declare HubTabs");
+    for forbidden in ["TouchArea", "area.has-hover", "SegmentButton"] {
+        assert!(
+            !tabs.contains(forbidden),
+            "HubTabs should not emulate tabs with hand-rolled rows or segment buttons: {forbidden}"
         );
     }
 }

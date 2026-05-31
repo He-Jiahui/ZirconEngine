@@ -5,16 +5,21 @@ use slint::SharedString;
 
 use crate::projects::project_paths_match;
 use crate::settings::HubLanguage;
-use crate::state::HubSnapshot;
+use crate::state::{HubSnapshot, ProjectScope};
 
 use super::super::{CloudServiceData, CloudSummaryData};
 use super::localization;
 
 const PACKAGE_MANIFEST_FILE: &str = "zircon-package.toml";
-const PACKAGE_SOURCE_PROJECT_KEY: &str = "source_project";
+
+#[derive(serde::Deserialize)]
+struct PackageManifestScope {
+    source_project: Option<String>,
+}
 
 pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
     let language = snapshot.settings.language;
+    let scope = snapshot.scope();
     let package_root = if snapshot
         .settings
         .default_build_output_dir
@@ -26,11 +31,53 @@ pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
         Some(snapshot.settings.default_build_output_dir.join("packages"))
     };
     let package_path = package_root.as_deref().unwrap_or_else(|| Path::new(""));
+    let package_action = selected_project_action_readiness(
+        &scope.project,
+        !snapshot
+            .settings
+            .default_build_output_dir
+            .as_os_str()
+            .is_empty(),
+        language,
+        localization::text(
+            language,
+            "Select a project before packaging",
+            "请先选择项目再打包",
+        ),
+        localization::text(
+            language,
+            "Configure package output root before packaging",
+            "请先配置包输出根目录再打包",
+        ),
+    );
+    let install_action = selected_project_action_readiness(
+        &scope.project,
+        !snapshot
+            .settings
+            .default_device_install_dir
+            .as_os_str()
+            .is_empty(),
+        language,
+        localization::text(
+            language,
+            "Select a project before installing",
+            "请先选择项目再安装",
+        ),
+        localization::text(
+            language,
+            "Configure device install directory before installing",
+            "请先配置设备安装目录再安装",
+        ),
+    );
 
     CloudSummaryData {
         status: localization::text(language, "Offline local mode", "离线本地模式"),
         account_status: localization::text(language, "Local only", "仅本地"),
         local_mode_status: localization::text(language, "Local only", "仅本地"),
+        package_action_detail: package_action.detail,
+        package_action_enabled: package_action.enabled,
+        install_action_detail: install_action.detail,
+        install_action_enabled: install_action.enabled,
         output_path: shared(path_text(
             &snapshot.settings.default_build_output_dir,
             language,
@@ -55,6 +102,21 @@ pub(super) fn cloud_summary(snapshot: &HubSnapshot) -> CloudSummaryData {
             package_path,
             language,
             snapshot.selected_project_path.as_deref(),
+        ),
+        operation_timeline_title: localization::text(
+            language,
+            "Cloud Operation Status",
+            "云操作状态",
+        ),
+        operation_timeline_empty_title: localization::text(
+            language,
+            "No package or install operations yet",
+            "尚无打包或安装操作",
+        ),
+        operation_timeline_empty_detail: localization::text(
+            language,
+            "Package or install the selected project to persist local operation status here.",
+            "打包或安装选中项目后，本地操作状态会保存在这里。",
         ),
     }
 }
@@ -253,13 +315,10 @@ fn package_matches_selected_project(package_dir: &Path, selected_project_path: &
     let Ok(manifest) = fs::read_to_string(manifest_path) else {
         return false;
     };
-    let Ok(manifest) = manifest.parse::<toml::Value>() else {
+    let Ok(manifest) = toml::from_str::<PackageManifestScope>(&manifest) else {
         return false;
     };
-    let Some(source_project) = manifest
-        .get(PACKAGE_SOURCE_PROJECT_KEY)
-        .and_then(toml::Value::as_str)
-    else {
+    let Some(source_project) = manifest.source_project.as_deref() else {
         return false;
     };
 
@@ -273,6 +332,60 @@ fn path_text(path: &Path, language: HubLanguage) -> String {
     path.to_string_lossy().into_owned()
 }
 
+struct CloudActionReadiness {
+    detail: SharedString,
+    enabled: bool,
+}
+
+fn selected_project_action_readiness(
+    project_scope: &ProjectScope,
+    local_root_configured: bool,
+    language: HubLanguage,
+    missing_detail: SharedString,
+    unconfigured_detail: SharedString,
+) -> CloudActionReadiness {
+    let project_path = match project_scope {
+        ProjectScope::Selected(project) => project.path.as_path(),
+        ProjectScope::StaleSelection { requested_path } => {
+            return CloudActionReadiness {
+                detail: stale_project_detail(requested_path, language),
+                enabled: false,
+            };
+        }
+        ProjectScope::LatestRecent(_) | ProjectScope::None => {
+            return CloudActionReadiness {
+                detail: missing_detail,
+                enabled: false,
+            };
+        }
+    };
+
+    if !local_root_configured {
+        return CloudActionReadiness {
+            detail: unconfigured_detail,
+            enabled: false,
+        };
+    }
+
+    CloudActionReadiness {
+        detail: shared(path_text(project_path, language)),
+        enabled: true,
+    }
+}
+
+fn stale_project_detail(requested_path: &Path, language: HubLanguage) -> SharedString {
+    match language {
+        HubLanguage::English => SharedString::from(format!(
+            "Selected project is no longer in the recent-project registry: {}",
+            path_text(requested_path, language)
+        )),
+        HubLanguage::Chinese => SharedString::from(format!(
+            "选中项目已不在最近项目登记中：{}",
+            path_text(requested_path, language)
+        )),
+    }
+}
+
 fn shared(value: impl Into<SharedString>) -> SharedString {
     value.into()
 }
@@ -281,6 +394,7 @@ fn shared(value: impl Into<SharedString>) -> SharedString {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use crate::projects::{ProjectMetadataMap, RecentProject};
     use crate::settings::{HubLanguage, HubSettings};
     use crate::state::{
         HubPage, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
@@ -301,6 +415,7 @@ mod tests {
             search_query: String::new(),
             selected_project_path,
             selected_template_id: "renderable-empty".to_string(),
+            new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
@@ -310,6 +425,7 @@ mod tests {
             learn_resources: Vec::new(),
             plugins: Vec::new(),
             team: crate::team::TeamOverview::empty(),
+            action_history: Vec::new(),
             engines: Vec::new(),
             active_engine_id: None,
             settings,
@@ -324,7 +440,7 @@ mod tests {
             .replace('"', "\\\"");
         fs::write(
             package_dir.join(PACKAGE_MANIFEST_FILE),
-            format!("{PACKAGE_SOURCE_PROJECT_KEY} = \"{source_project}\"\n"),
+            format!("source_project = \"{source_project}\"\n"),
         )
         .unwrap();
     }
@@ -377,13 +493,59 @@ mod tests {
     }
 
     #[test]
+    fn cloud_summary_disables_package_action_without_output_root() {
+        let selected_project = PathBuf::from("E:/projects/demo");
+        let mut settings = HubSettings::default();
+        settings.default_build_output_dir = PathBuf::new();
+        let mut snapshot = cloud_snapshot(settings, Some(selected_project.clone()));
+        snapshot.recent_projects = vec![RecentProject::new("Demo", selected_project, 42)];
+
+        let summary = cloud_summary(&snapshot);
+
+        assert_eq!(
+            summary.package_action_detail,
+            SharedString::from("Configure package output root before packaging")
+        );
+        assert!(!summary.package_action_enabled);
+        assert_eq!(
+            summary.install_action_detail,
+            SharedString::from("E:/projects/demo")
+        );
+        assert!(summary.install_action_enabled);
+    }
+
+    #[test]
+    fn cloud_summary_disables_install_action_without_device_root() {
+        let selected_project = PathBuf::from("E:/projects/demo");
+        let mut settings = HubSettings::default();
+        settings.default_device_install_dir = PathBuf::new();
+        let mut snapshot = cloud_snapshot(settings, Some(selected_project.clone()));
+        snapshot.recent_projects = vec![RecentProject::new("Demo", selected_project, 42)];
+
+        let summary = cloud_summary(&snapshot);
+
+        assert_eq!(
+            summary.package_action_detail,
+            SharedString::from("E:/projects/demo")
+        );
+        assert!(summary.package_action_enabled);
+        assert_eq!(
+            summary.install_action_detail,
+            SharedString::from("Configure device install directory before installing")
+        );
+        assert!(!summary.install_action_enabled);
+    }
+
+    #[test]
     fn cloud_summary_labels_selected_project_package_state() {
         let mut settings = HubSettings::default();
         settings.default_build_output_dir = std::env::temp_dir().join(format!(
             "zircon-hub-cloud-selected-{}",
             crate::projects::now_unix_ms()
         ));
-        let snapshot = cloud_snapshot(settings, Some(PathBuf::from("E:/projects/demo")));
+        let selected_project = PathBuf::from("E:/projects/demo");
+        let mut snapshot = cloud_snapshot(settings, Some(selected_project.clone()));
+        snapshot.recent_projects = vec![RecentProject::new("Demo", selected_project, 42)];
 
         let summary = cloud_summary(&snapshot);
 
@@ -391,6 +553,59 @@ mod tests {
             summary.package_status,
             SharedString::from("No local packages for selected project yet")
         );
+        assert_eq!(
+            summary.package_action_detail,
+            SharedString::from("E:/projects/demo")
+        );
+        assert!(summary.package_action_enabled);
+        assert_eq!(
+            summary.install_action_detail,
+            SharedString::from("E:/projects/demo")
+        );
+        assert!(summary.install_action_enabled);
+    }
+
+    #[test]
+    fn cloud_summary_disables_project_actions_without_selection() {
+        let summary = cloud_summary(&cloud_snapshot(HubSettings::default(), None));
+
+        assert_eq!(
+            summary.package_action_detail,
+            SharedString::from("Select a project before packaging")
+        );
+        assert!(!summary.package_action_enabled);
+        assert_eq!(
+            summary.install_action_detail,
+            SharedString::from("Select a project before installing")
+        );
+        assert!(!summary.install_action_enabled);
+    }
+
+    #[test]
+    fn cloud_summary_disables_project_actions_for_stale_selection() {
+        let mut snapshot = cloud_snapshot(
+            HubSettings::default(),
+            Some(PathBuf::from("E:/projects/missing")),
+        );
+        snapshot.recent_projects = vec![RecentProject::new("Demo", "E:/projects/demo", 42)];
+        snapshot.project_metadata = ProjectMetadataMap::new();
+
+        let summary = cloud_summary(&snapshot);
+
+        assert_eq!(
+            summary.package_action_detail,
+            SharedString::from(
+                "Selected project is no longer in the recent-project registry: E:/projects/missing"
+            )
+        );
+        assert!(!summary.package_action_enabled);
+        assert_eq!(
+            summary.install_action_detail,
+            SharedString::from(
+                "Selected project is no longer in the recent-project registry: E:/projects/missing"
+            )
+        );
+        assert!(!summary.install_action_enabled);
     }
 
     #[test]

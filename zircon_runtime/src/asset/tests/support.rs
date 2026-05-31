@@ -208,7 +208,9 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.obj"),
+                    mesh: None,
                     material: asset_reference("res://materials/grid.zmaterial"),
+                    primitives: Vec::new(),
                 }),
                 ambient_light: None,
                 directional_light: None,

@@ -1,4 +1,6 @@
 pub const FEATURE_ID: &str = "sound.timeline_animation_track";
+pub const RUNTIME_CAPABILITY: &str = "runtime.feature.sound.timeline_animation_track";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.sound.timeline_animation_track";
 
 #[derive(Clone, Debug)]
 pub struct SoundTimelineAnimationRuntimeFeature;
@@ -44,7 +46,7 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
         "animation",
         "runtime.feature.animation.timeline_event_track",
     ))
-    .with_capability("runtime.feature.sound.timeline_animation_track")
+    .with_capability(RUNTIME_CAPABILITY)
     .with_runtime_module(
         zircon_runtime::plugin::PluginModuleManifest::runtime(
             "sound.timeline_animation_track.runtime",
@@ -54,10 +56,65 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
             zircon_runtime::RuntimeTargetMode::ClientRuntime,
             zircon_runtime::RuntimeTargetMode::EditorHost,
         ])
-        .with_capabilities(["runtime.feature.sound.timeline_animation_track".to_string()]),
+        .with_capabilities([RUNTIME_CAPABILITY.to_string()]),
     )
-    .with_editor_module(zircon_runtime::plugin::PluginModuleManifest::editor(
-        "sound.timeline_animation_track.editor",
-        "zircon_plugin_sound_timeline_animation_editor",
-    ))
+    .with_editor_module(
+        zircon_runtime::plugin::PluginModuleManifest::editor(
+            "sound.timeline_animation_track.editor",
+            "zircon_plugin_sound_timeline_animation_editor",
+        )
+        .with_capabilities([EDITOR_CAPABILITY.to_string()]),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
+        let report = plugin_feature_registration();
+
+        assert!(report.is_success(), "{:?}", report.diagnostics);
+        assert_eq!(report.manifest.id, FEATURE_ID);
+        assert_eq!(
+            report.manifest.display_name,
+            "Sound Timeline Animation Track"
+        );
+        assert_eq!(report.manifest.owner_plugin_id, "sound");
+        assert!(!report.manifest.enabled_by_default);
+        assert_eq!(
+            report.manifest.default_packaging,
+            vec![
+                zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate,
+                zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
+            ]
+        );
+        assert!(report
+            .manifest
+            .capabilities
+            .contains(&RUNTIME_CAPABILITY.to_string()));
+        assert!(report.manifest.dependencies.iter().any(|dependency| {
+            dependency.plugin_id == "sound"
+                && dependency.capability == "runtime.plugin.sound"
+                && dependency.primary
+        }));
+        assert!(report.manifest.dependencies.iter().any(|dependency| {
+            dependency.plugin_id == "animation"
+                && dependency.capability == "runtime.feature.animation.timeline_event_track"
+                && !dependency.primary
+        }));
+        assert!(report.manifest.modules.iter().any(|module| {
+            module.name == "sound.timeline_animation_track.runtime"
+                && module.crate_name == "zircon_plugin_sound_timeline_animation_runtime"
+                && module
+                    .capabilities
+                    .contains(&RUNTIME_CAPABILITY.to_string())
+        }));
+        assert!(report.manifest.modules.iter().any(|module| {
+            module.name == "sound.timeline_animation_track.editor"
+                && module.crate_name == "zircon_plugin_sound_timeline_animation_editor"
+                && module.capabilities.contains(&EDITOR_CAPABILITY.to_string())
+        }));
+    }
 }

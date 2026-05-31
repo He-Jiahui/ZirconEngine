@@ -52,6 +52,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimePluginId::Animation,
         "zircon_plugin_animation_runtime",
     )
+    .with_category("runtime")
     .with_target_modes([
         zircon_runtime::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::RuntimeTargetMode::ServerRuntime,
@@ -59,6 +60,18 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     ])
     .with_capability("runtime.plugin.animation")
     .with_capability("runtime.feature.animation.timeline_event_track")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
+    .with_capability_status(
+        zircon_runtime::plugin::CapabilityStatusManifest::new(
+            "runtime.plugin.animation",
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        )
+        .with_bevy_reference("dev/bevy/crates/bevy_animation/src/lib.rs"),
+    )
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.feature.animation.timeline_event_track",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
 }
 
 pub fn runtime_plugin() -> AnimationRuntimePlugin {
@@ -108,6 +121,31 @@ mod tests {
                 zircon_runtime::RuntimeTargetMode::EditorHost,
             ]
         );
+        assert_eq!(report.package_manifest.category, "runtime");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Beta
+        );
+        assert!(report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == "runtime.plugin.animation"
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                    && status
+                        .bevy_references
+                        .iter()
+                        .any(|reference| reference == "dev/bevy/crates/bevy_animation/src/lib.rs")
+            }));
+        assert!(report
+            .package_manifest
+            .capability_statuses
+            .iter()
+            .any(|status| {
+                status.capability == "runtime.feature.animation.timeline_event_track"
+                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+            }));
     }
 
     #[test]

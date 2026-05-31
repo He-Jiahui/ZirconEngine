@@ -107,6 +107,14 @@ target modes limited to `client_runtime` and `editor_host`. The package category
 is `rendering`, and `PluginPackageManifest` carries that category through TOML
 round-trips and descriptor-derived manifests.
 
+Each Rendering optional feature has a runtime capability
+`runtime.feature.rendering.<feature>` and a matching editor module capability
+`editor.feature.rendering.<feature>`. The static `plugin.toml`, generated
+runtime provider manifest, built-in catalog row, and feature editor crate
+descriptor now all project the same editor capability, so the editor-host package
+projection can show feature-specific authoring surfaces instead of only the
+umbrella `rendering.editor` extension.
+
 ## Default policy
 
 The default-enabled feature set is intentionally limited to the options that
@@ -162,6 +170,28 @@ ShaderGraph, VFX Graph, decals, SSAO, and post-process pass organization.
 ## Validation
 
 Focused checks that passed for this slice:
+
+- 2026-05-31 editor-module capability parity:
+  `cargo test --manifest-path zircon_plugins\rendering\runtime\Cargo.toml
+  rendering_feature_manifests_declare_editor_capabilities --locked --offline
+  --jobs 1 --target-dir D:\cargo-targets\zircon-rendering-feature-editor-capability
+  --quiet` passed for the generated Rendering provider manifests.
+- 2026-05-31 editor-module capability parity:
+  `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib
+  builtin_rendering_optional_features_declare_editor_capabilities --locked
+  --offline --jobs 1 --target-dir
+  D:\cargo-targets\zircon-rendering-feature-editor-capability --quiet` passed
+  for the built-in catalog row.
+- 2026-05-31 editor-module capability parity:
+  `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib
+  rendering_plugin_toml_roundtrips_owner_features_and_modules --locked --offline
+  --jobs 1 --target-dir
+  D:\cargo-targets\zircon-rendering-feature-editor-capability --quiet` passed
+  for static `zircon_plugins/rendering/plugin.toml` round-trip parity.
+- 2026-05-31 editor-module capability parity: all eight Rendering feature editor
+  crates passed `cargo check --locked --offline --jobs 1` against
+  `D:\cargo-targets\zircon-rendering-feature-editor-capability` after their
+  descriptors were wired to the runtime `EDITOR_CAPABILITY` constants.
 
 - `cargo metadata --manifest-path zircon_plugins/Cargo.toml --no-deps --format-version 1`
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_runtime --locked --jobs 1`

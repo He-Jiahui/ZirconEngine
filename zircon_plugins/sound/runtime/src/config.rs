@@ -1,3 +1,7 @@
+use zircon_runtime::core::framework::sound::{
+    SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality,
+};
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SoundConfig {
     pub enabled: bool,
@@ -10,30 +14,47 @@ pub struct SoundConfig {
     pub max_tracks: usize,
     pub default_spatial_scale: f32,
     pub hrtf_enabled: bool,
+    pub hrtf_profile: String,
     pub convolution_enabled: bool,
-    pub ray_tracing_quality: zircon_runtime::core::framework::sound::SoundRayTracingQuality,
+    pub convolution_budget: SoundConvolutionBudget,
+    pub ray_tracing_quality: SoundRayTracingQuality,
+    pub default_mixer_preset: String,
     pub timeline_integration: bool,
     pub dynamic_events_enabled: bool,
 }
 
 impl Default for SoundConfig {
     fn default() -> Self {
+        Self::from_plugin_options(SoundPluginOptions::default())
+    }
+}
+
+impl SoundConfig {
+    pub fn from_plugin_options(options: SoundPluginOptions) -> Self {
         Self {
-            enabled: true,
-            backend: "software-mixer".to_string(),
-            sample_rate_hz: 48_000,
-            channel_count: 2,
-            master_gain: 1.0,
-            block_size_frames: 256,
-            max_voices: 128,
-            max_tracks: 64,
-            default_spatial_scale: 1.0,
-            hrtf_enabled: false,
-            convolution_enabled: true,
-            ray_tracing_quality:
-                zircon_runtime::core::framework::sound::SoundRayTracingQuality::Disabled,
-            timeline_integration: true,
-            dynamic_events_enabled: true,
+            enabled: options.enabled,
+            backend: options.backend,
+            sample_rate_hz: options.sample_rate_hz,
+            channel_count: options.channel_count,
+            master_gain: options.global_volume_gain,
+            block_size_frames: options.block_size_frames,
+            max_voices: options.max_voices,
+            max_tracks: options.max_tracks,
+            default_spatial_scale: options.default_spatial_scale,
+            hrtf_enabled: options.hrtf_enabled,
+            hrtf_profile: options.hrtf_profile,
+            convolution_enabled: options.convolution_enabled,
+            convolution_budget: options.convolution_budget,
+            ray_tracing_quality: options.ray_tracing_quality,
+            default_mixer_preset: options.default_mixer_preset,
+            timeline_integration: options.timeline_integration,
+            dynamic_events_enabled: options.dynamic_events_enabled,
         }
+    }
+}
+
+impl From<SoundPluginOptions> for SoundConfig {
+    fn from(options: SoundPluginOptions) -> Self {
+        Self::from_plugin_options(options)
     }
 }

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zircon Hub Design Board</title>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    const board = new URLSearchParams(location.search).get("board") || "structure";
+    document.documentElement.dataset.board = ["structure", "details", "flow"].includes(board) ? board : "structure";
+  </script>
+</head>
+<body>
+  <main class="design-shell" aria-label="Zircon Hub design board">
+    <header class="board-header">
+      <div>
+        <p class="eyebrow">Zircon Hub / 设计稿模式</p>
+        <h1>结构与功能设计稿核查</h1>
+      </div>
+      <nav class="board-tabs" aria-label="Design board pages">
+        <a href="?board=structure">总体结构布局</a>
+        <a href="?board=flow">总体结构补充</a>
+        <a href="?board=details">功能内容局部</a>
+      </nav>
+    </header>
+
+    <section id="structure" class="board board-structure" aria-label="Overall interaction structure layout">
+      <div class="structure-grid">
+        <article class="frame-panel">
+          <div class="frame-scale-strip" aria-label="Primary shell dimensions">
+            <span>Canvas 1568x1003</span>
+            <span>Topbar 74px</span>
+            <span>Sidebar 223px</span>
+            <span>Workspace 1345x792</span>
+            <span>Bottom strip 137px</span>
+          </div>
+          <div class="hub-frame">
+            <div class="wf-topbar">
+              <strong>Top Header 74px</strong>
+              <span>品牌 / Source Engine / 任务状态 / 帮助设置 / 用户菜单 / 窗口控制</span>
+              <i class="flow-dot source">Source Popup</i>
+              <i class="flow-dot user">User Menu</i>
+            </div>
+            <div class="wf-sidebar">
+              <strong>Left Navigation 223px</strong>
+              <span class="active">Projects</span>
+              <span>Editor</span>
+              <span>Assets</span>
+              <span>Builds</span>
+              <span>Plugins</span>
+              <span>Cloud</span>
+              <span>Team</span>
+              <span>Learn</span>
+              <span>Settings</span>
+              <em>Engine Status / Collapse</em>
+            </div>
+            <div class="wf-workspace">
+              <div class="wf-title">
+                <strong>Workspace</strong>
+                <span>页面标题 + 主操作</span>
+              </div>
+              <div class="wf-toolbar">
+                <span>Search</span>
+                <span>Filter</span>
+                <span>Sort</span>
+                <span>View</span>
+              </div>
+              <div class="wf-cards">
+                <span>Project Card</span>
+                <span>Project Card</span>
+                <span>Project Card</span>
+                <span>Project Card</span>
+              </div>
+              <div class="wf-lower">
+                <span>Recent Projects Table</span>
+                <span>Quick Actions</span>
+              </div>
+            </div>
+            <div class="wf-bottom">
+              <strong>Bottom State Strip 137px</strong>
+              <span>Primary / Secondary / Tertiary / Icon 按钮状态样例</span>
+            </div>
+            <div class="wf-overlay pop-source">Header Overlay</div>
+            <div class="wf-overlay pop-menu">Account Overlay</div>
+          </div>
+        </article>
+
+        <aside class="check-panel">
+          <h2>核查优先级</h2>
+          <ol>
+            <li><strong>Shell 骨架稳定</strong><span>Topbar、Sidebar、Workspace、Bottom strip 的比例先固定。</span></li>
+            <li><strong>Workspace 内容换页</strong><span>导航只替换主内容区，不改变外壳骨架。</span></li>
+            <li><strong>弹层不挤压布局</strong><span>Source Engine、User Menu、Filter、Sort、Delete Confirm 都是覆盖层。</span></li>
+            <li><strong>状态页复用容器</strong><span>Empty、Loading、Error 使用同一工作区状态画布。</span></li>
+          </ol>
+        </aside>
+      </div>
+
+      <div class="route-row">
+        <article class="route-card primary-route">
+          <h3>Projects 主路径</h3>
+          <p>Dashboard -> New Project / Browser / Detail / Delete Confirm</p>
+          <div class="route-flow">
+            <span>Dashboard</span><b></b><span>Browser</span><b></b><span>Detail</span><b></b><span>Confirm</span>
+          </div>
+        </article>
+        <article class="route-card">
+          <h3>全局导航</h3>
+          <p>Sidebar page id 直接路由到 Editor、Assets、Builds、Plugins、Cloud、Team、Learn、Settings。</p>
+        </article>
+        <article class="route-card">
+          <h3>Header 快捷入口</h3>
+          <p>Engine selector 打开 Source Popup；账号入口打开 User Menu；帮助和设置进入二级页面。</p>
+        </article>
+        <article class="route-card">
+          <h3>验收观察点</h3>
+          <p>先核查大比例、换页边界、弹层层级，再核查文字、图标和局部控件细节。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="details" class="board board-details" aria-label="Functional content local design board">
+      <div class="detail-grid">
+        <article class="module-card wide">
+          <h2>Header 与全局入口</h2>
+          <div class="mini-topbar">
+            <span>Brand</span>
+            <span>Engine</span>
+            <span class="status">Running</span>
+            <span class="status success">Success</span>
+            <span>Help</span>
+            <span>User</span>
+          </div>
+          <p>局部图只核查入口职责：Source Engine 选择、任务状态、用户菜单、帮助、设置，不改变主工作区尺寸。</p>
+        </article>
+
+        <article class="module-card">
+          <h2>Projects Dashboard</h2>
+          <div class="mini-dashboard">
+            <span class="mini-toolbar">Search / Filter / Sort / View</span>
+            <span class="mini-card"></span>
+            <span class="mini-card"></span>
+            <span class="mini-card"></span>
+            <span class="mini-table">Recent Projects</span>
+            <span class="mini-actions">Quick Actions</span>
+          </div>
+          <p>重点看工具条、卡片流、表格和快捷动作的上下关系。</p>
+        </article>
+
+        <article class="module-card">
+          <h2>Projects 二级页面</h2>
+          <div class="stack-list">
+            <span>New Project: 表单 + Source Engine + Template</span>
+            <span>Browser: 搜索过滤 + 项目列表</span>
+            <span>Detail: 封面 + 元数据 + Action panel</span>
+            <span>Delete Confirm: 右侧覆盖确认</span>
+          </div>
+          <p>二级页面复用外壳，只替换 Workspace 内部结构。</p>
+        </article>
+
+        <article class="module-card">
+          <h2>非 Projects 页签</h2>
+          <div class="tile-list">
+            <span>Editor</span><span>Builds</span><span>Assets</span><span>Plugins</span>
+            <span>Cloud</span><span>Team</span><span>Learn</span><span>Settings</span>
+          </div>
+          <p>功能页以面板、列表、度量卡为主，保持同一密度和按钮体系。</p>
+        </article>
+
+        <article class="module-card">
+          <h2>全局状态页</h2>
+          <div class="state-strip">
+            <span>Empty</span>
+            <span>Loading</span>
+            <span>Error</span>
+          </div>
+          <p>状态页是内容占位，不应改变 Topbar、Sidebar、Bottom strip。</p>
+        </article>
+
+        <article class="module-card wide acceptance">
+          <h2>局部内容图的用途</h2>
+          <div class="acceptance-grid">
+            <span>确认页面信息架构</span>
+            <span>确认控件类型选择</span>
+            <span>确认弹层归属</span>
+            <span>确认状态复用</span>
+          </div>
+          <p>局部图用于辅助评审功能内容是否齐全；总体结构布局图仍是主要验收基准。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="flow" class="board board-flow" aria-label="Interaction flow and responsive structure board">
+      <div class="flow-grid">
+        <article class="flow-panel route-map">
+          <h2>总体交互流</h2>
+          <div class="route-map-body">
+            <div class="route-node root">Hub Shell</div>
+            <div class="route-line vertical"></div>
+            <div class="route-lanes">
+              <div class="lane">
+                <h3>Projects</h3>
+                <span>Dashboard</span>
+                <b></b>
+                <span>New Project</span>
+                <span>Browser</span>
+                <span>Detail</span>
+                <span>Delete Confirm</span>
+              </div>
+              <div class="lane">
+                <h3>Global Pages</h3>
+                <span>Editor</span>
+                <span>Builds</span>
+                <span>Assets / Plugins / Learn</span>
+                <span>Cloud / Team</span>
+                <span>Settings</span>
+              </div>
+              <div class="lane overlays">
+                <h3>Overlays</h3>
+                <span>Source Engine Popup</span>
+                <span>User Menu</span>
+                <span>Filter Menu</span>
+                <span>Sort Menu</span>
+                <span>Error / Loading / Empty</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="flow-panel responsive-panel">
+          <h2>结构响应策略</h2>
+          <div class="device-row desktop">
+            <strong>Desktop 1568x1003</strong>
+            <div class="device-frame">
+              <span class="d-top"></span>
+              <span class="d-side"></span>
+              <span class="d-work"></span>
+              <span class="d-bottom"></span>
+            </div>
+            <p>完整 Topbar + 223px Sidebar + Workspace + Bottom strip。</p>
+          </div>
+          <div class="device-row compact">
+            <strong>Compact Window</strong>
+            <div class="device-frame">
+              <span class="d-top"></span>
+              <span class="d-side"></span>
+              <span class="d-work"></span>
+              <span class="d-bottom"></span>
+            </div>
+            <p>工作区内容优先压缩，外壳尺寸和层级不重新定义。</p>
+          </div>
+          <div class="device-row collapsed">
+            <strong>Collapsed Sidebar</strong>
+            <div class="device-frame">
+              <span class="d-top"></span>
+              <span class="d-side"></span>
+              <span class="d-work"></span>
+              <span class="d-bottom"></span>
+            </div>
+            <p>侧栏只缩窄为图标轨道，导航状态和底部状态仍保留。</p>
+          </div>
+        </article>
+
+        <article class="flow-panel invariant-panel">
+          <h2>结构不变量</h2>
+          <div class="invariant-list">
+            <span>Topbar 只负责全局 source、任务状态、账号和窗口控制。</span>
+            <span>Sidebar 只负责主导航和 Engine Status 状态卡。</span>
+            <span>Workspace 负责页面标题、工具条、卡片、表格和页面内容。</span>
+            <span>Bottom strip 只负责控件状态视觉样例。</span>
+            <span>Overlays 浮在 shell 上方，不占用布局空间。</span>
+          </div>
+          <h3>总体结构验收顺序</h3>
+          <div class="acceptance-timeline">
+            <span>1. 框架比例</span>
+            <span>2. 导航归属</span>
+            <span>3. 工作区换页</span>
+            <span>4. 弹层层级</span>
+            <span>5. 状态页复用</span>
+            <span>6. 局部内容密度</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

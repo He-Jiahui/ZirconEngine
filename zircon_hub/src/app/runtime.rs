@@ -1,15 +1,17 @@
 use std::cell::RefCell;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
+use std::thread;
 
 use crate::assets::AssetCatalogEntry;
-use slint::ComponentHandle;
+use slint::{ComponentHandle, Timer, Weak};
 
-use crate::build::{run_build_command, BuildCommand, BuildCommandOptions, BuildExecutionReport};
+use crate::build::BuildExecutionReport;
+use crate::build::{run_build_command, BuildCommand, BuildCommandOptions};
 use crate::engines::{
     active_source_engine, active_source_engine_mut, ensure_active_source_engine,
-    remove_source_engine, upsert_source_engine, validate_source_engine, SourceBuildRecord,
-    SourceEngineInstall, SourceEngineValidation,
+    prune_project_engine_bindings, remove_source_engine, upsert_source_engine,
+    validate_source_engine, SourceBuildRecord, SourceEngineInstall, SourceEngineValidation,
 };
 use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
@@ -17,14 +19,10 @@ use crate::plugins::PluginCatalogEntry;
 use crate::process::{
     open_folder, preferred_editor_executable, preferred_editor_executable_exists, OpenFolderCommand,
 };
-use crate::projects::{
-    load_editor_recent_project_session, merge_recent_projects, project_paths_match,
-    save_editor_recent_projects, save_editor_recent_projects_with_last_project, ProjectTemplate,
-};
-use crate::settings::{default_hub_config_path, editor_config_path, HubConfig};
+use crate::settings::HubConfig;
 use crate::state::{
-    HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
-    TaskStatus,
+    HubActionKind, HubActionRecord, HubActionStatus, HubPage, HubSnapshot, ProjectFilterMode,
+    ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskOperationKind, TaskSeverity, TaskStatus,
 };
 use crate::team::TeamOverview;
 
@@ -35,9 +33,28 @@ use super::binding;
 use super::quick_action::HubQuickAction;
 use super::HubWindow;
 
+type BuildRunner = fn(&BuildCommand) -> Result<BuildExecutionReport, HubError>;
+
+#[derive(Clone, Debug)]
+struct PendingBuild {
+    command: BuildCommand,
+    command_line: Vec<String>,
+    output_dir: PathBuf,
+    engine_target: String,
+    staged_engine_dir: PathBuf,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BuildExecutionMode {
+    Background,
+    Blocking,
+}
+
+mod action_failures;
 mod asset_catalog;
 mod folder_picker;
 mod learn_catalog;
+mod persistence;
 mod plugin_catalog;
 mod project_workspace;
 mod root_paths;
@@ -79,48 +96,6 @@ struct HubRuntime {
 }
 
 impl HubRuntime {
-    fn load() -> Result<Self, HubError> {
-        let config_path = default_hub_config_path();
-        let editor_config_path = editor_config_path();
-        let mut config = HubConfig::load(&config_path)?;
-        let editor_recent = load_editor_recent_project_session(&editor_config_path)?;
-        let last_project_path = editor_recent.last_project_path;
-        config.recent_projects =
-            merge_recent_projects(config.recent_projects, editor_recent.recent_projects);
-        let selected_project_path =
-            startup_selected_project_path(last_project_path.as_deref(), &config.recent_projects);
-        let new_project_location = config.settings.default_project_dir.clone();
-        let mut runtime = Self {
-            config_path,
-            editor_config_path,
-            config,
-            selected_page: HubPage::Projects,
-            project_filter: ProjectFilterMode::All,
-            project_sort: ProjectSortMode::LastModified,
-            project_view_mode: ProjectViewMode::Grid,
-            project_subpage: ProjectSubpage::Dashboard,
-            search_query: String::new(),
-            selected_project_path,
-            selected_template_id: ProjectTemplate::RenderableEmpty.id().to_string(),
-            new_project_location,
-            new_project_engine_id: None,
-            pending_delete_project_path: None,
-            task_status: TaskStatus::idle(),
-            asset_catalog: Vec::new(),
-            learn_catalog: Vec::new(),
-            plugin_catalog: Vec::new(),
-            team_overview: TeamOverview::empty(),
-        };
-        runtime.register_source_engine_from_settings();
-        if let Some(path) = runtime.selected_project_path.clone() {
-            runtime.activate_project_engine_for_path(&path);
-        }
-        runtime.ensure_new_project_engine_selection();
-        runtime.refresh_source_scoped_views()?;
-        runtime.persist()?;
-        Ok(runtime)
-    }
-
     fn snapshot(&self) -> HubSnapshot {
         HubSnapshot {
             selected_page: self.selected_page,
@@ -141,6 +116,7 @@ impl HubRuntime {
             learn_resources: self.learn_catalog.clone(),
             plugins: self.plugin_catalog.clone(),
             team: self.team_overview.clone(),
+            action_history: self.config.action_history.clone(),
             engines: self.config.engines.clone(),
             active_engine_id: self.config.active_engine_id.clone(),
             settings: self.config.settings.clone(),
@@ -179,11 +155,8 @@ impl HubRuntime {
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
         self.refresh_source_scoped_views()?;
         self.persist_hub_config()?;
-        self.task_status = TaskStatus {
-            label: "Engine selected".to_string(),
-            detail: engine.display_name,
-            running: false,
-        };
+        self.task_status = TaskStatus::success("Engine selected", engine.display_name.clone())
+            .with_operation(TaskOperationKind::SourceEngine, engine.display_name);
         Ok(())
     }
 
@@ -191,31 +164,28 @@ impl HubRuntime {
         self.sync_from_ui(ui);
         let name = name.trim();
         if name.is_empty() {
-            self.task_status = TaskStatus {
-                label: "Rename skipped".to_string(),
-                detail: "Engine name cannot be empty".to_string(),
-                running: false,
-            };
+            self.task_status = TaskStatus::warning(
+                "Rename skipped",
+                "Engine name cannot be empty",
+                "Enter a display name before saving the Source Engine",
+            );
             return Ok(());
         }
         let Some(engine) = active_source_engine_mut(
             &mut self.config.engines,
             self.config.active_engine_id.as_deref(),
         ) else {
-            self.task_status = TaskStatus {
-                label: "No engine".to_string(),
-                detail: "Configure a source checkout before renaming".to_string(),
-                running: false,
-            };
+            self.task_status = TaskStatus::warning(
+                "No engine",
+                "Configure a source checkout before renaming",
+                "Use Settings > Source Checkout to register a Source Engine first",
+            );
             return Ok(());
         };
         engine.display_name = name.to_string();
         self.persist_hub_config()?;
-        self.task_status = TaskStatus {
-            label: "Engine renamed".to_string(),
-            detail: name.to_string(),
-            running: false,
-        };
+        self.task_status = TaskStatus::success("Engine renamed", name.to_string())
+            .with_operation(TaskOperationKind::SourceEngine, name.to_string());
         Ok(())
     }
 
@@ -235,22 +205,19 @@ impl HubRuntime {
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
         self.refresh_source_scoped_views()?;
         self.persist_hub_config()?;
-        self.task_status = TaskStatus {
-            label: "Engine removed".to_string(),
-            detail: removed.display_name,
-            running: false,
-        };
+        self.task_status = TaskStatus::success("Engine removed", removed.display_name.clone())
+            .with_operation(TaskOperationKind::SourceEngine, removed.display_name);
         Ok(())
     }
 
     fn cycle_active_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
         if self.config.engines.is_empty() {
-            self.task_status = TaskStatus {
-                label: "No engines".to_string(),
-                detail: "Configure a source checkout first".to_string(),
-                running: false,
-            };
+            self.task_status = TaskStatus::warning(
+                "No engines",
+                "Configure a source checkout first",
+                "Use Settings > Source Checkout to register a Source Engine",
+            );
             return Ok(());
         }
         let current_index = self
@@ -280,11 +247,10 @@ impl HubRuntime {
         self.register_source_engine_from_settings();
         self.refresh_source_scoped_views()?;
         self.persist()?;
-        self.task_status = TaskStatus {
-            label: "Settings saved".to_string(),
-            detail: self.config_path.to_string_lossy().into_owned(),
-            running: false,
-        };
+        self.task_status = TaskStatus::success(
+            "Settings saved",
+            self.config_path.to_string_lossy().into_owned(),
+        );
         Ok(())
     }
 
@@ -302,32 +268,70 @@ impl HubRuntime {
 
     fn build_selected_project_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        self.selected_or_latest_recent_project_with_engine_for_action()?;
-        self.build_editor_runtime_after_sync(ui)
+        if let Err(error) = self.selected_or_latest_recent_project_with_engine_for_action() {
+            let detail = error.to_string();
+            self.record_build_action_failure(
+                self.action_target_for_project_failure(),
+                detail,
+                Vec::new(),
+                Some(self.config.settings.default_build_output_dir.clone()),
+                "Select a valid project with a bound Source Engine before building",
+            )?;
+            return Err(error);
+        }
+        self.start_editor_runtime_build(ui, BuildExecutionMode::Background)
     }
 
     fn build_selected_project_engine_only(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        self.selected_project_with_engine_for_action()?;
-        self.build_editor_runtime_after_sync(ui)
+        if let Err(error) = self.selected_project_with_engine_for_named_action(
+            "Select a project before building",
+            "Selected project is no longer available to build",
+        ) {
+            let detail = error.to_string();
+            self.record_build_action_failure(
+                self.action_target_for_project_failure(),
+                detail,
+                Vec::new(),
+                Some(self.config.settings.default_build_output_dir.clone()),
+                "Select a valid project with a bound Source Engine before building",
+            )?;
+            return Err(error);
+        }
+        self.start_editor_runtime_build(ui, BuildExecutionMode::Background)
     }
 
     fn build_editor_runtime(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        self.build_editor_runtime_after_sync(ui)
+        self.start_editor_runtime_build(ui, BuildExecutionMode::Background)
     }
 
-    fn build_editor_runtime_after_sync(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+    fn start_editor_runtime_build(
+        &mut self,
+        ui: &HubWindow,
+        mode: BuildExecutionMode,
+    ) -> Result<(), HubError> {
+        let pending_build = self.prepare_editor_runtime_build(ui)?;
+        match mode {
+            BuildExecutionMode::Background => {
+                spawn_editor_runtime_build(
+                    ui.as_weak(),
+                    pending_build,
+                    self.config_path.clone(),
+                    run_build_command,
+                );
+                Ok(())
+            }
+            BuildExecutionMode::Blocking => {
+                let result = run_build_command(&pending_build.command);
+                self.complete_editor_runtime_build(pending_build, result)
+            }
+        }
+    }
+
+    fn prepare_editor_runtime_build(&mut self, ui: &HubWindow) -> Result<PendingBuild, HubError> {
         self.register_source_engine_from_settings();
         self.refresh_source_scoped_views()?;
-        let validation = validate_source_engine(&self.config.settings.default_source_dir);
-        if validation != SourceEngineValidation::Valid {
-            return Err(HubError::message(format!(
-                "Source engine is not valid: {validation:?}"
-            )));
-        }
-        self.task_status = TaskStatus::running("Building", "Running tools/zircon_build.py");
-        binding::apply_snapshot(ui, &self.snapshot());
         let command = BuildCommand::for_editor_runtime(&BuildCommandOptions::new(
             self.config.settings.python_path.clone(),
             self.config.settings.cargo_path.clone(),
@@ -336,32 +340,123 @@ impl HubRuntime {
             self.config.settings.build_profile,
             Some(self.config.settings.jobs),
         ));
-        let report = match run_build_command(&command) {
+        let command_line = command.command_line();
+        self.validate_active_source_engine_for_build(command_line.clone())?;
+        self.task_status = TaskStatus::running_operation(
+            "Building",
+            "Running tools/zircon_build.py",
+            TaskOperationKind::Build,
+            self.action_engine_target(),
+        );
+        binding::apply_snapshot(ui, &self.snapshot());
+        Timer::single_shot(std::time::Duration::from_millis(1), || {});
+        let output_dir = self.config.settings.default_build_output_dir.clone();
+        Ok(PendingBuild {
+            command,
+            command_line,
+            output_dir,
+            engine_target: self.action_engine_target(),
+            staged_engine_dir: self.staged_engine_dir(),
+        })
+    }
+
+    fn complete_editor_runtime_build(
+        &mut self,
+        pending_build: PendingBuild,
+        result: Result<BuildExecutionReport, HubError>,
+    ) -> Result<(), HubError> {
+        let PendingBuild {
+            command_line,
+            output_dir,
+            engine_target,
+            staged_engine_dir,
+            ..
+        } = pending_build;
+        let report = match result {
             Ok(report) => report,
             Err(error) => {
-                self.record_active_build(false, error.to_string());
-                self.persist_hub_config()?;
-                return Err(error);
+                let detail = error.to_string();
+                self.record_active_build(
+                    false,
+                    detail.clone(),
+                    detail.clone(),
+                    command_line.clone(),
+                );
+                self.record_action_and_persist(HubActionRecord {
+                    finished_unix_ms: crate::projects::now_unix_ms(),
+                    action: HubActionKind::BuildEditorRuntime,
+                    status: HubActionStatus::Failed,
+                    target: engine_target.clone(),
+                    detail: detail.clone(),
+                    log_excerpt: detail.clone(),
+                    recovery: Some(
+                        "Check Python, Cargo, and Source Checkout settings before retrying"
+                            .to_string(),
+                    ),
+                    process_id: None,
+                    command_line,
+                    output_dir: Some(output_dir),
+                })?;
+                self.task_status = TaskStatus::error(
+                    "Build failed",
+                    detail,
+                    "Check Python, Cargo, and Source Checkout settings before retrying",
+                )
+                .with_operation(TaskOperationKind::Build, engine_target);
+                return Ok(());
             }
         };
         if !report.succeeded() {
-            let detail = build_failure_detail(&report);
-            self.record_active_build(false, detail.clone());
-            self.persist_hub_config()?;
-            self.task_status = TaskStatus {
-                label: "Build failed".to_string(),
+            let detail = report.summary_line();
+            self.record_active_build(
+                false,
+                detail.clone(),
+                report.log_excerpt(),
+                command_line.clone(),
+            );
+            self.record_action_and_persist(HubActionRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                action: HubActionKind::BuildEditorRuntime,
+                status: HubActionStatus::Failed,
+                target: engine_target.clone(),
+                detail: detail.clone(),
+                log_excerpt: report.log_excerpt(),
+                recovery: Some(report.recovery_hint()),
+                process_id: None,
+                command_line,
+                output_dir: Some(output_dir),
+            })?;
+            self.task_status = TaskStatus::error(
+                "Build failed",
                 detail,
-                running: false,
-            };
-            return Err(HubError::message(self.task_status.detail.clone()));
+                "Open Build History and fix the first reported error before retrying",
+            )
+            .with_operation(TaskOperationKind::Build, engine_target);
+            return Ok(());
         }
-        self.record_active_build(true, "Staged editor/runtime payload".to_string());
-        self.persist()?;
-        self.task_status = TaskStatus {
-            label: "Build complete".to_string(),
-            detail: self.staged_engine_dir().to_string_lossy().into_owned(),
-            running: false,
-        };
+        self.record_active_build(
+            true,
+            "Staged editor/runtime payload".to_string(),
+            report.log_excerpt(),
+            command_line.clone(),
+        );
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::BuildEditorRuntime,
+            status: HubActionStatus::Success,
+            target: engine_target.clone(),
+            detail: "Staged editor/runtime payload".to_string(),
+            log_excerpt: report.log_excerpt(),
+            recovery: None,
+            process_id: None,
+            command_line,
+            output_dir: Some(output_dir),
+        })?;
+        self.task_status = TaskStatus::success(
+            "Build complete",
+            staged_engine_dir.to_string_lossy().into_owned(),
+        )
+        .with_operation(TaskOperationKind::Build, engine_target);
         Ok(())
     }
 
@@ -369,36 +464,124 @@ impl HubRuntime {
         if preferred_editor_executable_exists(self.staged_engine_dir()) {
             return Ok(());
         }
-        self.build_editor_runtime(ui)
+        self.sync_from_ui(ui);
+        self.start_editor_runtime_build(ui, BuildExecutionMode::Blocking)
     }
 
     fn open_output(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
         let command = OpenFolderCommand::new(self.staged_engine_dir());
-        open_folder(&command)?;
-        self.task_status = TaskStatus {
-            label: "Output opened".to_string(),
+        let command_line = command.command_line();
+        let output_dir = self.config.settings.default_build_output_dir.clone();
+        if let Err(error) = open_folder(&command) {
+            let detail = error.to_string();
+            let target = self.action_engine_target();
+            let recovery = "Check that the staged build output directory exists and can be opened";
+            self.record_action_and_persist(HubActionRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                action: HubActionKind::OpenOutput,
+                status: HubActionStatus::Failed,
+                target: target.clone(),
+                detail: detail.clone(),
+                log_excerpt: String::new(),
+                recovery: Some(recovery.to_string()),
+                process_id: None,
+                command_line: command_line.clone(),
+                output_dir: Some(output_dir),
+            })?;
+            self.set_action_failure_status(HubActionKind::OpenOutput, target, detail, recovery);
+            return Err(error);
+        }
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::OpenOutput,
+            status: HubActionStatus::Success,
+            target: self.action_engine_target(),
             detail: self
                 .config
                 .settings
                 .default_build_output_dir
                 .to_string_lossy()
                 .into_owned(),
-            running: false,
-        };
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: None,
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::success(
+            "Output opened",
+            self.config
+                .settings
+                .default_build_output_dir
+                .to_string_lossy()
+                .into_owned(),
+        )
+        .with_operation(TaskOperationKind::Process, self.action_engine_target());
         Ok(())
     }
 
     fn launch_editor_without_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
-        self.ensure_editor_available(ui)?;
+        if let Err(error) = self.ensure_editor_available(ui) {
+            let detail = error.to_string();
+            let target = "Editor without project".to_string();
+            let recovery =
+                "Build the editor/runtime payload or fix Source Engine settings before launching";
+            self.record_action_and_persist(HubActionRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                action: HubActionKind::OpenEditor,
+                status: HubActionStatus::Failed,
+                target: target.clone(),
+                detail: detail.clone(),
+                log_excerpt: String::new(),
+                recovery: Some(recovery.to_string()),
+                process_id: None,
+                command_line: Vec::new(),
+                output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+            })?;
+            self.set_action_failure_status(HubActionKind::OpenEditor, target, detail, recovery);
+            return Err(error);
+        }
         let executable = preferred_editor_executable(self.staged_engine_dir());
-        std::process::Command::new(&executable).spawn()?;
-        self.task_status = TaskStatus {
-            label: "Editor launched".to_string(),
-            detail: executable.to_string_lossy().into_owned(),
-            running: false,
+        let command_line = vec![executable.to_string_lossy().into_owned()];
+        let child = match std::process::Command::new(&executable).spawn() {
+            Ok(child) => child,
+            Err(error) => {
+                let detail = error.to_string();
+                let target = "Editor without project".to_string();
+                let recovery = "Verify the staged zircon_editor executable exists and is runnable";
+                self.record_action_and_persist(HubActionRecord {
+                    finished_unix_ms: crate::projects::now_unix_ms(),
+                    action: HubActionKind::OpenEditor,
+                    status: HubActionStatus::Failed,
+                    target: target.clone(),
+                    detail: detail.clone(),
+                    log_excerpt: String::new(),
+                    recovery: Some(recovery.to_string()),
+                    process_id: None,
+                    command_line: command_line.clone(),
+                    output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+                })?;
+                self.set_action_failure_status(HubActionKind::OpenEditor, target, detail, recovery);
+                return Err(error.into());
+            }
         };
+        let process_id = child.id();
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::OpenEditor,
+            status: HubActionStatus::Success,
+            target: "Editor without project".to_string(),
+            detail: format!("Started process {process_id}"),
+            log_excerpt: String::new(),
+            recovery: None,
+            process_id: Some(process_id),
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::success("Editor launched", format!("Process {process_id}"))
+            .with_operation(TaskOperationKind::Process, "Editor without project");
         Ok(())
     }
 
@@ -444,6 +627,10 @@ impl HubRuntime {
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
     }
 
+    fn prune_stale_project_engine_bindings(&mut self) -> usize {
+        prune_project_engine_bindings(&mut self.config.project_metadata, &self.config.engines)
+    }
+
     fn migrate_project_engine_metadata(&mut self, old_engine_id: &str, new_engine_id: &str) {
         for metadata in self.config.project_metadata.values_mut() {
             if metadata.engine_id.as_deref() == Some(old_engine_id) {
@@ -482,7 +669,13 @@ impl HubRuntime {
         }
     }
 
-    fn record_active_build(&mut self, success: bool, detail: String) {
+    fn record_active_build(
+        &mut self,
+        success: bool,
+        detail: String,
+        log_excerpt: String,
+        command_line: Vec<String>,
+    ) {
         if let Some(engine) = active_source_engine_mut(
             &mut self.config.engines,
             self.config.active_engine_id.as_deref(),
@@ -494,57 +687,77 @@ impl HubRuntime {
                 jobs: Some(self.config.settings.jobs),
                 output_dir: self.config.settings.default_build_output_dir.clone(),
                 detail,
+                log_excerpt,
+                command_line,
             });
         }
     }
 
-    fn persist(&self) -> Result<(), HubError> {
-        self.persist_with_last_project(None)
+    fn set_action_failure_status(
+        &mut self,
+        action: HubActionKind,
+        target: String,
+        detail: String,
+        recovery: &str,
+    ) {
+        self.task_status = TaskStatus::error(
+            format!("{} failed", action.label()),
+            detail,
+            recovery.to_string(),
+        )
+        .with_operation(action_operation_kind(action), target);
     }
 
-    fn persist_hub_config(&self) -> Result<(), HubError> {
-        self.config.save(&self.config_path)?;
-        Ok(())
+    pub(super) fn action_engine_target(&self) -> String {
+        active_source_engine(
+            &self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        )
+        .map(|engine| engine.display_name.clone())
+        .unwrap_or_else(|| {
+            self.config
+                .settings
+                .default_source_dir
+                .to_string_lossy()
+                .into_owned()
+        })
     }
 
-    fn persist_with_last_project(
-        &self,
-        last_project_path: Option<&std::path::Path>,
+    fn validate_active_source_engine_for_build(
+        &mut self,
+        command_line: Vec<String>,
     ) -> Result<(), HubError> {
-        self.persist_hub_config()?;
-        match last_project_path {
-            Some(path) => save_editor_recent_projects_with_last_project(
-                &self.editor_config_path,
-                &self.config.recent_projects,
-                Some(path),
-            )?,
-            None => {
-                save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)?
-            }
+        let validation = validate_source_engine(&self.config.settings.default_source_dir);
+        if validation == SourceEngineValidation::Valid {
+            return Ok(());
         }
-        Ok(())
+        let detail = validation.summary().to_string();
+        let recovery = validation.recovery_hint().to_string();
+        let target = self.action_engine_target();
+        self.record_action_and_persist(HubActionRecord {
+            finished_unix_ms: crate::projects::now_unix_ms(),
+            action: HubActionKind::BuildEditorRuntime,
+            status: HubActionStatus::Failed,
+            target: target.clone(),
+            detail: detail.clone(),
+            log_excerpt: detail.clone(),
+            recovery: Some(recovery.clone()),
+            process_id: None,
+            command_line,
+            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+        })?;
+        self.task_status = TaskStatus::error("Source Engine invalid", detail, recovery)
+            .with_operation(TaskOperationKind::SourceEngine, target);
+        Err(HubError::message(self.task_status.detail_with_recovery()))
     }
 }
 
-fn build_failure_detail(report: &BuildExecutionReport) -> String {
-    report
-        .stderr
-        .lines()
-        .last()
-        .or_else(|| report.stdout.lines().last())
-        .unwrap_or("build failed")
-        .to_string()
-}
-
-fn startup_selected_project_path(
-    last_project_path: Option<&Path>,
-    recent_projects: &[crate::projects::RecentProject],
-) -> Option<PathBuf> {
-    let last_project_path = last_project_path?;
-    recent_projects
-        .iter()
-        .find(|project| project_paths_match(&project.path, last_project_path))
-        .map(|project| project.path.clone())
+fn action_operation_kind(action: HubActionKind) -> TaskOperationKind {
+    match action {
+        HubActionKind::BuildEditorRuntime => TaskOperationKind::Build,
+        HubActionKind::OpenEditor | HubActionKind::OpenOutput => TaskOperationKind::Process,
+        HubActionKind::PackageProject | HubActionKind::InstallProject => TaskOperationKind::Project,
+    }
 }
 
 fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
@@ -853,21 +1066,70 @@ fn with_runtime(
         return;
     };
     let mut runtime = runtime.borrow_mut();
-    if let Err(error) = action(&mut runtime, &ui) {
-        runtime.task_status = TaskStatus {
-            label: "Action failed".to_string(),
-            detail: error.to_string(),
-            running: false,
-        };
+    match action(&mut runtime, &ui) {
+        Ok(()) => {
+            if let Err(error) = runtime.persist_hub_config() {
+                runtime.task_status = TaskStatus::error(
+                    "State save failed",
+                    error.to_string(),
+                    "Hub could not save the current page and selection state",
+                );
+            }
+        }
+        Err(error) => {
+            if runtime.task_status.severity != TaskSeverity::Error {
+                runtime.task_status = TaskStatus::error(
+                    "Action failed",
+                    error.to_string(),
+                    "Review the message, correct the project or Source Engine configuration, and retry",
+                );
+            }
+        }
     }
     binding::apply_snapshot(&ui, &runtime.snapshot());
 }
 
+fn spawn_editor_runtime_build(
+    weak_ui: Weak<HubWindow>,
+    pending_build: PendingBuild,
+    config_path: PathBuf,
+    build_runner: BuildRunner,
+) {
+    thread::spawn(move || {
+        let result = build_runner(&pending_build.command);
+        let _ = weak_ui.upgrade_in_event_loop(move |ui| {
+            match HubRuntime::load_from_config_path(config_path.clone()) {
+                Ok(mut runtime) => {
+                    if let Err(error) = runtime.complete_editor_runtime_build(pending_build, result)
+                    {
+                        runtime.task_status = TaskStatus::error(
+                            "Build failed",
+                            error.to_string(),
+                            "Review Build History and retry after correcting the build setup",
+                        );
+                    }
+                    binding::apply_snapshot(&ui, &runtime.snapshot());
+                }
+                Err(error) => {
+                    let mut fallback = HubRuntime::empty_for_error(config_path.clone());
+                    fallback.task_status = TaskStatus::error(
+                        "Build failed",
+                        error.to_string(),
+                        "Hub could not reload build state after the background task finished",
+                    );
+                    binding::apply_snapshot(&ui, &fallback.snapshot());
+                }
+            }
+        });
+    });
+}
+
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
-    use crate::projects::RecentProject;
+    use crate::projects::{ProjectTemplate, RecentProject};
     use crate::settings::HubConfig;
+    use std::fs;
 
     fn runtime_with_projects(projects: Vec<RecentProject>) -> HubRuntime {
         HubRuntime {
@@ -896,6 +1158,46 @@ mod tests {
         }
     }
 
+    pub(super) fn runtime_with_config_path(
+        projects: Vec<RecentProject>,
+        config_path: PathBuf,
+    ) -> HubRuntime {
+        HubRuntime {
+            config_path,
+            editor_config_path: PathBuf::from("editor.json"),
+            config: HubConfig {
+                recent_projects: projects,
+                ..HubConfig::default()
+            },
+            selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
+            search_query: String::new(),
+            selected_project_path: None,
+            selected_template_id: ProjectTemplate::RenderableEmpty.id().to_string(),
+            new_project_location: HubConfig::default().settings.default_project_dir,
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            asset_catalog: Vec::new(),
+            learn_catalog: Vec::new(),
+            plugin_catalog: Vec::new(),
+            team_overview: TeamOverview::empty(),
+        }
+    }
+
+    pub(super) fn temp_test_dir(prefix: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "{prefix}-{}-{}",
+            std::process::id(),
+            crate::projects::now_unix_ms()
+        ));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
     #[test]
     fn selecting_project_records_path_and_status() {
         let mut runtime = runtime_with_projects(vec![RecentProject::new(
@@ -914,26 +1216,6 @@ mod tests {
         );
         assert_eq!(runtime.task_status.label, "Project selected");
         assert_eq!(runtime.task_status.detail, "Stellar Outpost");
-    }
-
-    #[test]
-    fn startup_selection_restores_editor_last_project_when_it_matches_recent_projects() {
-        let recent_projects = vec![
-            RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
-            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
-        ];
-
-        let selected = startup_selected_project_path(
-            Some(Path::new("E:\\Projects\\StellarOutpost\\")),
-            &recent_projects,
-        );
-
-        assert_eq!(selected, Some(PathBuf::from("E:/Projects/StellarOutpost")));
-        assert!(startup_selected_project_path(
-            Some(Path::new("E:/Projects/Missing")),
-            &recent_projects,
-        )
-        .is_none());
     }
 
     #[test]
@@ -998,6 +1280,80 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
+            "Selected project is no longer available to build"
+        );
+    }
+
+    #[test]
+    fn quick_action_build_reports_missing_bound_source_engine_before_building() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Elysium",
+            "E:/Projects/Elysium",
+            30,
+        )]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Elysium"));
+
+        let error = runtime
+            .selected_or_latest_recent_project_with_engine_for_action()
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "Project has no bound Source Engine: Elysium"
+        );
+    }
+
+    #[test]
+    fn builds_page_build_requires_selected_project_bound_source_engine() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Elysium",
+            "E:/Projects/Elysium",
+            30,
+        )]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Elysium"));
+
+        let error = runtime
+            .selected_project_with_engine_for_named_action(
+                "Select a project before building",
+                "Selected project is no longer available to build",
+            )
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "Project has no bound Source Engine: Elysium"
+        );
+    }
+
+    #[test]
+    fn builds_page_actions_report_stale_selected_project_without_quick_action_fallback() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Elysium",
+            "E:/Projects/Elysium",
+            30,
+        )]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Missing"));
+
+        let open_error = runtime
+            .selected_project_for_named_action(
+                "Select a project before opening",
+                "Selected project is no longer available to open",
+            )
+            .unwrap_err();
+        assert_eq!(
+            open_error.to_string(),
+            "Selected project is no longer available to open"
+        );
+
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Missing"));
+        let build_error = runtime
+            .selected_project_with_engine_for_named_action(
+                "Select a project before building",
+                "Selected project is no longer available to build",
+            )
+            .unwrap_err();
+        assert_eq!(
+            build_error.to_string(),
             "Selected project is no longer available to build"
         );
     }
@@ -1146,5 +1502,172 @@ mod tests {
                 .and_then(|metadata| metadata.engine_id.as_deref()),
             Some(registered_id.as_str())
         );
+    }
+
+    #[test]
+    fn invalid_source_engine_sets_recoverable_task_status() {
+        let temp = temp_test_dir("zircon-hub-invalid-source-action-history");
+        let mut runtime = runtime_with_config_path(Vec::new(), temp.join("hub.toml"));
+        runtime.config.settings.default_source_dir = PathBuf::from("E:/missing/ZirconEngine");
+
+        let error = runtime
+            .validate_active_source_engine_for_build(vec![
+                "python".to_string(),
+                "tools/zircon_build.py".to_string(),
+            ])
+            .unwrap_err();
+
+        assert_eq!(runtime.task_status.label, "Source Engine invalid");
+        assert_eq!(
+            runtime.task_status.severity,
+            crate::state::TaskSeverity::Error
+        );
+        assert_eq!(
+            runtime.task_status.recovery.as_deref(),
+            Some("Locate an existing ZirconEngine checkout or update Settings > Source Checkout")
+        );
+        assert!(error
+            .to_string()
+            .contains("Source checkout directory is missing"));
+        assert_eq!(runtime.config.action_history.len(), 1);
+        let record = &runtime.config.action_history[0];
+        assert_eq!(record.action, HubActionKind::BuildEditorRuntime);
+        assert_eq!(record.status, HubActionStatus::Failed);
+        assert!(record
+            .detail
+            .contains("Source checkout directory is missing"));
+        assert!(record
+            .command_line
+            .contains(&"tools/zircon_build.py".to_string()));
+        assert!(record
+            .log_excerpt
+            .contains("Source checkout directory is missing"));
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn runtime_prunes_stale_project_engine_bindings_without_losing_pins() {
+        let project = PathBuf::from("E:/Projects/Game");
+        let mut runtime = runtime_with_projects(vec![RecentProject::new("Game", &project, 1)]);
+        runtime.config.project_metadata.insert(
+            crate::projects::project_metadata_key(&project),
+            crate::projects::ProjectMetadata {
+                pinned: true,
+                engine_id: Some("missing-source".to_string()),
+                last_selected_template: None,
+            },
+        );
+
+        let pruned = runtime.prune_stale_project_engine_bindings();
+
+        assert_eq!(pruned, 1);
+        let metadata = runtime
+            .config
+            .project_metadata
+            .get(&crate::projects::project_metadata_key(&project))
+            .expect("pinned metadata should remain after stale engine pruning");
+        assert!(metadata.pinned);
+        assert!(metadata.engine_id.is_none());
+    }
+
+    #[test]
+    fn runtime_action_history_records_process_ids_and_keeps_newest() {
+        let mut runtime = runtime_with_projects(Vec::new());
+
+        for index in 0..18 {
+            runtime.record_action(HubActionRecord {
+                finished_unix_ms: index,
+                action: HubActionKind::OpenEditor,
+                status: HubActionStatus::Success,
+                target: format!("Project {index}"),
+                detail: format!("Started process {index}"),
+                log_excerpt: String::new(),
+                recovery: None,
+                process_id: Some(index as u32),
+                command_line: vec!["zircon_editor".to_string()],
+                output_dir: None,
+            });
+        }
+
+        assert_eq!(
+            runtime.config.action_history.len(),
+            crate::state::ACTION_HISTORY_LIMIT
+        );
+        assert_eq!(runtime.config.action_history[0].process_id, Some(17));
+        assert_eq!(runtime.config.action_history[0].target, "Project 17");
+    }
+
+    #[test]
+    fn package_failure_action_history_persists_and_reloads_from_config() {
+        let temp = temp_test_dir("zircon-hub-package-action-history");
+        let project = temp.join("Game");
+        let config_path = temp.join("hub.toml");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+        let mut runtime = runtime_with_config_path(
+            vec![RecentProject::new("Game", &project, 1)],
+            config_path.clone(),
+        );
+        runtime.selected_project_path = Some(project.clone());
+        runtime.config.settings.default_build_output_dir = project.join("package-output-inside");
+
+        let error = runtime.package_project_to_output(RecentProject::new("Game", &project, 1));
+
+        assert!(error.is_err());
+        let reloaded = HubConfig::load(&config_path).unwrap();
+        assert_eq!(reloaded.action_history.len(), 1);
+        let record = &reloaded.action_history[0];
+        assert_eq!(record.action, HubActionKind::PackageProject);
+        assert_eq!(record.status, HubActionStatus::Failed);
+        assert_eq!(record.target, "Game");
+        assert!(record
+            .recovery
+            .as_deref()
+            .unwrap()
+            .contains("package output"));
+        assert_eq!(runtime.task_status.label, "Package Project failed");
+        assert_eq!(runtime.task_status.operation_summary(), "Project: Game");
+        assert!(runtime
+            .task_status
+            .detail_with_recovery()
+            .contains("package output"));
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn install_failure_action_history_persists_and_reloads_from_config() {
+        let temp = temp_test_dir("zircon-hub-install-action-history");
+        let config_path = temp.join("hub.toml");
+        let mut runtime = runtime_with_config_path(Vec::new(), config_path.clone());
+        runtime.config.settings.default_device_install_dir = temp.join("device");
+
+        runtime
+            .record_project_action_failure(
+                HubActionKind::InstallProject,
+                "Game".to_string(),
+                "Package directory is not available".to_string(),
+                "Check the package output and configured local device install directory before retrying",
+                Some(runtime.config.settings.default_device_install_dir.clone()),
+            )
+            .unwrap();
+
+        let reloaded = HubConfig::load(&config_path).unwrap();
+        assert_eq!(
+            reloaded.action_history[0].action,
+            HubActionKind::InstallProject
+        );
+        assert_eq!(reloaded.action_history[0].status, HubActionStatus::Failed);
+        assert!(reloaded.action_history[0]
+            .recovery
+            .as_deref()
+            .unwrap()
+            .contains("device install directory"));
+        assert_eq!(runtime.task_status.label, "Install to Device failed");
+        assert_eq!(runtime.task_status.operation_summary(), "Project: Game");
+        assert!(runtime
+            .task_status
+            .detail_with_recovery()
+            .contains("device install directory"));
+        fs::remove_dir_all(temp).unwrap();
     }
 }

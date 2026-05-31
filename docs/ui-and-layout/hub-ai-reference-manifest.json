@@ -1,0 +1,196 @@
+{
+  "$schema": "docs/ui-and-layout/hub-ai-reference-manifest.schema.json",
+  "name": "Zircon Hub AI-directed web reference pages",
+  "source_reference": "docs/ui-and-layout/hub.png",
+  "prompt_family": "Use case: ui-mockup. Asset type: structure-first design draft for review. Input image: docs/ui-and-layout/hub.png as style reference. Preserve the Zircon Hub topbar, sidebar, bottom button-state strip, dark engineering-tool palette, teal active states, compact 8px panel radius, dense data rows, and practical production UI layout. Primary review target is overall interaction structure layout: navigation, page regions, toolbar placement, card/table grids, side panels, dropdowns, modals, and state overlays. Functional-content local callouts are secondary. Do not rely on generated text accuracy; final copy and icons are authored in HTML/CSS.",
+  "draft_status": "Streaming AI drafts are structure-layout direction images only. They support global layout review and local functional-content callouts, but they are not acceptance evidence. Final accepted references are HTML/CSS-exported PNGs.",
+  "draft_kind": "overall-interaction-structure-layout",
+  "draft_usage": "Overall interaction structure layout drafts for review; local functional-content callouts are secondary; not acceptance evidence.",
+  "ai_draft_root": "docs/ui-and-layout/hub-ai-drafts",
+  "streaming_generation": {
+    "endpoint": "https://www.niumacode.cc/v1/images/generations",
+    "model": "gpt-image-2",
+    "size": "1024x1024",
+    "partial_images": 2,
+    "fallback": "Save the last streamed partial image when the final event is missing image bytes or reports an upstream error."
+  },
+  "supplemental_design_mode_artifacts": [
+    {
+      "file": "docs/ui-and-layout/hub-design-structure-layout.png",
+      "role": "Overall interaction structure layout review sheet.",
+      "acceptance": "Not final acceptance evidence."
+    },
+    {
+      "file": "docs/ui-and-layout/hub-design-structure-supplement.png",
+      "role": "Supplemental global structure and interaction-path review sheet.",
+      "acceptance": "Not final acceptance evidence."
+    },
+    {
+      "file": "docs/ui-and-layout/hub-design-functional-details.png",
+      "role": "Functional-content local detail review sheet.",
+      "acceptance": "Not final acceptance evidence."
+    }
+  ],
+  "design_board_workflow": {
+    "source": "docs/ui-and-layout/hub-design-board/index.html",
+    "manifest": "docs/ui-and-layout/hub-design-board/manifest.json",
+    "registry": "docs/ui-and-layout/hub-design-board/board-registry.mjs",
+    "export_command": "node docs/ui-and-layout/hub-design-board/export-design-board.mjs",
+    "validate_command": "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
+    "review_checklist": "docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md",
+    "coverage_matrix": "docs/ui-and-layout/hub-design-board/STRUCTURE_COVERAGE_MATRIX.md",
+    "review_priority": "overall-interaction-structure-layout"
+  },
+  "final_source": "docs/ui-and-layout/hub-web-reference/index.html",
+  "export_command": "node docs/ui-and-layout/hub-web-reference/export-pages.mjs",
+  "acceptance_evidence": {
+    "ledger": "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md",
+    "final_png_inventory": "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md#generated-final-png-inventory",
+    "spot_checks": "docs/ui-and-layout/hub-web-reference/SPOT_CHECKS.md",
+    "web_exports": "docs/ui-and-layout/hub-web-reference/EXPORTS.md",
+    "visual_validation": "node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs",
+    "interaction_validation": "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs",
+    "design_board_validation": "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
+    "rust_contract": "cargo test --manifest-path zircon_hub/Cargo.toml --locked --offline --jobs 1 --test ui_visual_standard_contract",
+    "known_limit": "AI drafts and design-board screenshots are not final acceptance evidence; optional cargo check may time out under concurrent Hub library compilation."
+  },
+  "canvas": {
+    "width": 1568,
+    "height": 1003
+  },
+  "references": [
+    {
+      "page_id": "hub-editor",
+      "output": "hub-editor.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-editor.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Editor source configuration, launch controls, and launch timeline in the Hub visual system."
+    },
+    {
+      "page_id": "hub-builds",
+      "output": "hub-builds.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-builds.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Build pipeline, current task, package controls, and build history using compact operational panels."
+    },
+    {
+      "page_id": "hub-assets",
+      "output": "hub-assets.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-assets.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Asset catalog with search, filter controls, compact rows, badges, and stable trailing actions."
+    },
+    {
+      "page_id": "hub-plugins",
+      "output": "hub-plugins.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-plugins.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Plugin catalog with runtime/editor categories, package metadata, and Hub badge rhythm."
+    },
+    {
+      "page_id": "hub-cloud",
+      "output": "hub-cloud.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-cloud.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Cloud package metrics, deploy services, and action panel in the same dark operations style."
+    },
+    {
+      "page_id": "hub-team",
+      "output": "hub-team.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-team.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Team identity, repository state, reviewers, and collaboration actions with quiet dashboard density."
+    },
+    {
+      "page_id": "hub-learn",
+      "output": "hub-learn.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-learn.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Learning library rows with guides, references, checklists, and consistent catalog controls."
+    },
+    {
+      "page_id": "hub-settings",
+      "output": "hub-settings.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-settings.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Settings panels for toolchain, build defaults, paths, and configuration health."
+    },
+    {
+      "page_id": "hub-projects-new",
+      "output": "hub-projects-new.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-new.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "New Project form, source engine choice, template rail, and ready create action."
+    },
+    {
+      "page_id": "hub-projects-browser",
+      "output": "hub-projects-browser.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-browser.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Project Browser search, filters, all-project rows, engine version badges, and detail affordances."
+    },
+    {
+      "page_id": "hub-projects-detail",
+      "output": "hub-projects-detail.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-detail.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Project hero cover, metadata rows, source engine status, and project actions."
+    },
+    {
+      "page_id": "hub-projects-browser-filter-menu",
+      "output": "hub-projects-browser-filter-menu.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-browser-filter-menu.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Project Browser with filter dropdown open and aligned to the toolbar select trigger."
+    },
+    {
+      "page_id": "hub-projects-browser-sort-menu",
+      "output": "hub-projects-browser-sort-menu.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-browser-sort-menu.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Project Browser with sort dropdown open and stable menu elevation."
+    },
+    {
+      "page_id": "hub-projects-detail-delete-confirm",
+      "output": "hub-projects-detail-delete-confirm.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-projects-detail-delete-confirm.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Project Detail delete confirmation state with recoverable destructive-action styling."
+    },
+    {
+      "page_id": "hub-source-engine-popup",
+      "output": "hub-source-engine-popup.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-source-engine-popup.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Header source engine popup with active engine, ready fallback, and local custom source rows."
+    },
+    {
+      "page_id": "hub-user-menu",
+      "output": "hub-user-menu.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-user-menu.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Header user menu with account, preferences, docs, and sign-out actions."
+    },
+    {
+      "page_id": "hub-state-empty",
+      "output": "hub-state-empty.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-state-empty.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Shared empty-state panel with no matching projects and an import action."
+    },
+    {
+      "page_id": "hub-state-loading",
+      "output": "hub-state-loading.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-state-loading.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Shared loading-state panel for long running Hub task progress."
+    },
+    {
+      "page_id": "hub-state-error",
+      "output": "hub-state-error.png",
+      "ai_draft": "docs/ui-and-layout/hub-ai-drafts/hub-state-error.png",
+      "selected_draft": "html-final-reference",
+      "prompt_focus": "Shared recoverable error-state panel with retry action and error tone."
+    }
+  ]
+}

@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 pub const FEATURE_ID: &str = "rendering.reflection_probes";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.reflection_probes";
 pub const FEATURE_NAME: &str = "reflection_probes";
 pub const EXECUTOR_ID: &str = "lighting.reflection-probes";
 

@@ -1,6 +1,7 @@
 use zircon_runtime::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
 
 pub const FEATURE_ID: &str = "rendering.ray_tracing_policy";
+pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.ray_tracing_policy";
 pub const FEATURE_NAME: &str = "ray_tracing_policy";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

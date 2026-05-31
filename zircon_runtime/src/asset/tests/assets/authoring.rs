@@ -118,7 +118,9 @@ fn prefab_asset_collects_scene_references_without_editor_state() {
             camera: None,
             mesh: Some(crate::asset::SceneMeshInstanceAsset {
                 model: model.clone(),
+                mesh: None,
                 material: material.clone(),
+                primitives: Vec::new(),
             }),
             ambient_light: None,
             directional_light: None,

@@ -5,4 +5,4 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-zircon_runtime = { path = "../../../../../zircon_runtime" }
+zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }

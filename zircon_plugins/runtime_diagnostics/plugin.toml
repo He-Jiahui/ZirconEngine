@@ -1,7 +1,12 @@
 id = "runtime_diagnostics"
 version = "0.1.0"
+sdk_api_version = "0.1.0"
 display_name = "Runtime Diagnostics"
 description = "Optional editor diagnostics views for inspecting embedded runtime state."
+category = "diagnostics"
+maturity = "experimental"
+supported_targets = ["editor_host"]
+capabilities = ["editor.extension.runtime_diagnostics"]
 default_packaging = ["source_template", "library_embed"]
 
 [[modules]]

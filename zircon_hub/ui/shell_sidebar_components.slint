@@ -1,0 +1,197 @@
+import {
+    CenteredIcon,
+    MutedText,
+    NavItemData,
+    ProjectDetailData,
+    SourceEngineData,
+    UiTextData,
+} from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { NavRail } from "navigation.slint";
+import { Badge, HubPanel } from "surfaces.slint";
+import { NavigationItem, StateLayerArea, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
+
+export component NavStatusPanel inherits HubPanel {
+    in property <bool> task-running: false;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    in property <length> nav-width: HubTokens.nav-width-expanded-min;
+    in property <length> nav-status-height: (root.project.selected ? HubTokens.shell-row-min * 4 : HubTokens.shell-row-min * 3) + HubTokens.space-6;
+    private property <string> project-context: root.ui-text.current-project + ": " + root.project.title;
+
+    height: root.nav-status-height;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: HubTokens.space-3;
+        spacing: HubTokens.space-2;
+
+        HorizontalLayout {
+            spacing: HubTokens.space-2;
+
+            Rectangle {
+                width: HubTokens.toolbar-gap;
+                height: HubTokens.toolbar-gap;
+                border-radius: HubTokens.toolbar-gap / 2;
+                background: root.task-running ? HubVisualSpec.warning-stroke : HubVisualSpec.success-stroke;
+            }
+
+        MaterialText {
+            text: root.ui-text.engine-status;
+            color: MaterialPalette.on_surface;
+            style: MaterialTypography.label_large;
+        }
+        }
+
+        MutedText { text: root.source-engine.version; }
+
+        MaterialText {
+            text: root.source-engine.status;
+            color: root.task-running ? HubVisualSpec.warning-stroke : HubVisualSpec.success-stroke;
+            style: MaterialTypography.label_medium;
+            overflow: elide;
+        }
+
+        if root.project.selected: Badge {
+            text: root.project-context;
+            tone: "accent";
+            badge-width: root.nav-width - HubTokens.space-6;
+            badge-height: HubTokens.control-sm;
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        HubPanel {
+            variant: "interactive";
+            height: HubTokens.control-md;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: HubTokens.toolbar-gap;
+                padding-right: HubTokens.toolbar-gap;
+                spacing: HubTokens.space-2;
+                alignment: start;
+
+                CenteredIcon {
+                    width: HubTokens.icon-xs;
+                    height: parent.height;
+                    icon-size: HubTokens.icon-xs;
+                    source-image: @image-url("../assets/icons/ui/refresh.svg");
+                    has-source-image: true;
+                }
+
+                MaterialText {
+                    text: root.ui-text.check-for-updates;
+                    overflow: elide;
+                    color: MaterialPalette.on_surface_variant;
+                    style: MaterialTypography.label_medium;
+                    vertical_alignment: center;
+                }
+            }
+        }
+    }
+}
+
+export component HubNavSidebar inherits Rectangle {
+    in property <[NavItemData]> nav-items;
+    in property <[NavigationItem]> material-nav-items;
+    in-out property <int> selected-nav-index: 0;
+    in property <bool> collapsed: false;
+    in property <bool> compact-height: false;
+    in property <bool> task-running: false;
+    in property <ProjectDetailData> project;
+    in property <SourceEngineData> source-engine;
+    in property <UiTextData> ui-text;
+    in property <length> nav-width: HubTokens.nav-width-expanded-min;
+    in property <length> nav-pad: HubTokens.space-3;
+    in property <length> nav-status-height: HubTokens.shell-row-min * 4 + HubTokens.space-6;
+    in property <length> row-height: HubTokens.shell-row-min;
+    in property <length> gap: HubTokens.toolbar-gap;
+    in property <length> bottom-reserved-height: 0px;
+    callback clicked(string);
+    callback toggle-collapse();
+
+    width: root.nav-width;
+    vertical-stretch: 1;
+    background: HubVisualSpec.chrome-background;
+    border-width: HubTokens.border-width;
+    border-color: HubVisualSpec.chrome-outline-muted;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: root.nav-pad;
+        spacing: root.gap;
+
+        NavRail {
+            width: parent.width - root.nav-pad * 2;
+            vertical-stretch: 1;
+            rail-padding: 0px;
+            rail-gap: root.gap;
+            rail-background: transparent;
+            items: root.nav-items;
+            material-items: root.material-nav-items;
+            current-index <=> root.selected-nav-index;
+            collapsed: root.collapsed;
+            clicked(id) => {
+                root.clicked(id);
+            }
+        }
+
+        if !root.collapsed && !root.compact-height: NavStatusPanel {
+            task-running: root.task-running;
+            project: root.project;
+            source-engine: root.source-engine;
+            ui-text: root.ui-text;
+            nav-width: root.nav-width;
+            nav-status-height: root.nav-status-height;
+        }
+
+        if !root.compact-height: Rectangle { height: HubTokens.border-width; background: HubTokens.stroke-muted; }
+        if !root.compact-height: Rectangle {
+            height: max(HubTokens.control-md, min(HubTokens.control-lg, root.row-height * 3 / 4));
+            border-radius: HubVisualSpec.panel-radius;
+            background: transparent;
+
+            collapse-state := StateLayerArea {
+                width: parent.width;
+                height: parent.height;
+                color: MaterialPalette.on_surface;
+                border_radius: HubVisualSpec.panel-radius;
+                clicked => {
+                    root.toggle-collapse();
+                }
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-left: root.collapsed ? 0px : HubTokens.space-2;
+                    padding-right: root.collapsed ? 0px : HubTokens.space-2;
+                    spacing: HubTokens.space-2;
+                    alignment: start;
+
+                    CenteredIcon {
+                        width: root.collapsed ? parent.width : HubTokens.icon-sm;
+                        height: parent.height;
+                        icon-size: HubTokens.icon-sm;
+                        source-image: root.collapsed ? @image-url("../assets/icons/ui/chevron-right.svg") : @image-url("../assets/icons/ui/collapse.svg");
+                        has-source-image: true;
+                    }
+
+                    if !root.collapsed: MutedText {
+                        text: root.ui-text.collapse;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        if root.bottom-reserved-height > 0px: Rectangle {
+            height: root.bottom-reserved-height;
+            background: transparent;
+        }
+    }
+}

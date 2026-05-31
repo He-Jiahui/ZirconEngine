@@ -1,5 +1,5 @@
 pub const FEATURE_ID: &str = zircon_plugin_rendering_decals_runtime::FEATURE_ID;
-pub const CAPABILITY: &str = "editor.feature.rendering.decals";
+pub const CAPABILITY: &str = zircon_plugin_rendering_decals_runtime::EDITOR_CAPABILITY;
 pub const DECAL_PROJECTOR_DRAWER_ID: &str = "rendering.Component.DecalProjector.drawer";
 
 #[derive(Clone, Debug)]

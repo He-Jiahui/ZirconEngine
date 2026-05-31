@@ -28,6 +28,15 @@ fn read_crate_file(name: &str) -> String {
         }),
     )
 }
+
+fn read_repo_file(name: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(crate_dir().join("..").join(name)).unwrap_or_else(|error| {
+            panic!("failed to read repo file {name}: {error}");
+        }),
+    )
+}
+
 fn assert_catalog_page_inherits_geometry(page: &str, component: &str, source: &str) {
     assert!(
         source.contains(&format!(
@@ -47,6 +56,35 @@ fn assert_catalog_page_inherits_geometry(page: &str, component: &str, source: &s
         assert!(
             !source.contains(forbidden),
             "{page} should let CatalogPage own page geometry and internal list scroll state instead of using {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn page_family_docs_record_contract_gate_and_acceptance_scope() {
+    let docs = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
+
+    for snippet in [
+        "hub-pages-contracts-docs/plan.md",
+        "hub-pages-contracts-docs/decomposition.md",
+        "## Contracts and validation evidence",
+        "The `hub-pages-contracts-docs` gate is intentionally not another feature implementation branch.",
+        "**Builds and Editor:**",
+        "**Assets, Plugins, and Learn:**",
+        "**Team and Cloud:**",
+        "**Settings:**",
+        "**Cross-page foundations:**",
+        "This gate did not identify a missing page feature requiring a new milestone split.",
+        "cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test ui_selected_project_catalog_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test ui_page_surface_coverage_contract --locked -- --nocapture",
+        "cargo test -p zircon_hub --test ui_inputs_contract --locked -- --nocapture",
+        "cargo build -p zircon_hub --bin zircon_hub --locked",
+        "cargo check -p zircon_hub --locked",
+    ] {
+        assert!(
+            docs.contains(snippet),
+            "Hub actionable-pages docs must record the page-family contract gate and acceptance scope; missing {snippet}"
         );
     }
 }
@@ -132,11 +170,29 @@ fn selected_project_catalog_pages_surface_scope_copy() {
             "Asset catalog discovery must emit selected-project assets before project/engine groups; missing {snippet}"
         );
     }
+    let scoped_views = read_crate_file("src/app/runtime/source_scoped_views.rs");
+    for snippet in [
+        "pub(super) fn selected_project_catalog_root(&self)",
+        ".selected_project()",
+        "pub(super) fn source_engine_catalog_roots(&self)",
+        "scope.source_engine.engine_id()",
+        ".find(|engine| engine.id == engine_id)",
+        "push_development_roots(&mut roots, engine.source_dir.clone());",
+        "HubScope::resolve(",
+        "source_engine_catalog_roots_do_not_fallback_for_unbound_selected_project",
+    ] {
+        assert!(
+            scoped_views.contains(snippet),
+            "Runtime scoped scanners must derive selected-project and Source Engine roots from HubScope; missing {snippet}"
+        );
+    }
 
     let plugins = read_ui_file("plugins.slint");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
+    let plugin_surface = format!("{plugins}\n{catalog_components}");
     assert_catalog_page_inherits_geometry("plugins.slint", "PluginsPage", &plugins);
     assert!(
-        plugins.contains("root.plugin.scope +"),
+        plugin_surface.contains("root.plugin.scope +"),
         "PluginsPage rows must display whether a plugin came from the selected project or engine"
     );
     for snippet in [
@@ -168,6 +224,7 @@ fn selected_project_catalog_pages_surface_scope_copy() {
     }
 
     let learn = read_ui_file("learn.slint");
+    let learn_surface = format!("{learn}\n{catalog_components}");
     assert_catalog_page_inherits_geometry("learn.slint", "LearnPage", &learn);
     for snippet in [
         "source: string,",
@@ -178,21 +235,31 @@ fn selected_project_catalog_pages_surface_scope_copy() {
         "root.resource.source +",
     ] {
         assert!(
-            shared.contains(snippet) || learn.contains(snippet),
+            shared.contains(snippet) || learn_surface.contains(snippet),
             "LearnPage must explain whether documentation includes selected-project docs or Source Engine docs; missing {snippet}"
         );
     }
     let learn_runtime = read_crate_file("src/app/runtime/learn_catalog.rs");
     for snippet in [
         "discover_learn_catalog_for_scope(",
-        "self.selected_project_path.clone()",
-        "learn_catalog_roots(self.config.settings.default_source_dir.clone())",
+        "self.selected_project_catalog_root()",
+        "self.source_engine_catalog_roots()",
+        "fn learn_resource_path_for_open(&self, resource_path: &str) -> Result<PathBuf, HubError>",
+        "project_filesystem_path_key(&requested_path)",
+        "Learn resource is not in the current catalog",
+        "Learn resource is no longer available",
     ] {
         assert!(
             learn_runtime.contains(snippet),
-            "Learn runtime refresh must pass selected_project_path into the Learn scanner; missing {snippet}"
+            "Learn runtime refresh/open actions must use selected-project scope and only open current catalog files; missing {snippet}"
         );
     }
+    let runtime_root = read_crate_file("src/app/runtime.rs");
+    assert!(
+        runtime_root.contains("ui.on_open_learn_resource")
+            && runtime_root.contains("runtime.open_learn_resource(&path)"),
+        "HubWindow must route Learn row open callbacks into the runtime open validator"
+    );
     let learn_catalog = read_crate_file("src/learn/catalog.rs");
     for snippet in [
         "pub const SELECTED_PROJECT_LEARN_SOURCE: &str = \"Selected Project\";",
@@ -258,16 +325,62 @@ fn selected_project_catalog_pages_surface_scope_copy() {
     }
 
     let cloud_page = read_ui_file("cloud.slint");
+    let cloud_components = read_ui_file("cloud_page_components.slint");
     for snippet in [
         "in property <bool> has-selected-project: false;",
+        "callback package-project();",
+        "callback install-device();",
         "root.has-selected-project ? root.ui-text.cloud-overview-selected : root.ui-text.cloud-overview",
         "root.has-selected-project ? root.ui-text.cloud-local-selected-detail : root.ui-text.cloud-local-only",
         "title: root.overview-title;",
         "subtitle: root.overview-detail;",
+        "action-id: \"package-selected-project\";",
+        "action-title: root.ui-text.cloud-package-action;",
+        "action-detail: root.summary.package-action-detail;",
+        "action-enabled: root.summary.package-action-enabled;",
+        "root.package-project();",
+        "action-id: \"install-selected-project\";",
+        "action-title: root.ui-text.cloud-install-action;",
+        "action-detail: root.summary.install-action-detail;",
+        "action-enabled: root.summary.install-action-enabled;",
+        "root.install-device();",
     ] {
         assert!(
-            cloud_page.contains(snippet),
+            cloud_page.contains(snippet) || cloud_components.contains(snippet),
             "CloudPage must make local package/install/output status read as selected-project scoped when a project is selected; missing {snippet}"
+        );
+    }
+
+    let app = read_ui_file("app.slint");
+    for snippet in [
+        "package-project => { root.package-selected-project(); }",
+        "install-device => { root.install-selected-project(); }",
+    ] {
+        assert!(
+            app.contains(snippet),
+            "HubWindow must route Cloud package/install actions through selected-project-only callbacks; missing {snippet}"
+        );
+    }
+
+    let cloud_projection = read_crate_file("src/app/view_model/cloud.rs");
+    for snippet in [
+        "let package_action = selected_project_action_readiness(",
+        "let install_action = selected_project_action_readiness(",
+        "package_action_detail: package_action.detail,",
+        "package_action_enabled: package_action.enabled,",
+        "install_action_detail: install_action.detail,",
+        "install_action_enabled: install_action.enabled,",
+        "fn selected_project_action_readiness(",
+        "let scope = snapshot.scope();",
+        "Select a project before packaging",
+        "Select a project before installing",
+        "Configure package output root before packaging",
+        "Configure device install directory before installing",
+        "Selected project is no longer in the recent-project registry",
+    ] {
+        assert!(
+            cloud_projection.contains(snippet),
+            "CloudSummaryData projection must expose selected-project package/install action readiness; missing {snippet}"
         );
     }
 }

@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::core::framework::render::RenderMeshTopology;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MeshValidationError {
     MissingPositionAttribute,
@@ -22,6 +24,22 @@ pub enum MeshValidationError {
     IndexOutOfRange {
         max_index: u32,
         vertex_count: usize,
+    },
+    IncompleteTopologyElement {
+        topology: RenderMeshTopology,
+        required_multiple: usize,
+        actual_elements: usize,
+    },
+    NormalGenerationRequiresTriangleList {
+        topology: RenderMeshTopology,
+    },
+    FlatNormalGenerationRequiresUnindexedMesh,
+    SmoothNormalGenerationRequiresIndexedMesh,
+    TangentGenerationRequiresTriangleList {
+        topology: RenderMeshTopology,
+    },
+    TangentGenerationMissingAttribute {
+        attribute: &'static str,
     },
 }
 
@@ -67,6 +85,41 @@ impl fmt::Display for MeshValidationError {
             } => write!(
                 formatter,
                 "mesh index buffer references vertex {max_index} but only {vertex_count} vertices are present"
+            ),
+            Self::IncompleteTopologyElement {
+                topology,
+                required_multiple,
+                actual_elements,
+            } => write!(
+                formatter,
+                "mesh topology {topology:?} has {actual_elements} elements but requires a multiple of {required_multiple}"
+            ),
+            Self::NormalGenerationRequiresTriangleList {
+                topology,
+            } => write!(
+                formatter,
+                "normal generation requires TriangleList topology but found {topology:?}"
+            ),
+            Self::FlatNormalGenerationRequiresUnindexedMesh => {
+                write!(
+                    formatter,
+                    "flat normal generation requires an unindexed mesh"
+                )
+            }
+            Self::SmoothNormalGenerationRequiresIndexedMesh => {
+                write!(formatter, "smooth normal generation requires an indexed mesh")
+            }
+            Self::TangentGenerationRequiresTriangleList {
+                topology,
+            } => write!(
+                formatter,
+                "tangent generation requires TriangleList topology but found {topology:?}"
+            ),
+            Self::TangentGenerationMissingAttribute {
+                attribute,
+            } => write!(
+                formatter,
+                "tangent generation requires mesh attribute `{attribute}`"
             ),
         }
     }

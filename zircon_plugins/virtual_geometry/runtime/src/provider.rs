@@ -190,6 +190,7 @@ mod tests {
             node_id: 44,
             transform: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
             model: ResourceHandle::<ModelMarker>::new(model_id),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
@@ -225,6 +226,7 @@ mod tests {
             primitives: vec![ModelPrimitiveAsset {
                 vertices: Vec::new(),
                 indices: Vec::new(),
+                mesh: None,
                 virtual_geometry: Some(VirtualGeometryAsset {
                     hierarchy_buffer: vec![VirtualGeometryHierarchyNodeAsset {
                         node_id: 0,

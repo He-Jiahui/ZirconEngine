@@ -48,7 +48,11 @@ tests:
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
+  - animation_registration_contributes_runtime_module
+  - animation_plugin_toml_matches_catalog_beta_partial_metadata
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --test runtime_physics_animation_tick_contract --target-dir target\codex-shared-a
+  - cargo test --manifest-path zircon_plugins\animation\runtime\Cargo.toml animation_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet
+  - cargo test --manifest-path Cargo.toml -p zircon_runtime --lib animation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --tests --locked --quiet (blocked: unrelated active scene world/ECS compile errors)
   - cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a
   - cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a
@@ -65,6 +69,7 @@ doc_type: module-detail
 
 - The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
 - The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_scene_hook(scene_hook_registration())`.
+- `runtime_plugin_descriptor()` is the linked package-manifest source for the Animation runtime crate. It mirrors the static `zircon_plugins/animation/plugin.toml` and built-in catalog metadata: category `runtime`, maturity `beta`, `runtime.plugin.animation` status `partial` with Bevy `bevy_animation` source traceability, and `runtime.feature.animation.timeline_event_track` status `partial`.
 - `AnimationSceneRuntimeHook` resolves `AnimationManagerHandle`, advances scene player clocks, loads animation assets through `ProjectAssetManager`, blends graph/state-machine pose output, and records pose/playback runtime state on `LevelSystem`.
 - `AnimationSceneRuntimeHook` publishes `AnimationClipEvent` values when direct clip players, graph players, state-machine active graphs, or state-machine transition graphs advance across `AnimationClipAsset.event_tracks`, matching Bevy's clip-event precedent for timeline-authored gameplay hooks.
 - `DefaultAnimationManager` owns playback settings persistence, graph evaluation, state-machine evaluation, clip pose sampling, and sequence-to-world application.
@@ -111,6 +116,9 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 
 ## Validation Evidence
 
+- The 2026-05-31 linked metadata parity slice first proved the gap with `cargo test --manifest-path zircon_plugins\animation\runtime\Cargo.toml animation_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet`: the linked package manifest still reported `Experimental` while the static TOML and built-in catalog reported `Beta`.
+- After updating `runtime_plugin_descriptor()`, the same focused command passed with 1 Animation runtime test and 0 failures, validating category, maturity, and both partial capability-status rows for the linked runtime package manifest. Existing output was limited to unrelated `zircon_runtime` warnings.
+- `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib animation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet` passed with 1 runtime static-manifest/catalog test and 0 failures, validating `zircon_plugins/animation/plugin.toml` and the built-in catalog still agree on beta/partial Animation metadata.
 - `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --test runtime_physics_animation_tick_contract --target-dir target\codex-shared-a` passed with 7 plugin contract tests.
 - `cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a` passed for the independent plugin workspace with animation included but still outside the root workspace.
 - `cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a` passed with 767 runtime lib tests, validating scene hook dispatch, manager contracts, and hard-cutover structural assertions without depending on the plugin crate.

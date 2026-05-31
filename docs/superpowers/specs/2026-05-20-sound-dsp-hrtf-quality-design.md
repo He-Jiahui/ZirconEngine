@@ -12,7 +12,7 @@ This slice covers:
 - supporting low-pass, high-pass, band-pass, notch, low-shelf, and high-shelf filter modes through the existing descriptor,
 - keeping filter state across consecutive `render_mix` calls for each `(track, effect)` instance,
 - keeping loaded HRTF profile FIR tail across consecutive `render_mix` calls for each source/listener/profile path,
-- extracting HRTF profile rendering into a focused engine module so `engine/render.rs` does not absorb another DSP responsibility,
+- extracting HRTF profile rendering into a focused engine module so render orchestration does not absorb another DSP responsibility,
 - focused runtime tests and architecture/session documentation.
 
 This slice does not cover:
@@ -29,7 +29,7 @@ This slice does not cover:
 
 `zircon_plugins/sound/runtime` owns concrete DSP state. `SoundEffectRuntimeState` gains biquad state keyed by existing `SoundEffectStateKey`. `SoundEngineState` gains HRTF render state keyed by source/listener/profile identity, with stale entries pruned during render-state synchronization.
 
-`engine/dsp.rs` remains the track/effect DSP executor and delegates filter math to a focused `engine/filter.rs`. Loaded HRTF profile rendering moves to `engine/hrtf.rs`, leaving `engine/render.rs` as orchestration for source, listener, volume, and routing behavior.
+`engine/dsp.rs` remains the track/effect DSP executor and delegates filter math to a focused `engine/filter.rs`. Loaded HRTF profile rendering moves to `engine/hrtf.rs`, leaving the render orchestration module as the owner for source, listener, volume, and routing behavior.
 
 ## Reference Evidence
 

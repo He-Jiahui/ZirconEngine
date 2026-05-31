@@ -46,11 +46,52 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
     assert!(executor_ids.contains(&"particle.gpu.compact-alive"));
     assert!(executor_ids.contains(&"particle.gpu.indirect-args"));
     assert!(executor_ids.contains(&"particle.transparent"));
-    assert!(report
+    let event_catalog = report
         .package_manifest
         .event_catalogs
         .iter()
-        .any(|catalog| catalog.namespace == PARTICLES_DYNAMIC_EVENT_NAMESPACE));
+        .find(|catalog| catalog.namespace == PARTICLES_DYNAMIC_EVENT_NAMESPACE)
+        .expect("particles dynamic event catalog");
+    assert_eq!(
+        event_catalog
+            .events
+            .iter()
+            .map(|event| event.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "particles.dynamic_events.spawn_once",
+            "particles.dynamic_events.begin_emission",
+            "particles.dynamic_events.end_emission",
+        ]
+    );
+    assert_eq!(report.package_manifest.category, "runtime");
+    assert_eq!(
+        report.package_manifest.maturity,
+        zircon_runtime::plugin::PluginMaturity::Experimental
+    );
+    assert!(report
+        .package_manifest
+        .capability_statuses
+        .iter()
+        .any(|status| {
+            status.capability == PARTICLES_RUNTIME_CAPABILITY
+                && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                && status.note.as_deref()
+                    == Some("Advanced optional VFX capability; not a Bevy default parity blocker.")
+        }));
+    assert_eq!(
+        report
+            .package_manifest
+            .optional_features
+            .iter()
+            .map(|feature| feature.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "particles.physics",
+            "particles.animation_control",
+            "particles.gpu_simulation",
+        ]
+    );
 
     let descriptor = render_feature_descriptor();
     let pass_names = descriptor

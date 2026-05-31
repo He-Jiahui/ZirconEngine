@@ -9,6 +9,8 @@ pub use dependency::ShaderDependencyAsset;
 pub use entry_point::ShaderEntryPointAsset;
 pub use language::ShaderSourceLanguage;
 pub use readiness::{
+    ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
+    ShaderAssetManagementRecordSetSummary, ShaderAssetReadinessSummary,
     ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness, ShaderDefinitionReadiness,
     ShaderEntryPointReadiness, ShaderImportReadiness, ShaderPipelineLayoutReadiness,
     ShaderReadinessReport, ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness,

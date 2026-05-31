@@ -1,4 +1,6 @@
-use zircon_runtime::{plugin::PluginModuleManifest, plugin::PluginPackageManifest};
+use zircon_runtime::{
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest, RuntimeTargetMode,
+};
 
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorExtensionRegistryError};
 use crate::core::editor_plugin_sdk::lifecycle::{
@@ -11,6 +13,7 @@ pub struct EditorPluginDescriptor {
     pub package_id: String,
     pub display_name: String,
     pub crate_name: String,
+    pub category: String,
     pub capabilities: Vec<String>,
 }
 
@@ -24,8 +27,14 @@ impl EditorPluginDescriptor {
             package_id: package_id.into(),
             display_name: display_name.into(),
             crate_name: crate_name.into(),
+            category: "uncategorized".to_string(),
             capabilities: Vec::new(),
         }
+    }
+
+    pub fn with_category(mut self, category: impl Into<String>) -> Self {
+        self.category = category.into();
+        self
     }
 
     pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
@@ -41,6 +50,13 @@ impl EditorPluginDescriptor {
             )
             .with_capabilities(self.capabilities.iter().cloned()),
         )
+    }
+
+    pub fn standalone_package_manifest(&self) -> PluginPackageManifest {
+        PluginPackageManifest::new(self.package_id.clone(), self.display_name.clone())
+            .with_category(self.category.clone())
+            .with_supported_targets([RuntimeTargetMode::EditorHost])
+            .with_capabilities(self.capabilities.iter().cloned())
     }
 
     pub fn builtin_catalog() -> Vec<Self> {
@@ -184,13 +200,26 @@ impl EditorPluginDescriptor {
         entries
             .iter()
             .map(|(id, name, crate_name, capabilities)| {
-                let mut descriptor = Self::new(*id, *name, *crate_name);
+                let mut descriptor = Self::new(*id, *name, *crate_name)
+                    .with_category(editor_plugin_descriptor_category(id));
                 for capability in *capabilities {
                     descriptor = descriptor.with_capability(*capability);
                 }
                 descriptor
             })
             .collect()
+    }
+}
+
+fn editor_plugin_descriptor_category(package_id: &str) -> &'static str {
+    match package_id {
+        "material_editor" | "timeline_sequence" | "animation_graph" | "ui_asset_authoring" => {
+            "authoring"
+        }
+        "runtime_diagnostics" => "diagnostics",
+        "native_window_hosting" | "editor_build_export_desktop" => "platform",
+        "plugin_sdk_examples" => "sdk",
+        _ => "uncategorized",
     }
 }
 
@@ -338,12 +367,7 @@ impl EditorPluginCatalog {
                 .iter()
                 .find(|manifest| manifest.id == descriptor.package_id)
                 .cloned()
-                .unwrap_or_else(|| {
-                    PluginPackageManifest::new(
-                        descriptor.package_id.clone(),
-                        descriptor.display_name.clone(),
-                    )
-                });
+                .unwrap_or_else(|| descriptor.standalone_package_manifest());
             catalog.register(&descriptor, runtime_manifest);
         }
         catalog

@@ -12,11 +12,16 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
+  - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/gltf_external_fixtures.rs
+  - zircon_runtime/src/asset/tests/assets/gltf_importer.rs
+  - zircon_runtime/src/asset/tests/assets/gltf_scene_fixtures.rs
+  - zircon_runtime/src/asset/tests/assets/obj_importer.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
@@ -56,6 +61,8 @@ related_code:
   - zircon_plugins/obj_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs
+  - zircon_plugins/gltf_importer/runtime/src/test_fixtures.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
@@ -88,6 +95,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/image_decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
+  - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
@@ -182,17 +190,39 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --message-format short --color never (2026-05-20 glTF labeled subassets: passed; existing runtime dead_code warning only)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF labeled subassets: timed out during Windows runtime test build/link; matching residual Cargo chain was stopped after timeout)
   - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_gltf_multi_primitive_material_labels
+  - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_scene_labels
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_decodes_gltf_external_texture_image
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_reports_missing_gltf_external_buffer
   - CARGO_TARGET_DIR=/tmp/zircon-gltf-m4-wsl-fast cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: blocked before test execution by unrelated zircon_runtime_interface/src/ui/dispatch/navigation/result.rs E0277, UiBindingUpdateReport does not implement Eq)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels: Windows attempt timed out after 304s before Rust test diagnostics; matching residual Cargo child processes were stopped)
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --message-format short --color never (2026-05-20 runtime glTF labels retry: passed, confirming the earlier WSL Eq error is not present in the current Windows source tree)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels retry: passed, 1 passed, after replacing the invalid fixture PNG data URI with a valid CRC 1x1 RGBA PNG)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF animation/skin labels: passed, 1 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels final: passed, 1 passed, 1720 filtered out, after warming the runtime test harness and restoring the top-level WGSL capture facade export)
-  - zircon_plugins/gltf_importer/runtime/src/lib.rs::importer_decodes_triangle_gltf_into_model_asset
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_triangle_gltf_into_model_asset
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_emits_multi_primitive_material_labels
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_rejects_unsupported_gltf_primitive_mode
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_external_texture_image
+  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_reports_missing_external_buffer
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib importer_decodes_triangle_gltf_into_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin labels retry: passed, 1 passed, after the same fixture PNG replacement)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin animation/skin labels: passed, 3 passed, after extending the fixture with Animation0, Skin0, and Skin0/InverseBindMatrices placeholder labels)
+  - cargo test -p zircon_runtime --lib importer_rejects_unsupported_gltf_primitive_mode --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 glTF primitive mode guard: failed before implementation because `LINES` imported as `TriangleList`; passed after adding the mode guard; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib importer_emits_gltf_multi_primitive_material_labels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 multi-primitive glTF labels: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib importer_emits_gltf_multi_scene_labels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 multi-scene glTF labels: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 glTF primitive mode guard regression: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib gltf --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 glTF multi-scene/external texture/missing buffer regression: passed, 8 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime importer_rejects_unsupported_gltf_primitive_mode --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split glTF primitive mode guard: failed before implementation because `LINES` imported as `TriangleList`; passed after adding the mode guard; existing zircon_runtime lib-test warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split glTF primitive mode and multi-primitive label regression: passed, 5 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime importer_emits_multi_scene_labels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split glTF multi-scene labels: passed, 1 passed; existing zircon_runtime warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split glTF multi-scene/external texture/missing buffer regression: passed, 8 passed plus 0 doc tests; existing zircon_runtime warnings only)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib importer --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 model plugin subasset labels: passed, 5 passed, covering STL/PLY/DXF root dependencies and Mesh0/Primitive0 MeshAsset payloads)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_obj_importer_runtime --lib obj_importer_decodes_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 OBJ plugin subasset label: passed, 1 passed, covering root dependency and Mesh0/Primitive0 MeshAsset payload)
+  - cargo test -p zircon_runtime --lib importer_emits_obj_multi_mesh_subassets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 OBJ multi-mesh labels: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib obj --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 runtime OBJ regression: passed, 6 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_obj_importer_runtime obj_importer_emits_multi_mesh_subassets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split OBJ multi-mesh labels: passed, 1 passed; existing zircon_runtime warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_obj_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split OBJ importer regression: passed, 4 passed plus 0 doc tests; existing zircon_runtime warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split STL/PLY/DXF M4 gate: passed, 5 passed plus 0 doc tests; existing zircon_runtime warnings only)
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/container.rs
   - zircon_plugins/texture_importer/runtime/src/container.rs::dds_dx10_container_importer_reads_cubemap_array_layers
@@ -416,7 +446,10 @@ including vertex count, indices, and preserved virtual-geometry metadata. The gl
 also assert morph target position deltas and inverse bind matrix propagation. The DXF importer
 implementation is isolated in
 `asset_importers/model/runtime/src/cad.rs`, while the package root keeps descriptor and registration
-wiring. The split `texture_importer` package decodes common image formats to RGBA8 through the shared
+wiring. OBJ multi-object fixtures now assert that a single `.obj` with two object sections produces
+two root model primitives plus `Mesh0/Primitive0` and `Mesh1/Primitive0` subassets, with both the
+runtime fixture importer and split plugin preserving per-object virtual geometry. The split
+`texture_importer` package decodes common image formats to RGBA8 through the shared
 `zircon_runtime::asset::decode_texture_source_image` helper, delegates DDS, KTX, KTX2, and ASTC
 header parsing to its focused `runtime/src/container.rs` module, stores those containers as
 `TexturePayload::Container`, and decodes PSD files through the Rust `psd` crate into flattened RGBA8
@@ -444,7 +477,20 @@ and fixture descriptors declare additional output kinds for mesh, scene, materia
 `Node{n}` and `Scene{n}` as `SceneAsset`, and diagnostic placeholder `DataAsset` rows for
 `Animation{n}`, `Skin{n}`, and `Skin{n}/InverseBindMatrices`. The primitive `MeshAsset` payloads
 preserve glTF morph target position/normal/tangent displacement channels and attach node skin
-inverse bind matrices while standalone skin and animation labels stay diagnostic placeholders. The labels intentionally match
+inverse bind matrices while standalone skin and animation labels stay diagnostic placeholders.
+Multi-primitive mesh fixtures now assert that the root model, `Mesh{n}` model subasset, each
+`Mesh{n}/Primitive{p}` `MeshAsset`, and each primitive material dependency stay aligned when one
+glTF mesh carries more than one material-backed primitive.
+Multi-scene fixtures now assert that `Scene0` and `Scene1` are emitted as separate `SceneAsset`
+subassets, each scene keeps only its own root node dependency, and the generated scene entity rows
+bind back to the shared `Mesh0` model subasset and `Material0` material label.
+External texture fixtures now assert that a glTF image URI becomes a decoded `Texture0`
+subasset and that the material `base_color_texture` locator points at that label. Both the
+runtime fixture importer and the split glTF plugin also preflight external buffer URIs from the
+source bytes before calling the lower-level glTF loader, so a missing buffer reports the named
+URI and buffer index instead of only returning a platform file-open error.
+Triangle-list glTF primitives are the supported model/mesh path; non-triangle primitive modes such
+as lines now fail with a parse diagnostic before any root model or labeled mesh subasset is emitted. The labels intentionally match
 Bevy's glTF label vocabulary (`dev/bevy/crates/bevy_gltf/src/label.rs` and
 `dev/bevy/crates/bevy_gltf/src/assets.rs`) while using Zircon's existing neutral asset payloads
 instead of introducing Bevy-specific glTF wrapper types.

@@ -751,6 +751,7 @@ fn write_triangle_model(path: PathBuf) {
                 MeshVertex::new(Vec3::Y, Vec3::Z, Vec2::Y),
             ],
             indices: vec![0, 1, 2],
+            mesh: None,
             virtual_geometry: None,
         }],
     };
@@ -814,7 +815,9 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.model.toml"),
+                    mesh: None,
                     material: asset_reference(material_uri),
+                    primitives: Vec::new(),
                 }),
                 ambient_light: None,
                 directional_light: None,

@@ -4,13 +4,16 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::resource::ResourceId;
 
-use super::super::prepared::{PreparedMaterial, PreparedModel, PreparedShader, PreparedTexture};
+use super::super::prepared::{
+    PreparedMaterial, PreparedMesh, PreparedModel, PreparedShader, PreparedTexture,
+};
 use super::super::{GpuMaterialUniformResource, GpuTextureResource};
 
 pub(crate) struct ResourceStreamer {
     pub(super) asset_manager: Arc<ProjectAssetManager>,
     pub(super) material_bind_group_layout: wgpu::BindGroupLayout,
     pub(super) models: HashMap<ResourceId, PreparedModel>,
+    pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,
     pub(super) textures: HashMap<ResourceId, PreparedTexture>,
     pub(super) shaders: HashMap<ResourceId, PreparedShader>,

@@ -1,0 +1,308 @@
+import { PillButton, SettingStatusData, UiTextData } from "shared.slint";
+import {
+    EmptyStateBlock,
+    HubComboBox,
+    HubListPanelSlot,
+    HubTextField,
+    HubTokens,
+    InfoRow,
+    MenuItem,
+    PanelHeader,
+    PanelSlot,
+} from "components.slint";
+
+export component PathSettingRow inherits Rectangle {
+    in property <string> label;
+    in property <string> browse-label;
+    in property <length> row-preferred-width: HubTokens.input-width + HubTokens.control-md * 3 + HubTokens.toolbar-gap;
+    in-out property <string> value;
+    callback browse;
+
+    min-width: 1px;
+    preferred-width: root.row-preferred-width;
+    horizontal-stretch: 1;
+    height: HubTokens.input-field;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.toolbar-gap;
+        alignment: stretch;
+
+        HubTextField {
+            label: root.label;
+            placeholder: root.label;
+            text <=> root.value;
+            horizontal-stretch: 1;
+        }
+
+        PillButton {
+            width: HubTokens.control-md * 3;
+            height: HubTokens.control-md;
+            text: root.browse-label;
+            icon-image: @image-url("../assets/icons/ui/folder.svg");
+            has-icon-image: true;
+            clicked => {
+                root.browse();
+            }
+        }
+    }
+}
+
+export component SettingStatusRow inherits InfoRow {
+    in property <SettingStatusData> status;
+    in property <bool> collapse-label: false;
+    callback triggered(string);
+
+    title: root.status.label;
+    detail: root.status.detail;
+    meta: root.status.disabled-reason == "" ? root.status.scope : (root.status.scope == "" ? root.status.disabled-reason : root.status.scope + " / " + root.status.disabled-reason);
+    leading-image: root.status.state == "ok" ? @image-url("../assets/icons/status/success.svg") : (root.status.state == "warn" ? @image-url("../assets/icons/status/warning.svg") : (root.status.state == "error" ? @image-url("../assets/icons/status/error.svg") : @image-url("../assets/icons/status/running.svg")));
+    has-leading-image: true;
+    accent: root.status.state == "ok" ? 3 : (root.status.state == "warn" ? 2 : (root.status.state == "error" ? 2 : 1));
+    trailing-text: root.status.action-label == "" ? root.status.detail : root.status.action-label;
+    trailing-tone: root.status.state == "ok" ? "ok" : (root.status.state == "warn" ? "warning" : (root.status.state == "error" ? "error" : "info"));
+    show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
+    show-arrow: root.status.actionable;
+    row-height: HubTokens.list-row-md;
+    clicked => {
+        if (root.status.actionable) {
+            root.triggered(root.status.action-id);
+        }
+    }
+}
+
+export component SettingsToolchainField inherits HubTextField {
+    in property <string> field-label;
+    in-out property <string> field-value;
+
+    label: root.field-label;
+    placeholder: root.field-label;
+    text <=> root.field-value;
+}
+
+export component SettingsComboChoice inherits Rectangle {
+    in property <string> label;
+    in property <string> first-label;
+    in property <string> first-value;
+    in property <string> second-label;
+    in property <string> second-value;
+    in-out property <string> selected-value;
+
+    private property <int> desired-index: root.selected-value == root.second-value ? 1 : 0;
+    private property <int> selected-index: -1;
+    private property <[MenuItem]> choice-items: [
+        { icon: @image-url("../assets/icons/ui/settings.svg"), text: root.first-label, trailing_text: "", enabled: true },
+        { icon: @image-url("../assets/icons/ui/settings.svg"), text: root.second-label, trailing_text: "", enabled: true },
+    ];
+
+    horizontal-stretch: 1;
+    height: HubTokens.input-field;
+
+    HubComboBox {
+        width: parent.width;
+        height: parent.height;
+        combo-width: parent.width;
+        combo-height: parent.height;
+        label: root.label;
+        leading-icon: @image-url("../assets/icons/ui/settings.svg");
+        items: root.choice-items;
+        current-index: root.selected-index;
+        selected(index) => {
+            root.selected-index = index;
+            root.selected-value = index == 1 ? root.second-value : root.first-value;
+        }
+    }
+
+    init => {
+        root.selected-index = root.desired-index;
+    }
+
+    changed selected-value => {
+        root.selected-index = root.desired-index;
+    }
+}
+
+export component SettingsSaveActionRow inherits Rectangle {
+    in property <length> button-width;
+    in property <string> action-label;
+    callback action-clicked();
+
+    horizontal-stretch: 1;
+    height: HubTokens.control-lg;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.toolbar-gap;
+
+        Rectangle { horizontal-stretch: 1; }
+
+        PillButton {
+            width: root.button-width;
+            height: HubTokens.control-md;
+            text: root.action-label;
+            icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+            has-icon-image: true;
+            primary: true;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}
+
+export component SettingsToolchainPanel inherits PanelSlot {
+    in property <string> panel-title;
+    in property <UiTextData> ui-text;
+    in-out property <string> python-path;
+    in-out property <string> cargo-path;
+    in-out property <string> rustup-path;
+
+    PanelHeader { title: root.panel-title; }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        spacing: HubTokens.space-2;
+
+        SettingsToolchainField {
+            field-label: root.ui-text.python-executable;
+            field-value <=> root.python-path;
+        }
+        SettingsToolchainField {
+            field-label: root.ui-text.cargo-executable;
+            field-value <=> root.cargo-path;
+        }
+        SettingsToolchainField {
+            field-label: root.ui-text.rustup-executable;
+            field-value <=> root.rustup-path;
+        }
+    }
+}
+
+export component SettingsBuildDefaultsPanel inherits PanelSlot {
+    in property <string> panel-title;
+    in property <UiTextData> ui-text;
+    in-out property <string> build-jobs;
+    in-out property <string> build-profile;
+    in-out property <string> language;
+
+    PanelHeader { title: root.panel-title; }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        spacing: HubTokens.space-2;
+
+        SettingsComboChoice {
+            label: root.ui-text.build-profile;
+            first-label: root.ui-text.debug;
+            first-value: "debug";
+            second-label: root.ui-text.release;
+            second-value: "release";
+            selected-value <=> root.build-profile;
+        }
+
+        HubTextField {
+            label: root.ui-text.build-jobs;
+            placeholder: root.ui-text.build-jobs;
+            text <=> root.build-jobs;
+        }
+
+        SettingsComboChoice {
+            label: root.ui-text.language;
+            first-label: root.ui-text.english;
+            first-value: "English";
+            second-label: root.ui-text.chinese;
+            second-value: "Chinese";
+            selected-value <=> root.language;
+        }
+    }
+}
+
+export component SettingsDefaultPathsPanel inherits HubListPanelSlot {
+    in property <string> panel-title;
+    in property <UiTextData> ui-text;
+    in-out property <string> project-location;
+    in-out property <string> source-path;
+    in-out property <string> output-path;
+    in-out property <string> device-install-path;
+    in-out property <length> paths-scroll-y: 0px;
+    callback browse-folder(string);
+
+    title: root.panel-title;
+    scroll-y <=> root.paths-scroll-y;
+    row-count: 4;
+    row-height: HubTokens.input-field;
+    row-spacing: HubTokens.space-2;
+    vertical-padding: 0px;
+
+    PathSettingRow {
+        label: root.ui-text.default-project-directory;
+        browse-label: root.ui-text.browse;
+        value <=> root.project-location;
+        browse => {
+            root.browse-folder("project-location");
+        }
+    }
+    PathSettingRow {
+        label: root.ui-text.default-source-directory;
+        browse-label: root.ui-text.browse;
+        value <=> root.source-path;
+        browse => {
+            root.browse-folder("source");
+        }
+    }
+    PathSettingRow {
+        label: root.ui-text.default-staged-output-directory;
+        browse-label: root.ui-text.browse;
+        value <=> root.output-path;
+        browse => {
+            root.browse-folder("output");
+        }
+    }
+    PathSettingRow {
+        label: root.ui-text.default-device-install-directory;
+        browse-label: root.ui-text.browse;
+        value <=> root.device-install-path;
+        browse => {
+            root.browse-folder("device-install");
+        }
+    }
+}
+
+export component SettingsConfigurationHealthPanel inherits HubListPanelSlot {
+    in property <string> panel-title;
+    in property <UiTextData> ui-text;
+    in property <[SettingStatusData]> settings-statuses;
+    in property <int> settings-status-count;
+    in property <bool> compact-labels: false;
+    in property <length> health-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    in-out property <length> health-scroll-y: 0px;
+    callback status-action(string);
+
+    title: root.panel-title;
+    scroll-y <=> root.health-scroll-y;
+    row-count: root.settings-status-count;
+    row-height: HubTokens.list-row-md;
+    row-spacing: HubTokens.space-2;
+    empty-height: root.health-empty-height;
+
+    if root.settings-status-count == 0: EmptyStateBlock {
+        height: root.health-empty-height;
+        title: root.ui-text.no-configuration-checks;
+        detail: root.ui-text.configuration-health-empty-detail;
+        body-padding: HubTokens.space-4;
+        center-content: true;
+    }
+
+    for status in root.settings-statuses: SettingStatusRow {
+        status: status;
+        collapse-label: root.compact-labels;
+        triggered(action-id) => {
+            root.status-action(action-id);
+        }
+    }
+}

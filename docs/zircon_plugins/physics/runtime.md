@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_plugins/physics/plugin.toml
   - zircon_plugins/physics/runtime/src/backend.rs
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/module.rs
@@ -11,9 +12,12 @@ related_code:
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/core/manager/resolver.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/scene_hook/mod.rs
   - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
+  - zircon_plugins/physics/plugin.toml
   - zircon_plugins/physics/runtime/src/backend.rs
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/module.rs
@@ -23,6 +27,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/manager.rs
   - zircon_runtime/src/core/framework/physics/scene_step_result.rs
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 plan_sources:
   - user: 2026-05-03 继续补独立插件缺口
   - user: 2026-05-08 继续周边设施与插件能力完善计划
@@ -36,6 +41,7 @@ tests:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/contact.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - cargo test --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_physics_runtime --test physics_manager_runtime_contract contract::step::builtin_fixed_step_uses_live_world_records_before_node_cache_flush --locked --quiet -- --exact --nocapture
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
@@ -43,6 +49,8 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --locked --quiet (blocked: unrelated active scene world/ECS compile errors)
   - cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a
+  - 2026-05-31: cargo test --manifest-path .\zircon_plugins\physics\runtime\Cargo.toml physics_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (red before linked capability-status metadata, then passed with existing runtime warnings)
+  - 2026-05-31: cargo test --manifest-path .\Cargo.toml -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (passed with existing runtime warnings)
 doc_type: module-detail
 ---
 
@@ -56,6 +64,7 @@ doc_type: module-detail
 
 - The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
 - The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_scene_hook(scene_hook_registration())`.
+- Static `zircon_plugins/physics/plugin.toml`, the linked runtime package manifest, and `RuntimePluginDescriptor::builtin_catalog()` all classify Physics as category `runtime`, maturity `experimental`, with partial status rows for `runtime.plugin.physics` and `runtime.capability.physics.raycast`. This keeps package/export metadata consistent without promoting Jolt or full physics parity.
 - `PhysicsSceneRuntimeHook` resolves `PhysicsManagerHandle` through the runtime manager resolver and calls `PhysicsManager::tick_scene_world(...)`.
 - `DefaultPhysicsManager` owns settings persistence, per-world accumulator state, sync snapshots, ray-cast fallback, and contact fallback.
 - `DefaultPhysicsManager::advance_clock(...)` now fills `PhysicsWorldStepPlan.interpolation_alpha` from the remaining fixed-step accumulator, clamped to `0.0..=1.0`.

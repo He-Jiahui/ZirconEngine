@@ -1,0 +1,16 @@
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { MaterialPalette, MaterialStyleMetrics } from "material_bridge.slint";
+import { HubIconButton } from "shared.slint";
+
+export component HubFloatingIconButton inherits HubIconButton {
+    button-width: MaterialStyleMetrics.padding_28;
+    button-height: MaterialStyleMetrics.size_32 - MaterialStyleMetrics.size_1;
+    button-radius: HubVisualSpec.compact-radius;
+    button-border-width: 0px;
+    icon-size: HubTokens.icon-sm;
+    active: false;
+    idle-background: HubVisualSpec.chrome-background.with_alpha(0.86);
+    idle-border: transparent;
+    idle-foreground: MaterialPalette.on_surface;
+    state-layer-color: MaterialPalette.on_surface;
+}

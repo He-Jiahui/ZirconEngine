@@ -146,6 +146,7 @@ mod tests {
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "res://models/card.obj",
             )),
+            mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 material,
             )),

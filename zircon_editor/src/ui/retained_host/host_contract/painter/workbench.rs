@@ -331,6 +331,33 @@ fn draw_host_scene(
             None,
         );
     }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_root_template_overlay");
+        draw_root_template_overlay(frame, presentation);
+    }
+}
+
+fn draw_root_template_overlay(
+    frame: &mut HostRgbaFrame,
+    presentation: &HostWindowPresentationData,
+) {
+    if !has_template_nodes(&presentation.root_template_nodes) {
+        return;
+    }
+
+    let frame_bounds = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: frame.width() as f32,
+        height: frame.height() as f32,
+    };
+    draw_template_nodes(
+        frame,
+        &presentation.root_template_nodes,
+        &zero_origin(),
+        &frame_bounds,
+        None,
+    );
 }
 
 fn draw_menu_bar_labels(frame: &mut HostRgbaFrame, presentation: &HostWindowPresentationData) {

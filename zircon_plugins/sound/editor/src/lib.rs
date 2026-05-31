@@ -125,6 +125,7 @@ pub fn editor_host_contract_marker() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
     use zircon_runtime::core::framework::sound::{
         AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
     };
@@ -239,5 +240,113 @@ mod tests {
             .find(|operation| operation.path().as_str() == "Sound.Mixer.Track.Create")
             .expect("create track operation");
         assert!(create_track.undoable().is_some());
+    }
+
+    #[test]
+    fn sound_editor_ui_template_routes_are_registered_operations() {
+        let registration = plugin_registration();
+        let registered_operations = registration
+            .extensions
+            .operations()
+            .descriptors()
+            .map(|operation| operation.path().as_str().to_string())
+            .collect::<BTreeSet<_>>();
+        let routes = ui_template_routes(&[
+            (
+                "mixer_console.v2.ui.toml",
+                include_str!("../mixer_console.v2.ui.toml"),
+            ),
+            (
+                "acoustic_debug.v2.ui.toml",
+                include_str!("../acoustic_debug.v2.ui.toml"),
+            ),
+            (
+                "audio_source.drawer.v2.ui.toml",
+                include_str!("../audio_source.drawer.v2.ui.toml"),
+            ),
+            (
+                "audio_listener.drawer.v2.ui.toml",
+                include_str!("../audio_listener.drawer.v2.ui.toml"),
+            ),
+            (
+                "audio_volume.drawer.v2.ui.toml",
+                include_str!("../audio_volume.drawer.v2.ui.toml"),
+            ),
+        ]);
+
+        assert!(
+            !routes.is_empty(),
+            "sound editor templates should expose at least one routed control"
+        );
+        for (template, route) in routes {
+            assert!(
+                registered_operations.contains(&route),
+                "sound editor template {template} routes to unregistered operation {route}"
+            );
+        }
+    }
+
+    #[test]
+    fn sound_editor_ui_template_asset_ids_match_registered_surfaces() {
+        assert_template_asset_id(
+            "mixer_console.v2.ui.toml",
+            include_str!("../mixer_console.v2.ui.toml"),
+            SOUND_TEMPLATE_ID,
+        );
+        assert_template_asset_id(
+            "acoustic_debug.v2.ui.toml",
+            include_str!("../acoustic_debug.v2.ui.toml"),
+            SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID,
+        );
+        assert_template_asset_id(
+            "audio_source.drawer.v2.ui.toml",
+            include_str!("../audio_source.drawer.v2.ui.toml"),
+            "sound.audio_source.drawer",
+        );
+        assert_template_asset_id(
+            "audio_listener.drawer.v2.ui.toml",
+            include_str!("../audio_listener.drawer.v2.ui.toml"),
+            "sound.audio_listener.drawer",
+        );
+        assert_template_asset_id(
+            "audio_volume.drawer.v2.ui.toml",
+            include_str!("../audio_volume.drawer.v2.ui.toml"),
+            "sound.audio_volume.drawer",
+        );
+    }
+
+    fn ui_template_routes(
+        templates: &[(&'static str, &'static str)],
+    ) -> Vec<(&'static str, String)> {
+        let mut routes = Vec::new();
+        for (template, source) in templates {
+            let mut remaining = *source;
+            while let Some(index) = remaining.find("route = \"") {
+                let route_start = index + "route = \"".len();
+                let route_source = &remaining[route_start..];
+                let route_end = route_source
+                    .find('"')
+                    .expect("sound editor template route should close string");
+                routes.push((*template, route_source[..route_end].to_string()));
+                remaining = &route_source[route_end..];
+            }
+        }
+        routes
+    }
+
+    fn assert_template_asset_id(template: &str, source: &str, expected: &str) {
+        assert_eq!(
+            template_asset_id(source).as_deref(),
+            Some(expected),
+            "sound editor template {template} should keep its asset id aligned"
+        );
+    }
+
+    fn template_asset_id(source: &str) -> Option<String> {
+        source.lines().map(str::trim).find_map(|line| {
+            line.strip_prefix("id = \"")
+                .and_then(|value| value.strip_suffix('"'))
+                .map(str::to_string)
+        })
     }
 }

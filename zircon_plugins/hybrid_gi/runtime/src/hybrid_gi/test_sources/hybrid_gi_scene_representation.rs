@@ -545,6 +545,7 @@ fn mesh_at(node_id: u64, translation: Vec3, uniform_scale: f32) -> RenderMeshSna
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/test-mesh/{node_id}/model"
         ))),
+        mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/test-mesh/{node_id}/material"
         ))),

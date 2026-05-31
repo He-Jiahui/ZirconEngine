@@ -39,8 +39,10 @@ use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
 
-const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1280;
-const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 720;
+// Keep startup 1:1 with docs/ui-and-layout/workbench.png while the retained shell
+// is visually anchored by the reference workbench image.
+const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1672;
+const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 941;
 
 #[derive(Clone)]
 pub(crate) struct UiHostWindow {

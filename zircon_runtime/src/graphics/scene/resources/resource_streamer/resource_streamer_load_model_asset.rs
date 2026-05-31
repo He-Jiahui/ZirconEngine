@@ -65,6 +65,7 @@ mod tests {
             primitives: vec![ModelPrimitiveAsset {
                 vertices: Vec::new(),
                 indices: Vec::new(),
+                mesh: None,
                 virtual_geometry: Some(VirtualGeometryAsset {
                     root_page_table: vec![1],
                     ..VirtualGeometryAsset::default()
@@ -79,6 +80,7 @@ mod tests {
             primitives: vec![ModelPrimitiveAsset {
                 vertices: Vec::new(),
                 indices: Vec::new(),
+                mesh: None,
                 virtual_geometry: None,
             }],
         }

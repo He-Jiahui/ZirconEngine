@@ -99,9 +99,21 @@ impl World {
                 ScenePropertyValue::Resource(mesh.model.id().to_string()),
                 false,
             );
+            if let Some(mesh_handle) = mesh.mesh {
+                push(
+                    "MeshRenderer.mesh",
+                    ScenePropertyValue::Resource(mesh_handle.id().to_string()),
+                    false,
+                );
+            }
             push(
                 "MeshRenderer.material",
                 ScenePropertyValue::Resource(mesh.material.id().to_string()),
+                false,
+            );
+            push(
+                "MeshRenderer.primitive_binding_count",
+                ScenePropertyValue::Unsigned(mesh.primitives.len() as u64),
                 false,
             );
             push(

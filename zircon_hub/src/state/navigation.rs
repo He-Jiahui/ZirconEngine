@@ -1,4 +1,7 @@
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum HubPage {
     #[default]
     Projects,
@@ -34,7 +37,7 @@ impl HubPage {
             Self::Assets => "Assets",
             Self::Builds => "Builds",
             Self::Plugins => "Plugins",
-            Self::Cloud => "Packages",
+            Self::Cloud => "Cloud",
             Self::Team => "Team",
             Self::Learn => "Learn",
             Self::Settings => "Settings",

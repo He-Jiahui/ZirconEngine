@@ -1,13 +1,15 @@
 use crate::asset::{
-    AssetReference, AssetUri, ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset,
-    ShaderImportRedirectAsset, ShaderRuntimeSourceKind, ShaderSourceLanguage,
+    AssetReference, AssetUri, ShaderAsset, ShaderAssetManagementRecord,
+    ShaderAssetManagementRecordSet, ShaderAssetReadinessSummary, ShaderDependencyAsset,
+    ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderRuntimeSourceKind,
+    ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDefinitionValue,
     RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
 };
-use crate::core::resource::ResourceKind;
+use crate::core::resource::{ResourceId, ResourceKind};
 
 #[test]
 fn shader_readiness_reports_runtime_source_kinds() {
@@ -209,6 +211,166 @@ fn shader_readiness_copies_validation_diagnostics_and_pipeline_context() {
         report.pipeline_layout.bind_groups[0].bindings[0].visibility,
         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment]
     );
+}
+
+#[test]
+fn shader_readiness_summary_counts_management_panel_fields() {
+    let mut shader = base_shader("res://shaders/summary.shader");
+    let redirect = asset_reference("res://shaders/shared_summary");
+    shader.imports = vec![
+        ShaderImportRedirectAsset {
+            source: "zircon::shared_summary".to_string(),
+            redirect: Some(redirect.clone()),
+        },
+        ShaderImportRedirectAsset {
+            source: "source_only".to_string(),
+            redirect: None,
+        },
+    ];
+    shader.dependencies = vec![ShaderDependencyAsset {
+        kind: ResourceKind::Shader,
+        reference: redirect,
+    }];
+    shader.entry_points = vec![
+        ShaderEntryPointAsset {
+            name: "vs_main".to_string(),
+            stage: "vertex".to_string(),
+        },
+        ShaderEntryPointAsset {
+            name: "bad_main".to_string(),
+            stage: "pixel".to_string(),
+        },
+    ];
+    shader.shader_defs = vec![
+        RenderShaderDefinitionValue::bool("USE_LIGHTING", true),
+        RenderShaderDefinitionValue::from("  "),
+    ];
+    shader.validation_diagnostics = vec!["wgsl capture missing `roughness`".to_string()];
+    shader.pipeline_layout = RenderShaderPipelineLayoutDescriptor {
+        bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
+            group: 3,
+            label: Some("material".to_string()),
+            bindings: vec![RenderShaderBindingDescriptor {
+                binding: 0,
+                label: Some("material_uniforms".to_string()),
+                resource_type: RenderShaderBindingResourceType::UniformBuffer,
+                visibility: vec![RenderShaderStage::Fragment],
+            }],
+        }],
+        push_constant_ranges: vec!["draw_index:0..4".to_string()],
+    };
+
+    let summary: ShaderAssetReadinessSummary = shader.readiness_summary();
+
+    assert!(!summary.ready);
+    assert!(summary.uses_runtime_wgsl);
+    assert_eq!(
+        summary.runtime_source_kind,
+        ShaderRuntimeSourceKind::RawWgslSource
+    );
+    assert_eq!(summary.import_count, 2);
+    assert_eq!(summary.redirected_import_count, 1);
+    assert_eq!(summary.entry_point_count, 2);
+    assert_eq!(summary.entry_point_diagnostic_count, 1);
+    assert_eq!(summary.shader_definition_count, 2);
+    assert_eq!(summary.shader_definition_diagnostic_count, 1);
+    assert_eq!(summary.validation_diagnostic_count, 1);
+    assert_eq!(summary.dependency_count, 1);
+    assert!(summary.has_pipeline_layout);
+    assert_eq!(summary.bind_group_count, 1);
+    assert_eq!(summary.binding_count, 1);
+    assert_eq!(summary.push_constant_range_count, 1);
+}
+
+#[test]
+fn shader_asset_management_record_wraps_id_summary_and_report() {
+    let shader = base_shader("res://shaders/management-record.shader");
+    let shader_id = ResourceId::from_locator(&shader.uri);
+    let report = shader.readiness_report();
+    let summary = report.summary();
+
+    let record: ShaderAssetManagementRecord = shader.management_record(shader_id);
+
+    assert_eq!(record.shader_id, shader_id);
+    assert_eq!(record.summary, summary);
+    assert_eq!(record.report, report);
+}
+
+#[test]
+fn shader_asset_management_record_set_sorts_and_summarizes_records() {
+    let ready_shader = base_shader("res://shaders/ready-record.shader");
+    let mut invalid_shader = base_shader("res://shaders/invalid-record.shader");
+    let redirect = asset_reference("res://shaders/shared_invalid");
+    invalid_shader.source_language = ShaderSourceLanguage::Glsl;
+    invalid_shader.source = "void main() {}".to_string();
+    invalid_shader.wgsl_source.clear();
+    invalid_shader.imports = vec![ShaderImportRedirectAsset {
+        source: "zircon::shared_invalid".to_string(),
+        redirect: Some(redirect.clone()),
+    }];
+    invalid_shader.dependencies = vec![ShaderDependencyAsset {
+        kind: ResourceKind::Shader,
+        reference: redirect,
+    }];
+    invalid_shader.entry_points = vec![ShaderEntryPointAsset {
+        name: "bad_main".to_string(),
+        stage: "pixel".to_string(),
+    }];
+    invalid_shader.shader_defs = vec![RenderShaderDefinitionValue::from("  ")];
+    invalid_shader.validation_diagnostics = vec!["wgsl capture missing `base_color`".to_string()];
+    invalid_shader.pipeline_layout = RenderShaderPipelineLayoutDescriptor {
+        bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
+            group: 3,
+            label: Some("material".to_string()),
+            bindings: vec![
+                RenderShaderBindingDescriptor {
+                    binding: 0,
+                    label: Some("material_uniforms".to_string()),
+                    resource_type: RenderShaderBindingResourceType::UniformBuffer,
+                    visibility: vec![RenderShaderStage::Fragment],
+                },
+                RenderShaderBindingDescriptor {
+                    binding: 1,
+                    label: Some("material_sampler".to_string()),
+                    resource_type: RenderShaderBindingResourceType::Sampler,
+                    visibility: vec![RenderShaderStage::Fragment],
+                },
+            ],
+        }],
+        push_constant_ranges: vec!["draw_index:0..4".to_string()],
+    };
+    let ready_id = ResourceId::from_locator(&ready_shader.uri);
+    let invalid_id = ResourceId::from_locator(&invalid_shader.uri);
+
+    let record_set = ShaderAssetManagementRecordSet::from_records(vec![
+        invalid_shader.management_record(invalid_id),
+        ready_shader.management_record(ready_id),
+    ]);
+
+    let mut expected_ids = vec![invalid_id, ready_id];
+    expected_ids.sort();
+    let record_ids = record_set
+        .records
+        .iter()
+        .map(|record| record.shader_id)
+        .collect::<Vec<_>>();
+    assert_eq!(record_ids, expected_ids);
+    assert_eq!(record_set.records.len(), 2);
+    let summary = &record_set.summary;
+    assert_eq!(summary.shader_count, 2);
+    assert_eq!(summary.ready_count, 1);
+    assert_eq!(summary.not_ready_count, 1);
+    assert_eq!(summary.runtime_wgsl_count, 1);
+    assert_eq!(summary.unavailable_runtime_source_count, 1);
+    assert_eq!(summary.redirected_import_count, 1);
+    assert_eq!(summary.dependency_count, 1);
+    assert_eq!(summary.entry_point_diagnostic_count, 1);
+    assert_eq!(summary.shader_definition_diagnostic_count, 1);
+    assert_eq!(summary.validation_diagnostic_count, 1);
+    assert_eq!(summary.pipeline_layout_count, 1);
+    assert_eq!(summary.bind_group_count, 1);
+    assert_eq!(summary.binding_count, 2);
+    assert_eq!(summary.push_constant_range_count, 1);
 }
 
 fn base_shader(uri: &str) -> ShaderAsset {

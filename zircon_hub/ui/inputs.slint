@@ -1,16 +1,22 @@
-import { HubTokens } from "tokens.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
 import {
+    CheckBox as MaterialCheckBox,
+    CheckBoxTile as MaterialCheckBoxTile,
+    CheckState,
     MenuItem,
     Icon,
     OutlineButton,
-    PopupMenu,
-    SearchBar,
     SegmentedButton,
+    Switch as MaterialSwitch,
     TextField,
     TonalButton,
     MaterialPalette,
     MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
 } from "material_bridge.slint";
+import { HubDropDownSurface, HubPopupMenu } from "overlays.slint";
 
 export struct SelectOptionData {
     id: string,
@@ -21,29 +27,79 @@ export struct SelectOptionData {
 export component SearchBox inherits Rectangle {
     in-out property <string> text;
     in property <string> placeholder;
+    in property <bool> enabled: true;
+    in property <bool> prominent: false;
+    out property <bool> focused: search-field.has-focus;
     in property <length> box-width: HubTokens.input-width;
-    in property <length> box-height: HubTokens.input-field;
+    in property <length> box-height: HubVisualSpec.toolbar-density-height;
     callback edited(string);
     callback accepted(string);
+
+    // The compact toolbar search keeps text editing local while visual states
+    // derive from shared Hub tokens so dashboard and browser toolbars align.
+    private property <color> state-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
+    private property <bool> highlighted: root.focused || root.prominent;
+    private property <color> state-border: root.highlighted ? HubVisualSpec.focus-ring-color : (root.text != "" ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted);
+    private property <color> placeholder-color: root.highlighted ? MaterialPalette.on_surface_variant : MaterialPalette.on_surface_variant.with_alpha(0.72);
 
     forward-focus: search-field;
     width: root.box-width;
     height: root.box-height;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.highlighted ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-color: root.state-border;
+    background: root.state-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
-    search-field := SearchBar {
+    StateLayerArea {
         width: parent.width;
         height: parent.height;
+        color: root.highlighted ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if (root.enabled) {
+                search-field.focus();
+            }
+        }
+    }
+
+    Icon {
+        width: HubTokens.icon-md;
+        height: HubTokens.icon-md;
+        x: HubTokens.space-4;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/search.svg");
+        colorize: MaterialPalette.on_surface_variant;
+    }
+
+    search-field := TextInput {
+        x: HubTokens.space-4 + HubTokens.icon-md + HubTokens.space-3;
+        width: parent.width - self.x - HubTokens.space-4;
+        height: parent.height;
         text <=> root.text;
-        placeholder_text: root.placeholder;
-        leading_icon: @image-url("../assets/icons/ui/search.svg");
-        empty_text: "";
-        edited(value) => {
-            root.edited(value);
+        color: MaterialPalette.on_surface;
+        horizontal-alignment: left;
+        vertical-alignment: center;
+        single-line: true;
+        enabled: root.enabled;
+        accepted => {
+            root.accepted(root.text);
         }
-        accepted(value) => {
-            root.accepted(value);
+        edited => {
+            root.edited(root.text);
         }
+    }
+
+    if root.text == "": MaterialText {
+        x: search-field.x;
+        width: search-field.width;
+        height: parent.height;
+        text: root.placeholder;
+        color: root.placeholder-color;
+        style: MaterialTypography.body_medium;
+        vertical_alignment: center;
+        overflow: elide;
     }
 }
 
@@ -53,17 +109,27 @@ export component HubTextField inherits Rectangle {
     in property <string> placeholder;
     in property <string> supporting-text;
     in property <bool> enabled: true;
+    out property <bool> focused: material-field.has-focus;
     in property <image> leading-icon;
     in property <image> trailing-icon;
     callback edited(string);
     callback accepted(string);
+
+    // Material TextField owns editing and label behavior; this wrapper owns the
+    // shared Hub disabled and focus treatment used by all input primitives.
+    private property <color> focus-border: root.focused ? HubVisualSpec.focus-ring-color : transparent;
+    private property <float> state-opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
 
     forward-focus: material-field;
     height: HubTokens.input-field;
     min-width: 1px;
     preferred-width: HubTokens.input-width;
     horizontal-stretch: 1;
-    clip: true;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
+    border-color: root.focus-border;
+    opacity: root.state-opacity;
+    clip: false;
 
     material-field := TextField {
         width: parent.width;
@@ -89,8 +155,10 @@ export component ToolbarSelect inherits Rectangle {
     in property <image> icon-image;
     in property <bool> has-icon-image: false;
     in property <string> text;
-    in property <length> select-width: HubTokens.control-md * 7 / 2;
-    in property <length> select-height: HubTokens.control-md;
+    in property <length> select-width: HubVisualSpec.toolbar-density-height * 7 / 2;
+    in property <length> select-height: HubVisualSpec.toolbar-density-height;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
     in property <[MenuItem]> menu-items: [];
     in property <[SelectOptionData]> options: [];
     in property <int> option-count: 0;
@@ -101,6 +169,10 @@ export component ToolbarSelect inherits Rectangle {
     private property <length> menu-offset-x: min(0px, root.select-width - root.menu-width);
     private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));
     private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);
+    private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;
+    private property <color> select-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
+    private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : (root.option-count > 0 ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted);
+    private property <color> select-foreground: root.menu-ready ? MaterialPalette.on_surface : MaterialPalette.on_surface_variant;
 
     width: root.select-width;
     height: root.select-height;
@@ -111,9 +183,60 @@ export component ToolbarSelect inherits Rectangle {
         height: parent.height;
         text: root.text;
         icon: root.icon-image;
+        opacity: 0%;
+        enabled: root.enabled;
         clicked => {
-            if (root.menu-items.length > 0) {
+            if (root.menu-ready) {
                 menu.show();
+            }
+        }
+    }
+
+    select-visual := Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: HubVisualSpec.compact-radius;
+        border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+        border-color: root.select-border;
+        background: root.select-background;
+        opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+        clip: true;
+
+        HorizontalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: root.trailing-icon-inset;
+            padding-right: root.trailing-icon-inset + root.trailing-icon-size + HubTokens.space-2;
+            spacing: HubTokens.space-2;
+            alignment: center;
+
+            Icon {
+                width: HubTokens.icon-sm;
+                height: HubTokens.icon-sm;
+                source: root.icon-image;
+                colorize: root.select-foreground;
+            }
+
+            MaterialText {
+                horizontal-stretch: 1;
+                min-width: 1px;
+                text: root.text;
+                color: root.select-foreground;
+                style: MaterialTypography.label_large;
+                vertical_alignment: center;
+                overflow: elide;
+            }
+        }
+
+        StateLayerArea {
+            width: parent.width;
+            height: parent.height;
+            color: root.menu-ready ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+            border_radius: HubVisualSpec.compact-radius;
+            clicked => {
+                if (root.menu-ready) {
+                    menu.show();
+                }
             }
         }
     }
@@ -124,14 +247,14 @@ export component ToolbarSelect inherits Rectangle {
         x: parent.width - root.trailing-icon-inset - self.width;
         y: (parent.height - self.height) / 2;
         source: @image-url("../assets/icons/ui/chevron-down.svg");
-        colorize: MaterialPalette.on_surface_variant;
+        colorize: root.select-foreground;
     }
 
-    menu := PopupMenu {
+    menu := HubPopupMenu {
         x: root.menu-offset-x;
         y: root.height + MaterialStyleMetrics.spacing_6;
-        width: root.menu-width;
-        items: root.menu-items;
+        menu-width: root.menu-width;
+        menu-items: root.menu-items;
 
         activated(index) => {
             menu.close();
@@ -148,11 +271,19 @@ export component DropDownButton inherits Rectangle {
     in property <image> icon-image;
     in property <bool> has-icon-image: false;
     in property <bool> active: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
     in property <length> button-width: HubTokens.input-width * 2 / 5;
+    in property <length> button-height: HubTokens.control-md;
     callback clicked;
 
+    // Active and inactive triggers use Material buttons; the wrapper normalizes
+    // density, disabled opacity, and focus-ring geometry.
+    private property <length> focus-radius: root.button-height / 2;
+
     width: root.button-width;
-    height: HubTokens.control-md;
+    height: root.button-height;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
     if root.active: TonalButton {
@@ -160,8 +291,11 @@ export component DropDownButton inherits Rectangle {
         height: parent.height;
         text: root.text;
         icon: root.icon-image;
+        enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
     }
 
@@ -170,21 +304,38 @@ export component DropDownButton inherits Rectangle {
         height: parent.height;
         text: root.text;
         icon: root.icon-image;
+        enabled: root.enabled;
         clicked => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            }
         }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
     }
 }
 
 export component SegmentButton inherits Rectangle {
     in property <string> text;
     in property <bool> active;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> button-height: HubTokens.control-md;
     callback clicked;
 
     private property <int> selected-index: root.active ? 0 : -1;
+    private property <length> focus-radius: root.button-height / 2;
 
-    height: HubTokens.control-md;
+    height: root.button-height;
     min-width: MaterialStyleMetrics.size_80;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: true;
 
     material-segment := SegmentedButton {
@@ -193,11 +344,223 @@ export component SegmentButton inherits Rectangle {
         current_index <=> root.selected-index;
         items: [{ text: root.text }];
         index_changed(index) => {
-            root.clicked();
+            if (root.enabled) {
+                root.clicked();
+            } else {
+                root.selected-index = root.active ? 0 : -1;
+            }
         }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
     }
 
     changed active => {
         root.selected-index = root.active ? 0 : -1;
+    }
+}
+
+export component HubCheckBox inherits Rectangle {
+    in-out property <CheckState> check-state: CheckState.unchecked;
+    in property <bool> tristate: false;
+    in property <bool> has-error: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    out property <bool> checked: root.check-state == CheckState.checked;
+    callback changed(CheckState);
+
+    width: HubTokens.control-md;
+    height: HubTokens.control-md;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: false;
+
+    material-check := MaterialCheckBox {
+        width: parent.width;
+        height: parent.height;
+        check_state <=> root.check-state;
+        tristate: root.tristate;
+        has_error: root.has-error;
+        enabled: root.enabled;
+        checked_state_changed(state) => {
+            root.changed(state);
+        }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: parent.height / 2;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubCheckBoxRow inherits Rectangle {
+    in-out property <CheckState> check-state: CheckState.unchecked;
+    in property <string> label;
+    in property <string> supporting-text;
+    in property <bool> tristate: false;
+    in property <bool> has-error: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> row-height: HubTokens.list-row-md;
+    callback changed(CheckState);
+
+    horizontal-stretch: 1;
+    height: root.row-height;
+    min-width: 1px;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : transparent;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    material-row := MaterialCheckBoxTile {
+        width: parent.width;
+        height: parent.height;
+        text: root.label;
+        supporting_text: root.supporting-text;
+        check_state <=> root.check-state;
+        tristate: root.tristate;
+        has_error: root.has-error;
+        enabled: root.enabled;
+        checked_state_changed(state) => {
+            root.changed(state);
+        }
+    }
+}
+
+export component HubSwitch inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <image> on-icon;
+    in property <image> off-icon;
+    callback toggled(bool);
+
+    width: MaterialStyleMetrics.size_52;
+    height: MaterialStyleMetrics.size_32;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: false;
+
+    material-switch := MaterialSwitch {
+        width: parent.width;
+        height: parent.height;
+        checked <=> root.checked;
+        enabled: root.enabled;
+        on_icon: root.on-icon;
+        off_icon: root.off-icon;
+        checked_state_changed(checked) => {
+            root.toggled(checked);
+        }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width + HubVisualSpec.focus-ring-offset * 2;
+        height: parent.height + HubVisualSpec.focus-ring-offset * 2;
+        x: -HubVisualSpec.focus-ring-offset;
+        y: -HubVisualSpec.focus-ring-offset;
+        border-radius: parent.height / 2 + HubVisualSpec.focus-ring-offset;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubToggleRow inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <string> label;
+    in property <string> supporting-text;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> row-height: HubTokens.list-row-md;
+    callback toggled(bool);
+
+    horizontal-stretch: 1;
+    height: root.row-height;
+    min-width: 1px;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;
+    background: HubVisualSpec.panel-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_16;
+        spacing: HubTokens.toolbar-gap;
+        alignment: stretch;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: MaterialStyleMetrics.spacing_2;
+
+            MaterialText {
+                horizontal-stretch: 1;
+                text: root.label;
+                overflow: elide;
+                color: MaterialPalette.on_surface;
+                style: MaterialTypography.label_large;
+                horizontal_alignment: left;
+            }
+
+            if root.supporting-text != "": MaterialText {
+                horizontal-stretch: 1;
+                text: root.supporting-text;
+                overflow: elide;
+                color: MaterialPalette.on_surface_variant;
+                style: MaterialTypography.body_small;
+                horizontal_alignment: left;
+            }
+        }
+
+        HubSwitch {
+            checked <=> root.checked;
+            enabled: root.enabled;
+            focused: false;
+            toggled(checked) => {
+                root.toggled(checked);
+            }
+        }
+    }
+}
+
+export component HubComboBox inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <image> leading-icon;
+    in property <[MenuItem]> items: [];
+    in-out property <int> current-index: -1;
+    in property <length> combo-width: HubTokens.input-width;
+    in property <length> combo-height: HubTokens.input-field;
+    callback selected(int);
+
+    width: root.combo-width;
+    height: root.combo-height;
+    min-width: 1px;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: false;
+
+    material-combo := HubDropDownSurface {
+        dropdown-width: parent.width;
+        dropdown-height: parent.height;
+        dropdown-items: root.items;
+        label: root.label;
+        enabled: root.enabled;
+        leading_icon: root.leading-icon;
+        current_index <=> root.current-index;
+        selected(index) => {
+            root.selected(index);
+        }
     }
 }
