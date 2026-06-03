@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::core::math::UVec2;
 
 use super::super::clear_texture::clear_texture;
@@ -7,7 +8,7 @@ use super::scene_frame_history_textures::SceneFrameHistoryTextures;
 impl SceneFrameHistoryTextures {
     pub(crate) fn new(device: &wgpu::Device, queue: &wgpu::Queue, size: UVec2) -> Self {
         let scene_color = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-history-scene-color"),
+            label: Some(PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR),
             size: texture_extent(size),
             mip_level_count: 1,
             sample_count: 1,

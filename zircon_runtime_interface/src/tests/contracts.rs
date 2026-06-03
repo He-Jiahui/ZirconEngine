@@ -17,15 +17,15 @@ use crate::{
             UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason, UiImeInputEvent,
             UiImeInputEventKind, UiInputDispatchDiagnostics, UiInputDispatchResult, UiInputEvent,
             UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
-            UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputSequence,
-            UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent,
-            UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEvent,
-            UiPointerComponentEventReason, UiPointerDispatchContext, UiPointerDispatchEffect,
-            UiPointerDispatchResult, UiPointerEvent, UiPointerId, UiPointerInputEvent,
-            UiPointerLockPolicy, UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind,
-            UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId,
-            UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-            UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+            UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputRoutePolicy,
+            UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
+            UiNavigationInputEvent, UiNavigationRequestPolicy, UiPointerCaptureReason,
+            UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchContext,
+            UiPointerDispatchEffect, UiPointerDispatchResult, UiPointerEvent, UiPointerId,
+            UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind,
+            UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason,
+            UiScrollDeltaUnit, UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
+            UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
         },
         event_ui::{
             UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
@@ -112,6 +112,7 @@ fn sample_ui_input_metadata() -> UiInputEventMetadata {
     metadata.window_id = Some(UiWindowId::new("main-window"));
     metadata.surface_id = Some(UiSurfaceId::new("main-surface"));
     metadata.pointer_id = Some(UiPointerId::new(3));
+    metadata.pointer_source = UiPointerSource::Mouse;
     metadata.modifiers.shift = true;
     metadata
 }
@@ -1585,9 +1586,12 @@ fn ui_input_dispatch_result_drag_metrics_are_optional_and_round_trip() {
 fn ui_input_event_contract_constructs_every_event_family() {
     let metadata = sample_ui_input_metadata();
     let payload = UiDragPayload::new(UiDragPayloadKind::Asset, "res://textures/grid.png");
+    let mut touch_metadata = metadata.clone();
+    touch_metadata.pointer_source = UiPointerSource::Touch;
+    touch_metadata.pointer_id = Some(UiPointerId::new(9));
     let events = vec![
         UiInputEvent::Pointer(UiPointerInputEvent {
-            metadata: metadata.clone(),
+            metadata: touch_metadata.clone(),
             event: UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(10.0, 20.0))
                 .with_button(UiPointerButton::Primary),
             precise_scroll: None,
@@ -1645,6 +1649,19 @@ fn ui_input_event_contract_constructs_every_event_family() {
     assert_eq!(events.len(), 9);
     assert!(matches!(events[0], UiInputEvent::Pointer(_)));
     assert!(matches!(events[8], UiInputEvent::TooltipTimer(_)));
+    let UiInputEvent::Pointer(pointer) = ui_input_round_trip(&events[0]) else {
+        panic!("pointer event family changed");
+    };
+    assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Touch);
+    assert!(pointer.metadata.pointer_source.is_touch_like());
+
+    let mut legacy_metadata = serde_json::to_value(touch_metadata).unwrap();
+    legacy_metadata
+        .as_object_mut()
+        .unwrap()
+        .remove("pointer_source");
+    let legacy_metadata: UiInputEventMetadata = serde_json::from_value(legacy_metadata).unwrap();
+    assert_eq!(legacy_metadata.pointer_source, UiPointerSource::Mouse);
 }
 
 #[test]
@@ -1837,6 +1854,7 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
         diagnostics: UiInputDispatchDiagnostics {
             routed: true,
             handled_phase: Some("bubble".to_string()),
+            route_policy: UiInputRoutePolicy::Bubble,
             route_target: Some(target),
             blocked_by: None,
             notes: vec!["handled".to_string()],

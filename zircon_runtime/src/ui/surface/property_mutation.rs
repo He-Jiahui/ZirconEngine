@@ -189,19 +189,30 @@ pub fn mutate_tree_property(
 
     let report = match request.property.as_str() {
         "visibility" => match visibility_value(&request.value) {
-            Some(next) if node.visibility == next => {
-                UiPropertyMutationReport::unchanged(&request, Some(visibility_ui_value(node.visibility)))
-            }
             Some(next) => {
                 let previous = Some(visibility_ui_value(node.visibility));
-                let dirty = visibility_transition_dirty(
-                    node.visibility,
-                    next,
-                    node.state_flags.visible,
-                );
-                node.visibility = next;
-                mark_state_dirty(node, dirty);
-                UiPropertyMutationReport::accepted(&request, previous, dirty)
+                let visibility_changed = node.visibility != next;
+                let metadata_changed =
+                    sync_template_attribute_if_present(node, "visibility", &request.value);
+                if !visibility_changed && !metadata_changed {
+                    UiPropertyMutationReport::unchanged(&request, previous)
+                } else {
+                    let dirty = if visibility_changed {
+                        let dirty = visibility_transition_dirty(
+                            node.visibility,
+                            next,
+                            node.state_flags.visible,
+                        );
+                        node.visibility = next;
+                        mark_state_dirty(node, dirty);
+                        dirty
+                    } else {
+                        let dirty = visibility_dirty(next);
+                        mark_dirty(node, dirty);
+                        dirty
+                    };
+                    UiPropertyMutationReport::accepted(&request, previous, dirty)
+                }
             }
             None => UiPropertyMutationReport::rejected(
                 &request,
@@ -209,10 +220,11 @@ pub fn mutate_tree_property(
             ),
         },
         "enabled" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.enabled, input_dirty()),
-        "visible" => mutate_node_state_bool(
+        "visible" => mutate_node_state_bool_and_optional_attribute(
             &request,
             node,
             |node| &mut node.state_flags.visible,
+            "visible",
             visibility_dirty(node.visibility),
         ),
         "clickable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.clickable, input_dirty()),
@@ -340,6 +352,25 @@ fn mutate_node_state_bool_and_optional_attribute(
 
     mark_state_dirty(node, dirty);
     UiPropertyMutationReport::accepted(request, previous, dirty)
+}
+
+fn sync_template_attribute_if_present(
+    node: &mut UiTreeNode,
+    property: &str,
+    value: &UiValue,
+) -> bool {
+    let Some(metadata) = node.template_metadata.as_mut() else {
+        return false;
+    };
+    if !metadata.attributes.contains_key(property) {
+        return false;
+    }
+    let next = value.to_toml();
+    if metadata.attributes.get(property) == Some(&next) {
+        return false;
+    }
+    metadata.attributes.insert(property.to_string(), next);
+    true
 }
 
 fn property_binding_report(

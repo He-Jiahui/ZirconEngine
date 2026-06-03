@@ -1,6 +1,9 @@
 ---
 related_code:
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
@@ -25,6 +28,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
+  - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/astc.rs
@@ -65,6 +69,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
@@ -79,7 +84,10 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_defs_accept_legacy_flags_and_typed_values
   - zircon_runtime/src/asset/tests/project/zmeta.rs::zshader_typed_shader_definition_rows_validate_kind_and_value
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - zircon_runtime/tests/virtual_geometry_visibility_debug_contract.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
@@ -96,6 +104,8 @@ related_code:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
@@ -113,8 +123,18 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
+  - zircon_plugins/virtual_geometry/runtime/src/provider.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/build_scene_prepare_frame.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 implementation_files:
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
@@ -139,6 +159,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
+  - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
@@ -183,6 +204,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
@@ -190,6 +212,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
@@ -206,6 +229,8 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
@@ -237,11 +262,23 @@ plan_sources:
   - docs/superpowers/specs/2026-05-25-typed-shader-definitions-design.md
   - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
   - user: 2026-05-27 continue shader/material management
+  - user: 2026-06-03 implement ZirconEngine WGPU render main-chain closure plan, M7 LUT asset ingress slice
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/asset/tests/assets/shader_readiness.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_clamps_channels_and_builds_3d_texture
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_ignores_common_metadata_rows
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_1d_shaper_sections
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_out_of_range_sizes
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_decodes_cube_lut_as_linear_3d_rgba8_texture
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_rejects_cube_lut_with_wrong_sample_count
+  - cargo test -p zircon_runtime --lib cube_lut --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress before explicit shaper guard: passed, 5 passed; existing warnings only)
+  - wsl -e sh -lc 'cd /mnt/e/Git/ZirconEngine && CARGO_TARGET_DIR=/tmp/zircon-render-main-chain-cube-lut-0603 cargo test -p zircon_runtime --lib cube_lut --locked --jobs 1 --message-format short --color never' (2026-06-03 M7 cube LUT shaper guard rerun: passed, 6 passed, 2500 filtered out; existing warnings only)
+  - cargo test -p zircon_runtime --lib texture_importer --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress: passed, 14 passed; existing warnings only)
+  - cargo test -p zircon_runtime --lib importer_capability_report_marks_diagnostic_only_backends --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT importer capability: passed, 1 passed; existing warnings only)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress: passed; existing warnings only)
   - zircon_runtime/src/asset/tests/assets/material.rs
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_shader_material_contract_diagnostics
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_property_runtime_values
@@ -257,8 +294,14 @@ tests:
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
   - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
+  - zircon_runtime/src/asset/tests/assets/mesh.rs::mesh_asset_to_morphed_model_primitive_applies_weighted_position_and_normal_deltas
+  - zircon_runtime/src/asset/tests/assets/mesh.rs::mesh_asset_to_morphed_model_primitive_rejects_active_position_delta_with_wrong_format
+  - cargo test -p zircon_runtime --lib morph --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 explicit morph-weight conversion: passed, 5 passed, 2272 filtered; package-cache/artifact lock waits and existing zircon_runtime lib-test warnings only)
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning
-  - cargo test -p zircon_runtime --lib skin_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 direct mesh CPU skinning parity: passed, 3 passed, 2211 filtered; existing zircon_runtime lib-test warnings only)
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::skin_mesh_asset_primitive_applies_morph_weights_before_skinning
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback
+  - cargo test -p zircon_runtime --lib skin_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 direct mesh CPU skinning parity after morph-aware conversion entry point: passed, 3 passed, 2274 filtered; package-cache lock waits and existing zircon_runtime lib-test warnings only)
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs::tests::model_render_primitives_use_referenced_mesh_asset_payload_when_available
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs::tests::model_render_primitives_keep_legacy_payload_when_mesh_reference_unresolved
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_resolved_and_fallback_slots
@@ -288,6 +331,16 @@ tests:
   - zircon_runtime/src/core/framework/render/material/property_uniform.rs::tests::material_property_uniform_payload_reports_unsupported_diagnostics
   - rustfmt --edition 2021 --check on standard texture summary Rust files (2026-05-28 standard texture slot summary: passed)
   - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 M6 minimal asset-flow sample with typed facade load-state, primitive binding, and aggregate management assertions: passed, 1 passed, 2211 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 minimal asset-flow sample with runtime ResourceStreamer asset-management aggregate/overview/family status assertions after formatting: passed, 1 passed, 2324 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 minimal asset-flow sample with ProjectAssetManager asset-management aggregate and ResourceStreamer delegation assertions after docs update: passed, 1 passed, 2329 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 minimal asset-flow sample after ResourceStreamer per-family management accessors delegated to ProjectAssetManager: passed, 1 passed, 2335 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 sample after workspace/plugin gate fixes: passed in D:\cargo-targets\zircon-asset-m6-ci-0601, 1 passed, 2367 filtered; existing zircon_runtime warnings only)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime -p zircon_plugin_gltf_importer_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime -p zircon_plugin_material_editor_editor -p zircon_plugin_animation_runtime --locked --jobs 1 --message-format short --color never (2026-06-01 focused asset/render plugin gate: passed; covers VG/HGI snapshot compatibility, glTF/model/shader importer flow, material editor, and animation morph-weight track)
+  - cargo build --workspace --locked --verbose (2026-06-01 M6 root build gate: passed in D:\cargo-targets\zircon-asset-m6-ci-0601 after Hybrid GI placeholder snapshots were updated for RenderMeshSnapshot.morph_weights)
+  - cargo test --workspace --locked --verbose (2026-06-01 M6 root test gate: blocked by active Editor workbench test failures after asset/render snapshot constructors were fixed)
+  - cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose (2026-06-01 plugin build gate: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose (2026-06-01 plugin all-targets gate: blocked by active Editor test-mode `UiTree::bubble_route` compile failure)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose (2026-06-01 plugin test gate: blocked by active Navigation plugin manifest validation failure after asset/render plugin tests had passed)
   - cargo test -p zircon_runtime --lib material_texture_slot_summary_counts_authored_standard_slot_states --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib material_readiness_report_summary_counts_status_and_prepared_summaries --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib render_product_pbr_streamer_projects_standard_material_into_runtime_key --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
@@ -626,6 +679,8 @@ M3A turns render-facing assets into product contracts for `RenderProductFeature:
 
 Texture importers now construct textures through `TextureAsset::new_rgba8(...)` or `TextureAsset::new_container(...)`, so the imported asset carries an explicit descriptor. The RGBA8 image path uses `decode_texture_source_image(...)`, which follows Bevy's default extension-selected image loading (`dev/bevy/crates/bevy_image/src/image_loader.rs:120` and `dev/bevy/crates/bevy_image/src/image_loader.rs:188`) instead of guessing byte format unless `image_format = "guess"` is supplied. Explicit source formats such as `image_format = "jpeg"` and aliases such as `source_format = "open_exr"` are accepted separately from the render-facing `format` texture descriptor override, preserving Bevy's distinction between source image format and GPU texture format. Invalid source-format settings report the actual key name so importer diagnostics stay actionable. The render-facing override also accepts Bevy names: `texture_format` aliases Zircon's `format`, `is_srgb = false` maps to linear color interpretation, `sampler = "linear"`/`"nearest"` mirrors Bevy's `ImageSamplerDescriptor::linear()` and `ImageSamplerDescriptor::nearest()` filter shorthands (`dev/bevy/crates/bevy_image/src/image.rs:856` and `dev/bevy/crates/bevy_image/src/image.rs:867`), and `asset_usage = "render_world"` is accepted as a single-token residency setting as well as the explicit array form. If only color space is changed to linear on the default decoded RGBA8 descriptor, the descriptor format normalizes from `rgba8unorm_srgb` to `rgba8unorm`; if a caller explicitly asks for a different format such as `rgba16float`, the metadata is preserved for diagnostics but the current RGBA8 payload is not considered upload-ready until a conversion path exists. Invalid Bevy-alias descriptor settings report the actual key name, including `texture_format`, `is_srgb`, `sampler`, and `render_asset_usage`. Existing serialized assets that predate the field remain valid: `descriptor = None` falls back to `TexturePayload` metadata, preserving compressed container format, mip count, and array-layer count from old artifacts. `RenderImageDimension` defaults to `D2`, matching the existing image path while leaving an explicit contract for 1D and 3D texture preparation. `RenderImageAssetUsage` defaults to `MainWorld + RenderWorld`, matching Bevy's default CPU/GPU residency policy without conflating it with GPU texture binding usages such as sampled, storage, or copy destination.
 
+The built-in `.cube` LUT path is deliberately a texture asset ingress path, not a renderer shortcut. `texture_asset_from_cube_lut(...)` parses text `.cube` files with `LUT_3D_SIZE`, skips common metadata rows such as domain and input/output range declarations, rejects 1D shaper sections explicitly until a real shaper policy exists, enforces the post-process LUT size range `2..=256`, and emits a linear `rgba8unorm` `TextureAsset` whose descriptor is `RenderImageDimension::D3`, `depth_or_array_layers = size`, `array_layer_count = 1`, `mip_count = 1`, and clamp/linear sampling. `AssetImporter::default()` registers that parser under `zircon.builtin.texture.cube_lut` for `.cube` files, so post-process authoring can feed the existing renderer-private 3D LUT binding through normal asset loading while `app`, `editor`, and framework DTOs still avoid WGPU types.
+
 Descriptor extent fields are normalized before render preparation sees them. For 1D/2D textures,
 `depth_or_array_layers` and `array_layer_count` describe the same layer count; setting only one import
 key updates the other, and setting both to different values returns a parse diagnostic. For 3D
@@ -669,9 +724,11 @@ the generic importer registry/model/UI fixture coverage in `importer.rs`.
 
 `ModelPrimitiveAsset::render_mesh_descriptor()` projects primitive vertex/index data into topology, bounds, primitive kind, 2D/3D suitability, primitive counts, and Virtual Geometry payload presence through `RenderMeshDescriptor`.
 
-`MeshAsset` is the first-class typed mesh asset introduced for the Bevy-style asset plan. It stores topology, a named attribute map, optional u16/u32 indices, main-world/render-world residency intent, morph target metadata, optional skin inverse bind matrices, and optional Virtual Geometry payload. `MeshAsset::render_mesh_descriptor()` projects the attribute map into the same `RenderMeshDescriptor` surface, with required `position` data driving bounds and planar/spatial classification. Existing model import paths keep legacy `ModelAsset.primitives` while emitting matching labeled `MeshAsset` subassets. `ResourceStreamer::ensure_model(...)` now resolves each primitive's mesh reference through the project resource registry and asks `GpuModelResource::from_asset_with_mesh_assets(...)` to prefer the loaded `MeshAsset` payload when it can convert back to the current GPU primitive shape. Scene mesh instances can also carry an optional direct `MeshAsset` handle through `MeshRenderer.mesh` and `RenderMeshSnapshot.mesh`; `ResourceStreamer::ensure_mesh(...)` prepares that handle into `PreparedMesh`, and draw construction consumes it before falling back to the prepared model. If an extracted animation pose exists for a direct mesh instance, draw construction converts the prepared `MeshAsset` through `skin_mesh_asset_primitive(...)` and uploads the transient skinned primitive through the same CPU skinning path used by model primitives. If the reference is unresolved, the mesh payload fails to load, strict conversion fails, or the skeleton for a pose cannot load, renderer preparation keeps the legacy primitive or static prepared-mesh fallback so older model roots and in-flight importer diagnostics continue to render.
+`MeshAsset` is the first-class typed mesh asset introduced for the Bevy-style asset plan. It stores topology, a named attribute map, optional u16/u32 indices, main-world/render-world residency intent, morph target metadata, optional skin inverse bind matrices, and optional Virtual Geometry payload. `MeshAsset::render_mesh_descriptor()` projects the attribute map into the same `RenderMeshDescriptor` surface, with required `position` data driving bounds and planar/spatial classification. `MeshAsset::to_morphed_model_primitive(...)` is the CPU compatibility conversion for explicit morph weights: it applies active position/normal deltas to the current `ModelPrimitiveAsset` upload shape and preserves the existing strict conversion errors for malformed active deltas. Existing model import paths keep legacy `ModelAsset.primitives` while emitting matching labeled `MeshAsset` subassets. `ResourceStreamer::ensure_model(...)` now resolves each primitive's mesh reference through the project resource registry and asks `GpuModelResource::from_asset_with_mesh_assets(...)` to prefer the loaded `MeshAsset` payload when it can convert back to the current GPU primitive shape. Scene mesh instances can also carry an optional direct `MeshAsset` handle through `MeshRenderer.mesh` and `RenderMeshSnapshot.mesh`, plus per-instance `morph_weights` that originate from scene assets, glTF mesh default weights, or animation/property writes. `ResourceStreamer::ensure_mesh(...)` prepares the direct handle into `PreparedMesh`, and draw construction consumes it before falling back to the prepared model. If an extracted animation pose exists for a direct mesh instance, draw construction converts the prepared `MeshAsset` through `skin_mesh_asset_primitive(...)`, applying instance morph weights before CPU skinning. If there is no pose but at least one instance morph weight is non-zero, draw construction uploads a dynamic morphed primitive instead of the static prepared mesh. Zero-weight direct meshes stay on the static prepared path. If the reference is unresolved, the mesh payload fails to load, strict conversion fails, or the skeleton for a pose cannot load, renderer preparation keeps the legacy primitive or static prepared-mesh fallback so older model roots and in-flight importer diagnostics continue to render.
 
 Multi-primitive scene bindings use the same direct mesh path without changing the render DTO into a nested primitive list. `SceneMeshInstanceAsset.primitives` stores mesh/material pairs, `World::from_scene_asset(...)` maps them to `MeshRenderer.primitives`, and render extraction expands them into one `RenderMeshSnapshot` per primitive. Each expanded snapshot has a direct `MeshMarker` and the primitive's material, so resource streaming and draw construction reuse the prepared mesh path above. The root model handle stays present for compatibility while the old model-envelope renderer path is still accepted, but imported glTF scenes no longer need to render all primitives through a single `Mesh{n}` model material.
+
+Virtual Geometry and Hybrid GI consume the same flat `RenderMeshSnapshot` contract. Their test fixtures and scene-representation placeholders now construct snapshots with explicit `mesh: None` or direct mesh handles and explicit empty `morph_weights` when they are not exercising morph data. This keeps downstream render plugins on the normal scene-extract path after the asset pipeline added direct mesh handles and per-instance morph weights, instead of letting stale fixture constructors silently describe a different render DTO shape.
 
 `ShaderAsset::runtime_wgsl_source()` chooses runtime WGSL by preferring non-empty `wgsl_source`, then non-empty `source` only when `source_language == ShaderSourceLanguage::Wgsl`. Non-WGSL source without emitted WGSL is not treated as render-ready WGSL.
 
@@ -696,7 +753,7 @@ glTF images become labeled `Texture{n}` `TextureAsset` subassets. Scene mesh ins
 `Mesh{n}` plus `Material{n}` or `DefaultMaterial`, so renderer readiness can trace missing shader,
 texture, and fallback state by the same asset locators used by authored `.zmaterial` sources. glTF
 mesh primitive subassets also carry morph target displacement maps and skin inverse bind matrices.
-Direct mesh CPU skinning now consumes joint index/weight attributes when the frame extract provides a matching skeleton pose; morph weights and dedicated inverse-bind-matrix skin subassets remain later prepare paths.
+Direct mesh CPU skinning now consumes joint index/weight attributes when the frame extract provides a matching skeleton pose; explicit morph-weight conversion exists at the mesh asset boundary, but no scene/animation producer feeds weights into render extract yet, and dedicated inverse-bind-matrix skin subassets remain a later prepare path.
 
 Material/schema mismatches are diagnostics, not import blockers. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` and `[textures.<slot>]` against the loaded `ShaderAsset` contract and emits typed `RenderMaterialValidationError` values for unknown overrides, override type mismatches, missing required shader properties, unknown texture slots, and missing required shader texture-slot references. Shader texture slots can declare `required = true`; a material must provide a concrete `{ uuid, url }` texture reference for that slot to satisfy the contract. Fallback-only texture slots remain non-dependency data and still help authoring/runtime fallback, but they are now reported as missing when the shader says the slot is required. `MaterialAsset::readiness_report_with_shader_contract(...)` also consumes `ShaderAsset::readiness_report()`: missing runtime WGSL becomes the existing blocking material shader-source row, WGSL capture strings stay WGSL-capture diagnostics, and invalid entry stages or shader definition rows are preserved as shader-readiness material diagnostics with stable paths. Material-local `validation_diagnostics` are carried as non-blocking readiness diagnostics under `material.validation_diagnostics[N]`, so imported glTF/default material notes remain visible without forcing fallback or blocking readiness.
 

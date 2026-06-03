@@ -36,12 +36,12 @@ const spotCheckArtifacts = [
 ];
 
 const regions = [
-  ["full", null, 9.75, 27.63],
-  ["topbar", [0, 0, 1568, 74], 10.55, 30.38],
-  ["workspace", [223, 74, 1568, 866], 9.35, 27.88],
+  ["full", null, 9.23, 27.50],
+  ["topbar", [0, 0, 1568, 74], 10.48, 30.19],
+  ["workspace", [223, 74, 1568, 866], 9.33, 27.86],
   ["project_cards", [253, 252, 1502, 505], 12.24, 27.49],
   ["quick_panel", [1071, 526, 1535, 839], 12.16, 35.15],
-  ["bottom_strip", [0, 866, 1568, 1003], 11.00, 23.62],
+  ["bottom_strip", [0, 866, 1568, 1003], 7.32, 22.67],
 ];
 
 for (const [, outputName] of EXPORTS_LIST) {
@@ -281,6 +281,9 @@ function validateReadme() {
     "AI-directed, HTML/CSS-finalized workflow",
     "`SPOT_CHECKS.md` records the representative manual visual inspection set",
     "`ACCEPTANCE_EVIDENCE.md` records the export command",
+    "`material-components.js` owns the bottom-up Material-style reference",
+    "`material-styles.css` owns the bottom-up Material-style component density",
+    "same verified boundaries are ported into Slint",
     "`cover-rendering.js` maps project ids to local reference cover images",
     "`covers.css` owns project cover image treatment",
     "`responsive.css` owns live-window responsive overrides",
@@ -345,11 +348,17 @@ function validateAcceptanceEvidence() {
     "left no `zircon-hub-cdp-*` temp profile",
     "Web reference responsive validation | Pass",
     "validated the dashboard plus all 19 exported pages across `1568x1003`, `1920x1080`, `1915x508`, `1600x1024`, `1280x900`, `1024x720`, `900x720`, `760x680`, and `640x640`",
+    "Material component source | `docs/ui-and-layout/hub-web-reference/material-components.js`",
+    "Material component style source | `docs/ui-and-layout/hub-web-reference/material-styles.css`",
+    "required `data-component` coverage for the Material reference component layer",
+    "`material-styles.css` component-style ownership",
     "large-preview dashboard card expansion",
     "7 representative pages through 5 live resize steps",
     "required `.project-cover-image` reference cover elements on project pages",
     "Projects Browser header/every-row column alignment",
     "`zircon_hub/assets/covers/reference/*` local cover images",
+    "`material-components.js` now centralizes the web-reference low-level controls",
+    "`material-styles.css` now centralizes the matching reusable component styles",
     "Responsive browser preview is accepted through DOM geometry validation and",
     "Design-board validation | Pass",
     "Focused Rust visual contract | Pass",

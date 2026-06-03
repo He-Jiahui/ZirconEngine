@@ -22,6 +22,7 @@ pub(crate) fn active_page_snapshot(chrome: &EditorChromeSnapshot) -> MainPageSna
                     id: MainPageId::workbench(),
                     title: "Workbench".to_string(),
                     activity_window: ActivityWindowId::workbench(),
+                    activity_window_template: None,
                     workspace: DocumentWorkspaceSnapshot::Tabs {
                         tabs: Vec::new(),
                         active_tab: None,

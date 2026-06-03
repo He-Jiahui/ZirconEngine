@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_segmented_control.zui"
+version = 2
+display_name = "Workbench Segmented Control"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchSegmentedControl]
+root = "root"
+default_classes = ["workbench-segmented-control", "workbench-primitive"]
+
+[nodes.root]
+component = "SegmentedControl"
+control_id = "WorkbenchSegmentedControlRoot"
+classes = ["workbench-segmented-control"]
+props = { value = "center", options = ["left", "center", "right"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }

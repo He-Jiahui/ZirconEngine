@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::virtual_geometry::types::VirtualGeometryClusterSelection;
@@ -87,18 +86,13 @@ fn virtual_geometry_indirect_stats(
     let draw_count = indirect_execution_draws.len() as u32;
     let execution_segments = collect_execution_segments(&indirect_execution_draws);
     let execution_summary = execution_segment_summary(&execution_segments, draw_count);
-    let buffer_count = execution_draws
+    let has_execution_args_buffer = indirect_execution_draws
         .iter()
-        .filter_map(|draw| {
-            draw.indirect_args_buffer
-                .as_ref()
-                .map(|buffer| Arc::as_ptr(buffer) as usize)
-        })
-        .collect::<HashSet<_>>()
-        .len() as u32;
-    let execution_args_buffer = indirect_execution_draws
-        .iter()
-        .find_map(|draw| draw.indirect_args_buffer.as_ref().map(Arc::clone));
+        .any(|draw| draw.indirect_args_buffer_available);
+    let buffer_count = u32::from(has_execution_args_buffer && args_buffer.is_some());
+    let execution_args_buffer = has_execution_args_buffer
+        .then(|| args_buffer.as_ref().map(Arc::clone))
+        .flatten();
     let draw_submission_order = execution_draws
         .iter()
         .filter_map(|draw| draw.submission_order_record)

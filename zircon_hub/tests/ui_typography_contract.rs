@@ -286,13 +286,15 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
 fn dashboard_project_card_and_empty_titles_use_material_text() {
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     let surfaces = read_ui_file("surfaces.slint");
-    let project_card = dashboard_components
+    let project_card = project_card_flow_components
         .split("export component ProjectCard")
         .nth(1)
         .and_then(|source| source.split("export component ProjectFlow").next())
-        .expect("project_dashboard_components.slint must export ProjectCard before ProjectFlow");
+        .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
         "MaterialText,",
         "MaterialText {",
@@ -312,16 +314,16 @@ fn dashboard_project_card_and_empty_titles_use_material_text() {
         );
     }
 
-    let project_flow = dashboard_components
+    let project_flow = project_card_flow_components
         .split("export component ProjectFlow")
         .nth(1)
         .and_then(|source| {
             source
-                .split("export component DashboardQuickActionRow")
+                .split("export component DashboardProjectCardsSection")
                 .next()
         })
         .expect(
-            "project_dashboard_components.slint must export ProjectFlow before DashboardQuickActionRow",
+            "project_card_flow_components.slint must export ProjectFlow before DashboardProjectCardsSection",
         );
     for snippet in [
         "if root.project-card-count == 0: EmptyStatePanel",
@@ -407,6 +409,9 @@ fn project_workflow_typography_uses_material_text() {
         "ProjectCreateSettingsPanel",
         "ProjectCreateCompactSummaryPanel",
         "ProjectDetailStatusStrip",
+        "ProjectDetailActionStack",
+        "ProjectDetailDeleteActionStack",
+        "ProjectDetailActionsSection",
         "ProjectDetailPinToggleRow",
         "ProjectDetailInfoSection",
         "ProjectDetailEngineSection",
@@ -425,17 +430,29 @@ fn project_workflow_typography_uses_material_text() {
             .and_then(|source| {
                 if component_name == "ProjectDetailStatusStrip" {
                     source
-                        .split("export component ProjectDetailPinToggleRow")
-                        .next()
-                } else if component_name == "ProjectDetailPinToggleRow" {
-                    source
                         .split("export component ProjectDetailInfoSection")
                         .next()
-                } else if component_name == "ProjectDetailInfoSection" {
+                } else if component_name == "ProjectDetailPinToggleRow" {
                     source
                         .split("export component ProjectDetailEngineSection")
                         .next()
                 } else if component_name == "ProjectDetailEngineSection" {
+                    source
+                        .split("export component ProjectDetailActionsSection")
+                        .next()
+                } else if component_name == "ProjectDetailActionsSection" {
+                    source
+                        .split("export component ProjectDetailStatusStrip")
+                        .next()
+                } else if component_name == "ProjectDetailActionStack" {
+                    source
+                        .split("export component ProjectDetailDeleteActionStack")
+                        .next()
+                } else if component_name == "ProjectDetailDeleteActionStack" {
+                    source
+                        .split("export component ProjectDetailEngineSection")
+                        .next()
+                } else if component_name == "ProjectDetailInfoSection" {
                     source.split("export component ").next()
                 } else {
                     source.split("export component ").next()
@@ -463,12 +480,50 @@ fn project_workflow_typography_uses_material_text() {
                         || component.contains("ProjectEngineChoiceList {")),
                 "{component_name} should delegate section text through the MaterialText-backed HubSection primitive"
             );
+        } else if component_name == "ProjectDetailActionsSection" {
+            assert!(
+                component.contains("inherits PanelSlot")
+                    && component.contains("PanelHeader {")
+                    && component.contains("ProjectDetailActionStack {")
+                    && component.contains("ProjectDetailDeleteActionStack {")
+                    && component.contains("ProjectDetailEngineSection {")
+                    && component.contains("project: root.project;")
+                    && component.contains("copy: root.copy;"),
+                "{component_name} should delegate action content through the typed action stacks, toggle row, section, and MaterialText-backed panel primitives"
+            );
+        } else if component_name == "ProjectDetailActionStack" {
+            assert!(
+                component.contains("inherits HubActionStack")
+                    && component.contains("HubActionCommandButton {")
+                    && component.contains("ProjectDetailPinToggleRow {")
+                    && component.contains("MutedText {"),
+                "{component_name} should delegate visible command text through HubActionCommandButton, HubToggleRow, and MutedText primitives"
+            );
+        } else if component_name == "ProjectDetailDeleteActionStack" {
+            assert!(
+                component.contains("inherits HubActionStack")
+                    && component.contains("StatusBanner {")
+                    && component.contains("HubActionCommandButton {"),
+                "{component_name} should delegate visible delete-confirmation text through StatusBanner and HubActionCommandButton primitives"
+            );
         } else if component_name == "ProjectDetailPinToggleRow" {
             assert!(
                 component.contains("inherits HubToggleRow")
                     && component.contains("label: root.detail.pinned")
                     && component.contains("supporting-text: root.detail.pinned"),
                 "{component_name} should delegate visible text to the MaterialText-backed HubToggleRow primitive"
+            );
+        } else if component_name == "ProjectSettingSummaryRow" {
+            assert!(
+                component.contains("inherits HubKeyValueRow")
+                    && component.contains("label-width: root.row-height"),
+                "{component_name} should delegate visible text to the MaterialText-backed HubKeyValueRow primitive"
+            );
+        } else if component_name == "ProjectDetailStatusStrip" {
+            assert!(
+                component.contains("inherits HubBadgeMetaStrip")
+                    && component.contains("meta-text: root.copy.modified-prefix"),
+                "{component_name} should delegate visible text to the MaterialText-backed HubBadgeMetaStrip primitive"
             );
         } else {
             assert!(
@@ -491,7 +546,7 @@ fn project_workflow_typography_uses_material_text() {
     for snippet in [
         "MaterialText,",
         "text: root.ui-text.source-engine;",
-        "text: root.copy.modified-prefix + root.detail.modified;",
+        "meta-text: root.copy.modified-prefix + root.detail.modified;",
         "style: MaterialTypography.body_small;",
         "vertical_alignment: center;",
     ] {

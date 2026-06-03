@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::asset::ModelPrimitiveAsset;
+use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{DisplayMode, RenderMeshSnapshot};
 use crate::core::math::{RenderMat4, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
@@ -43,15 +43,16 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     if let Some(mesh_handle) = mesh_instance.mesh.as_ref() {
         let mesh_id = mesh_handle.id();
         if let Some(mesh) = streamer.mesh(&mesh_id) {
-            if let Some(skinned_primitive) =
-                skinned_direct_mesh_primitive(streamer, frame, mesh_instance, &mesh_id)
+            if let Some(dynamic_primitive) =
+                dynamic_direct_mesh_primitive(streamer, frame, mesh_instance, &mesh_id)
             {
-                push_skinned_mesh_draws(
+                push_dynamic_mesh_draws(
                     pending_draws,
                     streamer,
                     mesh_instance.material,
+                    mesh_instance.mobility,
                     mesh.index_count,
-                    &skinned_primitive,
+                    &dynamic_primitive,
                     instance_tint,
                     model_matrix,
                 );
@@ -60,6 +61,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     pending_draws,
                     streamer,
                     mesh_instance.material,
+                    mesh_instance.mobility,
                     mesh,
                     instance_tint,
                     model_matrix,
@@ -96,10 +98,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             .cloned()
             .flatten()
         {
-            push_skinned_mesh_draws(
+            push_dynamic_mesh_draws(
                 pending_draws,
                 streamer,
                 mesh_instance.material,
+                mesh_instance.mobility,
                 mesh.index_count,
                 &skinned_primitive,
                 instance_tint,
@@ -119,6 +122,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
         for (first_index, draw_index_count, draw_tint) in raster_draws {
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
+                mobility: mesh_instance.mobility,
                 texture: streamer.texture(
                     streamer
                         .material(&mesh_instance.material.id())
@@ -151,6 +155,16 @@ fn material_tinted(
     instance_tint * material_tint
 }
 
+fn dynamic_direct_mesh_primitive(
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+    mesh_instance: &RenderMeshSnapshot,
+    mesh_id: &ResourceId,
+) -> Option<ModelPrimitiveAsset> {
+    skinned_direct_mesh_primitive(streamer, frame, mesh_instance, mesh_id)
+        .or_else(|| morphed_direct_mesh_primitive(streamer, mesh_instance, mesh_id))
+}
+
 fn skinned_direct_mesh_primitive(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
@@ -164,15 +178,44 @@ fn skinned_direct_mesh_primitive(
         .find(|entry| entry.entity == mesh_instance.node_id)?;
     let mesh_asset = streamer.mesh_asset(mesh_id)?;
     let skeleton = streamer.load_animation_skeleton_asset(pose_entry.skeleton)?;
-    skin_mesh_asset_primitive(mesh_asset, &skeleton, &pose_entry.pose).ok()
+    skin_mesh_asset_primitive(
+        mesh_asset,
+        &skeleton,
+        &pose_entry.pose,
+        &mesh_instance.morph_weights,
+    )
+    .ok()
 }
 
-fn push_skinned_mesh_draws(
+fn morphed_direct_mesh_primitive(
+    streamer: &ResourceStreamer,
+    mesh_instance: &RenderMeshSnapshot,
+    mesh_id: &ResourceId,
+) -> Option<ModelPrimitiveAsset> {
+    let mesh_asset = streamer.mesh_asset(mesh_id)?;
+    morphed_mesh_asset_primitive(mesh_asset.as_ref(), &mesh_instance.morph_weights)
+}
+
+fn morphed_mesh_asset_primitive(
+    mesh_asset: &MeshAsset,
+    morph_weights: &[f32],
+) -> Option<ModelPrimitiveAsset> {
+    if !morph_weights
+        .iter()
+        .any(|weight| weight.abs() > f32::EPSILON)
+    {
+        return None;
+    }
+    mesh_asset.to_morphed_model_primitive(morph_weights).ok()
+}
+
+fn push_dynamic_mesh_draws(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
     material_id: ResourceHandle<MaterialMarker>,
+    mobility: crate::core::framework::scene::Mobility,
     index_count: u32,
-    skinned_primitive: &ModelPrimitiveAsset,
+    dynamic_primitive: &ModelPrimitiveAsset,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
 ) {
@@ -187,7 +230,8 @@ fn push_skinned_mesh_draws(
         material_tinted(streamer, material_id, instance_tint),
     ) {
         pending_draws.push(PendingMeshDraw {
-            mesh: PendingMeshGeometry::Skinned(skinned_primitive.clone()),
+            mesh: PendingMeshGeometry::Dynamic(dynamic_primitive.clone()),
+            mobility,
             texture: texture.clone(),
             material_uniform: material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),
@@ -200,10 +244,67 @@ fn push_skinned_mesh_draws(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::morphed_mesh_asset_primitive;
+    use crate::asset::{
+        AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+        MESH_ATTRIBUTE_POSITION,
+    };
+    use crate::core::framework::render::RenderMeshTopology;
+    use crate::core::math::Vec3;
+
+    #[test]
+    fn morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback() {
+        let mesh = morph_test_mesh();
+
+        assert!(morphed_mesh_asset_primitive(&mesh, &[0.0]).is_none());
+    }
+
+    #[test]
+    fn morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh() {
+        let mesh = morph_test_mesh();
+
+        let primitive = morphed_mesh_asset_primitive(&mesh, &[0.5]).expect("morphed primitive");
+
+        assert!(Vec3::from_array(primitive.vertices[0].position)
+            .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6));
+        assert_eq!(primitive.indices, vec![0, 1, 2]);
+    }
+
+    fn morph_test_mesh() -> MeshAsset {
+        let mut mesh = MeshAsset::new(
+            AssetUri::parse("res://meshes/direct-morph.zmesh").unwrap(),
+            RenderMeshTopology::TriangleList,
+            BTreeMap::from([(
+                MESH_ATTRIBUTE_POSITION.to_string(),
+                MeshAttributeValues::Float32x3(vec![
+                    [1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                ]),
+            )]),
+            Some(MeshIndices::U32(vec![0, 1, 2])),
+        )
+        .unwrap();
+        mesh.morph_targets = vec![MeshMorphTargetAsset {
+            name: Some("Lift".to_string()),
+            attributes: BTreeMap::from([(
+                MESH_ATTRIBUTE_POSITION.to_string(),
+                MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 1.0]; 3]),
+            )]),
+        }];
+        mesh
+    }
+}
+
 fn push_prepared_mesh_draws(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
     material_id: ResourceHandle<MaterialMarker>,
+    mobility: crate::core::framework::scene::Mobility,
     mesh: &Arc<GpuMeshResource>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
@@ -220,6 +321,7 @@ fn push_prepared_mesh_draws(
     ) {
         pending_draws.push(PendingMeshDraw {
             mesh: PendingMeshGeometry::Prepared(mesh.clone()),
+            mobility,
             texture: texture.clone(),
             material_uniform: material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),

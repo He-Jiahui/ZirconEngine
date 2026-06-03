@@ -16,7 +16,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "particle-gpu-spawn-update",
                 QueueLane::AsyncCompute,
             )
@@ -27,7 +27,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .write_external("particles.gpu.particles-b")
             .write_external("particles.gpu.counters"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "particle-gpu-compact-alive",
                 QueueLane::AsyncCompute,
             )
@@ -37,7 +37,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .write_external("particles.gpu.alive-indices")
             .write_external("particles.gpu.counters"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "particle-gpu-build-indirect-args",
                 QueueLane::AsyncCompute,
             )
@@ -47,7 +47,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .write_external("particles.gpu.indirect-draw-args")
             .write_external("particles.gpu.debug-readback"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::Transparent3d,
                 "particle-render",
                 QueueLane::Graphics,
             )

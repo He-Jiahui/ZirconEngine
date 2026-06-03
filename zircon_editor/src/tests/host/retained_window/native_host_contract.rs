@@ -1672,6 +1672,89 @@ fn native_host_pointer_click_ignores_template_buttons_without_dispatch_metadata(
 }
 
 #[test]
+fn native_host_pointer_click_routes_componentized_workbench_window_nodes() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.workbench_window_nodes = model_rc(vec![TemplatePaneNodeData {
+        dispatch_kind: "workbench".into(),
+        ..template_node_with_binding(
+            "WorkbenchToolScale",
+            "Button",
+            "Scale",
+            "Tool/Scale",
+            24.0,
+            18.0,
+            88.0,
+            28.0,
+        )
+    }]);
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_clicked(move |control_id, action_id| {
+                clicks
+                    .borrow_mut()
+                    .push((control_id.to_string(), action_id.to_string()));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(32.0, 28.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(24.0, 18.0, 88.0, 28.0))
+    );
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [("WorkbenchToolScale".to_string(), "Tool/Scale".to_string())],
+        "native host should route full-window componentized workbench nodes through surface controls"
+    );
+}
+
+#[test]
+fn native_host_pointer_hover_updates_componentized_workbench_window_nodes() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.workbench_window_nodes = model_rc(vec![TemplatePaneNodeData {
+        dispatch_kind: "workbench".into(),
+        ..template_node_with_binding(
+            "WorkbenchPrimaryButton",
+            "Button",
+            "Primary",
+            "ComponentLab/PrimaryButton",
+            24.0,
+            18.0,
+            88.0,
+            28.0,
+        )
+    }]);
+    ui.set_host_presentation(presentation);
+
+    let result = ui.dispatch_native_pointer_move_for_test(32.0, 28.0);
+
+    assert!(result.request_redraw());
+    let presentation = ui.get_host_presentation();
+    let hovered = presentation
+        .workbench_window_nodes
+        .row_data(0)
+        .expect("workbench test node should remain projected");
+    assert!(hovered.hovered);
+    assert_eq!(
+        ui.get_pane_interaction_state()
+            .hovered_template_control_id
+            .as_str(),
+        "WorkbenchPrimaryButton"
+    );
+}
+
+#[test]
 fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_body() {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.window().set_size(PhysicalSize::new(720, 220));

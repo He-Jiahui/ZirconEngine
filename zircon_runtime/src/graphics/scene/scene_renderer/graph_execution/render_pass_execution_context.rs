@@ -1,102 +1,16 @@
-use crate::core::framework::render::{RenderFrameExtract, RenderPluginRendererOutputs};
-use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-use crate::graphics::types::ViewportRenderFrame;
-use crate::render_graph::{PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderPassId};
+use crate::render_graph::{
+    PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphPassResourceAccess,
+    RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderPassId,
+};
 
-use super::{RenderGraphExecutionResources, RenderPassExecutorId};
+use super::RenderPassExecutorId;
 
-pub struct RenderPassGpuExecutionContext<'a> {
-    pub device: &'a wgpu::Device,
-    pub queue: &'a wgpu::Queue,
-    pub encoder: &'a mut wgpu::CommandEncoder,
-    frame: &'a ViewportRenderFrame,
-    pub scene_bind_group: &'a wgpu::BindGroup,
-    pub resources: &'a mut RenderGraphExecutionResources,
-    pub plugin_outputs: &'a mut RenderPluginRendererOutputs,
-    pub(in crate::graphics::scene::scene_renderer) screen_space_ui_renderer:
-        &'a mut ScreenSpaceUiRenderer,
-}
+mod gpu;
 
-impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("RenderPassGpuExecutionContext")
-            .field("viewport_size", &self.frame.viewport_size)
-            .finish_non_exhaustive()
-    }
-}
-
-impl<'a> RenderPassGpuExecutionContext<'a> {
-    #[allow(clippy::too_many_arguments)]
-    pub(in crate::graphics::scene::scene_renderer) fn new(
-        device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-        encoder: &'a mut wgpu::CommandEncoder,
-        frame: &'a ViewportRenderFrame,
-        scene_bind_group: &'a wgpu::BindGroup,
-        resources: &'a mut RenderGraphExecutionResources,
-        plugin_outputs: &'a mut RenderPluginRendererOutputs,
-        screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
-    ) -> Self {
-        Self {
-            device,
-            queue,
-            encoder,
-            frame,
-            scene_bind_group,
-            resources,
-            plugin_outputs,
-            screen_space_ui_renderer,
-        }
-    }
-
-    #[cfg(test)]
-    pub(in crate::graphics::scene::scene_renderer) fn new_for_test(
-        device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-        encoder: &'a mut wgpu::CommandEncoder,
-        frame: &'a ViewportRenderFrame,
-        scene_bind_group: &'a wgpu::BindGroup,
-        resources: &'a mut RenderGraphExecutionResources,
-        plugin_outputs: &'a mut RenderPluginRendererOutputs,
-        screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
-    ) -> Self {
-        Self::new(
-            device,
-            queue,
-            encoder,
-            frame,
-            scene_bind_group,
-            resources,
-            plugin_outputs,
-            screen_space_ui_renderer,
-        )
-    }
-
-    pub fn frame_extract(&self) -> &RenderFrameExtract {
-        &self.frame.extract
-    }
-
-    pub fn viewport_size(&self) -> UVec2 {
-        self.frame.viewport_size
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_screen_space_ui_to_resource(
-        &mut self,
-        resource_name: &str,
-    ) -> Result<(), String> {
-        let color_view = self.resources.require_texture_view(resource_name)?;
-        self.screen_space_ui_renderer.record(
-            self.device,
-            self.queue,
-            self.encoder,
-            color_view,
-            self.frame,
-        );
-        Ok(())
-    }
-}
+pub use gpu::RenderPassGpuExecutionContext;
+pub(in crate::graphics::scene::scene_renderer) use gpu::{
+    RenderPassMeshDrawLists, RenderPassPostProcessStackContext,
+};
 
 pub struct RenderPassExecutionContext<'a> {
     pub pass_name: String,
@@ -248,12 +162,34 @@ impl<'a> RenderPassExecutionContext<'a> {
     pub fn uses_queue_fallback(&self) -> bool {
         self.declared_queue != self.queue
     }
+
+    pub fn attachment_ops_for_write(
+        &self,
+        resource_name: &str,
+    ) -> Option<RenderGraphAttachmentOps> {
+        self.resources
+            .iter()
+            .find(|resource| {
+                resource.name == resource_name
+                    && resource.access == RenderGraphResourceAccessKind::Write
+                    && matches!(
+                        resource.kind,
+                        RenderGraphResourceKind::TransientTexture
+                            | RenderGraphResourceKind::External
+                    )
+            })
+            .and_then(|resource| resource.attachment_ops)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::RenderPassExecutionContext;
     use crate::graphics::RenderPassExecutorId;
+    use crate::render_graph::{
+        QueueLane, RenderGraphAttachmentOps, RenderGraphPassResourceAccess,
+        RenderGraphResourceAccessKind, RenderGraphResourceKind,
+    };
 
     #[test]
     fn metadata_context_reports_missing_gpu_payload() {
@@ -267,5 +203,35 @@ mod tests {
             context.require_gpu().unwrap_err(),
             "render pass executor `particle.transparent` for pass `particle-render` requires renderer GPU context"
         );
+    }
+
+    #[test]
+    fn metadata_context_exposes_attachment_ops_for_written_resource() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "transparent-mesh",
+            RenderPassExecutorId::new("mesh.transparent"),
+            QueueLane::Graphics,
+            Default::default(),
+            vec![
+                RenderGraphPassResourceAccess {
+                    name: "scene-color".to_string(),
+                    kind: RenderGraphResourceKind::TransientTexture,
+                    access: RenderGraphResourceAccessKind::Read,
+                    attachment_ops: None,
+                },
+                RenderGraphPassResourceAccess {
+                    name: "scene-color".to_string(),
+                    kind: RenderGraphResourceKind::TransientTexture,
+                    access: RenderGraphResourceAccessKind::Write,
+                    attachment_ops: Some(RenderGraphAttachmentOps::load_store()),
+                },
+            ],
+        );
+
+        assert_eq!(
+            context.attachment_ops_for_write("scene-color"),
+            Some(RenderGraphAttachmentOps::load_store())
+        );
+        assert_eq!(context.attachment_ops_for_write("scene-depth"), None);
     }
 }

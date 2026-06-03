@@ -11,6 +11,7 @@ pub(crate) const RENDERDOC_MARKER_HISTORY_COPY: &str = "zircon::HistoryCopy";
 pub(crate) const RENDERDOC_MARKER_OVERLAY: &str = "zircon::Overlay";
 pub(crate) const RENDERDOC_MARKER_UI: &str = "zircon::UI";
 pub(crate) const RENDERDOC_MARKER_READBACK: &str = "zircon::Readback";
+pub(crate) const RENDERDOC_MARKER_RENDER_GRAPH_PASS_PREFIX: &str = "zircon::RenderGraphPass::";
 
 #[cfg(test)]
 pub(crate) const REQUIRED_RENDERDOC_STAGE_MARKERS: &[&str] = &[
@@ -48,7 +49,11 @@ pub(crate) fn marker_for_render_pass_stage(stage: RenderPassStage) -> Option<&'s
     }
 }
 
-pub(crate) fn insert_marker(encoder: &mut wgpu::CommandEncoder, label: &'static str) {
+pub(crate) fn marker_for_render_graph_pass(pass_name: &str) -> String {
+    format!("{RENDERDOC_MARKER_RENDER_GRAPH_PASS_PREFIX}{pass_name}")
+}
+
+pub(crate) fn insert_marker(encoder: &mut wgpu::CommandEncoder, label: &str) {
     encoder.insert_debug_marker(label);
 }
 

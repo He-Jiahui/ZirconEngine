@@ -1,15 +1,14 @@
 import {
     BrandMark,
     HeaderStatusData,
-    HubIconButton,
     MutedText,
     ProjectDetailData,
     SourceEngineData,
     SourceEngineRowData,
     StatusPill,
     UiTextData,
-    WindowButton,
 } from "shared.slint";
+import { HubIconButton, WindowButton } from "button_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { HeaderGroup } from "surfaces.slint";
 import { HeaderEngineSelector } from "shell_header_popup_components.slint";
@@ -157,12 +156,14 @@ export component HubTopHeader inherits HeaderGroup {
                         }
                         MaterialText {
                             text: "ZIRCON HUB";
-                            color: MaterialPalette.on_surface;
+                            color: HubVisualSpec.brand-title-foreground;
                             style: MaterialTypography.title_medium;
                             overflow: elide;
                         }
-                        MutedText {
+                        MaterialText {
                             text: root.brand-subtitle;
+                            color: HubVisualSpec.brand-subtitle-foreground;
+                            style: MaterialTypography.body_medium;
                             overflow: elide;
                         }
                         Rectangle {
@@ -221,6 +222,7 @@ export component HubTopHeader inherits HeaderGroup {
                         icon-image: pill.icon-image;
                         has-icon-image: pill.has-icon-image;
                         text: pill.text;
+                        tone: pill.icon == ">" ? "running" : (pill.state == "ok" ? "success" : (pill.state == "warn" ? "warning" : pill.state));
                         accent-color: pill.icon == ">" ? HubVisualSpec.accent-stroke : (pill.state == "running" ? HubVisualSpec.accent-stroke : (pill.state == "ok" ? HubVisualSpec.success-stroke : (pill.state == "warn" ? HubVisualSpec.warning-stroke : (pill.state == "error" ? HubVisualSpec.error-stroke : HubVisualSpec.outline-strong))));
                     }
                 }
@@ -255,8 +257,8 @@ export component HubTopHeader inherits HeaderGroup {
                     button-border-width: 0px;
                     idle-background: transparent;
                     idle-border: transparent;
-                    idle-foreground: MaterialPalette.on_surface_variant;
-                    state-layer-color: MaterialPalette.on_surface;
+                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
+                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
                     disabled-opacity: 0.58;
                     icon-size: HubTokens.icon-md;
                     icon-image: @image-url("../assets/icons/ui/bell.svg");
@@ -275,8 +277,8 @@ export component HubTopHeader inherits HeaderGroup {
                     button-border-width: 0px;
                     idle-background: transparent;
                     idle-border: transparent;
-                    idle-foreground: MaterialPalette.on_surface_variant;
-                    state-layer-color: MaterialPalette.on_surface;
+                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
+                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
                     disabled-opacity: 0.58;
                     icon-size: HubTokens.icon-md;
                     icon-image: @image-url("../assets/icons/ui/help.svg");
@@ -295,8 +297,8 @@ export component HubTopHeader inherits HeaderGroup {
                     button-border-width: 0px;
                     idle-background: transparent;
                     idle-border: transparent;
-                    idle-foreground: MaterialPalette.on_surface_variant;
-                    state-layer-color: MaterialPalette.on_surface;
+                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
+                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
                     disabled-opacity: 0.58;
                     icon-size: HubTokens.icon-md;
                     icon-image: @image-url("../assets/icons/ui/settings.svg");
@@ -367,7 +369,6 @@ export component HubTopHeader inherits HeaderGroup {
                     height: root.header-button-size;
                     icon-image: @image-url("../assets/icons/ui/close.svg");
                     has-icon-image: true;
-                    danger: true;
                     clicked => { root.window-close(); }
                 }
             }

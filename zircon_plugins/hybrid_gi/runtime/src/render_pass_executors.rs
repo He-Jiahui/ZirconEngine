@@ -426,6 +426,7 @@ mod tests {
                         ExpectedResourceKind::AnyOf(kinds) => kinds[0],
                     },
                     access: resource.access,
+                    attachment_ops: None,
                 })
                 .collect(),
         )

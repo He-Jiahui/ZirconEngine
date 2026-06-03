@@ -48,6 +48,22 @@ impl RenderPipelineCompileOptions {
         self
     }
 
+    pub fn with_graph_msaa_sample_count(mut self, sample_count: u32) -> Self {
+        self.graph_msaa_sample_count = Some(sample_count.max(1));
+        self
+    }
+
+    pub fn without_graph_msaa_sample_count(mut self) -> Self {
+        self.graph_msaa_sample_count = None;
+        self
+    }
+
+    pub fn graph_msaa_sample_count(&self, camera_msaa_samples: u32) -> u32 {
+        self.graph_msaa_sample_count
+            .unwrap_or(camera_msaa_samples)
+            .max(1)
+    }
+
     pub(in crate::graphics::pipeline) fn permits_feature(
         &self,
         feature: BuiltinRenderFeature,
@@ -61,7 +77,18 @@ impl RenderPipelineCompileOptions {
         feature: &RendererFeatureAsset,
     ) -> bool {
         if let Some(builtin) = feature.builtin_feature() {
-            return self.permits_feature(builtin);
+            if !self.permits_feature(builtin) {
+                return false;
+            }
+
+            return feature
+                .descriptor()
+                .capability_requirements
+                .iter()
+                .all(|requirement| {
+                    !builtin_descriptor_capability_requires_explicit_opt_in(builtin, *requirement)
+                        || self.enabled_capabilities.contains(requirement)
+                });
         }
 
         if self
@@ -103,5 +130,20 @@ fn capability_requires_explicit_opt_in(requirement: RenderFeatureCapabilityRequi
             | RenderFeatureCapabilityRequirement::AccelerationStructures
             | RenderFeatureCapabilityRequirement::InlineRayQuery
             | RenderFeatureCapabilityRequirement::RayTracingPipeline
+            | RenderFeatureCapabilityRequirement::NeuralCompute
+            | RenderFeatureCapabilityRequirement::SparseTexture
+    )
+}
+
+fn builtin_descriptor_capability_requires_explicit_opt_in(
+    feature: BuiltinRenderFeature,
+    requirement: RenderFeatureCapabilityRequirement,
+) -> bool {
+    matches!(
+        (feature, requirement),
+        (
+            BuiltinRenderFeature::SparseTexture,
+            RenderFeatureCapabilityRequirement::SparseTexture
+        )
     )
 }

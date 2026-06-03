@@ -10,8 +10,7 @@ pub fn shader_property_values_for_shader(
     let mut values = BTreeMap::new();
     for property in &shader.property_schema {
         let value = material
-            .property_overrides()
-            .get(&property.name)
+            .shader_property_override(&property.name)
             .or(property.default.as_ref());
         let Some(value) = value else {
             continue;

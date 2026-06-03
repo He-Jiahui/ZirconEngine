@@ -1,0 +1,70 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_activity_rail.zui"
+version = 2
+display_name = "Workbench Activity Rail"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_rail_button.zui#WorkbenchRailButton",
+]
+styles = []
+
+[components.WorkbenchActivityRail]
+root = "activity_rail"
+default_classes = ["workbench-rail"]
+
+[nodes.activity_rail]
+component = "VerticalGroup"
+control_id = "WorkbenchWindowActivityRail"
+classes = ["workbench-rail"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "rail_scene" }, { node = "rail_cube" }, { node = "rail_graph" }, { node = "rail_image" }, { node = "rail_audio" }, { node = "rail_code" }]
+
+[nodes.rail_scene]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailScene"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/play.svg", label = "Scene", selected = true, checked = true, button_interaction_state = "pressed" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateScene", event = "Click", route = "DockCommand.ActivateScene" }]
+
+[nodes.rail_cube]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailCube"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/cube.svg", label = "Entities" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateHierarchy", event = "Click", route = "DockCommand.ActivateHierarchy" }]
+
+[nodes.rail_graph]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailGraph"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/node-graph.svg", label = "Graph" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateGraph", event = "Click", route = "DockCommand.ActivateGraph" }]
+
+[nodes.rail_image]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailImage"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/image.svg", label = "Assets" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateAssets", event = "Click", route = "DockCommand.ActivateAssets" }]
+
+[nodes.rail_audio]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailAudio"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/audio.svg", label = "Audio" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateAudio", event = "Click", route = "DockCommand.ActivateAudio" }]
+
+[nodes.rail_code]
+component = "WorkbenchRailButton"
+control_id = "WorkbenchRailCode"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/code.svg", label = "Code" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "DockCommand/ActivateCode", event = "Click", route = "DockCommand.ActivateCode" }]

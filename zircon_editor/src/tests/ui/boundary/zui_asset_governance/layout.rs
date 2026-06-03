@@ -7,8 +7,16 @@ use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use super::metadata::string_token_metadata_offender;
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
 
-const VALID_CONTAINER_KINDS: &[&str] = &["HorizontalBox", "Masonry", "VerticalBox"];
-const LAYOUT_KEYS: &[&str] = &["clip", "container", "height", "width"];
+const VALID_CONTAINER_KINDS: &[&str] = &["HorizontalBox", "Masonry", "Overlay", "VerticalBox"];
+const LAYOUT_KEYS: &[&str] = &[
+    "anchor",
+    "clip",
+    "container",
+    "height",
+    "pivot",
+    "position",
+    "width",
+];
 const AXIS_LAYOUT_KEYS: &[&str] = &["max", "min", "preferred", "stretch"];
 const CONTAINER_LAYOUT_KEYS: &[&str] = &["columns", "gap", "kind", "sequential"];
 

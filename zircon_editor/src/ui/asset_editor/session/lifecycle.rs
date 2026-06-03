@@ -967,6 +967,7 @@ fn flatten_legacy_projection_nodes_into(
             props: node.props,
             state: node.params,
             layout: node.layout,
+            repeat: None,
             style: v2_style_block(&node.style_overrides),
             slots: BTreeMap::new(),
             events: node.bindings,

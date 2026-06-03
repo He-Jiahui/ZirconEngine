@@ -17,6 +17,8 @@ pub enum RenderFeatureCapabilityRequirement {
     BufferReadback,
     AsyncCompute,
     AsyncCopy,
+    NeuralCompute,
+    SparseTexture,
 }
 
 impl RenderFeatureCapabilityRequirement {
@@ -41,6 +43,8 @@ impl RenderFeatureCapabilityRequirement {
             Self::BufferReadback => RenderCapabilityKind::BufferReadback,
             Self::AsyncCompute => RenderCapabilityKind::AsyncCompute,
             Self::AsyncCopy => RenderCapabilityKind::AsyncCopy,
+            Self::NeuralCompute => RenderCapabilityKind::NeuralCompute,
+            Self::SparseTexture => RenderCapabilityKind::SparseTexture,
         }
     }
 
@@ -61,6 +65,8 @@ impl RenderFeatureCapabilityRequirement {
             RenderCapabilityKind::BufferReadback => Self::BufferReadback,
             RenderCapabilityKind::AsyncCompute => Self::AsyncCompute,
             RenderCapabilityKind::AsyncCopy => Self::AsyncCopy,
+            RenderCapabilityKind::NeuralCompute => Self::NeuralCompute,
+            RenderCapabilityKind::SparseTexture => Self::SparseTexture,
         }
     }
 

@@ -87,6 +87,9 @@ pub(crate) struct HostPaneInteractionStateData {
     pub browser_asset_tree_scroll_px: f32,
     pub browser_asset_tree_hovered_index: i32,
     pub hovered_template_control_id: SharedString,
+    pub hovered_template_dispatch_kind: SharedString,
+    pub hovered_template_action_id: SharedString,
+    pub hovered_template_value_text: SharedString,
     pub hovered_template_frame: FrameRect,
 }
 
@@ -100,6 +103,9 @@ impl Default for HostPaneInteractionStateData {
             browser_asset_tree_scroll_px: 0.0,
             browser_asset_tree_hovered_index: -1,
             hovered_template_control_id: SharedString::default(),
+            hovered_template_dispatch_kind: SharedString::default(),
+            hovered_template_action_id: SharedString::default(),
+            hovered_template_value_text: SharedString::default(),
             hovered_template_frame: FrameRect::default(),
         }
     }

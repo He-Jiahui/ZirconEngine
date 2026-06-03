@@ -494,6 +494,10 @@ fn mesh_instance_from_gltf_node(
         model: gltf_label_reference(root_uri, &format!("Mesh{}", mesh.index())),
         mesh: None,
         material: material_reference_for_index(root_uri, first_mesh_material_index(&mesh)),
+        morph_weights: mesh
+            .weights()
+            .map(|weights| weights.to_vec())
+            .unwrap_or_default(),
         primitives: mesh_primitive_bindings_from_gltf_mesh(root_uri, &mesh),
     })
 }

@@ -1,5 +1,6 @@
 mod asset_scene;
 mod component_structure;
+mod derived_state;
 mod dynamic_scene;
 mod ecs_change_detection;
 mod ecs_identity_storage;
@@ -18,6 +19,7 @@ mod ecs_typed_api;
 mod editor_projection;
 mod physics_animation_components;
 mod property_paths;
+mod render_extract;
 mod semantics;
 mod support;
 mod world_basics;

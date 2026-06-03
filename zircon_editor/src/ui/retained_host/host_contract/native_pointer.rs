@@ -14,9 +14,13 @@ use super::data::{
     FrameRect, HostDragStateData, HostPaneInteractionStateData, HostResizeStateData,
     HostTextInputFocusData, HostWindowPresentationData, TabData,
 };
+use super::frame_geometry::{union_frame, union_optional_frames};
 use super::globals::{PaneSurfaceHostContext, UiHostContext};
+use super::native_popup_dismiss::dispatch_workbench_popup_outside_primary_press;
 use super::redraw::NativePointerDispatchResult;
 use super::surface_hit_test::{self, TemplateNodePointerHit, ViewportToolbarPointerHit};
+use super::template_activation_semantics::dispatch_template_node_primary_press;
+use super::template_input_semantics::{hit_is_text_input, text_input_edit_target_id};
 use super::window::UiHostWindow;
 use crate::ui::retained_host::hierarchy_pointer::constants::{
     ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y,
@@ -78,6 +82,16 @@ pub(super) fn dispatch_native_pointer_move(
             return NativePointerDispatchResult::idle();
         }
         return NativePointerDispatchResult::region(menu_damage_frame(&presentation));
+    }
+
+    if let Some(hit) = route_pointer_to_workbench_window(&presentation, x, y) {
+        let before = ui.get_pane_interaction_state();
+        set_hovered_workbench_template_hit(ui, &hit);
+        return workbench_template_node_move_redraw(
+            &hit,
+            &before,
+            &ui.get_pane_interaction_state(),
+        );
     }
 
     if let Some(pointer) = route_pointer_move_to_pane(&presentation, x, y) {
@@ -281,6 +295,18 @@ pub(super) fn dispatch_native_pointer_button(
         }
     }
 
+    if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+        if let Some(result) = dispatch_workbench_popup_outside_primary_press(
+            ui,
+            &presentation,
+            x,
+            y,
+            cleared_text_input_frame.clone(),
+        ) {
+            return result;
+        }
+    }
+
     if let Some(route) = route_top_level_chrome(&presentation, x, y) {
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
             arm_native_tab_drag(ui, &presentation, &route, x, y);
@@ -291,6 +317,31 @@ pub(super) fn dispatch_native_pointer_button(
             };
             dispatch_chrome_press(ui, route, x, y);
             return redraw;
+        }
+    }
+
+    if let Some(hit) = route_pointer_to_workbench_window(&presentation, x, y) {
+        if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+            if hit_is_text_input(&hit) {
+                if focus_template_node_text_input(ui, &hit) {
+                    let damage = union_optional_frames(
+                        cleared_text_input_frame.clone(),
+                        Some(hit.frame.clone()),
+                    )
+                    .unwrap_or_else(|| hit.frame.clone());
+                    return NativePointerDispatchResult::region(damage);
+                }
+                return NativePointerDispatchResult::idle();
+            }
+            let pane_host = ui.global::<PaneSurfaceHostContext>();
+            dispatch_template_node_primary_press(&pane_host, hit.clone());
+            let damage =
+                union_optional_frames(cleared_text_input_frame.clone(), Some(hit.frame.clone()))
+                    .unwrap_or_else(|| hit.frame.clone());
+            return NativePointerDispatchResult::region_with_frame_update(damage);
+        }
+        if state == NativePointerButtonState::Released {
+            return NativePointerDispatchResult::region(hit.frame);
         }
     }
 
@@ -479,6 +530,45 @@ pub(super) fn dispatch_native_pointer_button(
     NativePointerDispatchResult::idle()
 }
 
+fn route_pointer_to_workbench_window(
+    presentation: &HostWindowPresentationData,
+    x: f32,
+    y: f32,
+) -> Option<TemplateNodePointerHit> {
+    surface_hit_test::hit_test_workbench_window_template_node(presentation, x, y)
+}
+
+fn workbench_template_node_move_redraw(
+    hit: &TemplateNodePointerHit,
+    before: &HostPaneInteractionStateData,
+    after: &HostPaneInteractionStateData,
+) -> NativePointerDispatchResult {
+    if before == after {
+        return NativePointerDispatchResult::idle();
+    }
+    template_hover_damage(before, after)
+        .map(|template| union_frame(&template, &hit.frame))
+        .map(NativePointerDispatchResult::region)
+        .unwrap_or_else(|| NativePointerDispatchResult::region(hit.frame.clone()))
+}
+
+fn set_hovered_workbench_template_hit(ui: &UiHostWindow, hit: &TemplateNodePointerHit) {
+    if matches!(
+        hit.dispatch_kind.as_str(),
+        "workbench_option" | "workbench_menu_item"
+    ) {
+        ui.set_hovered_template_row_for_pointer_move(
+            hit.control_id.clone(),
+            hit.dispatch_kind.clone(),
+            hit.action_id.clone(),
+            hit.value_text.clone(),
+            hit.frame.clone(),
+        );
+    } else {
+        ui.set_hovered_template_node_for_pointer_move(hit.control_id.clone(), hit.frame.clone());
+    }
+}
+
 pub(super) fn dispatch_native_pointer_scroll(
     ui: &UiHostWindow,
     x: f32,
@@ -661,71 +751,6 @@ fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y
     }
 }
 
-fn dispatch_template_node_primary_press(
-    pane_host: &PaneSurfaceHostContext<'_>,
-    hit: TemplateNodePointerHit,
-) {
-    match hit.dispatch_kind.as_str() {
-        "inspector" => pane_host.invoke_inspector_control_clicked(hit.control_id),
-        kind if asset_dispatch_source(kind).is_some() => {
-            dispatch_asset_template_node_primary_press(pane_host, hit)
-        }
-        "welcome" => pane_host.invoke_welcome_control_clicked(action_or_control_id(&hit)),
-        "welcome_text" => {}
-        "showcase" => {
-            pane_host.invoke_component_showcase_control_activated(hit.control_id, hit.action_id)
-        }
-        _ if !hit.binding_id.is_empty() => {
-            pane_host.invoke_surface_control_clicked(hit.control_id, hit.binding_id)
-        }
-        _ => pane_host.invoke_surface_control_clicked(hit.control_id, hit.action_id),
-    }
-}
-
-fn dispatch_asset_template_node_primary_press(
-    pane_host: &PaneSurfaceHostContext<'_>,
-    hit: TemplateNodePointerHit,
-) {
-    let source: SharedString = asset_dispatch_source(hit.dispatch_kind.as_str())
-        .unwrap_or("activity")
-        .into();
-    let control_id = action_or_control_id(&hit);
-    if is_asset_change_control(control_id.as_str()) {
-        pane_host.invoke_asset_control_changed(source, control_id, hit.value_text);
-    } else {
-        pane_host.invoke_asset_control_clicked(source, control_id);
-    }
-}
-
-fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
-    if dispatch_kind == "asset" {
-        return Some("activity");
-    }
-    dispatch_kind.strip_prefix("asset:")
-}
-
-fn is_asset_change_control(control_id: &str) -> bool {
-    matches!(
-        control_id,
-        "SearchEdited" | "SetKindFilter" | "SetViewMode" | "SetUtilityTab"
-    )
-}
-
-fn action_or_control_id(hit: &TemplateNodePointerHit) -> SharedString {
-    if hit.action_id.is_empty() {
-        hit.control_id.clone()
-    } else {
-        hit.action_id.clone()
-    }
-}
-
-fn hit_is_text_input(hit: &TemplateNodePointerHit) -> bool {
-    hit.dispatch_kind.as_str() == "welcome_text"
-        || hit.component_role.as_str() == "input-field"
-        || hit.component_role.as_str() == "number-field"
-        || !hit.edit_action_id.is_empty()
-}
-
 fn focus_template_node_text_input(ui: &UiHostWindow, hit: &TemplateNodePointerHit) -> bool {
     let target_id = text_input_edit_target_id(hit);
     if target_id.is_empty() {
@@ -742,20 +767,6 @@ fn focus_template_node_text_input(ui: &UiHostWindow, hit: &TemplateNodePointerHi
             edit_frame: hit.frame.clone(),
         });
     true
-}
-
-fn text_input_edit_target_id(hit: &TemplateNodePointerHit) -> SharedString {
-    if !hit.edit_action_id.is_empty() {
-        hit.edit_action_id.clone()
-    } else if hit.dispatch_kind.as_str() == "welcome_text" && !hit.action_id.is_empty() {
-        hit.action_id.clone()
-    } else if matches!(hit.component_role.as_str(), "input-field" | "number-field")
-        && !hit.binding_id.is_empty()
-    {
-        hit.binding_id.clone()
-    } else {
-        SharedString::new()
-    }
 }
 
 fn dispatch_native_resize_move(
@@ -1400,14 +1411,6 @@ fn hierarchy_row_damage(frame: &FrameRect, row_index: i32, scroll_px: f32) -> Op
     })
 }
 
-fn union_optional_frames(left: Option<FrameRect>, right: Option<FrameRect>) -> Option<FrameRect> {
-    match (left, right) {
-        (Some(left), Some(right)) => Some(union_frame(&left, &right)),
-        (Some(frame), None) | (None, Some(frame)) => Some(frame),
-        (None, None) => None,
-    }
-}
-
 fn resize_pointer_redraw(
     presentation: &HostWindowPresentationData,
     extra_damage: Option<FrameRect>,
@@ -1440,19 +1443,6 @@ fn tab_drag_release_redraw(
     match tab_drag_release_damage_frame(presentation, drag_state) {
         Some(frame) => NativePointerDispatchResult::region_with_frame_update(frame),
         None => NativePointerDispatchResult::full_frame(),
-    }
-}
-
-fn union_frame(left: &FrameRect, right: &FrameRect) -> FrameRect {
-    let x0 = left.x.min(right.x);
-    let y0 = left.y.min(right.y);
-    let x1 = (left.x + left.width).max(right.x + right.width);
-    let y1 = (left.y + left.height).max(right.y + right.height);
-    FrameRect {
-        x: x0,
-        y: y0,
-        width: (x1 - x0).max(0.0),
-        height: (y1 - y0).max(0.0),
     }
 }
 

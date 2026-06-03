@@ -5,6 +5,7 @@ mod generate_normals;
 mod gltf_labeled_subassets;
 mod import_animation_asset;
 mod import_authoring_asset;
+mod import_cube_lut;
 mod import_data_asset;
 mod import_font_asset;
 mod import_from_source;

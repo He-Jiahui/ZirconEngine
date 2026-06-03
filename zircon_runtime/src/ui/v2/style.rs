@@ -133,6 +133,22 @@ impl UiV2RuntimeStyleIndex {
         }
     }
 
+    pub(crate) fn set_base_attribute(
+        &mut self,
+        node_id: UiNodeId,
+        property: String,
+        value: Value,
+    ) -> bool {
+        let Some(attributes) = self.base_attributes.get_mut(&node_id) else {
+            return false;
+        };
+        if attributes.get(&property) == Some(&value) {
+            return false;
+        }
+        attributes.insert(property, value);
+        true
+    }
+
     pub(crate) fn apply_to_tree_subtree(
         &self,
         tree: &mut UiTree,

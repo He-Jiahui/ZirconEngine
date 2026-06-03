@@ -1,10 +1,11 @@
-use crate::render_graph::QueueLane;
-
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
 use crate::{FrameHistoryBinding, FrameHistorySlot};
 
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
+use super::compute_workload::{SSAO_PIPELINE_LABEL, SSAO_WORKGROUP_SIZE};
 
 pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
 ) -> RenderFeatureDescriptor {
@@ -24,7 +25,12 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             QueueLane::AsyncCompute,
         )
         .with_executor_id("ao.ssao-evaluate")
-        .read_texture("scene-depth")
-        .write_texture("ambient-occlusion")],
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            SSAO_PIPELINE_LABEL,
+            SSAO_WORKGROUP_SIZE,
+        ))
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
     )
 }

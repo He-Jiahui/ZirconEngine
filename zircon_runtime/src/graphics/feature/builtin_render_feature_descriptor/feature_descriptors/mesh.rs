@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::QueueLane;
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -18,11 +19,20 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         vec![
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
+                "preview-sky",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("sky.preview-scene-color")
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
                 "depth-prepass",
                 QueueLane::Graphics,
             )
             .with_executor_id("mesh.depth-prepass")
-            .write_texture("scene-depth"),
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Opaque3d,
                 "opaque-mesh",

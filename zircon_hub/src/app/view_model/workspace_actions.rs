@@ -35,26 +35,16 @@ pub(in crate::app) fn workspace_action_readiness(
 
     let source_engine_status = match &scope.source_engine {
         SourceEngineScope::ProjectBound(_) => {
-            localization::text(language, "Project-bound Source Engine", "项目绑定源码引擎")
+            localization::text(language, "Project-bound", "项目绑定")
         }
-        SourceEngineScope::Active(_) => localization::text(
-            language,
-            "Active Source Engine fallback",
-            "当前源码引擎回退",
-        ),
-        SourceEngineScope::ProjectUnbound { .. } => localization::text(
-            language,
-            "Project has no bound Source Engine",
-            "项目未绑定源码引擎",
-        ),
-        SourceEngineScope::ProjectEngineUnavailable { .. } => localization::text(
-            language,
-            "Project-bound Source Engine is unavailable",
-            "项目绑定源码引擎不可用",
-        ),
-        SourceEngineScope::None => {
-            localization::text(language, "No Source Engine configured", "未配置源码引擎")
+        SourceEngineScope::Active(_) => localization::text(language, "Active", "当前"),
+        SourceEngineScope::ProjectUnbound { .. } => {
+            localization::text(language, "Unbound", "未绑定")
         }
+        SourceEngineScope::ProjectEngineUnavailable { .. } => {
+            localization::text(language, "Unavailable", "不可用")
+        }
+        SourceEngineScope::None => localization::text(language, "Missing", "缺失"),
     };
 
     WorkspaceActionReadinessData {

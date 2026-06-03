@@ -3,4 +3,8 @@ mod drawer_source_surface;
 mod floating_window_source;
 mod layout_routes;
 mod support;
+mod workbench_inspector_property_edit;
+mod workbench_module_navigation;
+mod workbench_pointer_preview;
 mod workbench_projection;
+mod workbench_window_menus;

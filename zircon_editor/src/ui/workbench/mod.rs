@@ -8,6 +8,7 @@ pub mod layout;
 pub mod model;
 pub mod preset;
 pub mod project;
+pub mod reference;
 pub mod reflection;
 pub mod snapshot;
 pub mod startup;

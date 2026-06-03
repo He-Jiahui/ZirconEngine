@@ -5,6 +5,7 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use crate::core::editor_event::{EditorEventEnvelope, EditorEventRuntime, EditorEventSource};
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
+use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use crate::ui::workbench::model::operation_path_for_menu_action;
 use serde_json::{Number, Value};
@@ -24,6 +25,13 @@ pub(crate) fn dispatch_editor_binding(
     runtime: &EditorEventRuntime,
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
+    if is_reference_preview_action(&binding) {
+        let record = runtime.dispatch_binding(binding, EditorEventSource::RetainedHost)?;
+        let mut effects = UiHostEventEffects::default();
+        apply_record_effects(&mut effects, &record);
+        return Ok(effects);
+    }
+
     if let Some(invocation) = operation_invocation_for_binding(&binding)? {
         let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
         let mut effects = UiHostEventEffects::default();
@@ -81,5 +89,12 @@ fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
         UiBindingValue::Array(values) => {
             Value::Array(values.iter().map(ui_binding_value_to_json).collect())
         }
+    }
+}
+
+fn is_reference_preview_action(binding: &EditorUiBinding) -> bool {
+    match binding.payload() {
+        EditorUiBindingPayload::MenuAction { action_id } => is_workbench_preview_action(action_id),
+        _ => false,
     }
 }

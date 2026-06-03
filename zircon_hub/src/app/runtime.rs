@@ -30,7 +30,7 @@ use self::source_engine_paths::{
     same_source_engine_path, source_engine_display_name, source_engine_id,
 };
 use super::binding;
-use super::quick_action::HubQuickAction;
+use super::quick_action::{HubPageHeaderAction, HubQuickAction};
 use super::HubWindow;
 
 type BuildRunner = fn(&BuildCommand) -> Result<BuildExecutionReport, HubError>;
@@ -264,6 +264,177 @@ impl HubRuntime {
                 "Unknown quick action: {action_id}"
             ))),
         }
+    }
+
+    fn page_header_action(&mut self, ui: &HubWindow, action_id: &str) -> Result<(), HubError> {
+        match HubPageHeaderAction::from_id(action_id) {
+            Some(HubPageHeaderAction::RefreshSources) => self.refresh_sources_from_header(ui),
+            Some(HubPageHeaderAction::OpenOutput) => self.open_output(ui),
+            Some(HubPageHeaderAction::PackageProject) => self.package_selected_project(ui),
+            Some(HubPageHeaderAction::RequestReview) => self.request_review_from_header(ui),
+            Some(HubPageHeaderAction::RefreshAssets) => self.refresh_assets_from_header(ui),
+            Some(HubPageHeaderAction::RefreshPlugins) => self.refresh_plugins_from_header(ui),
+            Some(HubPageHeaderAction::RefreshLearn) => self.refresh_learn_from_header(ui),
+            Some(HubPageHeaderAction::ResetSettings) => self.reset_settings_from_header(),
+            Some(HubPageHeaderAction::OpenEditor) => self.open_selected_project_or_editor(ui),
+            Some(HubPageHeaderAction::BuildProject) => self.build_selected_project_engine_only(ui),
+            Some(HubPageHeaderAction::DeployPreview) => {
+                self.reserved_page_action(
+                    "Deploy Preview reserved",
+                    "Cloud preview deployment is not connected in local Hub mode",
+                    "Package the selected project locally before enabling remote deployment",
+                    "Cloud",
+                );
+                Ok(())
+            }
+            Some(HubPageHeaderAction::OpenSourceControl) => {
+                self.open_source_control_from_header(ui)
+            }
+            Some(HubPageHeaderAction::AddAsset) => {
+                self.reserved_page_action(
+                    "Add Asset reserved",
+                    "Asset import workflow is staged for the catalog page",
+                    "Refresh the catalog after placing assets in a project or Source Engine folder",
+                    "Assets",
+                );
+                Ok(())
+            }
+            Some(HubPageHeaderAction::AddPlugin) => {
+                self.reserved_page_action(
+                    "Add Plugin reserved",
+                    "Plugin installation workflow is staged for the plugin catalog",
+                    "Refresh plugins after adding a plugin folder to the project or Source Engine",
+                    "Plugins",
+                );
+                Ok(())
+            }
+            Some(HubPageHeaderAction::AddGuide) => {
+                self.reserved_page_action(
+                    "Add Guide reserved",
+                    "Guide authoring workflow is staged for the learn catalog",
+                    "Refresh learn resources after adding documentation under docs or guides",
+                    "Learn",
+                );
+                Ok(())
+            }
+            Some(HubPageHeaderAction::SaveSettings) => self.save_settings(ui),
+            None => Err(HubError::message(format!(
+                "Unknown page header action: {action_id}"
+            ))),
+        }
+    }
+
+    fn refresh_sources_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.register_source_engine_from_settings();
+        self.refresh_source_scoped_views()?;
+        self.task_status = TaskStatus::success(
+            "Sources refreshed",
+            "Catalogs, learn resources, plugins, and team data were rescanned",
+        )
+        .with_operation(TaskOperationKind::SourceEngine, self.action_engine_target());
+        Ok(())
+    }
+
+    fn refresh_assets_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.refresh_asset_catalog()?;
+        self.task_status = TaskStatus::success(
+            "Assets refreshed",
+            format!("{} assets indexed", self.asset_catalog.len()),
+        )
+        .with_operation(TaskOperationKind::Hub, "Assets");
+        Ok(())
+    }
+
+    fn refresh_plugins_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.refresh_plugin_catalog()?;
+        self.task_status = TaskStatus::success(
+            "Plugins refreshed",
+            format!("{} plugins indexed", self.plugin_catalog.len()),
+        )
+        .with_operation(TaskOperationKind::Hub, "Plugins");
+        Ok(())
+    }
+
+    fn refresh_learn_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.refresh_learn_catalog()?;
+        self.task_status = TaskStatus::success(
+            "Learn resources refreshed",
+            format!("{} resources indexed", self.learn_catalog.len()),
+        )
+        .with_operation(TaskOperationKind::Hub, "Learn");
+        Ok(())
+    }
+
+    fn reset_settings_from_header(&mut self) -> Result<(), HubError> {
+        self.task_status = TaskStatus::warning(
+            "Settings reset",
+            "Restored the saved Hub settings in the form",
+            "Use Save Settings after making new changes",
+        )
+        .with_operation(TaskOperationKind::Settings, "Hub settings");
+        Ok(())
+    }
+
+    fn request_review_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.refresh_team_overview()?;
+        if self.team_overview.repository_path.as_os_str().is_empty() {
+            self.task_status = TaskStatus::warning(
+                "Review unavailable",
+                "No Git repository was found for the selected project or Source Engine",
+                "Select a project or Source Engine checkout inside a Git repository",
+            )
+            .with_operation(TaskOperationKind::Hub, "Team");
+            return Ok(());
+        }
+        self.task_status = TaskStatus::success(
+            "Review summary ready",
+            format!(
+                "{} contributors in {}",
+                self.team_overview.members.len(),
+                self.team_overview.repository_path.to_string_lossy()
+            ),
+        )
+        .with_operation(TaskOperationKind::Hub, "Team");
+        Ok(())
+    }
+
+    fn open_source_control_from_header(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        self.refresh_team_overview()?;
+        if self.team_overview.repository_path.as_os_str().is_empty() {
+            self.task_status = TaskStatus::warning(
+                "Source control unavailable",
+                "No Git repository was found for the selected project or Source Engine",
+                "Select a project or Source Engine checkout inside a Git repository",
+            )
+            .with_operation(TaskOperationKind::Hub, "Team");
+            return Ok(());
+        }
+        self.task_status = TaskStatus::success(
+            "Source control ready",
+            self.team_overview
+                .repository_path
+                .to_string_lossy()
+                .into_owned(),
+        )
+        .with_operation(TaskOperationKind::Hub, "Team");
+        Ok(())
+    }
+
+    fn reserved_page_action(
+        &mut self,
+        label: &'static str,
+        detail: &'static str,
+        recovery: &'static str,
+        target: &'static str,
+    ) {
+        self.task_status = TaskStatus::warning(label, detail, recovery)
+            .with_operation(TaskOperationKind::Hub, target);
     }
 
     fn build_selected_project_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
@@ -1045,6 +1216,7 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     });
 
     wire_quick_actions(ui, Rc::clone(&runtime));
+    wire_page_header_actions(ui, Rc::clone(&runtime));
     window_controls::wire_window_controls(ui, runtime);
 }
 
@@ -1053,6 +1225,15 @@ fn wire_quick_actions(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     ui.on_quick_action(move |action_id| {
         with_runtime(&weak, &runtime, |runtime, ui| {
             runtime.quick_action(ui, &action_id)
+        })
+    });
+}
+
+fn wire_page_header_actions(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
+    let weak = ui.as_weak();
+    ui.on_page_header_action(move |action_id| {
+        with_runtime(&weak, &runtime, |runtime, ui| {
+            runtime.page_header_action(ui, &action_id)
         })
     });
 }

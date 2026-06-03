@@ -4,6 +4,7 @@ use super::*;
 use crate::ui::template_runtime::RetainedUiHostBindingProjection;
 use toml::Value;
 use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::style::UiStyleColor;
 
 #[test]
 fn runtime_component_projection_preserves_virtualization_and_pagination_metadata() {
@@ -25,6 +26,8 @@ fn runtime_component_projection_preserves_virtualization_and_pagination_metadata
     assert_eq!(virtual_list.virtualization_total_count, 1000);
     assert_eq!(virtual_list.virtualization_visible_start, 120);
     assert_eq!(virtual_list.virtualization_visible_count, 40);
+    assert_eq!(virtual_list.component_category.as_str(), "collection");
+    assert_eq!(virtual_list.component_layout_role.as_str(), "virtual-list");
 
     let paged_list = host_template_node(projected_node(
         "PagedList",
@@ -171,6 +174,8 @@ fn runtime_component_projection_derives_text_edit_targets_from_change_and_submit
         .expect("input with change and commit bindings should project edit targets");
 
     assert_eq!(projected.component_role.as_str(), "input-field");
+    assert_eq!(projected.component_category.as_str(), "input");
+    assert_eq!(projected.component_layout_role.as_str(), "leaf");
     assert_eq!(projected.edit_action_id.as_str(), "InspectorView/NameField");
     assert_eq!(
         projected.commit_action_id.as_str(),
@@ -236,32 +241,146 @@ fn runtime_component_projection_preserves_material_visual_metadata() {
 }
 
 #[test]
-fn runtime_component_projection_loads_workbench_reference_image_preview() {
+fn runtime_component_projection_preserves_segmented_selected_style_metadata() {
+    let segmented = host_template_node(projected_node(
+        "SegmentedControl",
+        [
+            ("selected_segment_border_width", Value::Float(0.0)),
+            ("selected_segment_underline_height", Value::Float(1.0)),
+            (
+                "selected_segment_underline_color",
+                Value::String("#32d3de7a".to_owned()),
+            ),
+        ],
+    ))
+    .expect("segmented selected style metadata should project into the host contract");
+
+    assert!(segmented.has_selected_segment_border_width);
+    assert_eq!(segmented.selected_segment_border_width, 0.0);
+    assert_eq!(segmented.selected_segment_underline_height, 1.0);
+    assert_eq!(
+        segmented.selected_segment_underline_color,
+        Color::from_argb_u8(122, 50, 211, 222)
+    );
+}
+
+#[test]
+fn runtime_component_projection_prioritizes_color_field_value_over_visual_aliases() {
+    let color_field = host_template_node(projected_node(
+        "ColorField",
+        [
+            ("value", Value::String("#4d89ff".to_owned())),
+            ("color", Value::String("#e6f1f4".to_owned())),
+            ("foreground_color", Value::String("#e6f1f4".to_owned())),
+        ],
+    ))
+    .expect("ColorField should project into the host contract");
+
+    assert_eq!(color_field.component_role.as_str(), "color-field");
+    assert_eq!(color_field.value_color, Color::from_rgb_u8(77, 137, 255));
+}
+
+#[test]
+fn runtime_component_projection_maps_workbench_metric_aliases() {
+    let toggle = host_template_node(projected_node(
+        "Toggle",
+        [
+            ("layout_spacing", Value::Float(10.0)),
+            ("track_width", Value::Float(34.0)),
+            ("track_height", Value::Float(18.0)),
+            ("thumb_size", Value::Float(14.0)),
+        ],
+    ))
+    .expect("toggle metric aliases should project into the host contract");
+
+    assert_eq!(toggle.layout_content_offset_x, 10.0);
+    assert_eq!(toggle.value_number, 34.0);
+    assert_eq!(toggle.layout_content_offset_y, 18.0);
+    assert_eq!(toggle.layout_icon_size, 14.0);
+
+    let toast = host_template_node(projected_node(
+        "Alert",
+        [
+            ("status_mark_size", Value::Float(18.0)),
+            ("status_mark_color", Value::String("#209fa9".to_owned())),
+            ("action_color", Value::String("#238f98".to_owned())),
+        ],
+    ))
+    .expect("toast metric aliases should project into the host contract");
+
+    assert_eq!(toast.value_number, 18.0);
+    assert_eq!(toast.label_color, Color::from_rgb_u8(32, 159, 169));
+    assert_eq!(toast.value_color, Color::from_rgb_u8(35, 143, 152));
+
+    let tooltip = host_template_node(projected_node(
+        "Tooltip",
+        [
+            ("arrow_size", Value::Float(8.0)),
+            ("arrow_color", Value::String("#171c20".to_owned())),
+            ("label_color", Value::String("#a8b3b8".to_owned())),
+            ("icon_color", Value::String("#259ca7".to_owned())),
+            ("icon_stroke_width", Value::Float(1.45)),
+            ("layout_content_offset_y", Value::Float(56.0)),
+        ],
+    ))
+    .expect("tooltip metric aliases should project into the host contract");
+
+    assert_eq!(tooltip.component_role.as_str(), "tooltip");
+    assert_eq!(tooltip.value_number, 8.0);
+    assert_eq!(tooltip.value_color, Color::from_rgb_u8(23, 28, 32));
+    assert_eq!(tooltip.label_color, Color::from_rgb_u8(168, 179, 184));
+    assert_eq!(tooltip.icon_color, Color::from_rgb_u8(37, 156, 167));
+    assert_eq!(tooltip.icon_stroke_width, 1.45);
+    assert_eq!(tooltip.layout_content_offset_y, 56.0);
+
+    let slider = host_template_node(projected_node(
+        "Slider",
+        [
+            ("thumb_color", Value::String("#b7f1f8".to_owned())),
+            ("thumb_outline_color", Value::String("#2ab1bc33".to_owned())),
+            ("thumb_halo_color", Value::String("#32d3de3d".to_owned())),
+        ],
+    ))
+    .expect("slider thumb aliases should project into the host contract");
+
+    assert_eq!(slider.icon_color, Color::from_rgb_u8(183, 241, 248));
+    assert_eq!(
+        slider.state_layer_color,
+        Color::from_argb_u8(61, 50, 211, 222)
+    );
+    assert_eq!(
+        style_color_u8(slider.button_style.element.border_color.as_ref()),
+        Some([42, 177, 188, 51])
+    );
+}
+
+#[test]
+fn runtime_component_projection_loads_editor_svg_image_preview() {
     let image = host_template_node(projected_node(
         "Image",
         [
             (
                 "image",
-                Value::String("ui/editor/reference/workbench.png".to_owned()),
+                Value::String("zircon_editor_shell/toolbar/select.svg".to_owned()),
             ),
             (
                 "value",
-                Value::String("ui/editor/reference/workbench.png".to_owned()),
+                Value::String("zircon_editor_shell/toolbar/select.svg".to_owned()),
             ),
         ],
     ))
-    .expect("workbench reference image should project into the host contract");
+    .expect("editor svg image should project into the host contract");
 
     assert_eq!(image.component_role.as_str(), "image");
     assert_eq!(
         image.media_source.as_str(),
-        "ui/editor/reference/workbench.png"
+        "zircon_editor_shell/toolbar/select.svg"
     );
     assert!(image.has_preview_image);
 
     let preview_size = image.preview_image.size();
-    assert_eq!(preview_size.width, 1672);
-    assert_eq!(preview_size.height, 941);
+    assert!(preview_size.width > 0);
+    assert!(preview_size.height > 0);
 }
 
 #[test]
@@ -868,4 +987,12 @@ fn assert_variant_token(component_variant: &str, expected: &str) {
             .any(|part| part == expected),
         "expected component_variant `{component_variant}` to contain `{expected}`"
     );
+}
+
+fn style_color_u8(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {
+    match color? {
+        UiStyleColor::Rgba(color) => Some(color.to_u8()),
+        UiStyleColor::Transparent => Some([0, 0, 0, 0]),
+        UiStyleColor::Role(_) | UiStyleColor::Inherit => None,
+    }
 }

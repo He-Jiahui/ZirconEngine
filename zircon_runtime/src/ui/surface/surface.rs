@@ -269,6 +269,22 @@ impl UiSurface {
             } else {
                 None
             };
+        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
+            if let Some(attribute_value) = self
+                .tree
+                .nodes
+                .get(&node_id)
+                .and_then(|node| node.template_metadata.as_ref())
+                .and_then(|metadata| metadata.attributes.get(&property))
+                .cloned()
+            {
+                let _ = self.runtime_style.set_base_attribute(
+                    node_id,
+                    property.clone(),
+                    attribute_value,
+                );
+            }
+        }
         let component_state_changed = if matches!(report.status, UiPropertyMutationStatus::Accepted)
         {
             self.sync_component_state_from_property(node_id, &property, &value)?
@@ -324,7 +340,16 @@ impl UiSurface {
             return Ok(changed);
         };
         match property {
+            "hover" | "hovered" => {
+                changed |= self.component_states.set_hovered(node_id, *value);
+            }
+            "focus" | "focused" => {
+                changed |= self.component_states.set_focused(node_id, *value);
+            }
             "pressed" => {
+                changed |= self.component_states.set_pressed(node_id, *value);
+            }
+            "active" => {
                 changed |= self.component_states.set_pressed(node_id, *value);
             }
             "checked" => {

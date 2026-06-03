@@ -36,6 +36,8 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_taa: false,
         supports_cas: false,
         supports_dlss: false,
+        supports_neural_compute: caps.supports_neural_compute,
+        supports_sparse_texture: caps.supports_sparse_texture,
         max_supported_msaa_samples: 1,
         virtual_geometry_supported: flagship_baseline_supported,
         hybrid_global_illumination_supported: flagship_baseline_supported,

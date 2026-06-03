@@ -1,6 +1,388 @@
+import {
+    CenteredIcon,
+} from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
-import { MaterialPalette, MaterialStyleMetrics } from "material_bridge.slint";
-import { HubIconButton } from "shared.slint";
+import {
+    FilledButton,
+    FilledIconButton,
+    IconButton as MaterialIconButton,
+    OutlineIconButton,
+    TonalButton,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
+} from "material_bridge.slint";
+
+export component PillButton inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
+    in property <bool> has-icon-image: false;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    callback clicked;
+
+    private property <length> focus-radius: root.height / 2;
+
+    height: MaterialStyleMetrics.size_40;
+    min-width: root.height * 3;
+    preferred-width: root.height * 4;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    if root.primary && (root.has-icon-image || root.icon != ""): FilledButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if root.primary && !(root.has-icon-image || root.icon != ""): FilledButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if !root.primary && (root.has-icon-image || root.icon != ""): TonalButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if !root.primary && !(root.has-icon-image || root.icon != ""): TonalButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    // Focus is a Hub-level state because the Material template buttons own hover/pressed
+    // behavior but do not expose a shared focus-ring API across all button variants.
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubCommandButton inherits Rectangle {
+    in property <string> text;
+    in property <image> source-image;
+    in property <bool> has-source-image: true;
+    in property <bool> primary: false;
+    in property <bool> with-menu: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> button-width: root.primary ? HubTokens.control-lg * 4 + HubTokens.space-7 + HubTokens.space-1 : HubTokens.control-lg * 4 + HubTokens.space-1;
+    in property <length> button-height: HubTokens.control-lg;
+    callback clicked;
+    private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;
+    private property <color> primary-command-stroke: HubVisualSpec.command-primary-stroke;
+
+    width: root.button-width;
+    height: root.button-height;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.primary ? root.primary-command-stroke : HubVisualSpec.outline-muted);
+    background: root.primary ? root.primary-command-fill : HubVisualSpec.panel-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.primary ? root.primary-command-stroke : MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    HorizontalLayout {
+        x: 0px;
+        width: root.with-menu ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;
+        height: parent.height;
+        padding-left: root.primary ? HubTokens.space-6 + MaterialStyleMetrics.size_4 : HubTokens.space-4;
+        padding-right: root.primary ? HubTokens.space-2 : (root.with-menu ? HubTokens.space-3 : HubTokens.space-4);
+        spacing: root.primary ? HubTokens.space-3 : HubTokens.space-2;
+        alignment: root.primary ? start : center;
+
+        CenteredIcon {
+            width: HubTokens.icon-md;
+            height: parent.height;
+            icon-size: HubTokens.icon-md;
+            source-image: root.source-image;
+            has-source-image: root.has-source-image;
+        }
+
+        MaterialText {
+            horizontal-stretch: root.primary ? 0 : 1;
+            text: root.text;
+            color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+            style: MaterialTypography.label_medium;
+            overflow: elide;
+            vertical_alignment: center;
+        }
+    }
+
+    if root.with-menu: Rectangle {
+        x: parent.width - root.height - MaterialStyleMetrics.size_2;
+        y: 0px;
+        width: HubTokens.border-width;
+        height: parent.height;
+        background: root.primary-command-stroke.with_alpha(0.22);
+    }
+
+    if root.with-menu: Image {
+        width: HubTokens.icon-xs;
+        height: HubTokens.icon-xs;
+        x: parent.width - root.height - MaterialStyleMetrics.size_2 + (root.height + MaterialStyleMetrics.size_2 - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/chevron-down.svg");
+        colorize: MaterialPalette.on_primary_container;
+    }
+}
+
+export component HubActionCommandButton inherits Rectangle {
+    in property <string> text;
+    in property <image> source-image;
+    in property <bool> has-source-image: true;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> action-height: HubTokens.control-md;
+    callback clicked;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.action-height;
+    clip: true;
+
+    HubCommandButton {
+        button-width: parent.width;
+        button-height: parent.height;
+        text: root.text;
+        source-image: root.source-image;
+        has-source-image: root.has-source-image;
+        primary: root.primary;
+        enabled: root.enabled;
+        focused: root.focused;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component HubActionStack inherits Rectangle {
+    in property <length> stack-height: HubTokens.control-md;
+    in property <length> stack-spacing: HubTokens.panel-gap;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.stack-height;
+    background: transparent;
+    clip: false;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.stack-spacing;
+        alignment: stretch;
+
+        @children
+    }
+}
+
+export component IconButton inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
+    in property <bool> has-icon-image: false;
+    in property <bool> active: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    callback clicked;
+
+    private property <length> focus-radius: HubVisualSpec.compact-radius;
+
+    width: MaterialStyleMetrics.size_40;
+    height: root.width;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    if root.active: FilledIconButton {
+        width: parent.width;
+        height: parent.height;
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        enabled: root.enabled;
+        tooltip: root.icon;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if !root.active: OutlineIconButton {
+        width: parent.width;
+        height: parent.height;
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        enabled: root.enabled;
+        tooltip: root.icon;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component HubIconButton inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
+    in property <bool> has-icon-image: false;
+    in property <bool> active: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    in property <length> button-width: MaterialStyleMetrics.size_40;
+    in property <length> button-height: root.button-width;
+    in property <length> button-radius: HubVisualSpec.compact-radius;
+    in property <length> button-border-width: HubTokens.border-width;
+    in property <length> icon-size: HubTokens.icon-md;
+    in property <color> active-background: HubVisualSpec.accent-fill;
+    in property <color> idle-background: HubVisualSpec.panel-background;
+    in property <color> active-border: HubVisualSpec.accent-stroke;
+    in property <color> idle-border: HubVisualSpec.outline-muted;
+    in property <color> active-foreground: HubVisualSpec.accent-stroke;
+    in property <color> idle-foreground: MaterialPalette.on_surface;
+    in property <color> state-layer-color: root.active ? root.active-foreground : MaterialPalette.on_surface;
+    in property <float> disabled-opacity: HubVisualSpec.disabled-opacity;
+    callback clicked;
+
+    width: root.button-width;
+    height: root.button-height;
+    border-radius: root.button-radius;
+    border-width: root.button-border-width;
+    border-color: root.active ? root.active-border : root.idle-border;
+    background: root.active ? root.active-background : root.idle-background;
+    opacity: root.enabled ? 1.0 : root.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.state-layer-color;
+        border_radius: root.button-radius;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    Image {
+        width: root.icon-size;
+        height: root.icon-size;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        colorize: root.active ? root.active-foreground : root.idle-foreground;
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.button-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
+
+export component WindowButton inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/close.svg");
+    in property <bool> has-icon-image: false;
+    in property <bool> danger: false;
+    in property <bool> enabled: true;
+    in property <bool> focused: false;
+    callback clicked;
+
+    private property <length> focus-radius: HubVisualSpec.compact-radius;
+
+    width: MaterialStyleMetrics.size_40;
+    height: root.width;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    MaterialIconButton {
+        width: parent.width;
+        height: parent.height;
+        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
+        inline: true;
+        has_error: root.danger;
+        enabled: root.enabled;
+        tooltip: root.icon;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    if root.focused: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: root.focus-radius;
+        border-width: HubVisualSpec.focus-ring-width;
+        border-color: HubVisualSpec.focus-ring-color;
+        background: transparent;
+    }
+}
 
 export component HubFloatingIconButton inherits HubIconButton {
     button-width: MaterialStyleMetrics.padding_28;

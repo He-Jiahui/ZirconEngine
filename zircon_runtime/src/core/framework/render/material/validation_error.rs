@@ -26,6 +26,10 @@ pub enum RenderMaterialValidationError {
         reference: AssetReference,
         reason: String,
     },
+    InvalidLightingModel {
+        path: String,
+        value: String,
+    },
     UnknownPropertyOverride {
         source: RenderMaterialDiagnosticSource,
         path: String,

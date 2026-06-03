@@ -50,6 +50,8 @@ export component ProjectBrowserPage inherits PageScrollSurface {
     private property <length> browser-row-slot-height: root.browser-row-height + root.browser-row-gap;
     private property <length> browser-table-header-height: HubTokens.control-md;
     private property <length> browser-panel-chrome-height: HubTokens.control-md + root.browser-table-header-height + root.page-gap * 4;
+    private property <length> browser-table-horizontal-inset: root.page-gap * 2;
+    private property <length> browser-table-row-width: max(HubTokens.control-md, root.content-width - root.browser-table-horizontal-inset);
     private property <int> browser-visible-rows: root.row-count < 5 ? root.row-count : 5;
     private property <length> browser-available-height: max(root.browser-panel-chrome-height + root.browser-row-slot-height, root.content-height - root.toolbar-height * 6 / 5 - root.toolbar-row-height - root.page-gap * 2);
     private property <length> browser-available-list-height: max(root.browser-row-slot-height, root.browser-available-height - root.browser-panel-chrome-height);
@@ -153,6 +155,8 @@ export component ProjectBrowserPage inherits PageScrollSurface {
             row-count: root.row-count;
             row-height: root.browser-row-height;
             row-spacing: root.browser-row-gap;
+            compact-table: root.viewport-compact;
+            table-row-width: root.browser-table-row-width;
             ui-text: root.ui-text;
             select-project(path) => {
                 root.select-project(path);

@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::QueueLane;
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -20,7 +21,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             QueueLane::Graphics,
         )
         .with_executor_id("history.scene-color")
-        .read_texture("scene-color")
-        .write_external("history-scene-color")],
+        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+        .read_external(PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR)
+        .write_external(PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR)],
     )
 }

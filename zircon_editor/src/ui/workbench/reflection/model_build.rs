@@ -29,6 +29,7 @@ pub fn build_workbench_reflection_model(
                 id,
                 title,
                 activity_window: _,
+                activity_window_template: _,
                 workspace,
             } => EditorHostPageReflectionModel {
                 page_id: id.0.clone(),

@@ -8,12 +8,13 @@ use super::{
     build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CorePipelineKind,
     DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
     PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-    RenderBakedLightingExtract, RenderBloomSettings, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderParticleBoundsSnapshot,
-    RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPointLightSnapshot,
-    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    RenderBakedLightingExtract, RenderBloomSettings, RenderCameraTarget,
+    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
+    RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPhaseQueue,
+    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderPostProcessVolumeStack,
+    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
     SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
 };
@@ -58,17 +59,41 @@ pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
     pub core_pipeline: CorePipelineKind,
     pub anti_alias: AntiAliasSettings,
+    pub target_size: Option<UVec2>,
 }
 
 impl RenderViewExtract {
     pub fn from_camera(camera: ViewportCameraSnapshot) -> Self {
         let core_pipeline = camera.core_pipeline_kind();
         let anti_alias = AntiAliasSettings::from_camera_msaa_samples(camera.msaa_samples);
+        let target_size = camera_target_size(&camera);
         Self {
             camera,
             core_pipeline,
             anti_alias,
+            target_size,
         }
+    }
+
+    pub fn apply_target_size(&mut self, target_size: UVec2) {
+        self.target_size = Some(target_size);
+        self.camera.apply_viewport_size(target_size);
+    }
+
+    pub fn effective_view_size(&self) -> UVec2 {
+        let target_size = self
+            .target_size
+            .or_else(|| camera_target_size(&self.camera))
+            .unwrap_or_else(|| UVec2::new(1, 1));
+        self.camera.effective_viewport_size(target_size)
+    }
+
+    pub fn effective_render_size(&self) -> UVec2 {
+        let target_size = self
+            .target_size
+            .or_else(|| camera_target_size(&self.camera))
+            .unwrap_or_else(|| UVec2::new(1, 1));
+        self.camera.effective_render_size(target_size)
     }
 }
 
@@ -84,6 +109,11 @@ pub struct GeometryPhaseInput {
     pub mesh_index: usize,
     pub material_alpha_mode: RenderMaterialAlphaMode,
     pub depth: f32,
+    pub depth_bias: f32,
+    pub render_queue: i32,
+    pub material_queue: i32,
+    pub order_in_layer: i32,
+    pub ui_z_index: i32,
 }
 
 impl GeometryPhaseInput {
@@ -98,7 +128,37 @@ impl GeometryPhaseInput {
             mesh_index,
             material_alpha_mode,
             depth,
+            depth_bias: 0.0,
+            render_queue: 0,
+            material_queue: 0,
+            order_in_layer: 0,
+            ui_z_index: 0,
         }
+    }
+
+    pub const fn with_depth_bias(mut self, depth_bias: f32) -> Self {
+        self.depth_bias = depth_bias;
+        self
+    }
+
+    pub const fn with_render_queue(mut self, render_queue: i32) -> Self {
+        self.render_queue = render_queue;
+        self
+    }
+
+    pub const fn with_material_queue(mut self, material_queue: i32) -> Self {
+        self.material_queue = material_queue;
+        self
+    }
+
+    pub const fn with_order_in_layer(mut self, order_in_layer: i32) -> Self {
+        self.order_in_layer = order_in_layer;
+        self
+    }
+
+    pub const fn with_ui_z_index(mut self, ui_z_index: i32) -> Self {
+        self.ui_z_index = ui_z_index;
+        self
     }
 }
 
@@ -116,11 +176,13 @@ impl GeometryExtract {
         let phase_inputs = meshes
             .iter()
             .enumerate()
-            .map(|(mesh_index, mesh)| GeometryPhaseInput {
-                entity: mesh.node_id,
-                mesh_index,
-                material_alpha_mode: RenderMaterialAlphaMode::Opaque,
-                depth: mesh.transform.translation.z,
+            .map(|(mesh_index, mesh)| {
+                GeometryPhaseInput::new(
+                    mesh.node_id,
+                    mesh_index,
+                    RenderMaterialAlphaMode::Opaque,
+                    mesh.transform.translation.z,
+                )
             })
             .collect::<Vec<_>>();
         Self::from_meshes_and_phase_inputs(core_pipeline, meshes, phase_inputs)
@@ -138,6 +200,11 @@ impl GeometryExtract {
                 mesh_index: input.mesh_index,
                 material_alpha_mode: &input.material_alpha_mode,
                 depth: input.depth,
+                depth_bias: input.depth_bias,
+                render_queue: input.render_queue,
+                material_queue: input.material_queue,
+                order_in_layer: input.order_in_layer,
+                ui_z_index: input.ui_z_index,
             }),
         );
 
@@ -158,6 +225,11 @@ impl GeometryExtract {
                 mesh_index: input.mesh_index,
                 material_alpha_mode: &input.material_alpha_mode,
                 depth: input.depth,
+                depth_bias: input.depth_bias,
+                render_queue: input.render_queue,
+                material_queue: input.material_queue,
+                order_in_layer: input.order_in_layer,
+                ui_z_index: input.ui_z_index,
             }),
         );
     }
@@ -170,6 +242,10 @@ pub struct SpritePhaseExtractInput {
     pub material_alpha_mode: RenderMaterialAlphaMode,
     pub z_order: i32,
     pub depth: f32,
+    pub depth_bias: f32,
+    pub render_queue: i32,
+    pub material_queue: i32,
+    pub ui_z_index: i32,
 }
 
 impl SpritePhaseExtractInput {
@@ -186,7 +262,31 @@ impl SpritePhaseExtractInput {
             material_alpha_mode,
             z_order,
             depth,
+            depth_bias: 0.0,
+            render_queue: 0,
+            material_queue: 0,
+            ui_z_index: 0,
         }
+    }
+
+    pub const fn with_depth_bias(mut self, depth_bias: f32) -> Self {
+        self.depth_bias = depth_bias;
+        self
+    }
+
+    pub const fn with_render_queue(mut self, render_queue: i32) -> Self {
+        self.render_queue = render_queue;
+        self
+    }
+
+    pub const fn with_material_queue(mut self, material_queue: i32) -> Self {
+        self.material_queue = material_queue;
+        self
+    }
+
+    pub const fn with_ui_z_index(mut self, ui_z_index: i32) -> Self {
+        self.ui_z_index = ui_z_index;
+        self
     }
 }
 
@@ -224,6 +324,10 @@ impl SpriteExtract {
                 material_alpha_mode: input.material_alpha_mode,
                 z_order: input.z_order,
                 depth: input.depth,
+                depth_bias: input.depth_bias,
+                render_queue: input.render_queue,
+                material_queue: input.material_queue,
+                ui_z_index: input.ui_z_index,
             }),
         );
 
@@ -252,6 +356,8 @@ pub struct PostProcessExtract {
     pub display_mode: DisplayMode,
     pub bloom: RenderBloomSettings,
     pub color_grading: RenderColorGradingSettings,
+    pub effect_stack: RenderPostProcessEffectStackSettings,
+    pub volume_stack: RenderPostProcessVolumeStack,
     pub stack: PostProcessStackDescriptor,
     pub graph: PostProcessPassGraph,
 }
@@ -260,7 +366,7 @@ impl Default for PostProcessExtract {
     fn default() -> Self {
         let bloom = RenderBloomSettings::default();
         let color_grading = RenderColorGradingSettings::default();
-        Self::from_parts(
+        Self::from_parts_with_effect_stack(
             PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,
@@ -270,6 +376,7 @@ impl Default for PostProcessExtract {
             DisplayMode::Shaded,
             bloom,
             color_grading,
+            RenderPostProcessEffectStackSettings::default(),
             false,
             false,
         )
@@ -285,31 +392,89 @@ impl PostProcessExtract {
         history_resolve_enabled: bool,
         history_available: bool,
     ) -> Self {
-        let stack = PostProcessStackDescriptor::from_extract_settings(
-            &bloom,
-            &color_grading,
+        Self::from_parts_with_effect_stack(
+            preview,
+            display_mode,
+            bloom,
+            color_grading,
+            RenderPostProcessEffectStackSettings::default(),
             history_resolve_enabled,
             history_available,
-        );
+        )
+    }
+
+    pub fn from_parts_with_effect_stack(
+        preview: PreviewEnvironmentExtract,
+        display_mode: DisplayMode,
+        bloom: RenderBloomSettings,
+        color_grading: RenderColorGradingSettings,
+        effect_stack: RenderPostProcessEffectStackSettings,
+        history_resolve_enabled: bool,
+        history_available: bool,
+    ) -> Self {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &bloom,
+                &color_grading,
+                &effect_stack,
+                history_resolve_enabled,
+                history_available,
+                &AntiAliasSettings::off(),
+            );
         let graph = stack.validated_graph();
         Self {
             preview,
             display_mode,
             bloom,
             color_grading,
+            effect_stack,
+            volume_stack: RenderPostProcessVolumeStack::default(),
             stack,
             graph,
         }
     }
 
     pub fn rebuild_graph(&mut self, history_resolve_enabled: bool, history_available: bool) {
-        self.stack = PostProcessStackDescriptor::from_extract_settings(
-            &self.bloom,
-            &self.color_grading,
-            history_resolve_enabled,
-            history_available,
-        );
+        self.stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &self.bloom,
+                &self.color_grading,
+                &self.effect_stack,
+                history_resolve_enabled,
+                history_available,
+                &AntiAliasSettings::off(),
+            );
         self.graph = self.stack.validated_graph();
+    }
+
+    pub fn rebuild_graph_with_anti_alias(
+        &mut self,
+        history_resolve_enabled: bool,
+        history_available: bool,
+        anti_alias: &AntiAliasSettings,
+    ) {
+        self.stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &self.bloom,
+                &self.color_grading,
+                &self.effect_stack,
+                history_resolve_enabled,
+                history_available,
+                anti_alias,
+            );
+        self.graph = self.stack.validated_graph();
+    }
+
+    pub fn resolved_settings_for_layers(
+        &self,
+        render_layers: &RenderLayerSet,
+    ) -> RenderResolvedPostProcessSettings {
+        self.volume_stack.resolve(
+            render_layers,
+            self.bloom,
+            self.color_grading,
+            self.effect_stack,
+        )
     }
 }
 
@@ -372,6 +537,11 @@ pub struct RenderFrameExtract {
 }
 
 impl RenderFrameExtract {
+    /// Builds a frame DTO from the legacy viewport packet for preview,
+    /// roundtrip, and synthetic validation paths. Scene production producers
+    /// should fill `RenderFrameExtract` directly because this adapter cannot
+    /// recover advanced sidebands such as sprites, particles, VG payloads, or
+    /// level-owned animation poses from a `SceneViewportRenderPacket`.
     pub fn from_snapshot(world: RenderWorldSnapshotHandle, snapshot: RenderSceneSnapshot) -> Self {
         let renderables = snapshot
             .scene
@@ -460,11 +630,21 @@ impl RenderFrameExtract {
     }
 
     pub fn apply_viewport_size(&mut self, viewport_size: UVec2) {
-        self.view.camera.apply_viewport_size(viewport_size);
+        self.view.apply_target_size(viewport_size);
     }
 
     pub fn with_viewport_size(mut self, viewport_size: UVec2) -> Self {
         self.apply_viewport_size(viewport_size);
         self
+    }
+}
+
+fn camera_target_size(camera: &ViewportCameraSnapshot) -> Option<UVec2> {
+    if let Some(viewport) = camera.viewport {
+        return Some(viewport.physical_size);
+    }
+    match &camera.target {
+        RenderCameraTarget::Headless { size } => Some(*size),
+        RenderCameraTarget::PrimarySurface | RenderCameraTarget::Texture(_) => None,
     }
 }

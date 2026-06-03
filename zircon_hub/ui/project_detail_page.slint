@@ -1,5 +1,4 @@
 import {
-    MutedText,
     ProjectDetailData,
     SourceEngineRowData,
     UiTextData,
@@ -12,17 +11,14 @@ import {
     PageScrollSurface,
     PanelHeader,
     PanelSlot,
-    StatusBanner,
 } from "components.slint";
 
 import {
     PageHeader,
 } from "project_page_components.slint";
 import {
-    ProjectDetailActionButton,
-    ProjectDetailEngineSection,
+    ProjectDetailActionsSection,
     ProjectDetailInfoSection,
-    ProjectDetailPinToggleRow,
     ProjectDetailStatusStrip,
 } from "project_detail_components.slint";
 
@@ -149,7 +145,7 @@ export component ProjectDetailPage inherits PageScrollSurface {
             }
         }
 
-        PanelSlot {
+        ProjectDetailActionsSection {
             basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
             flex-basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-md;
             grow: 1;
@@ -158,85 +154,27 @@ export component ProjectDetailPage inherits PageScrollSurface {
             flex-shrink: 1;
             min-width: root.narrow-flow ? root.content-width : HubTokens.panel-min-sm;
             height: root.detail-action-height;
-            body-padding: root.detail-panel-padding;
-            body-spacing: root.page-gap;
-
-            PanelHeader { title: root.ui-text.project-actions-title; }
-
-            if root.project.pending-delete: StatusBanner {
-                horizontal-stretch: 1;
-                title: root.ui-text.confirm-delete;
-                detail: root.ui-text.recycle-bin-delete-detail;
-                tone: "error";
-            }
-
-            if root.project.pending-delete: ProjectDetailActionButton {
-                action-height: root.action-row-height;
-                text: root.ui-text.confirm-delete;
-                action-icon: @image-url("../assets/icons/ui/alert.svg");
-                enabled: root.project.can-delete;
-                clicked => { root.confirm-delete(); }
-            }
-
-            if root.project.pending-delete: ProjectDetailActionButton {
-                action-height: root.action-row-height;
-                text: root.ui-text.cancel-delete;
-                action-icon: @image-url("../assets/icons/ui/close.svg");
-                clicked => { root.cancel-delete(); }
-            }
-
-            if !root.project.pending-delete: ProjectDetailActionButton {
-                action-height: root.action-row-height;
-                text: root.ui-text.open;
-                action-icon: @image-url("../assets/icons/nav/editor.svg");
-                primary: true;
-                enabled: root.project.can-open;
-                clicked => { root.open-project(root.project.open-path); }
-            }
-
-            if !root.project.pending-delete: ProjectDetailPinToggleRow {
-                row-height: root.pin-toggle-row-height;
-                detail: root.project;
-                copy: root.ui-text;
-                toggled(checked) => { root.toggle-pin(); }
-            }
-
-            if !root.project.pending-delete: ProjectDetailActionButton {
-                action-height: root.action-row-height;
-                text: root.ui-text.remove-from-hub;
-                action-icon: @image-url("../assets/icons/ui/close.svg");
-                clicked => { root.remove-from-hub(); }
-            }
-
-            if !root.project.pending-delete: MutedText {
-                height: HubTokens.control-sm;
-                text: root.ui-text.remove-from-hub-detail;
-                overflow: elide;
-            }
-
-            if !root.project.pending-delete: ProjectDetailActionButton {
-                action-height: root.action-row-height;
-                text: root.ui-text.delete-project;
-                action-icon: @image-url("../assets/icons/ui/alert.svg");
-                enabled: root.project.can-delete;
-                clicked => { root.request-delete(); }
-            }
-
-            if !root.project.pending-delete: ProjectDetailEngineSection {
-                section-height: root.detail-engine-section-height;
-                section-spacing: root.page-gap;
-                detail: root.project;
-                copy: root.ui-text;
-                engines: root.engines;
-                engine-count: root.engine-count;
-                list-height: root.detail-engine-list-height;
-                list-scroll-y <=> root.detail-engine-scroll-y;
-                row-height: root.detail-choice-row-height;
-                row-spacing: root.detail-engine-row-gap;
-                empty-height: HubTokens.list-row-lg;
-                collapse-label: root.narrow-flow;
-                selected(id) => { root.select-engine(id); }
-            }
+            panel-padding: root.detail-panel-padding;
+            panel-spacing: root.page-gap;
+            project: root.project;
+            copy: root.ui-text;
+            engines: root.engines;
+            engine-count: root.engine-count;
+            action-row-height: root.action-row-height;
+            pin-toggle-row-height: root.pin-toggle-row-height;
+            engine-section-height: root.detail-engine-section-height;
+            engine-list-height: root.detail-engine-list-height;
+            engine-scroll-y <=> root.detail-engine-scroll-y;
+            engine-row-height: root.detail-choice-row-height;
+            engine-row-spacing: root.detail-engine-row-gap;
+            collapse-engine-label: root.narrow-flow;
+            open-project(path) => { root.open-project(path); }
+            select-engine(id) => { root.select-engine(id); }
+            toggle-pin => { root.toggle-pin(); }
+            remove-from-hub => { root.remove-from-hub(); }
+            request-delete => { root.request-delete(); }
+            cancel-delete => { root.cancel-delete(); }
+            confirm-delete => { root.confirm-delete(); }
         }
     }
 }

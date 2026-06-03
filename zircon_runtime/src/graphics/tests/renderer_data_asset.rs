@@ -129,6 +129,168 @@ fn renderer_data_document_preserves_disabled_features() {
 }
 
 #[test]
+fn renderer_data_document_accepts_neural_compute_builtin_feature_source() {
+    let renderer = RendererDataDocument::from_toml_str(
+        r#"
+version = 1
+name = "neural-slot"
+stages = ["PostProcess"]
+
+[[features]]
+name = "NeuralCompute"
+source = "NeuralCompute"
+enabled = true
+quality_gate = "NeuralCompute"
+"#,
+    )
+    .unwrap()
+    .to_renderer_asset()
+    .unwrap();
+
+    let neural = &renderer.features[0];
+    assert!(neural.is_builtin(BuiltinRenderFeature::NeuralCompute));
+    assert_eq!(
+        neural.quality_gate,
+        Some(BuiltinRenderFeature::NeuralCompute)
+    );
+}
+
+#[test]
+fn renderer_data_document_accepts_advanced_followup_builtin_feature_sources() {
+    let renderer = RendererDataDocument::from_toml_str(
+        r#"
+version = 1
+name = "advanced-followup-slots"
+stages = ["PostProcess"]
+
+[[features]]
+name = "SparseTexture"
+source = "SparseTexture"
+enabled = true
+quality_gate = "SparseTexture"
+
+[[features]]
+name = "Terrain"
+source = "Terrain"
+enabled = true
+quality_gate = "Terrain"
+
+[[features]]
+name = "Tree"
+source = "Tree"
+enabled = true
+quality_gate = "Tree"
+
+[[features]]
+name = "Projector"
+source = "Projector"
+enabled = true
+quality_gate = "Projector"
+
+[[features]]
+name = "Halo"
+source = "Halo"
+enabled = true
+quality_gate = "Halo"
+
+[[features]]
+name = "LensFlare"
+source = "LensFlare"
+enabled = true
+quality_gate = "LensFlare"
+
+[[features]]
+name = "Trail"
+source = "Trail"
+enabled = true
+quality_gate = "Trail"
+
+[[features]]
+name = "Billboard"
+source = "Billboard"
+enabled = true
+quality_gate = "Billboard"
+
+[[features]]
+name = "Tilemap"
+source = "Tilemap"
+enabled = true
+quality_gate = "Tilemap"
+
+[[features]]
+name = "TextShaping"
+source = "TextShaping"
+enabled = true
+quality_gate = "TextShaping"
+
+[[features]]
+name = "Skybox"
+source = "Skybox"
+enabled = true
+quality_gate = "Skybox"
+
+[[features]]
+name = "Cubemap"
+source = "Cubemap"
+enabled = true
+quality_gate = "Cubemap"
+
+[[features]]
+name = "Texture2dArray"
+source = "Texture2dArray"
+enabled = true
+quality_gate = "Texture2dArray"
+
+[[features]]
+name = "NormalMap"
+source = "NormalMap"
+enabled = true
+quality_gate = "NormalMap"
+
+[[features]]
+name = "Mipmap"
+source = "Mipmap"
+enabled = true
+quality_gate = "Mipmap"
+
+[[features]]
+name = "ColorSpace"
+source = "ColorSpace"
+enabled = true
+quality_gate = "ColorSpace"
+"#,
+    )
+    .unwrap()
+    .to_renderer_asset()
+    .unwrap();
+
+    let expected = [
+        BuiltinRenderFeature::SparseTexture,
+        BuiltinRenderFeature::Terrain,
+        BuiltinRenderFeature::Tree,
+        BuiltinRenderFeature::Projector,
+        BuiltinRenderFeature::Halo,
+        BuiltinRenderFeature::LensFlare,
+        BuiltinRenderFeature::Trail,
+        BuiltinRenderFeature::Billboard,
+        BuiltinRenderFeature::Tilemap,
+        BuiltinRenderFeature::TextShaping,
+        BuiltinRenderFeature::Skybox,
+        BuiltinRenderFeature::Cubemap,
+        BuiltinRenderFeature::Texture2dArray,
+        BuiltinRenderFeature::NormalMap,
+        BuiltinRenderFeature::Mipmap,
+        BuiltinRenderFeature::ColorSpace,
+    ];
+
+    assert_eq!(renderer.features.len(), expected.len());
+    for (feature, expected) in renderer.features.iter().zip(expected) {
+        assert!(feature.is_builtin(expected));
+        assert_eq!(feature.quality_gate, Some(expected));
+    }
+}
+
+#[test]
 fn renderer_feature_asset_builders_preserve_shader_material_contract_references() {
     let shader = asset_reference("custom-shader", "res://shaders/custom.zshader");
     let material = asset_reference("custom-material", "res://materials/custom.zmaterial");

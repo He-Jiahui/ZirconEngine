@@ -306,11 +306,7 @@ impl MeshAsset {
         morph_weights: &[f32],
     ) -> Result<ModelPrimitiveAsset, MeshValidationError> {
         let mut primitive = self.to_model_primitive()?;
-        apply_morph_targets(
-            &mut primitive.vertices,
-            &self.morph_targets,
-            morph_weights,
-        )?;
+        apply_morph_targets(&mut primitive.vertices, &self.morph_targets, morph_weights)?;
         Ok(primitive)
     }
 
@@ -548,9 +544,9 @@ fn apply_morph_targets(
             morph_target_float32x3_attribute(target_index, target, MESH_ATTRIBUTE_POSITION)?
         {
             for (vertex, delta) in vertices.iter_mut().zip(position_deltas.iter()) {
-                vertex.position =
-                    (Vec3::from_array(vertex.position) + Vec3::from_array(*delta) * weight)
-                        .to_array();
+                vertex.position = (Vec3::from_array(vertex.position)
+                    + Vec3::from_array(*delta) * weight)
+                    .to_array();
             }
         }
 
@@ -560,9 +556,9 @@ fn apply_morph_targets(
             for (vertex_index, (vertex, delta)) in
                 vertices.iter_mut().zip(normal_deltas.iter()).enumerate()
             {
-                vertex.normal =
-                    (Vec3::from_array(vertex.normal) + Vec3::from_array(*delta) * weight)
-                        .to_array();
+                vertex.normal = (Vec3::from_array(vertex.normal)
+                    + Vec3::from_array(*delta) * weight)
+                    .to_array();
                 morphed_normals[vertex_index] = true;
             }
         }
@@ -585,12 +581,13 @@ fn morph_target_float32x3_attribute<'a>(
     name: &str,
 ) -> Result<Option<&'a [[f32; 3]]>, MeshValidationError> {
     target.attributes.get(name).map_or(Ok(None), |values| {
-        values.as_float32x3().map(Some).ok_or_else(|| {
-            MeshValidationError::InvalidAttributeFormat {
+        values
+            .as_float32x3()
+            .map(Some)
+            .ok_or_else(|| MeshValidationError::InvalidAttributeFormat {
                 attribute: format!("morph_targets[{target_index}].{name}"),
                 expected: "float32x3",
-            }
-        })
+            })
     })
 }
 

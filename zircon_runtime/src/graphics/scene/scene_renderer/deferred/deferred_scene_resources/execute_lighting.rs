@@ -1,3 +1,6 @@
+use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::render_graph::RenderGraphAttachmentOps;
+
 use super::DeferredSceneResources;
 
 impl DeferredSceneResources {
@@ -10,6 +13,7 @@ impl DeferredSceneResources {
         normal_view: &wgpu::TextureView,
         background_view: &wgpu::TextureView,
         scene_color_view: &wgpu::TextureView,
+        attachment_ops: RenderGraphAttachmentOps,
     ) {
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
@@ -36,10 +40,7 @@ impl DeferredSceneResources {
                 view: scene_color_view,
                 resolve_target: None,
                 depth_slice: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
+                ops: color_attachment_operations(attachment_ops, wgpu::Color::BLACK),
             })],
             depth_stencil_attachment: None,
             occlusion_query_set: None,

@@ -191,7 +191,7 @@ fn ktx2_container_importer_rejects_invalid_data_format_descriptor_structure() {
             |bytes: &mut Vec<u8>| {
                 write_u32(bytes, 48, (KTX2_DEFAULT_DFD_OFFSET + 2) as u32);
             },
-            "ktx2 data format descriptor offset must be 4-byte aligned, got 206",
+            "ktx2 data format descriptor offset must be 4-byte aligned, got 178",
         ),
         (
             "dfd-length-misaligned.ktx2",
@@ -257,7 +257,7 @@ fn ktx2_container_importer_rejects_invalid_data_format_descriptor_structure() {
                 write_u32(bytes, 52, 52);
                 write_u32(bytes, KTX2_DEFAULT_DFD_OFFSET, 52);
                 bytes.resize(KTX2_DEFAULT_DFD_OFFSET + 52, 0);
-                write_u32(bytes, KTX2_DEFAULT_DFD_OFFSET + 28 + 8, (40 << 16) | 2);
+                write_u32(bytes, KTX2_DEFAULT_DFD_OFFSET + 28 + 4, (40 << 16) | 2);
             },
             "ktx2 data format descriptor block 1 size 40 exceeds remaining DFD descriptor bytes 24",
         ),

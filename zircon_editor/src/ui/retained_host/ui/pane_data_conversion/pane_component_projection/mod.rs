@@ -1,10 +1,9 @@
-use std::{collections::BTreeMap, sync::OnceLock};
+use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::{Color, ModelRc};
 use crate::ui::template_runtime::RetainedUiHostNodeProjection;
-use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
 
@@ -31,6 +30,9 @@ use self::surface_defaults::{
     projected_validation_level, projected_z_index,
 };
 use self::transition_metadata::projected_transition_metadata;
+use super::super::component_contract_metadata::{
+    descriptor_for_component, tokens_for_component_role,
+};
 use super::pane_menu_projection::structured_menu_items;
 use super::pane_option_projection::structured_options_for_node;
 use super::pane_value_conversion::{
@@ -54,7 +56,7 @@ pub(super) fn host_template_node(
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id?;
     let component = node.component.clone();
-    let component_descriptor = runtime_component_registry().descriptor(&component);
+    let component_descriptor = descriptor_for_component(&component);
     let disabled = node
         .attributes
         .get("disabled")
@@ -84,6 +86,11 @@ pub(super) fn host_template_node(
         .attributes
         .get("value")
         .or_else(|| node.attributes.get("progress"))
+        .or_else(|| node.attributes.get("dot_size"))
+        .or_else(|| node.attributes.get("status_mark_size"))
+        .or_else(|| node.attributes.get("arrow_size"))
+        .or_else(|| node.attributes.get("track_width"))
+        .or_else(|| node.attributes.get("icon_size"))
         .and_then(value_as_f64)
         .unwrap_or(0.0);
     let value_percent = projected_value_percent(
@@ -96,11 +103,7 @@ pub(super) fn host_template_node(
         node.attributes.get("min").and_then(value_as_f64),
         node.attributes.get("max").and_then(value_as_f64),
     );
-    let value_color = node
-        .attributes
-        .get("value")
-        .and_then(value_as_color)
-        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0));
+    let value_color = projected_value_color(component_role.as_str(), &node.attributes);
     let media_source = node
         .attributes
         .get("image")
@@ -385,7 +388,97 @@ pub(super) fn host_template_node(
                 .then(|| humanize_control_id(&control_id))
         })
         .unwrap_or_default();
+    let label_text = node
+        .attributes
+        .get("label_text")
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let label_color = node
+        .attributes
+        .get("label_color")
+        .or_else(|| node.attributes.get("icon_fill"))
+        .or_else(|| node.attributes.get("status_mark_color"))
+        .and_then(value_as_color)
+        .unwrap_or_default();
+    let label_brightness = node
+        .attributes
+        .get("label_brightness")
+        .or_else(|| node.attributes.get("visual_brightness"))
+        .and_then(value_as_f64)
+        .unwrap_or(1.0) as f32;
+    let layout_offset_x = node
+        .attributes
+        .get("layout_offset_x")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_offset_y = node
+        .attributes
+        .get("layout_offset_y")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_icon_size = node
+        .attributes
+        .get("layout_icon_size")
+        .or_else(|| node.attributes.get("thumb_size"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_content_offset_x = node
+        .attributes
+        .get("layout_content_offset_x")
+        .or_else(|| node.attributes.get("layout_gap"))
+        .or_else(|| node.attributes.get("layout_spacing"))
+        .or_else(|| node.attributes.get("track_offset_x"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_content_offset_y = node
+        .attributes
+        .get("layout_content_offset_y")
+        .or_else(|| node.attributes.get("icon_offset_y"))
+        .or_else(|| node.attributes.get("track_height"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_first_cell_offset_x = node
+        .attributes
+        .get("layout_first_cell_offset_x")
+        .or_else(|| node.attributes.get("track_width_delta"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_second_cell_offset_x = node
+        .attributes
+        .get("layout_second_cell_offset_x")
+        .or_else(|| node.attributes.get("range_min"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_third_cell_offset_x = node
+        .attributes
+        .get("layout_third_cell_offset_x")
+        .or_else(|| node.attributes.get("step_tick_count"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let layout_fourth_cell_offset_x = node
+        .attributes
+        .get("layout_fourth_cell_offset_x")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let selected_segment_border_width = node
+        .attributes
+        .get("selected_segment_border_width")
+        .or_else(|| node.attributes.get("selected_border_width"))
+        .and_then(value_as_f64);
+    let selected_segment_underline_height = node
+        .attributes
+        .get("selected_segment_underline_height")
+        .or_else(|| node.attributes.get("selected_underline_height"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let selected_segment_underline_color = node
+        .attributes
+        .get("selected_segment_underline_color")
+        .or_else(|| node.attributes.get("selected_underline_color"))
+        .and_then(value_as_color)
+        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0));
     let component_variant = projected_component_variant(&node.attributes, component_role.as_str());
+    let component_tokens = tokens_for_component_role(&component, component_role.as_str());
     let surface_variant = projected_surface_variant(
         &node.attributes,
         component_role.as_str(),
@@ -401,7 +494,8 @@ pub(super) fn host_template_node(
         .get("button_variant")
         .and_then(value_as_string)
         .unwrap_or_default();
-    let button_style = resolve_button_style_from_values(&node.attributes);
+    let button_style_values = button_style_values_with_aliases(&node.attributes);
+    let button_style = resolve_button_style_from_values(&button_style_values);
     let font_size = node
         .attributes
         .get("font_size")
@@ -452,6 +546,7 @@ pub(super) fn host_template_node(
     let state_layer_color = node
         .attributes
         .get("state_layer_color")
+        .or_else(|| node.attributes.get("thumb_halo_color"))
         .or_else(|| node.attributes.get("ripple_color"))
         .or_else(|| node.attributes.get("color"))
         .and_then(value_as_color)
@@ -474,6 +569,20 @@ pub(super) fn host_template_node(
         .or_else(|| node.attributes.get("pressed_y"))
         .and_then(value_as_f64)
         .unwrap_or(0.0) as f32;
+    let icon_color = node
+        .attributes
+        .get("icon_color")
+        .or_else(|| node.attributes.get("thumb_color"))
+        .or_else(|| node.attributes.get("icon_stroke"))
+        .or_else(|| node.attributes.get("arrow_color"))
+        .and_then(value_as_color)
+        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0));
+    let icon_stroke_width = node
+        .attributes
+        .get("icon_stroke_width")
+        .or_else(|| node.attributes.get("stroke_width"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
     let clip_ripple = node
         .attributes
         .get("clip_ripple")
@@ -490,12 +599,32 @@ pub(super) fn host_template_node(
         control_id: control_id.into(),
         role: component.into(),
         text: text.into(),
+        label_text: label_text.into(),
+        label_color,
+        label_brightness,
+        layout_offset_x,
+        layout_offset_y,
+        layout_icon_size,
+        layout_content_offset_x,
+        layout_content_offset_y,
+        layout_first_cell_offset_x,
+        layout_second_cell_offset_x,
+        layout_third_cell_offset_x,
+        layout_fourth_cell_offset_x,
         component_role: component_role.into(),
+        component_category: component_tokens.category.into(),
+        component_layout_role: component_tokens.layout_role.into(),
         component_variant: component_variant.into(),
         value_text: value_text.into(),
         value_number: value_number as f32,
         value_percent,
         value_color,
+        icon_color,
+        icon_stroke_width,
+        has_selected_segment_border_width: selected_segment_border_width.is_some(),
+        selected_segment_border_width: selected_segment_border_width.unwrap_or(0.0) as f32,
+        selected_segment_underline_height,
+        selected_segment_underline_color,
         media_source: media_source.into(),
         icon_name: icon_name.into(),
         has_preview_image,
@@ -769,20 +898,57 @@ fn primary_submit_binding_id(
         .map(|binding| binding.binding_id.clone())
 }
 
-fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
-    static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
-    UI_COMPONENT_REGISTRY.get_or_init(|| {
-        let mut registry = UiComponentDescriptorRegistry::editor_showcase();
-        for descriptor in UiComponentDescriptorRegistry::material_editor_foundation()
-            .descriptors()
-            .cloned()
-        {
-            registry
-                .register(descriptor)
-                .expect("retained host component registry descriptors must validate");
-        }
-        registry
-    })
+fn projected_value_color(
+    component_role: &str,
+    attributes: &BTreeMap<String, toml::Value>,
+) -> Color {
+    let color_fields: &[&str] = if component_role == "color-field" {
+        &[
+            "value",
+            "value_color",
+            "action_color",
+            "arrow_color",
+            "dot_color",
+            "text_color",
+            "foreground_color",
+            "color",
+        ]
+    } else {
+        &[
+            "value_color",
+            "action_color",
+            "arrow_color",
+            "dot_color",
+            "text_color",
+            "foreground_color",
+            "color",
+            "value",
+        ]
+    };
+
+    color_fields
+        .iter()
+        .find_map(|field| attributes.get(*field).and_then(value_as_color))
+        .unwrap_or_else(|| Color::from_argb_u8(0, 0, 0, 0))
+}
+
+fn button_style_values_with_aliases(
+    attributes: &BTreeMap<String, toml::Value>,
+) -> BTreeMap<String, toml::Value> {
+    let mut values = attributes.clone();
+    alias_toml_value_key(&mut values, "focus_border_color", "border_color");
+    alias_toml_value_key(&mut values, "thumb_outline_color", "border_color");
+    alias_toml_value_key(&mut values, "disabled_opacity", "opacity");
+    values
+}
+
+fn alias_toml_value_key(values: &mut BTreeMap<String, toml::Value>, source: &str, target: &str) {
+    if values.contains_key(target) {
+        return;
+    }
+    if let Some(value) = values.get(source).cloned() {
+        values.insert(target.to_string(), value);
+    }
 }
 
 #[cfg(test)]

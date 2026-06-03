@@ -3971,6 +3971,7 @@ fn mesh_at(
         )),
         mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(material)),
+        morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         render_layer_mask: u32::MAX,

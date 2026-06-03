@@ -34,19 +34,21 @@ pub use anti_alias::{
     AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
 };
 pub use backend_types::{
-    CapturedFrame, FrameHistoryHandle, GraphicsDebuggerStatus, RenderCapabilityClass,
-    RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings,
-    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
-    RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
+    CapturedFrame, FrameHistoryHandle, FrameHistoryInvalidationReason, FrameHistoryStatus,
+    GraphicsDebuggerStatus, RenderCapabilityClass, RenderCapabilityClassReport,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderCommand,
+    RenderFeatureQualitySettings, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
+    RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
-    FallbackSkyboxKind, ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderLayer,
-    RenderLayerSet, RenderViewportRect, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
-    DEFAULT_RENDER_LAYER, DEFAULT_RENDER_LAYER_MASK,
+    FallbackSkyboxKind, ProjectionMode, RenderCameraClearColor, RenderCameraTarget,
+    RenderDynamicResolutionSettings, RenderLayer, RenderLayerSet, RenderViewportRect,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
+    DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 pub use camera_ordering::{
     sort_render_cameras, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
@@ -54,8 +56,8 @@ pub use camera_ordering::{
 };
 pub use core_pipeline::{
     build_mesh_phase_queue, build_sprite_phase_queue, CorePipelineKind, MeshPhaseInput,
-    RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortKey,
-    SpritePhaseInput,
+    RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue,
+    RenderPhaseSortComponents, RenderPhaseSortKey, SpritePhaseInput,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
@@ -79,7 +81,8 @@ pub use light::{
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialIssueState, RenderMaterialManagementIssueIndex,
+    RenderMaterialFallbackUsage, RenderMaterialIssueState, RenderMaterialLightingModel,
+    RenderMaterialLightingModelParseError, RenderMaterialManagementIssueIndex,
     RenderMaterialManagementIssueKind, RenderMaterialManagementIssueView,
     RenderMaterialManagementOverview, RenderMaterialManagementOverviewRecord,
     RenderMaterialManagementPageInfo, RenderMaterialManagementPageRequest,
@@ -124,7 +127,14 @@ pub use plugin_renderer_outputs::{
 pub use post_process::{
     PostProcessEffectKind, PostProcessEffectSettings, PostProcessGraphResourceNames,
     PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
-    PostProcessStackDescriptor,
+    PostProcessStackDescriptor, RenderBlurSettings, RenderChromaticAberrationSettings,
+    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderDepthOfFieldSettings,
+    RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
+    RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
+    RenderPostProcessVolumeStack, RenderResolvedPostProcessSettings,
+    RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
+    RenderVignetteSettings, MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
 };
 pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
 pub use profile::{

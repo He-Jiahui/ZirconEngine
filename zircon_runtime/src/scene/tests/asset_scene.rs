@@ -137,6 +137,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
                 model: asset_reference("res://models/triangle.obj"),
                 mesh: None,
                 material: asset_reference("res://materials/grid.zmaterial"),
+                morph_weights: vec![0.25, 1.0],
                 primitives: vec![SceneMeshPrimitiveBindingAsset {
                     mesh: asset_reference("res://meshes/triangle.zmesh"),
                     material: asset_reference("res://materials/grid.zmaterial"),
@@ -168,6 +169,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
         .find(|node| matches!(node.kind, NodeKind::Mesh))
         .unwrap();
     let mesh = mesh_node.mesh.as_ref().unwrap();
+    assert_eq!(mesh.morph_weights, vec![0.25, 1.0]);
     assert_eq!(mesh.primitives.len(), 1);
     assert_eq!(
         mesh.primitives[0].mesh,
@@ -187,9 +189,12 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
         .unwrap();
     assert_eq!(render_mesh.mesh, Some(mesh.primitives[0].mesh));
     assert_eq!(render_mesh.material, mesh.primitives[0].material);
+    assert_eq!(render_mesh.morph_weights, vec![0.25, 1.0]);
 
     let saved = world.to_scene_asset(&project).unwrap();
-    let saved_binding = &saved.entities[0].mesh.as_ref().unwrap().primitives[0];
+    let saved_mesh = saved.entities[0].mesh.as_ref().unwrap();
+    assert_eq!(saved_mesh.morph_weights, vec![0.25, 1.0]);
+    let saved_binding = &saved_mesh.primitives[0];
     assert_eq!(
         saved_binding.mesh.to_string(),
         "res://meshes/triangle.zmesh"

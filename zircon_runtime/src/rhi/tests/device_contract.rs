@@ -1,7 +1,8 @@
 use crate::rhi::{
     BufferDesc, BufferHandle, BufferUsage, CommandList, FenceValue, PipelineDesc, PipelineHandle,
     PipelineKind, RenderDevice, RenderQueueClass, SamplerDesc, SamplerHandle, ShaderModuleDesc,
-    ShaderModuleHandle, ShaderStage, TextureDesc, TextureFormat, TextureHandle, TextureUsage,
+    ShaderModuleHandle, ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle,
+    TextureUsage,
 };
 use crate::rhi_wgpu::{WgpuCommandList, WgpuRenderDevice};
 use std::path::Path;
@@ -75,6 +76,13 @@ fn wgpu_rhi_device_allocates_stable_resource_handles_and_fences() {
         .unwrap();
     assert_eq!(command_list.queue_class(), RenderQueueClass::Copy);
     assert_eq!(command_list.label(), Some("copy-upload"));
+    let compute_command_list = device
+        .create_command_list(RenderQueueClass::Compute, "compute-main")
+        .unwrap();
+    assert_eq!(
+        compute_command_list.queue_class(),
+        RenderQueueClass::Compute
+    );
 
     let fence = device.submit(command_list).unwrap();
     assert_eq!(fence, FenceValue(1));
@@ -88,6 +96,62 @@ fn wgpu_rhi_device_allocates_stable_resource_handles_and_fences() {
     device.destroy_sampler(sampler).unwrap();
     device.destroy_texture(texture).unwrap();
     device.destroy_buffer(buffer).unwrap();
+}
+
+#[test]
+fn wgpu_rhi_rejects_sparse_reserved_texture_without_backend_support() {
+    let device = WgpuRenderDevice::new_headless();
+    let sparse = TextureDesc::new(
+        "virtual-terrain-pages",
+        4096,
+        4096,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::SAMPLED | TextureUsage::STORAGE | TextureUsage::COPY_DST,
+    )
+    .with_mip_levels(8)
+    .with_sparse_residency();
+
+    assert_eq!(
+        device.create_texture(&sparse).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("virtual-terrain-pages".to_string()),
+            reason: "sparse texture residency requires backend sparse texture support".to_string(),
+        }
+    );
+}
+
+#[test]
+fn wgpu_rhi_roundtrips_hdr_array_and_cube_texture_descriptors() {
+    let device = WgpuRenderDevice::new_headless();
+    let hdr_array = TextureDesc::new(
+        "hdr-array",
+        16,
+        16,
+        TextureFormat::Rgba16Float,
+        TextureUsage::SAMPLED | TextureUsage::STORAGE | TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::D2Array)
+    .with_array_layers(4)
+    .with_mip_levels(3);
+    let cube = TextureDesc::new(
+        "skybox-cube",
+        8,
+        8,
+        TextureFormat::Bgra8UnormSrgb,
+        TextureUsage::SAMPLED | TextureUsage::COPY_DST,
+    )
+    .with_dimension(TextureDimension::Cube)
+    .with_array_layers(6);
+
+    let hdr_array_handle = device.create_texture(&hdr_array).unwrap();
+    let cube_handle = device.create_texture(&cube).unwrap();
+
+    assert_eq!(device.texture_desc(hdr_array_handle).unwrap(), hdr_array);
+    assert_eq!(
+        device.read_texture(hdr_array_handle).unwrap().len() as u64,
+        hdr_array.checked_storage_size_bytes().unwrap()
+    );
+    assert_eq!(device.texture_desc(cube_handle).unwrap(), cube);
 }
 
 #[test]
@@ -202,6 +266,40 @@ fn wgpu_rhi_rejects_invalid_resource_descriptors() {
         }
     );
 
+    let invalid_msaa_mips = TextureDesc::new(
+        "invalid-msaa-mips",
+        2,
+        2,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_sample_count(4)
+    .with_mip_levels(2);
+    assert_eq!(
+        device.create_texture(&invalid_msaa_mips).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-msaa-mips".to_string()),
+            reason: "multisampled textures cannot declare mip levels".to_string(),
+        }
+    );
+
+    let invalid_cube_faces = TextureDesc::new(
+        "invalid-cube-faces",
+        2,
+        2,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::Cube)
+    .with_array_layers(5);
+    assert_eq!(
+        device.create_texture(&invalid_cube_faces).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-cube-faces".to_string()),
+            reason: "cube textures must declare depth as a multiple of six faces".to_string(),
+        }
+    );
+
     let mut overflowing_storage = TextureDesc::new(
         "overflowing-texture",
         u32::MAX,
@@ -301,6 +399,86 @@ fn command_list_records_buffer_copy_commands_and_submit_validates_resources() {
             size: 8,
         }
     );
+}
+
+#[test]
+fn command_list_records_compute_dispatch_and_submit_validates_pipeline() {
+    let device = WgpuRenderDevice::new_headless();
+    let shader = device
+        .create_shader_module(&ShaderModuleDesc {
+            label: Some("compute-fill".to_string()),
+            source: "@compute @workgroup_size(1) fn main() {}".to_string(),
+            stage: ShaderStage::Compute,
+            entry_point: "main".to_string(),
+        })
+        .unwrap();
+    let compute_pipeline = device
+        .create_pipeline(&PipelineDesc::new("compute-fill", PipelineKind::Compute))
+        .unwrap();
+    let raster_pipeline = device
+        .create_pipeline(&PipelineDesc::new("forward-opaque", PipelineKind::Raster))
+        .unwrap();
+
+    let mut compute = device
+        .create_command_list(RenderQueueClass::Compute, "compute-dispatch")
+        .unwrap();
+    compute.set_pipeline(compute_pipeline);
+    compute.dispatch_compute(4, 2, 1);
+
+    assert_eq!(
+        compute.recorded_commands(),
+        &[
+            crate::rhi::CommandListCommand::SetPipeline {
+                pipeline: compute_pipeline,
+            },
+            crate::rhi::CommandListCommand::DispatchCompute { x: 4, y: 2, z: 1 },
+        ]
+    );
+    assert!(device
+        .is_fence_complete(device.submit(compute).unwrap())
+        .unwrap());
+
+    let mut wrong_pipeline = device
+        .create_command_list(RenderQueueClass::Compute, "compute-with-raster-pipeline")
+        .unwrap();
+    wrong_pipeline.set_pipeline(raster_pipeline);
+    wrong_pipeline.dispatch_compute(1, 1, 1);
+    assert_eq!(
+        device.submit(wrong_pipeline).unwrap_err(),
+        crate::rhi::RhiError::InvalidPipelineUsage {
+            pipeline: raster_pipeline.raw(),
+            required: PipelineKind::Compute,
+            actual: PipelineKind::Raster,
+        }
+    );
+
+    let mut missing_pipeline = device
+        .create_command_list(RenderQueueClass::Compute, "compute-without-pipeline")
+        .unwrap();
+    missing_pipeline.dispatch_compute(1, 1, 1);
+    assert_eq!(
+        device.submit(missing_pipeline).unwrap_err(),
+        crate::rhi::RhiError::InvalidComputeDispatch {
+            reason: "compute dispatch requires a bound compute pipeline".to_string(),
+        }
+    );
+
+    let mut copy_queue_dispatch = device
+        .create_command_list(RenderQueueClass::Copy, "copy-queue-compute-dispatch")
+        .unwrap();
+    copy_queue_dispatch.set_pipeline(compute_pipeline);
+    copy_queue_dispatch.dispatch_compute(1, 1, 1);
+    assert_eq!(
+        device.submit(copy_queue_dispatch).unwrap_err(),
+        crate::rhi::RhiError::InvalidCommandQueue {
+            queue: RenderQueueClass::Copy,
+            command: "dispatch_compute".to_string(),
+        }
+    );
+
+    device.destroy_pipeline(compute_pipeline).unwrap();
+    device.destroy_pipeline(raster_pipeline).unwrap();
+    device.destroy_shader_module(shader).unwrap();
 }
 
 #[test]

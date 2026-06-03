@@ -98,3 +98,33 @@ fn scene_render_extract_does_not_use_snapshot_adapter_for_frame_extract() {
         "scene render extract must populate RenderFrameExtract directly; from_snapshot is only for preview/test roundtrip adapters"
     );
 }
+
+#[test]
+fn scene_ecs_does_not_reintroduce_late_update_stage_or_compatibility_path() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+
+    for relative in ["src/scene/ecs", "src/scene/module", "src/scene/world"] {
+        assert_no_legacy_late_update_name(&manifest_root.join(relative));
+    }
+}
+
+fn assert_no_legacy_late_update_name(root: &std::path::Path) {
+    for entry in std::fs::read_dir(root).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            assert_no_legacy_late_update_name(&path);
+            continue;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+
+        let source = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            !source.contains("LateUpdate"),
+            "scene ECS scheduling must not reintroduce LateUpdate aliases, shims, compatibility stages, or re-export bridges in {:?}",
+            path
+        );
+    }
+}

@@ -1,15 +1,25 @@
+use super::super::super::super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn bind_group_entries<'a>(
     resources: &'a ScenePostProcessResources,
     scene_color_view: &'a wgpu::TextureView,
+    scene_depth_view: &'a wgpu::TextureView,
+    scene_normal_view: &'a wgpu::TextureView,
     ao_view: &'a wgpu::TextureView,
     previous_scene_color_view: Option<&'a wgpu::TextureView>,
     previous_global_illumination_view: Option<&'a wgpu::TextureView>,
     bloom_view: &'a wgpu::TextureView,
+    effect_lut_view: &'a wgpu::TextureView,
+    effect_lut_3d_view: &'a wgpu::TextureView,
     cluster_buffer: &'a wgpu::Buffer,
-) -> [wgpu::BindGroupEntry<'a>; 10] {
+) -> [wgpu::BindGroupEntry<'a>; 16] {
+    let scene_depth_binding_view = match resources.depth_sampling_mode {
+        PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
+        PostProcessDepthSamplingMode::ViewportDepthFallback => &resources.black_texture_view,
+    };
+
     [
         wgpu::BindGroupEntry {
             binding: 0,
@@ -54,6 +64,30 @@ pub(super) fn bind_group_entries<'a>(
             resource: wgpu::BindingResource::TextureView(
                 previous_global_illumination_view.unwrap_or(&resources.black_texture_view),
             ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 10,
+            resource: wgpu::BindingResource::TextureView(effect_lut_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 11,
+            resource: wgpu::BindingResource::TextureView(scene_depth_binding_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 12,
+            resource: wgpu::BindingResource::TextureView(effect_lut_3d_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 13,
+            resource: wgpu::BindingResource::Sampler(&resources.effect_lut_sampler),
+        },
+        wgpu::BindGroupEntry {
+            binding: 14,
+            resource: wgpu::BindingResource::TextureView(scene_normal_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 15,
+            resource: wgpu::BindingResource::Sampler(&resources.scene_depth_sampler),
         },
     ]
 }

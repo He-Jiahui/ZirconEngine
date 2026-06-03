@@ -1,0 +1,121 @@
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import {
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
+} from "material_bridge.slint";
+
+component CompactTabButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> active: false;
+    in property <bool> enabled: true;
+    in property <length> button-width: HubTokens.control-md * 3;
+    callback clicked;
+
+    min-width: root.button-width;
+    preferred-width: root.button-width;
+    height: HubTokens.control-md;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: HubTokens.border-width;
+    border-color: root.active ? HubVisualSpec.view-toggle-active-stroke : HubVisualSpec.outline-muted;
+    background: root.active ? HubVisualSpec.view-toggle-active-fill : HubVisualSpec.panel-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.active ? HubVisualSpec.view-toggle-active-foreground : MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+
+    MaterialText {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        color: root.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
+        style: MaterialTypography.label_medium;
+        horizontal_alignment: center;
+        vertical_alignment: center;
+        overflow: elide;
+    }
+}
+
+export component HubCompactTabStrip inherits Rectangle {
+    in-out property <int> current-index: 0;
+    in property <string> first-label: "All";
+    in property <string> second-label: "Recent";
+    in property <string> third-label: "Project";
+    in property <string> fourth-label: "Workspace";
+    in property <bool> show-second: true;
+    in property <bool> show-third: true;
+    in property <bool> show-fourth: true;
+    in property <length> tab-width: HubTokens.control-md * 3;
+    callback selected(int);
+
+    horizontal-stretch: 1;
+    height: HubTokens.control-md;
+    min-width: 1px;
+    background: transparent;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-2;
+        alignment: start;
+
+        CompactTabButton {
+            text: root.first-label;
+            active: root.current-index == 0;
+            button-width: root.tab-width;
+            clicked => {
+                root.current-index = 0;
+                root.selected(0);
+            }
+        }
+
+        if root.show-second: CompactTabButton {
+            text: root.second-label;
+            active: root.current-index == 1;
+            button-width: root.tab-width;
+            clicked => {
+                root.current-index = 1;
+                root.selected(1);
+            }
+        }
+
+        if root.show-third: CompactTabButton {
+            text: root.third-label;
+            active: root.current-index == 2;
+            button-width: root.tab-width;
+            clicked => {
+                root.current-index = 2;
+                root.selected(2);
+            }
+        }
+
+        if root.show-fourth: CompactTabButton {
+            text: root.fourth-label;
+            active: root.current-index == 3;
+            button-width: root.tab-width;
+            clicked => {
+                root.current-index = 3;
+                root.selected(3);
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: HubTokens.space-2;
+            background: transparent;
+        }
+    }
+}

@@ -34,14 +34,14 @@ fn data_display_lists_use_material_scroll_view() {
         "row-slot-height: root.row-height + HubTokens.space-2;",
         "panel-chrome-height: HubTokens.space-4 * 2 + HubTokens.control-md + HubTokens.toolbar-gap;",
         "fit-row-count: Math.floor(root.fit-list-height / root.row-slot-height);",
-        "panel-height: root.row-count > root.visible-row-count ? root.fitted-panel-height : root.content-height;",
+        "panel-height: root.row-count > root.visible-row-count ? root.fitted-panel-height : max(root.row-slot-height + root.panel-chrome-height, root.content-height - root.tabs-block-height);",
         "empty-height: root.row-height + HubTokens.space-4;",
         "list-content-height: root.row-count == 0 ? root.empty-height : root.row-count * root.row-height + (root.row-count - 1) * root.row-spacing + root.vertical-padding * 2;",
         "row-spacing: root.row-gap;",
         "vertical-padding: root.row-gap * 2;",
         "empty-height: root.row-height + root.row-gap * 4;",
         "height: max(root.row-height + HubTokens.space-2, parent.height);",
-        "Rectangle { vertical-stretch: 1; min-height: 0px; }",
+        "vertical-stretch: 1;",
         "viewport_y <=> root.scroll-y;",
         "scroll-y <=> root.scroll-y;",
         "row-count: root.row-count;",
@@ -174,6 +174,43 @@ fn data_display_table_text_uses_material_text() {
 }
 
 #[test]
+fn data_table_rows_use_shared_trailing_action_slot() {
+    let table_view = read_ui_file("table_view_components.slint");
+    let table_row = table_view
+        .split("export component ProjectTableRow")
+        .nth(1)
+        .and_then(|source| source.split("export component DataTable").next())
+        .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
+
+    for snippet in [
+        "import { HubRowTrailingSlot } from \"row_slot_components.slint\";",
+        "HubRowTrailingSlot {",
+        "slot-width: root.action-size;",
+        "show-badge: false;",
+        "show-action: true;",
+        "action-framed: false;",
+        "action-size: root.action-size;",
+        "action-icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
+        "clicked => {\n                root.open(root.project.open-path);",
+    ] {
+        assert!(
+            table_view.contains(snippet) || table_row.contains(snippet),
+            "ProjectTableRow must express its trailing action with the shared row slot: {snippet}"
+        );
+    }
+
+    for forbidden in [
+        "source: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
+        "StateLayerArea {\n                width: parent.width;",
+    ] {
+        assert!(
+            !table_row.contains(forbidden),
+            "ProjectTableRow should not recreate a local trailing action implementation after adopting HubRowTrailingSlot: {forbidden}"
+        );
+    }
+}
+
+#[test]
 fn data_display_catalog_empty_state_uses_material_text() {
     let data_display = read_ui_file("data_display.slint");
     let surfaces = read_ui_file("surfaces.slint");
@@ -227,53 +264,159 @@ fn data_display_catalog_empty_state_uses_material_text() {
 }
 
 #[test]
-fn info_row_uses_material_list_tile() {
+fn row_surface_owns_shared_selected_disabled_focus_state() {
     let data_display = read_ui_file("data_display.slint");
-    let info_row = data_display
-        .split("export component InfoRow")
+    let row_surface = data_display
+        .split("export component HubRowSurface")
         .nth(1)
-        .and_then(|source| source.split("export component ActionRow").next())
-        .expect("data_display.slint must declare InfoRow before ActionRow");
+        .and_then(|source| source.split("export component HubMenuRow").next())
+        .expect("data_display.slint must declare HubRowSurface before HubMenuRow");
 
     for snippet in [
-        "ListTile {",
-        "text: root.title;",
-        "supporting_text: root.supporting-text;",
-        "avatar_icon:",
-        "avatar_background:",
-        "avatar_foreground:",
-        "in property <bool> collapse-trailing-label: false;",
-        "in property <bool> enabled: true;",
         "in property <bool> selected: false;",
         "in property <bool> focused: false;",
-        "in property <bool> pressed: false;",
-        "in property <bool> hovered: false;",
-        "in property <length> idle-border-width: HubTokens.border-width;",
+        "in property <bool> enabled: true;",
+        "in property <length> row-height: HubTokens.list-row-md;",
+        "in property <length> row-radius: HubVisualSpec.compact-radius;",
+        "in property <length> idle-border-width: 0px;",
         "in property <length> selected-border-width: HubTokens.border-width;",
         "in property <color> idle-background: HubVisualSpec.panel-background;",
         "in property <color> selected-background: MaterialPalette.secondary_container;",
-        "in property <color> enabled-avatar-background: root.avatar-background;",
-        "in property <color> enabled-avatar-foreground: root.avatar-foreground;",
+        "in property <color> disabled-background: HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);",
+        "in property <color> content-foreground: root.selected ? root.selected-foreground : root.idle-foreground;",
         "border-width: root.focused ? HubVisualSpec.focus-ring-width : (root.selected ? root.selected-border-width : root.idle-border-width);",
-        "border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.selected ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted);",
-        "background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity) : (root.selected ? root.selected-background : root.idle-background);",
-        "root.collapse-trailing-label ? (root.show-arrow ? HubTokens.control-md : 0px)",
-        "enabled: root.enabled;",
-        "clicked =>",
-        "if root.show-trailing-badge && !root.collapse-trailing-label: StatusBadge",
-        "IconButton {",
+        "border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.selected ? root.selected-border : root.idle-border);",
+        "background: !root.enabled ? root.disabled-background : (root.selected ? root.selected-background : root.idle-background);",
+        "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
+        "@children",
     ] {
         assert!(
-            info_row.contains(snippet),
-            "InfoRow must delegate its information-row body to Material ListTile and collapse optional trailing labels on compact rows; missing {snippet}"
+            row_surface.contains(snippet),
+            "HubRowSurface must centralize reusable Material row state; missing {snippet}"
+        );
+    }
+
+    for forbidden in ["StateLayerArea", "ListTile {", "TouchArea"] {
+        assert!(
+            !row_surface.contains(forbidden),
+            "HubRowSurface should own only the root row surface and leave content/interaction to typed row components: {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn menu_row_uses_material_list_tile_state_contract() {
+    let data_display = read_ui_file("data_display.slint");
+    let menu_row = data_display
+        .split("export component HubMenuRow")
+        .nth(1)
+        .and_then(|source| source.split("export component InfoRow").next())
+        .expect("data_display.slint must declare HubMenuRow before InfoRow");
+
+    for snippet in [
+        "inherits HubRowSurface",
+        "ListTile {",
+        "text: root.title;",
+        "supporting_text: root.detail;",
+        "avatar_icon: root.leading-image;",
+        "avatar_background: root.avatar-background;",
+        "avatar_foreground: root.avatar-foreground;",
+        "in property <bool> has-leading-image: false;",
+        "in property <bool> show-trailing-icon: false;",
+        "in property <bool> show-trailing-text: false;",
+        "in property <bool> dense: false;",
+        "private property <length> trailing-slot-width: root.show-trailing-text ? HubTokens.control-md * 2 : (root.show-trailing-icon ? HubTokens.control-sm : 0px);",
+        "private property <color> avatar-foreground: root.enabled-avatar-foreground;",
+        "row-height: root.dense ? HubTokens.list-row-sm : HubTokens.list-row-md;",
+        "selected-border-width: 0px;",
+        "idle-background: transparent;",
+        "selected-background: MaterialPalette.secondary_container;",
+        "enabled: root.enabled;",
+        "clicked =>",
+        "if root.show-trailing-text: MaterialText",
+        "if root.show-trailing-icon: Icon",
+    ] {
+        assert!(
+            menu_row.contains(snippet),
+            "HubMenuRow must own shared Material menu/list row state; missing {snippet}"
         );
     }
 
     for forbidden in [
         "area := TouchArea",
+        "area.has-hover",
+        "avatar-foreground: root.selected ? HubVisualSpec.accent-stroke",
+        "component InfoRow",
+        "component ActionRow",
+        "border-radius: HubVisualSpec.panel-radius;",
+    ] {
+        assert!(
+            !menu_row.contains(forbidden),
+            "HubMenuRow should stay a reusable row primitive without local hover shells or row-specialization coupling: {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn info_row_uses_shared_row_surface_and_slots() {
+    let data_display = read_ui_file("data_display.slint");
+    let info_row = data_display
+        .split("export component InfoRow")
+        .nth(1)
+        .and_then(|source| source.split("export component HubKeyValueRow").next())
+        .expect("data_display.slint must declare InfoRow before ActionRow");
+
+    for snippet in [
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "row-state := StateLayerArea {",
+        "alignment: stretch;",
+        "preferred-width: 0px;",
+        "title: root.title;",
+        "detail: root.supporting-text;",
+        "icon-image: root.visible-leading-image;",
+        "shell-background: root.enabled ? root.enabled-avatar-background : MaterialPalette.surface_container_high;",
+        "show-badge: root.show-trailing-badge;",
+        "collapse-badge: root.collapse-trailing-label;",
+        "show-action: root.show-arrow;",
+        "action-size: root.trailing-icon-size;",
+        "in property <bool> collapse-trailing-label: false;",
+        "in property <bool> pressed: false;",
+        "in property <bool> hovered: false;",
+        "in property <color> enabled-avatar-background: root.avatar-background;",
+        "in property <color> enabled-avatar-foreground: root.avatar-foreground;",
+        "avatar-background: HubVisualSpec.neutral-icon-background;",
+        "avatar-foreground: HubVisualSpec.neutral-icon-foreground;",
+        "row-radius: HubVisualSpec.panel-radius;",
+        "idle-border-width: HubTokens.border-width;",
+        "selected-border-width: HubTokens.border-width;",
+        "idle-border: HubVisualSpec.outline-muted;",
+        "selected-border: HubVisualSpec.accent-stroke;",
+        "idle-background: HubVisualSpec.panel-background;",
+        "selected-background: MaterialPalette.secondary_container;",
+        "disabled-background: HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);",
+        "root.collapse-trailing-label ? (root.show-arrow ? HubTokens.control-md : 0px)",
+        "clicked =>",
+    ] {
+        assert!(
+            info_row.contains(snippet),
+            "InfoRow must compose HubRowSurface with shared row slots and compact trailing-label behavior; missing {snippet}"
+        );
+    }
+    assert!(
+        data_display.contains("export component InfoRow inherits HubRowSurface"),
+        "InfoRow must inherit HubRowSurface instead of owning its own root surface"
+    );
+
+    for forbidden in [
+        "ListTile {",
+        "IconButton {",
+        "area := TouchArea",
         "border-color: area.has-hover",
         "background: area.has-hover",
         "preferred-width: HubTokens.panel-min-sm;",
+        "avatar_icon:",
         "avatar_background: root.enabled ? root.avatar-background",
         "avatar_foreground: root.enabled ? root.avatar-foreground",
     ] {
@@ -283,21 +426,112 @@ fn info_row_uses_material_list_tile() {
         );
     }
 
+    let key_value_row = data_display
+        .split("export component HubKeyValueRow")
+        .nth(1)
+        .and_then(|source| source.split("export component ActionRow").next())
+        .expect("data_display.slint must declare HubKeyValueRow before ActionRow");
+    for snippet in [
+        "inherits HubRowSurface",
+        "in property <string> label;",
+        "in property <string> value;",
+        "in property <bool> badge-value: false;",
+        "in property <string> badge-tone: \"neutral\";",
+        "HubRowMetaSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "text: root.label;",
+        "title: root.value;",
+        "badge-text: root.value;",
+        "badge-tone: root.badge-tone;",
+        "show-badge: true;",
+        "show-action: false;",
+        "selected-border-width: 0px;",
+        "idle-background: transparent;",
+        "selected-background: transparent;",
+    ] {
+        assert!(
+            key_value_row.contains(snippet),
+            "HubKeyValueRow must compose compact key/value summary rows from shared row slots; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "Badge {",
+        "ListTile {",
+        "IconButton {",
+        "row-state := StateLayerArea",
+        "TouchArea",
+    ] {
+        assert!(
+            !key_value_row.contains(forbidden),
+            "HubKeyValueRow should stay a non-interactive slot-composed summary row: {forbidden}"
+        );
+    }
+
+    let badge_meta_strip = data_display
+        .split("export component HubBadgeMetaStrip")
+        .nth(1)
+        .and_then(|source| source.split("export component ActionRow").next())
+        .expect("data_display.slint must declare HubBadgeMetaStrip before ActionRow");
+    for snippet in [
+        "inherits HubRowSurface",
+        "in property <string> first-badge-text;",
+        "in property <string> second-badge-text;",
+        "in property <string> meta-text;",
+        "HubRowTrailingSlot {",
+        "HubRowMetaSlot {",
+        "badge-text: root.first-badge-text;",
+        "badge-text: root.second-badge-text;",
+        "text: root.meta-text;",
+        "show-action: false;",
+        "slot-spacing: 0px;",
+        "selected-border-width: 0px;",
+        "idle-background: transparent;",
+        "selected-background: transparent;",
+    ] {
+        assert!(
+            badge_meta_strip.contains(snippet),
+            "HubBadgeMetaStrip must compose compact badge/meta strips from shared row slots; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "Badge {",
+        "MaterialText {",
+        "ListTile {",
+        "IconButton {",
+        "row-state := StateLayerArea",
+        "TouchArea",
+    ] {
+        assert!(
+            !badge_meta_strip.contains(forbidden),
+            "HubBadgeMetaStrip should stay a non-interactive slot-composed status strip: {forbidden}"
+        );
+    }
+
     let action_row = data_display
         .split("export component ActionRow")
         .nth(1)
         .and_then(|source| source.split("export component MetricCard").next())
         .expect("data_display.slint must declare ActionRow before MetricCard");
     for snippet in [
-        "in property <bool> focused: false;",
-        "border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;",
-        "border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;",
+        "row-state := StateLayerArea {",
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "alignment: stretch;",
+        "preferred-width: 0px;",
+        "idle-border-width: HubTokens.border-width;",
+        "idle-border: HubVisualSpec.outline-muted;",
     ] {
         assert!(
             action_row.contains(snippet),
-            "ActionRow must expose shared focus-ring primitive state; missing {snippet}"
+            "ActionRow must expose shared row-surface focus state through HubRowSurface and row slots; missing {snippet}"
         );
     }
+    assert!(
+        data_display.contains("export component ActionRow inherits HubRowSurface"),
+        "ActionRow must inherit HubRowSurface instead of owning its own root surface"
+    );
 }
 
 #[test]
@@ -342,7 +576,7 @@ fn catalog_rows_opt_into_compact_trailing_labels() {
 }
 
 #[test]
-fn action_row_uses_material_list_tile() {
+fn action_row_uses_shared_row_surface_and_slots() {
     let data_display = read_ui_file("data_display.slint");
     let action_row = data_display
         .split("export component ActionRow")
@@ -351,40 +585,50 @@ fn action_row_uses_material_list_tile() {
         .expect("data_display.slint must declare ActionRow before MetricCard");
 
     for snippet in [
-        "row-height: HubTokens.list-row-md;",
         "in property <bool> plain-avatar: false;",
         "in property <bool> plain-trailing: false;",
         "in property <bool> show-trailing: true;",
         "in property <bool> compact-shell: false;",
         "in property <float> disabled-shell-opacity: 1.0;",
-        "in property <color> enabled-avatar-background: MaterialPalette.primary_container;",
-        "in property <color> enabled-avatar-foreground: MaterialPalette.primary;",
+        "in property <color> enabled-avatar-background: HubVisualSpec.neutral-icon-background;",
+        "in property <color> enabled-avatar-foreground: HubVisualSpec.neutral-icon-foreground;",
         "row-corner-radius: root.compact-shell ? HubVisualSpec.compact-radius : HubVisualSpec.panel-radius;",
         "action-avatar-background: root.plain-avatar ? transparent :",
-        "action-avatar-foreground: root.plain-avatar ? MaterialPalette.on_surface :",
-        "border-radius: root.row-corner-radius;",
-        "background: root.action.enabled ? HubVisualSpec.panel-background : HubVisualSpec.panel-background.with_alpha(root.disabled-shell-opacity);",
-        "ListTile {",
-        "text: root.action.title;",
-        "supporting_text: root.action.detail;",
-        "avatar_icon:",
-        "avatar_background: root.action-avatar-background;",
-        "avatar_foreground: root.action-avatar-foreground;",
+        "action-avatar-foreground: root.plain-avatar ? HubVisualSpec.neutral-icon-foreground :",
+        "row-radius: root.row-corner-radius;",
+        "idle-border: HubVisualSpec.outline-muted;",
+        "idle-background: root.action.enabled ? HubVisualSpec.panel-background : HubVisualSpec.panel-background.with_alpha(root.disabled-shell-opacity);",
+        "row-state := StateLayerArea {",
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "alignment: stretch;",
+        "preferred-width: 0px;",
+        "title: root.action.title;",
+        "detail: root.action.detail;",
+        "shell-background: root.action-avatar-background;",
+        "icon-foreground: root.action-avatar-foreground;",
         "clicked =>",
-        "width: root.show-trailing ? root.trailing-size : 0px;",
-        "IconButton {",
+        "slot-width: root.trailing-size;",
+        "show-action: true;",
+        "action-framed: !root.plain-trailing;",
         "chevron-right.svg",
-        "if root.show-trailing && !root.plain-trailing: IconButton {",
-        "if root.show-trailing && root.plain-trailing: Rectangle {",
     ] {
         assert!(
             action_row.contains(snippet),
-            "ActionRow must delegate its operation-row body to Material ListTile; missing {snippet}"
+            "ActionRow must compose operation-row content from shared row slots; missing {snippet}"
         );
     }
+    assert!(
+        data_display.contains("export component ActionRow inherits HubRowSurface"),
+        "ActionRow must inherit HubRowSurface instead of owning its own root surface"
+    );
 
     for forbidden in [
         "CenteredIcon",
+        "ListTile {",
+        "IconButton {",
+        "avatar_icon:",
         "area := TouchArea",
         "border-color: area.has-hover",
         "background: area.has-hover",
@@ -436,7 +680,7 @@ fn build_history_rows_are_shared_between_editor_and_builds() {
         "for record in root.source-build-history: BuildHistoryRow",
         "collapse-label: root.compact-labels;",
         "if root.source-build-history-count == 0: EmptyStateBlock",
-        "no-build-history-title: root.ui-text.no-build-history;",
+        "no-build-history-title: root.ui-text.no-build-history-short;",
         "title: root.no-build-history-title;",
     ] {
         assert!(
@@ -479,6 +723,7 @@ fn hub_window_exposes_operation_timeline_rows_for_runtime_binding() {
         "output-path: string,",
         "process-id: string,",
         "success: bool,",
+        "operation-timeline-empty-detail-short: string,",
     ] {
         assert!(
             shared.contains(snippet),
@@ -538,20 +783,41 @@ fn operation_timeline_rows_are_shared_between_builds_and_settings() {
     }
 
     for snippet in [
-        "export component OperationTimelinePanel inherits PanelSlot",
+        "export component OperationTimelinePanel inherits HubListPanelSlot",
         "in property <[OperationTimelineRowData]> operation-timeline;",
         "in property <int> operation-timeline-count;",
+        "private property <length> timeline-empty-height: root.row-height + HubTokens.space-2;",
+        "title: root.timeline-title;",
+        "show-badge: true;",
+        "badge-text: root.operation-timeline-count + \"\";",
+        "scroll-y <=> root.timeline-scroll-y;",
+        "row-count: root.operation-timeline-count;",
+        "row-height: HubTokens.list-row-sm;",
+        "vertical-padding: HubTokens.space-0;",
+        "empty-height: root.timeline-empty-height;",
         "for record in root.operation-timeline: OperationTimelineRow",
+        "row-height: root.row-height;",
         "if root.operation-timeline-count == 0: EmptyStateBlock",
+        "height: root.timeline-empty-height;",
         "detail: root.empty-detail;",
     ] {
         assert!(
             operation_timeline.contains(snippet),
-            "OperationTimelinePanel should own the shared timeline viewport and empty state; missing {snippet}"
+            "OperationTimelinePanel should consume the shared list-panel slot while preserving timeline rows and empty state; missing {snippet}"
+        );
+    }
+    let timeline_panel = operation_timeline
+        .split("export component OperationTimelinePanel inherits HubListPanelSlot")
+        .nth(1)
+        .expect("operation_timeline_components.slint must declare OperationTimelinePanel");
+    for forbidden in ["PanelHeader {", "PanelListViewport {", "inherits PanelSlot"] {
+        assert!(
+            !timeline_panel.contains(forbidden),
+            "OperationTimelinePanel should not reintroduce a local panel/list shell after moving to HubListPanelSlot: {forbidden}"
         );
     }
     assert!(
-        components.contains("OperationTimelinePanel,"),
+        components.contains("export { OperationTimelineRow, OperationTimelinePanel } from \"operation_timeline_components.slint\";"),
         "components.slint should re-export the shared OperationTimelinePanel from operation_timeline_components.slint"
     );
     assert!(
@@ -575,7 +841,6 @@ fn operation_timeline_rows_are_shared_between_builds_and_settings() {
             "OperationTimelinePanel {",
             "timeline-title: root.ui-text.operation-timeline;",
             "empty-title: root.ui-text.no-operation-timeline;",
-            "empty-detail: root.ui-text.operation-timeline-empty-detail;",
             "operation-timeline: root.operation-timeline;",
             "operation-timeline-count: root.operation-timeline-count;",
         ] {
@@ -585,6 +850,14 @@ fn operation_timeline_rows_are_shared_between_builds_and_settings() {
             );
         }
     }
+    assert!(
+        builds.contains("empty-detail: root.ui-text.operation-timeline-empty-detail-short;"),
+        "Builds should use the short operation timeline empty copy in its compact three-panel row"
+    );
+    assert!(
+        settings.contains("empty-detail: root.ui-text.operation-timeline-empty-detail;"),
+        "Settings should keep the full operation timeline empty copy where it has a taller slot"
+    );
 
     for snippet in [
         "in property <[OperationTimelineRowData]> operation-timeline;",

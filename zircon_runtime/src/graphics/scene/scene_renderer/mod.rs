@@ -1,4 +1,5 @@
 pub(crate) mod anti_alias;
+mod attachment_ops;
 mod core;
 mod deferred;
 mod graph_execution;

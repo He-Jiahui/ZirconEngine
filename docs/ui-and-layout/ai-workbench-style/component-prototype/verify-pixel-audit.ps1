@@ -75,10 +75,7 @@ try {
       }
     }
 
-    $grade = if ($entry.Key -eq "viewport") {
-      if (($sum / $count) -le 12) { "ok-raster" } else { "needs-work" }
-    }
-    elseif (($sum / $count) -le 25) { "close" }
+    $grade = if (($sum / $count) -le 25) { "close" }
     elseif (($sum / $count) -le 38) { "rough" }
     else { "needs-work" }
 

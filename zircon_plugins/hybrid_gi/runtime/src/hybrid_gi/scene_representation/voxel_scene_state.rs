@@ -665,6 +665,7 @@ mod tests {
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/hgi-card.mat",
                 )),
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Static,
                 render_layer_mask: u32::MAX,

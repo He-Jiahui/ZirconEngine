@@ -18,6 +18,7 @@ pub struct RenderMeshSnapshot {
     pub model: ResourceHandle<ModelMarker>,
     pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
+    pub morph_weights: Vec<Real>,
     pub tint: Vec4,
     pub mobility: Mobility,
     pub render_layer_mask: u32,

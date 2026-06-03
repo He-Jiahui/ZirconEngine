@@ -26,8 +26,8 @@ use crate::ui::{
     picking::{UiPickMode, UiPickPolicy, UiPointerCapture, UiPointerCaptureKind},
     style::{
         ButtonColor, ButtonDimension, ButtonEventKind, ButtonIconPlacement, ButtonInteractionState,
-        ButtonSize, ButtonVariant, ResolvedButtonStyle, StyleDimension, UiResolvedElementStyle,
-        UiRgbaColor, UiStyleColor,
+        ButtonSize, ButtonVariant, ResolvedButtonStyle, StyleDimension, UiPainterFamily,
+        UiPainterState, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,
     },
     surface::{
         UiEditableTextState, UiNavigationEventKind, UiNavigationRoute, UiPointerActivationPhase,
@@ -96,6 +96,60 @@ fn ui_typed_style_and_button_contracts_round_trip_with_material_defaults() {
     assert_eq!(default_button.color, ButtonColor::Primary);
     assert_eq!(default_button.size, ButtonSize::Medium);
     assert_eq!(default_button.width, StyleDimension::Auto);
+}
+
+#[test]
+fn ui_painter_state_contracts_round_trip_and_resolve_button_state() {
+    let normal = UiPainterState::normal();
+    assert_eq!(
+        normal.button_interaction_state(),
+        ButtonInteractionState::Normal
+    );
+    assert_eq!(
+        round_trip(&UiPainterFamily::Button),
+        UiPainterFamily::Button
+    );
+
+    let hot = UiPainterState {
+        hovered: true,
+        ..UiPainterState::normal()
+    };
+    assert_eq!(round_trip(&hot), hot);
+    assert_eq!(
+        hot.button_interaction_state(),
+        ButtonInteractionState::Hover
+    );
+
+    let pressed_and_focused = UiPainterState {
+        pressed: true,
+        focused: true,
+        ..UiPainterState::normal()
+    };
+    assert_eq!(
+        pressed_and_focused.button_interaction_state(),
+        ButtonInteractionState::Pressed
+    );
+
+    let selected = UiPainterState {
+        selected: true,
+        ..UiPainterState::normal()
+    };
+    assert!(selected.is_focus_visible());
+    assert_eq!(
+        selected.button_interaction_state(),
+        ButtonInteractionState::Focused
+    );
+
+    let disabled = UiPainterState {
+        disabled: true,
+        pressed: true,
+        hovered: true,
+        ..UiPainterState::normal()
+    };
+    assert_eq!(
+        disabled.button_interaction_state(),
+        ButtonInteractionState::Disabled
+    );
 }
 
 #[test]

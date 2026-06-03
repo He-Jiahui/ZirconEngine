@@ -51,6 +51,8 @@ pub struct RenderBackendCaps {
     pub supports_texture_binding_array: bool,
     pub supports_non_uniform_resource_indexing: bool,
     pub supports_partially_bound_binding_array: bool,
+    pub supports_neural_compute: bool,
+    pub supports_sparse_texture: bool,
     pub acceleration_structures: AccelerationStructureCaps,
 }
 
@@ -71,6 +73,8 @@ impl RenderBackendCaps {
             supports_texture_binding_array: false,
             supports_non_uniform_resource_indexing: false,
             supports_partially_bound_binding_array: false,
+            supports_neural_compute: false,
+            supports_sparse_texture: false,
             acceleration_structures: AccelerationStructureCaps::disabled(),
         }
     }
@@ -143,6 +147,16 @@ impl RenderBackendCaps {
 
     pub fn with_partially_bound_binding_array(mut self, enabled: bool) -> Self {
         self.supports_partially_bound_binding_array = enabled;
+        self
+    }
+
+    pub fn with_neural_compute(mut self, enabled: bool) -> Self {
+        self.supports_neural_compute = enabled;
+        self
+    }
+
+    pub fn with_sparse_texture(mut self, enabled: bool) -> Self {
+        self.supports_sparse_texture = enabled;
         self
     }
 

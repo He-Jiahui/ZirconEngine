@@ -27,6 +27,10 @@ use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::globals::{
     HostContractGlobal, HostContractState, PaneSurfaceHostContext, UiHostContext,
 };
+use super::native_keyboard::{
+    dispatch_workbench_popup_keyboard_command, workbench_popup_keyboard_command,
+    WorkbenchPopupKeyboardCommand,
+};
 use super::native_pointer::{
     dispatch_native_pointer_button, dispatch_native_pointer_move, dispatch_native_pointer_scroll,
     NativePointerButtonState,
@@ -39,8 +43,8 @@ use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
 
-// Keep startup 1:1 with docs/ui-and-layout/workbench.png while the retained shell
-// is visually anchored by the reference workbench image.
+// Keep the first editor frame on the same design canvas used by the workbench
+// style studies while the retained shell is componentized.
 const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1672;
 const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 941;
 
@@ -188,6 +192,34 @@ impl UiHostWindow {
     ) {
         let mut state = self.state.borrow_mut();
         state.pane_interaction_state.hovered_template_control_id = control_id;
+        state
+            .pane_interaction_state
+            .hovered_template_dispatch_kind
+            .clear();
+        state
+            .pane_interaction_state
+            .hovered_template_action_id
+            .clear();
+        state
+            .pane_interaction_state
+            .hovered_template_value_text
+            .clear();
+        state.pane_interaction_state.hovered_template_frame = frame;
+    }
+
+    pub(crate) fn set_hovered_template_row_for_pointer_move(
+        &self,
+        control_id: SharedString,
+        dispatch_kind: SharedString,
+        action_id: SharedString,
+        value_text: SharedString,
+        frame: FrameRect,
+    ) {
+        let mut state = self.state.borrow_mut();
+        state.pane_interaction_state.hovered_template_control_id = control_id;
+        state.pane_interaction_state.hovered_template_dispatch_kind = dispatch_kind;
+        state.pane_interaction_state.hovered_template_action_id = action_id;
+        state.pane_interaction_state.hovered_template_value_text = value_text;
         state.pane_interaction_state.hovered_template_frame = frame;
     }
 
@@ -196,6 +228,18 @@ impl UiHostWindow {
         state
             .pane_interaction_state
             .hovered_template_control_id
+            .clear();
+        state
+            .pane_interaction_state
+            .hovered_template_dispatch_kind
+            .clear();
+        state
+            .pane_interaction_state
+            .hovered_template_action_id
+            .clear();
+        state
+            .pane_interaction_state
+            .hovered_template_value_text
             .clear();
         state.pane_interaction_state.hovered_template_frame = FrameRect::default();
     }
@@ -300,6 +344,14 @@ impl UiHostWindow {
     fn dispatch_focused_key_event(&self, event: &KeyEvent) -> NativePointerDispatchResult {
         if event.state != ElementState::Pressed {
             return NativePointerDispatchResult::idle();
+        }
+        if !self.text_input_focus_active() {
+            if let Some(command) = workbench_popup_keyboard_command(&event.logical_key) {
+                let result = dispatch_workbench_popup_keyboard_command(self, command);
+                if result.request_redraw() {
+                    return result;
+                }
+            }
         }
         match &event.logical_key {
             Key::Named(NamedKey::Backspace) => self.dispatch_focused_text_backspace(),
@@ -490,6 +542,11 @@ impl UiHostWindow {
     }
 
     #[cfg(test)]
+    pub(crate) fn dispatch_native_text_for_test(&self, text: &str) -> NativePointerDispatchResult {
+        self.dispatch_native_text_input_for_test(text)
+    }
+
+    #[cfg(test)]
     pub(crate) fn dispatch_native_backspace_for_test(&self) -> NativePointerDispatchResult {
         self.dispatch_focused_text_backspace()
     }
@@ -497,6 +554,26 @@ impl UiHostWindow {
     #[cfg(test)]
     pub(crate) fn dispatch_native_enter_for_test(&self) -> NativePointerDispatchResult {
         self.dispatch_focused_text_commit()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_arrow_down_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Next)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_arrow_up_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Previous)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_enter_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Accept)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_escape_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Cancel)
     }
 }
 
@@ -563,14 +640,23 @@ fn apply_template_hover_to_presentation(
     if interaction.hovered_template_control_id.is_empty() {
         return;
     }
-    let hovered = &interaction.hovered_template_control_id;
+    apply_template_hover_to_nodes(&mut presentation.workbench_window_nodes, interaction);
     apply_template_hover_to_pane(
         &mut presentation.host_scene_data.document_dock.pane,
-        hovered,
+        interaction,
     );
-    apply_template_hover_to_pane(&mut presentation.host_scene_data.left_dock.pane, hovered);
-    apply_template_hover_to_pane(&mut presentation.host_scene_data.right_dock.pane, hovered);
-    apply_template_hover_to_pane(&mut presentation.host_scene_data.bottom_dock.pane, hovered);
+    apply_template_hover_to_pane(
+        &mut presentation.host_scene_data.left_dock.pane,
+        interaction,
+    );
+    apply_template_hover_to_pane(
+        &mut presentation.host_scene_data.right_dock.pane,
+        interaction,
+    );
+    apply_template_hover_to_pane(
+        &mut presentation.host_scene_data.bottom_dock.pane,
+        interaction,
+    );
 
     let mut floating_changed = false;
     let floating_windows: Vec<_> = (0..presentation
@@ -586,7 +672,7 @@ fn apply_template_hover_to_presentation(
                 .row_data(row)
         })
         .map(|mut window| {
-            floating_changed |= apply_template_hover_to_pane(&mut window.active_pane, hovered);
+            floating_changed |= apply_template_hover_to_pane(&mut window.active_pane, interaction);
             window
         })
         .collect();
@@ -596,7 +682,10 @@ fn apply_template_hover_to_presentation(
     }
 }
 
-fn apply_template_hover_to_pane(pane: &mut PaneData, hovered: &SharedString) -> bool {
+fn apply_template_hover_to_pane(
+    pane: &mut PaneData,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
     let nodes = match pane.kind.as_str() {
         "Hierarchy" => &mut pane.hierarchy.nodes,
         "Inspector" => &mut pane.inspector.nodes,
@@ -613,14 +702,15 @@ fn apply_template_hover_to_pane(pane: &mut PaneData, hovered: &SharedString) -> 
         "AnimationSequenceEditor" | "AnimationGraphEditor" => &mut pane.animation.nodes,
         _ => return false,
     };
-    apply_template_hover_to_nodes(nodes, hovered)
+    apply_template_hover_to_nodes(nodes, interaction)
 }
 
 fn apply_template_hover_to_nodes(
     nodes: &mut ModelRc<TemplatePaneNodeData>,
-    hovered: &SharedString,
+    interaction: &HostPaneInteractionStateData,
 ) -> bool {
     let mut changed = false;
+    let hovered = &interaction.hovered_template_control_id;
     let values: Vec<_> = (0..nodes.row_count())
         .filter_map(|row| nodes.row_data(row))
         .map(|mut node| {
@@ -628,11 +718,77 @@ fn apply_template_hover_to_nodes(
                 node.hovered = true;
                 changed = true;
             }
+            if node.control_id.as_str() == hovered.as_str() {
+                changed |= apply_template_row_hover(&mut node, interaction);
+            }
             node
         })
         .collect();
     if changed {
         *nodes = ModelRc::from(Rc::new(VecModel::from(values)));
+    }
+    changed
+}
+
+fn apply_template_row_hover(
+    node: &mut TemplatePaneNodeData,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    match interaction.hovered_template_dispatch_kind.as_str() {
+        "workbench_option" => {
+            apply_option_row_hover(node, interaction.hovered_template_value_text.as_str())
+        }
+        "workbench_menu_item" => {
+            apply_menu_row_hover(node, interaction.hovered_template_action_id.as_str())
+        }
+        _ => false,
+    }
+}
+
+fn apply_option_row_hover(node: &mut TemplatePaneNodeData, option_id: &str) -> bool {
+    if option_id.is_empty() || node.structured_options.row_count() == 0 {
+        return false;
+    }
+    let mut changed = false;
+    let options: Vec<_> = (0..node.structured_options.row_count())
+        .filter_map(|row| node.structured_options.row_data(row))
+        .map(|mut option| {
+            let hovered = !option.disabled && option.id.as_str() == option_id;
+            if option.hovered != hovered || option.focused || option.pressed {
+                option.hovered = hovered;
+                option.focused = false;
+                option.pressed = false;
+                changed = true;
+            }
+            option
+        })
+        .collect();
+    if changed {
+        node.structured_options = ModelRc::from(Rc::new(VecModel::from(options)));
+    }
+    changed
+}
+
+fn apply_menu_row_hover(node: &mut TemplatePaneNodeData, action_id: &str) -> bool {
+    if action_id.is_empty() || node.structured_menu_items.row_count() == 0 {
+        return false;
+    }
+    let mut changed = false;
+    let items: Vec<_> = (0..node.structured_menu_items.row_count())
+        .filter_map(|row| node.structured_menu_items.row_data(row))
+        .map(|mut item| {
+            let hovered = !item.disabled && !item.separator && item.action_id.as_str() == action_id;
+            if item.hovered != hovered || item.focused || item.pressed {
+                item.hovered = hovered;
+                item.focused = false;
+                item.pressed = false;
+                changed = true;
+            }
+            item
+        })
+        .collect();
+    if changed {
+        node.structured_menu_items = ModelRc::from(Rc::new(VecModel::from(items)));
     }
     changed
 }

@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
+  - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
@@ -37,6 +38,7 @@ related_code:
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/asset/assets/data.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
@@ -92,6 +94,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
+  - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
@@ -101,6 +104,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
@@ -122,7 +126,7 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/register.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_registration_report.rs
+- zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
@@ -162,6 +166,7 @@ plan_sources:
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - docs/superpowers/specs/2026-05-03-opus-native-dynamic-importer-design.md
   - docs/superpowers/plans/2026-05-03-opus-native-dynamic-importer.md
+  - user: 2026-06-03 implement ZirconEngine WGPU render main-chain closure plan, M7 LUT asset ingress slice
 tests:
   - zircon_runtime_interface/src/tests/resource_contracts.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
@@ -172,6 +177,18 @@ tests:
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_clamps_channels_and_builds_3d_texture
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_ignores_common_metadata_rows
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_1d_shaper_sections
+  - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_out_of_range_sizes
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_decodes_cube_lut_as_linear_3d_rgba8_texture
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_rejects_cube_lut_with_wrong_sample_count
+  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_capability_report_marks_diagnostic_only_backends
+  - cargo test -p zircon_runtime --lib cube_lut --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress before explicit shaper guard: passed, 5 passed; existing warnings only)
+  - wsl -e sh -lc 'cd /mnt/e/Git/ZirconEngine && CARGO_TARGET_DIR=/tmp/zircon-render-main-chain-cube-lut-0603 cargo test -p zircon_runtime --lib cube_lut --locked --jobs 1 --message-format short --color never' (2026-06-03 M7 cube LUT shaper guard rerun: passed, 6 passed, 2500 filtered out; existing warnings only)
+  - cargo test -p zircon_runtime --lib texture_importer --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress: passed, 14 passed; existing warnings only)
+  - cargo test -p zircon_runtime --lib importer_capability_report_marks_diagnostic_only_backends --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT importer capability: passed, 1 passed; existing warnings only)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never (2026-06-03 M7 cube LUT asset ingress: passed; existing warnings only)
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/asset/importer/native.rs::native_import_response_preserves_schema_migration_report
   - zircon_runtime/src/asset/importer/native.rs::native_import_command_errors_preserve_status_diagnostics_without_payload
@@ -515,6 +532,14 @@ Invalid Bevy-alias settings report the actual key that failed, including `textur
 The runtime fixture tests for this texture source-format, descriptor, and `[array_layout]` behavior
 are split into `zircon_runtime/src/asset/tests/assets/texture_importer.rs`; the generic
 `importer.rs` module stays focused on registry routing plus non-texture fixture contracts.
+The same default importer now owns a narrow built-in `.cube` LUT route through
+`zircon.builtin.texture.cube_lut`. It decodes UTF-8 `.cube` files, parses `LUT_3D_SIZE`, accepts
+common metadata rows such as `TITLE`, `DOMAIN_*`, and LUT input/output range declarations, rejects
+1D shaper sections explicitly until shaper-aware LUT baking is designed, requires exactly `size^3`
+RGB samples, and emits a linear `rgba8unorm` 3D `TextureAsset` with clamp/linear
+sampler metadata. This keeps post-process LUT authoring on the normal asset pipeline and capability
+report path instead of routing `.cube` through a plugin-only image backend or renderer-private WGPU
+code.
 Decoded RGBA8 image textures also accept Bevy-style
 `[array_layout] row_count = N` or
 `row_height = pixels` settings: the importer reinterprets a vertical 2D stack as a 2D array texture
@@ -556,7 +581,7 @@ split `ui_document_importer` package imports only `.zui` component documents and
 view/style/component importer, and serialized `.ui.json`/`.uidoc` `UiAssetDocument` paths are not production
 plugin importers anymore; migration coverage must install explicit test fixtures.
 
-Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
+Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. Text `.cube` LUTs are no longer part of that diagnostic-only bucket: the built-in parser covers the neutral 3D RGBA8 LUT asset shape, while advanced LUT authoring policies such as half-float payloads, shaper LUTs, or GPU-baked LUT generation remain later work. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
 
 `TextureAsset` keeps the existing RGBA8 payload and the container payload used by DDS/KTX/KTX2/ASTC import paths. The optional descriptor field is backward-compatible: old artifacts without it derive render metadata from `TexturePayload`, while newly imported assets store the descriptor explicitly for diagnostics, support queries, and render prepare. Container payloads are not decoded into RGBA by the importer; the render preparation layer decides whether the current GPU feature set can upload the compressed format or should emit a deterministic fallback diagnostic. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
 

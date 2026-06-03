@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::ui::workbench::layout::{MainHostPageLayout, WorkbenchLayout};
-use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::layout::{ActivityWindowId, MainHostPageLayout, WorkbenchLayout};
+use crate::ui::workbench::view::{
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId,
+};
 
 use super::super::workbench::{
     resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
@@ -127,6 +129,11 @@ fn build_main_pages(
                 id: id.clone(),
                 title: title.clone(),
                 activity_window: activity_window.clone(),
+                activity_window_template: activity_window_template(
+                    layout,
+                    descriptors,
+                    activity_window,
+                ),
                 workspace: resolve_document_workspace(document_workspace, instances, descriptors),
             },
             MainHostPageLayout::ExclusiveActivityWindowPage {
@@ -140,6 +147,18 @@ fn build_main_pages(
             },
         })
         .collect()
+}
+
+fn activity_window_template(
+    layout: &WorkbenchLayout,
+    descriptors: &HashMap<ViewDescriptorId, ViewDescriptor>,
+    activity_window: &ActivityWindowId,
+) -> Option<ActivityWindowTemplateSpec> {
+    let windows = layout.activity_windows();
+    let window = windows.get(activity_window)?;
+    descriptors
+        .get(&window.descriptor_id)
+        .and_then(|descriptor| descriptor.activity_window_template.clone())
 }
 
 fn build_floating_windows(

@@ -7,8 +7,15 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     renderer: &mut SceneRenderer,
     runtime_outputs: SceneRendererCompiledSceneOutputs,
 ) -> Result<(), GraphicsError> {
-    let (advanced_plugin_readbacks, render_graph_execution) = runtime_outputs.into_parts();
+    let (
+        advanced_plugin_readbacks,
+        render_graph_execution,
+        prepared_mesh_queue_stats,
+        prepared_sprite_queue_stats,
+    ) = runtime_outputs.into_parts();
     renderer.last_render_graph_execution = render_graph_execution;
+    renderer.last_prepared_mesh_queue_stats = prepared_mesh_queue_stats;
+    renderer.last_prepared_sprite_queue_stats = prepared_sprite_queue_stats;
     advanced_plugin_readbacks.collect_into_outputs(
         &renderer.backend.device,
         &mut renderer.advanced_plugin_outputs,

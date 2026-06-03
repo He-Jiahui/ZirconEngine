@@ -1,11 +1,11 @@
 use crate::graphics::scene::RenderPassExecutorId;
-use crate::render_graph::QueueLane;
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
 use crate::graphics::pipeline::RenderPassStage;
 
 use super::render_feature_pass_descriptor::{
     RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
-    RenderFeatureResourceKind,
+    RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };
 
 impl RenderFeaturePassDescriptor {
@@ -17,6 +17,7 @@ impl RenderFeaturePassDescriptor {
             pass_name,
             queue,
             flags: Default::default(),
+            compute_workload: None,
             resources: Vec::new(),
         }
     }
@@ -31,11 +32,18 @@ impl RenderFeaturePassDescriptor {
         self
     }
 
+    pub fn with_compute_workload(mut self, workload: RenderGraphComputeWorkload) -> Self {
+        self.compute_workload = Some(workload);
+        self
+    }
+
     pub fn read_texture(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
             RenderFeatureResourceKind::Texture,
             RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
         )
     }
 
@@ -44,6 +52,32 @@ impl RenderFeaturePassDescriptor {
             name,
             RenderFeatureResourceKind::Texture,
             RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+        )
+    }
+
+    pub fn write_storage_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+        )
+    }
+
+    pub fn write_texture_with_ops(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
         )
     }
 
@@ -52,6 +86,8 @@ impl RenderFeaturePassDescriptor {
             name,
             RenderFeatureResourceKind::Buffer,
             RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
         )
     }
 
@@ -60,6 +96,8 @@ impl RenderFeaturePassDescriptor {
             name,
             RenderFeatureResourceKind::Buffer,
             RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
         )
     }
 
@@ -68,6 +106,8 @@ impl RenderFeaturePassDescriptor {
             name,
             RenderFeatureResourceKind::External,
             RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
         )
     }
 
@@ -76,6 +116,32 @@ impl RenderFeaturePassDescriptor {
             name,
             RenderFeatureResourceKind::External,
             RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+        )
+    }
+
+    pub fn write_storage_external(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+        )
+    }
+
+    pub fn write_external_with_ops(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
         )
     }
 
@@ -84,11 +150,15 @@ impl RenderFeaturePassDescriptor {
         name: impl Into<String>,
         kind: RenderFeatureResourceKind,
         access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
     ) -> Self {
         self.resources.push(RenderFeatureResourceDescriptor {
             name: name.into(),
             kind,
             access,
+            attachment_ops,
+            write_mode,
         });
         self
     }

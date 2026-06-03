@@ -5,7 +5,7 @@ use toml::Value;
 
 use crate::ui::template::UiBindingRef;
 
-use super::UiV2StyleDeclarationBlock;
+use super::{UiV2Repeat, UiV2StyleDeclarationBlock};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct UiV2NodeHandle(pub u32);
@@ -56,6 +56,8 @@ pub struct UiV2ArenaNode {
     pub state: BTreeMap<String, Value>,
     #[serde(default)]
     pub layout: Option<BTreeMap<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<UiV2Repeat>,
     #[serde(default)]
     pub style: UiV2StyleDeclarationBlock,
     #[serde(default)]

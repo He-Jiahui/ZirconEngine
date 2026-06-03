@@ -763,7 +763,7 @@ fn child_positions(
     Ok(positions)
 }
 
-fn hide_subtree_layout(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTreeError> {
+pub(super) fn hide_subtree_layout(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTreeError> {
     let children = {
         let node = tree
             .node_mut(node_id)

@@ -48,6 +48,8 @@ pub(super) fn parse(
     let supercompression = read_u32_le(context, 44)?;
     validate_supercompression_scheme(context, supercompression)?;
     validate_vk_format_supercompression_pair(context, vk_format, supercompression)?;
+    let parsed_layers =
+        checked_layer_count(context, "ktx2 array layer count", layer_count, face_count)?;
     let required_level_index_len = usize::try_from(level_count)
         .ok()
         .and_then(|count| count.checked_mul(KTX2_LEVEL_INDEX_ENTRY_SIZE))
@@ -60,8 +62,7 @@ pub(super) fn parse(
         level_count,
         level_index_end,
         supercompression,
-        layer_count,
-        face_count,
+        parsed_layers,
     )?;
     let dfd_byte_offset = read_u32_le(context, 48)?;
     let dfd_byte_length = read_u32_le(context, 52)?;
@@ -171,8 +172,6 @@ pub(super) fn parse(
     )?;
     validate_key_value_data_records(context, key_value_data_offset, key_value_data_length)?;
     let dimension = texture_dimension_from_header(raw_height, raw_depth);
-    let parsed_layers =
-        checked_layer_count(context, "ktx2 array layer count", layer_count, face_count)?;
     let array_layers = texture_array_layers(dimension, parsed_layers);
 
     Ok(TextureContainerInfo {
@@ -263,10 +262,8 @@ fn validate_level_payload_ranges(
     level_count: u32,
     level_index_end: u64,
     supercompression: u32,
-    layer_count: u32,
-    face_count: u32,
+    image_count: u32,
 ) -> Result<LevelPayloadRanges, AssetImportError> {
-    let image_count = checked_layer_count(context, "ktx2 image count", layer_count, face_count)?;
     let mut occupied_ranges = Vec::new();
     let mut has_non_empty_payload = false;
     for level_index in 0..level_count {

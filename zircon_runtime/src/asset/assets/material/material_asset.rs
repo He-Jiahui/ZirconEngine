@@ -6,7 +6,7 @@ use crate::asset::{AssetReference, ShaderAsset, ShaderRuntimeSourceKind};
 use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialDiagnosticSource,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
+    RenderMaterialLightingModel, RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
     RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 use crate::core::resource::ResourceId;
@@ -15,6 +15,8 @@ use super::{
     dependency_set, shader_property_values_for_shader, validate_alpha_mode,
     validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
 };
+
+const MATERIAL_LIGHTING_MODEL_PROPERTY: &str = "lighting_model";
 
 /// Asset-level material summary that does not require renderer preparation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -218,7 +220,9 @@ impl MaterialAsset {
     }
 
     pub fn validation_errors(&self) -> Vec<RenderMaterialValidationError> {
-        validate_alpha_mode(&self.alpha_mode)
+        let mut errors = validate_alpha_mode(&self.alpha_mode);
+        errors.extend(self.lighting_model_validation_errors());
+        errors
     }
 
     pub fn overview(&self) -> MaterialAssetOverview {
@@ -327,6 +331,8 @@ impl MaterialAsset {
     }
 
     pub fn standard_material_descriptor(&self) -> StandardMaterialDescriptor {
+        let lighting_model = self.lighting_model();
+        let unlit = lighting_model.is_unlit();
         StandardMaterialDescriptor {
             name: self.name.clone(),
             dependencies: self.dependency_set(),
@@ -340,7 +346,8 @@ impl MaterialAsset {
             emissive: self.emissive,
             emissive_texture: self.emissive_texture.clone(),
             alpha_mode: (&self.alpha_mode).into(),
-            unlit: false,
+            lighting_model,
+            unlit,
             double_sided: self.double_sided,
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
@@ -391,6 +398,22 @@ impl MaterialAsset {
 
     pub fn property_overrides(&self) -> &BTreeMap<String, toml::Value> {
         &self.property_values
+    }
+
+    pub fn shader_property_overrides(&self) -> impl Iterator<Item = (&String, &toml::Value)> {
+        self.property_values
+            .iter()
+            .filter(|(name, _)| !is_material_owned_property(name))
+    }
+
+    pub fn shader_property_override(&self, name: &str) -> Option<&toml::Value> {
+        (!is_material_owned_property(name))
+            .then(|| self.property_values.get(name))
+            .flatten()
+    }
+
+    pub fn lighting_model(&self) -> RenderMaterialLightingModel {
+        self.lighting_model_from_property().unwrap_or_default()
     }
 
     pub fn all_texture_slots(&self) -> Vec<(String, &AssetReference)> {
@@ -485,6 +508,33 @@ impl MaterialAsset {
 }
 
 impl MaterialAsset {
+    fn lighting_model_from_property(&self) -> Option<RenderMaterialLightingModel> {
+        let value = self.property_values.get(MATERIAL_LIGHTING_MODEL_PROPERTY)?;
+        value
+            .as_str()
+            .and_then(|value| value.parse::<RenderMaterialLightingModel>().ok())
+    }
+
+    fn lighting_model_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
+        let Some(value) = self.property_values.get(MATERIAL_LIGHTING_MODEL_PROPERTY) else {
+            return Vec::new();
+        };
+        let Some(token) = value.as_str() else {
+            return vec![RenderMaterialValidationError::InvalidLightingModel {
+                path: format!("overrides.{MATERIAL_LIGHTING_MODEL_PROPERTY}"),
+                value: value.to_string(),
+            }];
+        };
+        if token.parse::<RenderMaterialLightingModel>().is_ok() {
+            Vec::new()
+        } else {
+            vec![RenderMaterialValidationError::InvalidLightingModel {
+                path: format!("overrides.{MATERIAL_LIGHTING_MODEL_PROPERTY}"),
+                value: token.to_string(),
+            }]
+        }
+    }
+
     fn readiness_report_from_texture_slots(
         &self,
         dependencies: RenderMaterialDependencySet,
@@ -593,6 +643,10 @@ impl MaterialAsset {
         .filter_map(|(slot, reference)| reference.map(|reference| (slot.to_string(), reference)))
         .collect()
     }
+}
+
+fn is_material_owned_property(name: &str) -> bool {
+    name == MATERIAL_LIGHTING_MODEL_PROPERTY
 }
 
 fn is_standard_texture_slot_alias(slot: &str) -> bool {

@@ -10,6 +10,7 @@ mod ui_contract_spine;
 mod ui_ecs_projection_contracts;
 mod ui_geometry_metrics;
 mod ui_layout;
+mod ui_painter_style_contracts;
 mod ui_skin_contracts;
 mod ui_v2_contracts;
 mod window_input_contracts;

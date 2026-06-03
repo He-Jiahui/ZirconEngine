@@ -10,7 +10,7 @@ fn workbench_window_source() -> String {
 }
 
 #[test]
-fn workbench_window_uses_reference_image_baseline() {
+fn workbench_window_uses_componentized_workbench_layout() {
     let source = workbench_window_source();
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("workbench window v2 asset should parse");
@@ -18,22 +18,48 @@ fn workbench_window_uses_reference_image_baseline() {
     assert_eq!(document.asset.id, "editor.window.workbench");
 
     for marker in [
-        "component = \"Image\"",
-        "WorkbenchReferenceImage",
-        "ui/editor/reference/workbench.png",
-        "docs/ui-and-layout/workbench.png",
-        "reference_width = 1672.0",
-        "reference_height = 941.0",
-        "aspect_ratio = 1.7768332",
+        "editor_workbench_strict.v2.ui.toml",
+        "res://ui/editor/components/workbench_component_drawer.zui#WorkbenchComponentDrawer",
+        "res://ui/editor/components/workbench_main_band.zui#WorkbenchMainBand",
+        "res://ui/editor/components/workbench_status_bar.zui#WorkbenchStatusBar",
+        "res://ui/editor/components/workbench_top_toolbar.zui#WorkbenchTopToolbar",
+        "component = \"WorkbenchTopToolbar\"",
+        "component = \"WorkbenchMainBand\"",
+        "component = \"WorkbenchComponentDrawer\"",
+        "component = \"WorkbenchStatusBar\"",
     ] {
         assert!(source.contains(marker), "missing {marker}");
     }
 
-    for control in [
-        "WorkbenchWindowRoot",
+    for forbidden in [
         "WorkbenchReferenceFrame",
         "WorkbenchReferenceImage",
+        "ui/editor/reference/workbench.png",
+        "docs/ui-and-layout/workbench.png",
+        "component = \"IconButton\"",
+        "component = \"Button\"",
+        "component = \"Dropdown\"",
+        "component = \"Checkbox\"",
+        "component = \"Radio\"",
+        "component = \"Toggle\"",
+        "component = \"RangeField\"",
+        "component = \"TreeRow\"",
+        "component = \"ListRow\"",
+        "component = \"ContextActionMenu\"",
+        "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+        "res://ui/editor/components/workbench_checkbox.zui#WorkbenchCheckbox",
+        "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+        "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+        "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+        "res://ui/editor/components/workbench_popup_menu.zui#WorkbenchPopupMenu",
+        "res://ui/editor/components/workbench_segmented_control.zui#WorkbenchSegmentedControl",
+        "res://ui/editor/components/workbench_slider.zui#WorkbenchSlider",
+        "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+        "res://ui/editor/components/workbench_tree_row.zui#WorkbenchTreeRow",
     ] {
-        assert!(source.contains(control), "missing {control}");
+        assert!(
+            !source.contains(forbidden),
+            "workbench window must stay componentized instead of rendering `{forbidden}`"
+        );
     }
 }

@@ -1,0 +1,697 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_component_drawer.zui"
+version = 2
+display_name = "Workbench Component Drawer"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_checkbox.zui#WorkbenchCheckbox",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_popup_menu.zui#WorkbenchPopupMenu",
+  "res://ui/editor/components/workbench_radio.zui#WorkbenchRadio",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_segmented_control.zui#WorkbenchSegmentedControl",
+  "res://ui/editor/components/workbench_slider.zui#WorkbenchSlider",
+  "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench_toast.zui#WorkbenchToast",
+  "res://ui/editor/components/workbench_tooltip.zui#WorkbenchTooltip",
+  "res://ui/editor/components/workbench_toggle.zui#WorkbenchToggle",
+]
+styles = []
+
+[components.WorkbenchComponentDrawer]
+root = "component_drawer"
+default_classes = ["workbench-component-drawer"]
+
+[nodes.component_drawer]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentDrawer"
+classes = ["workbench-component-drawer"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
+children = [{ node = "drawer_tabs" }, { node = "component_body" }, { node = "console_body" }]
+
+[nodes.drawer_tabs]
+component = "HorizontalGroup"
+control_id = "WorkbenchComponentDrawerTabs"
+classes = ["workbench-tabs"]
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+children = [{ node = "drawer_tab_components" }, { node = "drawer_tab_console" }]
+
+[nodes.drawer_tab_components]
+component = "WorkbenchTab"
+control_id = "WorkbenchDrawerTabComponents"
+classes = ["workbench-tab"]
+props = { text = "UI Components", checked = true, selected = true, value = true }
+layout = { width = { min = 150.0, preferred = 150.0, max = 170.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PanelTab/ComponentDrawerComponents", event = "Click", route = "PanelTab.Select.ComponentDrawerComponents" }]
+
+[nodes.drawer_tab_console]
+component = "WorkbenchTab"
+control_id = "WorkbenchDrawerTabConsole"
+classes = ["workbench-tab"]
+props = { text = "Console", checked = false, selected = false, value = false }
+layout = { width = { min = 110.0, preferred = 110.0, max = 130.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PanelTab/ComponentDrawerConsole", event = "Click", route = "PanelTab.Select.ComponentDrawerConsole" }]
+
+[nodes.component_body]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentDrawerBody"
+classes = ["workbench-component-drawer-body"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "component_top_row" }, { node = "component_lower_row" }]
+
+[nodes.component_top_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchComponentTopRow"
+classes = ["workbench-component-grid-row"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { min = 202.0, preferred = 202.0, max = 202.0, stretch = "Fixed" } }
+children = [{ node = "component_buttons" }, { node = "component_icon_buttons" }, { node = "component_inputs" }, { node = "component_selection" }, { node = "component_sliders" }, { node = "component_labs" }, { node = "component_list" }]
+
+[nodes.component_lower_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchComponentLowerRow"
+classes = ["workbench-lower-demo"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "component_table" }, { node = "component_feedback" }]
+
+[nodes.console_body]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentDrawerConsoleBody"
+classes = ["workbench-panel", "workbench-console-panel"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_info" }, { node = "console_warning" }, { node = "console_ok" }]
+
+[nodes.console_info]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchConsoleInfo"
+classes = ["workbench-status-item", "workbench-info"]
+props = { text = "UI component palette loaded" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.console_warning]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchConsoleWarning"
+classes = ["workbench-status-item", "workbench-warning"]
+props = { text = "2 layout warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.console_ok]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchConsoleOk"
+classes = ["workbench-status-item", "workbench-success"]
+props = { text = "No runtime errors" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_buttons]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentButtons"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 7.0 }, width = { min = 204.0, preferred = 204.0, max = 204.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "buttons_title" }, { node = "buttons_row_primary" }, { node = "buttons_row_variant" }, { node = "buttons_row_icon" }, { node = "buttons_row_tail" }]
+
+[nodes.buttons_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchButtonsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Buttons" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.buttons_row_primary]
+component = "HorizontalGroup"
+control_id = "WorkbenchButtonsRowPrimary"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "primary_button" }, { node = "secondary_button" }]
+
+[nodes.primary_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchPrimaryButton"
+classes = ["workbench-primary-button"]
+props = { text = "Primary", button_variant = "filled", button_color = "accent", button_size = "small", background_color = "#29a4b8", border_color = "#1c8798", layout_offset_x = 3.0, layout_offset_y = -1.0, font_size = 12.22, visual_brightness = 1.0 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/Primary", event = "Click", route = "ComponentLab.Primary" }]
+
+[nodes.secondary_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchSecondaryButton"
+classes = ["workbench-control-button"]
+props = { text = "Secondary", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", layout_offset_x = 1.0, layout_offset_y = -1.0, font_size = 12.22, visual_brightness = 1.01 }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/Secondary", event = "Click", route = "ComponentLab.Secondary" }]
+
+[nodes.buttons_row_variant]
+component = "HorizontalGroup"
+control_id = "WorkbenchButtonsRowVariant"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "tertiary_button" }, { node = "outline_button" }]
+
+[nodes.tertiary_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchTertiaryButton"
+classes = ["workbench-control-button", "workbench-tertiary-button"]
+props = { text = "Tertiary", button_variant = "text", button_color = "secondary", button_size = "small", background_color = "#171c20", border_color = "#252e35", foreground_color = "#879299", corner_radius = 9.0, layout_offset_x = 1.0 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/Tertiary", event = "Click", route = "ComponentLab.Tertiary" }]
+
+[nodes.outline_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchOutlineButton"
+classes = ["workbench-control-button", "workbench-outline-button"]
+props = { text = "Outline", button_variant = "outlined", button_color = "secondary", button_size = "small", border_color = "#252e35", foreground_color = "#879299", corner_radius = 9.0, layout_offset_x = 1.0 }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/Outline", event = "Click", route = "ComponentLab.Outline" }]
+
+[nodes.buttons_row_icon]
+component = "HorizontalGroup"
+control_id = "WorkbenchButtonsRowIcon"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "button_icon" }, { node = "button_delete" }]
+
+[nodes.button_icon]
+component = "WorkbenchButton"
+control_id = "WorkbenchButtonIcon"
+classes = ["workbench-control-button", "workbench-button-icon"]
+props = { text = "Icon", icon = "plus", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#20262a", border_color = "#303840", foreground_color = "#7f8a91", corner_radius = 9.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/IconButton", event = "Click", route = "ComponentLab.IconButton" }]
+
+[nodes.button_delete]
+component = "WorkbenchButton"
+control_id = "WorkbenchButtonDelete"
+classes = ["workbench-control-button", "workbench-danger"]
+props = { text = "", icon = "trash", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger", foreground_color = "#d05a50", corner_radius = 9.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/DeleteButton", event = "Click", route = "ComponentLab.DeleteButton" }]
+
+[nodes.buttons_row_tail]
+component = "HorizontalGroup"
+control_id = "WorkbenchButtonsRowTail"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "disabled_button" }, { node = "dropdown_button" }]
+
+[nodes.disabled_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchDisabledButton"
+classes = ["workbench-control-button", "workbench-disabled-button"]
+props = { text = "Disabled", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true, background_color = "#2d3337", border_color = "#343d44", foreground_color = "#747f86", disabled_opacity = 0.72, layout_offset_x = -1.0, layout_offset_y = 3.5 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.dropdown_button]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchDropdownButton"
+classes = ["workbench-field", "workbench-button-dropdown"]
+props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], popup_open = false, layout_width = 82.0, value_color = "#7f8a91", arrow_color = "#67737a", border_color = "#1f272e", layout_offset_x = -1.0, layout_offset_y = 3.5, visual_brightness = 1.005 }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/ButtonDropdownOpen", event = "Click", route = "ComponentLab.OpenPopup.ButtonDropdown" }, { id = "ComponentLab/ButtonDropdownSelect", event = "Change", route = "ComponentLab.SelectOption.ButtonDropdown" }]
+
+[nodes.component_icon_buttons]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentIconButtons"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 210.0, preferred = 210.0, max = 210.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_buttons_title" }, { node = "icon_grid_row_top" }, { node = "icon_grid_row_bottom" }, { node = "icon_toggle_title" }, { node = "icon_toggle_segment" }]
+
+[nodes.icon_buttons_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchIconButtonsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Icon Buttons" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.icon_grid_row_top]
+component = "HorizontalGroup"
+control_id = "WorkbenchIconButtonGridTop"
+props = { layout_gap = 6.0 }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+children = [{ node = "mini_add" }, { node = "mini_folder" }, { node = "mini_save" }, { node = "mini_delete" }]
+
+[nodes.mini_add]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniAdd"
+classes = ["workbench-icon-button"]
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_folder]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniFolder"
+classes = ["workbench-icon-button"]
+props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_save]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniSave"
+classes = ["workbench-icon-button"]
+props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_delete]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniDelete"
+classes = ["workbench-icon-button", "workbench-danger"]
+props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.icon_grid_row_bottom]
+component = "HorizontalGroup"
+control_id = "WorkbenchIconButtonGridBottom"
+props = { layout_gap = 6.0 }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+children = [{ node = "mini_eye" }, { node = "mini_eye_off" }, { node = "mini_lock" }, { node = "mini_more" }]
+
+[nodes.mini_eye]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniEye"
+classes = ["workbench-icon-button"]
+props = { icon = "eye", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_eye_off]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniEyeOff"
+classes = ["workbench-icon-button"]
+props = { icon = "eye-off", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_lock]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniLock"
+classes = ["workbench-icon-button"]
+props = { icon = "lock", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.mini_more]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchMiniMore"
+classes = ["workbench-icon-button"]
+props = { icon = "more", label = "More", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 10.0 }
+layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.icon_toggle_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchIconToggleTitle"
+classes = ["workbench-section-title"]
+props = { text = "Toggle Buttons" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.icon_toggle_segment]
+component = "WorkbenchSegmentedControl"
+control_id = "WorkbenchIconToggleSegmented"
+classes = ["workbench-segmented-control", "workbench-icon-toggle-segmented"]
+props = { value = "grid", options = ["grid", "list", "columns"], selection_state = "single", layout_width = 150.0, layout_offset_y = 1.0, selected_segment_border_width = 0.0, selected_segment_underline_height = 1.0, selected_segment_underline_color = "#32d3de7a" }
+layout = { width = { min = 150.0, preferred = 150.0, max = 150.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/IconToggleSegmentedSelect", event = "Change", route = "ComponentLab.SelectOption.IconToggleSegmented" }]
+
+[nodes.component_inputs]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentInputs"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 214.0, preferred = 214.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "inputs_title" }, { node = "input_text" }, { node = "input_focused" }, { node = "input_disabled" }, { node = "input_dropdown_row" }]
+
+[nodes.inputs_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchInputsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Inputs" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.input_text]
+component = "WorkbenchField"
+control_id = "WorkbenchInputText"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Text field", placeholder = "Text field", layout_width = 170.0 }
+layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/InputTextEdit", event = "Change", route = "ComponentLab.ValueChanged.InputText" }, { id = "ComponentLab/InputTextCommit", event = "Submit", route = "ComponentLab.Commit.InputText" }]
+
+[nodes.input_focused]
+component = "WorkbenchField"
+control_id = "WorkbenchInputFocused"
+classes = ["workbench-field", "workbench-component-field", "workbench-focused"]
+props = { value = "Focused input", placeholder = "Focused input", focused = true, layout_width = 170.0, focus_border_color = "#1b98a0" }
+layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", route = "ComponentLab.ValueChanged.InputFocused" }, { id = "ComponentLab/InputFocusedCommit", event = "Submit", route = "ComponentLab.Commit.InputFocused" }]
+
+[nodes.input_disabled]
+component = "WorkbenchField"
+control_id = "WorkbenchInputDisabled"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "", placeholder = "Disabled input", disabled = true, layout_width = 170.0, disabled_opacity = 0.94 }
+layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.input_dropdown_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchInputDropdownRow"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "input_dropdown" }, { node = "input_stepper" }]
+
+[nodes.input_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchInputDropdown"
+classes = ["workbench-field"]
+props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], special_options = ["dropdown"], focused_options = ["option_a"], hovered_options = ["option_a"], disabled_options = ["option_b"], popup_open = false, layout_width = 95.0, layout_offset_x = -4.0, layout_offset_y = 8.0 }
+layout = { width = { min = 95.0, preferred = 95.0, max = 95.0, stretch = "Fixed" }, height = { min = 30.5, preferred = 30.5, max = 30.5, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/InputDropdownOpen", event = "Click", route = "ComponentLab.OpenPopup.InputDropdown" }, { id = "ComponentLab/InputDropdownSelect", event = "Change", route = "ComponentLab.SelectOption.InputDropdown" }]
+
+[nodes.input_stepper]
+component = "WorkbenchField"
+control_id = "WorkbenchInputStepper"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "42", placeholder = "0", layout_width = 67.0, layout_stepper = true, layout_offset_x = -4.0, layout_offset_y = 8.0 }
+layout = { width = { min = 67.0, preferred = 67.0, max = 67.0, stretch = "Fixed" }, height = { min = 30.5, preferred = 30.5, max = 30.5, stretch = "Fixed" } }
+
+[nodes.input_slider]
+component = "WorkbenchSlider"
+control_id = "WorkbenchInputSlider"
+classes = ["workbench-slider"]
+props = { label_text = "Value", value = 75.0, value_text = "0.75", min = 0.0, max = 100.0, step = 1.0, layout_offset_x = -18.0, layout_offset_y = 1.0, layout_icon_size = 9.0, label_color = "#889399", background_color = "#2a3338", track_fill_color = "#2099a2", thumb_color = "#b7f1f8", thumb_outline_color = "#2ab1bc33", thumb_halo_color = "#32d3de3d", track_offset_x = -10.0, track_width_delta = 18.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.input_slider_range]
+component = "WorkbenchSlider"
+control_id = "WorkbenchInputRangeSlider"
+classes = ["workbench-slider", "workbench-slider-range"]
+props = { label_text = "Range", range_min = 20.0, value = 80.0, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, layout_offset_x = -18.0, layout_offset_y = 1.0, layout_icon_size = 9.0, label_color = "#889399", background_color = "#2a3338", track_fill_color = "#2099a2", thumb_color = "#b7f1f8", thumb_outline_color = "#2ab1bc33", thumb_halo_color = "#32d3de3d", track_offset_x = -10.0, track_width_delta = 18.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+
+[nodes.input_slider_steps]
+component = "WorkbenchSlider"
+control_id = "WorkbenchInputStepsSlider"
+classes = ["workbench-slider", "workbench-slider-steps"]
+props = { label_text = "Steps", value = 86.0, value_text = "3", min = 0.0, max = 100.0, step = 1.0, step_tick_count = 5.0, layout_offset_x = -18.0, layout_offset_y = 1.0, layout_icon_size = 9.0, label_color = "#889399", background_color = "#2a3338", track_fill_color = "#2099a2", thumb_color = "#b7f1f8", thumb_outline_color = "#2ab1bc33", thumb_halo_color = "#32d3de3d", track_offset_x = -10.0, track_width_delta = 18.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.component_sliders]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentSliders"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "sliders_title" }, { node = "input_slider" }, { node = "input_slider_range" }, { node = "input_slider_steps" }]
+
+[nodes.sliders_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchSlidersTitle"
+classes = ["workbench-section-title"]
+props = { text = "Sliders", label_color = "#889399" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.input_segmented]
+component = "WorkbenchSegmentedControl"
+control_id = "WorkbenchInputSegmented"
+classes = ["workbench-segmented-control"]
+props = { value = "center", options = ["left", "center", "right"], selection_state = "single", label_text = "Segmented Control", label_color = "#a1acb2", label_brightness = 0.94, layout_offset_x = -0.5 }
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/InputSegmentedSelect", event = "Change", route = "ComponentLab.SelectOption.InputSegmented" }]
+
+[nodes.component_selection]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentSelection"
+classes = ["workbench-panel"]
+props = { layout_gap = 9.0 }
+layout = { container = { kind = "VerticalBox", gap = 9.0 }, width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "selection_title" }, { node = "checkbox_on" }, { node = "checkbox_off" }, { node = "radio_on" }, { node = "radio_off" }]
+
+[nodes.selection_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchSelectionTitle"
+classes = ["workbench-section-title"]
+props = { text = "Checkboxes & Radios", label_color = "#838d94" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.checkbox_on]
+component = "WorkbenchCheckbox"
+control_id = "WorkbenchCheckboxOn"
+classes = ["workbench-tree-item"]
+props = { text = "Checkbox", value = true, checked = true, selected = true, label_color = "#828c93", layout_spacing = 9.0, layout_icon_size = 16.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/CheckboxOnToggle", event = "Toggle", route = "ComponentLab.Change.CheckboxOn" }]
+
+[nodes.checkbox_off]
+component = "WorkbenchCheckbox"
+control_id = "WorkbenchCheckboxOff"
+classes = ["workbench-tree-item"]
+props = { text = "Checkbox", value = false, checked = false, label_color = "#828c93", background_color = "#13191d", border_color = "#374148", layout_spacing = 9.0, layout_icon_size = 16.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/CheckboxOffToggle", event = "Toggle", route = "ComponentLab.Change.CheckboxOff" }]
+
+[nodes.radio_on]
+component = "WorkbenchRadio"
+control_id = "WorkbenchRadioOn"
+classes = ["workbench-tree-item"]
+props = { text = "Radio option", value = true, checked = true, selected = true, label_color = "#828c93", layout_spacing = 9.0, layout_icon_size = 16.0, dot_size = 7.0, dot_color = "#43d8e2" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/RadioOnChange", event = "Change", route = "ComponentLab.Change.RadioOn" }]
+
+[nodes.radio_off]
+component = "WorkbenchRadio"
+control_id = "WorkbenchRadioOff"
+classes = ["workbench-tree-item"]
+props = { text = "Radio option", value = false, checked = false, label_color = "#828c93", background_color = "#13191d", border_color = "#374148", layout_spacing = 9.0, layout_icon_size = 16.0, dot_size = 7.0, dot_color = "#43d8e2" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/RadioOffChange", event = "Change", route = "ComponentLab.Change.RadioOff" }]
+
+[nodes.toggle_on]
+component = "WorkbenchToggle"
+control_id = "WorkbenchToggleOn"
+classes = ["workbench-toggle"]
+props = { text = "Switch", value = true, checked = true, selected = true, layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 14.0 }
+layout = { width = { min = 72.0, preferred = 96.0, max = 120.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/ToggleSwitch", event = "Toggle", route = "ComponentLab.Change.ToggleSwitch" }]
+
+[nodes.component_labs]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentLabs"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 236.0, preferred = 236.0, max = 236.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "labs_title" }, { node = "labs_tabs" }, { node = "input_segmented" }, { node = "toggle_on" }]
+
+[nodes.labs_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchLabsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Labs" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.labs_tabs]
+component = "HorizontalGroup"
+control_id = "WorkbenchLabsTabs"
+classes = ["workbench-tabs"]
+props = { background_color = "#1c2226" }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 216.0, preferred = 216.0, max = 216.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "labs_tab_one" }, { node = "labs_tab_two" }, { node = "labs_tab_three" }]
+
+[nodes.labs_tab_one]
+component = "WorkbenchTab"
+control_id = "WorkbenchLabsTabOne"
+classes = ["workbench-tab", "workbench-labs-tab"]
+props = { text = "Tab 1", checked = true, selected = true, value = true, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ComponentLab/LabsTabOne", event = "Click", route = "ComponentLab.Select.LabsTabOne" }]
+
+[nodes.labs_tab_two]
+component = "WorkbenchTab"
+control_id = "WorkbenchLabsTabTwo"
+classes = ["workbench-tab", "workbench-labs-tab"]
+props = { text = "Tab 2", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ComponentLab/LabsTabTwo", event = "Click", route = "ComponentLab.Select.LabsTabTwo" }]
+
+[nodes.labs_tab_three]
+component = "WorkbenchTab"
+control_id = "WorkbenchLabsTabThree"
+classes = ["workbench-tab", "workbench-labs-tab"]
+props = { text = "Tab 3", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ComponentLab/LabsTabThree", event = "Click", route = "ComponentLab.Select.LabsTabThree" }]
+
+[nodes.component_feedback]
+component = "HorizontalGroup"
+control_id = "WorkbenchComponentFeedback"
+classes = ["workbench-panel"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "feedback_alerts" }, { node = "feedback_tooltip" }, { node = "feedback_toast_column" }]
+
+[nodes.feedback_alerts]
+component = "VerticalGroup"
+control_id = "WorkbenchFeedbackAlerts"
+classes = ["workbench-feedback-alerts"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 390.0, preferred = 390.0, max = 390.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "info_alert" }, { node = "success_alert" }, { node = "warning_alert" }, { node = "error_alert" }]
+
+[nodes.info_alert]
+component = "WorkbenchToast"
+control_id = "WorkbenchInfoAlert"
+classes = ["workbench-alert", "workbench-info"]
+props = { text = "Info Alert", severity = "info", color = "info", icon = "info" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.success_alert]
+component = "WorkbenchToast"
+control_id = "WorkbenchSuccessAlert"
+classes = ["workbench-alert", "workbench-success"]
+props = { text = "Success Alert", severity = "success", color = "success", icon = "check" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.warning_alert]
+component = "WorkbenchToast"
+control_id = "WorkbenchWarningAlert"
+classes = ["workbench-alert", "workbench-warning"]
+props = { text = "Warning Alert", severity = "warning", color = "warning", icon = "warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.error_alert]
+component = "WorkbenchToast"
+control_id = "WorkbenchErrorAlert"
+classes = ["workbench-alert", "workbench-error"]
+props = { text = "Error Alert", severity = "error", color = "error", icon = "error" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.feedback_tooltip]
+component = "WorkbenchTooltip"
+control_id = "WorkbenchTooltipRoot"
+classes = ["workbench-tooltip"]
+props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", surface_variant = "workbench-tooltip", background_color = "#171c20", border_color = "#252d32", text_color = "#d0d9dd", label_color = "#a8b3b8", icon_color = "#259ca7", layout_icon_size = 18.0, layout_content_offset_y = 56.0, arrow_size = 8.0, arrow_color = "#171c20" }
+layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fixed" }, height = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" } }
+
+[nodes.feedback_toast_column]
+component = "VerticalGroup"
+control_id = "WorkbenchFeedbackToastColumn"
+classes = ["workbench-feedback-toast-column"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 390.0, preferred = 390.0, max = 390.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "feedback_toast_spacer" }, { node = "feedback_toast" }]
+
+[nodes.feedback_toast_spacer]
+component = "Container"
+control_id = "WorkbenchFeedbackToastOffset"
+classes = ["workbench-feedback-toast-offset"]
+props = { background_color = "#00000000", border_width = 0.0, corner_radius = 0.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 103.0, preferred = 103.0, max = 103.0, stretch = "Fixed" } }
+
+[nodes.feedback_toast]
+component = "WorkbenchToast"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_list]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentList"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "list_title" }, { node = "list_group" }, { node = "menu_title" }, { node = "popup_menu" }]
+
+[nodes.list_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchListTitle"
+classes = ["workbench-section-title"]
+props = { text = "List" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.list_group]
+component = "Container"
+control_id = "WorkbenchListGroup"
+classes = ["workbench-list-group"]
+props = { background_color = "#00000000", border_width = 0.0, corner_radius = 0.0 }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 102.0, preferred = 102.0, max = 110.0, stretch = "Fixed" } }
+children = [{ node = "list_item" }, { node = "list_selected" }, { node = "list_disabled" }]
+
+[nodes.menu_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchMenuTitle"
+classes = ["workbench-section-title"]
+props = { text = "Menu" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.list_item]
+component = "WorkbenchListRow"
+control_id = "WorkbenchListItem"
+classes = ["workbench-tree-item"]
+props = { text = "List item", value = "list_item", selected = false, text_color = "#c5d0d5", icon_color = "#8d9ca4" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/ListItemSelect", event = "Click", route = "ComponentLab.Select.ListItem" }]
+
+[nodes.list_selected]
+component = "WorkbenchListRow"
+control_id = "WorkbenchListSelected"
+classes = ["workbench-tree-item"]
+props = { text = "Selected item", value = "selected_item", selected = true, checked = true, background_color = "#0d4149", text_color = "#35c7d0", icon_color = "#7ae6f0" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/ListSelectedSelect", event = "Click", route = "ComponentLab.Select.ListSelected" }]
+
+[nodes.list_disabled]
+component = "WorkbenchListRow"
+control_id = "WorkbenchListDisabled"
+classes = ["workbench-tree-item", "workbench-disabled"]
+props = { text = "Disabled item", value = "disabled_item", disabled = true, text_color = "#58656c", icon_color = "#58656c" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+
+[nodes.component_table]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentTable"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 590.0, preferred = 590.0, max = 590.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "table_title" }, { node = "table_group" }]
+
+[nodes.table_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchTableTitle"
+classes = ["workbench-section-title"]
+props = { text = "Table" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.table_group]
+component = "Container"
+control_id = "WorkbenchTableGroup"
+classes = ["workbench-table-group"]
+props = { background_color = "#00000000", border_width = 0.0, corner_radius = 0.0 }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 120.0, stretch = "Fixed" } }
+children = [{ node = "table_row_header" }, { node = "table_row_item" }, { node = "table_row_selected" }, { node = "table_row_tail" }]
+
+[nodes.table_row_header]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchTableHeader"
+classes = ["workbench-table-row", "workbench-table-header", "workbench-muted"]
+props = { text = "Name        Type        Size        Modified", value = "header", options = ["Name", "Type", "Size", "Modified"], selected = false, layout_content_offset_x = -1.0, layout_content_offset_y = 3.0, layout_first_cell_offset_x = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 0.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.table_row_item]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchTableItem"
+classes = ["workbench-table-row"]
+props = { text = "Item_01     Mesh        2.4 MB      2m ago", value = "item_01", options = ["Item_01", "Mesh", "2.4 MB", "2m ago"], selected = false, layout_first_cell_offset_x = 4.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/TableItemSelect", event = "Click", route = "ComponentLab.Select.TableItem" }]
+
+[nodes.table_row_selected]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchTableSelected"
+classes = ["workbench-table-row"]
+props = { text = "Item_02     Material    512 KB      10m ago", value = "item_02", options = ["Item_02", "Material", "512 KB", "10m ago"], selected = true, layout_offset_x = -1.0, layout_offset_y = -1.5, layout_first_cell_offset_x = 0.0, background_color = "#172b30" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/TableSelectedSelect", event = "Click", route = "ComponentLab.Select.TableSelected" }]
+
+[nodes.table_row_tail]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchTableTail"
+classes = ["workbench-table-row", "workbench-table-tail"]
+props = { text = "Item_03     Texture     1.2 MB      1h ago", value = "item_03", options = ["Item_03", "Texture", "1.2 MB", "1h ago"], selected = false, layout_offset_y = 0.5, layout_content_offset_y = -0.5, layout_first_cell_offset_x = 6.0, layout_second_cell_offset_x = 2.0, layout_fourth_cell_offset_x = -2.0, background_color = "#0e1215", fourth_cell_text_color = "#aab5ba" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/TableTailSelect", event = "Click", route = "ComponentLab.Select.TableTail" }]
+
+[nodes.popup_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchPopupMenu"
+classes = ["workbench-popup-menu"]
+props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0, layout_offset_y = -12.0 }
+layout = { width = { min = 145.0, preferred = 145.0, max = 145.0, stretch = "Fixed" }, height = { min = 140.0, preferred = 150.0, max = 156.0, stretch = "Fixed" } }

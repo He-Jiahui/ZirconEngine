@@ -22,9 +22,11 @@ fn read_ui_file(name: &str) -> String {
 fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
     let app = read_ui_file("app.slint");
     let surfaces = read_ui_file("surfaces.slint");
+    let shell_layout = read_ui_file("shell_layout_components.slint");
+    let shell_sources = format!("{app}\n{shell_layout}");
     let overlays = read_ui_file("overlays.slint");
     for snippet in [
-        "import { Fill, HubTokens,",
+        "HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack,",
         "HubWindowView,",
         "export component HubWindow inherits HubWindowView",
     ] {
@@ -81,13 +83,38 @@ fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
         "private property <bool> sidebar-compact-height: responsive-state.short;",
     ] {
         assert!(
-            app.contains(snippet),
-            "app.slint is missing required responsive shell contract snippet: {snippet}"
+            shell_sources.contains(snippet),
+            "app.slint plus shell_layout_components.slint are missing required responsive shell contract snippet: {snippet}"
         );
     }
     assert!(
-        app.contains("Fill {") && app.contains("clip: true;"),
-        "app.slint must route selected pages through the shared Fill slot instead of a hand-sized page Rectangle"
+        app.contains("HubShellRootSurface {")
+            && app.contains("HubShellStack {")
+            && app.contains("HubShellBody {")
+            && app.contains("HubWorkspaceSurface {")
+            && app.contains("HubPageContentSlot {"),
+        "app.slint must route shell chrome through shared shell layout slots instead of anonymous Rectangle/Flex containers"
+    );
+    for snippet in [
+        "export component HubShellRootSurface inherits Rectangle",
+        "export component HubShellStack inherits Rectangle",
+        "export component HubShellBody inherits Rectangle",
+        "export component HubWorkspaceSurface inherits Rectangle",
+        "export component HubPageContentSlot inherits Fill",
+        "VerticalLayout {",
+        "HorizontalLayout {",
+        "spacing: HubTokens.space-0;",
+        "background: HubVisualSpec.page-background;",
+        "clip: true;",
+    ] {
+        assert!(
+            shell_layout.contains(snippet),
+            "shell_layout_components.slint must own shared AppBar/Drawer/workspace slot geometry; missing {snippet}"
+        );
+    }
+    assert!(
+        !app.contains("Fill {"),
+        "app.slint should consume HubPageContentSlot so selected-page content uses the named shell slot"
     );
     assert!(
         app.contains("collapsed: root.nav-effective-collapsed;"),
@@ -96,7 +123,7 @@ fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
     let top_header_call = app
         .split("HubTopHeader {")
         .nth(1)
-        .and_then(|source| source.split("Rectangle {").next())
+        .and_then(|source| source.split("HubShellBody {").next())
         .expect("app.slint must declare HubTopHeader before shell body");
     for snippet in ["horizontal-stretch: 1;", "width: parent.width;"] {
         assert!(
@@ -120,10 +147,10 @@ fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
         );
     }
     let fill_slot = app
-        .split("Fill {")
+        .split("HubPageContentSlot {")
         .nth(1)
         .and_then(|source| source.split("HubStatusBar {").next())
-        .expect("app.slint must declare the selected-page Fill slot before HubStatusBar");
+        .expect("app.slint must declare the selected-page content slot before HubStatusBar");
     for forbidden in ["VerticalLayout {", "spacing: HubTokens.space-0;"] {
         assert!(
             !fill_slot.contains(forbidden),

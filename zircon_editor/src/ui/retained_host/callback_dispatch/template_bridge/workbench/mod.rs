@@ -1,7 +1,20 @@
 mod bridge;
+mod component_property_rows;
+mod componentized_window;
+mod data_sync;
 mod error;
 mod host_projection;
+mod module_command_feedback;
+mod module_field_edit;
+mod module_navigation;
+mod pointer_feedback;
+mod popup_state;
+mod property_edit;
 mod root_shell_frames;
+mod scene_tree_rows;
+mod transform_edit;
+mod window_menu_state;
 
 pub(crate) use bridge::BuiltinHostWindowTemplateBridge;
+pub(crate) use componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 pub(crate) use root_shell_frames::BuiltinHostRootShellFrames;

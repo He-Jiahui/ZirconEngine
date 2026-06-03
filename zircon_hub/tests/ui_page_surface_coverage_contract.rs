@@ -28,15 +28,18 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     let components = read_ui_file("components.slint");
     let data_display = read_ui_file("data_display.slint");
     let table_view = read_ui_file("table_view_components.slint");
-    let data_surface = format!("{data_display}\n{table_view}");
+    let tree_view = read_ui_file("tree_view_components.slint");
+    let data_surface = format!("{data_display}\n{table_view}\n{tree_view}");
     let layout = read_ui_file("layout.slint");
     let inputs = read_ui_file("inputs.slint");
     let surfaces = read_ui_file("surfaces.slint");
-    let shared = read_ui_file("shared.slint");
+    let button_components = read_ui_file("button_components.slint");
     let material_bridge = read_ui_file("material_bridge.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     let project_pages = read_ui_file("project_pages.slint");
     let project_new_page = read_ui_file("project_new_page.slint");
     let project_browser_page = read_ui_file("project_browser_page.slint");
@@ -63,6 +66,8 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     let team_components = read_ui_file("team_page_components.slint");
     let team_surface = format!("{team}\n{team_components}");
     let catalog_components = read_ui_file("catalog_page_components.slint");
+    let catalog_detail_components = read_ui_file("catalog_detail_components.slint");
+    let row_slot_components = read_ui_file("row_slot_components.slint");
     let assets = read_ui_file("assets.slint");
     let assets_surface = format!("{assets}\n{catalog_components}");
     let plugins = read_ui_file("plugins.slint");
@@ -74,6 +79,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         ("components.slint", &components),
         ("data_display.slint", &data_display),
         ("table_view_components.slint", &table_view),
+        ("tree_view_components.slint", &tree_view),
     ] {
         for removed_sample in ["ButtonStates", "Button States", "ComponentSamples"] {
             assert!(
@@ -114,7 +120,8 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "material-segment := SegmentedButton",
         "export component ToolbarSelect",
         "trigger := OutlineButton",
-        "menu := HubPopupMenu",
+        "menu := HubSelectMenu",
+        "material-combo := HubSelectDropDownSurface",
         "export component HubTextField",
         "material-field := TextField",
         "export component SearchBox",
@@ -147,15 +154,15 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     for snippet in [
         "FilledButton,",
         "FilledIconButton,",
-        "OutlineButton,",
         "OutlineIconButton,",
+        "TonalButton,",
         "if root.primary &&",
         "export component IconButton",
         "StateLayerArea {",
     ] {
         assert!(
-            shared.contains(snippet),
-            "shared.slint must keep public Hub button APIs wired to Material buttons: {snippet}"
+            button_components.contains(snippet),
+            "button_components.slint must keep public Hub button APIs wired to Material buttons: {snippet}"
         );
     }
 
@@ -212,7 +219,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             ][..],
         ),
         (
-            "project_pages.slint",
+            "project workflow pages/components",
             &project_surface,
             &[
                 "PanelSlot",
@@ -220,11 +227,11 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "SearchBox",
                 "ProjectFilterSelect",
                 "ProjectSortSelect",
-                "HubTextField",
+                "HubPathFieldRow",
             ][..],
         ),
         (
-            "project_new_page.slint",
+            "project new page/components",
             &project_surface,
             &[
                 "PageScrollSurface",
@@ -237,7 +244,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "ProjectEngineChoiceList",
                 "ProjectTemplateRailPanel",
                 "TemplateChoiceRow",
-                "HubCheckBox",
+                "HubRowSelectionSlot",
                 "HubListPanelSlot",
                 "PanelListViewport",
             ][..],
@@ -265,7 +272,8 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "PanelSlot",
                 "ProjectDetailStatusStrip",
                 "ProjectDetailInfoSection",
-                "ProjectDetailActionButton",
+                "ProjectDetailActionsSection",
+                "HubActionCommandButton",
                 "ProjectDetailPinToggleRow",
                 "ProjectDetailEngineSection",
                 "StatusBanner",
@@ -278,7 +286,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "WorkspacePanelSection",
                 "PanelSlot",
                 "ResponsiveSlot",
-                "HubTextField",
+                "HubPathFieldRow",
                 "InfoRow",
                 "ActionRow",
                 "export component EditorActionsPanel inherits HubListPanelSlot",
@@ -339,14 +347,16 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &team_surface,
             &[
                 "WorkspacePanelSection",
-                "OverviewPanel",
                 "PanelSlot",
                 "ResponsiveSlot",
                 "MetricCard",
                 "HubListPanelSlot",
                 "export component TeamSummarySlot inherits ResponsiveSlot",
+                "export component TeamActionRow inherits ActionRow",
+                "export component TeamIdentityRow inherits InfoRow",
                 "export component TeamMemberRow inherits InfoRow",
-                "export component TeamMembersPanel inherits HubListPanelSlot",
+                "export component TeamMembersPanel inherits PanelSlot",
+                "export component TeamActionsPanel inherits HubListPanelSlot",
                 "collapse-label: label-collapse.collapsed;",
                 "EmptyStateBlock",
             ][..],
@@ -356,10 +366,13 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &assets_surface,
             &[
                 "CatalogPage",
-                "InfoRow",
-                "export component AssetRow inherits InfoRow",
-                "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
+                "CatalogColumnRow",
+                "export component AssetRow inherits CatalogColumnRow",
+                "row-height: HubTokens.list-row-md;",
                 "collapse-label: label-collapse.collapsed;",
+                "HubRowLeadingIconSlot",
+                "HubRowMetaSlot",
+                "HubRowTrailingSlot",
             ][..],
         ),
         (
@@ -367,10 +380,13 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &plugins_surface,
             &[
                 "CatalogPage",
-                "InfoRow",
-                "export component PluginRow inherits InfoRow",
-                "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
+                "CatalogColumnRow",
+                "export component PluginRow inherits CatalogColumnRow",
+                "row-height: HubTokens.list-row-md;",
                 "collapse-label: label-collapse.collapsed;",
+                "HubRowLeadingIconSlot",
+                "HubRowMetaSlot",
+                "HubRowTrailingSlot",
             ][..],
         ),
         (
@@ -378,10 +394,13 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &learn_surface,
             &[
                 "CatalogPage",
-                "InfoRow",
-                "export component LearnRow inherits InfoRow",
-                "row-height: HubTokens.list-row-lg + HubTokens.space-6;",
+                "CatalogColumnRow",
+                "export component LearnRow inherits CatalogColumnRow",
+                "row-height: HubTokens.list-row-md;",
                 "collapse-label: label-collapse.collapsed;",
+                "HubRowLeadingIconSlot",
+                "HubRowMetaSlot",
+                "HubRowTrailingSlot",
             ][..],
         ),
     ] {
@@ -389,6 +408,60 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             assert!(
                 source.contains(snippet),
                 "{page} must consume the real Material/Taffy wrapper instead of relying on a sample surface: {snippet}"
+            );
+        }
+
+        for snippet in [
+            "export component CatalogDetailPanel inherits PanelSlot",
+            "body-padding: MaterialStyleMetrics.padding_16;",
+            "body-spacing: HubTokens.toolbar-gap;",
+            "component CatalogDetailPreviewBand inherits Rectangle",
+            "component CatalogDetailStatGrid inherits Rectangle",
+            "component CatalogDetailCheckList inherits Rectangle",
+            "component CatalogDetailCheckRow inherits Rectangle",
+            "CatalogDetailPreviewBand {",
+            "CatalogDetailStatGrid {",
+            "CatalogDetailCheckList {",
+            "HubRowLeadingIconSlot",
+            "HubRowTrailingSlot",
+        ] {
+            assert!(
+                catalog_detail_components.contains(snippet),
+                "CatalogDetailPanel must stay decomposed into panel, preview, stat, check-list, and row-slot components: {snippet}"
+            );
+        }
+
+        for forbidden in [
+            "export component CatalogDetailPanel inherits ResponsiveSlot",
+            "HubPanel {\n        width: parent.width;\n        height: parent.height;",
+        ] {
+            assert!(
+                !catalog_detail_components.contains(forbidden),
+                "CatalogDetailPanel should not reintroduce its old page-local panel shell after adopting PanelSlot: {forbidden}"
+            );
+        }
+
+        for snippet in [
+            "export component HubRowLeadingIconSlot inherits Rectangle",
+            "shell-border: HubVisualSpec.neutral-icon-stroke;",
+            "shell-background: HubVisualSpec.neutral-icon-background;",
+            "icon-foreground: HubVisualSpec.neutral-icon-foreground;",
+            "export component HubRowMainSlot inherits Rectangle",
+            "style: MaterialTypography.label_large;",
+            "style: MaterialTypography.body_small;",
+            "export component HubRowSelectionSlot inherits Rectangle",
+            "HubCheckBox",
+            "check-state: root.check-state;",
+            "export component HubRowTrailingSlot inherits Rectangle",
+            "StatusBadge",
+            "HubIconButton",
+            "in property <bool> show-action: false;",
+            "private property <bool> action-visible: root.show-action || root.show-chevron;",
+            "width: root.slot-width;",
+        ] {
+            assert!(
+                row_slot_components.contains(snippet),
+                "row_slot_components.slint must own shared neutral leading and trailing row slots: {snippet}"
             );
         }
     }

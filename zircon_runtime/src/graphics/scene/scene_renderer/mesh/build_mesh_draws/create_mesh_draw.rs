@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::core::framework::scene::Mobility;
 use crate::core::math::{RenderVec4, Vec4};
 use wgpu::util::DeviceExt;
 
@@ -8,12 +9,14 @@ use crate::graphics::scene::resources::{
 };
 
 use super::super::super::primitives::{render_vec4_or, ModelUniform};
-use super::super::mesh_draw::{MeshDraw, VirtualGeometrySubmissionDetail};
+use super::super::mesh_draw::{MeshDraw, MeshDrawGeometrySource, VirtualGeometrySubmissionDetail};
 
 pub(super) fn create_mesh_draw(
     device: &wgpu::Device,
     model_layout: &wgpu::BindGroupLayout,
     mesh: Arc<GpuMeshResource>,
+    geometry_source: MeshDrawGeometrySource,
+    mobility: Mobility,
     texture: Arc<GpuTextureResource>,
     material_uniform: Arc<GpuMaterialUniformResource>,
     pipeline_key: PipelineKey,
@@ -44,6 +47,8 @@ pub(super) fn create_mesh_draw(
 
     MeshDraw::new(
         mesh,
+        geometry_source,
+        mobility,
         first_index,
         draw_index_count,
         indirect_args_buffer,

@@ -245,6 +245,14 @@ fn material_validation_diagnostic_row(
                 reference.locator
             ),
         },
+        RenderMaterialValidationError::InvalidLightingModel { path, value } => {
+            RendererDataDiagnosticRow {
+                feature: feature.to_string(),
+                source: None,
+                path: path.clone(),
+                message: format!("lighting model `{value}` is not supported"),
+            }
+        }
         RenderMaterialValidationError::UnknownPropertyOverride { source, path, name } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),

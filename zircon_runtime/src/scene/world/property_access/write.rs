@@ -140,6 +140,32 @@ impl World {
                             "property {property_path} is read-only mesh primitive binding data"
                         ));
                     }
+                    [field] if field == "morphweightcount" => {
+                        return Err(format!(
+                            "property {property_path} is read-only mesh morph weight count"
+                        ));
+                    }
+                    [field] if field == "morphweights" => {
+                        return Err(format!(
+                            "property {property_path} must address a morph weight index"
+                        ));
+                    }
+                    [field, index] if field == "morphweights" => {
+                        let index = index.parse::<usize>().map_err(|_| {
+                            format!("property `{property_path}` has an invalid morph weight index")
+                        })?;
+                        let next = expect_scalar(value, property_path)?;
+                        let resized = if mesh.morph_weights.len() <= index {
+                            mesh.morph_weights.resize(index + 1, 0.0);
+                            true
+                        } else {
+                            false
+                        };
+                        if !resized && mesh.morph_weights[index] == next {
+                            return Ok(false);
+                        }
+                        mesh.morph_weights[index] = next;
+                    }
                     [field] if field == "tint" => {
                         let next = expect_vec4(value, property_path)?;
                         if mesh.tint == next {

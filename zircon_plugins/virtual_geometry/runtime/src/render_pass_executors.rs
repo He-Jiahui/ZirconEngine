@@ -357,6 +357,7 @@ mod tests {
                     name: resource.name.to_string(),
                     kind: resource.kind,
                     access: resource.access,
+                    attachment_ops: None,
                 })
                 .collect(),
         )

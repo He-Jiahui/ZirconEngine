@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use super::material_lab_template_bindings::material_lab_template_bindings;
 use super::showcase_template_bindings::showcase_template_bindings;
+use super::workbench_window_template_bindings::workbench_window_template_bindings;
 use crate::core::editor_event::InspectorFieldChange;
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
@@ -631,6 +632,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
     ]);
+    bindings.extend(workbench_window_template_bindings());
     bindings.extend(showcase_template_bindings());
     bindings.extend(material_lab_template_bindings());
     bindings

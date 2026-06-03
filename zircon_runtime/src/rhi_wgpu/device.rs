@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::rhi::{
     BufferDesc, BufferHandle, BufferUsage, CommandList, CommandListCommand, FenceValue,
-    PipelineDesc, PipelineHandle, RenderBackendCaps, RenderDevice, RenderQueueClass, RhiError,
-    SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, TextureDesc, TextureFormat,
-    TextureHandle, TextureUsage,
+    PipelineDesc, PipelineHandle, PipelineKind, RenderBackendCaps, RenderDevice, RenderQueueClass,
+    RhiError, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, TextureDesc,
+    TextureFormat, TextureHandle, TextureUsage,
 };
 
 use super::capabilities::wgpu_backend_caps;
@@ -108,7 +108,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn create_texture(&self, desc: &TextureDesc) -> Result<TextureHandle, RhiError> {
-        validate_texture_desc(desc)?;
+        validate_texture_desc(desc, self.caps.supports_sparse_texture)?;
         let mut state = self.state.lock().unwrap();
         let handle = TextureHandle::new(Self::allocate_handle(&mut state));
         state.textures.insert(
@@ -234,7 +234,11 @@ impl RenderDevice for WgpuRenderDevice {
             return Err(RhiError::UnsupportedQueue(command_list.queue_class()));
         }
         let mut state = self.state.lock().unwrap();
-        validate_recorded_commands(&state, command_list.recorded_commands())?;
+        validate_recorded_commands(
+            &state,
+            command_list.recorded_commands(),
+            command_list.queue_class(),
+        )?;
         execute_recorded_commands(&mut state, command_list.recorded_commands())?;
         let fence = FenceValue(state.next_fence);
         state.next_fence += 1;
@@ -396,12 +400,24 @@ impl CommandList for WgpuCommandList {
             height,
         });
     }
+
+    fn set_pipeline(&mut self, pipeline: PipelineHandle) {
+        self.commands
+            .push(CommandListCommand::SetPipeline { pipeline });
+    }
+
+    fn dispatch_compute(&mut self, x: u32, y: u32, z: u32) {
+        self.commands
+            .push(CommandListCommand::DispatchCompute { x, y, z });
+    }
 }
 
 fn validate_recorded_commands(
     state: &WgpuRenderDeviceState,
     commands: &[CommandListCommand],
+    queue_class: RenderQueueClass,
 ) -> Result<(), RhiError> {
+    let mut current_pipeline = None::<(PipelineHandle, PipelineKind)>;
     for command in commands {
         match command {
             CommandListCommand::DebugMarker { .. } => {}
@@ -521,6 +537,42 @@ fn validate_recorded_commands(
                     });
                 }
             }
+            CommandListCommand::SetPipeline { pipeline } => {
+                let pipeline_desc = state
+                    .pipelines
+                    .get(pipeline)
+                    .ok_or(RhiError::UnknownPipeline(pipeline.raw()))?;
+                current_pipeline = Some((*pipeline, pipeline_desc.kind));
+            }
+            CommandListCommand::DispatchCompute { x, y, z } => {
+                if queue_class == RenderQueueClass::Copy {
+                    return Err(RhiError::InvalidCommandQueue {
+                        queue: queue_class,
+                        command: "dispatch_compute".to_string(),
+                    });
+                }
+                if *x == 0 || *y == 0 || *z == 0 {
+                    return Err(RhiError::InvalidComputeDispatch {
+                        reason: "workgroup counts must be greater than zero".to_string(),
+                    });
+                }
+                match current_pipeline {
+                    Some((_pipeline, PipelineKind::Compute)) => {}
+                    Some((pipeline, actual)) => {
+                        return Err(RhiError::InvalidPipelineUsage {
+                            pipeline: pipeline.raw(),
+                            required: PipelineKind::Compute,
+                            actual,
+                        });
+                    }
+                    None => {
+                        return Err(RhiError::InvalidComputeDispatch {
+                            reason: "compute dispatch requires a bound compute pipeline"
+                                .to_string(),
+                        });
+                    }
+                }
+            }
         }
     }
     Ok(())
@@ -626,6 +678,8 @@ fn execute_recorded_commands(
                         .copy_from_slice(&source_texture.contents[source_start..source_end]);
                 }
             }
+            CommandListCommand::SetPipeline { .. } | CommandListCommand::DispatchCompute { .. } => {
+            }
         }
     }
     Ok(())
@@ -663,7 +717,10 @@ fn validate_buffer_desc(desc: &BufferDesc) -> Result<(), RhiError> {
     Ok(())
 }
 
-fn validate_texture_desc(desc: &TextureDesc) -> Result<(), RhiError> {
+fn validate_texture_desc(
+    desc: &TextureDesc,
+    supports_sparse_texture: bool,
+) -> Result<(), RhiError> {
     if desc.width == 0 || desc.height == 0 || desc.depth == 0 {
         return Err(RhiError::InvalidTextureDescriptor {
             label: desc.label.clone(),
@@ -688,13 +745,31 @@ fn validate_texture_desc(desc: &TextureDesc) -> Result<(), RhiError> {
             reason: "usage must not be empty".to_string(),
         });
     }
-    let Some(storage_size) = checked_texture_storage_size(desc) else {
+    if desc.sample_count > 1 && desc.mip_levels > 1 {
+        return Err(RhiError::InvalidTextureDescriptor {
+            label: desc.label.clone(),
+            reason: "multisampled textures cannot declare mip levels".to_string(),
+        });
+    }
+    if desc.dimension == crate::rhi::TextureDimension::Cube && desc.depth % 6 != 0 {
+        return Err(RhiError::InvalidTextureDescriptor {
+            label: desc.label.clone(),
+            reason: "cube textures must declare depth as a multiple of six faces".to_string(),
+        });
+    }
+    if desc.is_sparse_reserved() && !supports_sparse_texture {
+        return Err(RhiError::InvalidTextureDescriptor {
+            label: desc.label.clone(),
+            reason: "sparse texture residency requires backend sparse texture support".to_string(),
+        });
+    }
+    let Some(storage_size) = desc.checked_storage_size_bytes() else {
         return Err(RhiError::InvalidTextureDescriptor {
             label: desc.label.clone(),
             reason: "storage size overflows u64".to_string(),
         });
     };
-    if storage_size > usize::MAX as u64 {
+    if !desc.is_sparse_reserved() && storage_size > usize::MAX as u64 {
         return Err(RhiError::InvalidTextureDescriptor {
             label: desc.label.clone(),
             reason: "storage size exceeds addressable memory".to_string(),
@@ -720,20 +795,14 @@ fn ensure_texture_usage(
 }
 
 fn texture_bytes_per_pixel(format: TextureFormat) -> u32 {
-    match format {
-        TextureFormat::Rgba8UnormSrgb | TextureFormat::Depth32Float => 4,
-    }
+    format.bytes_per_pixel()
 }
 
 fn texture_storage_size(desc: &TextureDesc) -> u64 {
-    checked_texture_storage_size(desc).unwrap_or(u64::MAX)
-}
-
-fn checked_texture_storage_size(desc: &TextureDesc) -> Option<u64> {
-    u64::from(desc.width)
-        .checked_mul(u64::from(desc.height))?
-        .checked_mul(u64::from(desc.depth))?
-        .checked_mul(u64::from(texture_bytes_per_pixel(desc.format)))
+    if desc.is_sparse_reserved() {
+        return 0;
+    }
+    desc.checked_storage_size_bytes().unwrap_or(u64::MAX)
 }
 
 fn buffer_to_texture_copy_size(height: u32, bytes_per_row: u64, row_size: u64) -> u64 {

@@ -69,6 +69,13 @@ fn renderer_data_projection_maps_diagnostics_to_feature_rows() {
                 name: "base_colour".to_string(),
             },
         },
+        RendererFeatureContractDiagnostic::MaterialValidation {
+            feature: "mesh".to_string(),
+            error: RenderMaterialValidationError::InvalidLightingModel {
+                path: "overrides.lighting_model".to_string(),
+                value: "toon".to_string(),
+            },
+        },
         RendererFeatureContractDiagnostic::MaterialDiagnostic {
             feature: "mesh".to_string(),
             material: asset_reference("res://materials/pbr.zmaterial"),
@@ -79,8 +86,8 @@ fn renderer_data_projection_maps_diagnostics_to_feature_rows() {
     let projection = RendererDataEditorProjection::from_renderer_asset(&renderer, &diagnostics);
 
     let feature = &projection.features[0];
-    assert_eq!(feature.diagnostic_count, 4);
-    assert_eq!(projection.diagnostics.len(), 4);
+    assert_eq!(feature.diagnostic_count, 5);
+    assert_eq!(projection.diagnostics.len(), 5);
     assert!(projection
         .diagnostics
         .iter()
@@ -96,6 +103,11 @@ fn renderer_data_projection_maps_diagnostics_to_feature_rows() {
         row.source == Some(RenderMaterialDiagnosticSource::MaterialOverride)
             && row.path == "overrides.base_colour"
             && row.message.contains("base_colour")
+    }));
+    assert!(projection.diagnostics.iter().any(|row| {
+        row.source.is_none()
+            && row.path == "overrides.lighting_model"
+            && row.message.contains("lighting model `toon`")
     }));
     assert!(projection.diagnostics.iter().any(|row| {
         row.source.is_none()

@@ -11,6 +11,7 @@ pub(crate) fn prepare_history_textures<'a>(
         SceneFrameHistoryTextures,
     >,
     history_handle: Option<FrameHistoryHandle>,
+    previous_history_available: bool,
     size: crate::core::math::UVec2,
     runtime_features: SceneRuntimeFeatureFlags,
 ) -> (Option<&'a mut SceneFrameHistoryTextures>, bool) {
@@ -22,12 +23,10 @@ pub(crate) fn prepare_history_textures<'a>(
         || runtime_features.hybrid_global_illumination_enabled
     {
         if let Some(handle) = history_handle {
-            if history_targets
+            let existing_history_matches_target = history_targets
                 .get(&handle)
-                .is_some_and(|history| history.size == size)
-            {
-                history_available = true;
-            }
+                .is_some_and(|history| history.size == size);
+            history_available = previous_history_available && existing_history_matches_target;
             let history = history_targets
                 .entry(handle)
                 .or_insert_with(|| SceneFrameHistoryTextures::new(device, queue, size));

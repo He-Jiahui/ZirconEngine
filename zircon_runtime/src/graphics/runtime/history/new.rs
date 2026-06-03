@@ -8,7 +8,8 @@ use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 impl ViewportFrameHistory {
     pub(crate) fn new(
         handle: FrameHistoryHandle,
-        viewport_size: UVec2,
+        target_size: UVec2,
+        render_size: UVec2,
         pipeline: RenderPipelineHandle,
         generation: u64,
         bindings: Vec<FrameHistoryBinding>,
@@ -17,7 +18,8 @@ impl ViewportFrameHistory {
     ) -> Self {
         Self {
             handle,
-            viewport_size,
+            target_size,
+            render_size,
             pipeline,
             generation,
             bindings,

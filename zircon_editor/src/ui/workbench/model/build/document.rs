@@ -8,6 +8,7 @@ pub(super) fn build_document_workspace(active_page: MainPageSnapshot) -> Documen
             id,
             title,
             activity_window: _,
+            activity_window_template: _,
             workspace,
         } => DocumentWorkspaceModel::Workbench {
             page_id: id,

@@ -96,6 +96,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         &build_export,
         None,
         None,
+        None,
         &floating_window_projection_bundle,
         None,
     );
@@ -180,6 +181,7 @@ fn capture_close_prompt_visual_artifact() {
         None,
         &module_plugins,
         &build_export,
+        None,
         None,
         None,
         &floating_window_projection_bundle,
@@ -538,6 +540,7 @@ fn presented_window_from_chrome(
         None,
         &module_plugins,
         &build_export,
+        None,
         None,
         None,
         &floating_window_projection_bundle,

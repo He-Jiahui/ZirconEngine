@@ -23,6 +23,8 @@ mod ui_asset_detail_fields;
 pub(crate) use self::build_export::to_host_contract_build_export_pane_from_host_pane;
 pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_host_pane;
 use self::pane_component_projection::host_template_node;
+pub(super) use self::pane_menu_projection::structured_menu_items;
+pub(super) use self::pane_option_projection::structured_options_for_node;
 pub(super) use self::pane_ui_asset_conversion::to_host_contract_ui_asset_pane;
 use self::pane_value_conversion::{value_as_bool, value_as_string};
 pub(crate) use self::performance_timeline::to_host_contract_performance_timeline_pane_from_host_pane;

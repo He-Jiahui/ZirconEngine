@@ -6,7 +6,8 @@ use crate::asset::{
     ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialValidationError, RenderShaderDefinitionValue,
+    RenderMaterialDiagnosticSource, RenderMaterialLightingModel, RenderMaterialValidationError,
+    RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
 
@@ -119,6 +120,73 @@ fallback = "normal"
         Some("normal")
     );
     assert!(loaded.texture_slots["normal"].reference.is_none());
+}
+
+#[test]
+fn material_owned_lighting_model_drives_standard_descriptor_without_shader_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Unlit Grid"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+lighting_model = "unlit"
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    let descriptor = material.standard_material_descriptor();
+
+    assert_eq!(
+        material.lighting_model(),
+        RenderMaterialLightingModel::Unlit
+    );
+    assert_eq!(
+        descriptor.lighting_model,
+        RenderMaterialLightingModel::Unlit
+    );
+    assert!(descriptor.unlit);
+    assert!(material
+        .shader_property_override("lighting_model")
+        .is_none());
+    assert!(material
+        .shader_property_overrides()
+        .all(|(name, _)| name != "lighting_model"));
+    assert_eq!(
+        material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+}
+
+#[test]
+fn material_asset_reports_invalid_lighting_model_as_material_validation_error() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Invalid Lighting"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+lighting_model = "toonish"
+"#,
+    )
+    .unwrap();
+
+    let errors = material.validation_errors();
+
+    assert!(errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::InvalidLightingModel { path, value }
+            if path == "overrides.lighting_model" && value == "toonish"
+    )));
 }
 
 #[test]

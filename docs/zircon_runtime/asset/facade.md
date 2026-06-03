@@ -21,6 +21,8 @@ related_code:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
@@ -51,6 +53,8 @@ implementation_files:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
@@ -118,6 +122,7 @@ doc_type: module-detail
 - `AssetReadinessReport`, `AssetReadinessNode`, and `AssetDependencyReadiness` are serde DTOs. They preserve IDs, locators, kind, revision, state, depth/direct classification, and diagnostics across JSON roundtrips without invoking import or residency logic.
 - `ProjectAssetManager::readiness_report<TAsset>(handle)` is read-only. It does not restore payloads, run importers, touch artifacts, invoke graphics, or mutate lease-driven residency.
 - `ProjectAssetManager` now exposes `load<TAsset>(locator)`, `handle<TAsset>(locator)`, `assets<TAsset>()`, `load_state(handle)`, `dependency_load_state(handle)`, `load_states(handle)`, `readiness_report<TAsset>(handle)`, `is_loaded(handle)`, `is_loaded_with_direct_dependencies(handle)`, `is_loaded_with_dependencies(handle)`, `recursive_dependency_load_state(handle)`, `asset_load_state_by_id<TAsset>(id)`, `subscribe_asset_events<TAsset>()`, and importer capability report helpers.
+- `ProjectAssetManager` also exposes pure asset-management reads for project/editor tooling that does not have a graphics device: per-family management record sets for model, mesh, scene, flattened scene entity, material asset, and shader rows, plus `asset_management_record_sets()`, `asset_management_overview()`, `asset_management_family_summaries()`, and `asset_management_family_status_index()`.
 - The public `AssetManager` service trait forwards the importer capability report helpers so tools that resolve the manager through the core service boundary can query importer availability without downcasting to `ProjectAssetManager`.
 - `MeshAsset` is now part of this typed facade through `AssetKind::Mesh`, `MeshMarker`, `Handle<MeshAsset>`, and `Assets<MeshAsset>`.
 - The top-level `zircon_runtime::asset` facade also re-exports shared asset validation helpers such as `validate_wgsl_captures(...)`, so documented fixtures, shader import, and public callers use the same shader/material capture contract.
@@ -162,7 +167,7 @@ The readiness diagnostics coverage includes `readiness_report_exposes_loaded_dep
 
 `zircon_runtime/src/asset/tests/assets/importer.rs` covers importer capability reports, including diagnostic-only model formats that remain intentionally non-producing. `zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open` covers the service-trait path before a project is open and after the pending importer registry is applied to the active project. `zircon_runtime/src/asset/tests/project/manager.rs` covers entry dependency resolution into `ResourceRecord.dependency_ids`, unresolved dependency diagnostics, restart restore through the meta-persisted dependency locator list, root plus labeled subasset artifact persistence, duplicate label failure records, and structured unknown-label load errors. `zircon_runtime/src/asset/tests/project/package_assets.rs` covers direct and manifest-based package asset roots, package subasset UUID/artifact restore, unknown package lookup, malformed package roots, and structured missing-label errors for `package://` sources. `zircon_runtime/src/asset/tests/project/zmeta.rs` covers `.zmeta` schema generation, ignored old sidecars, UUID-first stale-URL lookup, restored entry URL remapping after source rename, and subasset UUID preservation across transient failed reimport. `zircon_runtime/src/core/resource/tests.rs` covers dependency ID changes as revision-bearing record changes.
 
-`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` now exercises the same facade state surface against a scanned project instead of a hand-built resource graph. The sample opens the generated project through `ProjectAssetManager`, loads typed handles for `SceneAsset`, `ModelAsset`, `MeshAsset`, `MaterialAsset`, `ShaderAsset`, and `TextureAsset`, and asserts `AssetLoadState::Loaded`, direct `DependencyLoadState::Loaded`, recursive `RecursiveDependencyLoadState::Loaded`, the combined `AssetLoadStates` tuple, and `is_loaded_with_dependencies(...)`. The same project graph now also checks that `Scene0` depends on the labeled `Mesh0/Primitive0` mesh subasset and that scene/entity/aggregate management counters see the primitive mesh/material binding.
+`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` now exercises the same facade state surface against a scanned project instead of a hand-built resource graph. The sample opens the generated project through `ProjectAssetManager`, loads typed handles for `SceneAsset`, `ModelAsset`, `MeshAsset`, `MaterialAsset`, `ShaderAsset`, and `TextureAsset`, and asserts `AssetLoadState::Loaded`, direct `DependencyLoadState::Loaded`, recursive `RecursiveDependencyLoadState::Loaded`, the combined `AssetLoadStates` tuple, and `is_loaded_with_dependencies(...)`. The same project graph now also checks that `Scene0` depends on the labeled `Mesh0/Primitive0` mesh subasset, that the primitive mesh payload preserves a glTF morph target, that scene/entity/aggregate management counters see the primitive mesh/material binding plus default morph weight, that `ProjectAssetManager` can produce the full asset-management aggregate, compact overview, family rows, and family status index without a renderer, and that `ResourceStreamer` reuses that same project-level management surface for renderer-side reads.
 
 The 2026-05-20 runtime `--tests` check also covers the facade-level `validate_wgsl_captures(...)` re-export used by the documented `.zshader` fixture; the first run exposed the missing top-level export and the rerun passed after restoring that public surface.
 
@@ -172,6 +177,19 @@ The 2026-05-20 runtime `--tests` check also covers the facade-level `validate_wg
 
 - `rustfmt --edition 2021 --check zircon_runtime/src/asset/tests/project/asset_flow_sample.rs zircon_runtime/src/asset/tests/project/mod.rs` passed.
 - `cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture` passed: 1 passed, 0 failed, 2211 filtered out; existing zircon_runtime lib-test warnings only.
+
+2026-06-01 M6 morph-aware asset-flow sample:
+
+- `cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture` passed: 1 passed, 0 failed, 2303 filtered out; existing zircon_runtime lib-test warnings only.
+
+2026-06-01 M6 ProjectAssetManager asset-management surface:
+
+- `cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture` passed: 1 passed, 0 failed, 2329 filtered out; existing zircon_runtime lib-test warnings only.
+
+2026-06-01 M6 ResourceStreamer management delegation surface:
+
+- `rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` passed.
+- `cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture` passed: 1 passed, 0 failed, 2335 filtered out; existing zircon_runtime lib-test warnings only.
 
 2026-05-26 asset event metadata accessor closeout:
 

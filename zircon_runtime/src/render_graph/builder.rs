@@ -5,9 +5,11 @@ use crate::rhi::{BufferDesc, TextureDesc};
 use super::error::RenderGraphError;
 use super::graph::{CompiledRenderGraph, CompiledRenderPass};
 use super::types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResource,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
-    RenderGraphResourceLifetime, RenderPassId, TransientBuffer, TransientTexture,
+    ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
+    RenderGraphAttachmentStoreOp, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
+    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
+    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId, TransientBuffer,
+    TransientTexture,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,6 +22,7 @@ enum ResourceAccessKind {
 struct ResourceAccess {
     resource: RenderGraphResource,
     kind: ResourceAccessKind,
+    attachment_ops: Option<RenderGraphAttachmentOps>,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +33,7 @@ struct RenderPassNode {
     queue: QueueLane,
     flags: PassFlags,
     executor_id: Option<String>,
+    compute_workload: Option<RenderGraphComputeWorkload>,
     dependencies: Vec<RenderPassId>,
     resources: Vec<ResourceAccess>,
 }
@@ -91,10 +95,21 @@ impl RenderGraphBuilder {
             queue,
             flags: PassFlags::default(),
             executor_id: executor_id.map(Into::into),
+            compute_workload: None,
             dependencies: Vec::new(),
             resources: Vec::new(),
         });
         id
+    }
+
+    pub fn set_compute_workload(
+        &mut self,
+        pass: RenderPassId,
+        workload: RenderGraphComputeWorkload,
+    ) -> Result<(), RenderGraphError> {
+        self.ensure_pass(pass)?;
+        self.passes[pass.0].compute_workload = Some(workload);
+        Ok(())
     }
 
     pub fn set_pass_flags(
@@ -174,6 +189,7 @@ impl RenderGraphBuilder {
             pass,
             RenderGraphResource::TransientTexture(texture),
             ResourceAccessKind::Read,
+            None,
         )
     }
 
@@ -182,10 +198,33 @@ impl RenderGraphBuilder {
         pass: RenderPassId,
         texture: TransientTexture,
     ) -> Result<(), RenderGraphError> {
+        self.write_texture_with_ops(pass, texture, RenderGraphAttachmentOps::clear_store())
+    }
+
+    pub fn write_storage_texture(
+        &mut self,
+        pass: RenderPassId,
+        texture: TransientTexture,
+    ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
             pass,
             RenderGraphResource::TransientTexture(texture),
             ResourceAccessKind::Write,
+            None,
+        )
+    }
+
+    pub fn write_texture_with_ops(
+        &mut self,
+        pass: RenderPassId,
+        texture: TransientTexture,
+        ops: RenderGraphAttachmentOps,
+    ) -> Result<(), RenderGraphError> {
+        self.add_resource_access(
+            pass,
+            RenderGraphResource::TransientTexture(texture),
+            ResourceAccessKind::Write,
+            Some(ops),
         )
     }
 
@@ -198,6 +237,7 @@ impl RenderGraphBuilder {
             pass,
             RenderGraphResource::TransientBuffer(buffer),
             ResourceAccessKind::Read,
+            None,
         )
     }
 
@@ -210,6 +250,7 @@ impl RenderGraphBuilder {
             pass,
             RenderGraphResource::TransientBuffer(buffer),
             ResourceAccessKind::Write,
+            None,
         )
     }
 
@@ -222,6 +263,7 @@ impl RenderGraphBuilder {
             pass,
             RenderGraphResource::External(external),
             ResourceAccessKind::Read,
+            None,
         )
     }
 
@@ -234,10 +276,39 @@ impl RenderGraphBuilder {
             pass,
             RenderGraphResource::External(external),
             ResourceAccessKind::Write,
+            Some(RenderGraphAttachmentOps::load_store()),
+        )
+    }
+
+    pub fn write_storage_external(
+        &mut self,
+        pass: RenderPassId,
+        external: ExternalResource,
+    ) -> Result<(), RenderGraphError> {
+        self.add_resource_access(
+            pass,
+            RenderGraphResource::External(external),
+            ResourceAccessKind::Write,
+            None,
+        )
+    }
+
+    pub fn write_external_with_ops(
+        &mut self,
+        pass: RenderPassId,
+        external: ExternalResource,
+        ops: RenderGraphAttachmentOps,
+    ) -> Result<(), RenderGraphError> {
+        self.add_resource_access(
+            pass,
+            RenderGraphResource::External(external),
+            ResourceAccessKind::Write,
+            Some(ops),
         )
     }
 
     pub fn compile(self) -> Result<CompiledRenderGraph, RenderGraphError> {
+        self.validate_unique_resource_names()?;
         let resource_names = self.resource_names();
         let manual_reachability = self.manual_reachability();
         self.validate_write_dependencies(&manual_reachability, &resource_names)?;
@@ -266,6 +337,7 @@ impl RenderGraphBuilder {
                     dependencies: inferred_dependencies[id.0].clone(),
                     culled: culled.contains(id),
                     executor_id: pass.executor_id.clone(),
+                    compute_workload: pass.compute_workload.clone(),
                     resources: pass
                         .resources
                         .iter()
@@ -276,6 +348,7 @@ impl RenderGraphBuilder {
                                 .unwrap_or_else(|| format!("{:?}", access.resource)),
                             kind: render_graph_resource_kind(access.resource),
                             access: render_graph_resource_access_kind(access.kind),
+                            attachment_ops: access.attachment_ops,
                         })
                         .collect(),
                 }
@@ -295,12 +368,15 @@ impl RenderGraphBuilder {
         pass: RenderPassId,
         resource: RenderGraphResource,
         kind: ResourceAccessKind,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
     ) -> Result<(), RenderGraphError> {
         self.ensure_pass(pass)?;
         self.ensure_resource(resource)?;
-        self.passes[pass.0]
-            .resources
-            .push(ResourceAccess { resource, kind });
+        self.passes[pass.0].resources.push(ResourceAccess {
+            resource,
+            kind,
+            attachment_ops,
+        });
         Ok(())
     }
 
@@ -319,6 +395,18 @@ impl RenderGraphBuilder {
         Err(RenderGraphError::UnknownResource {
             resource: format!("{resource:?}"),
         })
+    }
+
+    fn validate_unique_resource_names(&self) -> Result<(), RenderGraphError> {
+        let mut seen = HashSet::new();
+        for resource in &self.resources {
+            if !seen.insert(resource.name.as_str()) {
+                return Err(RenderGraphError::DuplicateResourceName {
+                    resource: resource.name.clone(),
+                });
+            }
+        }
+        Ok(())
     }
 
     fn resource_names(&self) -> HashMap<RenderGraphResource, String> {
@@ -392,7 +480,7 @@ impl RenderGraphBuilder {
             .iter()
             .map(|pass| pass.dependencies.clone())
             .collect::<Vec<_>>();
-        let mut latest_writer = HashMap::<RenderGraphResource, RenderPassId>::new();
+        let mut latest_writer = HashMap::<RenderGraphResource, LatestWriter>::new();
 
         for pass_id in pass_order {
             let pass = &self.passes[pass_id.0];
@@ -400,21 +488,58 @@ impl RenderGraphBuilder {
                 match access.kind {
                     ResourceAccessKind::Read => {
                         if let Some(writer) = latest_writer.get(&access.resource) {
-                            if *writer != pass.id && !dependencies[pass.id.0].contains(writer) {
-                                dependencies[pass.id.0].push(*writer);
+                            if writer.store == RenderGraphAttachmentStoreOp::Discard {
+                                return Err(RenderGraphError::ReadAfterDiscardedStore {
+                                    resource: resource_name(resource_names, access.resource),
+                                    pass: pass.name.clone(),
+                                    producer: self.passes[writer.pass.0].name.clone(),
+                                });
+                            }
+                            if writer.pass != pass.id
+                                && !dependencies[pass.id.0].contains(&writer.pass)
+                            {
+                                dependencies[pass.id.0].push(writer.pass);
                             }
                         } else if !matches!(access.resource, RenderGraphResource::External(_)) {
                             return Err(RenderGraphError::ReadBeforeProducer {
-                                resource: resource_names
-                                    .get(&access.resource)
-                                    .cloned()
-                                    .unwrap_or_else(|| format!("{:?}", access.resource)),
+                                resource: resource_name(resource_names, access.resource),
                                 pass: pass.name.clone(),
                             });
                         }
                     }
                     ResourceAccessKind::Write => {
-                        latest_writer.insert(access.resource, pass.id);
+                        if matches!(access.resource, RenderGraphResource::TransientTexture(_))
+                            && access
+                                .attachment_ops
+                                .is_some_and(|ops| ops.load == RenderGraphAttachmentLoadOp::Load)
+                        {
+                            match latest_writer.get(&access.resource) {
+                                Some(writer)
+                                    if writer.store == RenderGraphAttachmentStoreOp::Store => {}
+                                Some(writer) => {
+                                    return Err(RenderGraphError::ReadAfterDiscardedStore {
+                                        resource: resource_name(resource_names, access.resource),
+                                        pass: pass.name.clone(),
+                                        producer: self.passes[writer.pass.0].name.clone(),
+                                    });
+                                }
+                                None => {
+                                    return Err(RenderGraphError::LoadBeforeProducer {
+                                        resource: resource_name(resource_names, access.resource),
+                                        pass: pass.name.clone(),
+                                    });
+                                }
+                            }
+                        }
+                        latest_writer.insert(
+                            access.resource,
+                            LatestWriter {
+                                pass: pass.id,
+                                store: access
+                                    .attachment_ops
+                                    .map_or(RenderGraphAttachmentStoreOp::Store, |ops| ops.store),
+                            },
+                        );
                     }
                 }
             }
@@ -617,6 +742,22 @@ impl RenderGraphBuilder {
         lifetimes.sort_by(|a, b| a.name.cmp(&b.name));
         lifetimes
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct LatestWriter {
+    pass: RenderPassId,
+    store: RenderGraphAttachmentStoreOp,
+}
+
+fn resource_name(
+    resource_names: &HashMap<RenderGraphResource, String>,
+    resource: RenderGraphResource,
+) -> String {
+    resource_names
+        .get(&resource)
+        .cloned()
+        .unwrap_or_else(|| format!("{resource:?}"))
 }
 
 fn render_graph_resource_kind(resource: RenderGraphResource) -> RenderGraphResourceKind {

@@ -17,7 +17,9 @@ pub(super) fn is_visible_frame(frame: &FrameRect) -> bool {
         && frame.height > 0.5
 }
 
-pub(super) fn frame_from_template(frame: &TemplateNodeFrameData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn frame_from_template(
+    frame: &TemplateNodeFrameData,
+) -> FrameRect {
     FrameRect {
         x: frame.x,
         y: frame.y,

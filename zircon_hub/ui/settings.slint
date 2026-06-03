@@ -2,6 +2,7 @@ import { OperationTimelineRowData, SettingStatusData, UiTextData } from "shared.
 import {
     HubTokens,
     HubVisualSpec,
+    HubCompactTabStrip,
     OperationTimelinePanel,
     PageScrollSurface,
     WorkspacePanelSection,
@@ -9,6 +10,7 @@ import {
 import {
     SettingsBuildDefaultsPanel,
     SettingsConfigurationHealthPanel,
+    SettingsConfigurationOverviewPanel,
     SettingsDefaultPathsPanel,
     SettingsSaveActionRow,
     SettingsToolchainPanel,
@@ -31,9 +33,12 @@ export component SettingsPage inherits PageScrollSurface {
     in property <UiTextData> ui-text;
     private property <bool> compact: root.content-width < HubTokens.panel-min-lg + HubTokens.control-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
     private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
+    private property <bool> health-compact-labels: root.compact-labels || root.content-width < HubTokens.breakpoint-wide;
     private property <length> save-button-width: min(root.content-width, HubTokens.panel-min-sm);
     private property <int> settings-status-count: root.settings-statuses.length;
     private property <length> health-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    private property <length> settings-primary-row-height: HubTokens.workspace-row-settings-controls;
+    private property <length> settings-secondary-row-height: HubTokens.workspace-row-settings-detail;
     private property <length> paths-scroll-y: 0px;
     private property <length> health-scroll-y: 0px;
     private property <length> operation-timeline-scroll-y: 0px;
@@ -43,11 +48,37 @@ export component SettingsPage inherits PageScrollSurface {
     background: HubVisualSpec.page-background;
     clip: true;
 
+    HubCompactTabStrip {
+        current-index: 0;
+        first-label: "General";
+        second-label: root.ui-text.build-defaults;
+        third-label: root.ui-text.default-paths;
+        fourth-label: root.ui-text.configuration-health;
+        tab-width: HubTokens.control-md * 4;
+    }
+
     WorkspacePanelSection {
         compact: root.compact;
-        row-height: HubTokens.workspace-row-settings-controls;
+        row-height: root.settings-primary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
+
+        SettingsConfigurationOverviewPanel {
+            basis: HubTokens.panel-min-md + HubTokens.control-sm;
+            flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            height: root.settings-primary-row-height;
+            panel-title: "Configuration Overview";
+            ui-text: root.ui-text;
+            settings-status-count: root.settings-status-count;
+            build-profile: root.build-profile;
+            language: root.language;
+            project-location: root.project-location;
+        }
 
         SettingsToolchainPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
@@ -57,34 +88,18 @@ export component SettingsPage inherits PageScrollSurface {
             shrink: 1;
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
-            height: HubTokens.workspace-row-settings-controls;
+            height: root.settings-primary-row-height;
             panel-title: root.ui-text.toolchain;
             ui-text: root.ui-text;
             python-path <=> root.python-path;
             cargo-path <=> root.cargo-path;
             rustup-path <=> root.rustup-path;
         }
-
-        SettingsBuildDefaultsPanel {
-            basis: HubTokens.panel-min-md + HubTokens.control-sm;
-            flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
-            grow: 1;
-            flex-grow: 1;
-            shrink: 1;
-            flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
-            height: HubTokens.workspace-row-settings-controls;
-            panel-title: root.ui-text.build-defaults;
-            ui-text: root.ui-text;
-            build-jobs <=> root.build-jobs;
-            build-profile <=> root.build-profile;
-            language <=> root.language;
-        }
     }
 
     WorkspacePanelSection {
         compact: root.compact;
-        row-height: HubTokens.workspace-row-settings-detail;
+        row-height: root.settings-secondary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
@@ -96,7 +111,7 @@ export component SettingsPage inherits PageScrollSurface {
             shrink: 1;
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
-            height: HubTokens.workspace-row-settings-detail;
+            height: root.settings-secondary-row-height;
             panel-title: root.ui-text.default-paths;
             ui-text: root.ui-text;
             project-location <=> root.project-location;
@@ -117,12 +132,12 @@ export component SettingsPage inherits PageScrollSurface {
             shrink: 1;
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
-            height: HubTokens.workspace-row-settings-detail;
+            height: root.settings-secondary-row-height;
             panel-title: root.ui-text.configuration-health;
             ui-text: root.ui-text;
             settings-statuses: root.settings-statuses;
             settings-status-count: root.settings-status-count;
-            compact-labels: root.compact-labels;
+            compact-labels: root.health-compact-labels;
             health-empty-height: root.health-empty-height;
             health-scroll-y <=> root.health-scroll-y;
             status-action(action-id) => {
@@ -141,19 +156,27 @@ export component SettingsPage inherits PageScrollSurface {
         }
     }
 
-    SettingsSaveActionRow {
-        button-width: root.save-button-width;
-        action-label: root.ui-text.save-settings;
-        action-clicked => {
-            root.save-settings();
-        }
-    }
-
     WorkspacePanelSection {
         compact: root.compact;
-        row-height: HubTokens.workspace-row-settings-detail;
+        row-height: root.settings-primary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
+
+        SettingsBuildDefaultsPanel {
+            basis: HubTokens.panel-min-md + HubTokens.control-sm;
+            flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            height: root.settings-primary-row-height;
+            panel-title: root.ui-text.build-defaults;
+            ui-text: root.ui-text;
+            build-jobs <=> root.build-jobs;
+            build-profile <=> root.build-profile;
+            language <=> root.language;
+        }
 
         OperationTimelinePanel {
             basis: HubTokens.panel-min-lg;
@@ -163,7 +186,7 @@ export component SettingsPage inherits PageScrollSurface {
             shrink: 1;
             flex-shrink: 1;
             min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
-            height: HubTokens.workspace-row-settings-detail;
+            height: root.settings-primary-row-height;
             timeline-title: root.ui-text.operation-timeline;
             empty-title: root.ui-text.no-operation-timeline;
             empty-detail: root.ui-text.operation-timeline-empty-detail;
@@ -172,6 +195,14 @@ export component SettingsPage inherits PageScrollSurface {
             row-height: HubTokens.list-row-md;
             timeline-scroll-y <=> root.operation-timeline-scroll-y;
             collapse-label: root.compact-labels;
+        }
+    }
+
+    SettingsSaveActionRow {
+        button-width: root.save-button-width;
+        action-label: root.ui-text.save-settings;
+        action-clicked => {
+            root.save-settings();
         }
     }
 }

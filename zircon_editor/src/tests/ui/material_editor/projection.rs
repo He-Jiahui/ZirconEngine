@@ -289,6 +289,7 @@ uuid = "00000000-0000-0000-0000-000000000001"
 url = "res://shaders/pbr.zshader"
 [overrides]
 alpha_mode = { mode = "mask", cutoff = 2.0 }
+lighting_model = "toon"
 "#,
     )
     .unwrap();
@@ -298,5 +299,10 @@ alpha_mode = { mode = "mask", cutoff = 2.0 }
         row.source.is_none()
             && row.path == "overrides.alpha_mode.cutoff"
             && row.message.contains("0.0..=1.0")
+    }));
+    assert!(projection.diagnostics.iter().any(|row| {
+        row.source.is_none()
+            && row.path == "overrides.lighting_model"
+            && row.message.contains("lighting model `toon`")
     }));
 }

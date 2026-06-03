@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::render::RenderParticleGpuReadbackOutputs;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ResourceHandle, ResourceId, TextureMarker};
 use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassExecutorId};
+use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassStage};
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 use zircon_runtime::render_graph::{
     PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
@@ -31,11 +31,25 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
         .components()
         .iter()
         .any(|descriptor| descriptor.type_id == PARTICLE_SYSTEM_COMPONENT_TYPE));
-    assert!(report
+    let backend_option = report
         .extensions
         .plugin_options()
         .iter()
-        .any(|option| option.key == "particles.backend"));
+        .find(|option| option.key == "particles.backend")
+        .expect("particles backend option");
+    assert_eq!(backend_option.value_type, "enum");
+    assert_eq!(backend_option.default_value, "cpu");
+    assert_eq!(
+        backend_option.enum_values,
+        vec!["cpu".to_string(), "gpu".to_string()]
+    );
+    let fixed_preview_dt = report
+        .extensions
+        .plugin_options()
+        .iter()
+        .find(|option| option.key == "particles.fixed_preview_dt")
+        .expect("particles fixed preview step option");
+    assert_eq!(fixed_preview_dt.value_type, "number");
     let executor_ids = report
         .extensions
         .render_pass_executors()
@@ -108,6 +122,10 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
             "particle-render"
         ]
     );
+    assert!(descriptor
+        .stage_passes
+        .iter()
+        .all(|pass| pass.stage == RenderPassStage::Transparent3d));
     assert_eq!(descriptor.stage_passes[0].queue, QueueLane::AsyncCompute);
     assert_eq!(descriptor.stage_passes[3].queue, QueueLane::Graphics);
 }
@@ -564,6 +582,7 @@ fn particle_graph_indirect_executor_accepts_declared_resource_contract() {
                         RenderGraphResourceAccessKind::Write
                     }
                 },
+                attachment_ops: None,
             })
             .collect(),
     );

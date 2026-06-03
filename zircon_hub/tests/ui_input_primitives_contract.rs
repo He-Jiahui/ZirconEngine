@@ -27,6 +27,7 @@ fn hub_low_level_state_inputs_wrap_material_checkbox_switch_and_combo() {
         "HubSwitch,",
         "HubToggleRow,",
         "HubComboBox,",
+        "HubPathFieldRow,",
     ] {
         assert!(
             components.contains(snippet),
@@ -39,7 +40,7 @@ fn hub_low_level_state_inputs_wrap_material_checkbox_switch_and_combo() {
         "CheckBox as MaterialCheckBox,",
         "CheckBoxTile as MaterialCheckBoxTile,",
         "Switch as MaterialSwitch,",
-        "import { HubDropDownSurface, HubPopupMenu } from \"overlays.slint\";",
+        "import { HubSelectDropDownSurface, HubSelectMenu } from \"overlays.slint\";",
         "export component HubCheckBox",
         "check_state <=> root.check-state;",
         "checked_state_changed(state) =>",
@@ -56,12 +57,19 @@ fn hub_low_level_state_inputs_wrap_material_checkbox_switch_and_combo() {
         "horizontal_alignment: left;",
         "toggled(checked) =>",
         "export component HubComboBox",
-        "HubDropDownSurface {",
-        "dropdown-width: parent.width;",
-        "dropdown-height: parent.height;",
-        "dropdown-items: root.items;",
+        "HubSelectDropDownSurface {",
+        "select-width: parent.width;",
+        "select-height: parent.height;",
+        "select-items: root.items;",
         "current_index <=> root.current-index;",
         "selected(index) =>",
+        "export component HubPathFieldRow",
+        "HubTextField {",
+        "text <=> root.text;",
+        "HubCommandButton {",
+        "button-width: root.action-width;",
+        "button-height: root.action-height;",
+        "enabled: root.action-enabled && root.enabled;",
     ] {
         assert!(
             inputs.contains(snippet),
@@ -75,6 +83,7 @@ fn hub_low_level_state_inputs_wrap_material_checkbox_switch_and_combo() {
         "HubSwitch",
         "HubToggleRow",
         "HubComboBox",
+        "HubPathFieldRow",
     ] {
         let wrapper = inputs
             .split(&format!("export component {wrapper_name}"))
@@ -87,6 +96,47 @@ fn hub_low_level_state_inputs_wrap_material_checkbox_switch_and_combo() {
                 "{wrapper_name} must not reintroduce hand-rolled input behavior: {forbidden}"
             );
         }
+    }
+}
+
+#[test]
+fn toolbar_select_and_combo_share_select_dropdown_surface_contracts() {
+    let inputs = read_ui_file("inputs.slint");
+
+    for snippet in [
+        "export component ToolbarSelect",
+        "menu := HubSelectMenu {",
+        "anchor-width: root.select-width;",
+        "anchor-height: root.height;",
+        "select-items: root.menu-items;",
+        "activated(index) =>",
+        "export component HubComboBox",
+        "material-combo := HubSelectDropDownSurface {",
+        "select-width: parent.width;",
+        "select-height: parent.height;",
+        "select-items: root.items;",
+        "current_index <=> root.current-index;",
+    ] {
+        assert!(
+            inputs.contains(snippet),
+            "ToolbarSelect and HubComboBox must route select/dropdown behavior through shared Hub select surfaces; missing {snippet}"
+        );
+    }
+
+    let toolbar_select = inputs
+        .split("export component ToolbarSelect")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .unwrap_or_else(|| panic!("inputs.slint must declare ToolbarSelect"));
+    for forbidden in [
+        "menu := HubPopupMenu",
+        "private property <length> menu-width:",
+        "private property <length> menu-offset-x:",
+    ] {
+        assert!(
+            !toolbar_select.contains(forbidden),
+            "ToolbarSelect must not keep page-local popup geometry after HubSelectMenu extraction: {forbidden}"
+        );
     }
 }
 
@@ -147,25 +197,36 @@ fn project_template_choices_consume_hub_checkbox_selection() {
 
     for snippet in [
         "CheckState,",
-        "HubCheckBox,",
+        "HubRowSelectionSlot,",
+        "HubRowMainSlot,",
+        "HubRowTrailingSlot,",
         "private property <CheckState> selection-state: root.template.selected ? CheckState.checked : CheckState.unchecked;",
+        "export component TemplateChoiceRow inherits HubRowSurface",
         "StateLayerArea {",
-        "HubCheckBox {",
+        "HubRowSelectionSlot {",
         "check-state: root.selection-state;",
         "changed(state) =>",
-        "root.selected(root.template.id);",
-        "StatusBadge {",
+        "template-selected(id) => { root.selected(id); }",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "badge-text: root.trailing-label;",
+        "root.template-selected(root.template.id);",
     ] {
         assert!(
             project_components.contains(snippet) || template_row.contains(snippet),
-            "Project template choices must consume the shared Material checkbox primitive; missing {snippet}"
+            "Project template choices must consume shared row selection/main/trailing slots backed by Material primitives; missing {snippet}"
         );
     }
 
-    for forbidden in ["MaterialCheckBox {", "MaterialCheckBoxTile {", "TouchArea"] {
+    for forbidden in [
+        "HubCheckBox {",
+        "MaterialCheckBox {",
+        "MaterialCheckBoxTile {",
+        "TouchArea",
+    ] {
         assert!(
             !template_row.contains(forbidden),
-            "TemplateChoiceRow must not bypass HubCheckBox with raw or hand-rolled selection controls: {forbidden}"
+            "TemplateChoiceRow must not bypass HubRowSelectionSlot with raw or hand-rolled selection controls: {forbidden}"
         );
     }
 }
@@ -195,25 +256,46 @@ fn project_detail_pin_state_consumes_hub_toggle_row() {
         );
     }
 
+    let actions_section = detail_components
+        .split("export component ProjectDetailActionsSection")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailStatusStrip").next())
+        .unwrap_or_else(|| {
+            panic!("project_detail_components.slint must declare ProjectDetailActionsSection before ProjectDetailStatusStrip")
+        });
+
     for snippet in [
-        "ProjectDetailPinToggleRow,",
-        "ProjectDetailPinToggleRow {",
-        "row-height: root.pin-toggle-row-height;",
-        "detail: root.project;",
+        "ProjectDetailActionsSection,",
+        "ProjectDetailActionsSection {",
+        "pin-toggle-row-height: root.pin-toggle-row-height;",
+        "project: root.project;",
         "copy: root.ui-text;",
-        "toggled(checked) => { root.toggle-pin(); }",
+        "toggle-pin => { root.toggle-pin(); }",
     ] {
         assert!(
             detail_page.contains(snippet),
-            "ProjectDetailPage must route pin/unpin through ProjectDetailPinToggleRow; missing {snippet}"
+            "ProjectDetailPage must route pin/unpin through ProjectDetailActionsSection; missing {snippet}"
         );
     }
 
-    let standard_actions = detail_page
+    for snippet in [
+        "ProjectDetailPinToggleRow {",
+        "row-height: root.pin-toggle-row-height;",
+        "detail: root.project;",
+        "copy: root.copy;",
+        "toggled(checked) => { root.toggle-pin(); }",
+    ] {
+        assert!(
+            actions_section.contains(snippet),
+            "ProjectDetailActionsSection must route pin/unpin through ProjectDetailPinToggleRow; missing {snippet}"
+        );
+    }
+
+    let standard_actions = actions_section
         .split("if !root.project.pending-delete: ProjectDetailPinToggleRow")
         .nth(1)
         .and_then(|source| source.split("if !root.project.pending-delete: ProjectDetailEngineSection").next())
-        .unwrap_or_else(|| panic!("ProjectDetailPage must render ProjectDetailPinToggleRow before ProjectDetailEngineSection"));
+        .unwrap_or_else(|| panic!("ProjectDetailActionsSection must render ProjectDetailPinToggleRow before ProjectDetailEngineSection"));
     for forbidden in [
         "text: root.project.pinned ? root.ui-text.unpin-project : root.ui-text.pin-project;",
         "clicked => { root.toggle-pin(); }",

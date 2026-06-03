@@ -6,6 +6,23 @@ impl BuiltinRenderFeature {
             self,
             Self::GlobalIllumination
                 | Self::HistoryResolve
+                | Self::NeuralCompute
+                | Self::SparseTexture
+                | Self::Terrain
+                | Self::Tree
+                | Self::Projector
+                | Self::Halo
+                | Self::LensFlare
+                | Self::Trail
+                | Self::Billboard
+                | Self::Tilemap
+                | Self::TextShaping
+                | Self::Skybox
+                | Self::Cubemap
+                | Self::Texture2dArray
+                | Self::NormalMap
+                | Self::Mipmap
+                | Self::ColorSpace
                 | Self::RayTracing
                 | Self::VirtualGeometry
         )

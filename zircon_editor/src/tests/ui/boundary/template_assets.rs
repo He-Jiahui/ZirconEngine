@@ -284,17 +284,26 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
                 "activity_rail",
                 "document_host",
                 "menu_bar",
-                "WorkbenchShellReferenceImage",
-                "ui/editor/reference/workbench.png",
+                "editor_workbench_strict.v2.ui.toml",
+                "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+                "res://ui/editor/components/workbench_rail_button.zui#WorkbenchRailButton",
+                "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+                "WorkbenchScaffold",
+                "StatusBarRoot",
             ],
         ),
         (
             "assets/ui/editor/windows/workbench_window.v2.ui.toml",
             &[
-                "WorkbenchReferenceImage",
-                "ui/editor/reference/workbench.png",
-                "reference_width = 1672.0",
-                "reference_height = 941.0",
+                "editor_workbench_strict.v2.ui.toml",
+                "res://ui/editor/components/workbench_component_drawer.zui#WorkbenchComponentDrawer",
+                "res://ui/editor/components/workbench_main_band.zui#WorkbenchMainBand",
+                "res://ui/editor/components/workbench_status_bar.zui#WorkbenchStatusBar",
+                "res://ui/editor/components/workbench_top_toolbar.zui#WorkbenchTopToolbar",
+                "WorkbenchWindowTopToolbarRegion",
+                "WorkbenchWindowMainBandRegion",
+                "WorkbenchWindowComponentDrawerRegion",
+                "WorkbenchWindowStatusBarRegion",
             ],
         ),
         (
@@ -336,7 +345,7 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
 }
 
 #[test]
-fn workbench_reference_visual_asset_matches_docs_baseline() {
+fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay() {
     let editor_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = editor_root
         .parent()
@@ -361,30 +370,45 @@ fn workbench_reference_visual_asset_matches_docs_baseline() {
     assert_eq!(png_dimensions(&asset_bytes), (1672, 941));
 
     let workbench = source("assets/ui/editor/windows/workbench_window.v2.ui.toml");
-    for required in [
-        "component = \"Image\"",
+    for forbidden in [
+        "component = \"IconButton\"",
+        "component = \"Button\"",
+        "component = \"Dropdown\"",
+        "component = \"Checkbox\"",
+        "component = \"Radio\"",
+        "component = \"Toggle\"",
+        "component = \"RangeField\"",
+        "component = \"TreeRow\"",
+        "component = \"ListRow\"",
+        "component = \"ContextActionMenu\"",
+    ] {
+        assert!(
+            !workbench.contains(forbidden),
+            "workbench window must route interaction primitives through Workbench* .zui components instead of `{forbidden}`"
+        );
+    }
+    for forbidden in [
         "WorkbenchReferenceFrame",
         "WorkbenchReferenceImage",
         "ui/editor/reference/workbench.png",
         "docs/ui-and-layout/workbench.png",
     ] {
         assert!(
-            workbench.contains(required),
-            "workbench window visual baseline missing `{required}`"
+            !workbench.contains(forbidden),
+            "workbench window must not render full PNG reference `{forbidden}`"
         );
     }
 
     let shell = source("assets/ui/editor/host/workbench_shell.v2.ui.toml");
-    for required in [
-        "component = \"Image\"",
+    for forbidden in [
         "WorkbenchShellReferenceImage",
         "ui/editor/reference/workbench.png",
         "docs/ui-and-layout/workbench.png",
         "input_policy = \"Ignore\"",
     ] {
         assert!(
-            shell.contains(required),
-            "workbench shell visual baseline missing `{required}`"
+            !shell.contains(forbidden),
+            "workbench shell must not render full PNG reference `{forbidden}`"
         );
     }
 
@@ -711,6 +735,118 @@ fn imported_zui_components_are_single_component_assets() {
         (
             "assets/ui/editor/components/showcase_collections_section.zui",
             "ShowcaseCollectionsSection",
+        ),
+        (
+            "assets/ui/editor/components/workbench_button.zui",
+            "WorkbenchButton",
+        ),
+        (
+            "assets/ui/editor/components/workbench_activity_rail.zui",
+            "WorkbenchActivityRail",
+        ),
+        (
+            "assets/ui/editor/components/workbench_checkbox.zui",
+            "WorkbenchCheckbox",
+        ),
+        (
+            "assets/ui/editor/components/workbench_chip.zui",
+            "WorkbenchChip",
+        ),
+        (
+            "assets/ui/editor/components/workbench_component_drawer.zui",
+            "WorkbenchComponentDrawer",
+        ),
+        (
+            "assets/ui/editor/components/workbench_dropdown.zui",
+            "WorkbenchDropdown",
+        ),
+        (
+            "assets/ui/editor/components/workbench_field.zui",
+            "WorkbenchField",
+        ),
+        (
+            "assets/ui/editor/components/workbench_inspector_panel.zui",
+            "WorkbenchInspectorPanel",
+        ),
+        (
+            "assets/ui/editor/components/workbench_icon_button.zui",
+            "WorkbenchIconButton",
+        ),
+        (
+            "assets/ui/editor/components/workbench_list_row.zui",
+            "WorkbenchListRow",
+        ),
+        (
+            "assets/ui/editor/components/workbench_main_band.zui",
+            "WorkbenchMainBand",
+        ),
+        (
+            "assets/ui/editor/components/workbench_popup_menu.zui",
+            "WorkbenchPopupMenu",
+        ),
+        (
+            "assets/ui/editor/components/workbench_property_row.zui",
+            "WorkbenchPropertyRow",
+        ),
+        (
+            "assets/ui/editor/components/workbench_radio.zui",
+            "WorkbenchRadio",
+        ),
+        (
+            "assets/ui/editor/components/workbench_rail_button.zui",
+            "WorkbenchRailButton",
+        ),
+        (
+            "assets/ui/editor/components/workbench_section_title.zui",
+            "WorkbenchSectionTitle",
+        ),
+        (
+            "assets/ui/editor/components/workbench_scene_tree_panel.zui",
+            "WorkbenchSceneTreePanel",
+        ),
+        (
+            "assets/ui/editor/components/workbench_segmented_control.zui",
+            "WorkbenchSegmentedControl",
+        ),
+        (
+            "assets/ui/editor/components/workbench_slider.zui",
+            "WorkbenchSlider",
+        ),
+        (
+            "assets/ui/editor/components/workbench_status_item.zui",
+            "WorkbenchStatusItem",
+        ),
+        (
+            "assets/ui/editor/components/workbench_status_bar.zui",
+            "WorkbenchStatusBar",
+        ),
+        (
+            "assets/ui/editor/components/workbench_tab.zui",
+            "WorkbenchTab",
+        ),
+        (
+            "assets/ui/editor/components/workbench_table_row.zui",
+            "WorkbenchTableRow",
+        ),
+        (
+            "assets/ui/editor/components/workbench_toast.zui",
+            "WorkbenchToast",
+        ),
+        (
+            "assets/ui/editor/components/workbench_top_toolbar.zui",
+            "WorkbenchTopToolbar",
+        ),
+        (
+            "assets/ui/editor/components/workbench_toggle.zui",
+            "WorkbenchToggle",
+        ),
+        (
+            "assets/ui/editor/components/workbench_viewport_panel.zui",
+            "WorkbenchViewportPanel",
+        ),
+        (
+            "assets/ui/editor/components/workbench_tree_row.zui",
+            "WorkbenchTreeRow",
         ),
     ] {
         let document = UiZuiAssetLoader::load_zui_str(&source(relative))
@@ -1328,10 +1464,24 @@ fn rust_owned_template_node_contract_keeps_retained_widget_state() {
     for required in [
         "pub(crate) struct TemplatePaneNodeData",
         "pub component_role: SharedString",
+        "pub component_category: SharedString",
+        "pub component_layout_role: SharedString",
         "pub component_variant: SharedString",
+        "pub label_text: SharedString",
+        "pub label_color: Color",
+        "pub label_brightness: f32",
+        "pub layout_offset_x: f32",
+        "pub layout_offset_y: f32",
+        "pub layout_icon_size: f32",
+        "pub layout_first_cell_offset_x: f32",
+        "pub layout_second_cell_offset_x: f32",
+        "pub layout_third_cell_offset_x: f32",
+        "pub layout_fourth_cell_offset_x: f32",
         "pub value_number: f32",
         "pub value_percent: f32",
         "pub value_color: Color",
+        "pub icon_color: Color",
+        "pub icon_stroke_width: f32",
         "pub media_source: SharedString",
         "pub icon_name: SharedString",
         "pub has_preview_image: bool",

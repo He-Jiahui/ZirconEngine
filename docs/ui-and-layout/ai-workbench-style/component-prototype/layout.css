@@ -1,0 +1,97 @@
+.zr-layout,
+.zr-grid {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.zr-layout {
+  display: flex;
+}
+
+.zr-grid {
+  display: grid;
+}
+
+.zr-layout[data-zr-direction="column"] {
+  flex-direction: column;
+}
+
+.zr-layout[data-zr-direction="row"] {
+  flex-direction: row;
+}
+
+.zr-layout[data-zr-wrap="true"] {
+  flex-wrap: wrap;
+}
+
+[data-zr-align="start"] {
+  align-items: flex-start;
+}
+
+[data-zr-align="center"] {
+  align-items: center;
+}
+
+[data-zr-align="end"] {
+  align-items: flex-end;
+}
+
+[data-zr-align="stretch"] {
+  align-items: stretch;
+}
+
+[data-zr-justify="start"] {
+  justify-content: flex-start;
+}
+
+[data-zr-justify="center"] {
+  justify-content: center;
+}
+
+[data-zr-justify="end"] {
+  justify-content: flex-end;
+}
+
+[data-zr-justify="between"] {
+  justify-content: space-between;
+}
+
+[data-zr-gap="none"] {
+  gap: 0;
+}
+
+[data-zr-gap="xs"] {
+  gap: 4px;
+}
+
+[data-zr-gap="sm"] {
+  gap: 8px;
+}
+
+[data-zr-gap="md"] {
+  gap: 12px;
+}
+
+[data-zr-gap="lg"] {
+  gap: 16px;
+}
+
+[data-zr-gap="xl"] {
+  gap: 24px;
+}
+
+.zr-grid[data-zr-columns="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.zr-grid[data-zr-columns="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.zr-grid[data-zr-columns="4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.zr-grid[data-zr-columns="6"] {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}

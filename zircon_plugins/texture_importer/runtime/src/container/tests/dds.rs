@@ -1,7 +1,7 @@
 use super::common::*;
 use crate::container::support::{
-    DDSCAPS2_CUBEMAP, DDSCAPS2_CUBEMAP_NEGATIVEX, DDSCAPS2_CUBEMAP_POSITIVEX, DDSCAPS_COMPLEX,
-    DDSCAPS_MIPMAP, DDSCAPS_TEXTURE, DDSD_LINEARSIZE, DDSD_REQUIRED_FLAGS, DDS_DIMENSION_TEXTURE2D,
+    DDSCAPS2_CUBEMAP, DDSCAPS2_CUBEMAP_NEGATIVEX, DDSCAPS2_CUBEMAP_POSITIVEX, DDSCAPS_MIPMAP,
+    DDSCAPS_TEXTURE, DDSD_LINEARSIZE, DDSD_REQUIRED_FLAGS, DDS_DIMENSION_TEXTURE2D,
     DDS_RESOURCE_MISC_TEXTURECUBE,
 };
 use zircon_runtime::asset::{ImportedAsset, TexturePayload};
@@ -393,6 +393,8 @@ fn dds_container_importer_rejects_cubemap_face_flags_without_cubemap_bit() {
 #[test]
 fn dds_container_importer_rejects_cubemap_without_complex_caps() {
     let mut bytes = tiny_dds_dx10_cubemap_array_bytes();
+    write_u32(&mut bytes, 8, DDSD_REQUIRED_FLAGS | DDSD_LINEARSIZE);
+    write_u32(&mut bytes, 28, 1);
     write_u32(&mut bytes, 108, DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
 
     let error = import_container_error("cubemap-without-complex-caps.dds", bytes);

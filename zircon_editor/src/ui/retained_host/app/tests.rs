@@ -32,6 +32,7 @@ use zircon_runtime::foundation::{
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime_interface::math::UVec2;
 mod close_prompt;
+mod componentized_workbench;
 mod drag_sources;
 mod floating_window_projection;
 mod runtime_diagnostics_drawer;
@@ -243,6 +244,43 @@ fn unique_temp_path(prefix: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("{prefix}_{unique}.json"))
+}
+
+pub(super) fn workbench_control_bool(
+    host: &RetainedEditorHost,
+    control_id: &str,
+    property: &str,
+) -> bool {
+    host.workbench_window_bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
+                .and_then(|metadata| metadata.attributes.get(property))
+                .and_then(toml::Value::as_bool)
+        })
+        .unwrap_or(false)
+}
+
+pub(super) fn workbench_control_visibility(
+    host: &RetainedEditorHost,
+    control_id: &str,
+) -> Option<zircon_runtime_interface::ui::tree::UiVisibility> {
+    host.workbench_window_bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
+                .map(|_| node.visibility)
+        })
 }
 
 #[test]

@@ -9,6 +9,7 @@ export component PluginsPage inherits CatalogPage {
     in property <UiTextData> ui-text;
     private property <string> catalog-title: root.has-selected-project ? root.ui-text.plugin-catalog-selected : root.ui-text.plugin-catalog;
     private property <string> plugins-empty-detail: root.has-selected-project ? root.ui-text.plugin-empty-selected-detail : root.ui-text.plugin-empty-global-detail;
+    private property <string> detail-summary: root.has-selected-project ? "Selected project and Source Engine plugins." : "Source Engine and local plugin roots.";
 
     title: root.catalog-title;
     badge-text: root.plugin-count + " " + root.ui-text.plugins-found;
@@ -16,7 +17,36 @@ export component PluginsPage inherits CatalogPage {
     empty-title: root.ui-text.no-plugins-found;
     empty-detail: root.plugins-empty-detail;
     row-count: root.plugin-count;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
+    row-height: HubTokens.list-row-md;
+    detail-title: root.catalog-title + " Detail";
+    detail-subtitle: root.detail-summary;
+    detail-primary: root.plugin-count + " " + root.ui-text.plugins-found;
+    detail-secondary: root.has-selected-project ? "Project plugin readiness" : "Workspace plugin readiness";
+    detail-icon-image: @image-url("../assets/icons/nav/plugins.svg");
+    detail-stat-one-label: root.ui-text.plugins-found;
+    detail-stat-one-value: root.plugin-count + "";
+    detail-stat-one-detail: root.has-selected-project ? "Selected project" : "All scopes";
+    detail-stat-two-label: root.ui-text.plugin-packaging;
+    detail-stat-two-value: "Mixed";
+    detail-stat-two-detail: "Local packages";
+    detail-stat-three-label: root.ui-text.plugin-modules;
+    detail-stat-three-value: "Module map";
+    detail-stat-three-detail: "Runtime/editor split";
+    detail-stat-four-label: root.ui-text.plugin-maturity;
+    detail-stat-four-value: "Tracked";
+    detail-stat-four-detail: "Status per row";
+    detail-check-one-title: "Project link";
+    detail-check-one-detail: root.has-selected-project ? "Plugin list is scoped to the selected project" : "Global plugin catalog is visible";
+    detail-check-one-badge: root.has-selected-project ? "Project" : "Global";
+    detail-check-one-tone: root.has-selected-project ? "ok" : "neutral";
+    detail-check-two-title: "Metadata";
+    detail-check-two-detail: "Category, module, path columns aligned";
+    detail-check-two-badge: "Ready";
+    detail-check-two-tone: "ok";
+    detail-check-three-title: "Review";
+    detail-check-three-detail: root.plugin-count == 0 ? root.plugins-empty-detail : "Review package state before release";
+    detail-check-three-badge: root.plugin-count == 0 ? "Empty" : "Review";
+    detail-check-three-tone: root.plugin-count == 0 ? "warning" : "neutral";
 
     label-collapse := ResponsiveCollapse {
         content-width: root.content-width;

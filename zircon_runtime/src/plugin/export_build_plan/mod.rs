@@ -4,13 +4,16 @@ mod default_profile;
 mod export_build_plan;
 mod export_generated_file;
 mod export_materialize_report;
+mod export_profile_validation;
 mod from_project_manifest;
 mod generated_files;
 mod main_template;
 mod materialize;
+mod native_dynamic_package_plan;
 mod native_plugin_load_manifest_template;
 mod platform_host_files;
 mod plugin_selection_template;
+mod project_manifest_validation;
 
 pub use export_build_plan::ExportBuildPlan;
 pub(crate) use export_build_plan::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};

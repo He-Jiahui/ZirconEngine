@@ -7,6 +7,7 @@ pub fn wgpu_backend_caps(
 ) -> RenderBackendCaps {
     RenderBackendCaps::new(backend_name)
         .with_queue(RenderQueueClass::Graphics)
+        .with_queue(RenderQueueClass::Compute)
         .with_queue(RenderQueueClass::Copy)
         .with_surface_support(supports_surface)
         .with_offscreen_support(true)
@@ -23,5 +24,6 @@ pub fn wgpu_backend_caps(
         .with_partially_bound_binding_array(
             features.contains(wgpu::Features::PARTIALLY_BOUND_BINDING_ARRAY),
         )
+        .with_sparse_texture(false)
         .with_acceleration_structures(AccelerationStructureCaps::disabled())
 }

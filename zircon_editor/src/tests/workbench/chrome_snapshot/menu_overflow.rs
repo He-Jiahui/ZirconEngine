@@ -3,9 +3,13 @@ use zircon_runtime_interface::math::UVec2;
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
-    AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, ProjectOverviewSnapshot,
+    AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, MainPageSnapshot,
+    ProjectOverviewSnapshot,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
+use crate::ui::workbench::view::{
+    ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewKind,
+};
 use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 #[test]
@@ -19,6 +23,33 @@ fn chrome_builder_reads_active_window_menu_overflow_preference() {
     let chrome = EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), Vec::new());
 
     assert_eq!(chrome.menu_overflow_mode, MenuOverflowMode::MultiColumn);
+}
+
+#[test]
+fn chrome_builder_carries_default_workbench_window_template() {
+    let layout = WorkbenchLayout::default();
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.workbench_window"),
+        ViewKind::ActivityWindow,
+        "Workbench",
+    )
+    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.workbench"))];
+
+    let chrome = EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), descriptors);
+
+    let MainPageSnapshot::Workbench {
+        activity_window_template,
+        ..
+    } = &chrome.workbench.main_pages[0]
+    else {
+        panic!("expected workbench page");
+    };
+    assert_eq!(
+        activity_window_template
+            .as_ref()
+            .map(|template| template.document_id.as_str()),
+        Some("editor.window.workbench")
+    );
 }
 
 fn empty_editor_data() -> EditorDataSnapshot {

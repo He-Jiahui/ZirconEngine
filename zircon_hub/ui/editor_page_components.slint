@@ -1,6 +1,4 @@
 import {
-    IconButton,
-    PillButton,
     SourceBuildHistoryRowData,
     SourceEngineData,
     SourceEngineRowData,
@@ -9,68 +7,116 @@ import {
 } from "shared.slint";
 import {
     ActionRow,
-    Badge,
     BuildHistoryRow,
     Divider,
     EmptyStateBlock,
     HubListPanelSlot,
     HubListView,
-    HubTextField,
+    HubPathFieldRow,
+    HubRowLeadingIconSlot,
+    HubRowMainSlot,
+    HubRowSurface,
+    HubRowTrailingSlot,
     HubTokens,
     HubVisualSpec,
     InfoRow,
-    ListTile,
     MaterialPalette,
     MaterialStyleMetrics,
     PanelHeader,
     PanelSlot,
+    StateLayerArea,
 } from "components.slint";
 
-export component SourceEngineRow inherits Rectangle {
+export component SourceEngineRow inherits HubRowSurface {
     in property <SourceEngineRowData> engine;
     in property <bool> collapse-label: false;
-    callback selected(string);
+    callback engine-selected(string);
     callback remove(string);
 
-    private property <length> remove-size: min(HubTokens.icon-lg, HubTokens.list-row-md - MaterialStyleMetrics.spacing_16);
+    private property <length> remove-size: min(HubTokens.icon-lg, root.row-height - MaterialStyleMetrics.spacing_16);
+    private property <length> badge-width: HubTokens.control-md * 3;
+    private property <length> trailing-action-width: root.remove-size;
 
     height: HubTokens.list-row-md;
-    border-radius: HubVisualSpec.panel-radius;
-    border-width: HubTokens.border-width;
-    border-color: root.engine.active ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted;
-    background: root.engine.active ? MaterialPalette.secondary_container : HubVisualSpec.panel-background;
-    clip: true;
+    row-height: HubTokens.list-row-md;
+    row-radius: HubVisualSpec.panel-radius;
+    idle-border-width: HubTokens.border-width;
+    selected-border-width: HubTokens.border-width;
+    idle-border: HubVisualSpec.outline-muted;
+    selected-border: HubVisualSpec.accent-stroke;
+    idle-background: HubVisualSpec.panel-background;
+    selected-background: MaterialPalette.secondary_container;
+    selected: root.engine.active;
 
-    ListTile {
+    row-state := StateLayerArea {
         width: parent.width;
         height: parent.height;
-        text: root.engine.title;
-        supporting_text: root.engine.version + " / " + root.engine.source-path + " / " + root.engine.last-build;
-        avatar_icon: @image-url("../assets/brand/zircon-mark.svg");
-        avatar_background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
-        avatar_foreground: root.engine.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+        color: root.content-foreground;
+        border_radius: root.row-radius;
         clicked => {
-            root.selected(root.engine.id);
+            root.engine-selected(root.engine.id);
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        spacing: HubTokens.space-2;
+        alignment: stretch;
+
+        HubRowLeadingIconSlot {
+            row-height: root.row-height;
+            slot-width: HubTokens.control-lg;
+            icon-image: @image-url("../assets/brand/zircon-mark.svg");
+            has-icon-image: true;
+            shell-background: HubVisualSpec.neutral-icon-background;
+            shell-border: HubVisualSpec.neutral-icon-stroke;
+            icon-foreground: HubVisualSpec.neutral-icon-foreground;
         }
 
-        HorizontalLayout {
-            spacing: HubTokens.space-2;
-            alignment: center;
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            preferred-width: 0px;
+            height: parent.height;
+            background: transparent;
+            clip: true;
 
-            if !root.collapse-label: Badge {
-                text: root.engine.status;
-                tone: root.engine.active ? "accent" : "neutral";
-                badge-width: HubTokens.control-md * 3;
+            HubRowMainSlot {
+                width: parent.width;
+                height: parent.height;
+                row-height: root.row-height;
+                title: root.engine.title;
+                detail: root.engine.version + " / " + root.engine.source-path + " / " + root.engine.last-build;
+                title-foreground: root.content-foreground;
+                detail-foreground: MaterialPalette.on_surface_variant;
             }
+        }
 
-            IconButton {
-                width: root.remove-size;
-                height: root.remove-size;
-                icon-image: @image-url("../assets/icons/ui/close.svg");
-                has-icon-image: true;
-                clicked => {
-                    root.remove(root.engine.id);
-                }
+        if !root.collapse-label: HubRowTrailingSlot {
+            row-height: root.row-height;
+            badge-width: root.badge-width;
+            badge-text: root.engine.status;
+            badge-tone: root.engine.active ? "accent" : "neutral";
+            show-badge: true;
+            show-action: false;
+        }
+
+        HubRowTrailingSlot {
+            row-height: root.row-height;
+            slot-width: root.trailing-action-width;
+            show-badge: false;
+            show-action: true;
+            action-icon-image: @image-url("../assets/icons/ui/close.svg");
+            action-size: root.remove-size;
+            action-radius: HubVisualSpec.compact-radius;
+            action-icon-size: HubTokens.icon-sm;
+            action-foreground: MaterialPalette.on_surface_variant;
+            action-state-layer-color: MaterialPalette.on_surface_variant;
+            clicked => {
+                root.remove(root.engine.id);
             }
         }
     }
@@ -107,7 +153,7 @@ export component EditorSourceEngineListPanel inherits EditorSideListPanel {
     for engine in root.source-engines: SourceEngineRow {
         engine: engine;
         collapse-label: root.collapse-label;
-        selected(id) => {
+        engine-selected(id) => {
             root.selected(id);
         }
         remove(id) => {
@@ -152,30 +198,28 @@ export component EditorPathFieldRow inherits Rectangle {
     in-out property <string> field-text;
     callback button-clicked();
 
-    horizontal-stretch: 1;
-    height: HubTokens.input-field;
+    private property <length> action-width: HubTokens.control-md * 3;
 
-    HorizontalLayout {
+    horizontal-stretch: 1;
+    height: HubTokens.input-field + HubTokens.space-4;
+    background: transparent;
+
+    HubPathFieldRow {
         width: parent.width;
         height: parent.height;
-        spacing: HubTokens.toolbar-gap;
-        alignment: stretch;
-
-        HubTextField {
-            horizontal-stretch: 1;
-            label: root.field-label;
-            placeholder: root.field-label;
-            text <=> root.field-text;
-        }
-
-        PillButton {
-            height: HubTokens.control-md;
-            text: root.button-text;
-            icon-image: root.button-icon;
-            has-icon-image: root.has-button-icon;
-            clicked => {
-                root.button-clicked();
-            }
+        label: root.field-label;
+        placeholder: root.field-label;
+        text <=> root.field-text;
+        action-label: root.button-text;
+        action-icon: root.button-icon;
+        has-action-icon: root.has-button-icon;
+        action-width: root.action-width;
+        action-height: HubTokens.control-md;
+        row-padding: HubTokens.space-2;
+        row-spacing: HubTokens.space-3;
+        framed: true;
+        action-clicked => {
+            root.button-clicked();
         }
     }
 }
@@ -296,7 +340,7 @@ export component EditorSourceSummaryPanel inherits PanelSlot {
 
     PanelHeader {
         title: root.readiness.selected-project-title;
-        subtitle: root.readiness.source-engine-title + " / " + root.readiness.source-engine-status + " / " + root.readiness.selected-project-status;
+        subtitle: root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
         show-badge: true;
         badge-text: root.source-engine.build-profile;
         badge-tone: root.readiness.open-editor-enabled ? "accent" : "warning";

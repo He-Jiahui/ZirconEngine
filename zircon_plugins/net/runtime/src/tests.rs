@@ -56,10 +56,21 @@ fn net_plugin_manifest_advertises_layered_optional_features() {
             "net.content_download",
         ]
     );
-    assert!(manifest
+    let runtime_mode = manifest
         .options
         .iter()
-        .any(|option| option.key == "net.runtime_mode"));
+        .find(|option| option.key == "net.runtime_mode")
+        .expect("net runtime mode option");
+    assert_eq!(runtime_mode.value_type, "enum");
+    assert_eq!(runtime_mode.default_value, "client");
+    assert_eq!(
+        runtime_mode.enum_values,
+        vec![
+            "client".to_string(),
+            "listen_server".to_string(),
+            "dedicated_server".to_string(),
+        ]
+    );
     let event_catalog = manifest
         .event_catalogs
         .iter()

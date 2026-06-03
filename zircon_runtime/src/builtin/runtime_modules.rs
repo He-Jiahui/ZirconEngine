@@ -1355,13 +1355,17 @@ mod tests {
             )],
         };
         let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
-            PluginPackageManifest::new("virtual_geometry", "Virtual Geometry").with_runtime_module(
-                PluginModuleManifest::runtime(
-                    "virtual_geometry.runtime",
-                    "zircon_plugin_virtual_geometry_runtime",
-                )
-                .with_target_modes([RuntimeTargetMode::ClientRuntime]),
-            ),
+            PluginPackageManifest::new("virtual_geometry", "Virtual Geometry")
+                .with_supported_targets([RuntimeTargetMode::ClientRuntime])
+                .with_capability("runtime.plugin.virtual_geometry")
+                .with_runtime_module(
+                    PluginModuleManifest::runtime(
+                        "virtual_geometry.runtime",
+                        "zircon_plugin_virtual_geometry_runtime",
+                    )
+                    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                    .with_capabilities(["runtime.plugin.virtual_geometry"]),
+                ),
         );
 
         let report = runtime_modules_for_target_with_plugin_and_feature_registration_reports(

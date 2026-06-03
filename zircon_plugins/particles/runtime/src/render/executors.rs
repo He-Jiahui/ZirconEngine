@@ -217,6 +217,7 @@ fn particle_transparent_executor(
         gpu.resources
             .require_texture_view("scene-depth")
             .map(|_| ())?;
+        gpu.record_particle_billboards_to_resources("scene-color", "scene-depth")?;
     }
     Ok(())
 }

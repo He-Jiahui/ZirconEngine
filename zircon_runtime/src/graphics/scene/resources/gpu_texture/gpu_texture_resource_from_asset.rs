@@ -97,6 +97,7 @@ impl GpuTextureResource {
         });
         Self {
             id: Some(id),
+            descriptor,
             texture,
             view,
             sampler,
@@ -215,6 +216,7 @@ impl GpuTextureResource {
         });
         Ok(Self {
             id: Some(id),
+            descriptor,
             texture,
             view,
             sampler,

@@ -1,3 +1,6 @@
+use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::render_graph::RenderGraphAttachmentOps;
+
 use super::super::super::mesh::MeshDraw;
 use super::DeferredSceneResources;
 
@@ -8,6 +11,7 @@ impl DeferredSceneResources {
         gbuffer_albedo_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
+        attachment_ops: RenderGraphAttachmentOps,
         mesh_draws: I,
     ) where
         I: IntoIterator<Item = &'a MeshDraw>,
@@ -18,10 +22,7 @@ impl DeferredSceneResources {
                 view: gbuffer_albedo_view,
                 resolve_target: None,
                 depth_slice: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                    store: wgpu::StoreOp::Store,
-                },
+                ops: color_attachment_operations(attachment_ops, wgpu::Color::TRANSPARENT),
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: depth_view,

@@ -1,6 +1,7 @@
 use super::types::{
-    PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
-    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
+    PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
+    RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderGraphResourceLifetime,
+    RenderPassId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -13,6 +14,7 @@ pub struct CompiledRenderPass {
     pub dependencies: Vec<RenderPassId>,
     pub culled: bool,
     pub executor_id: Option<String>,
+    pub compute_workload: Option<RenderGraphComputeWorkload>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
 }
 
@@ -31,6 +33,7 @@ pub struct CompiledRenderGraphStats {
     pub write_resource_access_count: usize,
     pub total_dependency_count: usize,
     pub external_output_count: usize,
+    pub sparse_texture_lifetime_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,6 +48,7 @@ pub struct CompiledRenderGraphTransientAllocationPlan {
     pub allocations: Vec<CompiledRenderGraphTransientAllocation>,
     pub texture_slot_count: usize,
     pub buffer_slot_count: usize,
+    pub sparse_texture_slot_count: usize,
 }
 
 impl CompiledRenderGraphTransientAllocationPlan {
@@ -99,16 +103,25 @@ impl CompiledRenderGraph {
     }
 
     pub fn transient_allocation_plan(&self) -> CompiledRenderGraphTransientAllocationPlan {
-        let mut allocations = allocate_transient_lifetimes(
-            self.resource_lifetimes
-                .iter()
-                .filter(|lifetime| lifetime.kind == RenderGraphResourceKind::TransientTexture),
-        );
+        let mut allocations =
+            allocate_transient_lifetimes(self.resource_lifetimes.iter().filter(|lifetime| {
+                lifetime.kind == RenderGraphResourceKind::TransientTexture
+                    && !lifetime.is_sparse_reserved_texture()
+            }));
         let texture_slot_count = allocations
             .iter()
             .map(|allocation| allocation.slot + 1)
             .max()
             .unwrap_or(0);
+        let sparse_texture_slot_count = self
+            .resource_lifetimes
+            .iter()
+            .filter(|lifetime| {
+                lifetime.kind == RenderGraphResourceKind::TransientTexture
+                    && !lifetime.imported
+                    && lifetime.is_sparse_reserved_texture()
+            })
+            .count();
         let mut buffer_allocations = allocate_transient_lifetimes(
             self.resource_lifetimes
                 .iter()
@@ -126,6 +139,7 @@ impl CompiledRenderGraph {
             allocations,
             texture_slot_count,
             buffer_slot_count,
+            sparse_texture_slot_count,
         }
     }
 
@@ -164,6 +178,11 @@ impl CompiledRenderGraph {
             .iter()
             .filter(|pass| pass.declared_queue != pass.queue && !pass.culled)
             .count();
+        let sparse_texture_lifetime_count = self
+            .resource_lifetimes
+            .iter()
+            .filter(|lifetime| lifetime.is_sparse_reserved_texture())
+            .count();
         CompiledRenderGraphStats {
             total_pass_count,
             executable_pass_count: total_pass_count - culled_pass_count,
@@ -178,6 +197,7 @@ impl CompiledRenderGraph {
             write_resource_access_count,
             total_dependency_count,
             external_output_count,
+            sparse_texture_lifetime_count,
         }
     }
 

@@ -17,6 +17,8 @@ pub struct AssetManagementRecordSetSummary {
     pub mesh_count: usize,
     pub valid_mesh_count: usize,
     pub invalid_mesh_count: usize,
+    pub mesh_morph_target_count: usize,
+    pub mesh_morph_target_attribute_count: usize,
     pub scene_count: usize,
     pub scene_entity_count: usize,
     pub entity_count: usize,
@@ -27,6 +29,7 @@ pub struct AssetManagementRecordSetSummary {
     pub entity_mesh_instance_count: usize,
     pub entity_direct_mesh_reference_count: usize,
     pub entity_mesh_primitive_binding_count: usize,
+    pub entity_morph_weight_count: usize,
     pub entity_mesh_material_binding_count: usize,
     pub entity_collider_material_binding_count: usize,
     pub entity_light_count: usize,
@@ -227,6 +230,8 @@ impl AssetManagementRecordSetSummary {
             mesh_count: meshes.summary.mesh_count,
             valid_mesh_count: meshes.summary.valid_mesh_count,
             invalid_mesh_count: meshes.summary.invalid_mesh_count,
+            mesh_morph_target_count: meshes.summary.morph_target_count,
+            mesh_morph_target_attribute_count: meshes.summary.morph_target_attribute_count,
             scene_count: scenes.summary.scene_count,
             scene_entity_count: scenes.summary.entity_count,
             entity_count: scene_entities.summary.entity_count,
@@ -239,6 +244,7 @@ impl AssetManagementRecordSetSummary {
             entity_mesh_primitive_binding_count: scene_entities
                 .summary
                 .mesh_primitive_binding_count,
+            entity_morph_weight_count: scene_entities.summary.morph_weight_count,
             entity_mesh_material_binding_count: scene_entities.summary.mesh_material_binding_count,
             entity_collider_material_binding_count: scene_entities
                 .summary

@@ -3,6 +3,7 @@ mod color_material;
 mod dependency_set;
 mod diagnostic_source;
 mod fallback_policy;
+mod lighting_model;
 mod management;
 mod property_uniform;
 mod property_value;
@@ -16,6 +17,7 @@ pub use color_material::ColorMaterialDescriptor;
 pub use dependency_set::RenderMaterialDependencySet;
 pub use diagnostic_source::RenderMaterialDiagnosticSource;
 pub use fallback_policy::RenderMaterialFallbackPolicy;
+pub use lighting_model::{RenderMaterialLightingModel, RenderMaterialLightingModelParseError};
 pub use management::{
     RenderMaterialManagementIssueIndex, RenderMaterialManagementIssueKind,
     RenderMaterialManagementIssueView, RenderMaterialManagementOverview,

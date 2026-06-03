@@ -1,7 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::geometry::intersect;
 use super::render_commands::HostPaintCommand;
-use super::template_nodes::is_button_disabled;
+use super::template_style::is_button_disabled;
 use super::theme::PALETTE;
 
 const MATERIAL_STATE_LAYER_OPACITY_HOVER: f32 = 0.08;

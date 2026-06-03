@@ -2,7 +2,8 @@ use crate::core::math::UVec2;
 
 use super::{
     AdvancedProviderAvailability, AdvancedProviderReport, AntiAliasFallbackReport,
-    RenderFrameExtract, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderFrameExtract, RenderPostProcessEffectStackReport,
+    RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings,
@@ -44,6 +45,59 @@ impl FrameHistoryHandle {
 
     pub const fn raw(self) -> u64 {
         self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FrameHistoryInvalidationReason {
+    NoPreviousFrame,
+    ViewportResized,
+    RenderSizeChanged,
+    PipelineChanged,
+    HistoryBindingChanged,
+    FrameInputsChanged,
+}
+
+impl FrameHistoryInvalidationReason {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NoPreviousFrame => "no_previous_frame",
+            Self::ViewportResized => "viewport_resized",
+            Self::RenderSizeChanged => "render_size_changed",
+            Self::PipelineChanged => "pipeline_changed",
+            Self::HistoryBindingChanged => "history_binding_changed",
+            Self::FrameInputsChanged => "frame_inputs_changed",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FrameHistoryStatus {
+    pub current: Option<FrameHistoryHandle>,
+    pub previous: Option<FrameHistoryHandle>,
+    pub previous_available: bool,
+    pub invalidation_reason: Option<FrameHistoryInvalidationReason>,
+    pub target_size: UVec2,
+    pub render_size: UVec2,
+}
+
+impl FrameHistoryStatus {
+    pub const fn new(
+        current: Option<FrameHistoryHandle>,
+        previous: Option<FrameHistoryHandle>,
+        previous_available: bool,
+        invalidation_reason: Option<FrameHistoryInvalidationReason>,
+        target_size: UVec2,
+        render_size: UVec2,
+    ) -> Self {
+        Self {
+            current,
+            previous,
+            previous_available,
+            invalidation_reason,
+            target_size,
+            render_size,
+        }
     }
 }
 
@@ -100,10 +154,12 @@ pub enum RenderCapabilityKind {
     BufferReadback,
     AsyncCompute,
     AsyncCopy,
+    NeuralCompute,
+    SparseTexture,
 }
 
 impl RenderCapabilityKind {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 17] = [
         Self::VirtualGeometry,
         Self::HybridGlobalIllumination,
         Self::AccelerationStructures,
@@ -119,6 +175,8 @@ impl RenderCapabilityKind {
         Self::BufferReadback,
         Self::AsyncCompute,
         Self::AsyncCopy,
+        Self::NeuralCompute,
+        Self::SparseTexture,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -138,6 +196,8 @@ impl RenderCapabilityKind {
             Self::BufferReadback => "buffer_readback",
             Self::AsyncCompute => "async_compute",
             Self::AsyncCopy => "async_copy",
+            Self::NeuralCompute => "neural_compute",
+            Self::SparseTexture => "sparse_texture",
         }
     }
 
@@ -157,7 +217,9 @@ impl RenderCapabilityKind {
             | Self::BufferBindingArray
             | Self::TextureBindingArray
             | Self::NonUniformResourceIndexing
-            | Self::PartiallyBoundBindingArray => RenderCapabilityClass::Experimental,
+            | Self::PartiallyBoundBindingArray
+            | Self::NeuralCompute
+            | Self::SparseTexture => RenderCapabilityClass::Experimental,
         }
     }
 
@@ -178,6 +240,8 @@ impl RenderCapabilityKind {
             Self::BufferReadback => capabilities.supports_buffer_readback,
             Self::AsyncCompute => capabilities.supports_async_compute,
             Self::AsyncCopy => capabilities.supports_async_copy,
+            Self::NeuralCompute => capabilities.supports_neural_compute,
+            Self::SparseTexture => capabilities.supports_sparse_texture,
         }
     }
 }
@@ -243,6 +307,8 @@ pub struct RenderCapabilitySummary {
     pub supports_taa: bool,
     pub supports_cas: bool,
     pub supports_dlss: bool,
+    pub supports_neural_compute: bool,
+    pub supports_sparse_texture: bool,
     pub max_supported_msaa_samples: u32,
     pub virtual_geometry_supported: bool,
     pub hybrid_global_illumination_supported: bool,
@@ -482,27 +548,50 @@ pub struct RenderStats {
     pub captured_frames: u64,
     pub last_generation: Option<u64>,
     pub last_pipeline: Option<RenderPipelineHandle>,
+    pub last_frame_target_size: Option<UVec2>,
+    pub last_frame_render_size: Option<UVec2>,
     pub last_frame_history: Option<FrameHistoryHandle>,
+    pub last_frame_history_status: FrameHistoryStatus,
     pub last_quality_profile: Option<String>,
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
     pub last_graph_culled_pass_count: usize,
     pub last_graph_queue_fallback_pass_count: usize,
     pub last_graph_resource_lifetime_count: usize,
+    pub last_graph_sparse_texture_lifetime_count: usize,
     pub last_graph_planned_resource_access_count: usize,
     pub last_graph_planned_dependency_count: usize,
     pub last_graph_transient_texture_slot_count: usize,
+    pub last_graph_sparse_texture_slot_count: usize,
     pub last_graph_transient_buffer_slot_count: usize,
     pub last_graph_executed_pass_count: usize,
     pub last_graph_executed_passes: Vec<String>,
     pub last_graph_executed_executor_ids: Vec<String>,
+    pub last_graph_executed_debug_markers: Vec<String>,
     pub last_graph_executed_resource_access_count: usize,
     pub last_graph_executed_dependency_count: usize,
+    pub last_graph_compute_dispatch_count: usize,
+    pub last_graph_compute_dispatch_group_count: usize,
+    pub last_graph_compute_storage_write_resource_count: usize,
+    pub last_graph_compute_planned_workload_count: usize,
+    pub last_graph_compute_matched_workload_count: usize,
+    pub last_graph_compute_missing_dispatch_count: usize,
+    pub last_graph_compute_workload_mismatch_count: usize,
+    pub last_graph_compute_unexpected_dispatch_count: usize,
     pub last_post_process_graph_node_count: usize,
     pub last_post_process_graph_skipped_node_count: usize,
     pub last_post_process_final_composite_node: Option<String>,
     pub last_post_process_graph_executed_nodes: Vec<String>,
+    pub last_post_process_effect_stack_report: RenderPostProcessEffectStackReport,
+    pub last_post_process_lut_request_count: usize,
+    pub last_post_process_lut_ready_count: usize,
+    pub last_post_process_lut_fallback_count: usize,
+    pub last_post_process_lut_2d_strip_ready_count: usize,
+    pub last_post_process_lut_3d_request_count: usize,
+    pub last_post_process_lut_unsupported_shape_count: usize,
     pub last_anti_alias_fallback: AntiAliasFallbackReport,
+    pub last_graph_requested_msaa_sample_count: u32,
+    pub last_graph_effective_msaa_sample_count: u32,
     pub last_anti_alias_graph_executed_pass_count: usize,
     pub last_virtual_geometry_graph_executed_pass_count: usize,
     pub last_hybrid_gi_graph_executed_pass_count: usize,
@@ -526,10 +615,30 @@ pub struct RenderStats {
     pub last_material_fallback_count: usize,
     pub last_material_validation_error_count: usize,
     pub last_material_diagnostic_count: usize,
+    pub last_mesh_draw_count: usize,
+    pub last_mesh_opaque_draw_count: usize,
+    pub last_mesh_alpha_mask_draw_count: usize,
+    pub last_mesh_transparent_draw_count: usize,
+    pub last_mesh_early_z_draw_count: usize,
+    pub last_mesh_prepared_geometry_draw_count: usize,
+    pub last_mesh_dynamic_geometry_draw_count: usize,
+    pub last_mesh_indirect_draw_count: usize,
+    pub last_mesh_static_batch_candidate_group_count: usize,
+    pub last_mesh_static_batch_candidate_draw_count: usize,
+    pub last_mesh_dynamic_batch_candidate_group_count: usize,
+    pub last_mesh_dynamic_batch_candidate_draw_count: usize,
+    pub last_mesh_gpu_instancing_candidate_group_count: usize,
+    pub last_mesh_gpu_instancing_candidate_draw_count: usize,
     pub last_sprite_count: usize,
     pub last_sprite_ready_count: usize,
     pub last_sprite_texture_fallback_count: usize,
     pub last_sprite_graph_executed_pass_count: usize,
+    pub last_sprite_draw_batch_count: usize,
+    pub last_sprite_batched_sprite_count: usize,
+    pub last_sprite_vertex_count: usize,
+    pub last_sprite_opaque_draw_batch_count: usize,
+    pub last_sprite_alpha_mask_draw_batch_count: usize,
+    pub last_sprite_transparent_draw_batch_count: usize,
     pub last_directional_light_count: usize,
     pub last_directional_light_ready_count: usize,
     pub last_directional_light_degraded_count: usize,
@@ -709,6 +818,8 @@ mod tests {
                 RenderCapabilityMismatchDetail::new(
                     RenderCapabilityKind::PartiallyBoundBindingArray,
                 ),
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::NeuralCompute),
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::SparseTexture),
             ]
         );
     }

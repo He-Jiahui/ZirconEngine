@@ -199,6 +199,7 @@ fn cloud_navigation_copy_stays_local_and_offline() {
         "operation-timeline-title: string,",
         "operation-timeline-empty-title: string,",
         "operation-timeline-empty-detail: string,",
+        "operation-timeline-empty-detail-short: string,",
         "cloud-local-mode: string,",
         "cloud-package-action: string,",
         "cloud-install-action: string,",

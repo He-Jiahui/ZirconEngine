@@ -80,7 +80,7 @@ pub(super) fn tiny_dds_dx10_cubemap_array_bytes() -> Vec<u8> {
     dds_dx10_cubemap_array_bytes(2)
 }
 
-pub(super) fn dds_dx10_cubemap_array_bytes(array_size: u32) -> Vec<u8> {
+pub(super) fn dds_dx10_cubemap_array_header_bytes(array_size: u32) -> Vec<u8> {
     let mut bytes = tiny_dds_bytes();
     bytes.resize(148, 0);
     write_u32(&mut bytes, 12, 16);
@@ -96,6 +96,11 @@ pub(super) fn dds_dx10_cubemap_array_bytes(array_size: u32) -> Vec<u8> {
     write_u32(&mut bytes, 128, 98);
     write_u32(&mut bytes, 132, DDS_DIMENSION_TEXTURE2D);
     write_u32(&mut bytes, 140, array_size);
+    bytes
+}
+
+pub(super) fn dds_dx10_cubemap_array_bytes(array_size: u32) -> Vec<u8> {
+    let mut bytes = dds_dx10_cubemap_array_header_bytes(array_size);
     let layer_count = usize::try_from(array_size).expect("array size fits usize") * 6;
     bytes.resize(
         148 + dds_compressed_payload_len(32, 16, 16, layer_count, 5),

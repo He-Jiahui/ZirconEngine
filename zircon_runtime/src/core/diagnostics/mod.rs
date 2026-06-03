@@ -6,6 +6,7 @@ mod devtools;
 mod physics;
 pub mod profiling;
 mod render;
+mod render_stats_store;
 mod snapshot;
 mod store;
 

@@ -21,6 +21,7 @@ pub(super) fn placeholder_view(
         dirty: false,
         content_kind: ViewContentKind::Placeholder,
         pane_template: None,
+        activity_window_template: None,
         placeholder: true,
     }
 }

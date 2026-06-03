@@ -55,16 +55,39 @@ impl UiRenderCommand {
         metrics: UiLayoutMetrics,
     ) -> Vec<UiPaintElement> {
         let mut elements = Vec::new();
-        if let Some(payload) = self.brush_payload(metrics) {
-            elements.push(self.base_paint_element(first_paint_order, payload, metrics));
+
+        if self.uses_image_brush() {
+            // Image-bearing controls can still own background and border styling.
+            // Emit separate paint elements so icon/vector content does not replace
+            // the styled control chrome.
+            for payload in [
+                self.background_payload(metrics),
+                self.image_payload(metrics),
+                self.text_payload(),
+                self.border_payload(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                elements.push(self.base_paint_element(
+                    first_paint_order + elements.len() as u64,
+                    payload,
+                    metrics,
+                ));
+            }
+        } else {
+            if let Some(payload) = self.brush_payload(metrics) {
+                elements.push(self.base_paint_element(first_paint_order, payload, metrics));
+            }
+            if let Some(payload) = self.text_payload() {
+                elements.push(self.base_paint_element(
+                    first_paint_order + elements.len() as u64,
+                    payload,
+                    metrics,
+                ));
+            }
         }
-        if let Some(payload) = self.text_payload() {
-            elements.push(self.base_paint_element(
-                first_paint_order + elements.len() as u64,
-                payload,
-                metrics,
-            ));
-        }
+
         if elements.is_empty() {
             elements.push(self.base_paint_element(
                 first_paint_order,
@@ -131,6 +154,34 @@ impl UiRenderCommand {
         }
     }
 
+    fn background_payload(&self, metrics: UiLayoutMetrics) -> Option<UiPaintPayload> {
+        self.background_brush(metrics)
+            .map(|fill| UiPaintPayload::Brush {
+                brushes: UiBrushSet {
+                    fill: Some(fill),
+                    border: None,
+                },
+            })
+    }
+
+    fn border_payload(&self) -> Option<UiPaintPayload> {
+        self.border_brush().map(|border| UiPaintPayload::Brush {
+            brushes: UiBrushSet {
+                fill: None,
+                border: Some(border),
+            },
+        })
+    }
+
+    fn image_payload(&self, metrics: UiLayoutMetrics) -> Option<UiPaintPayload> {
+        self.image_brush(metrics).map(|fill| UiPaintPayload::Brush {
+            brushes: UiBrushSet {
+                fill: Some(fill),
+                border: None,
+            },
+        })
+    }
+
     fn text_payload(&self) -> Option<UiPaintPayload> {
         (self.text.as_ref().is_some_and(|text| !text.is_empty())
             || matches!(self.kind, UiRenderCommandKind::Text))
@@ -139,31 +190,31 @@ impl UiRenderCommand {
         })
     }
 
+    fn uses_image_brush(&self) -> bool {
+        self.image.is_some() || matches!(self.kind, UiRenderCommandKind::Image)
+    }
+
     fn brush_set(&self, metrics: UiLayoutMetrics) -> UiBrushSet {
-        let fill = if let Some(image) = self.image.as_ref() {
-            Some(image_brush_payload(
-                image_resource_key(image),
-                self.frame,
-                metrics,
-            ))
-        } else if let Some(color) = self.style.background_color.as_ref() {
-            Some(if self.style.corner_radius > 0.0 {
+        UiBrushSet {
+            fill: self
+                .image_brush(metrics)
+                .or_else(|| self.background_brush(metrics)),
+            border: self.border_brush(),
+        }
+    }
+
+    fn background_brush(&self, _metrics: UiLayoutMetrics) -> Option<UiBrushPayload> {
+        self.style.background_color.as_ref().map(|color| {
+            if self.style.corner_radius > 0.0 {
                 UiBrushPayload::rounded(color.clone(), self.style.corner_radius)
             } else {
                 UiBrushPayload::solid(color.clone())
-            })
-        } else if matches!(self.kind, UiRenderCommandKind::Image) {
-            Some(image_brush_payload(
-                UiRenderResourceKey::new(UiRenderResourceKind::Image, "missing:image"),
-                self.frame,
-                metrics,
-            ))
-        } else {
-            None
-        };
+            }
+        })
+    }
 
-        let border = self
-            .style
+    fn border_brush(&self) -> Option<UiBrushPayload> {
+        self.style
             .border_color
             .as_ref()
             .filter(|_| self.style.border_width > 0.0)
@@ -173,9 +224,25 @@ impl UiRenderCommand {
                     payload.radius = self.style.corner_radius;
                 }
                 border
-            });
+            })
+    }
 
-        UiBrushSet { fill, border }
+    fn image_brush(&self, metrics: UiLayoutMetrics) -> Option<UiBrushPayload> {
+        if let Some(image) = self.image.as_ref() {
+            Some(image_brush_payload(
+                image_resource_key(image),
+                self.frame,
+                metrics,
+            ))
+        } else if matches!(self.kind, UiRenderCommandKind::Image) {
+            Some(image_brush_payload(
+                UiRenderResourceKey::new(UiRenderResourceKind::Image, "missing:image"),
+                self.frame,
+                metrics,
+            ))
+        } else {
+            None
+        }
     }
 
     fn text_paint(&self) -> UiTextPaint {

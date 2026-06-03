@@ -1,6 +1,8 @@
 use crate::render_graph::{
-    QueueLane, RenderGraphBuilder, RenderGraphError, RenderGraphResourceAccessKind,
-    RenderGraphResourceDesc, RenderGraphResourceKind,
+    QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
+    RenderGraphBuilder, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
+    RenderGraphError, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
+    RenderGraphResourceKind,
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
@@ -101,6 +103,244 @@ fn graph_tracks_transient_lifetimes_and_resource_edges() {
 }
 
 #[test]
+fn graph_records_attachment_clear_load_store_ops() {
+    let mut builder = RenderGraphBuilder::new("attachment-ops");
+    let color = builder.create_transient_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_external_resource("viewport-output");
+
+    let clear = builder.add_pass("clear-scene", QueueLane::Graphics);
+    let composite = builder.add_pass("composite", QueueLane::Graphics);
+    builder
+        .write_texture_with_ops(clear, color, RenderGraphAttachmentOps::clear_store())
+        .unwrap();
+    builder.read_texture(composite, color).unwrap();
+    builder
+        .write_external_with_ops(composite, output, RenderGraphAttachmentOps::load_store())
+        .unwrap();
+
+    let graph = builder.compile().unwrap();
+    let clear_color = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "clear-scene")
+        .unwrap()
+        .resources
+        .iter()
+        .find(|resource| resource.name == "scene-color")
+        .unwrap();
+    assert_eq!(
+        clear_color.attachment_ops,
+        Some(RenderGraphAttachmentOps {
+            load: RenderGraphAttachmentLoadOp::Clear,
+            store: RenderGraphAttachmentStoreOp::Store,
+        })
+    );
+
+    let output = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "composite")
+        .unwrap()
+        .resources
+        .iter()
+        .find(|resource| resource.name == "viewport-output")
+        .unwrap();
+    assert_eq!(
+        output.attachment_ops,
+        Some(RenderGraphAttachmentOps {
+            load: RenderGraphAttachmentLoadOp::Load,
+            store: RenderGraphAttachmentStoreOp::Store,
+        })
+    );
+}
+
+#[test]
+fn graph_records_storage_writes_without_attachment_ops() {
+    let mut builder = RenderGraphBuilder::new("compute-storage");
+    let storage_texture = builder.create_transient_texture(TextureDesc::new(
+        "ambient-occlusion",
+        32,
+        32,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::SAMPLED | TextureUsage::STORAGE,
+    ));
+    let storage_external = builder.import_external_resource("cluster-output");
+    let output = builder.import_external_resource("viewport-output");
+
+    let ssao = builder.add_pass("ssao-evaluate", QueueLane::AsyncCompute);
+    let compose = builder.add_pass("compose", QueueLane::Graphics);
+    let readback = builder.add_pass("cluster-readback", QueueLane::AsyncCompute);
+    builder
+        .write_storage_texture(ssao, storage_texture)
+        .unwrap();
+    builder.read_texture(compose, storage_texture).unwrap();
+    builder.write_external(compose, output).unwrap();
+    builder
+        .write_storage_external(readback, storage_external)
+        .unwrap();
+
+    let graph = builder.compile().unwrap();
+    let ssao_storage = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "ssao-evaluate")
+        .unwrap()
+        .resources
+        .iter()
+        .find(|resource| resource.name == "ambient-occlusion")
+        .unwrap();
+    assert_eq!(ssao_storage.access, RenderGraphResourceAccessKind::Write);
+    assert_eq!(ssao_storage.attachment_ops, None);
+
+    let external_storage = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "cluster-readback")
+        .unwrap()
+        .resources
+        .iter()
+        .find(|resource| resource.name == "cluster-output")
+        .unwrap();
+    assert_eq!(external_storage.kind, RenderGraphResourceKind::External);
+    assert_eq!(
+        external_storage.access,
+        RenderGraphResourceAccessKind::Write
+    );
+    assert_eq!(external_storage.attachment_ops, None);
+    assert_eq!(graph.queue_lane_count(QueueLane::AsyncCompute), 2);
+}
+
+#[test]
+fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
+    let mut builder = RenderGraphBuilder::new("sparse-texture-reservation");
+    let virtual_pages = builder.create_transient_texture(
+        TextureDesc::new(
+            "virtual-terrain-pages",
+            8192,
+            8192,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::SAMPLED | TextureUsage::STORAGE | TextureUsage::COPY_DST,
+        )
+        .with_mip_levels(10)
+        .with_sparse_residency(),
+    );
+    let output = builder.import_external_resource("viewport-output");
+
+    let page_update = builder.add_pass("terrain-page-update", QueueLane::AsyncCompute);
+    let sample = builder.add_pass("terrain-sample", QueueLane::Graphics);
+    builder
+        .write_storage_texture(page_update, virtual_pages)
+        .unwrap();
+    builder.read_texture(sample, virtual_pages).unwrap();
+    builder.write_external(sample, output).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let lifetime = graph
+        .resource_lifetimes()
+        .iter()
+        .find(|lifetime| lifetime.name == "virtual-terrain-pages")
+        .unwrap();
+
+    assert!(lifetime.is_sparse_reserved_texture());
+    assert!(matches!(
+        &lifetime.desc,
+        RenderGraphResourceDesc::Texture(desc) if desc.is_sparse_reserved()
+    ));
+    assert_eq!(graph.stats().sparse_texture_lifetime_count, 1);
+    let allocation_plan = graph.transient_allocation_plan();
+    assert_eq!(allocation_plan.texture_slot_count, 0);
+    assert_eq!(allocation_plan.sparse_texture_slot_count, 1);
+}
+
+#[test]
+fn graph_preserves_compute_workload_metadata() {
+    let mut builder = RenderGraphBuilder::new("compute-workload");
+    let light_list = builder.create_transient_buffer(BufferDesc::new(
+        "light-list",
+        256,
+        BufferUsage::STORAGE | BufferUsage::COPY_SRC,
+    ));
+
+    let clustered = builder.add_pass("clustered-light-culling", QueueLane::AsyncCompute);
+    builder
+        .set_compute_workload(
+            clustered,
+            RenderGraphComputeWorkload::cluster_grid("zircon-cluster-pipeline", [8, 8, 1]),
+        )
+        .unwrap();
+    builder.write_buffer(clustered, light_list).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let workload = graph.passes()[0].compute_workload.as_ref().unwrap();
+
+    assert_eq!(workload.pipeline_label, "zircon-cluster-pipeline");
+    assert_eq!(workload.workgroup_size, [8, 8, 1]);
+    assert_eq!(
+        workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::ClusterGrid
+    );
+}
+
+#[test]
+fn graph_rejects_transient_attachment_load_without_producer() {
+    let mut builder = RenderGraphBuilder::new("load-without-producer");
+    let color = builder.create_transient_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT,
+    ));
+    let pass = builder.add_pass("opaque", QueueLane::Graphics);
+    builder
+        .write_texture_with_ops(pass, color, RenderGraphAttachmentOps::load_store())
+        .unwrap();
+
+    let error = builder.compile().unwrap_err();
+
+    assert!(matches!(
+        error,
+        RenderGraphError::LoadBeforeProducer { resource, pass }
+            if resource == "scene-color" && pass == "opaque"
+    ));
+}
+
+#[test]
+fn graph_rejects_read_after_discarded_transient_attachment_store() {
+    let mut builder = RenderGraphBuilder::new("discarded-store");
+    let color = builder.create_transient_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let discard = builder.add_pass("scratch-lighting", QueueLane::Graphics);
+    let sample = builder.add_pass("sample-lighting", QueueLane::Graphics);
+    builder
+        .write_texture_with_ops(discard, color, RenderGraphAttachmentOps::clear_discard())
+        .unwrap();
+    builder.read_texture(sample, color).unwrap();
+
+    let error = builder.compile().unwrap_err();
+
+    assert!(matches!(
+        error,
+        RenderGraphError::ReadAfterDiscardedStore {
+            resource,
+            pass,
+            producer,
+        } if resource == "scene-color" && pass == "sample-lighting" && producer == "scratch-lighting"
+    ));
+}
+
+#[test]
 fn graph_rejects_transient_read_without_producer() {
     let mut builder = RenderGraphBuilder::new("frame");
     let buffer = builder.create_transient_buffer(BufferDesc::new(
@@ -116,6 +356,26 @@ fn graph_rejects_transient_read_without_producer() {
         error,
         RenderGraphError::ReadBeforeProducer { resource, pass }
             if resource == "visible-instances" && pass == "clustered-lighting"
+    ));
+}
+
+#[test]
+fn graph_rejects_duplicate_resource_names() {
+    let mut builder = RenderGraphBuilder::new("frame");
+    builder.create_transient_texture(TextureDesc::new(
+        "scene-color",
+        128,
+        64,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT,
+    ));
+    builder.import_external_resource("scene-color");
+
+    let error = builder.compile().unwrap_err();
+    assert!(matches!(
+        error,
+        RenderGraphError::DuplicateResourceName { resource }
+            if resource == "scene-color"
     ));
 }
 

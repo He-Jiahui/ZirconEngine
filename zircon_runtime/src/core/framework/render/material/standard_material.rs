@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::resource::AssetReference;
 
-use super::{RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy};
+use super::{
+    RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
+    RenderMaterialLightingModel,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StandardMaterialDescriptor {
@@ -18,6 +21,8 @@ pub struct StandardMaterialDescriptor {
     pub emissive: [f32; 3],
     pub emissive_texture: Option<AssetReference>,
     pub alpha_mode: RenderMaterialAlphaMode,
+    #[serde(default)]
+    pub lighting_model: RenderMaterialLightingModel,
     pub unlit: bool,
     pub double_sided: bool,
     pub fallback_policy: RenderMaterialFallbackPolicy,

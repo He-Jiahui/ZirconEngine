@@ -160,6 +160,17 @@ impl RetainedEditorHost {
                 UiSize::new(shell_size.width, shell_size.height),
             )?
         };
+        let workbench_window_bridge = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_workbench_window_bridge"
+            );
+            callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(
+                builtin_template_runtime.clone(),
+                UiSize::new(shell_size.width, shell_size.height),
+            )?
+        };
         let floating_window_source_bridge = {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -247,6 +258,7 @@ impl RetainedEditorHost {
                 ),
                 builtin_template_runtime,
                 template_bridge,
+                workbench_window_bridge,
                 floating_window_source_bridge,
                 viewport_toolbar_bridge,
                 viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge::new(),
@@ -572,6 +584,16 @@ impl RetainedEditorHost {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
+                "recompute_workbench_window_bridge"
+            );
+            let _ = self
+                .workbench_window_bridge
+                .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
                 "recompute_floating_source_bridge"
             );
             let _ = self
@@ -762,6 +784,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_apply_presentation"
             );
+            let _ = self.workbench_window_bridge.sync_from_chrome(&chrome);
             let has_component_showcase_runtime =
                 self.prepare_component_showcase_runtime_for_presentation(&model);
             let pane_template_runtime = if has_component_showcase_runtime {
@@ -782,6 +805,7 @@ impl RetainedEditorHost {
                 &module_plugins,
                 &build_export,
                 Some(self.template_bridge.host_projection()),
+                Some(self.workbench_window_bridge.host_projection()),
                 Some(&root_shell_frames),
                 &floating_window_projection_bundle,
                 Some(pane_template_runtime),
@@ -1360,6 +1384,7 @@ impl RetainedEditorHost {
                     Some(runtime_diagnostics),
                     &module_plugins,
                     &build_export,
+                    None,
                     None,
                     None,
                     floating_window_projection_bundle,

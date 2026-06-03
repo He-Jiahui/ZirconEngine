@@ -1,4 +1,5 @@
 use crate::ui::workbench::layout::{ActivityWindowId, MainPageId};
+use crate::ui::workbench::view::ActivityWindowTemplateSpec;
 
 use super::{DocumentWorkspaceSnapshot, ViewTabSnapshot};
 
@@ -8,6 +9,7 @@ pub enum MainPageSnapshot {
         id: MainPageId,
         title: String,
         activity_window: ActivityWindowId,
+        activity_window_template: Option<ActivityWindowTemplateSpec>,
         workspace: DocumentWorkspaceSnapshot,
     },
     Exclusive {

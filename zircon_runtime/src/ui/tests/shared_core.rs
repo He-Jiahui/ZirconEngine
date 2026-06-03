@@ -14,10 +14,11 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiReflectedPropertySource, UiStateFlags, UiTreeId},
     layout::{
         Anchor, AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, Pivot, Position,
-        StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState,
-        UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
+        StretchMode, UiAxis, UiContainerKind, UiFrame, UiLayoutEngineBackend, UiPoint,
+        UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
         UiVirtualListWindow, UiWrapBoxConfig,
     },
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{
         UiFocusState, UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
         UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
@@ -498,6 +499,84 @@ radius = 6.0
             text_overflow: Default::default(),
             rich_text: false,
             text_render_mode: UiTextRenderMode::Sdf,
+            ..UiResolvedStyle::default()
+        }
+    );
+}
+
+#[test]
+fn render_extract_accepts_flat_style_color_aliases() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 220.0, 90.0))
+            .with_state_flags(UiStateFlags {
+                visible: true,
+                enabled: true,
+                clickable: false,
+                hoverable: false,
+                focusable: false,
+                pressed: false,
+                checked: false,
+                dirty: false,
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/workbench-button"))
+                .with_frame(UiFrame::new(12.0, 12.0, 112.0, 32.0))
+                .with_state_flags(pointer_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("WorkbenchPrimaryButton".to_string()),
+                    classes: vec![
+                        "workbench-control-button".to_string(),
+                        "workbench-primary-button".to_string(),
+                    ],
+                    attributes: toml::from_str(
+                        r##"
+label = "Primary"
+background_color = "#12383d"
+foreground_color = "#e8edf2"
+border_color = "#35c7d0"
+border_width = 1.0
+radius = 8.0
+"##,
+                    )
+                    .unwrap(),
+                    slot_attributes: Default::default(),
+                    style_overrides: Default::default(),
+                    style_tokens: Default::default(),
+                    bindings: Vec::new(),
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .unwrap();
+    assert_eq!(command.kind, UiRenderCommandKind::Quad);
+    assert_eq!(command.text.as_deref(), Some("Primary"));
+    assert_eq!(
+        command.style,
+        UiResolvedStyle {
+            background_color: Some("#12383d".to_string()),
+            foreground_color: Some("#e8edf2".to_string()),
+            border_color: Some("#35c7d0".to_string()),
+            border_width: 1.0,
+            corner_radius: 8.0,
+            painter_family: UiPainterFamily::Button,
+            painter_state: UiPainterResolvedState::Normal,
+            ..UiResolvedStyle::default()
         }
     );
 }
@@ -1574,6 +1653,118 @@ fn explicit_collapsed_visibility_preserves_layout_collapse_with_legacy_visible_f
             .y,
         20.0
     );
+}
+
+#[test]
+fn taffy_vertical_layout_skips_collapsed_child_without_fallback() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.taffy.collapsed"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_constraints(BoxConstraints {
+                width: taffy_fixed_constraint(100.0),
+                height: taffy_fixed_constraint(100.0),
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/top")).with_constraints(
+                BoxConstraints {
+                    width: taffy_fixed_constraint(100.0),
+                    height: taffy_fixed_constraint(20.0),
+                },
+            ),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(3), UiNodePath::new("root/collapsed"))
+                .with_visibility(UiVisibility::Collapsed)
+                .with_constraints(BoxConstraints {
+                    width: taffy_fixed_constraint(100.0),
+                    height: taffy_fixed_constraint(20.0),
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(3),
+            UiTreeNode::new(UiNodeId::new(30), UiNodePath::new("root/collapsed/child"))
+                .with_constraints(BoxConstraints {
+                    width: taffy_fixed_constraint(100.0),
+                    height: taffy_fixed_constraint(20.0),
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(4), UiNodePath::new("root/bottom")).with_constraints(
+                BoxConstraints {
+                    width: taffy_fixed_constraint(100.0),
+                    height: taffy_fixed_constraint(20.0),
+                },
+            ),
+        )
+        .unwrap();
+
+    surface.compute_layout(UiSize::new(100.0, 100.0)).unwrap();
+
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 0.0, 100.0, 20.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(3))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::default()
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(30))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::default()
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 20.0, 100.0, 20.0)
+    );
+
+    let root_selection = surface
+        .layout_engine_report
+        .selections
+        .iter()
+        .find(|selection| selection.node_id == Some(UiNodeId::new(1)))
+        .expect("root should record a layout engine selection");
+    assert_eq!(
+        root_selection.selected_backend,
+        UiLayoutEngineBackend::Taffy
+    );
+    assert_eq!(surface.layout_engine_report.fallback_count, 0);
+    assert_eq!(surface.layout_engine_report.taffy_tree_node_count, 3);
 }
 
 #[test]
@@ -2759,6 +2950,67 @@ fn surface_property_mutation_restores_collapsed_visibility_with_layout_dirty() {
 }
 
 #[test]
+fn surface_property_mutation_keeps_template_visibility_metadata_in_sync() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.template_visibility"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_layout_boundary(LayoutBoundary::ContentDriven),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/details"))
+                .with_visibility(UiVisibility::Collapsed)
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(120.0),
+                    height: fixed_constraint(32.0),
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "DetailsPanel".to_string(),
+                    attributes: [(
+                        "visibility".to_string(),
+                        toml::Value::String("collapsed".to_string()),
+                    )]
+                    .into_iter()
+                    .collect(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.compute_layout(UiSize::new(240.0, 120.0)).unwrap();
+    surface.clear_dirty_flags();
+
+    let report = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(2),
+            "visibility",
+            UiValue::Enum("visible".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+    let rebuild = surface.rebuild_dirty(UiSize::new(240.0, 120.0)).unwrap();
+    assert!(rebuild.layout_recomputed);
+
+    let node = surface.tree.node(UiNodeId::new(2)).unwrap();
+    assert_eq!(node.visibility, UiVisibility::Visible);
+    assert_eq!(
+        node.template_metadata
+            .as_ref()
+            .unwrap()
+            .attributes
+            .get("visibility"),
+        Some(&toml::Value::String("visible".to_string()))
+    );
+    assert_eq!(
+        node.layout_cache.desired_size,
+        DesiredSize::new(120.0, 32.0)
+    );
+}
+
+#[test]
 fn surface_property_mutation_marks_material_layout_metadata_as_layout_dirty() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
     surface.tree.insert_root(
@@ -2882,5 +3134,12 @@ fn fixed_constraint(size: f32) -> AxisConstraint {
         priority: 100,
         weight: 1.0,
         stretch_mode: StretchMode::Fixed,
+    }
+}
+
+fn taffy_fixed_constraint(size: f32) -> AxisConstraint {
+    AxisConstraint {
+        priority: 0,
+        ..fixed_constraint(size)
     }
 }

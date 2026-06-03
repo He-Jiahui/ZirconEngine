@@ -3,15 +3,19 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
-    AdvancedRenderFeature, FrameHistoryHandle, RenderBloomSettings, RenderCapabilityKind,
-    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderColorGradingSettings,
-    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion,
-    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    AdvancedRenderFeature, FrameHistoryHandle, FrameHistoryInvalidationReason, RenderBloomSettings,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
+    RenderDepthOfFieldSettings, RenderDynamicResolutionSettings, RenderFrameExtract,
+    RenderFramework, RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource,
+    RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderPipelineHandle,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
+    RenderPostProcessVolumeStack, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
+    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
 };
-use crate::core::math::{UVec2, Vec3};
+use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -21,10 +25,12 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use crate::graphics::runtime::WgpuRenderFramework;
-use crate::render_graph::QueueLane;
+use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
+use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
 use crate::{
-    BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
-    RenderPipelineAsset, RenderPipelineCompileOptions,
+    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
+    RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions,
 };
 
 use super::plugin_render_feature_fixtures::{
@@ -54,6 +60,16 @@ fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
     assert_eq!(stats.active_viewports, 1);
     assert_eq!(stats.submitted_frames, 1);
     assert_eq!(stats.last_frame_history, Some(FrameHistoryHandle::new(1)));
+    assert_eq!(
+        stats.last_frame_history_status.current,
+        Some(FrameHistoryHandle::new(1))
+    );
+    assert_eq!(stats.last_frame_history_status.previous, None);
+    assert!(!stats.last_frame_history_status.previous_available);
+    assert_eq!(
+        stats.last_frame_history_status.invalidation_reason,
+        Some(FrameHistoryInvalidationReason::NoPreviousFrame)
+    );
     assert_eq!(stats.capabilities.backend_name, "wgpu");
     assert!(!stats.capabilities.supports_surface);
     assert!(stats.capabilities.supports_offscreen);
@@ -162,6 +178,10 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         expected_graph_stats.resource_lifetime_count
     );
     assert_eq!(
+        stats.last_graph_sparse_texture_lifetime_count,
+        expected_graph_stats.sparse_texture_lifetime_count
+    );
+    assert_eq!(
         stats.last_graph_planned_resource_access_count,
         expected_graph_stats.total_resource_access_count
     );
@@ -175,6 +195,10 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         expected_allocation_plan.texture_slot_count
     );
     assert_eq!(
+        stats.last_graph_sparse_texture_slot_count,
+        expected_allocation_plan.sparse_texture_slot_count
+    );
+    assert_eq!(
         stats.last_graph_transient_buffer_slot_count,
         expected_allocation_plan.buffer_slot_count
     );
@@ -182,6 +206,10 @@ fn render_framework_stats_report_executed_render_graph_passes() {
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
     assert_eq!(
         stats.last_graph_executed_passes.first().map(String::as_str),
+        Some("preview-sky")
+    );
+    assert_eq!(
+        stats.last_graph_executed_passes.get(1).map(String::as_str),
         Some("depth-prepass")
     );
     assert!(stats
@@ -245,6 +273,148 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
 }
 
 #[test]
+fn render_framework_stats_report_effect_stack_product_node_when_authored() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.post_process.effect_stack = RenderPostProcessEffectStackSettings {
+        color_lookup: RenderColorLookupSettings {
+            texture: None,
+            intensity: 0.5,
+            ..Default::default()
+        },
+        depth_of_field: RenderDepthOfFieldSettings {
+            aperture: 0.75,
+            max_blur_radius: 2.0,
+            ..Default::default()
+        },
+        screen_space_reflection: RenderScreenSpaceReflectionSettings {
+            intensity: 0.4,
+            max_steps: 16,
+            ..Default::default()
+        },
+        vignette: RenderVignetteSettings {
+            intensity: 0.4,
+            ..Default::default()
+        },
+        chromatic_aberration: RenderChromaticAberrationSettings {
+            intensity: 0.2,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("post-process-effect-stack")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_anti_alias(false),
+        )
+        .unwrap();
+    server.submit_frame_extract(viewport, extract).unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(stats.last_post_process_graph_node_count, 2);
+    assert_eq!(
+        stats.last_post_process_graph_executed_nodes,
+        vec!["effect-stack".to_string(), "final-composite".to_string()]
+    );
+    assert!(stats.last_post_process_effect_stack_report.enabled);
+    assert_eq!(
+        stats.last_post_process_effect_stack_report.active_families,
+        vec![
+            "lut".to_string(),
+            "depth-of-field".to_string(),
+            "screen-space-reflection".to_string(),
+            "vignette".to_string(),
+            "chromatic-aberration".to_string(),
+        ]
+    );
+    assert_eq!(
+        stats
+            .last_post_process_effect_stack_report
+            .approximated_families,
+        vec![
+            "depth-of-field".to_string(),
+            "screen-space-reflection".to_string(),
+        ]
+    );
+    assert_eq!(
+        stats
+            .last_post_process_effect_stack_report
+            .missing_resources,
+        vec!["effect-stack.lut.texture".to_string()]
+    );
+    assert_eq!(stats.last_post_process_lut_request_count, 1);
+    assert_eq!(stats.last_post_process_lut_ready_count, 0);
+    assert_eq!(stats.last_post_process_lut_fallback_count, 1);
+    assert_eq!(stats.last_post_process_lut_2d_strip_ready_count, 0);
+    assert_eq!(stats.last_post_process_lut_3d_request_count, 0);
+    assert_eq!(stats.last_post_process_lut_unsupported_shape_count, 0);
+}
+
+#[test]
+fn render_framework_stats_report_volume_effect_stack_product_node_when_authored() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.post_process.volume_stack =
+        RenderPostProcessVolumeStack::from_volumes([RenderPostProcessVolume::global(
+            0.0,
+            RenderPostProcessVolumeProfile::default().with_effect_stack(
+                RenderPostProcessEffectStackSettings {
+                    vignette: RenderVignetteSettings {
+                        intensity: 0.6,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            ),
+        )
+        .with_weight(0.5)]);
+
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("post-process-volume-effect-stack")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_anti_alias(false),
+        )
+        .unwrap();
+    server.submit_frame_extract(viewport, extract).unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(stats.last_post_process_graph_node_count, 2);
+    assert_eq!(
+        stats.last_post_process_graph_executed_nodes,
+        vec!["effect-stack".to_string(), "final-composite".to_string()]
+    );
+    assert_eq!(
+        stats.last_post_process_effect_stack_report.active_families,
+        vec!["vignette".to_string()]
+    );
+    assert!(stats
+        .last_post_process_effect_stack_report
+        .missing_resources
+        .is_empty());
+}
+
+#[test]
 fn render_framework_records_history_resolve_after_compatible_history_exists() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
@@ -267,6 +437,11 @@ fn render_framework_records_history_resolve_after_compatible_history_exists() {
         .submit_frame_extract(viewport, test_extract())
         .unwrap();
     let first_stats = server.query_stats().unwrap();
+    assert_eq!(
+        first_stats.last_frame_history_status.invalidation_reason,
+        Some(FrameHistoryInvalidationReason::NoPreviousFrame)
+    );
+    assert!(!first_stats.last_frame_history_status.previous_available);
     assert!(!first_stats
         .last_post_process_graph_executed_nodes
         .contains(&"history-resolve".to_string()));
@@ -275,6 +450,11 @@ fn render_framework_records_history_resolve_after_compatible_history_exists() {
         .submit_frame_extract(viewport, test_extract())
         .unwrap();
     let second_stats = server.query_stats().unwrap();
+    assert!(second_stats.last_frame_history_status.previous_available);
+    assert_eq!(
+        second_stats.last_frame_history_status.invalidation_reason,
+        None
+    );
     assert!(second_stats
         .last_post_process_graph_executed_nodes
         .contains(&"history-resolve".to_string()));
@@ -327,10 +507,144 @@ fn render_framework_reuses_frame_history_handle_for_compatible_submissions() {
     server
         .submit_frame_extract(viewport, test_extract())
         .unwrap();
-    let second = server.query_stats().unwrap().last_frame_history;
+    let stats = server.query_stats().unwrap();
+    let second = stats.last_frame_history;
 
     assert_eq!(first, second);
     assert_eq!(second, Some(FrameHistoryHandle::new(1)));
+    assert_eq!(stats.last_frame_history_status.current, second);
+    assert_eq!(stats.last_frame_history_status.previous, first);
+    assert!(stats.last_frame_history_status.previous_available);
+    assert_eq!(stats.last_frame_history_status.invalidation_reason, None);
+}
+
+#[test]
+fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("history-validity")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(true)
+                .with_bloom(false)
+                .with_color_grading(false),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let compatible = server.query_stats().unwrap();
+    assert_eq!(
+        compatible.last_frame_history,
+        Some(FrameHistoryHandle::new(1))
+    );
+    assert!(compatible.last_frame_history_status.previous_available);
+    assert!(compatible
+        .last_post_process_graph_executed_nodes
+        .contains(&"history-resolve".to_string()));
+
+    let mut moved_camera = test_extract();
+    moved_camera.view.camera.transform = Transform::from_translation(Vec3::new(0.25, 0.0, 0.0));
+    server.submit_frame_extract(viewport, moved_camera).unwrap();
+    let invalidated = server.query_stats().unwrap();
+
+    assert_eq!(
+        invalidated.last_frame_history,
+        Some(FrameHistoryHandle::new(2))
+    );
+    assert_eq!(
+        invalidated.last_frame_history_status.current,
+        Some(FrameHistoryHandle::new(2))
+    );
+    assert_eq!(
+        invalidated.last_frame_history_status.previous,
+        Some(FrameHistoryHandle::new(1))
+    );
+    assert!(!invalidated.last_frame_history_status.previous_available);
+    assert_eq!(
+        invalidated.last_frame_history_status.invalidation_reason,
+        Some(FrameHistoryInvalidationReason::FrameInputsChanged)
+    );
+    assert!(!invalidated
+        .last_post_process_graph_executed_nodes
+        .contains(&"history-resolve".to_string()));
+}
+
+#[test]
+fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("history-dynamic-resolution")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(true)
+                .with_bloom(false)
+                .with_color_grading(false),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let compatible = server.query_stats().unwrap();
+    assert_eq!(compatible.last_frame_target_size, Some(viewport_size));
+    assert_eq!(compatible.last_frame_render_size, Some(viewport_size));
+    assert!(compatible.last_frame_history_status.previous_available);
+
+    let mut scaled = test_extract();
+    scaled.view.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
+    server.submit_frame_extract(viewport, scaled).unwrap();
+    let invalidated = server.query_stats().unwrap();
+
+    assert_eq!(invalidated.last_frame_target_size, Some(viewport_size));
+    assert_eq!(
+        invalidated.last_frame_render_size,
+        Some(UVec2::new(160, 120))
+    );
+    assert_eq!(
+        invalidated.last_frame_history_status.target_size,
+        viewport_size
+    );
+    assert_eq!(
+        invalidated.last_frame_history_status.render_size,
+        UVec2::new(160, 120)
+    );
+    assert_eq!(
+        invalidated.last_frame_history,
+        Some(FrameHistoryHandle::new(2))
+    );
+    assert_eq!(
+        invalidated.last_frame_history_status.previous,
+        Some(FrameHistoryHandle::new(1))
+    );
+    assert!(!invalidated.last_frame_history_status.previous_available);
+    assert_eq!(
+        invalidated.last_frame_history_status.invalidation_reason,
+        Some(FrameHistoryInvalidationReason::RenderSizeChanged)
+    );
+    assert!(!invalidated
+        .last_post_process_graph_executed_nodes
+        .contains(&"history-resolve".to_string()));
 }
 
 #[test]
@@ -349,6 +663,17 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
     assert!(!stats.capabilities.supports_async_compute);
     assert_eq!(stats.last_async_compute_pass_count, 0);
     assert_eq!(stats.last_graph_queue_fallback_pass_count, 1);
+    assert_eq!(stats.last_graph_compute_dispatch_count, 1);
+    assert!(
+        stats.last_graph_compute_dispatch_group_count > 0,
+        "clustered lighting should record concrete compute dispatch group evidence"
+    );
+    assert_eq!(stats.last_graph_compute_storage_write_resource_count, 1);
+    assert_eq!(stats.last_graph_compute_planned_workload_count, 1);
+    assert_eq!(stats.last_graph_compute_matched_workload_count, 1);
+    assert_eq!(stats.last_graph_compute_missing_dispatch_count, 0);
+    assert_eq!(stats.last_graph_compute_workload_mismatch_count, 0);
+    assert_eq!(stats.last_graph_compute_unexpected_dispatch_count, 0);
     assert!(
         stats
             .last_effective_features
@@ -916,6 +1241,68 @@ fn render_framework_rejects_active_pipeline_reload_when_asset_requires_missing_b
 }
 
 #[test]
+fn render_framework_rejects_neural_compute_plugin_descriptor_without_executor_registration() {
+    let server = WgpuRenderFramework::new_with_plugin_render_features(
+        Arc::new(ProjectAssetManager::default()),
+        [neural_compute_render_feature_descriptor()],
+        Vec::new(),
+        Vec::new(),
+    )
+    .unwrap();
+    let mut pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([neural_compute_render_feature_descriptor()]);
+    pipeline.handle = RenderPipelineHandle::new(86);
+    pipeline.name = "neural-descriptor-only-pipeline".to_string();
+
+    let error = server.register_pipeline_asset(pipeline).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::GraphCompileFailure {
+            pipeline: 86,
+            message:
+                "render pass `plugin-neural-inference` references unregistered executor `plugin.neural.inference`"
+                    .to_string(),
+        }
+    );
+}
+
+#[test]
+fn render_framework_rejects_neural_compute_plugin_pipeline_when_backend_capability_is_missing() {
+    let server = WgpuRenderFramework::new_with_plugin_render_features(
+        Arc::new(ProjectAssetManager::default()),
+        [neural_compute_render_feature_descriptor()],
+        [RenderPassExecutorRegistration::new(
+            "plugin.neural.inference",
+            neural_compute_render_pass_executor,
+        )],
+        Vec::new(),
+    )
+    .unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server.override_capabilities_for_tests(capability_test_summary());
+    let mut pipeline = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([neural_compute_render_feature_descriptor()]);
+    pipeline.handle = RenderPipelineHandle::new(87);
+    pipeline.name = "neural-capability-gated-pipeline".to_string();
+    let handle = server.register_pipeline_asset(pipeline).unwrap();
+
+    let error = server.set_pipeline_asset(viewport, handle).unwrap_err();
+
+    assert_eq!(
+        error,
+        RenderFrameworkError::CapabilityMismatch {
+            pipeline: 87,
+            reason: "pipeline `neural-capability-gated-pipeline` requires neural_compute"
+                .to_string(),
+            missing: missing_capabilities(&[RenderCapabilityKind::NeuralCompute]),
+        }
+    );
+}
+
+#[test]
 fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities() {
     let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport = server
@@ -1305,6 +1692,34 @@ fn capability_test_summary() -> RenderCapabilitySummary {
         supports_buffer_readback: true,
         ..Default::default()
     }
+}
+
+fn neural_compute_render_feature_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "plugin.neural_compute.activation",
+        vec!["view".to_string(), "post_process".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "plugin-neural-inference",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("plugin.neural.inference")
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            "zircon-neural-inference",
+            [8, 8, 1],
+        ))
+        .read_texture("scene-color")
+        .write_storage_external("neural-inference-output")
+        .with_side_effects()],
+    )
+    .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute)
+}
+
+fn neural_compute_render_pass_executor(
+    _context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    Ok(())
 }
 
 fn advanced_provider_report(

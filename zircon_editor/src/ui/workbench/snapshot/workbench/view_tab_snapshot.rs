@@ -1,7 +1,8 @@
 use serde_json::Value;
 
 use crate::ui::workbench::view::{
-    PaneTemplateSpec, ViewDescriptorId, ViewHost, ViewInstanceId, ViewKind,
+    ActivityWindowTemplateSpec, PaneTemplateSpec, ViewDescriptorId, ViewHost, ViewInstanceId,
+    ViewKind,
 };
 
 use super::ViewContentKind;
@@ -18,5 +19,6 @@ pub struct ViewTabSnapshot {
     pub dirty: bool,
     pub content_kind: ViewContentKind,
     pub pane_template: Option<PaneTemplateSpec>,
+    pub activity_window_template: Option<ActivityWindowTemplateSpec>,
     pub placeholder: bool,
 }

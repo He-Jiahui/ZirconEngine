@@ -24,7 +24,7 @@ pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, F
 pub use feature::{
     BuiltinRenderFeature, RenderFeature, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
-    RenderFeatureResourceKind,
+    RenderFeatureResourceDescriptor, RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };
 pub use hybrid_gi_runtime_provider::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,

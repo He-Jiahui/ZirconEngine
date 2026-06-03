@@ -1,4 +1,4 @@
-use crate::core::framework::render::FrameHistoryHandle;
+use crate::core::framework::render::{FrameHistoryHandle, FrameHistoryStatus};
 
 use crate::runtime::ViewportFrameHistory;
 
@@ -10,7 +10,11 @@ pub(super) fn record_history(
     context: &FrameSubmissionContext,
     generation: u64,
     allocated_history: Option<FrameHistoryHandle>,
-) -> (Option<FrameHistoryHandle>, FrameHistoryHandle) {
+) -> (
+    Option<FrameHistoryHandle>,
+    FrameHistoryHandle,
+    FrameHistoryStatus,
+) {
     let previous_handle = record.history().map(|history| history.handle());
     let history_handle = match (record.history_mut(), allocated_history) {
         (Some(history), None) => {
@@ -26,6 +30,7 @@ pub(super) fn record_history(
             record.replace_history(ViewportFrameHistory::new(
                 handle,
                 context.size(),
+                context.render_size(),
                 context.pipeline_handle(),
                 generation,
                 context.compiled_pipeline().history_bindings.clone(),
@@ -37,5 +42,22 @@ pub(super) fn record_history(
         (None, None) => unreachable!("rotation is required when no history exists"),
     };
 
-    (previous_handle, history_handle)
+    let previous_available = previous_handle.is_some()
+        && allocated_history.is_none()
+        && context.history_invalidation_reason().is_none();
+    let invalidation_reason = if previous_available {
+        None
+    } else {
+        context.history_invalidation_reason()
+    };
+    let history_status = FrameHistoryStatus::new(
+        Some(history_handle),
+        previous_handle,
+        previous_available,
+        invalidation_reason,
+        context.size(),
+        context.render_size(),
+    );
+
+    (previous_handle, history_handle, history_status)
 }

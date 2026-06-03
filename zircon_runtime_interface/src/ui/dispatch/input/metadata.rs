@@ -50,6 +50,22 @@ define_string_id!(UiWindowId);
 define_string_id!(UiSurfaceId);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiPointerSource {
+    #[default]
+    Mouse,
+    Touch,
+    Pen,
+    Unknown,
+}
+
+impl UiPointerSource {
+    pub const fn is_touch_like(self) -> bool {
+        matches!(self, Self::Touch | Self::Pen)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct UiInputTimestamp {
     pub monotonic_micros: u64,
 }
@@ -81,6 +97,7 @@ pub struct UiInputEventMetadata {
     pub window_id: Option<UiWindowId>,
     pub surface_id: Option<UiSurfaceId>,
     pub pointer_id: Option<UiPointerId>,
+    pub pointer_source: UiPointerSource,
     pub modifiers: UiInputModifiers,
     pub synthetic: bool,
 }
@@ -95,6 +112,7 @@ impl UiInputEventMetadata {
             window_id: None,
             surface_id: None,
             pointer_id: None,
+            pointer_source: UiPointerSource::Mouse,
             modifiers: UiInputModifiers {
                 shift: false,
                 control: false,

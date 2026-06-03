@@ -296,13 +296,13 @@ export component BuildTaskHistoryPanel inherits PanelSlot {
     in-out property <length> history-scroll-y: 0px;
     in property <bool> collapse-label: false;
 
-    private property <length> current-task-section-height: HubTokens.control-md + root.row-height + HubTokens.panel-gap + HubTokens.control-sm;
-    private property <int> history-panel-rows: root.source-build-history-count < 1 ? 1 : (root.source-build-history-count > 3 ? 3 : root.source-build-history-count);
-    private property <length> history-list-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+    private property <length> current-task-section-height: HubTokens.control-md + HubTokens.toolbar-gap + HubTokens.control-sm + HubTokens.space-4;
+    private property <int> history-panel-rows: root.source-build-history-count < 1 ? 1 : (root.source-build-history-count > 2 ? 2 : root.source-build-history-count);
+    private property <length> history-list-empty-height: root.row-height + HubTokens.space-2;
     private property <length> history-list-height: root.source-build-history-count == 0 ? root.history-list-empty-height : root.history-panel-rows * root.row-height + (root.history-panel-rows - 1) * HubTokens.space-2;
     private property <length> history-section-height: HubTokens.control-md + HubTokens.panel-gap + root.history-list-height;
 
-    body-spacing: HubTokens.panel-gap;
+    body-spacing: HubTokens.toolbar-gap;
 
     HubSection {
         section-height: root.current-task-section-height;
@@ -348,6 +348,7 @@ export component BuildTaskHistoryPanel inherits PanelSlot {
 
             for record in root.source-build-history: BuildHistoryRow {
                 record: record;
+                row-height: root.row-height;
                 collapse-label: root.collapse-label;
             }
 

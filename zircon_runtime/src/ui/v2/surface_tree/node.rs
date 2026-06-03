@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
 use zircon_runtime_interface::ui::tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode};
 use zircon_runtime_interface::ui::v2::{
     UiV2ArenaNode, UiV2AssetError, UiV2NodeArena, UiV2NodeHandle, UiV2ResolvedStyleSheet,
+    UI_V2_REPEAT_ATTRIBUTE,
 };
 
 use crate::ui::tree::UiRuntimeTreeAccessExt;
@@ -179,6 +180,9 @@ fn arena_node_attributes(
     }
     if let Some(resolved) = resolved_styles.nodes.get(&node.source_id) {
         attributes.extend(resolved.self_values.clone());
+    }
+    if let Some(repeat) = &node.repeat {
+        attributes.insert(UI_V2_REPEAT_ATTRIBUTE.to_string(), repeat.metadata_value());
     }
     attributes
 }

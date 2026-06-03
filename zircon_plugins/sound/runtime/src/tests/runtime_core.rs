@@ -72,13 +72,27 @@ fn sound_plugin_registration_contributes_runtime_module_components_options_and_e
         .dependencies
         .iter()
         .any(|dependency| dependency.id == "timeline_sequence" && !dependency.required));
-    assert!(report
+    let sound_event_catalog = report
         .extensions
         .plugin_event_catalogs()
         .iter()
-        .any(|catalog| {
-            catalog.namespace == SOUND_DYNAMIC_EVENT_NAMESPACE && catalog.events.is_empty()
-        }));
+        .find(|catalog| catalog.namespace == SOUND_DYNAMIC_EVENT_NAMESPACE)
+        .expect("sound dynamic event catalog");
+    assert_eq!(
+        sound_event_catalog
+            .events
+            .iter()
+            .map(|event| (event.id.as_str(), event.payload_schema.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            ("sound.dynamic_events.impact", "sound.dynamic.impact.v1"),
+            ("sound.dynamic_events.marker", "sound.dynamic.marker.v1"),
+            (
+                "sound.dynamic_events.ambient_stinger",
+                "sound.dynamic.ambient_stinger.v1",
+            ),
+        ]
+    );
 }
 
 #[test]

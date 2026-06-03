@@ -175,6 +175,7 @@ fn apply_presentation(
         &host_window::ModulePluginsPaneViewData::default(),
         &host_window::BuildExportPaneViewData::default(),
         None,
+        None,
         shared_root_frames,
         floating_window_projection_bundle,
         None,

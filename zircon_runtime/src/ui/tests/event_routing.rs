@@ -7,10 +7,12 @@ use crate::ui::{
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply,
     UiFocusEffectReason, UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiInputEventMetadata,
-    UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText, UiInputSequence,
-    UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationRequestPolicy,
-    UiPointerCaptureReason, UiPointerComponentEventReason, UiPointerDispatchEffect, UiPointerEvent,
-    UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPreciseScrollDelta, UiTextInputEvent,
+    UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
+    UiInputRoutePolicy, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
+    UiKeyboardInputState, UiNavigationRequestPolicy, UiPointerCaptureReason,
+    UiPointerComponentEventReason, UiPointerDispatchEffect, UiPointerEvent, UiPointerId,
+    UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPreciseScrollDelta,
+    UiTextInputEvent,
 };
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -1002,6 +1004,10 @@ fn shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnosti
         .unwrap();
     assert!(keyboard.diagnostics.routed);
     assert_eq!(keyboard.diagnostics.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(
+        keyboard.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
     assert_eq!(keyboard.diagnostics.notes, vec!["focused_route_len=2"]);
 
     let text = surface
@@ -1016,6 +1022,7 @@ fn shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnosti
         .unwrap();
     assert_eq!(text.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(text.diagnostics.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(text.diagnostics.route_policy, UiInputRoutePolicy::FocusPath);
 
     let ime = surface
         .dispatch_input_event(
@@ -1054,12 +1061,54 @@ fn shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnosti
         .notes
         .iter()
         .any(|note| note == "scroll_delta=-3.5"));
+    assert_eq!(scroll.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
     let UiInputEvent::Pointer(pointer) = scroll.event else {
         panic!("scroll dispatch changed event family");
     };
     assert_eq!(
         pointer.precise_scroll,
         Some(UiPreciseScrollDelta::pixels(2.25, -3.5))
+    );
+
+    let mut touch_metadata = input_metadata();
+    touch_metadata.pointer_id = Some(UiPointerId::new(44));
+    touch_metadata.pointer_source = UiPointerSource::Touch;
+    let touch_move = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            UiInputEvent::Pointer(UiPointerInputEvent {
+                metadata: touch_metadata.clone(),
+                event: UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(24.0, 24.0)),
+                precise_scroll: None,
+            }),
+        )
+        .unwrap();
+    assert_eq!(
+        touch_move.diagnostics.route_policy,
+        UiInputRoutePolicy::Direct
+    );
+    assert!(touch_move
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "touch_like_pointer"));
+
+    surface.input.captured_pointer_id = touch_metadata.pointer_id;
+    let captured_touch_move = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            UiInputEvent::Pointer(UiPointerInputEvent {
+                metadata: touch_metadata,
+                event: UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(26.0, 26.0)),
+                precise_scroll: None,
+            }),
+        )
+        .unwrap();
+    assert_eq!(
+        captured_touch_move.diagnostics.route_policy,
+        UiInputRoutePolicy::PointerCapture
     );
 
     surface.focus_node(UiNodeId::new(2)).unwrap();

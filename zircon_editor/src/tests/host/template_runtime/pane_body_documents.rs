@@ -346,7 +346,7 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
         assert!(
             matches!(
                 projection.root.component.as_str(),
-                "VerticalBox" | "VerticalGroup" | "WindowFrame"
+                "Overlay" | "VerticalBox" | "VerticalGroup" | "WindowFrame"
             ),
             "`{document_id}` should project a supported root layout, got `{}`",
             projection.root.component

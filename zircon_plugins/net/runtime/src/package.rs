@@ -89,7 +89,8 @@ pub fn net_optional_features() -> Vec<PluginFeatureBundleManifest> {
 
 pub fn net_options() -> Vec<PluginOptionManifest> {
     vec![
-        PluginOptionManifest::new("net.runtime_mode", "Runtime Mode", "enum", "client"),
+        PluginOptionManifest::new("net.runtime_mode", "Runtime Mode", "enum", "client")
+            .with_enum_values(["client", "listen_server", "dedicated_server"]),
         PluginOptionManifest::new(
             "net.tcp_poll_budget_bytes",
             "TCP Poll Budget",

@@ -1,15 +1,19 @@
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
-    insert_marker, pop_group, push_group, RENDERDOC_MARKER_CLEAR,
-    RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE, RENDERDOC_MARKER_PREPASS,
+    pop_group, push_group, RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistry;
+use crate::graphics::scene::scene_renderer::graph_execution::{
+    RenderPassExecutorRegistry, RenderPassMeshDrawLists, RenderPassPostProcessStackContext,
+};
+use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
-use super::super::super::super::mesh::MeshDraw;
+use super::super::super::super::deferred::DeferredSceneResources;
+use super::super::super::super::mesh::MeshPipelineCache;
+use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::scene_renderer_core::SceneRendererCore;
@@ -24,242 +28,220 @@ impl SceneRendererCore {
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
-        target: &mut OffscreenTarget,
+        target: &OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
         pipeline: &CompiledRenderPipeline,
         render_pass_executors: &RenderPassExecutorRegistry,
         graph_execution: &mut RenderGraphStageExecution<'_>,
-        mesh_draws: &[MeshDraw],
-        opaque_mesh_draws: &[&MeshDraw],
-        transparent_mesh_draws: &[&MeshDraw],
+        mesh_draw_lists: RenderPassMeshDrawLists<'_>,
+        history_textures: Option<&SceneFrameHistoryTextures>,
+        history_available: bool,
     ) -> Result<(), GraphicsError> {
         if runtime_features.deferred_lighting_enabled {
-            insert_marker(encoder, RENDERDOC_MARKER_CLEAR);
-            self.overlay_renderer.record_preview_sky(
+            execute_deferred_graph_stage(
+                &self.deferred,
+                mesh_draw_lists,
+                device,
+                queue,
                 encoder,
-                &target.final_color_view,
-                &target.depth_view,
                 &self.scene_bind_group,
                 frame,
-            );
-            push_group(encoder, RENDERDOC_MARKER_PREPASS);
-            self.normal_prepass.record(
-                encoder,
-                &target.normal_view,
-                &target.depth_view,
-                &self.scene_bind_group,
-                opaque_mesh_draws.iter().copied(),
-            );
-            pop_group(encoder);
-            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-            self.deferred.record_gbuffer_geometry(
-                encoder,
-                &target.gbuffer_albedo_view,
-                &target.depth_view,
-                &self.scene_bind_group,
-                opaque_mesh_draws.iter().copied(),
-            );
-            pop_group(encoder);
+                pipeline,
+                render_pass_executors,
+                graph_execution,
+                &mut self.screen_space_ui_renderer,
+                RenderPassStage::Deferred,
+                None,
+            )?;
             if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
+                execute_sprite_graph_stage(
                     &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
                     streamer,
                     frame,
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
                     RenderPassStage::Opaque2d,
-                );
+                )?;
             }
         } else {
-            insert_marker(encoder, RENDERDOC_MARKER_CLEAR);
-            push_group(encoder, RENDERDOC_MARKER_PREPASS);
-            self.normal_prepass.record(
-                encoder,
-                &target.normal_view,
-                &target.depth_view,
-                &self.scene_bind_group,
-                mesh_draws.iter(),
-            );
-            pop_group(encoder);
-            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-            self.overlay_renderer.record_scene_content(
-                encoder,
-                device,
-                &target.scene_color_view,
-                &target.depth_view,
-                &self.scene_bind_group,
-                mesh_draws,
+            execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                mesh_draw_lists,
+                device,
+                queue,
+                encoder,
+                &self.scene_bind_group,
                 streamer,
                 frame,
-            );
-            pop_group(encoder);
+                pipeline,
+                render_pass_executors,
+                graph_execution,
+                &mut self.screen_space_ui_renderer,
+                RenderPassStage::Opaque3d,
+                None,
+            )?;
             if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
+                execute_sprite_graph_stage(
                     &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
                     streamer,
                     frame,
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
                     RenderPassStage::Opaque2d,
-                );
+                )?;
             }
-            execute_graph_stage(
+            execute_mesh_graph_stage(
+                &mut self.mesh_pipelines,
+                mesh_draw_lists,
+                device,
+                queue,
+                encoder,
+                &self.scene_bind_group,
+                streamer,
+                frame,
                 pipeline,
                 render_pass_executors,
+                graph_execution,
+                &mut self.screen_space_ui_renderer,
                 RenderPassStage::AlphaMask3d,
-                device,
-                queue,
-                encoder,
-                frame,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
-                graph_execution,
+                None,
             )?;
             if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
+                execute_sprite_graph_stage(
                     &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
                     streamer,
                     frame,
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
                     RenderPassStage::AlphaMask2d,
-                );
+                )?;
             }
-            execute_graph_stage(
+            execute_mesh_graph_stage(
+                &mut self.mesh_pipelines,
+                mesh_draw_lists,
+                device,
+                queue,
+                encoder,
+                &self.scene_bind_group,
+                streamer,
+                frame,
                 pipeline,
                 render_pass_executors,
-                RenderPassStage::Transparent3d,
-                device,
-                queue,
-                encoder,
-                frame,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
                 graph_execution,
+                &mut self.screen_space_ui_renderer,
+                RenderPassStage::Transparent3d,
+                Some(&self.particle_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
+                execute_sprite_graph_stage(
                     &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
                     streamer,
                     frame,
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
                     RenderPassStage::Transparent2d,
-                );
-            }
-            if runtime_features.particle_rendering_enabled {
-                push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-                self.particle_renderer.record(
-                    device,
-                    encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
-                    &self.scene_bind_group,
-                    frame,
-                );
-                pop_group(encoder);
+                )?;
             }
         }
 
         if runtime_features.deferred_lighting_enabled {
             push_group(encoder, RENDERDOC_MARKER_DEFERRED_LIGHTING);
-            self.deferred.execute_lighting(
+            let post_process_stack = RenderPassPostProcessStackContext::new(
+                &self.post_process,
+                target,
+                streamer,
+                runtime_features,
+                history_textures,
+                history_available,
+            );
+            let deferred_lighting_result = execute_deferred_graph_stage(
+                &self.deferred,
+                mesh_draw_lists,
                 device,
+                queue,
                 encoder,
                 &self.scene_bind_group,
-                &target.gbuffer_albedo_view,
-                &target.normal_view,
-                &target.final_color_view,
-                &target.scene_color_view,
+                frame,
+                pipeline,
+                render_pass_executors,
+                graph_execution,
+                &mut self.screen_space_ui_renderer,
+                RenderPassStage::Lighting,
+                Some(post_process_stack),
             );
             pop_group(encoder);
-            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-            self.overlay_renderer.record_meshes(
-                encoder,
-                device,
-                &target.scene_color_view,
-                &target.depth_view,
-                &self.scene_bind_group,
-                transparent_mesh_draws.iter().copied(),
+            deferred_lighting_result?;
+            execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                mesh_draw_lists,
+                device,
+                queue,
+                encoder,
+                &self.scene_bind_group,
                 streamer,
                 frame,
-            );
-            pop_group(encoder);
-            execute_graph_stage(
                 pipeline,
                 render_pass_executors,
-                RenderPassStage::AlphaMask3d,
-                device,
-                queue,
-                encoder,
-                frame,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
                 graph_execution,
-            )?;
-            if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
-                    &self.sprite_renderer,
-                    device,
-                    encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
-                    &self.scene_bind_group,
-                    streamer,
-                    frame,
-                    RenderPassStage::AlphaMask2d,
-                );
-            }
-            execute_graph_stage(
-                pipeline,
-                render_pass_executors,
+                &mut self.screen_space_ui_renderer,
                 RenderPassStage::Transparent3d,
-                device,
-                queue,
-                encoder,
-                frame,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
-                graph_execution,
+                Some(&self.particle_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
-                record_sprite_stage(
+                execute_sprite_graph_stage(
                     &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
                     streamer,
                     frame,
-                    RenderPassStage::Transparent2d,
-                );
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
+                    RenderPassStage::AlphaMask2d,
+                )?;
             }
-            if runtime_features.particle_rendering_enabled {
-                push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-                self.particle_renderer.record(
+            if runtime_features.sprite_rendering_enabled {
+                execute_sprite_graph_stage(
+                    &self.sprite_renderer,
                     device,
+                    queue,
                     encoder,
-                    &target.scene_color_view,
-                    &target.depth_view,
                     &self.scene_bind_group,
+                    streamer,
                     frame,
-                );
-                pop_group(encoder);
+                    pipeline,
+                    render_pass_executors,
+                    graph_execution,
+                    &mut self.screen_space_ui_renderer,
+                    RenderPassStage::Transparent2d,
+                )?;
             }
         }
 
@@ -268,27 +250,135 @@ impl SceneRendererCore {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn record_sprite_stage(
-    renderer: &SpriteRenderer,
+fn execute_mesh_graph_stage(
+    mesh_pipelines: &mut MeshPipelineCache,
+    mesh_draw_lists: RenderPassMeshDrawLists<'_>,
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
-    color_view: &wgpu::TextureView,
-    depth_view: &wgpu::TextureView,
     scene_bind_group: &wgpu::BindGroup,
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
+    pipeline: &CompiledRenderPipeline,
+    render_pass_executors: &RenderPassExecutorRegistry,
+    graph_execution: &mut RenderGraphStageExecution<'_>,
+    screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
-) {
+    particle_renderer: Option<&ParticleRenderer>,
+) -> Result<(), GraphicsError> {
     push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
-    renderer.record(
-        device,
-        encoder,
-        color_view,
-        depth_view,
-        scene_bind_group,
-        streamer,
-        frame,
+    let result = execute_graph_stage(
+        pipeline,
+        render_pass_executors,
         stage,
+        device,
+        queue,
+        encoder,
+        frame,
+        scene_bind_group,
+        screen_space_ui_renderer,
+        None,
+        None,
+        None,
+        None,
+        None,
+        particle_renderer,
+        None,
+        Some(streamer),
+        Some(mesh_pipelines),
+        Some(mesh_draw_lists),
+        graph_execution,
     );
     pop_group(encoder);
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_deferred_graph_stage(
+    deferred: &DeferredSceneResources,
+    mesh_draw_lists: RenderPassMeshDrawLists<'_>,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    encoder: &mut wgpu::CommandEncoder,
+    scene_bind_group: &wgpu::BindGroup,
+    frame: &ViewportRenderFrame,
+    pipeline: &CompiledRenderPipeline,
+    render_pass_executors: &RenderPassExecutorRegistry,
+    graph_execution: &mut RenderGraphStageExecution<'_>,
+    screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
+    stage: RenderPassStage,
+    post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
+) -> Result<(), GraphicsError> {
+    let pushes_main_scene_group = matches!(stage, RenderPassStage::Deferred);
+    if pushes_main_scene_group {
+        push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
+    }
+    let result = execute_graph_stage(
+        pipeline,
+        render_pass_executors,
+        stage,
+        device,
+        queue,
+        encoder,
+        frame,
+        scene_bind_group,
+        screen_space_ui_renderer,
+        post_process_stack,
+        None,
+        None,
+        None,
+        Some(deferred),
+        None,
+        None,
+        None,
+        None,
+        Some(mesh_draw_lists),
+        graph_execution,
+    );
+    if pushes_main_scene_group {
+        pop_group(encoder);
+    }
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_sprite_graph_stage(
+    renderer: &SpriteRenderer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    encoder: &mut wgpu::CommandEncoder,
+    scene_bind_group: &wgpu::BindGroup,
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+    pipeline: &CompiledRenderPipeline,
+    render_pass_executors: &RenderPassExecutorRegistry,
+    graph_execution: &mut RenderGraphStageExecution<'_>,
+    screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
+    stage: RenderPassStage,
+) -> Result<(), GraphicsError> {
+    push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
+    let result = execute_graph_stage(
+        pipeline,
+        render_pass_executors,
+        stage,
+        device,
+        queue,
+        encoder,
+        frame,
+        scene_bind_group,
+        screen_space_ui_renderer,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(renderer),
+        Some(streamer),
+        None,
+        None,
+        graph_execution,
+    );
+    pop_group(encoder);
+    result
 }

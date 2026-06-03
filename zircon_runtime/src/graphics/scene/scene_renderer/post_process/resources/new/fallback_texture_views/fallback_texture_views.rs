@@ -4,4 +4,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) white_texture_view:
         wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) effect_lut_texture_view:
+        wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) effect_lut_texture_3d_view:
+        wgpu::TextureView,
 }

@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/color_material.rs
   - zircon_runtime/src/core/framework/render/material/dependency_set.rs
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
+  - zircon_runtime/src/core/framework/render/material/lighting_model.rs
   - zircon_runtime/src/core/framework/render/material/management.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
@@ -32,6 +33,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
@@ -70,6 +72,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/dependency_set.rs
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/fallback_policy.rs
+  - zircon_runtime/src/core/framework/render/material/lighting_model.rs
   - zircon_runtime/src/core/framework/render/material/management.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
@@ -96,6 +99,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
@@ -134,6 +138,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-17-zmaterial-material-editor.md
   - user: 2026-05-27 continue shader/material management
 tests:
+  - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/asset/tests/assets/material.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
@@ -153,6 +158,8 @@ tests:
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs::render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_non_blocking_diagnostics
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_lighting_model_drives_standard_descriptor_without_shader_override
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_reports_invalid_lighting_model_as_material_validation_error
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_material_uniform_diagnostics
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_texture_slot_runtime_mapping
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_property_runtime_values
@@ -378,7 +385,7 @@ The top-level `zircon_runtime::core::framework::render` facade re-exports the ma
 
 ## Product Surface
 
-`StandardMaterialDescriptor` carries the M3A PBR-ready material surface: shader and texture dependencies, base color, normal, metallic/roughness, metallic-roughness texture, occlusion, emissive data, alpha behavior, unlit flag, double-sided flag, and fallback policy.
+`StandardMaterialDescriptor` carries the M3A PBR-ready material surface: shader and texture dependencies, base color, normal, metallic/roughness, metallic-roughness texture, occlusion, emissive data, alpha behavior, lighting model, derived unlit flag, double-sided flag, and fallback policy.
 
 `ColorMaterialDescriptor` provides the simple unlit color/texture material contract for 2D and fallback paths. It shares the same dependency, alpha, double-sided, and fallback fields so later Core2d/Core3d classification can consume a common material shape.
 
@@ -404,6 +411,8 @@ The top-level `zircon_runtime::core::framework::render` facade re-exports the ma
 
 `RenderMaterialTextureSlotSummary` is the matching compact inspection DTO for authored material texture slots after resource resolution. The same DTO is used for fixed PBR slots (`base_color`, `normal`, `metallic_roughness`, `occlusion`, and `emissive`) and shader-specific non-standard slots. It counts authored slots, how many resolved to concrete texture ids, and how many remain fallback-only. `RenderMaterialTextureSlotState` is the companion detail row: it carries the authored slot key plus the resolved `ResourceId` when upload/lookup succeeded, or `None` when the authored slot fell back. Summary stays count-only; state rows are for editor/runtime detail panels that need slot-key-level inspection without reading `MaterialRuntime`.
 
+`RenderMaterialLightingModel` is part of the neutral material contract and is re-exported through `zircon_runtime::core::framework::render` alongside `RenderMaterialAlphaMode`. Asset, resource-streamer, and pipeline-key callers should import the lighting model through that top-level render contract rather than reaching into the material submodule. `MaterialAsset` treats `overrides.lighting_model` as a material-owned control value: it is parsed into the standard descriptor and renderer pipeline key, derives the descriptor `unlit` flag when the token is `unlit`, and is filtered out of shader property override iteration so shader schemas cannot accidentally consume it as a user property.
+
 M5A wires the `StandardMaterialDescriptor` surface into the runtime resource streamer. `MaterialRuntime` now stores base color, emissive color, metallic, roughness, double-sided, alpha, unlit, standard PBR texture ids, shader property values projected from shader schema, non-standard shader texture slot ids, a `PipelineKey`, and the readiness report that was produced while resolving material, shader, and texture dependencies.
 
 `PipelineKey` is intentionally renderer-owned. It includes shader identity/revision, double-sided state, alpha-blend/alpha-mask state, alpha cutoff bits, unlit state, and authored StandardMaterial texture-slot presence bits. The texture presence bits come from authored descriptor references rather than only successfully uploaded GPU texture ids, so a KTX/container texture that falls back still compiles the same material variant requested by the asset.
@@ -411,6 +420,8 @@ M5A wires the `StandardMaterialDescriptor` surface into the runtime resource str
 ## Validation
 
 `RenderMaterialValidationError::InvalidMaskCutoff` records invalid `AlphaMode::Mask` values. The accepted range is finite `0.0..=1.0`.
+
+`RenderMaterialValidationError::InvalidLightingModel` records malformed `overrides.lighting_model` values before renderer preparation. Accepted authored tokens include `pbr`, `standard`, `physically_based`, `blinn_phong`, `unlit`, and non-empty `custom:<name>` values. Invalid lighting-model values are material validation errors rather than shader schema errors because the field is reserved by `MaterialAsset`.
 
 `RenderMaterialReadinessDiagnostic` carries material-local diagnostic strings that should remain visible without marking the material unavailable. `MaterialAsset.validation_diagnostics` entries are projected into this non-blocking list with `RenderMaterialDiagnosticSource::MaterialAsset` and stable paths such as `material.validation_diagnostics[0]`. `RenderMaterialReadinessReport::is_ready()` still depends only on validation errors and fallback usage.
 
@@ -478,6 +489,6 @@ Management selection uses the full record set instead of compact overview rows. 
 
 Mesh pipeline creation consumes `PipelineKey`: `double_sided` disables back-face culling, `alpha_blend` controls transparent blend/depth-write behavior, `alpha_mask` and cutoff bits keep mask variants distinct, and PBR texture slots select authored material variants. Alpha-mask materials are not treated as transparent; only blend mode reports `PipelineKey::is_transparent()`. The mesh and deferred geometry pipeline layouts now include material group 3, and mesh draws bind the prepared material uniform after model and texture bindings. The fallback and deferred geometry shaders declare the neutral group-3 material uniform but do not yet use it for shading until shader reflection/property binding semantics are expanded.
 
-`ResourceStreamer::ensure_scene_resources(...)` counts prepared materials and folds each material readiness summary into renderer-facing counters. `RenderStats` exposes `last_material_count`, `last_material_ready_count`, `last_material_fallback_count`, `last_material_validation_error_count`, and `last_material_diagnostic_count` so submit tests and tools can distinguish ready materials, fallback/degraded materials, blocking validation errors, and non-blocking import/authoring notes without reparsing the full readiness report.
+`ResourceStreamer::ensure_scene_resources(...)` counts prepared materials and folds each material readiness summary into renderer-facing counters. `RenderStats` exposes `last_material_count`, `last_material_ready_count`, `last_material_fallback_count`, `last_material_validation_error_count`, and `last_material_diagnostic_count` so submit tests and tools can distinguish ready materials, fallback/degraded materials, blocking validation errors, and non-blocking import/authoring notes without reparsing the full readiness report. `collect_runtime_diagnostics(...)` mirrors the same counters into `DiagnosticStore` as `render.material.count`, `render.material.ready_count`, `render.material.fallback_count`, `render.material.validation_error_count`, and `render.material.diagnostic_count`.
 
 The `.zmaterial` assetization lane now owns material source parsing: built-in material import accepts `.zmaterial`, shader-owned overrides, and texture-slot references. This render-framework module still owns neutral runtime readiness and PBR descriptor projection only; material-editor authoring, automatic shader reflection, and a full physically based shader rewrite remain outside this document's runtime material contract scope.

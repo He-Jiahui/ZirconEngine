@@ -13,6 +13,8 @@ reference. AI structure drafts and design-board screenshots are review support, 
 | --- | --- |
 | Source reference | `docs/ui-and-layout/hub.png` |
 | Final page source | `docs/ui-and-layout/hub-web-reference/index.html` |
+| Material component source | `docs/ui-and-layout/hub-web-reference/material-components.js` owns the bottom-up low-level controls, rows, lists/tables, popup/menu/modal surfaces, and window/drawer/workspace markers used by `app.js`. |
+| Material component style source | `docs/ui-and-layout/hub-web-reference/material-styles.css` owns the matching bottom-up component density and styling layer for reusable controls, cards, tables, lists, menus, popups, and modal surfaces. |
 | Cover markup source | `docs/ui-and-layout/hub-web-reference/cover-rendering.js` maps project ids to local reference cover images. |
 | CSS cover source | `docs/ui-and-layout/hub-web-reference/covers.css` styles reference cover images to match the fixed `hub.png` visual texture. |
 | Export command | `node docs/ui-and-layout/hub-web-reference/export-pages.mjs` |
@@ -55,7 +57,7 @@ These `docs/ui-and-layout/hub-*.png` files are the final reference outputs:
 | Web reference export | Pass | `export-pages.mjs` regenerated the 19 final `hub-*.png` files and dashboard capture; default port fallback and strict explicit-port failure were both exercised. |
 | Web reference visual validation | Pass | `validate-visuals.mjs` validated 19 exported PNGs at `1568x1003`, root inventory, retired generator absence, `EXPORTS.md`, docs matrix, README policy, AI manifest schema, schema subset validation, negative schema self-tests, 19 required AI drafts at `1024x1024`, exact AI draft directory inventory with no orphaned AI draft PNGs or stray draft files, spot checks, and dashboard pixel comparison. |
 | Web reference interaction validation | Pass | `validate-interactions.mjs` validated 20 browser-openable pages, 19 output filename replay paths, 19 `EXPORTS.md` replay paths, 53 click routes, 4 local UI state interactions, 3 search/filter interactions, 6 applied state interactions, zero unhandled actionable buttons, and left no `zircon-hub-cdp-*` temp profile. |
-| Web reference responsive validation | Pass | `validate-responsive.mjs` validated the dashboard plus all 19 exported pages across `1568x1003`, `1920x1080`, `1915x508`, `1600x1024`, `1280x900`, `1024x720`, `900x720`, `760x680`, and `640x640` using DOM geometry, then validated 7 representative pages through 5 live resize steps without reload, local-only runtime dependencies, viewport-full shell geometry, large-preview dashboard card expansion, required `.project-cover-image` reference cover elements on project pages, Projects Browser header/every-row column alignment, and no UI reuse of AI draft/exported Hub PNG files. |
+| Web reference responsive validation | Pass | `validate-responsive.mjs` validated the dashboard plus all 19 exported pages across `1568x1003`, `1920x1080`, `1915x508`, `1600x1024`, `1280x900`, `1024x720`, `900x720`, `760x680`, and `640x640` using DOM geometry, then validated 7 representative pages through 5 live resize steps without reload, local-only runtime dependencies, required `data-component` coverage for the Material reference component layer, `material-styles.css` component-style ownership, viewport-full shell geometry, large-preview dashboard card expansion, required `.project-cover-image` reference cover elements on project pages, Projects Browser header/every-row column alignment, and no UI reuse of AI draft/exported Hub PNG files. |
 | Design-board validation | Pass | `validate-design-board.mjs` validated 3 supplemental PNGs at `1568x1003`, manifest/export metadata hashes, structure review documents, review packet schema, fixed canvas fit, geometry boundaries, and key-label fit. |
 | Focused Rust visual contract | Pass | `ui_visual_standard_contract` ran through Cargo with 8 passed, 0 failed, 0 ignored. |
 
@@ -66,6 +68,28 @@ These `docs/ui-and-layout/hub-*.png` files are the final reference outputs:
 - `node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs` passed after the regenerated PNGs, including 53 click routes, 4 local UI state interactions, 3 search/filter interactions, and 6 applied state interactions for filter, sort, pagination, source-engine popup selection, new-project engine selection, and browser grid/list mode.
 - `node docs/ui-and-layout/hub-web-reference/validate-responsive.mjs` passed after extending responsive coverage to the `1915x508` design-review crop, `760x680`, and `640x640`, adding a five-step live resize sequence for 7 representative pages, and checking viewport-full shell geometry.
 - `hub-projects-browser.png` was regenerated after tightening the browser table CSS; `validate-responsive.mjs` now checks the All Projects table, header, every row, and selected-row highlight share the same width, left edge, right edge, and column widths.
+- `material-components.js` now centralizes the web-reference low-level controls,
+  row primitives, project table/card/list collections, menus, confirmation
+  modal, and popup surfaces. `app.js` composes those components, and
+  `validate-responsive.mjs` rejects missing required component markers during
+  every fixed viewport and live-resize audit.
+- `material-styles.css` now centralizes the matching reusable component styles
+  for those controls, cards, tables, lists, menus, popups, and modal surfaces;
+  `styles.css` remains responsible for tokens plus shell/page placement.
+- The Dashboard web reference now keeps the topbar Running status dot and lifts
+  the Button States strip toward `docs/ui-and-layout/hub.png`; the primary
+  Projects header action fill is desaturated toward the target `New Project`
+  tone. The latest darker command-button pass keeps the dashboard comparison at
+  full-frame mean/RMS `9.23`/`27.50` while improving the native Slint Projects
+  header action region.
+- Non-dashboard web-reference pages now reuse the same Material reference
+  layer for compact tab strips, metric cards, data tables, input/combo boxes,
+  checkbox/toggle rows, and catalog/list content before Slint migration.
+  `node docs/ui-and-layout/hub-web-reference/validate-responsive.mjs` passed
+  with those required component markers, and
+  `node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs` passed
+  after tab, toggle, checkbox, combo-preview, and table-search local UI
+  handlers were added.
 - Project cards, recent project rows, the project browser, selected-project side
   preview, and project detail hero now use `.project-cover-image` local
   reference cover images from `zircon_hub/assets/covers/reference/*`.

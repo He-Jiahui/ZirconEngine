@@ -21,6 +21,7 @@ pub(super) fn register(registry: &mut TypeRegistry) -> Result<(), ReflectError> 
             shared::readonly_field("model", "Resource", ReflectEditorHint::Resource),
             shared::readonly_field("mesh", "Resource", ReflectEditorHint::Resource),
             shared::readonly_field("material", "Resource", ReflectEditorHint::Resource),
+            shared::readonly_field("morph_weights", "List", ReflectEditorHint::None),
             shared::readonly_field("primitives", "List", ReflectEditorHint::None),
             shared::field("tint", "Vec4", ReflectEditorHint::Vec4),
         ],
@@ -57,6 +58,14 @@ fn read_field(
         })),
         "material" => Ok(ReflectedValue::Resource(
             component.material.id().to_string(),
+        )),
+        "morph_weights" => Ok(ReflectedValue::List(
+            component
+                .morph_weights
+                .iter()
+                .copied()
+                .map(ReflectedValue::Scalar)
+                .collect(),
         )),
         "primitives" => Ok(ReflectedValue::List(
             component
@@ -97,6 +106,10 @@ fn read_fields(
             "primitives",
             read_field(world, entity, TYPE_PATH, "primitives")?,
         ),
+        ReflectFieldValue::new(
+            "morph_weights",
+            read_field(world, entity, TYPE_PATH, "morph_weights")?,
+        ),
         ReflectFieldValue::new("tint", read_field(world, entity, TYPE_PATH, "tint")?),
     ])
 }
@@ -118,7 +131,7 @@ fn write_field(
             shared::get_component_mut::<MeshRenderer>(world, entity, TYPE_PATH)?.tint = next;
             Ok(true)
         }
-        "model" | "mesh" | "material" | "primitives" => {
+        "model" | "mesh" | "material" | "morph_weights" | "primitives" => {
             Err(shared::non_editable_field(TYPE_PATH, field_name))
         }
         _ => Err(shared::unknown_field(TYPE_PATH, field_name)),

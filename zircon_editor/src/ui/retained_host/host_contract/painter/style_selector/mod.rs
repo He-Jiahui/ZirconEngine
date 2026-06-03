@@ -1,0 +1,83 @@
+mod workbench_button;
+mod workbench_dropdown;
+mod workbench_icon_button;
+mod workbench_list_row;
+mod workbench_popup_row;
+mod workbench_segmented_control;
+mod workbench_selection_control;
+mod workbench_slider;
+mod workbench_toast;
+mod workbench_tooltip;
+
+use super::super::data::TemplatePaneNodeData;
+use zircon_runtime_interface::ui::style::{ButtonInteractionState, UiPainterState};
+
+pub(in crate::ui::retained_host::host_contract::painter) fn painter_state_for_node(
+    node: &TemplatePaneNodeData,
+) -> UiPainterState {
+    UiPainterState {
+        hovered: node.hovered,
+        pressed: node.pressed || node.enter_pressed,
+        focused: node.focused,
+        disabled: node.disabled
+            || node.button_style.disabled
+            || matches!(
+                node.button_style.interaction_state,
+                ButtonInteractionState::Disabled
+            ),
+        checked: node.checked,
+        selected: node.selected,
+        open: node.popup_open,
+        dragging: node.dragging,
+        drop_hovered: node.drop_hovered || node.active_drag_target,
+        loading: node.button_style.loading
+            || matches!(
+                node.button_style.interaction_state,
+                ButtonInteractionState::Loading
+            ),
+    }
+}
+
+pub(super) use workbench_button::{
+    select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle, ADD_COMPONENT_GLYPH,
+    ADD_COMPONENT_TEXT, OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
+};
+pub(super) use workbench_dropdown::{
+    select_workbench_dropdown_style, WorkbenchDropdownStyle, WORKBENCH_DROPDOWN_BORDER,
+    WORKBENCH_DROPDOWN_FOCUS_BORDER, WORKBENCH_DROPDOWN_PLACEHOLDER, WORKBENCH_DROPDOWN_SURFACE,
+};
+pub(super) use workbench_icon_button::{
+    select_workbench_icon_button_style, WorkbenchIconButtonContext, WorkbenchIconButtonStyle,
+    WORKBENCH_ICON_PANEL_RADIUS,
+};
+pub(super) use workbench_list_row::{select_workbench_list_row_style, WorkbenchListRowStyle};
+pub(super) use workbench_popup_row::{
+    select_workbench_popup_row_style, WorkbenchPopupRowState, WorkbenchPopupRowStyle,
+    WORKBENCH_POPUP_ROW_DANGER_TEXT,
+};
+pub(super) use workbench_segmented_control::{
+    select_workbench_segmented_control_style, WorkbenchSegmentedControlKind,
+    WorkbenchSegmentedControlStyle, WORKBENCH_SEGMENT_IDLE_BACKGROUND,
+};
+pub(super) use workbench_selection_control::{
+    is_workbench_selection_state_hot, select_workbench_selection_control_style,
+    WorkbenchSelectionControlKind, WorkbenchSelectionControlStyle, WORKBENCH_CHECKBOX_CHECKED_FILL,
+    WORKBENCH_RADIO_CHECKED_BORDER, WORKBENCH_RADIO_CHECKED_FILL, WORKBENCH_SELECTION_LABEL_MUTED,
+    WORKBENCH_SELECTION_MARK_IDLE_BORDER, WORKBENCH_SELECTION_MARK_IDLE_FILL,
+};
+pub(super) use workbench_slider::{
+    is_workbench_slider_state_hot, select_workbench_slider_style, WorkbenchSliderStyle,
+    WORKBENCH_SLIDER_HALO, WORKBENCH_SLIDER_TEXT, WORKBENCH_SLIDER_THUMB, WORKBENCH_SLIDER_TICK,
+    WORKBENCH_SLIDER_TRACK, WORKBENCH_SLIDER_TRACK_DISABLED,
+};
+pub(super) use workbench_toast::select_workbench_toast_style;
+#[cfg(test)]
+pub(super) use workbench_toast::{
+    WORKBENCH_TOAST_ACTION, WORKBENCH_TOAST_BORDER, WORKBENCH_TOAST_SURFACE,
+};
+pub(super) use workbench_tooltip::select_workbench_tooltip_style;
+#[cfg(test)]
+pub(super) use workbench_tooltip::{
+    WORKBENCH_TOOLTIP_BODY, WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_ICON,
+    WORKBENCH_TOOLTIP_SURFACE,
+};

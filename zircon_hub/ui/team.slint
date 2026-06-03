@@ -1,6 +1,6 @@
 import { TeamData, TeamMemberData, UiTextData } from "shared.slint";
-import { HubTokens, HubVisualSpec, OverviewPanel, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
-import { TeamMembersPanel, TeamSummarySlot } from "team_page_components.slint";
+import { HubTokens, HubVisualSpec, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
+import { TeamActionsPanel, TeamMembersPanel, TeamSummarySlot } from "team_page_components.slint";
 
 export component TeamPage inherits PageScrollSurface {
     in property <TeamData> summary;
@@ -8,22 +8,20 @@ export component TeamPage inherits PageScrollSurface {
     in property <int> member-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <length> header-height: HubTokens.list-row-lg;
-    private property <bool> summary-compact: root.content-width < HubTokens.panel-min-sm * 3 / 4 + HubTokens.panel-min-md + HubTokens.panel-gap;
-    private property <length> member-row-height: root.summary-compact ? HubTokens.list-row-md : HubTokens.list-row-lg;
-    private property <length> summary-section-height: root.summary-compact ? HubTokens.workspace-row-team-summary * 2 + HubTokens.panel-gap : HubTokens.workspace-row-team-summary;
+    private property <bool> summary-compact: root.content-width < HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;
+    private property <bool> overview-compact: root.content-width < HubTokens.panel-min-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
+    private property <length> member-row-height: HubTokens.list-row-md;
+    private property <length> action-row-height: HubTokens.list-row-sm;
+    private property <length> summary-section-height: root.summary-compact ? HubTokens.workspace-row-team-summary * 4 + HubTokens.panel-gap * 3 : HubTokens.workspace-row-team-summary;
     private property <length> member-row-slot-height: root.member-row-height + HubTokens.space-2;
-    private property <length> member-panel-chrome-height: HubTokens.control-md + HubTokens.toolbar-gap + HubTokens.space-4 * 2;
-    private property <int> member-visible-rows: root.member-count < 6 ? root.member-count : 6;
-    private property <length> member-available-height: max(root.member-panel-chrome-height + root.member-row-slot-height, root.content-height - root.header-height - root.summary-section-height - HubTokens.panel-gap * 2);
-    private property <length> member-available-list-height: max(root.member-row-slot-height, root.member-available-height - root.member-panel-chrome-height);
-    private property <int> member-fit-row-count: Math.floor(root.member-available-list-height / root.member-row-slot-height);
-    private property <int> member-fit-rows: root.member-fit-row-count < 1 ? 1 : root.member-fit-row-count;
-    private property <int> member-panel-rows: root.member-visible-rows < 1 ? 1 : (root.member-visible-rows < root.member-fit-rows ? root.member-visible-rows : root.member-fit-rows);
-    private property <length> member-list-height: root.member-count == 0 ? HubTokens.list-row-lg + HubTokens.space-4 : root.member-panel-rows * root.member-row-height + (root.member-panel-rows - 1) * HubTokens.space-2 + HubTokens.space-1 * 2;
+    private property <length> member-panel-chrome-height: HubTokens.list-row-sm + HubTokens.control-md + HubTokens.toolbar-gap * 2 + HubTokens.space-4 * 2;
+    private property <int> member-visible-rows: root.member-count < 3 ? root.member-count : 3;
+    private property <int> member-panel-rows: root.member-visible-rows + 1;
+    private property <length> member-list-height: root.member-count == 0 ? root.member-row-height + HubTokens.space-2 + HubTokens.list-row-lg + HubTokens.space-4 : root.member-panel-rows * root.member-row-height + (root.member-panel-rows - 1) * HubTokens.space-2 + HubTokens.space-1 * 2;
     private property <length> members-panel-height: root.member-panel-chrome-height + root.member-list-height;
+    private property <length> actions-panel-height: HubTokens.list-row-sm + root.action-row-height * 6 + HubTokens.toolbar-gap * 6 + HubTokens.space-4 * 2;
+    private property <length> overview-section-height: max(root.members-panel-height, root.actions-panel-height);
     private property <length> member-scroll-y: 0px;
-    private property <string> workspace-title: root.has-selected-project ? root.ui-text.team-workspace-selected : root.ui-text.team-workspace;
     private property <string> members-empty-detail: root.has-selected-project ? root.ui-text.team-empty-selected-detail : root.ui-text.team-empty-global-detail;
 
     background: HubVisualSpec.page-background;
@@ -34,25 +32,18 @@ export component TeamPage inherits PageScrollSurface {
         collapse-at: HubTokens.breakpoint-medium;
     }
 
-    OverviewPanel {
-        height: root.header-height;
-        title: root.workspace-title;
-        subtitle: root.summary.status;
-        badge-text: root.member-count + " " + root.ui-text.team-members-found;
-        badge-width: HubTokens.control-lg * 3;
-    }
-
     WorkspacePanelSection {
         compact: root.summary-compact;
+        compact-rows: 4;
         row-height: HubTokens.workspace-row-team-summary;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
         TeamSummarySlot {
-            basis: HubTokens.panel-min-sm * 4 / 5;
-            flex-basis: HubTokens.panel-min-sm * 4 / 5;
-            grow: 0;
-            flex-grow: 0;
+            basis: HubTokens.panel-min-sm * 3 / 4;
+            flex-basis: HubTokens.panel-min-sm * 3 / 4;
+            grow: 1;
+            flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
             min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
@@ -60,33 +51,92 @@ export component TeamPage inherits PageScrollSurface {
             label: root.ui-text.team-git-identity;
             primary: root.summary.identity-name;
             secondary: root.summary.identity-email;
+            compact-card: root.summary-compact;
         }
 
         TeamSummarySlot {
+            basis: HubTokens.panel-min-sm * 3 / 4;
+            flex-basis: HubTokens.panel-min-sm * 3 / 4;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
+            height: HubTokens.workspace-row-team-summary;
+            label: root.ui-text.team-repository;
+            primary: root.summary.repository-path;
+            secondary: root.summary.status;
+            compact-card: root.summary-compact;
+        }
+
+        TeamSummarySlot {
+            basis: HubTokens.panel-min-sm * 3 / 4;
+            flex-basis: HubTokens.panel-min-sm * 3 / 4;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
+            height: HubTokens.workspace-row-team-summary;
+            label: "Members";
+            primary: root.member-count + " active";
+            secondary: "Reviewers assigned";
+            compact-card: root.summary-compact;
+        }
+
+        TeamSummarySlot {
+            basis: HubTokens.panel-min-sm * 3 / 4;
+            flex-basis: HubTokens.panel-min-sm * 3 / 4;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
+            height: HubTokens.workspace-row-team-summary;
+            label: "Access";
+            primary: "Local";
+            secondary: "No cloud sign-in required";
+            compact-card: root.summary-compact;
+        }
+    }
+
+    WorkspacePanelSection {
+        compact: root.overview-compact;
+        compact-rows: 2;
+        row-height: root.overview-section-height;
+        spacing-horizontal: HubTokens.panel-gap;
+        spacing-vertical: HubTokens.panel-gap;
+
+        TeamMembersPanel {
+            basis: HubTokens.panel-min-lg;
+            flex-basis: HubTokens.panel-min-lg;
+            grow: 2;
+            flex-grow: 2;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.overview-compact ? root.content-width : HubTokens.panel-min-lg;
+            height: root.overview-section-height;
+            summary: root.summary;
+            members: root.members;
+            member-count: root.member-count;
+            member-row-height: root.member-row-height;
+            members-empty-detail: root.members-empty-detail;
+            repository-path: root.summary.repository-path;
+            ui-text: root.ui-text;
+            collapse-label: label-collapse.collapsed;
+            member-scroll-y <=> root.member-scroll-y;
+        }
+
+        TeamActionsPanel {
             basis: HubTokens.panel-min-md;
             flex-basis: HubTokens.panel-min-md;
             grow: 1;
             flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm;
-            height: HubTokens.workspace-row-team-summary;
-            label: root.ui-text.team-repository;
-            primary: root.summary.repository-path;
-            secondary: root.ui-text.team-local-only;
+            min-width: root.overview-compact ? root.content-width : HubTokens.panel-min-md;
+            height: root.overview-section-height;
+            action-row-height: root.action-row-height;
         }
-    }
-
-    TeamMembersPanel {
-        horizontal-stretch: 1;
-        height: root.members-panel-height;
-        members: root.members;
-        member-count: root.member-count;
-        member-row-height: root.member-row-height;
-        members-empty-detail: root.members-empty-detail;
-        repository-path: root.summary.repository-path;
-        ui-text: root.ui-text;
-        collapse-label: label-collapse.collapsed;
-        member-scroll-y <=> root.member-scroll-y;
     }
 }

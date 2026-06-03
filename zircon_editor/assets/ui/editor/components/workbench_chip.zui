@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_chip.zui"
+version = 2
+display_name = "Workbench Chip"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchChip]
+root = "root"
+default_classes = ["workbench-chip", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchChipRoot"
+classes = ["workbench-chip"]
+props = { text = "Chip", font_size = 12.0, text_tone = "primary", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0 }
+layout = { width = { min = 40.0, preferred = 80.0, max = 160.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }

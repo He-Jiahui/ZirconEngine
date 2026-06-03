@@ -99,6 +99,14 @@ fn validate_reachable_root(
                         detail: format!("node {node_id} has an empty component"),
                     });
                 }
+                if let Some(repeat) = &node.repeat {
+                    repeat.validate(&node_id).map_err(|detail| {
+                        UiV2AssetError::InvalidDocument {
+                            asset_id: document.asset.id.clone(),
+                            detail,
+                        }
+                    })?;
+                }
                 stack.push(VisitFrame::Exit(node_id.clone()));
                 for child in node.children.iter().rev() {
                     if !node_handles.contains_key(&child.node) {
@@ -163,6 +171,7 @@ fn arena_from_document(
             props: node.props.clone(),
             state: node.state.clone(),
             layout: node.layout.clone(),
+            repeat: node.repeat.clone(),
             style: node.style.clone(),
             slots: node.slots.clone(),
             events: node.events.clone(),

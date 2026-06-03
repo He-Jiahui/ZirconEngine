@@ -20,7 +20,7 @@ pub use event::{
 };
 pub use metadata::{
     UiDeviceId, UiDragSessionId, UiInputEventMetadata, UiInputModifiers, UiInputSequence,
-    UiInputTimestamp, UiPointerId, UiSurfaceId, UiUserId, UiWindowId,
+    UiInputTimestamp, UiPointerId, UiPointerSource, UiSurfaceId, UiUserId, UiWindowId,
 };
 pub use reply::{
     UiDispatchDisposition, UiDispatchPhase, UiDispatchReply, UiDispatchReplyMergeReport,
@@ -29,5 +29,5 @@ pub use reply::{
 pub use result::{
     UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchHostRequest,
     UiDispatchHostRequestKind, UiDispatchRejectedEffect, UiInputDispatchDiagnostics,
-    UiInputDispatchResult,
+    UiInputDispatchResult, UiInputRoutePolicy,
 };

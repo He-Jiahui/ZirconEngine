@@ -1,8 +1,6 @@
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use super::*;
-use crate::ui::layouts::views::load_preview_image;
 use crate::ui::retained_host::host_contract::data::{
     HostClosePromptData, HostDocumentDockSurfaceData, HostWindowLayoutData, PaneData,
     TemplateNodeFrameData, TemplatePaneNodeData,
@@ -10,15 +8,20 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::painter::{
     paint_host_frame, repaint_host_frame_region,
 };
-use crate::ui::retained_host::primitives::{Image, ModelRc, VecModel};
+use crate::ui::retained_host::primitives::{
+    Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, VecModel,
+};
 
-const WORKBENCH_REFERENCE_IMAGE_CONTROL_ID: &str = "WorkbenchShellReferenceImage";
-const WORKBENCH_REFERENCE_IMAGE_PATH: &str = "ui/editor/reference/workbench.png";
-const WORKBENCH_REFERENCE_SOURCE_PATH: &str = "docs/ui-and-layout/workbench.png";
-const WORKBENCH_REFERENCE_WIDTH: u32 = 1672;
-const WORKBENCH_REFERENCE_HEIGHT: u32 = 941;
-const WORKBENCH_REFERENCE_UPLOAD_BYTES: u64 =
-    (WORKBENCH_REFERENCE_WIDTH as u64) * (WORKBENCH_REFERENCE_HEIGHT as u64) * 4;
+const ROOT_OVERLAY_IMAGE_CONTROL_ID: &str = "TestRootOverlayImage";
+const ROOT_OVERLAY_IMAGE_PATH: &str = "ui/test/root-overlay.png";
+const ROOT_OVERLAY_IMAGE_WIDTH: u32 = 2;
+const ROOT_OVERLAY_IMAGE_HEIGHT: u32 = 2;
+const ROOT_OVERLAY_UPLOAD_BYTES: u64 =
+    (ROOT_OVERLAY_IMAGE_WIDTH as u64) * (ROOT_OVERLAY_IMAGE_HEIGHT as u64) * 4;
+const ROOT_OVERLAY_FRAME_WIDTH: f32 = 48.0;
+const ROOT_OVERLAY_FRAME_HEIGHT: f32 = 32.0;
+const ROOT_OVERLAY_FRAME_SIZE: (u32, u32) = (96, 72);
+const ROOT_OVERLAY_COLOR: [u8; 4] = [28, 199, 215, 255];
 
 fn presentation_with_viewport_image() -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
@@ -64,9 +67,9 @@ fn presentation_with_viewport_image() -> HostWindowPresentationData {
     presentation
 }
 
-fn presentation_with_workbench_reference_overlay() -> HostWindowPresentationData {
+fn presentation_with_root_overlay_image() -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
-    presentation.root_template_nodes = model_rc(vec![workbench_reference_image_node()]);
+    presentation.root_template_nodes = model_rc(vec![root_overlay_image_node()]);
     presentation
 }
 
@@ -100,20 +103,20 @@ fn test_layout() -> HostWindowLayoutData {
     }
 }
 
-fn workbench_reference_image_node() -> TemplatePaneNodeData {
+fn root_overlay_image_node() -> TemplatePaneNodeData {
     TemplatePaneNodeData {
-        node_id: "workbench_reference_image".into(),
-        control_id: WORKBENCH_REFERENCE_IMAGE_CONTROL_ID.into(),
+        node_id: "test_root_overlay_image".into(),
+        control_id: ROOT_OVERLAY_IMAGE_CONTROL_ID.into(),
         role: "Image".into(),
         component_role: "image".into(),
-        media_source: WORKBENCH_REFERENCE_IMAGE_PATH.into(),
+        media_source: ROOT_OVERLAY_IMAGE_PATH.into(),
         has_preview_image: true,
-        preview_image: load_preview_image(WORKBENCH_REFERENCE_IMAGE_PATH, ""),
+        preview_image: solid_image(ROOT_OVERLAY_COLOR),
         frame: TemplateNodeFrameData {
             x: 0.0,
             y: 0.0,
-            width: WORKBENCH_REFERENCE_WIDTH as f32,
-            height: WORKBENCH_REFERENCE_HEIGHT as f32,
+            width: ROOT_OVERLAY_FRAME_WIDTH,
+            height: ROOT_OVERLAY_FRAME_HEIGHT,
         },
         ..TemplatePaneNodeData::default()
     }
@@ -136,15 +139,20 @@ fn template_node(control_id: &str, role: &str, text: &str) -> TemplatePaneNodeDa
     }
 }
 
-fn reference_png_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("zircon_editor manifest should live under the repository root")
-        .join(WORKBENCH_REFERENCE_SOURCE_PATH)
-}
-
 fn model_rc<T: Clone + 'static>(values: Vec<T>) -> ModelRc<T> {
     ModelRc::from(Rc::new(VecModel::from(values)))
+}
+
+fn solid_image(color: [u8; 4]) -> Image {
+    Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+        &solid_rgba(color),
+        ROOT_OVERLAY_IMAGE_WIDTH,
+        ROOT_OVERLAY_IMAGE_HEIGHT,
+    ))
+}
+
+fn solid_rgba(color: [u8; 4]) -> Vec<u8> {
+    [color, color, color, color].concat()
 }
 
 #[test]
@@ -389,48 +397,36 @@ fn full_command_stream_matches_legacy_painter_pixels() {
 }
 
 #[test]
-fn full_command_stream_replays_workbench_reference_overlay_pixels() {
-    let presentation = presentation_with_workbench_reference_overlay();
+fn full_command_stream_replays_root_overlay_image_pixels() {
+    let presentation = presentation_with_root_overlay_image();
     let legacy = paint_host_frame(
-        WORKBENCH_REFERENCE_WIDTH,
-        WORKBENCH_REFERENCE_HEIGHT,
+        ROOT_OVERLAY_FRAME_SIZE.0,
+        ROOT_OVERLAY_FRAME_SIZE.1,
         &presentation,
     );
-    let stream = build_chrome_command_stream(
-        &presentation,
-        (WORKBENCH_REFERENCE_WIDTH, WORKBENCH_REFERENCE_HEIGHT),
-        None,
-        true,
-    );
+    let stream = build_chrome_command_stream(&presentation, ROOT_OVERLAY_FRAME_SIZE, None, true);
     let replayed = paint_chrome_command_stream_to_frame(
-        WORKBENCH_REFERENCE_WIDTH,
-        WORKBENCH_REFERENCE_HEIGHT,
+        ROOT_OVERLAY_FRAME_SIZE.0,
+        ROOT_OVERLAY_FRAME_SIZE.1,
         &stream,
     );
-    let reference = Image::load_from_path(&reference_png_path())
-        .expect("docs workbench reference image should load")
-        .to_rgba8()
-        .expect("docs workbench reference image should convert to RGBA");
+    let overlay_rgba = solid_rgba(ROOT_OVERLAY_COLOR);
 
-    let image = workbench_reference_image_command(&stream, reference.as_bytes())
-        .expect("workbench reference overlay should be recorded as an image command");
+    let image = root_overlay_image_command(&stream, &overlay_rgba)
+        .expect("root overlay should be recorded as an image command");
     assert!(!image.resource_key.is_empty());
-    assert_eq!(image.width, WORKBENCH_REFERENCE_WIDTH);
-    assert_eq!(image.height, WORKBENCH_REFERENCE_HEIGHT);
-    assert_eq!(image.upload_bytes, WORKBENCH_REFERENCE_UPLOAD_BYTES);
+    assert_eq!(image.width, ROOT_OVERLAY_IMAGE_WIDTH);
+    assert_eq!(image.height, ROOT_OVERLAY_IMAGE_HEIGHT);
+    assert_eq!(image.upload_bytes, ROOT_OVERLAY_UPLOAD_BYTES);
     assert_eq!(
-        first_pixel_difference(
-            legacy.as_bytes(),
-            reference.as_bytes(),
-            WORKBENCH_REFERENCE_WIDTH
-        ),
-        None
+        pixel(legacy.as_bytes(), ROOT_OVERLAY_FRAME_SIZE.0, 24, 16),
+        ROOT_OVERLAY_COLOR
     );
     assert_eq!(
         first_pixel_difference(
             replayed.as_bytes(),
-            reference.as_bytes(),
-            WORKBENCH_REFERENCE_WIDTH
+            legacy.as_bytes(),
+            ROOT_OVERLAY_FRAME_SIZE.0
         ),
         None
     );
@@ -471,73 +467,58 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
 }
 
 #[test]
-fn patch_command_stream_repaints_workbench_reference_overlay_damage_pixels() {
-    let presentation = presentation_with_workbench_reference_overlay();
+fn patch_command_stream_repaints_root_overlay_image_damage_pixels() {
+    let presentation = presentation_with_root_overlay_image();
     let damage = FrameRect {
-        x: 512.0,
-        y: 300.0,
-        width: 320.0,
-        height: 220.0,
+        x: 8.0,
+        y: 8.0,
+        width: 32.0,
+        height: 24.0,
     };
     let mut legacy = paint_host_frame(
-        WORKBENCH_REFERENCE_WIDTH,
-        WORKBENCH_REFERENCE_HEIGHT,
+        ROOT_OVERLAY_FRAME_SIZE.0,
+        ROOT_OVERLAY_FRAME_SIZE.1,
         &presentation,
     );
     let mut replayed = paint_host_frame(
-        WORKBENCH_REFERENCE_WIDTH,
-        WORKBENCH_REFERENCE_HEIGHT,
+        ROOT_OVERLAY_FRAME_SIZE.0,
+        ROOT_OVERLAY_FRAME_SIZE.1,
         &presentation,
     );
-    let stream = build_chrome_command_stream(
-        &presentation,
-        (WORKBENCH_REFERENCE_WIDTH, WORKBENCH_REFERENCE_HEIGHT),
-        Some(&damage),
-        true,
-    );
-    let reference = Image::load_from_path(&reference_png_path())
-        .expect("docs workbench reference image should load")
-        .to_rgba8()
-        .expect("docs workbench reference image should convert to RGBA");
+    let stream =
+        build_chrome_command_stream(&presentation, ROOT_OVERLAY_FRAME_SIZE, Some(&damage), true);
+    let overlay_rgba = solid_rgba(ROOT_OVERLAY_COLOR);
 
     let legacy_damage = repaint_host_frame_region(&mut legacy, &presentation, &damage)
-        .expect("legacy painter should repaint visible workbench reference damage");
+        .expect("legacy painter should repaint visible root overlay damage");
     let replayed_damage = repaint_chrome_command_stream_region(&mut replayed, &stream)
-        .expect("command stream should repaint visible workbench reference damage");
+        .expect("command stream should repaint visible root overlay damage");
 
     assert_eq!(replayed_damage, legacy_damage);
-    assert!(workbench_reference_image_command(&stream, reference.as_bytes()).is_some());
+    assert!(root_overlay_image_command(&stream, &overlay_rgba).is_some());
     assert_eq!(
         first_pixel_difference(
             replayed.as_bytes(),
             legacy.as_bytes(),
-            WORKBENCH_REFERENCE_WIDTH
-        ),
-        None
-    );
-    assert_eq!(
-        first_pixel_difference(
-            replayed.as_bytes(),
-            reference.as_bytes(),
-            WORKBENCH_REFERENCE_WIDTH
+            ROOT_OVERLAY_FRAME_SIZE.0
         ),
         None
     );
 }
 
-fn workbench_reference_image_command<'a>(
+fn root_overlay_image_command<'a>(
     stream: &'a ChromeCommandStream,
-    reference_rgba: &[u8],
+    overlay_rgba: &[u8],
 ) -> Option<&'a ChromeImagePayload> {
     stream
         .commands()
         .iter()
         .find_map(|command| match &command.kind {
             ChromeCommandKind::Image { payload }
-                if payload.width == WORKBENCH_REFERENCE_WIDTH
-                    && payload.height == WORKBENCH_REFERENCE_HEIGHT
-                    && payload.upload_bytes == WORKBENCH_REFERENCE_UPLOAD_BYTES
-                    && payload.rgba.as_deref() == Some(reference_rgba) =>
+                if payload.width == ROOT_OVERLAY_IMAGE_WIDTH
+                    && payload.height == ROOT_OVERLAY_IMAGE_HEIGHT
+                    && payload.upload_bytes == ROOT_OVERLAY_UPLOAD_BYTES
+                    && payload.rgba.as_deref() == Some(overlay_rgba) =>
             {
                 Some(payload)
             }

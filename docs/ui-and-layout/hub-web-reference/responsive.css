@@ -54,10 +54,11 @@
   .panel.tall,
   .catalog-main,
   .catalog-side,
-  .browser-main,
-  .browser-side,
-  .build-main,
-  .build-side,
+    .browser-main,
+    .browser-side,
+    .build-main,
+    .build-pipeline-panel,
+    .build-side,
   .detail-main,
   .detail-side,
   .editor-source-panel,
@@ -177,12 +178,15 @@
   }
 
   .editor-side-panel,
-  .editor-timeline-panel {
+  .editor-timeline-panel,
+  .build-pipeline-panel,
+  .build-side {
     grid-column: auto;
     grid-row: auto;
   }
 
   .editor-source-summary,
+  .editor-field-grid,
   .detail-stats,
   .pipeline,
   .content-grid.four {
@@ -273,9 +277,16 @@
   .project-cards,
   .template-grid,
   .timeline-grid,
+  .editor-field-grid,
+  .path-field-row,
   .mini-stat-grid,
   .settings-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .path-field-row .button {
+    width: 100%;
+    min-height: 42px;
   }
 
   .table-head,
@@ -294,11 +305,11 @@
   }
 
   .table-head span:nth-child(n + 3),
-  .project-row span:nth-child(n + 3),
+  .project-row > span:nth-child(n + 3):not(.row-trailing-slot),
   .catalog-table-head span:nth-child(n + 3),
   .catalog-row.rich > span:nth-of-type(n + 3):not(.tag),
   .browser-head span:nth-child(n + 4),
-  .browser-row > span:nth-of-type(n + 3),
+  .browser-row > span:nth-of-type(n + 3):not(.row-trailing-slot),
   .template-head span:nth-child(n + 4),
   .template-row > span:nth-of-type(n + 3),
   .build-head span:nth-child(n + 3),

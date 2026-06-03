@@ -144,14 +144,14 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
     let state_index = browser_row
         .find("row-state := StateLayerArea {")
         .expect("ProjectBrowserRow must declare a row StateLayerArea");
-    let detail_button_index = browser_row
-        .find("detail-button-shell := Rectangle {")
-        .expect("ProjectBrowserRow must expose a trailing detail button shell");
+    let detail_slot_index = browser_row
+        .find("detail-slot := HubRowTrailingSlot {")
+        .expect("ProjectBrowserRow must expose a trailing detail slot");
     assert!(
-        state_index < detail_button_index,
-        "ProjectBrowserRow row StateLayerArea must own the full row before laying out the trailing detail shell"
+        state_index < detail_slot_index,
+        "ProjectBrowserRow row StateLayerArea must own the full row before laying out the trailing detail slot"
     );
-    let state_body = &browser_row[state_index..detail_button_index];
+    let state_body = &browser_row[state_index..detail_slot_index];
     assert!(
         state_body.contains("root.select(root.project.open-path);"),
         "ProjectBrowserRow StateLayerArea should select clicks outside the detail zone"
@@ -172,31 +172,24 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
                 .contains("in property <length> detail-column-width: HubTokens.control-md;"),
         "ProjectBrowserRow detail control should be derived from Material icon-button and row-height tokens instead of fixed pixel coordinates"
     );
-    let detail_body = &browser_row[detail_button_index..];
-    let detail_state_index = detail_body
-        .find("detail-state := StateLayerArea {")
-        .expect("ProjectBrowserRow detail shell must contain a Material StateLayerArea");
-    let detail_state_body = &detail_body[detail_state_index..];
-    let detail_state_declaration = detail_state_body
-        .split("color:")
-        .next()
-        .expect("ProjectBrowserRow detail StateLayerArea must declare its size before color");
+    let detail_body = &browser_row[detail_slot_index..];
     assert!(
-        detail_body.contains("width: root.detail-column-width;")
-            && detail_body.contains("height: parent.height;")
-            && detail_body.contains("alignment: center;")
-            && detail_state_body.contains("width: root.detail-button-size;")
-            && detail_state_body.contains("height: root.detail-button-size;")
-            && detail_state_body.contains("border_radius: root.detail-button-size / 2;")
-            && detail_state_body.contains("chevron-right.svg")
-            && detail_state_body.contains("Icon {")
-            && detail_state_body.contains("clicked => { root.open-detail(root.project.open-path); }"),
-        "ProjectBrowserRow trailing detail shell should center a Material StateLayerArea icon button inside the tokenized trailing slot"
+        detail_body.contains("slot-width: root.detail-column-width;")
+            && detail_body.contains("row-height: root.row-height;")
+            && detail_body.contains("show-badge: false;")
+            && detail_body.contains("show-action: true;")
+            && detail_body.contains("action-framed: false;")
+            && detail_body.contains("action-size: root.detail-button-size;")
+            && detail_body.contains("action-icon-size: root.detail-button-size * 3 / 5;")
+            && detail_body.contains("action-foreground: root.project.selected ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant;")
+            && detail_body.contains("clicked => { root.open-detail(root.project.open-path); }"),
+        "ProjectBrowserRow trailing detail control should be described by the shared row trailing slot"
     );
     assert!(
-        !detail_state_declaration.contains("width: parent.width;")
-            && !detail_state_declaration.contains("height: parent.height;"),
-        "ProjectBrowserRow detail StateLayerArea should not paint the full trailing slot"
+        !detail_body.contains("detail-button-shell := Rectangle")
+            && !detail_body.contains("detail-state := StateLayerArea")
+            && !detail_body.contains("Icon {"),
+        "ProjectBrowserRow should not recreate local detail-button internals after adopting HubRowTrailingSlot"
     );
     for forbidden in [
         "thumb-area := TouchArea",
@@ -215,14 +208,15 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
     let projects_page = read_ui_file("projects.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     let project_projection = read_crate_file("src/app/view_model/projects.rs");
 
-    let show_more_block = dashboard_components
+    let show_more_block = project_card_flow_components
         .split("text: root.expanded ? root.collapse-label : root.show-more-label;")
         .nth(1)
-        .and_then(|source| source.split("export component DashboardQuickActionRow").next())
-        .expect("DashboardProjectCardsSection must keep the Show More button inside the dashboard component module");
+        .expect("DashboardProjectCardsSection must keep the Show More button inside the project-card-flow component module");
     assert!(
         show_more_block.contains("clicked => { root.expanded = !root.expanded; }"),
         "Dashboard Show More must only expand/collapse project cards"
@@ -243,7 +237,8 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
         "DashboardProjectCardsSection {",
         "expanded <=> root.project-cards-expanded;",
         "action-text: root.ui-text.view-all-projects;",
-        "action-clicked => { root.view-all(); }",
+        "clicked => { root.view-all(); }",
+        "text: root.action-text;",
         "view-all => { root.view-all-projects(); }",
         "root.project-view-mode = \"list\";",
         "root.project-subpage = \"project-browser\";",

@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
@@ -22,6 +23,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
@@ -46,6 +48,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
@@ -59,6 +62,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
@@ -90,6 +94,8 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --lib advanced --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib capability_validation --locked --jobs 1 --message-format short --color never
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::compiled_pipeline_capability_validation_reports_neural_compute_requirement
+  - cargo test -p zircon_runtime --lib compiled_pipeline_capability_validation_reports_neural_compute_requirement --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib capability_class_report --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib backend_caps_report_queue_classes_and_rt_support_independently --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib advanced_provider_selection --locked --jobs 1 --message-format short --color never
@@ -102,6 +108,8 @@ tests:
   - cargo test -p zircon_runtime --lib resolve_enabled_features --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib collect_runtime_feedback --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib render_framework_bridge --locked --jobs 1 --message-format short --color never
+  - cargo test -p zircon_runtime --lib register_pipeline_asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
+  - cargo test -p zircon_runtime --lib reload_pipeline --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --locked render_product_advanced --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked virtual_geometry --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked hybrid_gi --jobs 1 --message-format short --color never
@@ -156,13 +164,15 @@ The current concrete advanced requirement sets are:
 
 `AsyncCompute` is still modeled as a separate capability, but it is not required by this slice because current render graph queue fallback can run async-declared work on graphics when async compute is unavailable. Ray-query requirements remain reserved for providers that actually require ray-query or for the later Solari milestone.
 
+`NeuralCompute` is the M8 neural-network render slot. It is deliberately only a backend capability and render-feature requirement today: `RenderBackendCaps.supports_neural_compute` defaults to `false`, WGPU capability summaries do not opt in, and plugin descriptors may declare `RenderFeatureCapabilityRequirement::NeuralCompute` so pipeline activation fails with a structured capability mismatch until an explicit compute-backed provider exists. Runtime does not own model weights, inference state, tensor allocators, or plugin-private neural renderer state.
+
 ## Provider Availability
 
 `AdvancedProviderAvailability` is the input side of the runtime plan. It carries optional provider IDs for VG and HGI without owning provider objects. This is intentional: app bootstrap, plugin manifests, and native loading stay outside the neutral runtime plan.
 
 The runtime framework now fills this DTO from selected provider registrations during `WgpuRenderFramework` construction. App bootstrap remains the only layer that may depend on first-party provider implementation crates; once it hands `RuntimePluginRegistrationReport` values to runtime, selected IDs are available through `RenderStats::advanced_provider_availability`.
 
-Graphics bridge tests now keep two separate fixture paths: descriptor-only pluginized render features for missing-provider degradation, and descriptor-plus-no-op-provider fixtures for provider-backed submit acceptance. This prevents runtime graph tests from accidentally treating a descriptor as a runnable advanced feature when provider arbitration has not selected a provider.
+Graphics bridge tests now keep two separate fixture concerns: descriptor-linked pluginized render features for missing-provider degradation, and descriptor-plus-explicit-test-executor/provider fixtures for provider-backed submit acceptance. This prevents runtime graph tests from accidentally treating a descriptor as a runnable advanced feature when provider arbitration has not selected a provider, while still preserving the stricter rule that every plugin pass body must arrive through `RenderPassExecutorRegistration`. Runtime-framework registration and reload tests also cover this boundary: a descriptor-only VG pipeline is rejected at activation, while the same graph is accepted once the plugin executor registration is supplied.
 
 ## App Provider Collection And Manifests
 
@@ -175,7 +185,7 @@ The VG/HGI runtime plugin descriptors and `plugin.toml` manifests now declare pr
 
 The built-in runtime catalog mirrors those capability declarations and marks both as `Partial`, matching the current provider-backed but still experimental advanced-render maturity. Manifest-contribution tests compare the package manifests, runtime module descriptors, projected descriptor manifests, and catalog descriptors so the capability vocabulary cannot drift silently.
 
-`render_product_advanced` is the product-level acceptance surface for this slice. It submits the same AdvancedRender extract with and without runtime providers: provider-backed runs must report both advanced features as effective, execute VG/HGI graph passes, and mark both payload sources as authored; descriptor-only runs must degrade with `ProviderMissing`, execute zero VG/HGI graph passes, and clear stale payload-source stats.
+`render_product_advanced` is the product-level acceptance surface for this slice. It submits the same AdvancedRender extract with and without runtime providers: provider-backed runs must report both advanced features as effective, execute VG/HGI graph passes, and mark both payload sources as authored; no-provider runs use the same explicit executor registrations but must degrade with `ProviderMissing`, execute zero VG/HGI graph passes, and clear stale payload-source stats.
 
 ## Provider Arbitration
 
@@ -221,6 +231,10 @@ This is submit-local profile participation. It does not replace app-level render
 - `Authored`: the frame extract supplied an authored `RenderHybridGiExtract`.
 
 `FrameSubmissionContext` gates the HGI payload source through `AdvancedProfileRuntimePlan` in the same way it gates the HGI extract, update plan, and feedback. `RenderStats::last_hybrid_gi_payload_source` therefore clears to `None` when HGI is degraded or descriptor-disabled, and it does not treat visibility-derived update planning as an authored or fallback HGI payload.
+
+## Neutral Execution DTOs
+
+`RenderVirtualGeometryExecutionDraw` is framework-facing status data, not a renderer-owned GPU object. It records whether an indirect argument buffer was available, the offset, draw selection metadata, and submission records, but it no longer exposes a raw WGPU buffer through `crate::rhi`. Concrete `wgpu::Buffer` ownership stays inside scene renderer mesh draw and backend execution modules.
 
 ## Sideband Readback Feedback
 
@@ -278,7 +292,7 @@ This slice still does not implement native dynamic VG/HGI provider loading, Sola
 
 Fresh M10.9 validation on 2026-05-26 used `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate` for the runtime gate:
 
-- `cargo test -p zircon_runtime --locked render_product_advanced --jobs 1 --message-format short --color never` passed: 2 matching tests, 0 failures. This covered provider-backed VG/HGI graph execution with authored payload sources and descriptor-only provider-missing degradation that clears VG/HGI graph pass counts and payload-source stats.
+- `cargo test -p zircon_runtime --locked render_product_advanced --jobs 1 --message-format short --color never` passed: 2 matching tests, 0 failures. This covered provider-backed VG/HGI graph execution with authored payload sources and explicit-executor/no-provider degradation that clears VG/HGI graph pass counts and payload-source stats.
 
 This remains advanced-profile evidence only. It does not promote default render API, Core2d/Mesh2d, PBR/light, presentation, diagnostics, scheduling, or shader/material reflection gaps.
 

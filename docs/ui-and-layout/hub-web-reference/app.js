@@ -2,6 +2,46 @@
   const asset = (path) => `../../../${path}`;
   const icon = (name) => asset(`zircon_hub/assets/icons/${name}`);
   const brand = asset("zircon_hub/assets/brand/zircon-mark.svg"), projectCover = window.ZirconHubCover.projectCover;
+  const components = window.ZirconHubMaterialComponents.createMaterialComponents({ icon, brand, projectCover });
+  const {
+    esc,
+    pageHeading,
+    button,
+    searchBox,
+    selectButton,
+    modeButton,
+    toolbar,
+    tag,
+    progress,
+    checkLine,
+    smallStat,
+    metricGrid,
+    sectionTitle,
+    tabStrip,
+    htmlCell,
+    dataTable,
+    rowIcon,
+    infoRow,
+    sourceEngineRow,
+    settingSummaryRow,
+    projectStatusStrip,
+    projectDetailActionsSection,
+    actionRow,
+    emptyState,
+    catalogColumnRow,
+    pathFieldRow,
+    inputBox,
+    comboBox,
+    checkboxRow,
+    toggleRow,
+    projectCard,
+    projectTable,
+    quickActions,
+    renderMenu,
+    renderDeleteConfirm,
+    renderSourceEnginePopup,
+    renderUserMenu,
+  } = components;
   const navItems = [
     ["projects", "Projects", "nav/projects.svg", "projects-dashboard"],
     ["editor", "Editor", "nav/editor.svg", "hub-editor"],
@@ -154,14 +194,14 @@
       icon: "LR",
       tag: "Guide",
       rows: [
-        ["Create a Project", "Project templates, source engine selection, and launch flow", "Guide"],
-        ["Import Assets", "Asset descriptors, package roots, and importer diagnostics", "Guide"],
-        ["Build for Device", "Build profiles, packaging, and install-to-device workflow", "Guide"],
-        ["Editor Workbench", "Scene, material, prefab, and UI editing surfaces", "Reference"],
-        ["Runtime Plugins", "Plugin manifests, service types, and package loading", "Reference"],
-        ["Troubleshooting", "Recover from failed builds, missing paths, and stale config", "Guide"],
-        ["Release Checklist", "Packaging, validation, runtime evidence, and docs", "Checklist"],
-        ["API Index", "Runtime, editor, UI, and asset module documentation", "Reference"],
+        ["Create a Project", "Project templates, source engine selection, and launch flow", "Selected Project", "Project setup"],
+        ["Import Assets", "Asset descriptors, package roots, and importer diagnostics", "Source Engine", "Assets and rendering"],
+        ["Build for Device", "Build profiles, packaging, and install-to-device workflow", "Selected Project", "Build pipeline"],
+        ["Editor Workbench", "Scene, material, prefab, and UI editing surfaces", "Source Engine", "Editor workflow"],
+        ["Runtime Plugins", "Plugin manifests, service types, and package loading", "Source Engine", "Runtime systems"],
+        ["Troubleshooting", "Recover from failed builds, missing paths, and stale config", "Selected Project", "Diagnostics"],
+        ["Release Checklist", "Packaging, validation, runtime evidence, and docs", "Selected Project", "Checklist"],
+        ["API Index", "Runtime, editor, UI, and asset module documentation", "Source Engine", "Reference"],
       ],
     },
   };
@@ -247,7 +287,7 @@
       nav: "cloud",
       title: "Cloud",
       subtitle: "Package, deploy, and monitor cloud services.",
-      render: () => renderOverviewPage("cloud"),
+      render: () => renderCloudPage(),
     },
     "hub-team": {
       nav: "team",
@@ -263,194 +303,13 @@
     },
   };
 
-  function esc(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function pageHeading(page, actions = "") {
-    return `
-      <div class="page-heading">
-        <div>
-          <h2 class="page-title">${esc(page.title)}</h2>
-          <p>${esc(page.subtitle)}</p>
-        </div>
-        ${actions ? `<div class="heading-actions">${actions}</div>` : ""}
-      </div>`;
-  }
-
-  function button(label, iconName, variant = "") {
-    const split = label === "New Project";
-    const routes = {
-      "Import Project": "hub-projects-browser",
-      "New Project": "hub-projects-new",
-      "Project Browser": "hub-projects-browser",
-      "Open in Editor": "hub-editor",
-      "Build Project": "hub-builds",
-      "Package Project": "hub-cloud",
-      "Install to Device": "hub-builds",
-      "Save Settings": "hub-settings",
-      "Create Project": "hub-projects-detail",
-      Cancel: "projects-dashboard",
-      Refresh: "projects-dashboard",
-      Reset: "hub-settings",
-      "Retry Action": "projects-dashboard",
-    };
-    const route = routes[label] ? ` data-route="${routes[label]}"` : "";
-    return `<button class="button ${variant}${split ? " split-button" : ""}" type="button"${route}>${iconName ? `<img src="${icon(iconName)}" alt="">` : ""}<span>${esc(label)}</span>${split ? `<span class="split-caret"><img src="${icon("ui/chevron-down.svg")}" alt=""></span>` : ""}</button>`;
-  }
-
-  function toolbar(search, extra = "") {
-    return `
-      <div class="toolbar">
-        <label class="search-box">
-          <img src="${icon("ui/search.svg")}" alt="">
-          <input type="text" placeholder="${esc(search)}" aria-label="${esc(search)}">
-        </label>
-        <div class="toolbar-spacer"></div>
-        ${extra || `
-          <button class="select-button" type="button" data-route="hub-projects-browser-filter-menu"><img src="${icon("ui/folder.svg")}" alt="">All Projects <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
-          <button class="select-button" type="button" data-route="hub-projects-browser-sort-menu"><img src="${icon("ui/sort.svg")}" alt="">Last Modified <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
-          <span class="toolbar-divider"></span>
-          <button class="mode-button active" type="button"><img src="${icon("ui/grid.svg")}" alt=""></button>
-          <button class="mode-button" type="button" data-route="hub-projects-browser"><img src="${icon("ui/list.svg")}" alt=""></button>
-        `}
-      </div>`;
-  }
-
-  function tag(label, tone = "") {
-    return `<span class="tag ${tone}">${esc(label)}</span>`;
-  }
-
-  function progress(label, value, tone = "") {
-    return `
-      <div class="progress-row ${tone}">
-        <span>${esc(label)}</span>
-        <div><i style="width: ${Math.max(0, Math.min(100, Number(value)))}%;"></i></div>
-        <strong>${esc(value)}%</strong>
-      </div>`;
-  }
-
-  function checkLine(label, detail, state = "ready") {
-    return `
-      <div class="check-line ${state}">
-        <span></span>
-        <strong>${esc(label)}</strong>
-        <em>${esc(detail)}</em>
-      </div>`;
-  }
-
-  function smallStat(label, value, detail, tone = "") {
-    return `
-      <article class="small-stat ${tone}">
-        <p>${esc(label)}</p>
-        <strong>${esc(value)}</strong>
-        <em>${esc(detail)}</em>
-      </article>`;
-  }
-
-  function sectionTitle(title, detail = "") {
-    return `
-      <div class="section-title">
-        <h3>${esc(title)}</h3>
-        ${detail ? `<p>${esc(detail)}</p>` : ""}
-      </div>`;
-  }
-
-  function rowIcon(label) {
-    return `<span class="row-icon">${esc(label)}</span>`;
-  }
-
-  function infoRow(iconLabel, title, detail, badge, tone = "accent") {
-    return `
-      <div class="info-row">
-        ${rowIcon(iconLabel)}
-        <span class="row-main"><strong>${esc(title)}</strong><span>${esc(detail)}</span></span>
-        ${tag(badge, tone)}
-        <span class="row-arrow">></span>
-      </div>`;
-  }
-
-  function actionRow(iconLabel, title, detail) {
-    return `
-      <button class="action-row" type="button">
-        ${rowIcon(iconLabel)}
-        <span class="row-main"><strong>${esc(title)}</strong><span>${esc(detail)}</span></span>
-        <span class="row-arrow">></span>
-      </button>`;
-  }
-
-  function projectCard(project) {
-    return `
-      <article class="project-card" data-route="hub-projects-detail">
-        <div class="cover">
-          ${projectCover(project, "card")}
-          <button type="button" data-route="hub-projects-detail-delete-confirm"><img src="${icon("ui/more-vertical.svg")}" alt=""></button>
-          <span class="cover-brand"><img src="${brand}" alt=""></span>
-        </div>
-        <h3>${esc(project.title)}</h3>
-        <p>${esc(project.path)}</p>
-        <p>${esc(project.modified)}</p>
-        <div class="tag-row">${tag(project.version, "accent")}${tag(project.platform)}</div>
-      </article>`;
-  }
-
-  function projectTable(projectList = projects.slice(0, 5)) {
-    return `
-      <article class="panel recent-panel">
-        <h3>Recent Projects</h3>
-        <div class="table-head"><span>Name</span><span>Engine Version</span><span>Last Modified</span><span>Location</span></div>
-        ${projectList
-          .map(
-            (project) => `
-          <div class="project-row">
-            <span>${projectCover(project, "thumb")}${esc(project.title)}</span>
-            <span>${esc(project.version)}</span>
-            <span>${esc(project.tableModified)}</span>
-            <span>${esc(project.path)}</span>
-            <button type="button" data-route="hub-projects-detail-delete-confirm"><img src="${icon("ui/more-vertical.svg")}" alt=""></button>
-          </div>`
-          )
-          .join("")}
-        <button class="view-all" type="button" data-route="hub-projects-browser"><img src="${icon("nav/projects.svg")}" alt="">View All Projects <img src="${icon("ui/chevron-right.svg")}" alt=""></button>
-      </article>`;
-  }
-
-  function quickActions() {
-    const rows = [
-      ["actions/build-project.svg", "Build Project", "Build your project for development or release"],
-      ["actions/install-device.svg", "Install to Device", "Deploy your project to a connected device"],
-      ["actions/package-project.svg", "Package Project", "Create a distributable package"],
-      ["actions/open-editor.svg", "Open in Editor", "Launch the editor with a project"],
-    ];
-    return `
-      <article class="panel quick-panel">
-        <h3>Quick Actions</h3>
-        <div class="quick-list">
-          ${rows
-            .map(
-              ([rowIconName, title, detail]) => `
-            <button class="quick-row" type="button" data-route="${title === "Build Project" || title === "Install to Device" ? "hub-builds" : title === "Package Project" ? "hub-cloud" : "hub-editor"}">
-              <img src="${icon(rowIconName)}" alt="">
-              <span><strong>${esc(title)}</strong><em>${esc(detail)}</em></span>
-              <img src="${icon("ui/chevron-right.svg")}" alt="">
-            </button>`
-            )
-            .join("")}
-        </div>
-      </article>`;
-  }
-
   function renderProjectsDashboard() {
     const page = pages["projects-dashboard"];
     return `
       ${pageHeading(page, `${button("Import Project", "ui/import.svg")}${button("New Project", "ui/plus.svg", "primary")}`)}
       ${toolbar("Search projects...")}
       <section class="project-cards" aria-label="Featured projects">${projects.slice(0, 4).map(projectCard).join("")}</section>
-      <section class="lower-grid">${projectTable()}${quickActions()}</section>`;
+      <section class="lower-grid">${projectTable(projects.slice(0, 5))}${quickActions()}</section>`;
   }
 
   function renderToolPage(page) {
@@ -458,18 +317,30 @@
       return renderBuildsPage();
     }
 
+    const controlMarks = {
+      "Open Editor": "ED",
+      "Sync Source": "SY",
+      "Open Output": "LG",
+    };
+
     return `
       ${pageHeading(page, `${button("Refresh Sources", "ui/refresh.svg")}${button("Open Editor", "actions/open-editor.svg", "primary")}`)}
+      ${tabStrip(["Overview", "Source Paths", "Timeline", "Actions"], 0)}
       <section class="editor-layout">
         <article class="panel editor-source-panel">
-          ${sectionTitle(page.sourceTitle, "Registered source channels and launch inputs use the same compact row density as the Projects baseline.")}
+          ${sectionTitle(page.sourceTitle, "Registered source channels, launch paths, and profile state reuse the compact Hub component set.")}
           <div class="editor-source-summary">
             ${smallStat("Active Source", "1.8.2", "origin/main", "accent")}
             ${smallStat("Editor Target", "Debug", "ready to launch", "success")}
             ${smallStat("Warnings", "0", "contract clean", "")}
           </div>
-          <div class="row-list compact">
-            ${page.sourceRows.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}
+          <div class="path-field-list">
+            ${pathFieldRow("Active Engine", "Zircon Engine 1.8.2", "", "Rename", "ui/edit.svg")}
+            ${pathFieldRow("Source Checkout", "D:\\Engines\\ZirconEngine\\main", "", "Browse")}
+            ${pathFieldRow("Staged Output", "D:\\Builds\\Zircon\\Editor", "", "Browse")}
+          </div>
+          <div class="row-list source-engine-list compact">
+            ${page.sourceRows.map(([mark, title, detail, badge, tone], index) => sourceEngineRow(mark, title, detail, badge, tone, index === 1)).join("")}
           </div>
         </article>
         <aside class="panel editor-side-panel">
@@ -482,11 +353,7 @@
             ${progress("Template bridge", 72, "")}
           </div>
           <div class="control-stack">
-            ${page.controls.map(([title, detail, variant]) => `
-              <button class="command-card ${variant}" type="button" data-route="${title === "Open Editor" ? "hub-editor" : "hub-state-loading"}">
-                <strong>${esc(title)}</strong>
-                <span>${esc(detail)}</span>
-              </button>`).join("")}
+            ${page.controls.map(([title, detail, variant]) => actionRow(controlMarks[title] || title.slice(0, 2).toUpperCase(), title, detail, variant)).join("")}
           </div>
         </aside>
         <article class="panel editor-timeline-panel">
@@ -506,95 +373,141 @@
 
   function renderBuildsPage() {
     const page = mainPageData["hub-builds"];
-    const history = [
-      ["Compile editor shell", "Finished 4m ago", "Success", "success"],
-      ["Package Elysium", "Windows development package queued", "Running", "accent"],
-      ["Shader validation", "1 warning in material permutations", "Warning", "warning"],
-      ["Install to device", "Waiting for connected target", "Idle", ""],
+    const pipeline = [
+      ["Validate Source", "D:\\Engines\\ZirconEngine", "Active", "accent"],
+      ["Compile Editor", "Select a project before building", "Unavailable", "warning"],
+      ["Stage Runtime", "D:\\Builds\\Zircon", "Not built yet", ""],
+      ["Package Project", "Select a project before packaging", "Unavailable", "warning"],
     ];
     return `
       ${pageHeading(page, `${button("Open Output", "actions/open-editor.svg")}${button("Build Project", "actions/build-project.svg", "primary")}`)}
-      <section class="build-layout">
-        <article class="panel build-main">
-          ${sectionTitle("Build Pipeline", "Queue state, target outputs, and package readiness share a single operational surface.")}
-          <div class="pipeline">
-            ${[
-              ["Configure", "Project and source engine resolved", "success", 100],
-              ["Compile", "Editor and runtime targets active", "accent", 76],
-              ["Package", "Windows artifacts staged", "warning", 44],
-              ["Install", "Device deployment pending", "", 0],
-            ]
-              .map(
-                ([title, detail, tone, value], index) => `
-              <div class="pipeline-step ${tone}">
-                ${tag(`0${index + 1}`, tone)}
-                <strong>${esc(title)}</strong>
-                <span>${esc(detail)}</span>
-                ${progress("Progress", value, tone)}
-              </div>`
-              )
-              .join("")}
+      ${tabStrip(["Overview", "Pipeline", "History", "Timeline"], 0)}
+      <section class="build-summary-layout">
+        <article class="panel build-main build-overview-panel">
+          ${sectionTitle("Source Build", "No project selected / ZirconEngine Source / Active")}
+          <div class="row-list compact build-source-list">
+            ${infoRow("BD", "Source:", "D:\\Engines\\ZirconEngine / Last build: Not built yet", "Active", "warning")}
+            ${infoRow("OUT", "Output:", "D:\\Builds\\Zircon / Profile debug", "1 jobs", "")}
           </div>
-          <div class="build-console">
-            <strong>Current Task</strong>
-            <span>Package Elysium - compiling runtime assets, validating shader metadata, and staging Win64 output.</span>
-            ${progress("Task completion", 69, "accent")}
-          </div>
-          <div class="build-history-table">
-            <div class="table-head build-head"><span>Task</span><span>Target</span><span>Owner</span><span>Status</span></div>
-            ${[
-              ["Editor shell", "Win64 Debug", "Hub", "Success", "success"],
-              ["Game runtime", "Win64 Development", "Build Runner", "Running", "accent"],
-              ["Shader pack", "Material permutations", "Renderer", "Warning", "warning"],
-              ["Install bundle", "Device target", "Deployment", "Queued", ""],
-            ].map(([task, target, owner, status, tone]) => `
-              <div class="build-row"><span>${esc(task)}</span><span>${esc(target)}</span><span>${esc(owner)}</span>${tag(status, tone)}</div>`).join("")}
+          <div class="build-chip-row">
+            ${tag("debug", "accent")}
+            ${tag("1 jobs", "")}
           </div>
         </article>
-        <aside class="panel build-side">
-          ${sectionTitle("Controls", "Next available actions")}
-          <div class="row-list compact">
-            ${actionRow("PK", "Package Project", "Create a distributable package for the selected project")}
-            ${actionRow("DV", "Install to Device", "Deploy the latest package to a connected target")}
-            ${actionRow("LG", "Open Output", "Review build logs, warnings, and artifacts")}
+        <article class="panel build-controls-panel">
+          ${sectionTitle("Selected Project Actions")}
+          <div class="row-list compact build-actions-list">
+            ${actionRow("BD", "Build Editor", "Select a project before building", "disabled")}
+            ${actionRow("OUT", "Open Output", "D:\\Builds\\Zircon")}
+            ${actionRow("ED", "Open Editor", "Select a project before opening", "disabled")}
+            ${actionRow("PK", "Package Project", "Create a distributable package")}
+            ${actionRow("DV", "Install to Device", "Select a project before installing", "disabled")}
           </div>
-          <div class="build-side-divider"></div>
-          ${sectionTitle("Build History", "Latest queue events")}
-          <div class="row-list compact">${history.map(([title, detail, badge, tone]) => infoRow("BD", title, detail, badge, tone)).join("")}</div>
+        </article>
+      </section>
+      <section class="build-detail-layout">
+        <article class="panel build-pipeline-panel">
+          ${sectionTitle("Build Pipeline", "4")}
+          <div class="row-list compact build-pipeline-list">
+            ${pipeline.map(([title, detail, badge, tone]) => infoRow("BD", title, detail, badge, tone)).join("")}
+          </div>
+        </article>
+        <article class="panel build-task-panel">
+          ${sectionTitle("Current Task", "Ready")}
+          <div class="build-current-state">
+            <strong>Ready</strong>
+            <span>No operation timeline</span>
+          </div>
+          ${sectionTitle("Build History", "0")}
+          ${emptyState("No build history")}
+        </article>
+        <article class="panel build-timeline-panel">
+          ${sectionTitle("Operation Timeline", "0")}
+          ${emptyState("No operation history", "Run a build to populate.")}
+        </article>
+      </section>`;
+  }
+
+  function renderCloudPage() {
+    const page = pages["hub-cloud"];
+    const metrics = [
+      ["Local Mode", "Ready", "Offline package workflow"],
+      ["Build Output", "Ready", "C:\\Users\\HeJiahui\\ZirconBuilds"],
+      ["Device Install", "Ready", "Local device target"],
+      ["Packages", "4 local", "Package cache warm"],
+    ];
+    const services = [
+      ["PS", "Profile Sync Slot", "Reserved for optional profile sync after local workflows are stable.", "Reserved", "accent"],
+      ["RB", "Remote Build Slot", "Reserved for hosted build workers after local packaging is stable.", "Local", ""],
+      ["AU", "Artifact Upload Slot", "Reserved for artifact upload from the local package directory.", "Offline", "warning"],
+    ];
+    const operations = [
+      ["PK", "Package Elysium", "Windows package staged 12m ago", "Ready", "success"],
+      ["DV", "Install Preview", "Waiting for connected device", "Idle", ""],
+    ];
+    return `
+      ${pageHeading(page, `${button("Package Project", "actions/package-project.svg")}${button("Deploy Preview", "ui/plus.svg", "primary")}`)}
+      ${tabStrip(["Overview", "Packages", "Services", "Timeline"], 0)}
+      ${metricGrid(metrics.map(([label, value, detail], index) => [label, value, detail, index === 0 ? "accent" : ""]), "four")}
+      <section class="cloud-layout">
+        <article class="panel cloud-services-panel">
+          ${sectionTitle("Service Slots", "Reserved package and deploy channels share the same compact row rhythm as Projects.")}
+          <div class="row-list compact cloud-service-list">
+            ${services.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}
+          </div>
+        </article>
+        <aside class="panel cloud-actions-panel">
+          ${sectionTitle("Packages", "Local package actions and operation feedback")}
+          <div class="row-list compact">
+            ${actionRow("PK", "Package Selected Project", "Create a distributable package for the selected project")}
+            ${actionRow("DV", "Install Selected Project", "Install the latest package to a connected device")}
+          </div>
+          <div class="build-side-divider compact"></div>
+          ${sectionTitle("Cloud Operation Status", "Recent package and install events")}
+          <div class="row-list compact cloud-timeline-list">
+            ${operations.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}
+          </div>
         </aside>
       </section>`;
   }
 
   function renderCatalogPage(page) {
     const extra = `
-      <button class="select-button" type="button" data-route="hub-projects-browser-filter-menu"><img src="${icon("ui/folder.svg")}" alt="">All Projects <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
-      <button class="select-button" type="button" data-route="hub-projects-browser-sort-menu"><img src="${icon("ui/sort.svg")}" alt="">Last Modified <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
+      ${selectButton("All Projects", "ui/folder.svg", "hub-projects-browser-filter-menu")}
+      ${selectButton("Last Modified", "ui/sort.svg", "hub-projects-browser-sort-menu")}
       <span class="toolbar-divider"></span>
-      <button class="mode-button active" type="button"><img src="${icon("ui/grid.svg")}" alt=""></button>
-      <button class="mode-button" type="button" data-route="hub-projects-browser"><img src="${icon("ui/list.svg")}" alt=""></button>`;
+      ${modeButton("ui/grid.svg", true)}
+      ${modeButton("ui/list.svg", false, "hub-projects-browser")}`;
     const stats =
       page.title === "Assets"
         ? [["Indexed", "1,284", "project assets"], ["Missing", "3", "path warnings"], ["Imported", "42", "today"]]
         : page.title === "Plugins"
           ? [["Enabled", "18", "runtime/editor"], ["Updates", "2", "available"], ["Disabled", "4", "by profile"]]
           : [["Guides", "36", "published"], ["Checks", "12", "workflow lists"], ["Recent", "5", "opened"]];
+    const listSurface = `<div class="catalog-column-list">
+      ${page.rows
+        .map(([title, detail, value, category], index) =>
+          catalogColumnRow(
+            page.icon,
+            title,
+            detail,
+            page.title === "Learn" ? value : index % 4 === 0 ? "Selected Project" : "Source Engine",
+            page.title === "Learn" ? category : value,
+            index % 5 === 0 ? "success" : "accent",
+            page.title === "Learn" ? "hub-learn" : "",
+            page.title === "Learn"
+          )
+        )
+        .join("")}
+    </div>`;
     return `
       ${pageHeading(page, `${button("Refresh", "ui/refresh.svg")}${button(`Add ${page.title === "Assets" ? "Asset" : page.title === "Plugins" ? "Plugin" : "Guide"}`, "ui/plus.svg", "primary")}`)}
       ${toolbar(page.search, extra)}
       <section class="catalog-layout">
         <article class="panel catalog-main">
           ${sectionTitle(page.panel, "Dense catalog rows with stable badges, metadata columns, and trailing action affordances.")}
-          <div class="catalog-table-head"><span>Name</span><span>Scope</span><span>Version</span><span>Status</span></div>
-          <div class="row-list compact">
-            ${page.rows.map(([title, detail, badge], index) => `
-              <div class="catalog-row rich">
-                ${rowIcon(page.icon)}
-                <span class="row-main"><strong>${esc(title)}</strong><span>${esc(detail)}</span></span>
-                <span>${esc(index % 3 === 0 ? "Project" : index % 3 === 1 ? "Engine" : "Workspace")}</span>
-                <span>${esc(index % 2 === 0 ? "v1.8.2" : "v1.7.9")}</span>
-                ${tag(badge, index % 5 === 0 ? "warning" : index % 4 === 0 ? "success" : "")}
-              </div>`).join("")}
-          </div>
+          ${tabStrip(["All", "Project", "Engine", "Workspace"], 0)}
+          ${listSurface}
         </article>
         <aside class="panel catalog-side">
           ${sectionTitle(`${page.title} Detail`, "Selected row")}
@@ -657,18 +570,20 @@
         ];
     return `
       ${pageHeading(page, `${button(isCloud ? "Package Project" : "Request Review", isCloud ? "actions/package-project.svg" : "ui/plus.svg")}${button(isCloud ? "Deploy Preview" : "Open Source Control", "ui/plus.svg", "primary")}`)}
-      <section class="content-grid four">
-        ${metrics.map(([label, value, detail]) => `
-          <article class="metric-card"><p>${esc(label)}</p><strong>${esc(value)}</strong><em>${esc(detail)}</em></article>`).join("")}
-      </section>
-      <section class="content-grid two-wide" style="margin-top: 16px;">
+      ${metricGrid(metrics.map(([label, value, detail], index) => [label, value, detail, index === 0 ? "accent" : ""]), "four")}
+      <section class="content-grid two-wide overview-grid">
         <article class="panel tall">
-          <h3>${isCloud ? "Cloud Overview" : "Team Overview"}</h3>
-          <div class="row-list">${leftRows.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}</div>
+          ${sectionTitle(isCloud ? "Cloud Overview" : "Team Overview", isCloud ? "Package, service, and deploy status in the same row density as Projects." : "Identity, reviewers, and local collaboration status in compact Hub rows.")}
+          ${tabStrip(isCloud ? ["Package", "Services", "Health"] : ["Identity", "Review", "Access"], 0)}
+          <div class="row-list compact">${leftRows.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}</div>
         </article>
         <article class="panel tall">
-          <h3>Actions</h3>
-          <div class="row-list">${actions.map(([mark, title, detail]) => actionRow(mark, title, detail)).join("")}</div>
+          ${sectionTitle("Actions", "Primary page actions reuse the Dashboard quick-action row rhythm.")}
+          <div class="row-list compact">${actions.map(([mark, title, detail]) => actionRow(mark, title, detail)).join("")}</div>
+          <div class="overview-checks">
+            ${toggleRow(isCloud ? "Auto upload artifacts" : "Notify reviewers", isCloud ? "Queue upload after successful package" : "Send local review notes when evidence updates", true)}
+            ${checkboxRow(isCloud ? "Include debug symbols" : "Attach visual evidence", isCloud ? "Keep development package inspectable" : "Link exported screenshots and contract output", true)}
+          </div>
         </article>
       </section>`;
   }
@@ -676,13 +591,28 @@
   function renderSettingsPage() {
     const page = pages["hub-settings"];
     const panels = [
-      ["Toolchain", [["Engine Channel", "Zircon Engine 1.8.2"], ["Rust Toolchain", "stable-x86_64-pc-windows-msvc"], ["Build Jobs", "1"]]],
-      ["Build Defaults", [["Profile", "Development"], ["Target Platform", "Windows"], ["Symbols", "Enabled"]]],
-      ["Default Paths", [["Project Root", "C:\\ZirconProjects"], ["Package Output", "D:\\ZirconPackages"], ["Cache", "%LOCALAPPDATA%\\ZirconHub"]]],
-      ["Configuration Health", [["Hub Config", "Valid"], ["Source Engines", "3 registered"], ["Project Metadata", "6 projects indexed"]]],
+      ["Toolchain", [
+        comboBox("Engine Channel", "Zircon Engine 1.8.2", "Active source engine"),
+        inputBox("Rust Toolchain", "stable-x86_64-pc-windows-msvc", "Used for local builds"),
+      ]],
+      ["Build Defaults", [
+        comboBox("Profile", "Development", "Default project build profile"),
+        comboBox("Target Platform", "Windows", "Primary local package target"),
+        toggleRow("Symbols", "Generate debug symbols for local packages", true),
+      ]],
+      ["Default Paths", [
+        inputBox("Project Root", "C:\\ZirconProjects", "New and imported projects"),
+        inputBox("Package Output", "D:\\ZirconPackages", "Build and cloud package staging"),
+      ]],
+      ["Configuration Health", [
+        infoRow("SP", "Selected Project", "No project selected / actions paused", "Review", "warning"),
+        infoRow("SE", "Source Engine", "Active / Zircon Engine 1.8.2", "Register", "warning"),
+        infoRow("PY", "Python", "PATH / python", "PATH", "accent"),
+      ]],
     ];
     return `
       ${pageHeading(page, `${button("Reset", "ui/refresh.svg")}${button("Save Settings", "ui/plus.svg", "primary")}`)}
+      ${tabStrip(["General", "Build", "Paths", "Health"], 0)}
       <section class="settings-layout">
         <article class="panel settings-health">
           ${sectionTitle("Configuration Overview", "Shared Hub defaults, local source roots, and launch policy.")}
@@ -694,17 +624,11 @@
           ${progress("Toolchain readiness", 92, "success")}
           ${progress("Path coverage", 78, "accent")}
         </article>
-        ${panels.map(([title, rows]) => `
+        ${panels.filter(([title]) => title !== "Build Defaults").map(([title, rows]) => `
           <article class="panel settings-panel">
             ${sectionTitle(title)}
             <div class="row-list compact">
-              ${rows.map(([label, value]) => `
-                <div class="setting-row">
-                  ${rowIcon("ST")}
-                  <span class="row-main"><strong>${esc(label)}</strong><span>${esc(value)}</span></span>
-                  ${tag(value === "Valid" ? "Healthy" : "Edit", value === "Valid" ? "success" : "")}
-                  <span class="row-arrow">></span>
-                </div>`).join("")}
+              ${rows.join("")}
             </div>
           </article>`).join("")}
       </section>`;
@@ -755,9 +679,9 @@
           <div class="wizard-section template-section">
             ${sectionTitle("2. Template Selection", "The selected template keeps the primary create action enabled.")}
             <div class="template-toolbar">
-              <label class="search-box compact"><img src="${icon("ui/search.svg")}" alt=""><input type="text" placeholder="Search templates..." aria-label="Search templates"></label>
-              <button class="select-button compact" type="button" data-route="hub-projects-browser-filter-menu">Category <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
-              <button class="select-button compact" type="button" data-route="hub-projects-browser-sort-menu">Sort <img src="${icon("ui/chevron-down.svg")}" alt=""></button>
+              ${searchBox("Search templates...", true)}
+              ${selectButton("Category", "", "hub-projects-browser-filter-menu", true)}
+              ${selectButton("Sort", "", "hub-projects-browser-sort-menu", true)}
             </div>
             <div class="template-table">
               <div class="template-head"><span></span><span>Name</span><span>Version</span><span>Updated</span><span>Compatibility</span><span></span></div>
@@ -794,9 +718,9 @@
             <span>Engine Alpha / Zircon 1.8.2</span>
           </div>
           <div class="row-list compact">
-            ${infoRow("SE", "Source Engine", "Engine Alpha v2.8.1", "Set", "accent")}
-            ${infoRow("TP", "Template", "Standard Service", "Set", "success")}
-            ${infoRow("CP", "Compatibility", "Alpha 2.8+", "Ready", "success")}
+            ${settingSummaryRow("Source Engine", "Engine Alpha v2.8.1")}
+            ${settingSummaryRow("Template", "Standard Service")}
+            ${settingSummaryRow("Compatibility", "Ready", true, "success")}
           </div>
           <div class="blueprint-bars">
             ${progress("Storage", 42)}
@@ -822,13 +746,15 @@
           <div class="browser-table">
             <div class="browser-head"><span></span><span>Name</span><span>Engine</span><span>Platform</span><span>Modified</span><span>Status</span></div>
             ${projects.map((project, index) => `
-              <button class="browser-row ${index === 0 ? "selected" : ""}" type="button" data-route="hub-projects-detail">
+              <button class="browser-row row-surface table-row-surface ${index === 0 ? "selected" : ""}" data-material-slot="browser-row table-row row-surface${index === 0 ? " selected-row" : ""}" type="button" data-route="hub-projects-detail">
                 ${projectCover(project, "browser-thumb")}
                 <strong>${esc(project.title)}<em>${esc(project.path)}</em></strong>
                 <span>${esc(project.version)}</span>
                 <span>${esc(project.platform)}</span>
                 <span>${esc(project.tableModified)}</span>
-                ${tag(index === 2 ? "Needs Sync" : "Ready", index === 2 ? "warning" : "success")}
+                <span class="row-trailing-slot" data-component="row-trailing-slot" data-material-slot="row-trailing-slot">
+                  ${tag(index === 2 ? "Needs Sync" : "Ready", index === 2 ? "warning" : "success")}
+                </span>
               </button>`).join("")}
           </div>
           <div class="browser-footer">
@@ -858,13 +784,6 @@
   function renderProjectDetail(confirmDelete) {
     const page = pages[confirmDelete ? "hub-projects-detail-delete-confirm" : "hub-projects-detail"];
     const selected = projects[0];
-    const actions = [
-      ["ED", "Open in Editor", "Launch the editor with this project"],
-      ["BD", "Build Project", "Build this project for development or release"],
-      ["PK", "Package Project", "Create a distributable project package"],
-      ["DV", "Install to Device", "Deploy to a connected device"],
-      ["DL", "Delete Project", "Remove the project from Hub records"],
-    ];
     return `
       ${pageHeading(page, `${button("Project Browser", "nav/projects.svg")}${button("Open in Editor", "actions/open-editor.svg", "primary")}`)}
       <section class="detail-layout">
@@ -874,7 +793,7 @@
             <div>
               <h3 class="detail-title">${esc(selected.title)}</h3>
               <p class="detail-path">${esc(selected.path)}</p>
-              <div class="tag-row">${tag("Ready", "success")}${tag("Zircon 1.8.2", "accent")}${tag(selected.platform)}</div>
+              ${projectStatusStrip(selected.version, "Not pinned", selected.modified)}
             </div>
           </div>
           <div class="detail-stats">
@@ -901,17 +820,7 @@
             </div>
           </div>
         </article>
-        <aside class="panel detail-side">
-          ${sectionTitle("Project Actions", "Context commands")}
-          <div class="row-list compact">
-            ${actions.map(([mark, title, detail]) => actionRow(mark, title, detail)).join("")}
-          </div>
-          <div class="detail-health">
-            ${progress("Source sync", 100, "success")}
-            ${progress("Build cache", 69, "accent")}
-            ${progress("Package readiness", 74, "accent")}
-          </div>
-        </aside>
+        ${projectDetailActionsSection(confirmDelete)}
       </section>
       ${confirmDelete ? renderDeleteConfirm() : ""}`;
   }
@@ -943,53 +852,6 @@
           </div>
         </aside>
       </section>`;
-  }
-
-  function renderMenu(kind, items) {
-    return `
-      <div class="menu-panel ${kind}" role="menu">
-        ${items.map((item, index) => `<button class="${index === 0 ? "active" : ""}" type="button" data-route="hub-projects-browser"><span>${esc(item)}</span><span>${index === 0 ? "OK" : ""}</span></button>`).join("")}
-      </div>`;
-  }
-
-  function renderDeleteConfirm() {
-    return `
-      <aside class="confirm-panel">
-        <h3>Delete project from Hub?</h3>
-        <p>This removes the Hub record. Project files stay on disk until deleted manually.</p>
-        <div class="confirm-actions">
-          <button class="button" type="button" data-route="hub-projects-detail"><span>Cancel</span></button>
-          <button class="button danger" type="button" data-route="hub-state-empty"><span>Delete Project</span></button>
-        </div>
-      </aside>`;
-  }
-
-  function renderSourceEnginePopup() {
-    const rows = [
-      ["Zircon Engine 1.8.2", "Ready, local source checkout", "Active"],
-      ["Zircon Engine 1.8.1", "Installed fallback source", "Ready"],
-      ["Custom Source Build", "D:\\Engines\\Experimental", "Local"],
-    ];
-    return `
-      <aside class="source-popover">
-        <p class="popover-title">Source Engines</p>
-        ${rows.map(([title, detail, badge]) => `
-          <button class="popover-row engine-pop-row" type="button" data-route="projects-dashboard">
-            ${rowIcon("ZE")}
-            <span>${esc(title)}<br><small>${esc(detail)}</small></span>
-            ${tag(badge, badge === "Active" ? "accent" : badge === "Ready" ? "success" : "")}
-          </button>`).join("")}
-      </aside>`;
-  }
-
-  function renderUserMenu() {
-    return `
-      <aside class="user-popover">
-        <p class="popover-title">Alex Developer</p>
-        <div class="account-card"><span>AD</span><strong>alex@zircon.local</strong><em>Local workspace profile</em></div>
-        ${["Profile", "Preferences", "Documentation", "Sign out"].map((item, index) => `
-          <button class="popover-row" type="button" data-route="${index === 1 ? "hub-settings" : index === 2 ? "hub-learn" : "projects-dashboard"}"><span>${esc(item)}</span><span>${index === 3 ? "!" : ">"}</span></button>`).join("")}
-      </aside>`;
   }
 
   function renderNav(activeNav) {

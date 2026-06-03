@@ -50,6 +50,7 @@ related_code:
   - zircon_runtime/src/ui/tests/diagnostics.rs
   - zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/scroll.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
@@ -109,6 +110,9 @@ plan_sources:
   - docs/superpowers/plans/2026-05-26-editor-ui-use-media-query-responsive.md
 tests:
   - cargo test -p zircon_runtime --lib taffy_layout_docs_keep_visual_profile_gate --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-visual-doc-gate-20260527 --message-format short --color never (2026-05-27: passed, 1 passed; 0 failed; 2098 filtered out, after widening the shared accessibility binding diagnostic helper to the action-module boundary so the runtime test crate compiles)
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after Taffy collapsed linear-child skip: passed)
+  - cargo check -p zircon_editor --lib --tests --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after Taffy collapsed linear-child skip: passed)
+  - cargo test -p zircon_runtime --lib taffy_vertical_layout_skips_collapsed_child_without_fallback --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01: timed out after 605 seconds while building/linking the test binary; lingering matching rustc test process was stopped)
   - tools/ui-profile-capture.ps1 -ScenarioList material_lab_startup,material_lab_hover,material_lab_click,drawer_resize -AutoInteract -RequireScenarioEvidence -CaptureSoftbufferScreenshot -AutoCloseSeconds 4 -SkipBuild (visual verification gate; run after building the editor profiling target; inspect `screenshot_gpu.png`, `screenshot_softbuffer.png`, `screenshot_diff.json`, `ui_hotspots.json`, and Runtime Diagnostics `Layout Engine` rows for Taffy/Zircon routing)
   - cargo build -p zircon_app --bin zircon_editor --profile profiling --features "target-editor-host profiling profiling-chrome" --locked (2026-05-27: passed, produced the profiling editor executable with existing warning noise)
   - tools/ui-profile-capture.ps1 -ScenarioList material_lab_startup -AutoInteract -RequireScenarioEvidence -CaptureSoftbufferScreenshot -AutoCloseSeconds 4 -OutputRoot target/zircon-profiles/layout-visual-20260527 -SkipBuild (2026-05-27: passed; artifacts under `target/zircon-profiles/layout-visual-20260527/20260527-193940-material_lab_startup`; `software_fallback_present_count=0`; GPU-vs-softbuffer `differing_sample_ratio=0.1014`, `average_channel_delta=6.7884`)
@@ -570,7 +574,9 @@ The 2026-05-22 fallback reason completion passed:
 cargo test -p zircon_runtime --lib taffy_layout_pass_reports --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-wrap-authority-20260522 --message-format short --color never
 ```
 
-That focused run passed `2 passed; 0 failed; 1857 filtered out`. It covers two Taffy-eligible `HorizontalBox` roots that deliberately cannot stay native: one has a collapsed child and must report `UnsupportedChildVisibility`, and one has a non-default child anchor plus position and must report `ChildPlacementPolicy`. This closes the explicit fallback reasons named by `taffy_arrange.rs` alongside the existing slot frame, canvas placement, and Zircon-owned semantic cases. The later warmed `taffy_layout_pass` rerun passed `29 passed; 0 failed; 1869 filtered out`, covering the full current Taffy pass gate including Auto/Stretch/StretchContent slot sizing, vertical main-axis slot sizing, horizontal/vertical linear slot min/max bounds, grid slot span/track expansion, non-finite padding fallback, horizontal/vertical linear slot alignment, unsupported slot-alignment fallback, GridBox non-fixed alignment fallback, and distinct fallback-reason aggregation. The run used temporary lockfile backup/restore because unrelated sound/cpal lock drift blocks `--locked --offline`, and it reported existing runtime warning noise.
+That focused run passed `2 passed; 0 failed; 1857 filtered out`. It covered two Taffy-eligible `HorizontalBox` roots that deliberately could not stay native at that time: one had a collapsed child and reported `UnsupportedChildVisibility`, and one had a non-default child anchor plus position and reported `ChildPlacementPolicy`. The child-placement fallback remains the expected boundary. The collapsed-child boundary was narrowed on 2026-06-01: linear and wrap containers now remove non-layout-visible children from the Taffy child list, recursively clear their layout frames, and keep the visible sibling layout on the native Taffy path; GridBox keeps the older fallback behavior until its collapsed auto-placement semantics are explicitly defined. The later warmed `taffy_layout_pass` rerun passed `29 passed; 0 failed; 1869 filtered out`, covering the full current Taffy pass gate including Auto/Stretch/StretchContent slot sizing, vertical main-axis slot sizing, horizontal/vertical linear slot min/max bounds, grid slot span/track expansion, non-finite padding fallback, horizontal/vertical linear slot alignment, unsupported slot-alignment fallback, GridBox non-fixed alignment fallback, and distinct fallback-reason aggregation. The run used temporary lockfile backup/restore because unrelated sound/cpal lock drift blocks `--locked --offline`, and it reported existing runtime warning noise.
+
+The 2026-06-01 collapsed-child Taffy refinement adds `taffy_layout_children(...)` to `taffy_arrange.rs` and exposes `hide_subtree_layout(...)` inside the layout pass module. The new focused regression builds a vertical root with top, collapsed, and bottom children, verifies the collapsed subtree frames are cleared, verifies the bottom child moves directly after the top child, and asserts the root layout-engine selection remains `Taffy` with no fallback. The focused runtime test timed out while building/linking the test binary in the busy Windows workspace, so accepted evidence for this slice is `cargo check -p zircon_runtime --lib --tests` and `cargo check -p zircon_editor --lib --tests` against `D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755`, both passed with `RUSTFLAGS=-Awarnings`.
 
 The measured leaf sizing continuation passed with:
 
@@ -579,6 +585,16 @@ cargo test -p zircon_runtime --lib taffy_layout_pass_uses_measured_text_and_imag
 ```
 
 That focused test passed `1 passed; 0 failed; 1740 filtered out` and proves Label text measurement plus IconButton image/padding measurement produce desired sizes that the Taffy-native flex arrange path consumes for final child frames. An earlier retry against `D:\cargo-targets\zircon-layout-impl` compiled but failed to write Cargo dep-info after the shared target fingerprint path disappeared; the first cold run in `D:\cargo-targets\zircon-layout-measurement` exceeded the 30-minute tool timeout while continuing to compile, and the warmed rerun above is the accepted evidence.
+
+The 2026-06-03 fractional extent continuation disables Taffy's default coordinate rounding inside
+the runtime arrange pass. Zircon already owns final pixel snapping in render/painter layers, so
+layout frames must preserve authored fractional fixed extents for editor shell controls and
+componentized Workbench previews. The focused regression
+`taffy_layout_pass_preserves_fractional_fixed_extents` passed twice in this milestone, including
+the fresh-target rerun recorded in
+`.codex/tmp/asset_m6_runtime_taffy_fractional_fixed_green_fresh_target_rerun_20260603.log`; a later
+scoped `cargo check -p zircon_runtime --lib --locked --jobs 1` also passed on the current tree in
+`.codex/tmp/asset_m6_runtime_check_after_editor_visible_frame_split_20260603.log`.
 
 The Block/Container bridge boundary passed with:
 

@@ -240,6 +240,13 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 reference.locator
             ),
         },
+        RenderMaterialValidationError::InvalidLightingModel { path, value } => {
+            MaterialEditorDiagnosticRow {
+                source: None,
+                path,
+                message: format!("lighting model `{value}` is not supported"),
+            }
+        }
         RenderMaterialValidationError::UnknownPropertyOverride { source, path, name } => {
             MaterialEditorDiagnosticRow {
                 source: Some(source),

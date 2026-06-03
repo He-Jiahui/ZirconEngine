@@ -1,14 +1,20 @@
+use super::super::super::attachment_ops::{
+    color_attachment_operations, depth_attachment_operations,
+};
 use super::super::super::mesh::MeshDraw;
 use super::normal_prepass_pipeline::NormalPrepassPipeline;
+use crate::render_graph::RenderGraphAttachmentOps;
 
 impl NormalPrepassPipeline {
-    pub(crate) fn record<'a, I>(
+    pub(crate) fn record_with_attachment_ops<'a, I>(
         &self,
         encoder: &mut wgpu::CommandEncoder,
         normal_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         mesh_draws: I,
+        normal_attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
     ) where
         I: IntoIterator<Item = &'a MeshDraw>,
     {
@@ -18,17 +24,11 @@ impl NormalPrepassPipeline {
                 view: normal_view,
                 resolve_target: None,
                 depth_slice: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
+                ops: color_attachment_operations(normal_attachment_ops, wgpu::Color::BLACK),
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: depth_view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }),
+                depth_ops: Some(depth_attachment_operations(depth_attachment_ops, 1.0)),
                 stencil_ops: None,
             }),
             occlusion_query_set: None,

@@ -6,52 +6,33 @@ import {
 } from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { EmptyStateBlock } from "surfaces.slint";
-import { HubPopupWindow, PopupPanel } from "overlays.slint";
-import { ActionRow, InfoRow, PanelListViewport } from "data_display.slint";
+import { HubAnchoredPopupPanel } from "overlays.slint";
+import { HubMenuRow, PanelListViewport } from "data_display.slint";
 import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, StateLayerArea } from "material_bridge.slint";
 
-component HeaderUserMenuAction inherits ActionRow {
+component HeaderUserMenuAction inherits HubMenuRow {
     in property <string> action-id;
-    in property <string> title;
-    in property <string> detail;
     in property <image> icon-image;
-    in property <bool> enabled: true;
-    callback clicked;
 
-    row-height: HubTokens.list-row-sm;
-    show-trailing: false;
-    disabled-shell-opacity: MaterialPalette.disable_opacity;
-    enabled-avatar-foreground: HubVisualSpec.accent-stroke;
-    action: {
-        id: root.action-id,
-        icon: "",
-        icon-image: root.icon-image,
-        has-icon-image: true,
-        title: root.title,
-        detail: root.detail,
-        enabled: root.enabled,
-    };
-
-    activate(id) => {
-        root.clicked();
-    }
+    dense: true;
+    leading-image: root.icon-image;
+    has-leading-image: true;
 }
 
-export component HeaderEngineOption inherits InfoRow {
+export component HeaderEngineOption inherits HubMenuRow {
     in property <SourceEngineRowData> engine;
     callback picked(string);
 
     title: root.engine.title;
-    detail: root.engine.status;
-    meta: root.engine.last-build;
+    detail: root.engine.last-build == "" ? root.engine.status : root.engine.status + " / " + root.engine.last-build;
     leading-image: @image-url("../assets/brand/zircon-mark.svg");
     has-leading-image: true;
     selected: root.engine.active;
     row-height: HubTokens.list-row-md;
-    idle-border-width: 0px;
+    selected-border-width: HubTokens.border-width;
     idle-background: transparent;
-    enabled-avatar-background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
-    enabled-avatar-foreground: root.engine.active ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+    enabled-avatar-background: HubVisualSpec.neutral-icon-background;
+    enabled-avatar-foreground: HubVisualSpec.neutral-icon-foreground;
 
     clicked => {
         root.picked(root.engine.id);
@@ -87,7 +68,7 @@ export component HeaderEngineSelector inherits Rectangle {
         StateLayerArea {
             width: parent.width;
             height: parent.height;
-            color: HubVisualSpec.accent-stroke;
+            color: MaterialPalette.on_surface_variant;
             border_radius: HubVisualSpec.compact-radius;
             clicked => { popup.show(); }
         }
@@ -95,7 +76,7 @@ export component HeaderEngineSelector inherits Rectangle {
         HorizontalLayout {
             width: parent.width;
             height: parent.height;
-            padding-left: HubTokens.space-4;
+            padding-left: HubTokens.space-3;
             padding-right: HubTokens.space-3;
             spacing: HubTokens.space-2;
             alignment: center;
@@ -103,7 +84,7 @@ export component HeaderEngineSelector inherits Rectangle {
             MaterialText {
                 horizontal-stretch: 1;
                 text: root.current-engine.title;
-                color: MaterialPalette.on_surface;
+                color: MaterialPalette.on_surface_variant;
                 style: MaterialTypography.label_medium;
                 overflow: elide;
                 vertical_alignment: center;
@@ -118,67 +99,53 @@ export component HeaderEngineSelector inherits Rectangle {
         }
     }
 
-    popup := HubPopupWindow {
+    popup := HubAnchoredPopupPanel {
         popup-x: 0px;
         popup-y: root.height + MaterialStyleMetrics.spacing_6;
         popup-width: max(root.selector-width * 2, HubTokens.panel-min-sm);
         popup-height: root.popup-height;
 
-        PopupPanel {
-            width: parent.width;
-            height: parent.height;
-            border-radius: HubVisualSpec.panel-radius;
-            clip: true;
+        HorizontalLayout {
+            height: HubTokens.icon-lg;
+            spacing: HubTokens.space-2;
 
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding: HubTokens.toolbar-gap;
-                spacing: HubTokens.space-2;
+            MaterialText {
+                text: root.ui-text.source-engines;
+                color: MaterialPalette.on_surface;
+                style: MaterialTypography.label_large;
+            }
 
-                HorizontalLayout {
-                    height: HubTokens.icon-lg;
-                    spacing: HubTokens.space-2;
+            Rectangle { horizontal-stretch: 1; }
 
-                    MaterialText {
-                        text: root.ui-text.source-engines;
-                        color: MaterialPalette.on_surface;
-                        style: MaterialTypography.label_large;
-                    }
+            MaterialText {
+                text: root.ui-text.registered;
+                color: MaterialPalette.on_surface_variant;
+                style: MaterialTypography.label_medium;
+            }
+        }
 
-                    Rectangle { horizontal-stretch: 1; }
+        engine-list := PanelListViewport {
+            height: root.popup-list-height;
+            scroll-y <=> root.engine-popup-scroll-y;
+            row-count: root.engine-count;
+            row-height: HubTokens.list-row-md;
+            row-spacing: HubTokens.space-2;
+            vertical-padding: 0px;
+            empty-height: HubTokens.list-row-lg;
 
-                    MaterialText {
-                        text: root.ui-text.registered;
-                        color: MaterialPalette.on_surface_variant;
-                        style: MaterialTypography.label_medium;
-                    }
+            for engine in root.engines: HeaderEngineOption {
+                engine: engine;
+                picked(id) => {
+                    popup.close();
+                    root.selected(id);
                 }
+            }
 
-                engine-list := PanelListViewport {
-                    height: root.popup-list-height;
-                    scroll-y <=> root.engine-popup-scroll-y;
-                    row-count: root.engine-count;
-                    row-height: HubTokens.list-row-md;
-                    row-spacing: HubTokens.space-2;
-                    vertical-padding: 0px;
-                    empty-height: HubTokens.list-row-lg;
-
-                    for engine in root.engines: HeaderEngineOption {
-                        engine: engine;
-                        picked(id) => {
-                            popup.close();
-                            root.selected(id);
-                        }
-                    }
-
-                    if root.engine-count == 0: EmptyStateBlock {
-                        height: HubTokens.list-row-lg;
-                        title: root.ui-text.no-source-engines;
-                        body-padding: HubTokens.space-3;
-                        center-content: true;
-                    }
-                }
+            if root.engine-count == 0: EmptyStateBlock {
+                height: HubTokens.list-row-lg;
+                title: root.ui-text.no-source-engines;
+                body-padding: HubTokens.space-3;
+                center-content: true;
             }
         }
     }
@@ -227,13 +194,13 @@ export component HeaderUserMenu inherits Rectangle {
                 width: HubTokens.icon-xl;
                 height: HubTokens.icon-xl;
                 border-radius: HubTokens.icon-xl / 2;
-                background: MaterialPalette.secondary_container;
+                background: HubVisualSpec.user-avatar-background;
 
                 MaterialText {
                     width: parent.width;
                     height: parent.height;
                     text: root.ui-text.local-user-initials;
-                    color: MaterialPalette.on_secondary_container;
+                    color: HubVisualSpec.user-avatar-foreground;
                     style: MaterialTypography.label_medium_prominent;
                     horizontal_alignment: center;
                     vertical_alignment: center;
@@ -242,7 +209,7 @@ export component HeaderUserMenu inherits Rectangle {
 
             if !root.tight: MaterialText {
                 text: root.ui-text.local-user;
-                color: MaterialPalette.on_surface;
+                color: HubVisualSpec.user-name-foreground;
                 style: MaterialTypography.label_medium;
                 vertical_alignment: center;
                 horizontal-stretch: 1;
@@ -259,101 +226,87 @@ export component HeaderUserMenu inherits Rectangle {
         }
     }
 
-    user-menu-popup := HubPopupWindow {
+    user-menu-popup := HubAnchoredPopupPanel {
         popup-x: root.width - root.popup-width;
         popup-y: root.height + MaterialStyleMetrics.spacing_6;
         popup-width: root.popup-width;
         popup-height: root.popup-height;
 
-        PopupPanel {
-            width: parent.width;
-            height: parent.height;
-            border-radius: HubVisualSpec.panel-radius;
-            clip: true;
+        HorizontalLayout {
+            height: HubTokens.list-row-lg;
+            spacing: HubTokens.space-3;
+            alignment: center;
 
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding: HubTokens.toolbar-gap;
-                spacing: HubTokens.space-2;
+            Rectangle {
+                width: HubTokens.icon-xl + HubTokens.space-2;
+                height: HubTokens.icon-xl + HubTokens.space-2;
+                border-radius: (HubTokens.icon-xl + HubTokens.space-2) / 2;
+                border-width: HubTokens.border-width;
+                border-color: HubVisualSpec.accent-stroke;
+                background: MaterialPalette.secondary_container;
 
-                HorizontalLayout {
-                    height: HubTokens.list-row-lg;
-                    spacing: HubTokens.space-3;
-                    alignment: center;
-
-                    Rectangle {
-                        width: HubTokens.icon-xl + HubTokens.space-2;
-                        height: HubTokens.icon-xl + HubTokens.space-2;
-                        border-radius: (HubTokens.icon-xl + HubTokens.space-2) / 2;
-                        border-width: HubTokens.border-width;
-                        border-color: HubVisualSpec.accent-stroke;
-                        background: MaterialPalette.secondary_container;
-
-                        MaterialText {
-                            width: parent.width;
-                            height: parent.height;
-                            text: root.ui-text.local-user-initials;
-                            color: MaterialPalette.on_secondary_container;
-                            style: MaterialTypography.title_small;
-                            horizontal_alignment: center;
-                            vertical_alignment: center;
-                        }
-                    }
-
-                    VerticalLayout {
-                        horizontal-stretch: 1;
-                        min-width: 1px;
-                        height: parent.height;
-                        spacing: HubTokens.space-0;
-
-                        Rectangle { vertical-stretch: 1; min-height: 0px; }
-                        MaterialText {
-                            text: root.ui-text.local-user;
-                            color: MaterialPalette.on_surface;
-                            style: MaterialTypography.label_large;
-                            overflow: elide;
-                        }
-                        MaterialText {
-                            text: root.project-label;
-                            color: MaterialPalette.on_surface_variant;
-                            style: MaterialTypography.body_small;
-                            overflow: elide;
-                        }
-                        Rectangle { vertical-stretch: 1; min-height: 0px; }
-                    }
-                }
-
-                Rectangle {
-                    height: HubTokens.border-width;
-                    horizontal-stretch: 1;
-                    background: HubVisualSpec.outline-muted;
-                }
-
-                HeaderUserMenuAction {
-                    title: root.ui-text.project-detail-title;
-                    detail: root.project-label;
-                    icon-image: @image-url("../assets/icons/ui/folder.svg");
-                    enabled: root.project.selected;
-                }
-
-                HeaderUserMenuAction {
-                    title: root.ui-text.save-settings;
-                    detail: root.ui-text.configuration-health;
-                    icon-image: @image-url("../assets/icons/ui/settings.svg");
-                    clicked => {
-                        user-menu-popup.close();
-                        root.settings-clicked();
-                    }
-                }
-
-                HeaderUserMenuAction {
-                    title: root.ui-text.check-for-updates;
-                    detail: root.ui-text.engine-status;
-                    icon-image: @image-url("../assets/icons/ui/refresh.svg");
-                    enabled: false;
+                MaterialText {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.ui-text.local-user-initials;
+                    color: MaterialPalette.on_secondary_container;
+                    style: MaterialTypography.title_small;
+                    horizontal_alignment: center;
+                    vertical_alignment: center;
                 }
             }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                min-width: 1px;
+                height: parent.height;
+                spacing: HubTokens.space-0;
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+                MaterialText {
+                    text: root.ui-text.local-user;
+                    color: MaterialPalette.on_surface;
+                    style: MaterialTypography.label_large;
+                    overflow: elide;
+                }
+                MaterialText {
+                    text: root.project-label;
+                    color: MaterialPalette.on_surface_variant;
+                    style: MaterialTypography.body_small;
+                    overflow: elide;
+                }
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            }
+        }
+
+        Rectangle {
+            height: HubTokens.border-width;
+            horizontal-stretch: 1;
+            background: HubVisualSpec.outline-muted;
+        }
+
+        HeaderUserMenuAction {
+            title: root.ui-text.project-detail-title;
+            detail: root.project-label;
+            icon-image: @image-url("../assets/icons/ui/folder.svg");
+            enabled: root.project.selected;
+        }
+
+        HeaderUserMenuAction {
+            title: root.ui-text.save-settings;
+            detail: root.ui-text.configuration-health;
+            icon-image: @image-url("../assets/icons/ui/settings.svg");
+            clicked => {
+                user-menu-popup.close();
+                root.settings-clicked();
+            }
+        }
+
+        HeaderUserMenuAction {
+            title: root.ui-text.check-for-updates;
+            detail: root.ui-text.engine-status;
+            icon-image: @image-url("../assets/icons/ui/refresh.svg");
+            enabled: false;
         }
     }
 }

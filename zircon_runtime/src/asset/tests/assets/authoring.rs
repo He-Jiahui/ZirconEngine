@@ -120,6 +120,7 @@ fn prefab_asset_collects_scene_references_without_editor_state() {
                 model: model.clone(),
                 mesh: None,
                 material: material.clone(),
+                morph_weights: Vec::new(),
                 primitives: Vec::new(),
             }),
             ambient_light: None,

@@ -11,8 +11,8 @@ use crate::ui::workbench::snapshot::{
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
-    PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
-    ViewKind,
+    ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost,
+    ViewInstance, ViewInstanceId, ViewKind,
 };
 
 #[test]
@@ -43,6 +43,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         ViewKind::ActivityWindow,
         "Asset Browser",
     )
+    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.asset"))
     .with_preferred_host(PreferredHost::ExclusiveMainPage)];
 
     let chrome = EditorChromeSnapshot::build(
@@ -77,6 +78,12 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         panic!("expected exclusive page");
     };
     assert_eq!(view.instance_id, asset_browser.instance_id);
+    assert_eq!(
+        view.activity_window_template
+            .as_ref()
+            .map(|template| template.document_id.as_str()),
+        Some("editor.window.asset")
+    );
     assert!(!view.placeholder);
 }
 

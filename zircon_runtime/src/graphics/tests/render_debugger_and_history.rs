@@ -167,6 +167,10 @@ fn renderdoc_debug_marker_registry_covers_capture_timeline() {
         debug_markers::marker_for_render_pass_stage(RenderPassStage::Overlay),
         Some(debug_markers::RENDERDOC_MARKER_OVERLAY)
     );
+    assert_eq!(
+        debug_markers::marker_for_render_graph_pass("clustered-lighting"),
+        "zircon::RenderGraphPass::clustered-lighting"
+    );
 }
 
 #[test]
@@ -274,6 +278,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
     let history = ViewportFrameHistory::new(
         FrameHistoryHandle::new(1),
         viewport_size,
+        viewport_size,
         pipeline,
         1,
         bindings.clone(),
@@ -282,6 +287,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
     );
 
     assert!(history.is_compatible(
+        viewport_size,
         viewport_size,
         pipeline,
         &bindings,
@@ -299,6 +305,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         extract_with_camera_and_mesh(moved_camera, Transform::from_translation(Vec3::ZERO));
     assert!(!history.is_compatible(
         viewport_size,
+        viewport_size,
         pipeline,
         &bindings,
         &FrameHistoryValidationKey::from_extract(
@@ -312,6 +319,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     );
     assert!(!history.is_compatible(
+        viewport_size,
         viewport_size,
         pipeline,
         &bindings,
@@ -337,6 +345,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
     let history = ViewportFrameHistory::new(
         FrameHistoryHandle::new(1),
         viewport_size,
+        viewport_size,
         pipeline,
         1,
         bindings.clone(),
@@ -355,6 +364,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
             intensity: 3.0,
         });
     assert!(!history.is_compatible(
+        viewport_size,
         viewport_size,
         pipeline,
         &bindings,
@@ -375,6 +385,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
         tint: Vec3::new(1.0, 0.95, 0.9),
     };
     assert!(!history.is_compatible(
+        viewport_size,
         viewport_size,
         pipeline,
         &bindings,
@@ -465,6 +476,7 @@ fn extract_with_camera_and_mesh(
                     material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                         "history-test-material",
                     )),
+                    morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
                     render_layer_mask: default_render_layer_mask(),

@@ -41,6 +41,7 @@ fn components_exports_locked_input_and_navigation_api() {
         "HubComboBox,",
         "HubSwitch,",
         "HubTextField,",
+        "HubPathFieldRow,",
         "HubToggleRow,",
         "SearchBox,",
         "ToolbarSelect,",
@@ -85,7 +86,7 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
         ),
         (
             "HubTextField",
-            "ToolbarSelect",
+            "HubPathFieldRow",
             &[
                 "in-out property <string> text;",
                 "in property <string> label;",
@@ -98,6 +99,24 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
                 "callback edited(string);",
                 "callback accepted(string);",
                 "forward-focus: material-field;",
+            ][..],
+        ),
+        (
+            "HubPathFieldRow",
+            "ToolbarSelect",
+            &[
+                "in property <string> label;",
+                "in property <string> placeholder;",
+                "in property <string> supporting-text;",
+                "in-out property <string> text;",
+                "in property <bool> enabled: true;",
+                "in property <bool> show-action: true;",
+                "in property <bool> action-enabled: true;",
+                "in property <string> action-label;",
+                "in property <image> action-icon:",
+                "in property <length> field-height: HubTokens.input-field;",
+                "in property <length> action-width: HubTokens.control-md * 3;",
+                "callback action-clicked();",
             ][..],
         ),
         (

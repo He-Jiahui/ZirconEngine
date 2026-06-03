@@ -19,6 +19,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .with_executor_id("ui.screen-space")
         .with_side_effects()
         .read_external(PostProcessGraphResourceNames::FINAL_COLOR)
-        .write_external("viewport-output")],
+        .write_external(PostProcessGraphResourceNames::VIEWPORT_OUTPUT)],
     )
 }

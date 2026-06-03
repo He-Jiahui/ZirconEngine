@@ -299,6 +299,95 @@ mod tests {
         );
     }
 
+    #[test]
+    fn compiled_pipeline_capability_validation_reports_neural_compute_requirement() {
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        pipeline
+            .renderer
+            .features
+            .push(RendererFeatureAsset::plugin(
+                RenderFeatureDescriptor::new(
+                    "plugin.neural.capability_validation",
+                    Vec::new(),
+                    Vec::new(),
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-neural-capability-validation",
+                        QueueLane::AsyncCompute,
+                    )
+                    .with_executor_id("plugin.neural.capability-validation")
+                    .with_side_effects()],
+                )
+                .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute),
+            ));
+        let compiled = pipeline
+            .compile_with_options(
+                &test_extract(),
+                &RenderPipelineCompileOptions::default()
+                    .with_capability_enabled(RenderFeatureCapabilityRequirement::NeuralCompute),
+            )
+            .unwrap();
+        let capabilities = RenderCapabilitySummary {
+            backend_name: "capability-test".to_string(),
+            supports_offscreen: true,
+            supports_fxaa: true,
+            supports_async_compute: true,
+            supports_storage_buffers: true,
+            ..Default::default()
+        };
+
+        let error = validate_compiled_pipeline_capabilities(&compiled, &capabilities).unwrap_err();
+
+        assert_eq!(
+            error,
+            RenderFrameworkError::CapabilityMismatch {
+                pipeline: compiled.handle.raw(),
+                reason: format!("pipeline `{}` requires neural_compute", compiled.name),
+                missing: vec![RenderCapabilityMismatchDetail::new(
+                    RenderCapabilityKind::NeuralCompute,
+                )],
+            }
+        );
+    }
+
+    #[test]
+    fn compiled_pipeline_capability_validation_reports_sparse_texture_requirement() {
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        pipeline
+            .renderer
+            .features
+            .push(RendererFeatureAsset::builtin(
+                BuiltinRenderFeature::SparseTexture,
+            ));
+        let compiled = pipeline
+            .compile_with_options(
+                &test_extract(),
+                &RenderPipelineCompileOptions::default()
+                    .with_feature_enabled(BuiltinRenderFeature::SparseTexture)
+                    .with_capability_enabled(RenderFeatureCapabilityRequirement::SparseTexture),
+            )
+            .unwrap();
+        let capabilities = RenderCapabilitySummary {
+            backend_name: "capability-test".to_string(),
+            supports_offscreen: true,
+            supports_fxaa: true,
+            ..Default::default()
+        };
+
+        let error = validate_compiled_pipeline_capabilities(&compiled, &capabilities).unwrap_err();
+
+        assert_eq!(
+            error,
+            RenderFrameworkError::CapabilityMismatch {
+                pipeline: compiled.handle.raw(),
+                reason: format!("pipeline `{}` requires sparse_texture", compiled.name),
+                missing: vec![RenderCapabilityMismatchDetail::new(
+                    RenderCapabilityKind::SparseTexture,
+                )],
+            }
+        );
+    }
+
     fn test_extract() -> RenderFrameExtract {
         RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),

@@ -21,6 +21,7 @@ key = "editor.build_export_desktop.default_platform"
 display_name = "Default Desktop Platform"
 value_type = "enum"
 default_value = "windows"
+enum_values = ["windows", "linux", "macos"]
 
 [[modules]]
 name = "editor_build_export_desktop.editor"

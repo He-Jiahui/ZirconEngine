@@ -192,6 +192,7 @@ mod tests {
             model: ResourceHandle::<ModelMarker>::new(model_id),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),

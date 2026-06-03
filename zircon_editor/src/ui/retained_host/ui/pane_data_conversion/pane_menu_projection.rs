@@ -1,6 +1,6 @@
 use crate::ui::retained_host as host_contract;
 
-pub(super) fn structured_menu_items(
+pub(in crate::ui::retained_host::ui) fn structured_menu_items(
     items: &[String],
 ) -> Vec<host_contract::TemplatePaneMenuItemData> {
     items

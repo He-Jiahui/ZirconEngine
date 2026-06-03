@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
+    RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
     RenderMaterialReadinessReport,
 };
 use crate::core::math::{Vec3, Vec4};
@@ -9,7 +9,7 @@ use crate::core::resource::ResourceId;
 
 use super::super::PipelineKey;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub(crate) struct MaterialCaptureSeed {
     pub(crate) base_color: Vec4,
@@ -19,6 +19,7 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) double_sided: bool,
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
+    pub(crate) lighting_model: RenderMaterialLightingModel,
     pub(crate) unlit: bool,
     pub(crate) base_color_texture: Option<ResourceId>,
     pub(crate) normal_texture: Option<ResourceId>,
@@ -37,6 +38,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) double_sided: bool,
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
+    pub(crate) lighting_model: RenderMaterialLightingModel,
     pub(crate) unlit: bool,
     pub(crate) base_color_texture: Option<ResourceId>,
     pub(crate) normal_texture: Option<ResourceId>,
@@ -61,6 +63,7 @@ impl MaterialRuntime {
             double_sided: self.double_sided,
             alpha_blend: self.alpha_blend,
             alpha_cutoff: self.alpha_cutoff,
+            lighting_model: self.lighting_model.clone(),
             unlit: self.unlit,
             base_color_texture: self.base_color_texture,
             normal_texture: self.normal_texture,

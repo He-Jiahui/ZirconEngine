@@ -20,3 +20,19 @@ pub enum UiComponentCategory {
     /// Status and feedback controls such as progress, spinner, badge, and help rows.
     Feedback,
 }
+
+impl UiComponentCategory {
+    /// Stable host-facing token used by retained UI contracts and diagnostics.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Visual => "visual",
+            Self::Input => "input",
+            Self::Numeric => "numeric",
+            Self::Selection => "selection",
+            Self::Reference => "reference",
+            Self::Collection => "collection",
+            Self::Container => "container",
+            Self::Feedback => "feedback",
+        }
+    }
+}

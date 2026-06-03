@@ -85,6 +85,8 @@ tests:
   - cargo test -p zircon_runtime --lib text_attrs --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture (M6 glyphon rich attrs: 1 passed, 0 failed)
   - cargo test -p zircon_editor --lib native_runtime_text_painter --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture (M6 editor text painter: 1 passed, 0 failed)
   - target: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked
+  - cargo test -p zircon_runtime_interface --lib ui_image_control_paint_elements_preserve_background_image_and_border_order --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check and RUSTFLAGS=-Awarnings (2026-06-01 workbench icon chrome split: passed, 1 passed)
+  - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 latest workbench icon chrome split: passed, 29 passed)
 doc_type: module-detail
 ---
 
@@ -103,6 +105,10 @@ M1 of the Bevy UI/Text/Widgets/Focus/A11y plan adds `UiRenderExtractKind` and `U
 `paint.rs` defines `UiPaintElement`, `UiPaintPayload`, `UiClipState`, and `UiPaintEffects`.
 
 Each paint element carries `node_id`, `z_index`, `paint_order`, `UiGeometry`, optional `UiClipState`, a typed payload, effect state, and cache/debug placeholders. `UiRenderCommand::to_paint_element(...)` returns the legacy-compatible single payload view. `UiRenderCommand::to_paint_elements(...)` returns the fuller migration view: a button-like command with both background and text can produce a brush element plus a text element, preserving the behavior that glyph/text drawing is not mutually exclusive with quad drawing.
+
+Image-bearing commands follow the same rule. If a command has an icon/image plus background or border styling, `to_paint_elements(...)` emits separate payloads in paint order: background brush, image brush, optional text, and border brush. The legacy `to_paint_element(...)` remains a single-payload compatibility view, but the retained painter and parity paths should use the multi-element conversion when they need styled icon controls. This is required for the editor workbench toolbar: selected icon buttons must paint their chrome and border around the icon instead of allowing the image brush to replace the whole control payload.
+
+`UiRenderList::to_paint_elements_with_metrics(...)` assigns paint order from the number of elements actually emitted by each command. A split image control can now emit three or four elements, so list conversion can no longer reserve a fixed two-order stride per command without risking collisions with the following command.
 
 The M1 geometry slice adds `UiGeometry::from_frame_with_metrics(...)` plus metric-aware render command/list conversion. `absolute_frame` remains the unsnapped arranged/layout frame used by hit testing and debug authority, while `render_bounds` and `UiClipState.frame` can be snapped to the DPI pixel grid for painting. This makes render-side crispness explicit without giving editor or runtime consumers permission to replace `UiSurfaceFrame.arranged_tree` with a second coordinate source.
 

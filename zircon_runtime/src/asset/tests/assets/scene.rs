@@ -77,6 +77,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                         AssetUuid::from_stable_label("robot-material"),
                         AssetUri::parse("res://materials/robot.zmaterial").unwrap(),
                     ),
+                    morph_weights: vec![0.5, 1.0],
                     primitives: Vec::new(),
                 }),
                 ambient_light: None,
@@ -261,6 +262,7 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                     AssetUuid::from_stable_label("hero-material"),
                     AssetUri::parse("res://materials/hero.zmaterial").unwrap(),
                 ),
+                morph_weights: Vec::new(),
                 primitives: Vec::new(),
             }),
             ambient_light: None,
@@ -656,6 +658,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
         model: model.clone(),
         mesh: Some(mesh.clone()),
         material: material.clone(),
+        morph_weights: vec![0.25, 0.75],
         primitives: Vec::new(),
     });
     hero_entity.point_light = Some(ScenePointLightAsset {
@@ -751,6 +754,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
     assert_eq!(overview.mesh_instance_count, 1);
     assert_eq!(overview.direct_mesh_reference_count, 1);
     assert_eq!(overview.mesh_primitive_binding_count, 0);
+    assert_eq!(overview.morph_weight_count, 2);
     assert_eq!(overview.mesh_material_binding_count, 1);
     assert_eq!(overview.collider_material_binding_count, 1);
     assert_eq!(overview.light_count, 1);
@@ -779,6 +783,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
     assert!(hero_overview.has_direct_mesh_reference);
     assert_eq!(hero_overview.direct_mesh_reference_count, 1);
     assert_eq!(hero_overview.mesh_primitive_binding_count, 0);
+    assert_eq!(hero_overview.morph_weight_count, 2);
     assert!(hero_overview.has_collider_material);
     assert_eq!(hero_overview.light_count(), 1);
     assert_eq!(hero_overview.physics_component_count(), 3);
@@ -836,6 +841,7 @@ fn scene_asset_management_record_set_sorts_and_summarizes_records() {
         model,
         mesh: None,
         material,
+        morph_weights: Vec::new(),
         primitives: Vec::new(),
     });
     actor_entity.directional_light = Some(SceneDirectionalLightAsset {

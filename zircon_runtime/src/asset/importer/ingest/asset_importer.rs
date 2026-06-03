@@ -1,7 +1,7 @@
 use super::{
-    import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
-    import_material, import_mesh, import_model, import_physics_material, import_scene,
-    import_shader, import_shader_package, import_ui_zui_asset,
+    import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
+    import_font_asset, import_material, import_mesh, import_model, import_physics_material,
+    import_scene, import_shader, import_shader_package, import_ui_zui_asset,
 };
 #[cfg(test)]
 use super::{
@@ -247,6 +247,11 @@ impl AssetImporter {
                 format!("{extension} texture importer backend is not installed"),
             )?;
         }
+        self.register_function(
+            descriptor("zircon.builtin.texture.cube_lut", AssetKind::Texture, 1)
+                .with_source_extensions(["cube"]),
+            import_cube_lut::import_cube_lut,
+        )?;
 
         self.register_function(
             descriptor(

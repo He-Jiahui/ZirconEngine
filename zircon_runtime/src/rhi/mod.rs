@@ -9,12 +9,11 @@ pub use capabilities::{AccelerationStructureCaps, RenderBackendCaps, RenderQueue
 pub use descriptors::{
     AddressMode, BufferDesc, BufferUsage, PipelineDesc, PipelineKind, PresentMode, SamplerDesc,
     ShaderModuleDesc, ShaderStage, SwapchainDesc, TextureDesc, TextureDimension, TextureFormat,
-    TextureUsage,
+    TextureResidency, TextureUsage,
 };
 pub use device::{
-    BufferHandle, CommandList, CommandListCommand, FenceValue, GpuBuffer, PipelineHandle,
-    RenderDevice, RhiError, SamplerHandle, ShaderModuleHandle, TextureHandle,
-    TransientAllocatorStats,
+    BufferHandle, CommandList, CommandListCommand, FenceValue, PipelineHandle, RenderDevice,
+    RhiError, SamplerHandle, ShaderModuleHandle, TextureHandle, TransientAllocatorStats,
 };
 pub use ui_surface::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,

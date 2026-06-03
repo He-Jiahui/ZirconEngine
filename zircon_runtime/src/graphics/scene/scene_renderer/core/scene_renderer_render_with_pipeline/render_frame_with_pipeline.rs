@@ -1,6 +1,8 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
 use crate::graphics::backend::ViewportSurface;
+use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
+use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::render_graph::QueueLane;
 use crate::CompiledRenderPipeline;
@@ -20,9 +22,14 @@ impl SceneRenderer {
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
     ) -> Result<ViewportFrame, GraphicsError> {
-        let generation =
-            self.render_frame_with_pipeline_to_target(frame, pipeline, history_handle)?;
+        let generation = self.render_frame_with_pipeline_to_target(
+            frame,
+            pipeline,
+            history_handle,
+            previous_history_available,
+        )?;
         let target = self.target.as_ref().expect("offscreen target");
         finish_viewport_frame(
             &self.backend.device,
@@ -37,10 +44,15 @@ impl SceneRenderer {
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
         surface: &mut ViewportSurface,
     ) -> Result<u64, GraphicsError> {
-        let generation =
-            self.render_frame_with_pipeline_to_target(frame, pipeline, history_handle)?;
+        let generation = self.render_frame_with_pipeline_to_target(
+            frame,
+            pipeline,
+            history_handle,
+            previous_history_available,
+        )?;
         let target = self.target.as_ref().expect("offscreen target");
         surface.present_texture(
             &self.backend.device,
@@ -55,6 +67,7 @@ impl SceneRenderer {
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
     ) -> Result<u64, GraphicsError> {
         reset_last_runtime_outputs(self);
 
@@ -75,6 +88,7 @@ impl SceneRenderer {
                 &self.backend.queue,
                 &mut self.history_targets,
                 history_handle,
+                previous_history_available,
                 size,
                 runtime_features,
             );
@@ -116,6 +130,10 @@ impl SceneRenderer {
         self.last_render_graph_execution.executed_executor_ids()
     }
 
+    pub(crate) fn last_render_graph_executed_debug_markers(&self) -> &[String] {
+        self.last_render_graph_execution.executed_debug_markers()
+    }
+
     pub(crate) fn last_render_graph_executed_post_process_nodes(&self) -> &[String] {
         self.last_render_graph_execution
             .executed_post_process_nodes()
@@ -136,6 +154,45 @@ impl SceneRenderer {
         self.last_render_graph_execution.executed_dependency_count()
     }
 
+    pub(crate) fn last_render_graph_compute_dispatch_count(&self) -> usize {
+        self.last_render_graph_execution.compute_dispatch_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_dispatch_group_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_dispatch_group_volume_total()
+    }
+
+    pub(crate) fn last_render_graph_compute_storage_write_resource_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_storage_write_resource_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_planned_workload_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_workload_planned_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_matched_workload_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_workload_matched_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_missing_dispatch_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_workload_missing_dispatch_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_workload_mismatch_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_workload_mismatch_count()
+    }
+
+    pub(crate) fn last_render_graph_compute_unexpected_dispatch_count(&self) -> usize {
+        self.last_render_graph_execution
+            .compute_workload_unexpected_dispatch_count()
+    }
+
     pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {
         self.last_render_graph_execution
             .executed_queue_fallback_count()
@@ -151,6 +208,14 @@ impl SceneRenderer {
         stage: crate::graphics::pipeline::RenderPassStage,
     ) -> usize {
         self.last_render_graph_execution.executed_stage_count(stage)
+    }
+
+    pub(crate) fn last_prepared_mesh_queue_stats(&self) -> PreparedMeshQueueStats {
+        self.last_prepared_mesh_queue_stats
+    }
+
+    pub(crate) fn last_prepared_sprite_queue_stats(&self) -> PreparedSpriteQueueStats {
+        self.last_prepared_sprite_queue_stats
     }
 
     pub(crate) fn last_material_count(&self) -> usize {
@@ -183,5 +248,30 @@ impl SceneRenderer {
 
     pub(crate) fn last_sprite_texture_fallback_count(&self) -> usize {
         self.streamer.last_sprite_texture_fallback_count()
+    }
+
+    pub(crate) fn last_post_process_lut_request_count(&self) -> usize {
+        self.streamer.last_post_process_lut_request_count()
+    }
+
+    pub(crate) fn last_post_process_lut_ready_count(&self) -> usize {
+        self.streamer.last_post_process_lut_ready_count()
+    }
+
+    pub(crate) fn last_post_process_lut_fallback_count(&self) -> usize {
+        self.streamer.last_post_process_lut_fallback_count()
+    }
+
+    pub(crate) fn last_post_process_lut_2d_strip_ready_count(&self) -> usize {
+        self.streamer.last_post_process_lut_2d_strip_ready_count()
+    }
+
+    pub(crate) fn last_post_process_lut_3d_request_count(&self) -> usize {
+        self.streamer.last_post_process_lut_3d_request_count()
+    }
+
+    pub(crate) fn last_post_process_lut_unsupported_shape_count(&self) -> usize {
+        self.streamer
+            .last_post_process_lut_unsupported_shape_count()
     }
 }

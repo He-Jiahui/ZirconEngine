@@ -13,17 +13,19 @@ use super::{
         GeometryPhaseInput, PostProcessEffectKind, PostProcessEffectSettings,
         PostProcessGraphResourceNames, PostProcessGraphValidationError, PostProcessPassGraph,
         PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-        RenderCameraOrderAmbiguity, RenderCameraOrderInput, RenderCameraTarget,
-        RenderCameraTargetOrderKey, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-        RenderDirectionalLightSnapshot, RenderFeatureQualitySettings, RenderFrameExtract,
+        RenderBloomSettings, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
+        RenderCameraTarget, RenderCameraTargetOrderKey, RenderCapabilityKind,
+        RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
+        RenderDynamicResolutionSettings, RenderFeatureQualitySettings, RenderFrameExtract,
         RenderFrameworkError, RenderHybridGiDebugView, RenderHybridGiExtract,
-        RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
-        RenderPhase, RenderPhaseMeshSource, RenderPipelineHandle, RenderPointLightSnapshot,
-        RenderProductFeature, RenderProductProfile, RenderProfileBundle,
-        RenderProfileValidationError, RenderQualityProfile, RenderRectLightSnapshot,
-        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats,
-        RenderViewportDescriptor, RenderViewportHandle, RenderViewportRect, RenderingBackendInfo,
-        ViewportCameraSnapshot,
+        RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode,
+        RenderMaterialLightingModel, RenderOverlayExtract, RenderPhase, RenderPhaseMeshSource,
+        RenderPhaseSortComponents, RenderPhaseSortKey, RenderPipelineHandle,
+        RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderProductFeature,
+        RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
+        RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
+        RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
+        RenderViewportHandle, RenderViewportRect, RenderingBackendInfo, ViewportCameraSnapshot,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
     tasks::{
@@ -69,6 +71,7 @@ fn framework_contract_types_are_constructible() {
         payload: vec![1, 2, 3],
     };
     let material = PhysicsMaterialMetadata::default();
+    let lighting_model = RenderMaterialLightingModel::Unlit;
     let physics = PhysicsSettings::default();
     let level = LevelSummary {
         handle: WorldHandle::new(42),
@@ -105,6 +108,8 @@ fn framework_contract_types_are_constructible() {
     );
     assert!(playback.enabled && playback.property_tracks);
     assert_eq!(material.friction_combine, PhysicsCombineRule::Average);
+    assert!(lighting_model.is_unlit());
+    assert_eq!(lighting_model.to_string(), "unlit");
     assert_eq!(physics.fixed_hz, 60);
     assert_eq!(level.handle.get(), 42);
     assert_eq!(Mobility::default(), Mobility::Dynamic);
@@ -137,6 +142,87 @@ fn render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d
             RenderPhase::AlphaMask3d,
             RenderPhase::Transparent3d,
         ],
+    );
+}
+
+#[test]
+fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
+    let base = RenderPhaseSortComponents::new(10.0, 1)
+        .with_render_queue(2_000)
+        .with_material_queue(0);
+    let later_render_queue = RenderPhaseSortComponents::new(-100.0, 2)
+        .with_render_queue(2_500)
+        .with_material_queue(0);
+    let later_material_queue = RenderPhaseSortComponents::new(-100.0, 3)
+        .with_render_queue(2_000)
+        .with_material_queue(10);
+    let later_layer = RenderPhaseSortComponents::new(-100.0, 4)
+        .with_render_queue(2_000)
+        .with_material_queue(0)
+        .with_order_in_layer(5);
+    let later_ui_z = RenderPhaseSortComponents::new(-100.0, 5)
+        .with_render_queue(2_000)
+        .with_material_queue(0)
+        .with_ui_z_index(6);
+
+    assert!(
+        RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, base)
+            < RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, later_render_queue)
+    );
+    assert!(
+        RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, base)
+            < RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, later_material_queue)
+    );
+    assert!(
+        RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, base)
+            < RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, later_layer)
+    );
+    assert!(
+        RenderPhaseSortKey::for_components(RenderPhase::Ui, base)
+            < RenderPhaseSortKey::for_components(RenderPhase::Ui, later_ui_z)
+    );
+
+    let transparent_far = RenderPhaseSortComponents::new(100.0, 6)
+        .with_render_queue(3_000)
+        .with_depth_bias(0.5);
+    let transparent_near = RenderPhaseSortComponents::new(1.0, 7).with_render_queue(3_000);
+    assert!(
+        RenderPhaseSortKey::for_components(RenderPhase::Transparent3d, transparent_far)
+            < RenderPhaseSortKey::for_components(RenderPhase::Transparent3d, transparent_near)
+    );
+}
+
+#[test]
+fn geometry_phase_inputs_feed_unified_sort_components_into_queue() {
+    let queue = GeometryExtract::from_meshes_and_phase_inputs(
+        CorePipelineKind::Core3d,
+        Vec::new(),
+        vec![
+            GeometryPhaseInput::new(30, 0, RenderMaterialAlphaMode::Opaque, 10.0)
+                .with_render_queue(2_000)
+                .with_material_queue(0),
+            GeometryPhaseInput::new(10, 1, RenderMaterialAlphaMode::Opaque, 1.0)
+                .with_render_queue(1_000)
+                .with_material_queue(50),
+            GeometryPhaseInput::new(20, 2, RenderMaterialAlphaMode::Opaque, 0.0)
+                .with_render_queue(2_000)
+                .with_material_queue(-10)
+                .with_order_in_layer(5),
+        ],
+    )
+    .phase_queue;
+
+    assert_eq!(
+        queue
+            .items
+            .iter()
+            .map(|item| item.mesh_source)
+            .collect::<Vec<_>>(),
+        vec![
+            RenderPhaseMeshSource::MeshIndex(1),
+            RenderPhaseMeshSource::MeshIndex(2),
+            RenderPhaseMeshSource::MeshIndex(0),
+        ]
     );
 }
 
@@ -208,6 +294,37 @@ fn render_product_post_process_stack_can_drop_history_from_validated_graph() {
 }
 
 #[test]
+fn render_product_post_process_stack_splits_history_previous_and_output_slots() {
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &Default::default(),
+        &Default::default(),
+        true,
+        true,
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+    let history = graph
+        .nodes
+        .iter()
+        .find(|node| node.kind == PostProcessEffectKind::HistoryResolve)
+        .expect("history resolve should be executable when history is available");
+
+    assert!(stack
+        .initial_resources
+        .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
+    assert!(history
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
+    assert!(history
+        .produced_outputs
+        .contains(&PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR.to_string()));
+    assert!(!history
+        .required_inputs
+        .iter()
+        .any(|input| history.produced_outputs.contains(input)));
+}
+
+#[test]
 fn render_product_post_process_graph_rejects_missing_scene_color() {
     let stack = PostProcessStackDescriptor {
         initial_resources: vec![PostProcessGraphResourceNames::SCENE_DEPTH.to_string()],
@@ -235,9 +352,9 @@ fn render_product_post_process_graph_rejects_invalid_history_dependency() {
             PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
                 .with_required_inputs([
                     PostProcessGraphResourceNames::SCENE_COLOR,
-                    PostProcessGraphResourceNames::HISTORY_COLOR,
+                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR,
                 ])
-                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_RESOLVED]),
+                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR]),
         ],
     };
 
@@ -245,7 +362,7 @@ fn render_product_post_process_graph_rejects_invalid_history_dependency() {
         PostProcessPassGraph::validate_stack(&stack),
         Err(PostProcessGraphValidationError::MissingRequiredInput {
             node: "history-resolve".to_string(),
-            resource: PostProcessGraphResourceNames::HISTORY_COLOR.to_string(),
+            resource: PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string(),
         })
     );
 }
@@ -343,6 +460,135 @@ fn render_product_post_process_graph_allows_color_grading_without_bloom() {
 }
 
 #[test]
+fn render_product_post_process_effect_stack_runs_before_final_composite_when_authored() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &RenderBloomSettings {
+            threshold: 1.0,
+            intensity: 0.5,
+            radius: 0.25,
+        },
+        &super::render::RenderColorGradingSettings {
+            exposure: 1.05,
+            contrast: 1.0,
+            saturation: 1.0,
+            gamma: 1.0,
+            tint: Vec3::ONE,
+        },
+        &RenderPostProcessEffectStackSettings {
+            vignette: super::render::RenderVignetteSettings {
+                intensity: 0.35,
+                ..Default::default()
+            },
+            grain: super::render::RenderFilmGrainSettings {
+                intensity: 0.2,
+                ..Default::default()
+            },
+            chromatic_aberration: super::render::RenderChromaticAberrationSettings {
+                intensity: 0.1,
+                ..Default::default()
+            },
+            fog: super::render::RenderFogSettings {
+                density: 0.05,
+                color: Vec3::new(0.5, 0.6, 0.7),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &super::render::AntiAliasSettings::off(),
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+    let effect_stack = graph
+        .nodes
+        .iter()
+        .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+        .expect("authored effect-stack settings should enable the graph node");
+    let final_composite = graph
+        .nodes
+        .iter()
+        .find(|node| node.kind == PostProcessEffectKind::FinalComposite)
+        .expect("postprocess graph should still end in final composite");
+
+    assert_eq!(
+        graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
+        vec![
+            PostProcessEffectKind::Bloom,
+            PostProcessEffectKind::ColorGrading,
+            PostProcessEffectKind::EffectStack,
+            PostProcessEffectKind::FinalComposite,
+        ]
+    );
+    assert!(effect_stack
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::BLOOM.to_string()));
+    assert!(effect_stack
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::COLOR_GRADED.to_string()));
+    assert!(effect_stack
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+    assert_eq!(
+        effect_stack.produced_outputs,
+        vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()]
+    );
+    assert_eq!(
+        final_composite.required_inputs,
+        vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()]
+    );
+    assert_eq!(
+        final_composite.after,
+        vec![PostProcessEffectKind::EffectStack]
+    );
+}
+
+#[test]
+fn render_product_post_process_extended_effect_stack_settings_enable_product_node() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &RenderBloomSettings::default(),
+        &super::render::RenderColorGradingSettings::default(),
+        &RenderPostProcessEffectStackSettings {
+            tonemap: super::render::RenderTonemapSettings {
+                operator: super::render::RenderTonemapOperator::Filmic,
+                ..Default::default()
+            },
+            dither: super::render::RenderDitherSettings {
+                intensity: 0.2,
+                ..Default::default()
+            },
+            screen_space_reflection: super::render::RenderScreenSpaceReflectionSettings {
+                intensity: 0.4,
+                max_steps: 24,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &super::render::AntiAliasSettings::off(),
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+    let effect_stack = graph
+        .nodes
+        .iter()
+        .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+        .expect("SSR settings should enable the effect-stack node");
+
+    assert_eq!(
+        graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
+        vec![
+            PostProcessEffectKind::EffectStack,
+            PostProcessEffectKind::FinalComposite,
+        ]
+    );
+    assert!(effect_stack
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+}
+
+#[test]
 fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
     let viewport = RenderViewportRect::new(UVec2::new(600, 400), UVec2::new(100, 100))
         .clamped_to_size(UVec2::new(640, 480));
@@ -378,6 +624,32 @@ fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
     assert_eq!(camera.msaa_samples, 4);
     assert!(camera.render_layers.intersects_legacy_mask(0b1000));
     assert!(!camera.render_layers.intersects_legacy_mask(0b0010));
+
+    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
+    assert_eq!(
+        camera.effective_viewport_size(UVec2::new(1920, 1080)),
+        UVec2::new(320, 160),
+        "dynamic resolution must not change the camera viewport/present size"
+    );
+    assert_eq!(
+        camera.effective_render_size(UVec2::new(1920, 1080)),
+        UVec2::new(160, 80),
+        "dynamic resolution should scale only the internal render extent"
+    );
+
+    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.0);
+    assert_eq!(
+        camera.effective_render_size(UVec2::new(1920, 1080)),
+        UVec2::new(32, 16),
+        "render scale is clamped so graph resources never collapse to zero"
+    );
+
+    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(f32::NAN);
+    assert_eq!(
+        camera.effective_render_size(UVec2::new(1920, 1080)),
+        UVec2::new(320, 160),
+        "non-finite render scale falls back to unscaled viewport size"
+    );
 }
 
 #[test]
@@ -502,24 +774,9 @@ fn assert_mesh_phase_order(pipeline: CorePipelineKind, expected: &[RenderPhase; 
         pipeline,
         Vec::new(),
         vec![
-            GeometryPhaseInput {
-                entity: 30,
-                mesh_index: 0,
-                material_alpha_mode: RenderMaterialAlphaMode::Blend,
-                depth: 2.0,
-            },
-            GeometryPhaseInput {
-                entity: 10,
-                mesh_index: 1,
-                material_alpha_mode: RenderMaterialAlphaMode::Opaque,
-                depth: 1.0,
-            },
-            GeometryPhaseInput {
-                entity: 20,
-                mesh_index: 2,
-                material_alpha_mode: RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
-                depth: 1.5,
-            },
+            GeometryPhaseInput::new(30, 0, RenderMaterialAlphaMode::Blend, 2.0),
+            GeometryPhaseInput::new(10, 1, RenderMaterialAlphaMode::Opaque, 1.0),
+            GeometryPhaseInput::new(20, 2, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, 1.5),
         ],
     )
     .phase_queue;

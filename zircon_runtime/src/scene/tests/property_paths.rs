@@ -2,7 +2,7 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath, SceneProp
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{AnimationClipMarker, ResourceHandle, ResourceId};
 use crate::scene::components::{
-    AnimationPlayerComponent, NodeKind, RigidBodyComponent, RigidBodyType,
+    AnimationPlayerComponent, MeshRenderer, NodeKind, RigidBodyComponent, RigidBodyType,
 };
 use crate::scene::world::World;
 
@@ -48,6 +48,7 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     let translation_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
     let mass_path = ComponentPropertyPath::parse("RigidBody.mass").unwrap();
     let weight_path = ComponentPropertyPath::parse("AnimationPlayer.weight").unwrap();
+    let morph_weight_path = ComponentPropertyPath::parse("MeshRenderer.morph_weights.1").unwrap();
 
     assert_eq!(world.entity_path(hero), Some(entity_path.clone()));
     assert_eq!(world.resolve_entity_path(&entity_path), Some(hero));
@@ -80,11 +81,22 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     assert!(!world
         .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
         .unwrap());
+    assert!(world
+        .set_property(hero, &morph_weight_path, ScenePropertyValue::Scalar(0.6))
+        .unwrap());
 
     let node = world.find_node(hero).unwrap();
     assert_eq!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));
     assert_eq!(world.rigid_body(hero).unwrap().mass, 5.5);
     assert_eq!(world.animation_player(hero).unwrap().weight, 0.75);
+    assert_eq!(
+        world
+            .get::<MeshRenderer>(hero)
+            .unwrap()
+            .morph_weights
+            .as_slice(),
+        &[0.0, 0.6]
+    );
     assert_eq!(
         world.property(hero, &translation_path).unwrap(),
         ScenePropertyValue::Vec3([4.0, 5.0, 6.0])
@@ -96,6 +108,10 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     assert_eq!(
         world.property(hero, &weight_path).unwrap(),
         ScenePropertyValue::Scalar(0.75)
+    );
+    assert_eq!(
+        world.property(hero, &morph_weight_path).unwrap(),
+        ScenePropertyValue::Scalar(0.6)
     );
 }
 

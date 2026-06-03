@@ -63,6 +63,7 @@ impl ScreenSpaceUiRenderer {
             pipeline,
             text_system,
             last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
+            last_attachment_ops: crate::render_graph::RenderGraphAttachmentOps::load_store(),
         }
     }
 }

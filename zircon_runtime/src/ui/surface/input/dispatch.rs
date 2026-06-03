@@ -27,6 +27,7 @@ use crate::ui::tree::UiRuntimeTreeRoutingExt;
 use super::super::surface::UiSurface;
 use super::{
     apply_dispatch_reply, is_valid_input_owner,
+    route_policy::annotate_route_policy,
     text_constraints::{text_input_constraints_for_node, TextInputConstraints},
     text_keyboard::{
         keyboard_clipboard_action, keyboard_requests_newline, keyboard_text_edit_actions,
@@ -104,10 +105,11 @@ pub(crate) fn dispatch_input_event(
             {
                 merge_pointer_text_result(&mut result, text_result);
             }
-            Ok(result)
+            Ok(with_route_policy(surface, result))
         }
         UiInputEvent::Navigation(navigation) => {
-            dispatch_navigation_input(surface, navigation_dispatcher, navigation)
+            let result = dispatch_navigation_input(surface, navigation_dispatcher, navigation)?;
+            Ok(with_route_policy(surface, result))
         }
         UiInputEvent::Keyboard(keyboard) => {
             let target = surface.focus.focused;
@@ -119,12 +121,13 @@ pub(crate) fn dispatch_input_event(
             result.diagnostics.route_target = target;
             if let Some(target) = target {
                 if !is_valid_input_owner(surface, target) {
-                    return Ok(owner_routed_result(
+                    let result = owner_routed_result(
                         surface,
                         UiInputEvent::Keyboard(keyboard),
                         Some(target),
                         "keyboard.focused",
-                    ));
+                    );
+                    return Ok(with_route_policy(surface, result));
                 }
                 let route = surface.tree.bubble_route(target)?;
                 result
@@ -138,7 +141,7 @@ pub(crate) fn dispatch_input_event(
                         .diagnostics
                         .notes
                         .insert(0, format!("focused_route_len={}", route.len()));
-                    return Ok(text_result);
+                    return Ok(with_route_policy(surface, text_result));
                 }
                 if keyboard_requests_popup_dismissal(&keyboard) {
                     let report = surface.apply_default_popup_dismissal_action(target)?;
@@ -167,18 +170,25 @@ pub(crate) fn dispatch_input_event(
                     true,
                 );
             }
-            Ok(result)
+            Ok(with_route_policy(surface, result))
         }
-        UiInputEvent::Text(text) => Ok(dispatch_text_input(surface, text)),
-        UiInputEvent::Ime(ime) => Ok(dispatch_ime_input(surface, ime)),
+        UiInputEvent::Text(text) => {
+            let result = dispatch_text_input(surface, text);
+            Ok(with_route_policy(surface, result))
+        }
+        UiInputEvent::Ime(ime) => {
+            let result = dispatch_ime_input(surface, ime);
+            Ok(with_route_policy(surface, result))
+        }
         UiInputEvent::Analog(analog) => {
             let changed = surface
                 .input
                 .update_analog_control(analog.control.as_str(), analog.value);
+            let focused = surface.focus.focused;
             let mut result = owner_routed_result(
                 surface,
                 UiInputEvent::Analog(analog),
-                surface.focus.focused,
+                focused,
                 "analog.focused",
             );
             if !changed {
@@ -189,15 +199,35 @@ pub(crate) fn dispatch_input_event(
                     .notes
                     .push("analog_repeat_suppressed".to_string());
             }
-            Ok(result)
+            Ok(with_route_policy(surface, result))
         }
-        UiInputEvent::DragDrop(drag_drop) => Ok(dispatch_drag_drop_input(surface, drag_drop)),
-        UiInputEvent::Popup(popup) => Ok(dispatch_popup_input(surface, popup)),
-        UiInputEvent::TooltipTimer(tooltip) => Ok(dispatch_tooltip_timer_input(surface, tooltip)),
-        UiInputEvent::Accessibility(accessibility) => Ok(
-            crate::ui::accessibility::dispatch_accessibility_action(surface, accessibility),
-        ),
+        UiInputEvent::DragDrop(drag_drop) => {
+            let result = dispatch_drag_drop_input(surface, drag_drop);
+            Ok(with_route_policy(surface, result))
+        }
+        UiInputEvent::Popup(popup) => {
+            let result = dispatch_popup_input(surface, popup);
+            Ok(with_route_policy(surface, result))
+        }
+        UiInputEvent::TooltipTimer(tooltip) => {
+            let result = dispatch_tooltip_timer_input(surface, tooltip);
+            Ok(with_route_policy(surface, result))
+        }
+        UiInputEvent::Accessibility(accessibility) => {
+            let result =
+                crate::ui::accessibility::dispatch_accessibility_action(surface, accessibility);
+            Ok(with_route_policy(surface, result))
+        }
     }
+}
+
+fn with_route_policy(
+    surface: &UiSurface,
+    mut result: UiInputDispatchResult,
+) -> UiInputDispatchResult {
+    let event = result.event.clone();
+    annotate_route_policy(&surface.input, &event, &mut result);
+    result
 }
 
 fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEvent) -> bool {

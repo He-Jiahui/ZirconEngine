@@ -117,6 +117,18 @@ impl World {
                 false,
             );
             push(
+                "MeshRenderer.morph_weight_count",
+                ScenePropertyValue::Unsigned(mesh.morph_weights.len() as u64),
+                false,
+            );
+            for (index, weight) in mesh.morph_weights.iter().enumerate() {
+                push(
+                    &format!("MeshRenderer.morph_weights.{index}"),
+                    ScenePropertyValue::Scalar(*weight),
+                    true,
+                );
+            }
+            push(
                 "MeshRenderer.tint",
                 ScenePropertyValue::Vec4(mesh.tint.to_array()),
                 true,

@@ -32,7 +32,7 @@ import { LearnPage } from "learn.slint";
 import { TeamPage } from "team.slint";
 import { SettingsPage } from "settings.slint";
 import { ZirconMaterialTheme } from "theme.slint";
-import { Fill, HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, HubVisualSpec, HubWindowView, NavigationItem, ResponsiveState } from "components.slint";
+import { HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack, HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, HubVisualSpec, HubWindowView, HubWorkspaceSurface, NavigationItem, ResponsiveState } from "components.slint";
 
 export component HubWindow inherits HubWindowView {
     in-out property <bool> nav-collapsed: false;
@@ -128,6 +128,13 @@ export component HubWindow inherits HubWindowView {
     private property <length> page-title-height: responsive-state.medium ? HubTokens.shell-header-height : HubTokens.shell-header-height + HubTokens.toolbar-gap;
     private property <length> page-pad-x: responsive-state.compact ? HubTokens.page-padding-compact : HubTokens.page-padding;
     private property <length> page-action-height: responsive-state.compact ? HubTokens.control-md : HubTokens.control-lg;
+    private property <bool> page-header-actions-visible: root.selected-page != "projects" && !responsive-state.compact;
+    private property <string> page-header-secondary-action-label: root.selected-page == "editor" ? "Refresh Sources" : (root.selected-page == "builds" ? root.ui-text.open-output : (root.selected-page == "cloud" ? root.ui-text.package-project : (root.selected-page == "team" ? "Request Review" : (root.selected-page == "settings" ? "Reset" : "Refresh"))));
+    private property <string> page-header-primary-action-label: root.selected-page == "editor" ? "Open Editor" : (root.selected-page == "builds" ? "Build Project" : (root.selected-page == "cloud" ? "Deploy Preview" : (root.selected-page == "team" ? "Open Source Control" : (root.selected-page == "assets" ? "Add Asset" : (root.selected-page == "plugins" ? "Add Plugin" : (root.selected-page == "learn" ? "Add Guide" : root.ui-text.save-settings))))));
+    private property <string> page-header-secondary-action-id: root.selected-page == "editor" ? "refresh-sources" : (root.selected-page == "builds" ? "open-output" : (root.selected-page == "cloud" ? "package-project" : (root.selected-page == "team" ? "request-review" : (root.selected-page == "assets" ? "refresh-assets" : (root.selected-page == "plugins" ? "refresh-plugins" : (root.selected-page == "learn" ? "refresh-learn" : (root.selected-page == "settings" ? "reset-settings" : "")))))));
+    private property <string> page-header-primary-action-id: root.selected-page == "editor" ? "open-editor" : (root.selected-page == "builds" ? "build-project" : (root.selected-page == "cloud" ? "deploy-preview" : (root.selected-page == "team" ? "open-source-control" : (root.selected-page == "assets" ? "add-asset" : (root.selected-page == "plugins" ? "add-plugin" : (root.selected-page == "learn" ? "add-guide" : (root.selected-page == "settings" ? "save-settings" : "")))))));
+    private property <image> page-header-secondary-action-image: root.selected-page == "builds" ? @image-url("../assets/icons/actions/open-editor.svg") : (root.selected-page == "cloud" ? @image-url("../assets/icons/actions/package-project.svg") : (root.selected-page == "team" ? @image-url("../assets/icons/ui/plus.svg") : @image-url("../assets/icons/ui/refresh.svg")));
+    private property <image> page-header-primary-action-image: root.selected-page == "editor" ? @image-url("../assets/icons/actions/open-editor.svg") : (root.selected-page == "builds" ? @image-url("../assets/icons/actions/build-project.svg") : @image-url("../assets/icons/ui/plus.svg"));
     private property <length> bottom-status-height: responsive-state.medium ? HubTokens.control-md : HubTokens.bottom-status-height;
     private property <bool> header-compact: !responsive-state.wide;
     private property <bool> header-tight: responsive-state.compact;
@@ -160,6 +167,7 @@ export component HubWindow inherits HubWindowView {
     callback package-selected-project();
     callback install-selected-project();
     callback quick-action(string);
+    callback page-header-action(string);
     callback search-projects(string);
     callback view-all-projects();
     callback browse-folder(string);
@@ -190,10 +198,9 @@ export component HubWindow inherits HubWindowView {
         root.settings-scroll-y = 0px;
     }
 
-    Rectangle {
+    HubShellRootSurface {
         width: root.width;
         height: root.height;
-        background: HubVisualSpec.page-background;
 
         ZirconMaterialTheme { }
 
@@ -207,10 +214,9 @@ export component HubWindow inherits HubWindowView {
             height: HubTokens.border-width;
         }
 
-        VerticalLayout {
+        HubShellStack {
             width: parent.width;
             height: parent.height;
-            spacing: HubTokens.space-0;
 
             HubTopHeader {
                 width: parent.width;
@@ -244,19 +250,9 @@ export component HubWindow inherits HubWindowView {
                 window-drag-end => { root.window-drag-end(); }
             }
 
-            Rectangle {
+            HubShellBody {
                 width: parent.width;
-                vertical-stretch: 1;
-                min-height: 0px;
-                preferred-height: 0px;
-                background: HubVisualSpec.page-background;
-
-                HorizontalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    spacing: HubTokens.space-0;
-
-                    HubNavSidebar {
+                HubNavSidebar {
                         nav-width: root.nav-width;
                         nav-pad: root.nav-pad;
                         nav-status-height: root.nav-status-height;
@@ -281,21 +277,8 @@ export component HubWindow inherits HubWindowView {
                         }
                     }
 
-                    Rectangle {
-                        horizontal-stretch: 1;
-                        vertical-stretch: 1;
-                        min-width: 1px;
-                        preferred-width: 0px;
-                        min-height: 0px;
-                        preferred-height: 0px;
-                        background: HubVisualSpec.page-background;
-
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            spacing: HubTokens.space-0;
-
-                            HubPageHeader {
+                    HubWorkspaceSurface {
+                        HubPageHeader {
                                 vertical-stretch: 0;
                                 header-visible: root.selected-page != "projects" || root.project-subpage == "dashboard";
                                 page-title-height: root.page-title-height;
@@ -306,6 +289,13 @@ export component HubWindow inherits HubWindowView {
                                 selected-page-title: root.selected-page-title;
                                 selected-page-subtitle: root.selected-page-subtitle;
                                 project-actions-visible: root.project-subpage == "dashboard";
+                                page-actions-visible: root.page-header-actions-visible;
+                                secondary-action-label: root.page-header-secondary-action-label;
+                                primary-action-label: root.page-header-primary-action-label;
+                                secondary-action-id: root.page-header-secondary-action-id;
+                                primary-action-id: root.page-header-primary-action-id;
+                                secondary-action-image: root.page-header-secondary-action-image;
+                                primary-action-image: root.page-header-primary-action-image;
                                 ui-text: root.ui-text;
                                 import-project => {
                                     root.import-project();
@@ -314,14 +304,12 @@ export component HubWindow inherits HubWindowView {
                                     root.project-subpage = "new-project";
                                     root.show-project-subpage("new-project");
                                 }
+                                page-action(id) => {
+                                    root.page-header-action(id);
+                                }
                             }
 
-                            Fill {
-                                horizontal-stretch: 1;
-                                vertical-stretch: 1;
-                                min-height: 0px;
-                                preferred-height: 0px;
-                                clip: true;
+                            HubPageContentSlot {
 
                             if root.selected-page == "projects": ProjectsPage {
                                 horizontal-stretch: 1;
@@ -505,8 +493,6 @@ export component HubWindow inherits HubWindowView {
                     }
                     }
                 }
-            }
-        }
 
         if root.dashboard-reference-visible: DashboardButtonStatesStrip {
             x: 0px;

@@ -159,12 +159,18 @@ pub(super) fn ui_text(language: HubLanguage) -> UiTextData {
             "No build history has been recorded for the selected project or active Source Engine.",
             "选中项目或当前 Source Engine 还没有构建历史。",
         ),
+        no_build_history_short: text(language, "No build history", "暂无构建历史"),
         operation_timeline: text(language, "Operation Timeline", "操作时间线"),
         no_operation_timeline: text(language, "No operation history", "暂无操作历史"),
         operation_timeline_empty_detail: text(
             language,
             "Build, launch, package, install, and output operations appear here after they run.",
             "构建、启动、打包、安装和打开输出操作运行后会显示在这里。",
+        ),
+        operation_timeline_empty_detail_short: text(
+            language,
+            "Run a build to populate.",
+            "运行构建后显示。",
         ),
         toolchain: text(language, "Toolchain", "工具链"),
         python_executable: text(language, "Python executable", "Python 指令"),

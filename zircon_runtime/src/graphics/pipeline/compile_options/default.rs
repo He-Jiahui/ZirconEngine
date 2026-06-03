@@ -10,6 +10,7 @@ impl Default for RenderPipelineCompileOptions {
             disabled_plugin_features: BTreeSet::new(),
             enabled_capabilities: BTreeSet::new(),
             allow_async_compute: true,
+            graph_msaa_sample_count: None,
         }
     }
 }

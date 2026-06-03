@@ -1,4 +1,8 @@
-use crate::core::framework::render::RenderLightReadinessReport;
+use crate::core::framework::render::{
+    PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
+    RenderLightReadinessReport, RenderPostProcessEffectStackReport,
+    RenderPostProcessEffectStackResourceStatus,
+};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::QueueLane;
 
@@ -16,17 +20,23 @@ pub(super) fn update_base_stats(
     state.stats.submitted_frames += 1;
     state.stats.last_generation = Some(frame_generation);
     state.stats.last_pipeline = Some(context.pipeline_handle());
+    state.stats.last_frame_target_size = Some(context.size());
+    state.stats.last_frame_render_size = Some(context.render_size());
     state.stats.last_frame_history = Some(record_update.history_handle());
+    state.stats.last_frame_history_status = record_update.history_status();
     let compiled_pipeline = context.compiled_pipeline();
     state.stats.last_effective_features = compiled_feature_names(compiled_pipeline);
     let graph_stats = compiled_pipeline.graph.stats();
     state.stats.last_graph_pass_count = graph_stats.total_pass_count;
     state.stats.last_graph_culled_pass_count = graph_stats.culled_pass_count;
     state.stats.last_graph_resource_lifetime_count = graph_stats.resource_lifetime_count;
+    state.stats.last_graph_sparse_texture_lifetime_count =
+        graph_stats.sparse_texture_lifetime_count;
     state.stats.last_graph_planned_resource_access_count = graph_stats.total_resource_access_count;
     state.stats.last_graph_planned_dependency_count = graph_stats.total_dependency_count;
     let allocation_plan = compiled_pipeline.graph.transient_allocation_plan();
     state.stats.last_graph_transient_texture_slot_count = allocation_plan.texture_slot_count;
+    state.stats.last_graph_sparse_texture_slot_count = allocation_plan.sparse_texture_slot_count;
     state.stats.last_graph_transient_buffer_slot_count = allocation_plan.buffer_slot_count;
     state.stats.last_graph_executed_passes =
         state.renderer.last_render_graph_executed_passes().to_vec();
@@ -34,12 +44,39 @@ pub(super) fn update_base_stats(
         .renderer
         .last_render_graph_executed_executor_ids()
         .to_vec();
+    state.stats.last_graph_executed_debug_markers = state
+        .renderer
+        .last_render_graph_executed_debug_markers()
+        .to_vec();
     state.stats.last_graph_executed_pass_count = state.stats.last_graph_executed_passes.len();
     state.stats.last_graph_executed_resource_access_count = state
         .renderer
         .last_render_graph_executed_resource_access_count();
     state.stats.last_graph_executed_dependency_count =
         state.renderer.last_render_graph_executed_dependency_count();
+    state.stats.last_graph_compute_dispatch_count =
+        state.renderer.last_render_graph_compute_dispatch_count();
+    state.stats.last_graph_compute_dispatch_group_count = state
+        .renderer
+        .last_render_graph_compute_dispatch_group_count();
+    state.stats.last_graph_compute_storage_write_resource_count = state
+        .renderer
+        .last_render_graph_compute_storage_write_resource_count();
+    state.stats.last_graph_compute_planned_workload_count = state
+        .renderer
+        .last_render_graph_compute_planned_workload_count();
+    state.stats.last_graph_compute_matched_workload_count = state
+        .renderer
+        .last_render_graph_compute_matched_workload_count();
+    state.stats.last_graph_compute_missing_dispatch_count = state
+        .renderer
+        .last_render_graph_compute_missing_dispatch_count();
+    state.stats.last_graph_compute_workload_mismatch_count = state
+        .renderer
+        .last_render_graph_compute_workload_mismatch_count();
+    state.stats.last_graph_compute_unexpected_dispatch_count = state
+        .renderer
+        .last_render_graph_compute_unexpected_dispatch_count();
     let post_process_graph = state
         .renderer
         .last_render_graph_post_process_graph()
@@ -53,7 +90,29 @@ pub(super) fn update_base_stats(
         .renderer
         .last_render_graph_executed_post_process_nodes()
         .to_vec();
+    state.stats.last_post_process_effect_stack_report =
+        RenderPostProcessEffectStackReport::from_settings_with_resources(
+            context.post_process_effect_stack(),
+            effect_stack_resource_status(&post_process_graph),
+        );
+    state.stats.last_post_process_lut_request_count =
+        state.renderer.last_post_process_lut_request_count();
+    state.stats.last_post_process_lut_ready_count =
+        state.renderer.last_post_process_lut_ready_count();
+    state.stats.last_post_process_lut_fallback_count =
+        state.renderer.last_post_process_lut_fallback_count();
+    state.stats.last_post_process_lut_2d_strip_ready_count =
+        state.renderer.last_post_process_lut_2d_strip_ready_count();
+    state.stats.last_post_process_lut_3d_request_count =
+        state.renderer.last_post_process_lut_3d_request_count();
+    state.stats.last_post_process_lut_unsupported_shape_count = state
+        .renderer
+        .last_post_process_lut_unsupported_shape_count();
     state.stats.last_anti_alias_fallback = context.anti_alias_fallback();
+    state.stats.last_graph_requested_msaa_sample_count =
+        context.anti_alias_fallback().requested_graph_sample_count();
+    state.stats.last_graph_effective_msaa_sample_count =
+        context.anti_alias_fallback().effective_graph_sample_count();
     state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
     state.stats.last_anti_alias_graph_executed_pass_count =
@@ -96,12 +155,45 @@ pub(super) fn update_base_stats(
     state.stats.last_material_validation_error_count =
         state.renderer.last_material_validation_error_count();
     state.stats.last_material_diagnostic_count = state.renderer.last_material_diagnostic_count();
+    let prepared_mesh_queue_stats = state.renderer.last_prepared_mesh_queue_stats();
+    state.stats.last_mesh_draw_count = prepared_mesh_queue_stats.draw_count;
+    state.stats.last_mesh_opaque_draw_count = prepared_mesh_queue_stats.opaque_draw_count;
+    state.stats.last_mesh_alpha_mask_draw_count = prepared_mesh_queue_stats.alpha_mask_draw_count;
+    state.stats.last_mesh_transparent_draw_count = prepared_mesh_queue_stats.transparent_draw_count;
+    state.stats.last_mesh_early_z_draw_count = prepared_mesh_queue_stats.early_z_draw_count;
+    state.stats.last_mesh_prepared_geometry_draw_count =
+        prepared_mesh_queue_stats.prepared_geometry_draw_count;
+    state.stats.last_mesh_dynamic_geometry_draw_count =
+        prepared_mesh_queue_stats.dynamic_geometry_draw_count;
+    state.stats.last_mesh_indirect_draw_count = prepared_mesh_queue_stats.indirect_draw_count;
+    state.stats.last_mesh_static_batch_candidate_group_count =
+        prepared_mesh_queue_stats.static_batch_candidate_group_count;
+    state.stats.last_mesh_static_batch_candidate_draw_count =
+        prepared_mesh_queue_stats.static_batch_candidate_draw_count;
+    state.stats.last_mesh_dynamic_batch_candidate_group_count =
+        prepared_mesh_queue_stats.dynamic_batch_candidate_group_count;
+    state.stats.last_mesh_dynamic_batch_candidate_draw_count =
+        prepared_mesh_queue_stats.dynamic_batch_candidate_draw_count;
+    state.stats.last_mesh_gpu_instancing_candidate_group_count =
+        prepared_mesh_queue_stats.gpu_instancing_candidate_group_count;
+    state.stats.last_mesh_gpu_instancing_candidate_draw_count =
+        prepared_mesh_queue_stats.gpu_instancing_candidate_draw_count;
     state.stats.last_sprite_count = state.renderer.last_sprite_count();
     state.stats.last_sprite_ready_count = state.renderer.last_sprite_ready_count();
     state.stats.last_sprite_texture_fallback_count =
         state.renderer.last_sprite_texture_fallback_count();
     state.stats.last_sprite_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "sprite.");
+    let prepared_sprite_queue_stats = state.renderer.last_prepared_sprite_queue_stats();
+    state.stats.last_sprite_draw_batch_count = prepared_sprite_queue_stats.draw_batch_count;
+    state.stats.last_sprite_batched_sprite_count = prepared_sprite_queue_stats.sprite_count;
+    state.stats.last_sprite_vertex_count = prepared_sprite_queue_stats.vertex_count;
+    state.stats.last_sprite_opaque_draw_batch_count =
+        prepared_sprite_queue_stats.opaque_draw_batch_count;
+    state.stats.last_sprite_alpha_mask_draw_batch_count =
+        prepared_sprite_queue_stats.alpha_mask_draw_batch_count;
+    state.stats.last_sprite_transparent_draw_batch_count =
+        prepared_sprite_queue_stats.transparent_draw_batch_count;
     let light_readiness = RenderLightReadinessReport::from_light_slices(
         context.scene_directional_lights().len(),
         context.scene_point_lights().len(),
@@ -133,6 +225,22 @@ fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
         .count()
 }
 
+fn effect_stack_resource_status(
+    post_process_graph: &PostProcessPassGraph,
+) -> RenderPostProcessEffectStackResourceStatus {
+    let ssr_normal_available = post_process_graph.nodes.iter().any(|node| {
+        node.kind == PostProcessEffectKind::EffectStack
+            && node
+                .required_inputs
+                .iter()
+                .any(|resource| resource == PostProcessGraphResourceNames::GBUFFER_NORMAL)
+    });
+
+    RenderPostProcessEffectStackResourceStatus {
+        ssr_normal_available,
+    }
+}
+
 fn runtime_ui_graph_pass_order(
     executed_passes: &[String],
     ui_graph_executed_pass_count: usize,
@@ -156,7 +264,11 @@ fn runtime_ui_graph_pass_order(
 
 #[cfg(test)]
 mod tests {
-    use super::runtime_ui_graph_pass_order;
+    use super::{effect_stack_resource_status, runtime_ui_graph_pass_order};
+    use crate::core::framework::render::{
+        PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
+        PostProcessPassNode,
+    };
 
     #[test]
     fn runtime_ui_graph_pass_order_requires_actual_graph_order() {
@@ -186,5 +298,22 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(runtime_ui_graph_pass_order(&passes, 0), None);
+    }
+
+    #[test]
+    fn effect_stack_resource_status_detects_graph_bound_ssr_normal() {
+        let graph = PostProcessPassGraph {
+            nodes: vec![PostProcessPassNode {
+                name: "effect-stack".to_string(),
+                kind: PostProcessEffectKind::EffectStack,
+                required_inputs: vec![PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()],
+                produced_outputs: Vec::new(),
+                after: Vec::new(),
+            }],
+            skipped_nodes: Vec::new(),
+            final_composite_node: None,
+        };
+
+        assert!(effect_stack_resource_status(&graph).ssr_normal_available);
     }
 }

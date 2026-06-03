@@ -45,8 +45,14 @@ impl SceneRendererCore {
             frame,
             &prepared_overlays,
         );
-        self.screen_space_ui_renderer
-            .record(device, queue, &mut encoder, color_view, frame);
+        self.screen_space_ui_renderer.record(
+            device,
+            queue,
+            &mut encoder,
+            color_view,
+            frame,
+            crate::render_graph::RenderGraphAttachmentOps::load_store(),
+        );
         queue.submit([encoder.finish()]);
         Ok(())
     }

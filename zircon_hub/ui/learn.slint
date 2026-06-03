@@ -9,6 +9,7 @@ export component LearnPage inherits CatalogPage {
     in property <UiTextData> ui-text;
     private property <string> library-title: root.has-selected-project ? root.ui-text.learn-library-selected : root.ui-text.learn-library;
     private property <string> resources-empty-detail: root.has-selected-project ? root.ui-text.learn-empty-selected-detail : root.ui-text.learn-empty-global-detail;
+    private property <string> detail-summary: root.has-selected-project ? "Selected project and Source Engine docs." : "Source Engine and local docs.";
     callback open-resource(string);
 
     title: root.library-title;
@@ -17,7 +18,36 @@ export component LearnPage inherits CatalogPage {
     empty-title: root.ui-text.no-learn-resources-found;
     empty-detail: root.resources-empty-detail;
     row-count: root.resource-count;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
+    row-height: HubTokens.list-row-md;
+    detail-title: root.library-title + " Detail";
+    detail-subtitle: root.detail-summary;
+    detail-primary: root.resource-count + " " + root.ui-text.learn-resources-found;
+    detail-secondary: root.has-selected-project ? "Project learning queue" : "Workspace learning library";
+    detail-icon-image: @image-url("../assets/icons/nav/learn.svg");
+    detail-stat-one-label: root.ui-text.learn-resources-found;
+    detail-stat-one-value: root.resource-count + "";
+    detail-stat-one-detail: root.has-selected-project ? "Selected project" : "All resources";
+    detail-stat-two-label: root.ui-text.learn-category;
+    detail-stat-two-value: root.resource-count == 0 ? "-" : "Mixed";
+    detail-stat-two-detail: "Source and folder tags";
+    detail-stat-three-label: root.ui-text.learn-open;
+    detail-stat-three-value: "External";
+    detail-stat-three-detail: "Path or URL";
+    detail-stat-four-label: "Scope";
+    detail-stat-four-value: root.has-selected-project ? "Project" : "Workspace";
+    detail-stat-four-detail: "Filtered library";
+    detail-check-one-title: "Project link";
+    detail-check-one-detail: root.has-selected-project ? "Resources filtered for the selected project" : "Showing the full local resource set";
+    detail-check-one-badge: root.has-selected-project ? "Project" : "Global";
+    detail-check-one-tone: root.has-selected-project ? "ok" : "neutral";
+    detail-check-two-title: "Metadata";
+    detail-check-two-detail: "Source, category, path columns aligned";
+    detail-check-two-badge: "Ready";
+    detail-check-two-tone: "ok";
+    detail-check-three-title: "Review";
+    detail-check-three-detail: root.resource-count == 0 ? root.resources-empty-detail : "Open topics from the list";
+    detail-check-three-badge: root.resource-count == 0 ? "Empty" : "Review";
+    detail-check-three-tone: root.resource-count == 0 ? "warning" : "neutral";
 
     label-collapse := ResponsiveCollapse {
         content-width: root.content-width;

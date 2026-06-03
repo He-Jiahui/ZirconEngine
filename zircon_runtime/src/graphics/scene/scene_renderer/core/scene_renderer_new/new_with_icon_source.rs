@@ -48,6 +48,7 @@ impl SceneRenderer {
             &backend.device,
             &backend.queue,
             OFFSCREEN_FORMAT,
+            backend.backend_name(),
             icon_source,
             &render_features,
             runtime_prepare_collectors,
@@ -71,8 +72,10 @@ impl SceneRenderer {
                 RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
                     render_features,
                     render_pass_executors,
-                ),
+            ),
             last_render_graph_execution: RenderGraphExecutionRecord::default(),
+            last_prepared_mesh_queue_stats: Default::default(),
+            last_prepared_sprite_queue_stats: Default::default(),
             advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
         })
     }

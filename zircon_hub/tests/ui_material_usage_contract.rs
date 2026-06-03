@@ -112,10 +112,14 @@ fn material_template_is_directly_imported_through_bridge() {
         "TextField,",
         "OutlineButton,",
         "SegmentedButton,",
+        "HubCommandButton",
         "} from \"material_bridge.slint\";",
-        "import { HubDropDownSurface, HubPopupMenu } from \"overlays.slint\";",
-        "menu := HubPopupMenu",
-        "material-combo := HubDropDownSurface",
+        "import { HubSelectDropDownSurface, HubSelectMenu } from \"overlays.slint\";",
+        "menu := HubSelectMenu",
+        "material-combo := HubSelectDropDownSurface",
+        "export component HubPathFieldRow",
+        "HubTextField {",
+        "HubCommandButton {",
     ] {
         assert!(
             inputs.contains(snippet),
@@ -134,13 +138,18 @@ fn status_pill_uses_material_text_inside_reference_shaped_pill() {
     let status_pill = shared
         .split("export component StatusPill")
         .nth(1)
-        .and_then(|source| source.split("export component WindowButton").next())
-        .expect("shared.slint must declare StatusPill before WindowButton");
+        .and_then(|source| source.split("export component Panel").next())
+        .expect("shared.slint must declare StatusPill before Panel");
 
     for snippet in [
         "border-radius: HubVisualSpec.compact-radius;",
         "in property <string> tone: \"custom\";",
+        "root.tone == \"running\" ? HubVisualSpec.status-running-fill",
+        "root.tone == \"running\" ? HubVisualSpec.status-running-stroke.with_alpha(0.34)",
+        "root.tone == \"running\" ? HubVisualSpec.status-running-foreground",
         "root.tone == \"info\" ? HubVisualSpec.status-info-fill : root.accent-color.with-alpha(0.11)",
+        "root.accent-color.with_alpha(0.36)",
+        "HubVisualSpec.status-success-stroke.with_alpha(0.34)",
         "root.tone == \"warning\" ? HubVisualSpec.status-warning-stroke",
         "root.tone == \"error\" ? HubVisualSpec.status-error-stroke",
         "root.tone == \"neutral\" ? HubVisualSpec.status-neutral-stroke",
@@ -153,6 +162,13 @@ fn status_pill_uses_material_text_inside_reference_shaped_pill() {
         "MaterialText {",
         "text: root.text;",
         "style: MaterialTypography.label_medium;",
+        "private property <bool> show-running-dot: root.icon == \">\" || root.tone == \"running\";",
+        "if root.show-running-dot: Rectangle",
+        "width: MaterialStyleMetrics.size_6;",
+        "height: parent.height;",
+        "Rectangle { vertical-stretch: 1; min-height: 0px; }",
+        "height: MaterialStyleMetrics.size_6;",
+        "background: root.accent-color;",
         "clip: true;",
     ] {
         assert!(
@@ -176,7 +192,7 @@ fn status_pill_uses_material_text_inside_reference_shaped_pill() {
 }
 
 #[test]
-fn editor_source_engine_row_uses_material_list_tile() {
+fn editor_source_engine_row_uses_row_surface_slots() {
     let editor = read_ui_file("editor.slint");
     let editor_components = read_ui_file("editor_page_components.slint");
     let source_engine_row = editor_components
@@ -192,42 +208,264 @@ fn editor_source_engine_row_uses_material_list_tile() {
     );
 
     for snippet in [
-        "height: HubTokens.list-row-md;",
-        "ListTile {",
-        "text: root.engine.title;",
-        "supporting_text: root.engine.version + \" / \" + root.engine.source-path + \" / \" + root.engine.last-build;",
-        "avatar_icon:",
-        "avatar_background:",
-        "avatar_foreground:",
-        "clicked =>",
-        "Badge {",
-        "IconButton {",
-        "remove-size: min(HubTokens.icon-lg, HubTokens.list-row-md - MaterialStyleMetrics.spacing_16);",
+        "inherits HubRowSurface",
+        "callback engine-selected(string);",
+        "selected: root.engine.active;",
+        "row-state := StateLayerArea {",
+        "root.engine-selected(root.engine.id);",
+        "alignment: stretch;",
+        "HubRowLeadingIconSlot {",
+        "shell-background: HubVisualSpec.neutral-icon-background;",
+        "HubRowMainSlot {",
+        "title: root.engine.title;",
+        "detail: root.engine.version + \" / \" + root.engine.source-path + \" / \" + root.engine.last-build;",
+        "HubRowTrailingSlot {",
+        "badge-text: root.engine.status;",
+        "action-icon-image: @image-url(\"../assets/icons/ui/close.svg\");",
+        "root.remove(root.engine.id);",
     ] {
         assert!(
             source_engine_row.contains(snippet),
-            "SourceEngineRow must delegate source-engine rows to Material ListTile; missing {snippet}"
+            "SourceEngineRow must compose source-engine rows through shared row-surface slots; missing {snippet}"
         );
     }
 
     for forbidden in [
         "area := TouchArea",
+        "ListTile {",
+        "Badge {",
+        "IconButton {",
+        "avatar_icon:",
+        "avatar_background:",
+        "avatar_foreground:",
+        "callback selected(string);",
         "border-color: area.has-hover",
         "background: area.has-hover",
+        "border-color: root.engine.active ?",
+        "background: root.engine.active ?",
         "root.height - MaterialStyleMetrics.spacing_16",
     ] {
         assert!(
             !source_engine_row.contains(forbidden),
-            "SourceEngineRow should not return to a custom full-row TouchArea or self-height subtraction implementation: {forbidden}"
+            "SourceEngineRow should not return to a local ListTile, badge/action, or custom row-surface implementation: {forbidden}"
         );
     }
+}
+
+#[test]
+fn project_setting_summary_rows_use_key_value_row_slots() {
+    let components = read_ui_file("components.slint");
+    let data_display = read_ui_file("data_display.slint");
+    let project_components = read_ui_file("project_page_components.slint");
+    let project_detail_components = read_ui_file("project_detail_components.slint");
+    let material_components =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/material-components.js");
+    let material_styles =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/material-styles.css");
+    let web_app = read_repo_file("docs/ui-and-layout/hub-web-reference/app.js");
+    let responsive_validator =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/validate-responsive.mjs");
+
+    let key_value_row = data_display
+        .split("export component HubKeyValueRow")
+        .nth(1)
+        .and_then(|source| source.split("export component ActionRow").next())
+        .expect("data_display.slint must declare HubKeyValueRow before ActionRow");
+    for snippet in [
+        "export component HubKeyValueRow inherits HubRowSurface",
+        "HubRowMetaSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "badge-text: root.value;",
+        "show-action: false;",
+    ] {
+        assert!(
+            data_display.contains(snippet) || key_value_row.contains(snippet),
+            "HubKeyValueRow must be the shared key/value summary row-slot primitive; missing {snippet}"
+        );
+    }
+    assert!(
+        components.contains("HubKeyValueRow,"),
+        "components.slint must re-export HubKeyValueRow for page-specific summary wrappers"
+    );
+
+    let setting_summary_row = project_components
+        .split("export component ProjectSettingSummaryRow")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectCreateSummary").next())
+        .expect(
+            "project_page_components.slint must declare ProjectSettingSummaryRow before ProjectCreateSummary",
+        );
+    for snippet in [
+        "inherits HubKeyValueRow",
+        "label-width: root.row-height * 9 / 2;",
+        "badge-width: root.row-height * 5;",
+        "row-spacing: max(MaterialStyleMetrics.spacing_8, root.row-height / 5);",
+    ] {
+        assert!(
+            setting_summary_row.contains(snippet),
+            "ProjectSettingSummaryRow should only specialize HubKeyValueRow geometry; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "MaterialText {",
+        "Badge {",
+        "HorizontalLayout {",
+        "border-width: 0px;",
+        "background: transparent;",
+    ] {
+        assert!(
+            !setting_summary_row.contains(forbidden),
+            "ProjectSettingSummaryRow should not return to local text/badge layout after HubKeyValueRow extraction: {forbidden}"
+        );
+    }
+    assert!(
+        project_detail_components.contains("ProjectSettingSummaryRow {")
+            && project_components.contains("ProjectSettingSummaryRow {"),
+        "Project Detail and New Project summaries should consume the same ProjectSettingSummaryRow wrapper"
+    );
+
+    for snippet in [
+        "setting-summary-row",
+        "function settingSummaryRow",
+        "row-meta-slot",
+        "row-main-slot",
+        "row-trailing-slot",
+        "settingSummaryRow,",
+        "data-component=\"setting-summary-row\"",
+        ".setting-summary-row",
+        "requiredComponents.push(\"setting-summary-row\", \"row-meta-slot\", \"row-main-slot\", \"row-trailing-slot\");",
+    ] {
+        assert!(
+            material_components.contains(snippet)
+                || material_styles.contains(snippet)
+                || web_app.contains(snippet)
+                || responsive_validator.contains(snippet),
+            "Hub web reference must expose the setting-summary-row molecule before Slint migration relies on it: {snippet}"
+        );
+    }
+    for snippet in [
+        "settingSummaryRow(\"Source Engine\", \"Engine Alpha v2.8.1\")",
+        "settingSummaryRow(\"Template\", \"Standard Service\")",
+        "settingSummaryRow(\"Compatibility\", \"Ready\", true, \"success\")",
+    ] {
+        assert!(
+            web_app.contains(snippet),
+            "New Project Blueprint summary should render through settingSummaryRow instead of info rows: {snippet}"
+        );
+    }
+}
+
+#[test]
+fn project_detail_status_strip_uses_badge_meta_strip_slots() {
+    let components = read_ui_file("components.slint");
+    let data_display = read_ui_file("data_display.slint");
+    let project_detail_components = read_ui_file("project_detail_components.slint");
+    let project_detail_page = read_ui_file("project_detail_page.slint");
+    let material_components =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/material-components.js");
+    let material_styles =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/material-styles.css");
+    let web_app = read_repo_file("docs/ui-and-layout/hub-web-reference/app.js");
+    let responsive_validator =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/validate-responsive.mjs");
+
+    let badge_meta_strip = data_display
+        .split("export component HubBadgeMetaStrip")
+        .nth(1)
+        .and_then(|source| source.split("export component ActionRow").next())
+        .expect("data_display.slint must declare HubBadgeMetaStrip before ActionRow");
+    for snippet in [
+        "export component HubBadgeMetaStrip inherits HubRowSurface",
+        "HubRowTrailingSlot {",
+        "HubRowMetaSlot {",
+        "badge-text: root.first-badge-text;",
+        "badge-text: root.second-badge-text;",
+        "text: root.meta-text;",
+        "show-action: false;",
+    ] {
+        assert!(
+            data_display.contains(snippet) || badge_meta_strip.contains(snippet),
+            "HubBadgeMetaStrip must be the shared badge/meta status-strip primitive; missing {snippet}"
+        );
+    }
+    assert!(
+        components.contains("HubBadgeMetaStrip,"),
+        "components.slint must re-export HubBadgeMetaStrip for Project Detail wrappers"
+    );
+
+    let status_strip = project_detail_components
+        .split("export component ProjectDetailStatusStrip")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailInfoSection").next())
+        .expect(
+            "project_detail_components.slint must declare ProjectDetailStatusStrip before ProjectDetailInfoSection",
+        );
+    for snippet in [
+        "inherits HubBadgeMetaStrip",
+        "first-badge-text: root.detail.version;",
+        "first-badge-tone: \"accent\";",
+        "first-badge-width: root.version-badge-width;",
+        "second-badge-text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
+        "second-badge-tone: root.detail.pinned ? \"accent\" : \"neutral\";",
+        "second-badge-width: root.pin-badge-width;",
+        "meta-text: root.copy.modified-prefix + root.detail.modified;",
+    ] {
+        assert!(
+            status_strip.contains(snippet),
+            "ProjectDetailStatusStrip should only map project status data into HubBadgeMetaStrip; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "Badge {",
+        "MaterialText {",
+        "HorizontalLayout {",
+        "background: transparent;",
+    ] {
+        assert!(
+            !status_strip.contains(forbidden),
+            "ProjectDetailStatusStrip should not return to local badge/text strip layout after HubBadgeMetaStrip extraction: {forbidden}"
+        );
+    }
+    assert!(
+        project_detail_page
+            .matches("ProjectDetailStatusStrip {")
+            .count()
+            == 1,
+        "ProjectDetailPage should keep one typed status-strip wrapper call"
+    );
+
+    for snippet in [
+        "project-status-strip",
+        "function projectStatusStrip",
+        "row-meta-slot",
+        "row-trailing-slot",
+        "projectStatusStrip,",
+        "data-component=\"project-status-strip\"",
+        ".project-status-strip",
+        "requiredComponents.push(\"project-status-strip\", \"row-meta-slot\", \"row-trailing-slot\");",
+    ] {
+        assert!(
+            material_components.contains(snippet)
+                || material_styles.contains(snippet)
+                || web_app.contains(snippet)
+                || responsive_validator.contains(snippet),
+            "Hub web reference must expose the Project Detail status strip molecule before Slint migration relies on it: {snippet}"
+        );
+    }
+    assert!(
+        web_app.contains("projectStatusStrip(selected.version, \"Not pinned\", selected.modified)"),
+        "Project Detail web reference should render status badges and modified metadata through projectStatusStrip"
+    );
 }
 
 #[test]
 fn project_pages_use_material_scroll_view() {
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     let project_components = read_ui_file("project_page_components.slint");
     let project_detail_components = read_ui_file("project_detail_components.slint");
     let project_pages = read_ui_file("project_pages.slint");
@@ -454,7 +692,7 @@ fn projects_page_routes_to_dashboard_module() {
         !projects.contains("component ProjectCard")
             && !projects.contains("component ProjectFlow")
             && !projects.contains("dashboard-scroll :="),
-        "dashboard implementation details belong in project_dashboard_components.slint"
+        "dashboard implementation details belong in focused dashboard component modules"
     );
     for forbidden in [
         "project-entry-mode",
@@ -514,7 +752,9 @@ fn projects_page_routes_to_dashboard_module() {
 
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     for primitive in [
         "ProjectFlow",
         "Flow",
@@ -533,12 +773,14 @@ fn projects_page_routes_to_dashboard_module() {
 fn dashboard_project_selectors_use_material_state_layers() {
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
-    let project_card = dashboard_components
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
+    let project_card = project_card_flow_components
         .split("export component ProjectCard")
         .nth(1)
         .and_then(|source| source.split("export component ProjectFlow").next())
-        .expect("project_dashboard_components.slint must export ProjectCard before ProjectFlow");
+        .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
         "StateLayerArea,",
         "card-state := StateLayerArea {",
@@ -588,8 +830,11 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
     let data_display = read_ui_file("data_display.slint");
     let shared = read_ui_file("shared.slint");
     assert!(
-        data_display.contains("export component InfoRow") && data_display.contains("ListTile {"),
-        "InfoRow must remain the shared Material ListTile-backed choice-row body"
+        data_display.contains("export component InfoRow inherits HubRowSurface")
+            && data_display.contains("HubRowLeadingIconSlot {")
+            && data_display.contains("HubRowMainSlot {")
+            && data_display.contains("HubRowTrailingSlot {"),
+        "InfoRow must remain the shared Material row-surface and row-slot-backed choice-row body"
     );
     let engine_choice_row = components
         .split("export component EngineChoiceRow")
@@ -600,7 +845,7 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         );
     assert!(
         engine_choice_row.contains("InfoRow {"),
-        "EngineChoiceRow must delegate row layout and interaction to the shared Material ListTile-backed InfoRow"
+        "EngineChoiceRow must delegate row layout and interaction to the shared Material row-slot-backed InfoRow"
     );
     for snippet in [
         "in property <bool> collapse-label: false;",
@@ -620,23 +865,32 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         .and_then(|source| source.split("export component ").next())
         .expect("project_page_components.slint must declare TemplateChoiceRow");
     for snippet in [
+        "inherits HubRowSurface",
         "private property <CheckState> selection-state: root.template.selected ? CheckState.checked : CheckState.unchecked;",
         "StateLayerArea {",
-        "HubCheckBox {",
+        "HubRowSelectionSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
         "check-state: root.selection-state;",
-        "MaterialText {",
-        "StatusBadge {",
-        "root.selected(root.template.id);",
+        "badge-text: root.trailing-label;",
+        "row-height: root.effective-row-height;",
+        "selected: root.template.selected;",
+        "root.template-selected(root.template.id);",
     ] {
         assert!(
             template_choice_row.contains(snippet),
-            "TemplateChoiceRow must render template selection through the shared Material checkbox primitive; missing {snippet}"
+            "TemplateChoiceRow must render template selection through shared row-slot components backed by Material primitives; missing {snippet}"
         );
     }
-    for forbidden in ["CenteredIcon", "area := TouchArea"] {
+    for forbidden in [
+        "CenteredIcon",
+        "area := TouchArea",
+        "HubCheckBox {",
+        "StatusBadge {",
+    ] {
         assert!(
             !engine_choice_row.contains(forbidden) && !template_choice_row.contains(forbidden),
-            "Project choice rows should not return to a custom icon/click row: {forbidden}"
+            "Project choice rows should not return to page-local icon, click, checkbox, or badge rows: {forbidden}"
         );
     }
     for snippet in [
@@ -656,6 +910,21 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
     let project_detail_components = read_ui_file("project_detail_components.slint");
     let project_surface =
         format!("{project_pages}\n{project_new_page}\n{project_detail_page}\n{project_components}\n{project_detail_components}");
+    let actions_section = project_detail_components
+        .split("export component ProjectDetailActionsSection")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailStatusStrip").next())
+        .expect("project_detail_components.slint must declare ProjectDetailActionsSection before ProjectDetailStatusStrip");
+    let action_stack = project_detail_components
+        .split("export component ProjectDetailActionStack")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailDeleteActionStack").next())
+        .expect("project_detail_components.slint must declare ProjectDetailActionStack before ProjectDetailDeleteActionStack");
+    let delete_action_stack = project_detail_components
+        .split("export component ProjectDetailDeleteActionStack")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailEngineSection").next())
+        .expect("project_detail_components.slint must declare ProjectDetailDeleteActionStack before ProjectDetailEngineSection");
     for snippet in [
         "choice-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, root.content-height / 10));",
         "template-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg, root.content-height / 9));",
@@ -672,23 +941,41 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "ProjectDetailPage engine choices must respect Material ListTile's minimum row height"
     );
     assert!(
-        project_detail_page.contains("collapse-label: root.narrow-flow;"),
-        "ProjectDetailPage engine choices should collapse trailing labels in the compact flow"
+        project_detail_page.contains("collapse-engine-label: root.narrow-flow;")
+            && project_detail_components.contains("collapse-label: root.collapse-engine-label;"),
+        "ProjectDetailPage engine choices should collapse trailing labels through the typed detail action section in the compact flow"
     );
     for snippet in [
         "change-source-engine: string,",
         "remove-from-hub-detail: string,",
         "StatusBanner,",
-        "text: root.ui-text.remove-from-hub-detail;",
-        "if root.project.pending-delete: StatusBanner",
-        "title: root.ui-text.confirm-delete;",
-        "detail: root.ui-text.recycle-bin-delete-detail;",
+        "text: root.copy.remove-from-hub-detail;",
+        "if root.project.pending-delete: ProjectDetailDeleteActionStack",
+        "export component ProjectDetailActionStack inherits HubActionStack",
+        "export component ProjectDetailDeleteActionStack inherits HubActionStack",
+        "StatusBanner {",
+        "title: root.copy.confirm-delete;",
+        "detail: root.copy.recycle-bin-delete-detail;",
         "tone: \"error\";",
-        "export component ProjectDetailStatusStrip inherits Rectangle",
-        "Badge {",
-        "text: root.detail.version;",
-        "text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
-        "text: root.copy.modified-prefix + root.detail.modified;",
+        "export component ProjectDetailActionsSection inherits PanelSlot",
+        "body-padding: root.panel-padding;",
+        "body-spacing: root.panel-spacing;",
+        "PanelHeader { title: root.copy.project-actions-title; }",
+        "project: root.project;",
+        "copy: root.ui-text;",
+        "engine-scroll-y <=> root.detail-engine-scroll-y;",
+        "open-project(path) => { root.open-project(path); }",
+        "select-engine(id) => { root.select-engine(id); }",
+        "toggle-pin => { root.toggle-pin(); }",
+        "remove-from-hub => { root.remove-from-hub(); }",
+        "request-delete => { root.request-delete(); }",
+        "cancel-delete => { root.cancel-delete(); }",
+        "confirm-delete => { root.confirm-delete(); }",
+        "export component ProjectDetailStatusStrip inherits HubBadgeMetaStrip",
+        "first-badge-text: root.detail.version;",
+        "second-badge-text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
+        "second-badge-tone: root.detail.pinned ? \"accent\" : \"neutral\";",
+        "meta-text: root.copy.modified-prefix + root.detail.modified;",
         "ProjectDetailStatusStrip {",
         "export component ProjectDetailPinToggleRow inherits HubToggleRow",
         "checked: root.detail.pinned;",
@@ -698,17 +985,16 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "title: root.copy.change-source-engine;",
         "subtitle: root.copy.bound-source-engine + \": \" + root.detail.engine-label;",
         "ProjectDetailEngineSection {",
-        "export component ProjectDetailActionButton inherits PillButton",
-        "in property <image> action-icon;",
-        "icon-image: root.action-icon;",
-        "has-icon-image: true;",
-        "ProjectDetailActionButton {",
-        "if root.project.pending-delete: ProjectDetailActionButton",
+        "HubActionCommandButton {",
+        "source-image: @image-url(\"../assets/icons/nav/editor.svg\");",
+        "source-image: @image-url(\"../assets/icons/ui/close.svg\");",
+        "source-image: @image-url(\"../assets/icons/ui/alert.svg\");",
+        "has-source-image: true;",
         "clicked => { root.confirm-delete(); }",
         "clicked => { root.cancel-delete(); }",
-        "if !root.project.pending-delete: ProjectDetailActionButton",
         "clicked => { root.open-project(root.project.open-path); }",
-        "if !root.project.pending-delete: ProjectDetailPinToggleRow",
+        "if !root.project.pending-delete: ProjectDetailActionStack",
+        "ProjectDetailPinToggleRow {",
         "toggled(checked) => { root.toggle-pin(); }",
         "clicked => { root.remove-from-hub(); }",
         "clicked => { root.request-delete(); }",
@@ -719,19 +1005,30 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
             "ProjectDetailPage must expose changing the bound Source Engine and the non-destructive Remove from Hub action as explicit secondary-page operations; missing {snippet}"
         );
     }
+    assert!(
+        !project_detail_components.contains("export component ProjectDetailActionButton")
+            && !project_detail_components.contains("ProjectDetailActionButton {"),
+        "ProjectDetailActionsSection should consume the shared HubActionCommandButton directly instead of a pass-through ProjectDetailActionButton wrapper"
+    );
     assert_eq!(
-        project_detail_page
-            .matches("ProjectDetailActionButton {")
-            .count(),
+        action_stack.matches("HubActionCommandButton {").count()
+            + delete_action_stack
+                .matches("HubActionCommandButton {")
+                .count(),
         5,
-        "ProjectDetailPage should render confirm, cancel, open, remove, and delete through the action-button wrapper while pinning uses a toggle row"
+        "ProjectDetail action stacks should render confirm, cancel, open, remove, and delete through HubActionCommandButton while pinning uses a toggle row"
+    );
+    assert_eq!(
+        action_stack.matches("ProjectDetailPinToggleRow {").count(),
+        1,
+        "ProjectDetailActionStack should render pin/unpin through one Material toggle row"
     );
     assert_eq!(
         project_detail_page
-            .matches("ProjectDetailPinToggleRow {")
+            .matches("ProjectDetailActionsSection {")
             .count(),
         1,
-        "ProjectDetailPage should render pin/unpin through one Material toggle row"
+        "ProjectDetailPage should render the whole actions column through one ProjectDetailActionsSection"
     );
     assert_eq!(
         project_detail_page
@@ -741,11 +1038,11 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "ProjectDetailPage should render version, pin state, and modified time through one status-strip wrapper"
     );
     assert_eq!(
-        project_detail_page
+        actions_section
             .matches("ProjectDetailEngineSection {")
             .count(),
         1,
-        "ProjectDetailPage should render the Change Source Engine block through one section wrapper"
+        "ProjectDetailActionsSection should render the Change Source Engine block through one section wrapper"
     );
     for forbidden in [
         "text: root.project.pending-delete ? root.ui-text.confirm-delete : root.ui-text.delete-project;",

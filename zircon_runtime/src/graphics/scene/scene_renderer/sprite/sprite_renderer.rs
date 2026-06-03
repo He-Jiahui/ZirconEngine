@@ -2,9 +2,16 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::attachment_ops::{
+    color_attachment_operations, depth_attachment_operations,
+};
 use crate::graphics::types::ViewportRenderFrame;
+use crate::render_graph::{
+    RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
+};
 
 use super::build_sprite_vertices::build_sprite_vertices;
+use super::prepared_batches::prepare_sprite_draw_batches;
 use super::sprite_vertex::SpriteVertex;
 
 const SPRITE_SHADER: &str = r#"
@@ -122,39 +129,48 @@ impl SpriteRenderer {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         stage: RenderPassStage,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
-        let sprite_vertices = build_sprite_vertices(frame, stage);
-        if sprite_vertices.is_empty() {
+        let sprite_batches =
+            prepare_sprite_draw_batches(frame, build_sprite_vertices(frame, stage));
+        if sprite_batches.is_empty() {
             return;
         }
 
-        for (sprite_index, vertices) in sprite_vertices {
-            let Some(sprite) = frame.sprites().get(sprite_index) else {
-                continue;
-            };
+        let sprite_draw_count = sprite_batches.len();
+        for (draw_index, batch) in sprite_batches.into_iter().enumerate() {
             let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("zircon-sprite-vertices"),
-                contents: bytemuck::cast_slice(&vertices),
+                contents: bytemuck::cast_slice(batch.vertices()),
                 usage: wgpu::BufferUsages::VERTEX,
             });
-            let texture = streamer.texture(Some(sprite.image.id()));
+            let texture = streamer.texture(Some(batch.texture_id()));
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("SpritePass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: color_view,
                     resolve_target: None,
                     depth_slice: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
+                    ops: color_attachment_operations(
+                        sprite_subpass_attachment_ops(
+                            attachment_ops,
+                            draw_index,
+                            sprite_draw_count,
+                        ),
+                        wgpu::Color::TRANSPARENT,
+                    ),
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: depth_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    }),
+                    depth_ops: Some(depth_attachment_operations(
+                        sprite_subpass_attachment_ops(
+                            depth_attachment_ops,
+                            draw_index,
+                            sprite_draw_count,
+                        ),
+                        1.0,
+                    )),
                     stencil_ops: None,
                 }),
                 occlusion_query_set: None,
@@ -165,7 +181,59 @@ impl SpriteRenderer {
             pass.set_bind_group(0, scene_bind_group, &[]);
             pass.set_bind_group(1, &texture.bind_group, &[]);
             pass.set_vertex_buffer(0, buffer.slice(..));
-            pass.draw(0..vertices.len() as u32, 0..1);
+            pass.draw(0..batch.vertices().len() as u32, 0..1);
         }
+    }
+}
+
+fn sprite_subpass_attachment_ops(
+    graph_pass_ops: RenderGraphAttachmentOps,
+    draw_index: usize,
+    draw_count: usize,
+) -> RenderGraphAttachmentOps {
+    RenderGraphAttachmentOps {
+        load: if draw_index == 0 {
+            graph_pass_ops.load
+        } else {
+            RenderGraphAttachmentLoadOp::Load
+        },
+        store: if draw_index + 1 == draw_count {
+            graph_pass_ops.store
+        } else {
+            RenderGraphAttachmentStoreOp::Store
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::render_graph::{
+        RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
+    };
+
+    use super::sprite_subpass_attachment_ops;
+
+    #[test]
+    fn sprite_subpasses_apply_graph_attachment_ops_only_to_outer_draws() {
+        let graph_ops = RenderGraphAttachmentOps::clear_discard();
+
+        assert_eq!(
+            sprite_subpass_attachment_ops(graph_ops, 0, 3),
+            RenderGraphAttachmentOps {
+                load: RenderGraphAttachmentLoadOp::Clear,
+                store: RenderGraphAttachmentStoreOp::Store,
+            }
+        );
+        assert_eq!(
+            sprite_subpass_attachment_ops(graph_ops, 1, 3),
+            RenderGraphAttachmentOps::load_store()
+        );
+        assert_eq!(
+            sprite_subpass_attachment_ops(graph_ops, 2, 3),
+            RenderGraphAttachmentOps {
+                load: RenderGraphAttachmentLoadOp::Load,
+                store: RenderGraphAttachmentStoreOp::Discard,
+            }
+        );
     }
 }

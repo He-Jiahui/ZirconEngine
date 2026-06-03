@@ -12,7 +12,8 @@ use crate::asset::{
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialIssueState, RenderMaterialManagementIssueIndex,
+    RenderColorLookupTextureLayout, RenderMaterialAlphaMode, RenderMaterialIssueState,
+    RenderMaterialLightingModel, RenderMaterialManagementIssueIndex,
     RenderMaterialManagementIssueKind, RenderMaterialManagementIssueView,
     RenderMaterialManagementOverview, RenderMaterialManagementQuery,
     RenderMaterialManagementQueryResult, RenderMaterialManagementQuerySelection,
@@ -20,14 +21,15 @@ use crate::core::framework::render::{
     RenderMaterialManagementRecordSummary, RenderMaterialManagementSelection,
     RenderMaterialManagementSnapshot, RenderMaterialManagementSortOrder,
     RenderMaterialManagementStatusIndex, RenderMaterialManagementStatusView,
-    RenderMaterialPreparedState, RenderMaterialPropertyUniformField,
-    RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,
-    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
-    RenderMaterialReadinessReport, RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
-    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
+    RenderMaterialPreparedState,
+    RenderMaterialPropertyUniformField, RenderMaterialPropertyUniformSummary,
+    RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyValueState,
+    RenderMaterialPropertyValueSummary, RenderMaterialReadinessReport,
+    RenderMaterialReadinessStatus, RenderMaterialReadinessSummary, RenderMaterialTextureSlotState,
+    RenderMaterialTextureSlotSummary,
 };
 use crate::core::math::{Vec3, Vec4};
-use crate::core::resource::{ResourceId, ResourceKind};
+use crate::core::resource::ResourceId;
 
 use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
@@ -38,20 +40,6 @@ use super::ResourceStreamer;
 impl ResourceStreamer {
     pub(crate) fn asset_manager(&self) -> Arc<ProjectAssetManager> {
         self.asset_manager.clone()
-    }
-
-    fn asset_ids_by_kind(&self, kind: ResourceKind) -> Vec<ResourceId> {
-        let mut ids = {
-            let resource_manager = self.asset_manager.resource_manager();
-            let registry = resource_manager.registry();
-            registry
-                .values()
-                .filter(|record| record.kind == kind)
-                .map(|record| record.id())
-                .collect::<Vec<_>>()
-        };
-        ids.sort();
-        ids
     }
 
     pub(crate) fn model(&self, id: &ResourceId) -> Option<&Arc<GpuModelResource>> {
@@ -76,21 +64,17 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ModelAssetManagementRecord> {
-        self.load_model_asset(*id)
-            .map(|asset| asset.management_record(*id))
+        self.asset_manager.model_asset_management_record(*id)
     }
 
     #[allow(dead_code)]
     pub(crate) fn model_asset_management_records(&self) -> Vec<ModelAssetManagementRecord> {
-        self.asset_ids_by_kind(ResourceKind::Model)
-            .into_iter()
-            .filter_map(|model_id| self.model_asset_management_record(&model_id))
-            .collect()
+        self.asset_manager.model_asset_management_records()
     }
 
     #[allow(dead_code)]
     pub(crate) fn model_asset_management_record_set(&self) -> ModelAssetManagementRecordSet {
-        ModelAssetManagementRecordSet::from_records(self.model_asset_management_records())
+        self.asset_manager.model_asset_management_record_set()
     }
 
     #[allow(dead_code)]
@@ -122,10 +106,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<Result<MeshAssetManagementRecord, MeshValidationError>> {
-        self.asset_manager
-            .load_mesh_asset(*id)
-            .ok()
-            .map(|asset| asset.management_record(*id))
+        self.asset_manager.mesh_asset_management_record(*id)
     }
 
     #[allow(dead_code)]
@@ -135,18 +116,12 @@ impl ResourceStreamer {
         ResourceId,
         Result<MeshAssetManagementRecord, MeshValidationError>,
     )> {
-        self.asset_ids_by_kind(ResourceKind::Mesh)
-            .into_iter()
-            .filter_map(|mesh_id| {
-                self.mesh_asset_management_record(&mesh_id)
-                    .map(|result| (mesh_id, result))
-            })
-            .collect()
+        self.asset_manager.mesh_asset_management_record_results()
     }
 
     #[allow(dead_code)]
     pub(crate) fn mesh_asset_management_record_set(&self) -> MeshAssetManagementRecordSet {
-        MeshAssetManagementRecordSet::from_results(self.mesh_asset_management_record_results())
+        self.asset_manager.mesh_asset_management_record_set()
     }
 
     #[allow(dead_code)]
@@ -162,36 +137,27 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<SceneAssetManagementRecord> {
-        self.asset_manager
-            .load_scene_asset(*id)
-            .ok()
-            .map(|asset| asset.management_record(*id))
+        self.asset_manager.scene_asset_management_record(*id)
     }
 
     #[allow(dead_code)]
     pub(crate) fn scene_asset_management_records(&self) -> Vec<SceneAssetManagementRecord> {
-        self.asset_ids_by_kind(ResourceKind::Scene)
-            .into_iter()
-            .filter_map(|scene_id| self.scene_asset_management_record(&scene_id))
-            .collect()
+        self.asset_manager.scene_asset_management_records()
     }
 
     #[allow(dead_code)]
     pub(crate) fn scene_asset_management_record_set(&self) -> SceneAssetManagementRecordSet {
-        SceneAssetManagementRecordSet::from_records(self.scene_asset_management_records())
+        self.asset_manager.scene_asset_management_record_set()
     }
 
     #[allow(dead_code)]
     pub(crate) fn scene_entity_management_records(&self) -> Vec<SceneEntityManagementRecord> {
-        self.scene_asset_management_records()
-            .into_iter()
-            .flat_map(|record| record.entity_management_records())
-            .collect()
+        self.asset_manager.scene_entity_management_records()
     }
 
     #[allow(dead_code)]
     pub(crate) fn scene_entity_management_record_set(&self) -> SceneEntityManagementRecordSet {
-        SceneEntityManagementRecordSet::from_records(self.scene_entity_management_records())
+        self.asset_manager.scene_entity_management_record_set()
     }
 
     #[allow(dead_code)]
@@ -207,23 +173,17 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<MaterialAssetManagementRecord> {
-        self.asset_manager
-            .load_material_asset(*id)
-            .ok()
-            .map(|asset| asset.management_record(*id))
+        self.asset_manager.material_asset_management_record(*id)
     }
 
     #[allow(dead_code)]
     pub(crate) fn material_asset_management_records(&self) -> Vec<MaterialAssetManagementRecord> {
-        self.asset_ids_by_kind(ResourceKind::Material)
-            .into_iter()
-            .filter_map(|material_id| self.material_asset_management_record(&material_id))
-            .collect()
+        self.asset_manager.material_asset_management_records()
     }
 
     #[allow(dead_code)]
     pub(crate) fn material_asset_management_record_set(&self) -> MaterialAssetManagementRecordSet {
-        MaterialAssetManagementRecordSet::from_records(self.material_asset_management_records())
+        self.asset_manager.material_asset_management_record_set()
     }
 
     #[allow(dead_code)]
@@ -231,10 +191,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderReadinessReport> {
-        self.asset_manager
-            .load_shader_asset(*id)
-            .ok()
-            .map(|asset| asset.readiness_report())
+        self.asset_manager.shader_asset_readiness_report(*id)
     }
 
     #[allow(dead_code)]
@@ -242,8 +199,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderAssetReadinessSummary> {
-        self.shader_asset_readiness_report(id)
-            .map(|report| report.summary())
+        self.asset_manager.shader_asset_readiness_summary(*id)
     }
 
     #[allow(dead_code)]
@@ -251,34 +207,25 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderAssetManagementRecord> {
-        self.shader_asset_readiness_report(id)
-            .map(|report| report.management_record(*id))
+        self.asset_manager.shader_asset_management_record(*id)
     }
 
     #[allow(dead_code)]
     pub(crate) fn shader_asset_management_records(&self) -> Vec<ShaderAssetManagementRecord> {
-        self.asset_ids_by_kind(ResourceKind::Shader)
-            .into_iter()
-            .filter_map(|shader_id| self.shader_asset_management_record(&shader_id))
-            .collect()
+        self.asset_manager.shader_asset_management_records()
     }
 
     #[allow(dead_code)]
     pub(crate) fn shader_asset_management_record_set(&self) -> ShaderAssetManagementRecordSet {
-        ShaderAssetManagementRecordSet::from_records(self.shader_asset_management_records())
+        self.asset_manager.shader_asset_management_record_set()
     }
 
     #[allow(dead_code)]
     pub(crate) fn asset_management_record_sets(&self) -> AssetManagementRecordSets {
-        AssetManagementRecordSets::from_record_sets(
-            self.model_asset_management_record_set(),
-            self.mesh_asset_management_record_set(),
-            self.scene_asset_management_record_set(),
-            self.scene_entity_management_record_set(),
-            self.material_asset_management_record_set(),
-            self.material_management_record_set(),
-            self.shader_asset_management_record_set(),
-        )
+        self.asset_manager
+            .asset_management_record_sets_with_prepared_materials(
+                self.material_management_record_set(),
+            )
     }
 
     #[allow(dead_code)]
@@ -632,7 +579,12 @@ impl ResourceStreamer {
                                 RenderMaterialAlphaMode::Mask { cutoff } => Some(cutoff),
                                 _ => None,
                             },
-                            unlit: descriptor.unlit,
+                            lighting_model: if descriptor.unlit {
+                                RenderMaterialLightingModel::Unlit
+                            } else {
+                                descriptor.lighting_model.clone()
+                            },
+                            unlit: descriptor.unlit || descriptor.lighting_model.is_unlit(),
                             base_color_texture: self
                                 .resolve_texture_reference(
                                     "base_color_texture",
@@ -687,6 +639,36 @@ impl ResourceStreamer {
         .unwrap_or_else(|| self.fallback_texture.clone())
     }
 
+    pub(crate) fn prepared_post_process_lut_2d_view(
+        &self,
+        id: ResourceId,
+        layout: RenderColorLookupTextureLayout,
+    ) -> Option<(&wgpu::TextureView, bool)> {
+        self.textures.get(&id).and_then(|prepared| {
+            let descriptor = &prepared.resource.descriptor;
+            layout
+                .accepts_current_post_process_binding(descriptor)
+                .then_some((
+                    &prepared.resource.view,
+                    layout.matches_texture_2d_strip(descriptor),
+                ))
+        })
+    }
+
+    pub(crate) fn prepared_post_process_lut_3d_view(
+        &self,
+        id: ResourceId,
+        layout: RenderColorLookupTextureLayout,
+    ) -> Option<&wgpu::TextureView> {
+        self.post_process_lut_textures
+            .get(&id)
+            .and_then(|prepared| {
+                layout
+                    .matches_texture_3d(&prepared.resource.descriptor)
+                    .then_some(&prepared.resource.view)
+            })
+    }
+
     pub(crate) fn shader_source(&self, shader_id: &ResourceId) -> Option<&str> {
         self.shaders
             .get(shader_id)
@@ -723,6 +705,30 @@ impl ResourceStreamer {
 
     pub(crate) fn last_sprite_texture_fallback_count(&self) -> usize {
         self.last_sprite_texture_fallback_count
+    }
+
+    pub(crate) fn last_post_process_lut_request_count(&self) -> usize {
+        self.last_post_process_lut_request_count
+    }
+
+    pub(crate) fn last_post_process_lut_ready_count(&self) -> usize {
+        self.last_post_process_lut_ready_count
+    }
+
+    pub(crate) fn last_post_process_lut_fallback_count(&self) -> usize {
+        self.last_post_process_lut_fallback_count
+    }
+
+    pub(crate) fn last_post_process_lut_2d_strip_ready_count(&self) -> usize {
+        self.last_post_process_lut_2d_strip_ready_count
+    }
+
+    pub(crate) fn last_post_process_lut_3d_request_count(&self) -> usize {
+        self.last_post_process_lut_3d_request_count
+    }
+
+    pub(crate) fn last_post_process_lut_unsupported_shape_count(&self) -> usize {
+        self.last_post_process_lut_unsupported_shape_count
     }
 }
 

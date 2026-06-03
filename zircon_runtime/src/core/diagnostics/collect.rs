@@ -3,6 +3,7 @@ use crate::core::manager::{
 };
 use crate::core::CoreHandle;
 
+use super::render_stats_store::record_render_stats_diagnostics;
 use super::{
     RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics,
     RuntimeRenderDiagnostics,
@@ -99,13 +100,7 @@ fn collect_diagnostic_store_snapshot(
             Some("count"),
             ["render"],
         );
-        store.record(
-            "render.last_graph_executed_pass_count",
-            stats.submitted_frames,
-            stats.last_graph_executed_pass_count as f64,
-            Some("count"),
-            ["render", "graph"],
-        );
+        record_render_stats_diagnostics(&mut store, stats);
     }
     if let Some(fixed_hz) = physics.fixed_hz {
         store.record(

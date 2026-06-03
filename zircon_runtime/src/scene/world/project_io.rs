@@ -109,6 +109,7 @@ impl World {
                     .mesh
                     .as_ref()
                     .map(|reference| handle_for_reference::<MeshMarker>(project, reference));
+                renderer.morph_weights = mesh.morph_weights.clone();
                 renderer.primitives = mesh
                     .primitives
                     .iter()
@@ -323,6 +324,7 @@ impl World {
                                 .map(|mesh| reference_for_mesh_handle(project, mesh))
                                 .transpose()?,
                             material: reference_for_material_handle(project, mesh.material)?,
+                            morph_weights: mesh.morph_weights,
                             primitives: mesh
                                 .primitives
                                 .into_iter()

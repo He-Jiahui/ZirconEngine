@@ -1,12 +1,15 @@
-import { PillButton, SettingStatusData, UiTextData } from "shared.slint";
+import { SettingStatusData, UiTextData } from "shared.slint";
+import { PillButton } from "button_components.slint";
 import {
     EmptyStateBlock,
     HubComboBox,
     HubListPanelSlot,
+    HubPathFieldRow,
     HubTextField,
     HubTokens,
     InfoRow,
     MenuItem,
+    MetricCard,
     PanelHeader,
     PanelSlot,
 } from "components.slint";
@@ -23,28 +26,20 @@ export component PathSettingRow inherits Rectangle {
     horizontal-stretch: 1;
     height: HubTokens.input-field;
 
-    HorizontalLayout {
+    HubPathFieldRow {
         width: parent.width;
         height: parent.height;
-        spacing: HubTokens.toolbar-gap;
-        alignment: stretch;
-
-        HubTextField {
-            label: root.label;
-            placeholder: root.label;
-            text <=> root.value;
-            horizontal-stretch: 1;
-        }
-
-        PillButton {
-            width: HubTokens.control-md * 3;
-            height: HubTokens.control-md;
-            text: root.browse-label;
-            icon-image: @image-url("../assets/icons/ui/folder.svg");
-            has-icon-image: true;
-            clicked => {
-                root.browse();
-            }
+        label: root.label;
+        placeholder: root.label;
+        text <=> root.value;
+        action-label: root.browse-label;
+        action-icon: @image-url("../assets/icons/ui/folder.svg");
+        action-width: HubTokens.control-md * 3;
+        action-height: HubTokens.control-md;
+        row-spacing: HubTokens.toolbar-gap;
+        row-preferred-width: root.row-preferred-width;
+        action-clicked => {
+            root.browse();
         }
     }
 }
@@ -56,7 +51,7 @@ export component SettingStatusRow inherits InfoRow {
 
     title: root.status.label;
     detail: root.status.detail;
-    meta: root.status.disabled-reason == "" ? root.status.scope : (root.status.scope == "" ? root.status.disabled-reason : root.status.scope + " / " + root.status.disabled-reason);
+    meta: root.collapse-label ? root.status.scope : (root.status.disabled-reason == "" ? root.status.scope : (root.status.scope == "" ? root.status.disabled-reason : root.status.scope + " / " + root.status.disabled-reason));
     leading-image: root.status.state == "ok" ? @image-url("../assets/icons/status/success.svg") : (root.status.state == "warn" ? @image-url("../assets/icons/status/warning.svg") : (root.status.state == "error" ? @image-url("../assets/icons/status/error.svg") : @image-url("../assets/icons/status/running.svg")));
     has-leading-image: true;
     accent: root.status.state == "ok" ? 3 : (root.status.state == "warn" ? 2 : (root.status.state == "error" ? 2 : 1));
@@ -148,6 +143,77 @@ export component SettingsSaveActionRow inherits Rectangle {
             primary: true;
             clicked => {
                 root.action-clicked();
+            }
+        }
+    }
+}
+
+export component SettingsConfigurationOverviewPanel inherits PanelSlot {
+    in property <string> panel-title;
+    in property <UiTextData> ui-text;
+    in property <int> settings-status-count;
+    in property <string> build-profile;
+    in property <string> language;
+    in property <string> project-location;
+
+    PanelHeader {
+        title: root.panel-title;
+        show-badge: true;
+        badge-text: root.settings-status-count + " " + root.ui-text.configuration-health;
+        badge-tone: root.settings-status-count == 0 ? "warning" : "ok";
+        badge-width: HubTokens.control-lg * 5;
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        spacing: HubTokens.space-2;
+
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            height: HubTokens.list-row-md;
+            spacing: HubTokens.space-2;
+
+            MetricCard {
+                horizontal-stretch: 1;
+                height: parent.height;
+                label: root.ui-text.build-profile;
+                primary: root.build-profile;
+                secondary: root.ui-text.build-defaults;
+                compact: true;
+            }
+
+            MetricCard {
+                horizontal-stretch: 1;
+                height: parent.height;
+                label: root.ui-text.language;
+                primary: root.language;
+                secondary: root.ui-text.toolchain;
+                compact: true;
+            }
+        }
+
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            height: HubTokens.list-row-md;
+            spacing: HubTokens.space-2;
+
+            MetricCard {
+                horizontal-stretch: 1;
+                height: parent.height;
+                label: root.ui-text.default-project-directory;
+                primary: root.project-location == "" ? root.ui-text.location : root.project-location;
+                secondary: root.ui-text.default-paths;
+                compact: true;
+            }
+
+            MetricCard {
+                horizontal-stretch: 1;
+                height: parent.height;
+                label: root.ui-text.configuration-health;
+                primary: root.settings-status-count + "";
+                secondary: root.ui-text.no-configuration-checks;
+                compact: true;
             }
         }
     }

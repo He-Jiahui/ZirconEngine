@@ -140,6 +140,8 @@ pub struct SceneMeshInstanceAsset {
     pub mesh: Option<AssetReference>,
     pub material: AssetReference,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub morph_weights: Vec<Real>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primitives: Vec<SceneMeshPrimitiveBindingAsset>,
 }
 
@@ -162,6 +164,10 @@ impl SceneMeshInstanceAsset {
 
     pub fn primitive_binding_count(&self) -> usize {
         self.primitives.len()
+    }
+
+    pub fn morph_weight_count(&self) -> usize {
+        self.morph_weights.len()
     }
 }
 
@@ -450,6 +456,7 @@ pub struct SceneEntityOverview {
     pub has_direct_mesh_reference: bool,
     pub direct_mesh_reference_count: usize,
     pub mesh_primitive_binding_count: usize,
+    pub morph_weight_count: usize,
     pub has_ambient_light: bool,
     pub has_directional_light: bool,
     pub has_point_light: bool,
@@ -513,6 +520,7 @@ pub struct SceneAssetOverview {
     pub mesh_instance_count: usize,
     pub direct_mesh_reference_count: usize,
     pub mesh_primitive_binding_count: usize,
+    pub morph_weight_count: usize,
     pub mesh_material_binding_count: usize,
     pub collider_material_binding_count: usize,
     pub light_count: usize,
@@ -548,6 +556,7 @@ pub struct SceneAssetManagementRecordSetSummary {
     pub mesh_instance_count: usize,
     pub direct_mesh_reference_count: usize,
     pub mesh_primitive_binding_count: usize,
+    pub morph_weight_count: usize,
     pub mesh_material_binding_count: usize,
     pub collider_material_binding_count: usize,
     pub light_count: usize,
@@ -575,6 +584,7 @@ pub struct SceneEntityManagementRecordSetSummary {
     pub mesh_instance_count: usize,
     pub direct_mesh_reference_count: usize,
     pub mesh_primitive_binding_count: usize,
+    pub morph_weight_count: usize,
     pub mesh_material_binding_count: usize,
     pub collider_material_binding_count: usize,
     pub light_count: usize,
@@ -626,6 +636,10 @@ impl SceneAssetManagementRecordSetSummary {
             mesh_primitive_binding_count: records
                 .iter()
                 .map(|record| record.overview.mesh_primitive_binding_count)
+                .sum(),
+            morph_weight_count: records
+                .iter()
+                .map(|record| record.overview.morph_weight_count)
                 .sum(),
             mesh_material_binding_count: records
                 .iter()
@@ -698,6 +712,10 @@ impl SceneEntityManagementRecordSetSummary {
             mesh_primitive_binding_count: records
                 .iter()
                 .map(|record| record.entity.mesh_primitive_binding_count)
+                .sum(),
+            morph_weight_count: records
+                .iter()
+                .map(|record| record.entity.morph_weight_count)
                 .sum(),
             mesh_material_binding_count: records
                 .iter()
@@ -816,6 +834,11 @@ impl SceneEntityAsset {
             .as_ref()
             .map(SceneMeshInstanceAsset::primitive_binding_count)
             .unwrap_or(0);
+        let morph_weight_count = self
+            .mesh
+            .as_ref()
+            .map(SceneMeshInstanceAsset::morph_weight_count)
+            .unwrap_or(0);
         SceneEntityOverview {
             entity: self.entity,
             name: self.name.clone(),
@@ -829,6 +852,7 @@ impl SceneEntityAsset {
             has_direct_mesh_reference: direct_mesh_reference_count > 0,
             direct_mesh_reference_count,
             mesh_primitive_binding_count,
+            morph_weight_count,
             has_ambient_light: self.ambient_light.is_some(),
             has_directional_light: self.directional_light.is_some(),
             has_point_light: self.point_light.is_some(),
@@ -900,6 +924,10 @@ impl SceneAsset {
             mesh_primitive_binding_count: entities
                 .iter()
                 .map(|entity| entity.mesh_primitive_binding_count)
+                .sum(),
+            morph_weight_count: entities
+                .iter()
+                .map(|entity| entity.morph_weight_count)
                 .sum(),
             mesh_material_binding_count: entities.iter().filter(|entity| entity.has_mesh).count(),
             collider_material_binding_count: entities

@@ -1,13 +1,62 @@
-import { TeamMemberData, UiTextData } from "shared.slint";
+import { TeamData, TeamMemberData, UiTextData } from "shared.slint";
 import {
+    ActionRow,
+    CheckState,
     EmptyStateBlock,
+    HubCheckBoxRow,
+    HubCompactTabStrip,
     HubListPanelSlot,
+    HubToggleRow,
     HubTokens,
     InfoRow,
     MaterialStyleMetrics,
     MetricCard,
+    PanelHeader,
+    PanelListViewport,
+    PanelSlot,
     ResponsiveSlot,
 } from "components.slint";
+
+export component TeamActionRow inherits ActionRow {
+    in property <string> action-id;
+    in property <image> action-icon;
+    in property <string> action-title;
+    in property <string> action-detail;
+    in property <bool> action-enabled: true;
+    callback triggered(string);
+
+    action: {
+        id: root.action-id,
+        icon: "",
+        icon-image: root.action-icon,
+        has-icon-image: true,
+        title: root.action-title,
+        detail: root.action-detail,
+        enabled: root.action-enabled,
+    };
+
+    activate(id) => {
+        root.triggered(id);
+    }
+}
+
+export component TeamIdentityRow inherits InfoRow {
+    in property <TeamData> summary;
+    in property <UiTextData> ui-text;
+    in property <bool> collapse-label: false;
+
+    title: root.summary.identity-name;
+    detail: root.summary.identity-email;
+    meta: root.ui-text.team-git-identity;
+    leading-image: @image-url("../assets/icons/nav/team.svg");
+    has-leading-image: true;
+    accent: 0;
+    trailing-text: "Active";
+    trailing-tone: "ok";
+    show-trailing-badge: true;
+    collapse-trailing-label: root.collapse-label;
+    row-height: HubTokens.list-row-md;
+}
 
 export component TeamMemberRow inherits InfoRow {
     in property <TeamMemberData> member;
@@ -31,6 +80,7 @@ export component TeamSummarySlot inherits ResponsiveSlot {
     in property <string> label;
     in property <string> primary;
     in property <string> secondary;
+    in property <bool> compact-card: false;
 
     MetricCard {
         width: parent.width;
@@ -38,10 +88,12 @@ export component TeamSummarySlot inherits ResponsiveSlot {
         label: root.label;
         primary: root.primary;
         secondary: root.secondary;
+        compact: root.compact-card;
     }
 }
 
-export component TeamMembersPanel inherits HubListPanelSlot {
+export component TeamMembersPanel inherits PanelSlot {
+    in property <TeamData> summary;
     in property <[TeamMemberData]> members;
     in property <int> member-count;
     in property <length> member-row-height;
@@ -50,31 +102,117 @@ export component TeamMembersPanel inherits HubListPanelSlot {
     in property <UiTextData> ui-text;
     in property <bool> collapse-label: false;
     in-out property <length> member-scroll-y;
+    private property <int> overview-row-count: root.member-count == 0 ? 2 : root.member-count + 1;
 
     body-padding: MaterialStyleMetrics.padding_16;
     body-spacing: HubTokens.toolbar-gap;
-    title: root.ui-text.team-members-found;
-    show-badge: true;
-    badge-text: root.member-count + "";
-    badge-tone: "neutral";
-    scroll-y <=> root.member-scroll-y;
-    row-count: root.member-count;
-    row-height: root.member-row-height;
-    empty-height: HubTokens.list-row-lg + HubTokens.space-4;
 
-    if root.member-count == 0: EmptyStateBlock {
-        height: HubTokens.list-row-lg + HubTokens.space-4;
-        title: root.ui-text.no-team-members-found;
-        detail: root.members-empty-detail;
-        extra-detail: root.repository-path;
-        body-padding: MaterialStyleMetrics.padding_16;
-        center-content: true;
+    PanelHeader {
+        title: "Team Overview";
+        subtitle: "Identity, reviewers, and local collaboration status";
+        show-badge: true;
+        badge-text: root.member-count + " active";
+        badge-tone: "neutral";
     }
 
-    for member in root.members: TeamMemberRow {
+    HubCompactTabStrip {
+        current-index: 0;
+        first-label: "Identity";
+        second-label: "Review";
+        third-label: "Access";
+        show-fourth: false;
+        tab-width: HubTokens.control-md * 3;
+    }
+
+    PanelListViewport {
+        scroll-y <=> root.member-scroll-y;
+        row-count: root.overview-row-count;
         row-height: root.member-row-height;
-        member: member;
-        ui-text: root.ui-text;
-        collapse-label: root.collapse-label;
+        row-spacing: HubTokens.space-2;
+        vertical-padding: HubTokens.space-1;
+        empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+
+        TeamIdentityRow {
+            row-height: root.member-row-height;
+            summary: root.summary;
+            ui-text: root.ui-text;
+            collapse-label: root.collapse-label;
+        }
+
+        if root.member-count == 0: EmptyStateBlock {
+            height: HubTokens.list-row-lg + HubTokens.space-4;
+            title: root.ui-text.no-team-members-found;
+            detail: root.members-empty-detail;
+            extra-detail: root.repository-path;
+            body-padding: MaterialStyleMetrics.padding_16;
+            center-content: true;
+        }
+
+        for member in root.members: TeamMemberRow {
+            row-height: root.member-row-height;
+            member: member;
+            ui-text: root.ui-text;
+            collapse-label: root.collapse-label;
+        }
+    }
+}
+
+export component TeamActionsPanel inherits HubListPanelSlot {
+    in property <length> action-row-height: HubTokens.list-row-sm;
+    in-out property <bool> notify-reviewers: true;
+    in-out property <CheckState> attach-evidence-state: CheckState.checked;
+
+    body-padding: MaterialStyleMetrics.padding_16;
+    body-spacing: HubTokens.toolbar-gap;
+    title: "Actions";
+    subtitle: "Primary page actions reuse the Dashboard quick-action rhythm";
+    row-count: 6;
+    row-height: root.action-row-height;
+    row-spacing: HubTokens.toolbar-gap;
+
+    TeamActionRow {
+        row-height: root.action-row-height;
+        action-id: "open-source-control";
+        action-icon: @image-url("../assets/icons/ui/folder.svg");
+        action-title: "Open Source Control";
+        action-detail: "Review pending changes and local status";
+    }
+
+    TeamActionRow {
+        row-height: root.action-row-height;
+        action-id: "request-review";
+        action-icon: @image-url("../assets/icons/ui/plus.svg");
+        action-title: "Request Review";
+        action-detail: "Prepare a visual and contract review note";
+    }
+
+    TeamActionRow {
+        row-height: root.action-row-height;
+        action-id: "open-team-home";
+        action-icon: @image-url("../assets/icons/nav/team.svg");
+        action-title: "Open Team Home";
+        action-detail: "Show local team and collaboration settings";
+    }
+
+    TeamActionRow {
+        row-height: root.action-row-height;
+        action-id: "sync-metadata";
+        action-icon: @image-url("../assets/icons/ui/refresh.svg");
+        action-title: "Sync Metadata";
+        action-detail: "Refresh collaborator and repository details";
+    }
+
+    HubToggleRow {
+        row-height: root.action-row-height;
+        checked: root.notify-reviewers;
+        label: "Notify reviewers";
+        supporting-text: "Send local review notes when evidence updates";
+    }
+
+    HubCheckBoxRow {
+        row-height: root.action-row-height;
+        check-state: root.attach-evidence-state;
+        label: "Attach visual evidence";
+        supporting-text: "Link exported screenshots and contract output";
     }
 }

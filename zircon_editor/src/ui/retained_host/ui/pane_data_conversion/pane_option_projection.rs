@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::component::UiValue;
 
 use super::pane_value_conversion::value_as_options;
 
-pub(super) fn structured_options_for_node(
+pub(in crate::ui::retained_host::ui) fn structured_options_for_node(
     options: &[String],
     attributes: &BTreeMap<String, toml::Value>,
 ) -> Vec<host_contract::TemplatePaneOptionData> {

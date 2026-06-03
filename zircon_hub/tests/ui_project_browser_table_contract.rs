@@ -69,7 +69,7 @@ fn project_browser_header_and_rows_share_one_column_model() {
 
     for snippet in [
         "export component ProjectBrowserTableHeader inherits Rectangle",
-        "export component ProjectBrowserRow inherits Rectangle",
+        "export component ProjectBrowserRow inherits HubRowSurface",
         "export component ProjectBrowserResultsPanel inherits HubTableView",
         "in property <length> table-padding-x",
         "in property <length> table-gap",
@@ -81,6 +81,14 @@ fn project_browser_header_and_rows_share_one_column_model() {
         "in property <bool> compact-table",
         "if !root.compact-table: MaterialText",
         "if !root.compact-table: StatusBadge",
+        "selected: root.project.selected;",
+        "idle-background: HubVisualSpec.panel-background;",
+        "selected-background: MaterialPalette.secondary_container;",
+        "selected-border-width: MaterialStyleMetrics.size_1;",
+        "detail-slot := HubRowTrailingSlot {",
+        "slot-width: root.detail-column-width;",
+        "show-action: true;",
+        "action-size: root.detail-button-size;",
     ] {
         assert!(
             components.contains(snippet),
@@ -127,8 +135,8 @@ fn project_browser_header_and_rows_share_one_column_model() {
         .nth(1)
         .expect("project_browser_components.slint must declare ProjectBrowserResultsPanel");
     for snippet in [
-        "private property <bool> compact-table: root.width < HubTokens.breakpoint-compact;",
-        "private property <length> table-row-width: max(HubTokens.control-md, root.width - root.panel-spacing * 2);",
+        "in property <bool> compact-table: false;",
+        "in property <length> table-row-width: HubTokens.control-md;",
         "ProjectBrowserTableHeader {",
         "row-width: root.table-row-width;",
         "table-padding-x: root.table-padding-x;",
@@ -141,18 +149,22 @@ fn project_browser_header_and_rows_share_one_column_model() {
     ] {
         assert!(
             panel.contains(snippet),
-            "ProjectBrowserResultsPanel must be the single owner of browser table geometry and pass it to header and rows; missing {snippet}"
+            "ProjectBrowserResultsPanel must consume the page-owned browser table geometry and pass it to header and rows; missing {snippet}"
         );
     }
 
     for snippet in [
         "browser-table-header-height: HubTokens.control-md;",
+        "browser-table-horizontal-inset: root.page-gap * 2;",
+        "browser-table-row-width: max(HubTokens.control-md, root.content-width - root.browser-table-horizontal-inset);",
         "browser-panel-chrome-height: HubTokens.control-md + root.browser-table-header-height + root.page-gap * 4;",
         "table-header-height: root.browser-table-header-height;",
+        "compact-table: root.viewport-compact;",
+        "table-row-width: root.browser-table-row-width;",
     ] {
         assert!(
             page.contains(snippet),
-            "ProjectBrowserPage must reserve vertical space for the native table header; missing {snippet}"
+            "ProjectBrowserPage must own viewport-scoped browser table geometry; missing {snippet}"
         );
     }
 }

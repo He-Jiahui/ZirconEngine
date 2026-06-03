@@ -25,7 +25,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     let virtual_geometry_feedback = virtual_geometry_feedback
         .with_evictable_page_ids(prepared.take_virtual_geometry_evictable_page_ids());
     let virtual_geometry_indirect_segment_count = 0;
-    let (previous_handle, history_handle) =
+    let (previous_handle, history_handle, history_status) =
         record_history(record, context, generation, allocated_history);
     record.store_presented_pipeline(context.compiled_pipeline().clone());
     let hybrid_gi_stats = update_hybrid_gi_runtime(record, hybrid_gi_feedback);
@@ -39,6 +39,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     SubmissionRecordUpdate::new(
         history_handle,
         previous_handle,
+        history_status,
         hybrid_gi_stats,
         particle_stats,
         virtual_geometry_stats,

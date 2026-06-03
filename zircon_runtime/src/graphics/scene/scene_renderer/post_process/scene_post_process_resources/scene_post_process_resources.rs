@@ -1,4 +1,8 @@
+use super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
+
 pub(crate) struct ScenePostProcessResources {
+    pub(in crate::graphics::scene::scene_renderer::post_process) depth_sampling_mode:
+        PostProcessDepthSamplingMode,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_bind_group_layout:
@@ -32,4 +36,10 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) white_texture_view:
         wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_texture_view:
+        wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_texture_3d_view:
+        wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_sampler: wgpu::Sampler,
+    pub(in crate::graphics::scene::scene_renderer::post_process) scene_depth_sampler: wgpu::Sampler,
 }

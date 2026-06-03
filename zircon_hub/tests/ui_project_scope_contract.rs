@@ -80,7 +80,7 @@ fn app_forwards_selected_project_and_source_engine_scope_copy() {
 #[test]
 fn project_card_and_detail_labels_are_view_model_data() {
     let shared = read_ui_file("shared.slint");
-    let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
     let project_view_model = read_crate_file("src/app/view_model/projects.rs");
 
     let project_card_data = shared
@@ -99,11 +99,11 @@ fn project_card_and_detail_labels_are_view_model_data() {
         );
     }
 
-    let project_card = dashboard_components
+    let project_card = project_card_flow_components
         .split("export component ProjectCard")
         .nth(1)
         .and_then(|source| source.split("export component ProjectFlow").next())
-        .expect("project_dashboard_components.slint must export ProjectCard before ProjectFlow");
+        .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
         "text: root.visible-modified-label;",
         "text: root.visible-platform;",

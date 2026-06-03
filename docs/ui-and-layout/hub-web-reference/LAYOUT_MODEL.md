@@ -60,6 +60,22 @@ fills the current viewport; smaller windows then use the responsive overrides.
 - Use row/card components as reusable primitives: `info-row`, `action-row`,
   `catalog-row`, `browser-row`, `template-row`, and `timeline-item` map to
   small composable Rust/Slint components.
+- Treat select/dropdown controls as a component family instead of one-off
+  positioned menus: `.select-trigger` owns the trigger chrome, `menu-anchor`
+  marks the alignment origin, `.select-menu-surface` owns popup paper, and the
+  nested `.menu-list` / `.menu-item` rows map to the shared Slint select-menu
+  wrappers.
+- Treat menu and popup rows as row-state primitives, not page-specific button
+  markup: `.menu-row` carries the shared dense, selected, disabled, leading
+  icon, and trailing-affordance contract that maps to Slint `HubMenuRow`.
+- Treat `.row-surface` as the shared selected/disabled/focus shell for rows
+  whose content layout differs. `.table-row-surface`, `.browser-row`, and
+  `.data-table-row` keep their own grid/cell layout while sharing one Material
+  state vocabulary for selected rows and disabled opacity.
+- Treat `.row-leading-icon-slot`, `.row-meta-slot`, and `.row-trailing-slot`
+  as row-content slots. Catalog rows and detail check rows keep their own grid
+  or flex layout, but the leading neutral icon, metadata text, and badge/chevron
+  tail are named reusable pieces before they are ported to Slint.
 - Overflow policy is part of the contract: the document and shell must not
   horizontally overflow; page content scrolls inside `.workspace`.
 

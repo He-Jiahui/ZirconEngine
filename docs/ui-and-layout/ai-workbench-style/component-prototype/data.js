@@ -32,7 +32,7 @@ export const inspectorSections = [
   },
   {
     title: "Mesh Renderer",
-    icon: "grid",
+    icon: "renderer",
     checked: true,
     rows: [
       { label: "Mesh", value: "Box_01", icon: "cube" },

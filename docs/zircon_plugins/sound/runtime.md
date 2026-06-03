@@ -540,6 +540,7 @@ tests:
   - zircon_plugins/sound/runtime/src/tests/mixer_graph.rs
   - zircon_plugins/sound/runtime/src/tests/playback.rs
   - zircon_plugins/sound/runtime/src/tests/runtime_core.rs
+  - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime sound_plugin_registration_contributes_runtime_module_components_options_and_events --locked --jobs 1 --message-format short --color never (passed after event catalog assertion update)
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
   - zircon_plugins/sound/runtime/src/tests/source_inputs.rs
   - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml manifest --locked -- --nocapture
@@ -638,7 +639,7 @@ Built-in mixer preset catalog construction is folder-backed under `src/presets/`
 - `SoundModule`, `SoundDriver`, and `DefaultSoundManager`.
 - `AudioSource`, `AudioListener`, and `AudioVolume` component descriptors.
 - Sound plugin options such as backend, sample rate, block size, global volume, spatial scale, HRTF, convolution, ray tracing, timeline integration, and dynamic-event enablement.
-- The empty versioned `sound.dynamic_events` event catalog used as a discoverable future integration point.
+- The concrete versioned `sound.dynamic_events` event catalog: `sound.dynamic_events.impact`, `sound.dynamic_events.marker`, and `sound.dynamic_events.ambient_stinger`, with package-prefixed payload schemas `sound.dynamic.impact.v1`, `sound.dynamic.marker.v1`, and `sound.dynamic.ambient_stinger.v1`.
 
 Runtime audio behavior remains in this crate. The runtime framework layer only owns DTOs, handles, and traits; it does not implement mixing, DSP, output callbacks, or Sound-specific editor behavior.
 
@@ -691,6 +692,8 @@ Focused validation after adding optional feature bundle manifest parity passed o
 `src/tests/automation_binding.rs` now owns synth-parameter visibility and automation binding coverage that used to live in the runtime test aggregate: snapshot visibility for bound synth parameters, shared animation-track path normalization, automation value application to synth, track, and effect targets, and typed failures for invalid target paths or missing targets. `src/tests/automation_curve.rs` owns automation curve sampling, keyframe validation, one-shot timeline sequence advancement, and looping timeline behavior, so binding target resolution can evolve independently from curve sampling and timeline scheduling behavior.
 
 `src/tests/runtime_core.rs` now owns runtime-plugin registration and default manager baseline coverage that used to live in the root test module: runtime module/component/option/event contribution, silent render format defaults, and final global-volume gain validation. `src/tests.rs` now remains a navigation and shared-fixture module instead of owning behavioral assertions.
+
+2026-06-01 M6 plugin-workspace validation exposed that `sound_plugin_registration_contributes_runtime_module_components_options_and_events` still expected the old placeholder event catalog. The production event catalog was already concrete, so the test now asserts the three stable event ids and payload schemas listed above. The focused rerun `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime sound_plugin_registration_contributes_runtime_module_components_options_and_events --locked --jobs 1 --message-format short --color never` passed with 1 test and 0 failures.
 
 Focused validation after tightening the Timeline binding path contract passed on 2026-05-31 with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-timeline-path-contract`. `cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sound_runtime -- --check` passed. `cargo test --manifest-path zircon_plugins\sound\runtime\Cargo.toml automation --locked --offline --jobs 1 --color never` passed with 10 automation/Timeline/graph-import tests, 0 failed, and 92 unrelated tests filtered out. `cargo test --manifest-path zircon_plugins\sound\runtime\Cargo.toml graph_config --locked --offline --jobs 1 --color never` passed with 2 graph-import tests, 0 failed, and 100 unrelated tests filtered out. `cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` and `cargo metadata --manifest-path zircon_plugins\sound\runtime\Cargo.toml --locked --offline --no-deps --format-version 1` passed. Remaining output was limited to existing `zircon_runtime` warnings.
 

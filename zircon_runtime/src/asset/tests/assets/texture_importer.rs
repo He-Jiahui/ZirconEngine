@@ -463,6 +463,82 @@ fn importer_texture_fixture_reinterprets_stacked_array_layout() {
 }
 
 #[test]
+fn importer_decodes_cube_lut_as_linear_3d_rgba8_texture() {
+    let root = unique_temp_project_root("texture_import_cube_lut");
+    fs::create_dir_all(&root).unwrap();
+    let cube_path = root.join("identity.cube");
+    fs::write(&cube_path, identity_2x2x2_cube_lut()).unwrap();
+
+    let imported = crate::asset::AssetImporter::default()
+        .import_from_source(
+            &cube_path,
+            &AssetUri::parse("res://textures/identity.cube").unwrap(),
+        )
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Texture(texture) => {
+            assert_eq!(texture.width, 2);
+            assert_eq!(texture.height, 2);
+            assert_eq!(texture.rgba.len(), 2 * 2 * 2 * 4);
+            assert_eq!(&texture.rgba[0..8], &[0, 0, 0, 255, 255, 0, 0, 255]);
+            assert_eq!(
+                &texture.rgba[24..32],
+                &[0, 255, 255, 255, 255, 255, 255, 255]
+            );
+
+            let descriptor = texture.render_image_descriptor();
+            assert_eq!(descriptor.dimension, RenderImageDimension::D3);
+            assert_eq!(descriptor.depth_or_array_layers, 2);
+            assert_eq!(descriptor.array_layer_count, 1);
+            assert_eq!(descriptor.mip_count, 1);
+            assert_eq!(descriptor.format, RGBA8_UNORM_FORMAT);
+            assert_eq!(descriptor.color_space, RenderImageColorSpace::Linear);
+            assert_eq!(descriptor.sampler.mag_filter, RenderSamplerFilter::Linear);
+            assert_eq!(
+                descriptor.sampler.address_mode_w,
+                RenderSamplerAddressMode::ClampToEdge
+            );
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_rejects_cube_lut_with_wrong_sample_count() {
+    let root = unique_temp_project_root("texture_import_bad_cube_lut");
+    fs::create_dir_all(&root).unwrap();
+    let cube_path = root.join("short.cube");
+    fs::write(
+        &cube_path,
+        "\
+TITLE \"short\"
+LUT_3D_SIZE 2
+0.0 0.0 0.0
+",
+    )
+    .unwrap();
+
+    let error = crate::asset::AssetImporter::default()
+        .import_from_source(
+            &cube_path,
+            &AssetUri::parse("res://textures/short.cube").unwrap(),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("cube LUT expected 8 RGB samples but found 1"),
+        "unexpected error: {error}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn importer_texture_fixture_rejects_invalid_array_layout() {
     let root = unique_temp_project_root("texture_import_bad_array_layout");
     fs::create_dir_all(&root).unwrap();
@@ -529,4 +605,21 @@ fn tiny_rgb32f_image_bytes(format: ImageFormat) -> Vec<u8> {
     let mut bytes = std::io::Cursor::new(Vec::new());
     dynamic.write_to(&mut bytes, format).unwrap();
     bytes.into_inner()
+}
+
+fn identity_2x2x2_cube_lut() -> &'static str {
+    "\
+TITLE \"identity 2\"
+LUT_3D_SIZE 2
+DOMAIN_MIN 0.0 0.0 0.0
+DOMAIN_MAX 1.0 1.0 1.0
+0.0 0.0 0.0
+1.0 0.0 0.0
+0.0 1.0 0.0
+1.0 1.0 0.0
+0.0 0.0 1.0
+1.0 0.0 1.0
+0.0 1.0 1.0
+1.0 1.0 1.0
+"
 }

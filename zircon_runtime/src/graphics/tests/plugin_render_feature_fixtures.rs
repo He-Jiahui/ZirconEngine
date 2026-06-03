@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::framework::render::SolariRuntimeStatus;
+use crate::core::framework::render::{PostProcessGraphResourceNames, SolariRuntimeStatus};
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
     FrameHistoryBinding, FrameHistorySlot, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
     HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
     HybridGiRuntimeState, HybridGiRuntimeUpdate, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage, SolariRuntimeProvider,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, RenderPassStage, SolariRuntimeProvider,
     SolariRuntimeProviderRegistration, VirtualGeometryRuntimeFeedback,
     VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
     VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
@@ -28,7 +29,7 @@ pub(super) fn pluginized_wgpu_render_framework_with_asset_manager(
             virtual_geometry_render_feature_descriptor(),
             hybrid_gi_render_feature_descriptor(),
         ],
-        Vec::new(),
+        advanced_render_pass_executor_registrations(),
         Vec::new(),
     )
     .unwrap()
@@ -49,7 +50,7 @@ pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers_and_asset
             virtual_geometry_render_feature_descriptor(),
             hybrid_gi_render_feature_descriptor(),
         ],
-        Vec::new(),
+        advanced_render_pass_executor_registrations(),
         Vec::new(),
         [test_hybrid_gi_runtime_provider()],
         [test_virtual_geometry_runtime_provider()],
@@ -66,7 +67,7 @@ pub(super) fn pluginized_wgpu_render_framework_with_solari_provider(
             virtual_geometry_render_feature_descriptor(),
             hybrid_gi_render_feature_descriptor(),
         ],
-        Vec::new(),
+        advanced_render_pass_executor_registrations(),
         Vec::new(),
         [test_hybrid_gi_runtime_provider()],
         [test_solari_runtime_provider(status)],
@@ -186,6 +187,31 @@ pub(super) fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescri
         rendering_baked_lighting_descriptor(),
         rendering_post_process_descriptor(),
     ]
+}
+
+fn advanced_render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
+    [
+        "virtual-geometry.prepare",
+        "virtual-geometry.node-cluster-cull",
+        "virtual-geometry.page-feedback",
+        "virtual-geometry.visbuffer",
+        "virtual-geometry.debug-overlay",
+        "hybrid-gi.scene-prepare",
+        "hybrid-gi.trace-schedule",
+        "hybrid-gi.resolve",
+        "hybrid-gi.history",
+    ]
+    .into_iter()
+    .map(|executor_id| {
+        RenderPassExecutorRegistration::new(executor_id, test_advanced_render_pass_executor)
+    })
+    .collect()
+}
+
+fn test_advanced_render_pass_executor(
+    _context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -315,8 +341,9 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("ao.ssao-evaluate")
-        .read_texture("scene-depth")
-        .write_texture("ambient-occlusion")],
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
     )
 }
 
@@ -367,7 +394,12 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             QueueLane::Graphics,
         )
         .with_executor_id("post.stack")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+        .read_external(PostProcessGraphResourceNames::BLOOM)
+        .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
+        .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
+        .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION)],
     )
 }

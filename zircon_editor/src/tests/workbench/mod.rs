@@ -3,6 +3,7 @@ mod fixture;
 mod host_events;
 mod layout;
 mod project;
+mod reference_surface;
 mod reflection;
 mod registry;
 mod view_model;

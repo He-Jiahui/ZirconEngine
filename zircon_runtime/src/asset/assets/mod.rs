@@ -90,9 +90,9 @@ pub use sprite_atlas::{
     SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
 };
 pub use texture::{
-    TextureArrayLayout, TextureAsset, TextureAssetDescriptor, TexturePayload,
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    texture_asset_from_cube_lut, CubeLutParseError, TextureArrayLayout, TextureAsset,
+    TextureAssetDescriptor, TexturePayload, TextureUploadCompressionFamily, TextureUploadPlan,
+    TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset,

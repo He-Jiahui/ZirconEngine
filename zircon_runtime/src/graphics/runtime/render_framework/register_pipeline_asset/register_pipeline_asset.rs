@@ -105,6 +105,7 @@ mod tests {
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
     use crate::core::framework::render::RenderFrameworkError;
+    use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
     use crate::render_graph::QueueLane;
     use crate::{
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
@@ -131,7 +132,7 @@ mod tests {
     }
 
     #[test]
-    fn register_pipeline_asset_accepts_plugin_executor_from_linked_descriptor() {
+    fn register_pipeline_asset_rejects_plugin_executor_from_descriptor_only() {
         let descriptor = plugin_virtual_geometry_descriptor();
         let framework = WgpuRenderFramework::new_with_plugin_render_features(
             Arc::new(ProjectAssetManager::default()),
@@ -141,8 +142,35 @@ mod tests {
         )
         .unwrap();
 
+        let error = register_pipeline_asset(&framework, plugin_virtual_geometry_pipeline())
+            .expect_err("plugin descriptors should not auto-register runtime no-op executors");
+
+        assert!(
+            matches!(
+                error,
+                RenderFrameworkError::GraphCompileFailure { ref message, .. }
+                    if message.contains("virtual-geometry.prepare")
+            ),
+            "unexpected error: {error:?}"
+        );
+    }
+
+    #[test]
+    fn register_pipeline_asset_accepts_plugin_executor_from_explicit_registration() {
+        let descriptor = plugin_virtual_geometry_descriptor();
+        let framework = WgpuRenderFramework::new_with_plugin_render_features(
+            Arc::new(ProjectAssetManager::default()),
+            [descriptor],
+            [RenderPassExecutorRegistration::new(
+                "virtual-geometry.prepare",
+                plugin_virtual_geometry_executor,
+            )],
+            Vec::new(),
+        )
+        .unwrap();
+
         let handle = register_pipeline_asset(&framework, plugin_virtual_geometry_pipeline())
-            .expect("linked plugin descriptor should register its executor id");
+            .expect("explicit plugin executor registration should satisfy the graph");
 
         assert_eq!(handle, plugin_virtual_geometry_pipeline().handle);
     }
@@ -166,5 +194,11 @@ mod tests {
             .with_side_effects()],
         )
         .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
+    }
+
+    fn plugin_virtual_geometry_executor(
+        _context: &mut RenderPassExecutionContext<'_>,
+    ) -> Result<(), String> {
+        Ok(())
     }
 }

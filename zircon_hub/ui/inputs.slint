@@ -1,4 +1,5 @@
 import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { HubCommandButton } from "button_components.slint";
 import {
     CheckBox as MaterialCheckBox,
     CheckBoxTile as MaterialCheckBoxTile,
@@ -16,7 +17,7 @@ import {
     MaterialTypography,
     StateLayerArea,
 } from "material_bridge.slint";
-import { HubDropDownSurface, HubPopupMenu } from "overlays.slint";
+import { HubSelectDropDownSurface, HubSelectMenu } from "overlays.slint";
 
 export struct SelectOptionData {
     id: string,
@@ -37,16 +38,16 @@ export component SearchBox inherits Rectangle {
 
     // The compact toolbar search keeps text editing local while visual states
     // derive from shared Hub tokens so dashboard and browser toolbars align.
-    private property <color> state-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
+    private property <color> state-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : (root.prominent ? HubVisualSpec.search-prominent-background : HubVisualSpec.panel-background));
     private property <bool> highlighted: root.focused || root.prominent;
-    private property <color> state-border: root.highlighted ? HubVisualSpec.focus-ring-color : (root.text != "" ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted);
-    private property <color> placeholder-color: root.highlighted ? MaterialPalette.on_surface_variant : MaterialPalette.on_surface_variant.with_alpha(0.72);
+    private property <color> state-border: root.focused ? HubVisualSpec.focus-ring-color : (root.prominent ? HubVisualSpec.search-prominent-stroke : (root.text != "" ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted));
+    private property <color> placeholder-color: root.focused ? MaterialPalette.on_surface_variant : (root.prominent ? HubVisualSpec.search-prominent-placeholder : MaterialPalette.on_surface_variant.with_alpha(0.72));
 
     forward-focus: search-field;
     width: root.box-width;
     height: root.box-height;
     border-radius: HubVisualSpec.compact-radius;
-    border-width: root.highlighted ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
     border-color: root.state-border;
     background: root.state-background;
     opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
@@ -55,7 +56,7 @@ export component SearchBox inherits Rectangle {
     StateLayerArea {
         width: parent.width;
         height: parent.height;
-        color: root.highlighted ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+        color: root.focused ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
         border_radius: HubVisualSpec.compact-radius;
         clicked => {
             if (root.enabled) {
@@ -150,6 +151,73 @@ export component HubTextField inherits Rectangle {
     }
 }
 
+export component HubPathFieldRow inherits Rectangle {
+    in property <string> label;
+    in property <string> placeholder;
+    in property <string> supporting-text;
+    in-out property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> show-action: true;
+    in property <bool> action-enabled: true;
+    in property <bool> action-primary: false;
+    in property <string> action-label;
+    in property <image> action-icon: @image-url("../assets/icons/ui/folder.svg");
+    in property <bool> has-action-icon: true;
+    in property <length> field-height: HubTokens.input-field;
+    in property <length> action-width: HubTokens.control-md * 3;
+    in property <length> action-height: HubTokens.control-md;
+    in property <length> row-spacing: HubTokens.toolbar-gap;
+    in property <length> row-padding: 0px;
+    in property <bool> framed: false;
+    in property <length> row-height: max(root.field-height, root.action-height) + root.row-padding * 2;
+    in property <length> row-preferred-width: HubTokens.input-width + (root.show-action ? root.action-width + root.row-spacing : 0px);
+    callback action-clicked();
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: root.row-preferred-width;
+    height: root.row-height;
+    background: root.framed ? HubVisualSpec.panel-background : transparent;
+    border-radius: root.framed ? HubVisualSpec.compact-radius : 0px;
+    border-width: root.framed ? HubTokens.border-width : 0px;
+    border-color: HubVisualSpec.outline-muted;
+    clip: root.framed;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.row-padding;
+        padding-right: root.row-padding;
+        padding-top: root.row-padding;
+        padding-bottom: root.row-padding;
+        spacing: root.row-spacing;
+        alignment: center;
+
+        HubTextField {
+            height: root.field-height;
+            horizontal-stretch: 1;
+            label: root.label;
+            placeholder: root.placeholder != "" ? root.placeholder : root.label;
+            supporting-text: root.supporting-text;
+            text <=> root.text;
+            enabled: root.enabled;
+        }
+
+        if root.show-action: HubCommandButton {
+            button-width: root.action-width;
+            button-height: root.action-height;
+            text: root.action-label;
+            source-image: root.action-icon;
+            has-source-image: root.has-action-icon;
+            primary: root.action-primary;
+            enabled: root.action-enabled && root.enabled;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}
+
 export component ToolbarSelect inherits Rectangle {
     in property <string> icon;
     in property <image> icon-image;
@@ -165,14 +233,12 @@ export component ToolbarSelect inherits Rectangle {
     callback selected(string);
     callback selected-index(int);
 
-    private property <length> menu-width: max(root.select-width, HubTokens.input-width / 2);
-    private property <length> menu-offset-x: min(0px, root.select-width - root.menu-width);
     private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));
     private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);
     private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;
     private property <color> select-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
-    private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : (root.option-count > 0 ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted);
-    private property <color> select-foreground: root.menu-ready ? MaterialPalette.on_surface : MaterialPalette.on_surface_variant;
+    private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;
+    private property <color> select-foreground: root.focused ? MaterialPalette.on_surface_variant : HubVisualSpec.toolbar-select-foreground;
 
     width: root.select-width;
     height: root.select-height;
@@ -250,11 +316,11 @@ export component ToolbarSelect inherits Rectangle {
         colorize: root.select-foreground;
     }
 
-    menu := HubPopupMenu {
-        x: root.menu-offset-x;
-        y: root.height + MaterialStyleMetrics.spacing_6;
-        menu-width: root.menu-width;
-        menu-items: root.menu-items;
+    menu := HubSelectMenu {
+        anchor-width: root.select-width;
+        anchor-height: root.height;
+        menu-min-width: HubTokens.input-width / 2;
+        select-items: root.menu-items;
 
         activated(index) => {
             menu.close();
@@ -551,10 +617,10 @@ export component HubComboBox inherits Rectangle {
     opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
     clip: false;
 
-    material-combo := HubDropDownSurface {
-        dropdown-width: parent.width;
-        dropdown-height: parent.height;
-        dropdown-items: root.items;
+    material-combo := HubSelectDropDownSurface {
+        select-width: parent.width;
+        select-height: parent.height;
+        select-items: root.items;
         label: root.label;
         enabled: root.enabled;
         leading_icon: root.leading-icon;

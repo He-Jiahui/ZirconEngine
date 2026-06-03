@@ -1,5 +1,5 @@
 import { OperationTimelineRowData, ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData, WorkspaceActionReadinessData } from "shared.slint";
-import { HubTokens, HubVisualSpec, OperationTimelinePanel, PageScrollSurface, WorkspacePanelSection } from "components.slint";
+import { HubCompactTabStrip, HubTokens, HubVisualSpec, OperationTimelinePanel, PageScrollSurface, WorkspacePanelSection } from "components.slint";
 import {
     BuildControlsPanel,
     BuildPipelinePanel,
@@ -28,17 +28,25 @@ export component BuildsPage inherits PageScrollSurface {
     private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
     private property <length> build-history-scroll-y: 0px;
     private property <length> operation-timeline-scroll-y: 0px;
-    private property <length> build-row-height: HubTokens.list-row-sm;
+    private property <length> build-row-height: HubTokens.list-row-sm - HubTokens.space-2;
     private property <length> build-summary-height: HubTokens.control-md + root.build-row-height * 5 + HubTokens.toolbar-gap * 5 + HubTokens.space-4 * 2;
     private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.control-md + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
     private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
     private property <length> build-detail-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
-    private property <length> operation-timeline-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap + HubTokens.space-4 * 2;
     private property <bool> controls-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
     private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
 
     background: HubVisualSpec.page-background;
     clip: true;
+
+    HubCompactTabStrip {
+        current-index: 0;
+        first-label: "Overview";
+        second-label: "Pipeline";
+        third-label: "History";
+        fourth-label: "Timeline";
+        tab-width: HubTokens.control-md * 4;
+    }
 
     WorkspacePanelSection {
         compact: root.compact;
@@ -93,18 +101,19 @@ export component BuildsPage inherits PageScrollSurface {
 
     WorkspacePanelSection {
         compact: root.compact;
+        compact-rows: 3;
         row-height: root.build-detail-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
         BuildPipelinePanel {
-            basis: root.overview-min-width;
-            flex-basis: root.overview-min-width;
+            basis: root.overview-min-width - HubTokens.control-lg * 3;
+            flex-basis: root.overview-min-width - HubTokens.control-lg * 3;
             grow: 2;
             flex-grow: 2;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : root.overview-min-width;
+            min-width: root.compact ? root.content-width : root.overview-min-width - HubTokens.control-lg * 3;
             height: root.build-detail-height;
             readiness: root.readiness;
             project: root.project;
@@ -116,46 +125,39 @@ export component BuildsPage inherits PageScrollSurface {
         }
 
         BuildTaskHistoryPanel {
-            basis: root.side-panel-min-width;
-            flex-basis: root.side-panel-min-width;
+            basis: HubTokens.panel-min-sm;
+            flex-basis: HubTokens.panel-min-sm;
             grow: 1;
             flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : root.side-panel-min-width;
+            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.build-detail-height;
             readiness: root.readiness;
             status-label: root.status-label;
             status-detail: root.status-detail;
             current-task-title: root.ui-text.current-task;
             build-history-title: root.ui-text.build-history;
-            no-build-history-title: root.ui-text.no-build-history;
+            no-build-history-title: root.ui-text.no-build-history-short;
             source-build-history: root.source-build-history;
             source-build-history-count: root.source-build-history-count;
             row-height: root.build-row-height;
             history-scroll-y <=> root.build-history-scroll-y;
             collapse-label: root.compact-labels;
         }
-    }
-
-    WorkspacePanelSection {
-        compact: root.compact;
-        row-height: root.operation-timeline-height;
-        spacing-horizontal: HubTokens.panel-gap;
-        spacing-vertical: HubTokens.panel-gap;
 
         OperationTimelinePanel {
-            basis: root.overview-min-width;
-            flex-basis: root.overview-min-width;
+            basis: HubTokens.panel-min-sm;
+            flex-basis: HubTokens.panel-min-sm;
             grow: 1;
             flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : root.overview-min-width;
-            height: root.operation-timeline-height;
+            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            height: root.build-detail-height;
             timeline-title: root.ui-text.operation-timeline;
             empty-title: root.ui-text.no-operation-timeline;
-            empty-detail: root.ui-text.operation-timeline-empty-detail;
+            empty-detail: root.ui-text.operation-timeline-empty-detail-short;
             operation-timeline: root.operation-timeline;
             operation-timeline-count: root.operation-timeline-count;
             row-height: root.build-row-height;

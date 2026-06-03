@@ -2,15 +2,23 @@
 
 mod data;
 mod diagnostics;
+mod frame_geometry;
 mod globals;
 mod native_input_translation;
+mod native_keyboard;
 mod native_pointer;
+mod native_popup_dismiss;
 mod painter;
 mod presenter;
 mod profiling_artifacts;
 mod profiling_hit_routes;
 mod redraw;
 mod surface_hit_test;
+mod template_activation_semantics;
+mod template_component_family;
+mod template_geometry;
+mod template_input_semantics;
+mod template_popup_layout;
 mod window;
 
 pub(crate) use data::*;

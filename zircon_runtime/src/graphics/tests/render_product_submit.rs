@@ -277,6 +277,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
             )),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: u32::MAX,
@@ -334,6 +335,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
             )),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: u32::MAX,
@@ -564,6 +566,7 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
             "res://materials/not-registered",
         )),
+        morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         render_layer_mask: u32::MAX,

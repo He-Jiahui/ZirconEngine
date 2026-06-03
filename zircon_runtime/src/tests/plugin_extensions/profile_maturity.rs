@@ -232,7 +232,8 @@ fn profile_availability_report_warns_for_optional_unavailable_plugins_without_mi
             "zircon_plugin_navigation_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ServerRuntime])
-        .with_maturity(PluginMaturity::Beta),
+        .with_maturity(PluginMaturity::Beta)
+        .with_capability("runtime.plugin.navigation"),
     ];
 
     let report = profile.availability_report(descriptors.iter(), std::iter::empty::<&str>());
@@ -310,7 +311,8 @@ fn registration_reports_can_drive_profile_provider_availability() {
             "zircon_plugin_sound_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Beta),
+        .with_maturity(PluginMaturity::Beta)
+        .with_capability("runtime.plugin.sound"),
     );
     let mut native_manifest = descriptor(&descriptors, RuntimePluginId::Rendering)
         .package_manifest()

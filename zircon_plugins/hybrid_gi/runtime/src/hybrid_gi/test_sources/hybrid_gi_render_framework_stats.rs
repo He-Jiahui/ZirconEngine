@@ -141,6 +141,7 @@ fn mesh(
         model,
         mesh: None,
         material,
+        morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         render_layer_mask: u32::MAX,

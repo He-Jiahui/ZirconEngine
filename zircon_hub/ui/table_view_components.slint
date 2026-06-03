@@ -1,7 +1,8 @@
 import { RecentProjectRowData } from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { EmptyStateBlock, HubPanel, PanelHeader } from "surfaces.slint";
-import { PanelListViewport } from "data_display.slint";
+import { HubRowSurface, PanelListViewport } from "data_display.slint";
+import { HubRowTrailingSlot } from "row_slot_components.slint";
 import {
     MaterialPalette,
     MaterialStyleMetrics,
@@ -28,12 +29,15 @@ export component TableColumnHeader inherits Rectangle {
     }
 }
 
-export component ProjectTableRow inherits Rectangle {
+export component ProjectTableRow inherits HubRowSurface {
     in property <RecentProjectRowData> project;
     in property <string> action-tooltip: "";
-    in property <length> row-height: HubVisualSpec.visual-table-row-height;
+    in property <bool> show-selection: true;
+    in property <bool> show-thumbnail-accent: true;
     in property <length> row-gap: HubTokens.toolbar-gap;
     in property <length> content-gap: HubTokens.space-2;
+    in property <length> thumbnail-size: max(root.row-height * 6 / 7, min(root.action-size, root.row-height));
+    in property <length> thumbnail-radius: HubVisualSpec.compact-radius;
     in property <length> name-min-width: HubTokens.panel-min-sm * 2 / 5;
     in property <length> version-width: HubTokens.control-md * 3;
     in property <length> version-min-width: HubTokens.control-md * 5 / 2;
@@ -44,20 +48,21 @@ export component ProjectTableRow inherits Rectangle {
     callback select(string);
     callback open(string);
 
-    private property <length> thumb-size: max(root.row-height * 6 / 7, min(root.action-size, root.row-height));
+    private property <bool> selection-visible: root.show-selection && root.project.selected;
+    private property <color> thumbnail-outline: root.show-thumbnail-accent ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface.with_alpha(0.08);
     private property <string> visible-modified: root.project.modified == "1d ago" ? "Yesterday" : root.project.modified;
 
-    height: root.row-height;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.project.selected ? HubTokens.border-width : 0px;
-    border-color: root.project.selected ? HubVisualSpec.accent-stroke : transparent;
-    background: root.project.selected ? HubVisualSpec.accent-fill : transparent;
-    clip: true;
+    row-height: HubVisualSpec.visual-table-row-height;
+    selected: root.selection-visible;
+    idle-background: transparent;
+    selected-background: HubVisualSpec.accent-fill;
+    selected-foreground: MaterialPalette.on_primary_container;
+    selected-border-width: HubTokens.border-width;
 
     row-state := StateLayerArea {
         width: parent.width;
         height: parent.height;
-        color: root.project.selected ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+        color: root.content-foreground;
         border_radius: HubVisualSpec.compact-radius;
         clicked => {
             root.select(root.project.open-path);
@@ -83,11 +88,11 @@ export component ProjectTableRow inherits Rectangle {
                 alignment: start;
 
                 Rectangle {
-                    width: root.thumb-size;
-                    height: root.thumb-size;
-                    border-radius: HubVisualSpec.compact-radius;
+                    width: root.thumbnail-size;
+                    height: root.thumbnail-size;
+                    border-radius: root.thumbnail-radius;
                     border-width: HubTokens.border-width;
-                    border-color: HubVisualSpec.accent-stroke;
+                    border-color: root.thumbnail-outline;
                     background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
                     clip: true;
                     if root.project.has-cover: Image {
@@ -107,7 +112,7 @@ export component ProjectTableRow inherits Rectangle {
                 MaterialText {
                     text: root.project.title;
                     overflow: elide;
-                    color: root.project.selected ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+                    color: root.selection-visible ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
                     style: MaterialTypography.label_large;
                     vertical_alignment: center;
                     horizontal-stretch: 1;
@@ -145,40 +150,20 @@ export component ProjectTableRow inherits Rectangle {
             min-width: root.location-min-width;
         }
 
-        Rectangle {
-            width: root.action-size;
-            height: root.action-size;
-            clip: true;
-
-            StateLayerArea {
-                width: parent.width;
-                height: parent.height;
-                color: MaterialPalette.on_surface;
-                border_radius: HubVisualSpec.compact-radius;
-                clicked => {
-                    root.open(root.project.open-path);
-                }
-            }
-
-            VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
-
-                HorizontalLayout {
-                    height: HubTokens.icon-sm;
-                    alignment: center;
-
-                    Image {
-                        width: HubTokens.icon-sm;
-                        height: HubTokens.icon-sm;
-                        source: @image-url("../assets/icons/ui/more-vertical.svg");
-                        colorize: MaterialPalette.on_surface_variant;
-                    }
-                }
-
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
+        HubRowTrailingSlot {
+            slot-width: root.action-size;
+            row-height: root.action-size;
+            show-badge: false;
+            show-action: true;
+            action-framed: false;
+            action-size: root.action-size;
+            action-radius: HubVisualSpec.compact-radius;
+            action-icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
+            action-icon-size: HubTokens.icon-sm;
+            action-foreground: MaterialPalette.on_surface_variant;
+            action-state-layer-color: MaterialPalette.on_surface;
+            clicked => {
+                root.open(root.project.open-path);
             }
         }
     }
@@ -206,6 +191,10 @@ export component DataTable inherits Rectangle {
     in property <length> row-gap: max(MaterialStyleMetrics.spacing_2, min(MaterialStyleMetrics.spacing_4, root.row-height / 8));
     in property <length> column-gap: HubTokens.toolbar-gap;
     in property <length> action-size: root.row-height;
+    in property <bool> show-selection: true;
+    in property <bool> show-thumbnail-accent: true;
+    in property <length> thumbnail-size: max(root.row-height * 6 / 7, min(root.action-size, root.row-height));
+    in property <length> thumbnail-radius: HubVisualSpec.compact-radius;
     in property <length> name-min-width: HubTokens.panel-min-sm * 2 / 5;
     in property <length> version-width: HubTokens.control-md * 3;
     in property <length> version-min-width: HubTokens.control-md * 5 / 2;
@@ -279,6 +268,10 @@ export component DataTable inherits Rectangle {
                 row-height: root.row-height;
                 row-gap: root.column-gap;
                 content-gap: max(MaterialStyleMetrics.spacing_6, root.column-gap * 2 / 3);
+                show-selection: root.show-selection;
+                show-thumbnail-accent: root.show-thumbnail-accent;
+                thumbnail-size: root.thumbnail-size;
+                thumbnail-radius: root.thumbnail-radius;
                 name-min-width: root.name-min-width;
                 version-width: root.version-width;
                 version-min-width: root.version-min-width;

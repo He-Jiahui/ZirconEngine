@@ -18,7 +18,7 @@ pub use manager::{count_navigation_components, default_agent_type, DefaultNaviga
 pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "NavigationModule";
 pub const NAVIGATION_MANAGER_NAME: &str = "NavigationModule.Manager.NavigationManager";
-pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation";
+pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.runtime";
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -99,8 +99,8 @@ pub fn navigation_plugin_options() -> Vec<zircon_runtime::plugin::PluginOptionMa
         zircon_runtime::plugin::PluginOptionManifest::new(
             "navigation.default_settings_asset",
             "Navigation Settings Asset",
-            "resource.NavigationSettings",
-            "",
+            "string",
+            "res://navigation/settings/default.navigation.toml",
         ),
         zircon_runtime::plugin::PluginOptionManifest::new(
             "navigation.debug_gizmos",
@@ -112,9 +112,10 @@ pub fn navigation_plugin_options() -> Vec<zircon_runtime::plugin::PluginOptionMa
         zircon_runtime::plugin::PluginOptionManifest::new(
             "navigation.bake_backend",
             "Navigation Bake Backend",
-            "enum.recast",
+            "enum",
             "recast",
         )
+        .with_enum_values(["recast"])
         .with_required_capability("runtime.plugin.navigation.recast"),
     ]
 }
@@ -125,24 +126,24 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
         version: 1,
         events: vec![
             zircon_runtime::plugin::PluginEventManifest {
-                id: "navmesh_baked".to_string(),
+                id: "navigation.runtime.navmesh_baked".to_string(),
                 display_name: "NavMesh Baked".to_string(),
-                payload_schema: "navigation.NavMeshBakeReport".to_string(),
+                payload_schema: "navigation.runtime.navmesh_bake_report.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "path_query_completed".to_string(),
+                id: "navigation.runtime.path_query_completed".to_string(),
                 display_name: "Path Query Completed".to_string(),
-                payload_schema: "navigation.NavPathResult".to_string(),
+                payload_schema: "navigation.runtime.nav_path_result.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "path_query_failed".to_string(),
+                id: "navigation.runtime.path_query_failed".to_string(),
                 display_name: "Path Query Failed".to_string(),
-                payload_schema: "navigation.NavigationError".to_string(),
+                payload_schema: "navigation.runtime.navigation_error.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "agent_tick_completed".to_string(),
+                id: "navigation.runtime.agent_tick_completed".to_string(),
                 display_name: "Agent Tick Completed".to_string(),
-                payload_schema: "navigation.NavAgentTickReport".to_string(),
+                payload_schema: "navigation.runtime.nav_agent_tick_report.v1".to_string(),
             },
         ],
     }
@@ -236,16 +237,36 @@ mod tests {
                 .iter()
                 .any(|component| component.type_id == component_type));
         }
-        assert!(report
+        let default_settings = report
             .extensions
             .plugin_options()
             .iter()
-            .any(|option| option.key == "navigation.default_agent_type"));
-        assert!(report
+            .find(|option| option.key == "navigation.default_settings_asset")
+            .expect("navigation default settings option");
+        assert_eq!(default_settings.value_type, "string");
+        assert_eq!(
+            default_settings.default_value,
+            "res://navigation/settings/default.navigation.toml"
+        );
+        let bake_backend = report
+            .extensions
+            .plugin_options()
+            .iter()
+            .find(|option| option.key == "navigation.bake_backend")
+            .expect("navigation bake backend option");
+        assert_eq!(bake_backend.value_type, "enum");
+        assert_eq!(bake_backend.default_value, "recast");
+        assert_eq!(bake_backend.enum_values, vec!["recast".to_string()]);
+        let event_catalog = report
             .extensions
             .plugin_event_catalogs()
             .iter()
-            .any(|catalog| catalog.namespace == NAVIGATION_EVENT_NAMESPACE));
+            .find(|catalog| catalog.namespace == NAVIGATION_EVENT_NAMESPACE)
+            .expect("navigation runtime event catalog");
+        assert!(event_catalog.events.iter().any(|event| {
+            event.id == "navigation.runtime.navmesh_baked"
+                && event.payload_schema == "navigation.runtime.navmesh_bake_report.v1"
+        }));
         assert!(report
             .package_manifest
             .components

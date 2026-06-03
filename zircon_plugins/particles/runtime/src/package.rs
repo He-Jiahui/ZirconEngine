@@ -39,7 +39,8 @@ pub fn particle_dependencies() -> Vec<PluginDependencyManifest> {
 
 pub fn particle_options() -> Vec<PluginOptionManifest> {
     vec![
-        PluginOptionManifest::new("particles.backend", "Particle Backend", "enum", "cpu"),
+        PluginOptionManifest::new("particles.backend", "Particle Backend", "enum", "cpu")
+            .with_enum_values(["cpu", "gpu"]),
         PluginOptionManifest::new(
             "particles.max_particles",
             "Max Particles",
@@ -49,7 +50,7 @@ pub fn particle_options() -> Vec<PluginOptionManifest> {
         PluginOptionManifest::new(
             "particles.fixed_preview_dt",
             "Preview Fixed Step",
-            "scalar",
+            "number",
             "0.016666667",
         ),
         PluginOptionManifest::new("particles.gpu_fallback", "GPU Fallback", "bool", "true"),

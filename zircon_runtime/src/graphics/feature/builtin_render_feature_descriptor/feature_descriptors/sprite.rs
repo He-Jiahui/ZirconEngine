@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::QueueLane;
 
@@ -22,7 +23,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("sprite.opaque")
             .with_side_effects()
-            .write_texture("scene-color"),
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::AlphaMask2d,
                 "alpha-mask-sprite",
@@ -30,8 +32,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("sprite.alpha-mask")
             .with_side_effects()
-            .read_texture("scene-color")
-            .write_texture("scene-color"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent2d,
                 "transparent-sprite",
@@ -39,8 +43,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("sprite.transparent")
             .with_side_effects()
-            .read_texture("scene-color")
-            .write_texture("scene-color"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
         ],
     )
 }

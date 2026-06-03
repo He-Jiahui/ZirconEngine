@@ -5,7 +5,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::template::UiBindingRef;
 use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetError, UiV2ChildMount, UiV2ComponentDefinition, UiV2NodeDefinition,
-    UiV2Root, UiV2StyleDeclarationBlock,
+    UiV2Repeat, UiV2Root, UiV2StyleDeclarationBlock,
 };
 
 use super::cache::UiV2PrototypeStore;
@@ -17,6 +17,7 @@ struct MountPatch {
     props: BTreeMap<String, Value>,
     state: BTreeMap<String, Value>,
     layout: Option<BTreeMap<String, Value>>,
+    repeat: Option<UiV2Repeat>,
     style: UiV2StyleDeclarationBlock,
     slots: BTreeMap<String, Value>,
     events: Vec<UiBindingRef>,
@@ -275,6 +276,7 @@ fn patch_for_component_mount(
         props: node.props.clone(),
         state: node.state.clone(),
         layout: node.layout.clone(),
+        repeat: node.repeat.clone(),
         style: node.style.clone(),
         slots: node.slots.clone(),
         events: node.events.clone(),
@@ -290,6 +292,9 @@ fn apply_patch_to_node(node: &mut UiV2NodeDefinition, patch: MountPatch) {
     node.state.extend(patch.state);
     if patch.layout.is_some() {
         node.layout = patch.layout;
+    }
+    if patch.repeat.is_some() {
+        node.repeat = patch.repeat;
     }
     node.style.self_values.extend(patch.style.self_values);
     node.style.slot.extend(patch.style.slot);

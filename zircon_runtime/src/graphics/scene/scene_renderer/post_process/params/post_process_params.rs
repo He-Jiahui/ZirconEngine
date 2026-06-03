@@ -14,4 +14,13 @@ pub(in crate::graphics::scene::scene_renderer::post_process) struct PostProcessP
         [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) baked_color_and_intensity:
         [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_flags: [u32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_tonemap_lut: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_blur_dof: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_vignette_grain: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_chromatic_fog: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_fog_color: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_dither_ssr: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_ssr_limits: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_depth: [f32; 4],
 }

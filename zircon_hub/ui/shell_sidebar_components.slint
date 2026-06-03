@@ -25,7 +25,10 @@ export component NavStatusPanel inherits HubPanel {
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding: HubTokens.space-3;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        padding-top: HubTokens.space-6;
+        padding-bottom: HubTokens.space-4 + MaterialStyleMetrics.size_2;
         spacing: HubTokens.space-2;
 
         HorizontalLayout {
@@ -40,8 +43,8 @@ export component NavStatusPanel inherits HubPanel {
 
         MaterialText {
             text: root.ui-text.engine-status;
-            color: MaterialPalette.on_surface;
-            style: MaterialTypography.label_large;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.label_medium;
         }
         }
 
@@ -86,7 +89,7 @@ export component NavStatusPanel inherits HubPanel {
                 MaterialText {
                     text: root.ui-text.check-for-updates;
                     overflow: elide;
-                    color: MaterialPalette.on_surface_variant;
+                    color: MaterialPalette.on_surface_variant.with_alpha(0.88);
                     style: MaterialTypography.label_medium;
                     vertical_alignment: center;
                 }

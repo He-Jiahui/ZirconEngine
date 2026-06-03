@@ -2,7 +2,9 @@ use super::showcase_event_inputs::{
     demo_input_for_showcase_action, demo_input_for_showcase_edit, select_option,
 };
 use super::*;
-use crate::ui::template_runtime::builtin::MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::builtin::{
+    MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID, WORKBENCH_WINDOW_DOCUMENT_ID,
+};
 use crate::ui::template_runtime::{UiComponentShowcaseDemoEventInput, SHOWCASE_DOCUMENT_ID};
 
 const MATERIAL_LAB_BINDING_PREFIX: &str = "MaterialLab/";
@@ -14,6 +16,12 @@ impl RetainedEditorHost {
         action_id: &str,
     ) {
         self.focus_callback_source_window();
+        if let Some(result) =
+            self.dispatch_componentized_workbench_surface_control(control_id, action_id)
+        {
+            self.apply_dispatch_result(result);
+            return;
+        }
         if control_id == "ModulePluginAction" {
             self.dispatch_module_plugin_action(action_id);
             return;
@@ -53,6 +61,94 @@ impl RetainedEditorHost {
         self.apply_dispatch_result(result);
     }
 
+    pub(super) fn dispatch_componentized_workbench_surface_control(
+        &mut self,
+        control_id: &str,
+        action_id: &str,
+    ) -> Option<Result<UiHostEventEffects, String>> {
+        if self
+            .presentation_cache
+            .active_activity_window_template_document_id()
+            != Some(WORKBENCH_WINDOW_DOCUMENT_ID)
+        {
+            return None;
+        }
+        let has_workbench_binding = !action_id.is_empty()
+            && self
+                .workbench_window_bridge
+                .binding_by_id(action_id)
+                .is_some();
+        let has_workbench_control = self.workbench_window_bridge.has_control(control_id);
+        if !has_workbench_binding && !has_workbench_control {
+            return None;
+        }
+        if let Some(result) = callback_dispatch::dispatch_componentized_workbench_popup_cancelled(
+            &mut self.workbench_window_bridge,
+            control_id,
+            action_id,
+        ) {
+            return Some(result);
+        }
+        if !has_workbench_binding && !action_id.is_empty() {
+            if let Some(result) =
+                callback_dispatch::dispatch_componentized_workbench_menu_item_selected(
+                    &self.runtime,
+                    &mut self.workbench_window_bridge,
+                    control_id,
+                    action_id,
+                )
+            {
+                return Some(result);
+            }
+        }
+        let result = if has_workbench_binding {
+            callback_dispatch::dispatch_componentized_workbench_binding(
+                &self.runtime,
+                &mut self.workbench_window_bridge,
+                control_id,
+                action_id,
+            )
+        } else {
+            callback_dispatch::dispatch_componentized_workbench_control(
+                &self.runtime,
+                &mut self.workbench_window_bridge,
+                control_id,
+                UiEventKind::Click,
+            )
+        };
+        result.or_else(|| {
+            Some(Err(format!(
+                "Unknown componentized workbench control {control_id}"
+            )))
+        })
+    }
+
+    pub(super) fn dispatch_componentized_workbench_option_selected(
+        &mut self,
+        control_id: &str,
+        _action_id: &str,
+        option_id: &str,
+    ) -> Option<Result<UiHostEventEffects, String>> {
+        if self
+            .presentation_cache
+            .active_activity_window_template_document_id()
+            != Some(WORKBENCH_WINDOW_DOCUMENT_ID)
+        {
+            return None;
+        }
+        if !self.workbench_window_bridge.has_control(control_id) {
+            return None;
+        }
+        Some(
+            callback_dispatch::dispatch_componentized_workbench_option_selected(
+                &self.runtime,
+                &mut self.workbench_window_bridge,
+                control_id,
+                option_id,
+            ),
+        )
+    }
+
     pub(super) fn dispatch_pane_surface_control_edited(
         &mut self,
         control_id: &str,
@@ -60,6 +156,12 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
+        if let Some(result) = self
+            .dispatch_componentized_workbench_surface_control_edited(control_id, binding_id, value)
+        {
+            self.apply_dispatch_result(result);
+            return;
+        }
         if let Some(binding) = UiAssetDetailSurfaceBinding::parse(binding_id) {
             self.dispatch_ui_asset_detail_event(
                 &binding.instance_id,
@@ -90,6 +192,27 @@ impl RetainedEditorHost {
         self.apply_dispatch_result(result.map_err(|error| {
             format!("Pane surface edit {control_id} via {binding_id} failed: {error}")
         }));
+    }
+
+    pub(super) fn dispatch_componentized_workbench_surface_control_edited(
+        &mut self,
+        control_id: &str,
+        binding_id: &str,
+        value: &str,
+    ) -> Option<Result<UiHostEventEffects, String>> {
+        if self
+            .presentation_cache
+            .active_activity_window_template_document_id()
+            != Some(WORKBENCH_WINDOW_DOCUMENT_ID)
+        {
+            return None;
+        }
+        callback_dispatch::dispatch_componentized_workbench_surface_control_edited(
+            &mut self.workbench_window_bridge,
+            control_id,
+            binding_id,
+            value,
+        )
     }
 
     pub(super) fn dispatch_component_showcase_control_activated(
@@ -157,6 +280,12 @@ impl RetainedEditorHost {
         option_id: &str,
     ) {
         self.focus_callback_source_window();
+        if let Some(result) =
+            self.dispatch_componentized_workbench_option_selected(control_id, action_id, option_id)
+        {
+            self.apply_dispatch_result(result);
+            return;
+        }
         self.dispatch_component_showcase_event(
             control_id,
             action_id,

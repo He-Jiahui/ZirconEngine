@@ -59,6 +59,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
             &frame,
             context.compiled_pipeline(),
             resolved_history.current_history_handle(),
+            resolved_history.previous_history_available(),
         ) {
             Ok(frame) => frame,
             Err(error) => {
@@ -134,6 +135,8 @@ fn apply_effective_post_process_graph_to_runtime_frame(
 ) {
     frame.extract.post_process.bloom = context.post_process_bloom();
     frame.extract.post_process.color_grading = context.post_process_color_grading();
+    frame.extract.post_process.effect_stack = context.post_process_effect_stack();
+    frame.extract.post_process.volume_stack = Default::default();
     frame.extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
     frame.extract.post_process.stack = context.post_process_stack().clone();
     frame.extract.post_process.graph = context.post_process_graph().clone();

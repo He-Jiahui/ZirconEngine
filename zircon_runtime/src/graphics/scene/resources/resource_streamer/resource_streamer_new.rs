@@ -23,6 +23,7 @@ impl ResourceStreamer {
             meshes: HashMap::new(),
             materials: HashMap::new(),
             textures: HashMap::new(),
+            post_process_lut_textures: HashMap::new(),
             shaders: HashMap::new(),
             fallback_texture: Arc::new(create_fallback_texture(device, queue, texture_layout)),
             fallback_material_uniform: Arc::new(GpuMaterialUniformResource::from_payload(
@@ -38,6 +39,12 @@ impl ResourceStreamer {
             last_sprite_count: 0,
             last_sprite_ready_count: 0,
             last_sprite_texture_fallback_count: 0,
+            last_post_process_lut_request_count: 0,
+            last_post_process_lut_ready_count: 0,
+            last_post_process_lut_fallback_count: 0,
+            last_post_process_lut_2d_strip_ready_count: 0,
+            last_post_process_lut_3d_request_count: 0,
+            last_post_process_lut_unsupported_shape_count: 0,
         }
     }
 

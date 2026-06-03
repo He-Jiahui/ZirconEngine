@@ -328,12 +328,7 @@ fn taffy_layout_pass_aggregates_distinct_fallback_reason_counts() {
     let report = compute_layout_tree(&mut tree, UiSize::new(120.0, 80.0)).unwrap();
 
     assert_zircon_owned_route(&report, 510, UiLayoutEngineFamily::Free);
-    assert_fallback_route_reason(
-        &report,
-        520,
-        UiLayoutEngineFamily::Flex,
-        UiLayoutEngineFallbackReason::UnsupportedChildVisibility,
-    );
+    assert_taffy_native_family(&report, 520, UiLayoutEngineFamily::Flex);
     assert_fallback_route_reason(
         &report,
         530,
@@ -353,16 +348,11 @@ fn taffy_layout_pass_aggregates_distinct_fallback_reason_counts() {
         UiLayoutEngineFallbackReason::SlotCanvasPlacement,
     );
     assert_zircon_owned_route(&report, 560, UiLayoutEngineFamily::Overlay);
-    assert_eq!(report.fallback_reason_counts.len(), 5);
+    assert_eq!(report.fallback_reason_counts.len(), 4);
     assert_fallback_reason_count(
         &report,
         UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
         2,
-    );
-    assert_fallback_reason_count(
-        &report,
-        UiLayoutEngineFallbackReason::UnsupportedChildVisibility,
-        1,
     );
     assert_fallback_reason_count(
         &report,
@@ -424,6 +414,20 @@ fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
     assert_eq!(frame(&grid, 21), UiFrame::new(0.0, 0.0, 50.0, 20.0));
     assert_eq!(frame(&grid, 22), UiFrame::new(54.0, 0.0, 50.0, 20.0));
     assert_taffy_native_family(&grid_report, 20, UiLayoutEngineFamily::Grid);
+}
+
+#[test]
+fn taffy_layout_pass_preserves_fractional_fixed_extents() {
+    let mut tree = tree_with_root(
+        40,
+        UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
+    );
+    insert_child(&mut tree, 40, fixed_node(41, Some(20.0), Some(30.5)));
+
+    let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 40.0)).unwrap();
+
+    assert_eq!(frame(&tree, 41), UiFrame::new(0.0, 0.0, 20.0, 30.5));
+    assert_taffy_native_family(&report, 40, UiLayoutEngineFamily::Flex);
 }
 
 #[test]
@@ -801,14 +805,8 @@ fn taffy_layout_pass_reports_collapsed_child_visibility_fallback() {
 
     let report = compute_layout_tree(&mut tree, UiSize::new(80.0, 30.0)).unwrap();
 
-    let root = selection_for_node(&report, 192);
-    assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
-    assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
-    assert_eq!(
-        root.fallback_reason,
-        Some(UiLayoutEngineFallbackReason::UnsupportedChildVisibility)
-    );
+    assert_taffy_native_family(&report, 192, UiLayoutEngineFamily::Flex);
+    assert!(report.fallback_reason_counts.is_empty());
 }
 
 #[test]

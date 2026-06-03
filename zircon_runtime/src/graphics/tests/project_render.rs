@@ -291,6 +291,7 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
                 model,
                 mesh: None,
                 material: green_material,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
@@ -311,6 +312,7 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
                 model,
                 mesh: None,
                 material: black_material,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
@@ -343,6 +345,7 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
                 model,
                 mesh: None,
                 material: black_material,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
@@ -409,6 +412,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 model,
                 mesh: None,
                 material,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
@@ -419,6 +423,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 model,
                 mesh: None,
                 material,
+                morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 render_layer_mask: default_render_layer_mask(),
@@ -523,6 +528,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
             model,
             mesh: None,
             material,
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),
@@ -653,6 +659,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
             model,
             mesh: None,
             material,
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),
@@ -695,6 +702,21 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         )
         .unwrap();
     let deferred_frame = submit_snapshot(&server, deferred_viewport, snapshot);
+    let deferred_stats = server.query_stats().unwrap();
+    for executor_id in [
+        "deferred.depth-prepass",
+        "deferred.gbuffer",
+        "lighting.deferred",
+        "mesh.transparent",
+    ] {
+        assert!(
+            deferred_stats
+                .last_graph_executed_executor_ids
+                .contains(&executor_id.to_string()),
+            "deferred submit should execute graph executor `{executor_id}`; executed={:?}",
+            deferred_stats.last_graph_executed_executor_ids
+        );
+    }
 
     let forward_red = average_channel(&forward_frame.rgba, 0);
     let forward_green = average_channel(&forward_frame.rgba, 1);
@@ -1028,6 +1050,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                     model: asset_reference("res://models/triangle.obj"),
                     mesh: None,
                     material: asset_reference(material_uri),
+                    morph_weights: Vec::new(),
                     primitives: Vec::new(),
                 }),
                 ambient_light: None,

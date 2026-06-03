@@ -16,12 +16,14 @@ impl UiRenderList {
     }
 
     pub fn to_paint_elements_with_metrics(&self, metrics: UiLayoutMetrics) -> Vec<UiPaintElement> {
-        self.commands
-            .iter()
-            .enumerate()
-            .flat_map(|(index, command)| {
-                command.to_paint_elements_with_metrics(index as u64 * 2, metrics)
-            })
-            .collect()
+        let mut elements = Vec::new();
+        let mut next_paint_order = 0;
+        for command in &self.commands {
+            let mut command_elements =
+                command.to_paint_elements_with_metrics(next_paint_order, metrics);
+            next_paint_order += command_elements.len() as u64;
+            elements.append(&mut command_elements);
+        }
+        elements
     }
 }

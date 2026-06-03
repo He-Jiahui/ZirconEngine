@@ -28,8 +28,10 @@ fn container_importer_reports_invalid_header_diagnostics() {
 
     let mut short_ktx2_level_index = vec![0; KTX2_HEADER_SIZE];
     short_ktx2_level_index[0..12].copy_from_slice(KTX2_IDENTIFIER);
+    write_u32(&mut short_ktx2_level_index, 16, 1);
     write_u32(&mut short_ktx2_level_index, 20, 16);
     write_u32(&mut short_ktx2_level_index, 24, 8);
+    write_u32(&mut short_ktx2_level_index, 36, 1);
     write_u32(&mut short_ktx2_level_index, 40, 4);
     let error = import_container_error("short-index.ktx2", short_ktx2_level_index);
     assert!(
@@ -69,7 +71,7 @@ fn container_importer_reports_layer_count_overflow_diagnostics() {
     let cases = [
         (
             "overflow.dds",
-            dds_dx10_cubemap_array_bytes(u32::MAX),
+            dds_dx10_cubemap_array_header_bytes(u32::MAX),
             "dds dx10 array layer count overflows u32",
         ),
         (

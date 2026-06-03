@@ -1,13 +1,16 @@
+pub(super) mod advanced_slot;
 pub(super) mod anti_alias;
 pub(super) mod baked_lighting;
 pub(super) mod bloom;
 pub(super) mod clustered_lighting;
 pub(super) mod color_grading;
+pub(super) mod compute_workload;
 pub(super) mod debug_overlay;
 pub(super) mod deferred_geometry;
 pub(super) mod deferred_lighting;
 pub(super) mod history_resolve;
 pub(super) mod mesh;
+pub(super) mod neural_compute;
 pub(super) mod post_process;
 pub(super) mod ray_tracing;
 pub(super) mod reflection_probes;

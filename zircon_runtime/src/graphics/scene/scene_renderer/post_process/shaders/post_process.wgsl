@@ -8,6 +8,15 @@ struct PostProcessParams {
     tint_and_probe: vec4<f32>,
     hybrid_gi_color_and_intensity: vec4<f32>,
     baked_color_and_intensity: vec4<f32>,
+    effect_flags: vec4<u32>,
+    effect_tonemap_lut: vec4<f32>,
+    effect_blur_dof: vec4<f32>,
+    effect_vignette_grain: vec4<f32>,
+    effect_chromatic_fog: vec4<f32>,
+    effect_fog_color: vec4<f32>,
+    effect_dither_ssr: vec4<f32>,
+    effect_ssr_limits: vec4<f32>,
+    effect_depth: vec4<f32>,
 };
 
 struct ReflectionProbe {
@@ -39,6 +48,12 @@ struct HybridGiTraceRegion {
 @group(0) @binding(7) var<storage, read> hybrid_gi_probe_buffer: array<HybridGiProbe>;
 @group(0) @binding(8) var<storage, read> hybrid_gi_trace_region_buffer: array<HybridGiTraceRegion>;
 @group(0) @binding(9) var history_global_illumination_tex: texture_2d<f32>;
+@group(0) @binding(10) var effect_lut_tex: texture_2d<f32>;
+@group(0) @binding(11) var scene_depth_tex: texture_depth_2d;
+@group(0) @binding(12) var effect_lut_3d_tex: texture_3d<f32>;
+@group(0) @binding(13) var effect_lut_sampler: sampler;
+@group(0) @binding(14) var scene_normal_tex: texture_2d<f32>;
+@group(0) @binding(15) var scene_depth_sampler: sampler;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -96,6 +111,46 @@ fn load_scene_rgb(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     return textureLoad(scene_color_tex, clamped, 0).rgb;
 }
 
+fn load_scene_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
+    let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
+    let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
+    let uv = (vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)) / vec2<f32>(viewport_size);
+    return clamp(textureSample(scene_depth_tex, scene_depth_sampler, uv), 0.0, 1.0);
+}
+
+fn load_scene_normal(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
+    let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
+    let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
+    let encoded = textureLoad(scene_normal_tex, clamped, 0).rgb;
+    if (max(encoded.x, max(encoded.y, encoded.z)) <= 0.001) {
+        return vec3<f32>(0.0, 0.0, 1.0);
+    }
+    let decoded = encoded * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
+    let normal_length = length(decoded);
+    if (normal_length <= 0.001) {
+        return vec3<f32>(0.0, 0.0, 1.0);
+    }
+    return decoded / normal_length;
+}
+
+fn linearize_scene_depth(raw_depth: f32) -> f32 {
+    let near_plane = max(params.effect_depth.x, 0.001);
+    let far_plane = max(params.effect_depth.y, near_plane + 0.001);
+    if (params.effect_depth.w > 0.5) {
+        return (near_plane * far_plane)
+            / max(far_plane - raw_depth * (far_plane - near_plane), 0.001);
+    }
+    return mix(near_plane, far_plane, raw_depth);
+}
+
+fn normalized_view_depth(view_depth: f32) -> f32 {
+    return clamp((view_depth - params.effect_depth.x) * params.effect_depth.z, 0.0, 1.0);
+}
+
+fn load_scene_view_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
+    return linearize_scene_depth(load_scene_depth(coord, viewport_size));
+}
+
 fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let coord_i32 = vec2<i32>(coord);
     let north = load_scene_rgb(coord_i32 + vec2<i32>(0, -1), viewport_size);
@@ -124,6 +179,199 @@ fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> v
 
     let blend = clamp(luma_range * 1.5, 0.0, 0.75);
     return mix(color, neighbor_average, blend);
+}
+
+fn apply_effect_blur_family(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let scene_depth = load_scene_view_depth(vec2<i32>(coord), viewport_size);
+    let focus_depth = max(params.effect_blur_dof.y, params.effect_depth.x);
+    let focus_error = abs(scene_depth - focus_depth) / max(focus_depth, 0.001);
+    let dof_radius =
+        clamp(
+            focus_error
+            * params.effect_blur_dof.z
+            * params.effect_blur_dof.w
+            * 3.0,
+            0.0,
+            params.effect_blur_dof.w
+        );
+    let blur_radius = max(params.effect_blur_dof.x, dof_radius);
+    if (blur_radius <= 0.001) {
+        return color;
+    }
+    let offset = i32(round(clamp(blur_radius, 1.0, 8.0)));
+    let coord_i32 = vec2<i32>(coord);
+    let north = load_scene_rgb(coord_i32 + vec2<i32>(0, -offset), viewport_size);
+    let south = load_scene_rgb(coord_i32 + vec2<i32>(0, offset), viewport_size);
+    let west = load_scene_rgb(coord_i32 + vec2<i32>(-offset, 0), viewport_size);
+    let east = load_scene_rgb(coord_i32 + vec2<i32>(offset, 0), viewport_size);
+    let average = (north + south + west + east + color) * 0.2;
+    return mix(color, average, clamp(blur_radius / 8.0, 0.0, 1.0));
+}
+
+fn apply_chromatic_aberration(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let intensity = params.effect_chromatic_fog.x;
+    if (intensity <= 0.001) {
+        return color;
+    }
+    let spread = max(params.effect_chromatic_fog.y, 1.0);
+    let offset = i32(round(clamp(intensity * spread * 4.0, 1.0, 12.0)));
+    let coord_i32 = vec2<i32>(coord);
+    let red_sample = load_scene_rgb(coord_i32 + vec2<i32>(offset, 0), viewport_size);
+    let blue_sample = load_scene_rgb(coord_i32 + vec2<i32>(-offset, 0), viewport_size);
+    return vec3<f32>(red_sample.r, color.g, blue_sample.b);
+}
+
+fn apply_screen_space_reflection_seed(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let intensity = params.effect_dither_ssr.z;
+    if (intensity <= 0.001 || params.effect_flags.z == 0u) {
+        return color;
+    }
+    let coord_i32 = vec2<i32>(coord);
+    let normal = load_scene_normal(coord_i32, viewport_size);
+    let view_direction = vec3<f32>(0.0, 0.0, -1.0);
+    let reflected_direction = reflect(view_direction, normal);
+    let ray_pixels = clamp(params.effect_ssr_limits.x * 0.02, 1.0, max(params.effect_ssr_limits.y, 1.0));
+    let normal_reflected_coord = clamp(
+        coord_i32 + vec2<i32>(
+            i32(round(reflected_direction.x * ray_pixels)),
+            i32(round(-reflected_direction.y * ray_pixels))
+        ),
+        vec2<i32>(0, 0),
+        vec2<i32>(viewport_size - vec2<u32>(1u, 1u))
+    );
+    let flipped_coord = vec2<i32>(
+        i32(coord.x),
+        i32(viewport_size.y - 1u - coord.y)
+    );
+    var reflected_coord = normal_reflected_coord;
+    if (normal_reflected_coord.x == coord_i32.x && normal_reflected_coord.y == coord_i32.y) {
+        reflected_coord = flipped_coord;
+    }
+    let reflected = load_scene_rgb(reflected_coord, viewport_size);
+    let current_depth = load_scene_view_depth(coord_i32, viewport_size);
+    let reflected_depth = load_scene_view_depth(reflected_coord, viewport_size);
+    let thickness = max(params.effect_dither_ssr.w, 0.0001);
+    let depth_match =
+        1.0
+        - smoothstep(
+            thickness,
+            thickness * max(params.effect_ssr_limits.y, 2.0),
+            abs(reflected_depth - current_depth)
+        );
+    return mix(color, reflected, clamp(intensity * depth_match * 0.12, 0.0, 0.35));
+}
+
+fn apply_effect_fog(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let density = params.effect_chromatic_fog.z;
+    if (density <= 0.001) {
+        return color;
+    }
+    let height_factor = 1.0 + uv.y * max(params.effect_chromatic_fog.w, 0.0);
+    let scene_depth = load_scene_view_depth(vec2<i32>(coord), viewport_size);
+    let depth_factor = smoothstep(0.0, 1.0, normalized_view_depth(scene_depth));
+    let fog_amount = clamp(density * height_factor * (0.25 + depth_factor), 0.0, 1.0);
+    return mix(color, params.effect_fog_color.rgb, fog_amount);
+}
+
+fn apply_vignette(uv: vec2<f32>, color: vec3<f32>) -> vec3<f32> {
+    let intensity = params.effect_vignette_grain.x;
+    if (intensity <= 0.001) {
+        return color;
+    }
+    let smoothness = max(params.effect_vignette_grain.y, 0.001);
+    let roundness = max(params.effect_vignette_grain.z, 0.001);
+    let centered = abs(uv * 2.0 - vec2<f32>(1.0, 1.0));
+    let radius = length(centered * vec2<f32>(1.0, roundness));
+    let mask = smoothstep(smoothness, 1.0, radius);
+    return color * (1.0 - clamp(mask * intensity, 0.0, 1.0));
+}
+
+fn effect_noise(coord: vec2<u32>, seed: f32) -> f32 {
+    let p = vec3<f32>(vec2<f32>(coord), seed);
+    return fract(sin(dot(p, vec3<f32>(12.9898, 78.233, 37.719))) * 43758.5453);
+}
+
+fn apply_grain_and_dither(coord: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let grain = params.effect_vignette_grain.w * max(params.effect_fog_color.w, 0.0);
+    let dither = params.effect_dither_ssr.x / max(params.effect_dither_ssr.y, 1.0);
+    let strength = grain + dither / 255.0;
+    if (strength <= 0.0001) {
+        return color;
+    }
+    let noise = effect_noise(coord, params.effect_dither_ssr.y) - 0.5;
+    return max(color + vec3<f32>(noise * strength), vec3<f32>(0.0));
+}
+
+fn lut_axis_index(value: f32, size: u32) -> u32 {
+    let max_index = max(size, 1u) - 1u;
+    return u32(round(clamp(value, 0.0, 1.0) * f32(max_index)));
+}
+
+fn sample_effect_lut_1d_channel(value: f32) -> f32 {
+    let dims = textureDimensions(effect_lut_tex);
+    let x = i32(lut_axis_index(value, dims.x));
+    return textureLoad(effect_lut_tex, vec2<i32>(x, 0), 0).r;
+}
+
+fn sample_effect_lut_1d(color: vec3<f32>) -> vec3<f32> {
+    return vec3<f32>(
+        sample_effect_lut_1d_channel(color.r),
+        sample_effect_lut_1d_channel(color.g),
+        sample_effect_lut_1d_channel(color.b)
+    );
+}
+
+fn sample_effect_lut_2d_strip(color: vec3<f32>) -> vec3<f32> {
+    let dims = textureDimensions(effect_lut_tex);
+    let size = max(dims.y, 1u);
+    let red = lut_axis_index(color.r, size);
+    let green = lut_axis_index(color.g, size);
+    let blue = lut_axis_index(color.b, size);
+    let x = min(blue * size + red, max(dims.x, 1u) - 1u);
+    let y = min(green, size - 1u);
+    return textureLoad(effect_lut_tex, vec2<i32>(i32(x), i32(y)), 0).rgb;
+}
+
+fn sample_effect_lut_3d(color: vec3<f32>) -> vec3<f32> {
+    let dims_u32 = textureDimensions(effect_lut_3d_tex);
+    let dims = vec3<f32>(f32(dims_u32.x), f32(dims_u32.y), f32(dims_u32.z));
+    let axis_max = max(dims - vec3<f32>(1.0), vec3<f32>(0.0));
+    let sample_coord = (clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * axis_max + vec3<f32>(0.5)) / dims;
+    return textureSampleLevel(effect_lut_3d_tex, effect_lut_sampler, sample_coord, 0.0).rgb;
+}
+
+fn sample_effect_lut(color: vec3<f32>, binding_mode: u32) -> vec3<f32> {
+    if (binding_mode == 3u) {
+        return sample_effect_lut_3d(color);
+    }
+    if (binding_mode == 2u) {
+        return sample_effect_lut_2d_strip(color);
+    }
+    return sample_effect_lut_1d(color);
+}
+
+fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
+    let exposure = exp2(params.effect_tonemap_lut.x);
+    let white_point = max(params.effect_tonemap_lut.y, 0.001);
+    var mapped = max(color * exposure, vec3<f32>(0.0));
+    if (params.effect_flags.x == 1u) {
+        mapped = mapped / (vec3<f32>(1.0) + mapped / white_point);
+    } else if (params.effect_flags.x == 2u) {
+        let a = 2.51;
+        let b = 0.03;
+        let c = 2.43;
+        let d = 0.59;
+        let e = 0.14;
+        mapped = clamp((mapped * (a * mapped + vec3<f32>(b))) / (mapped * (c * mapped + vec3<f32>(d)) + vec3<f32>(e)), vec3<f32>(0.0), vec3<f32>(1.0));
+    } else if (params.effect_flags.x == 3u) {
+        mapped = max(vec3<f32>(0.0), mapped - vec3<f32>(0.004));
+        mapped = (mapped * (6.2 * mapped + vec3<f32>(0.5))) / (mapped * (6.2 * mapped + vec3<f32>(1.7)) + vec3<f32>(0.06));
+    }
+    let lut_intensity = clamp(params.effect_tonemap_lut.z, 0.0, 1.0);
+    if (params.effect_flags.y != 0u && lut_intensity > 0.0) {
+        mapped = mix(mapped, sample_effect_lut(mapped, params.effect_flags.y), lut_intensity);
+    }
+    return mapped;
 }
 
 @fragment
@@ -304,10 +552,20 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         color = color + params.baked_color_and_intensity.rgb * params.baked_color_and_intensity.w;
     }
 
+    if (params.effect_flags.w != 0u) {
+        color = apply_effect_blur_family(coord, viewport_size, color);
+        color = apply_chromatic_aberration(coord, viewport_size, color);
+        color = apply_screen_space_reflection_seed(coord, viewport_size, color);
+        color = apply_effect_fog(uv, coord, viewport_size, color);
+        color = apply_vignette(uv, color);
+        color = apply_grain_and_dither(coord, color);
+    }
+
     if (params.anti_alias.x != 0u) {
         color = apply_fxaa(coord, viewport_size, color);
     }
 
+    color = apply_tonemap_and_lut(color);
     color = apply_color_grading(color);
     var output: FragmentOutput;
     output.final_color = vec4<f32>(color, scene_color.a);

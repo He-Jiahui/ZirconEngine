@@ -1,7 +1,7 @@
 import { OperationTimelineRowData } from "shared.slint";
 import { HubTokens } from "tokens.slint";
-import { EmptyStateBlock, PanelHeader, PanelSlot } from "surfaces.slint";
-import { InfoRow, PanelListViewport } from "data_display.slint";
+import { EmptyStateBlock } from "surfaces.slint";
+import { HubListPanelSlot, InfoRow } from "data_display.slint";
 import { MaterialStyleMetrics } from "material_bridge.slint";
 
 export component OperationTimelineRow inherits InfoRow {
@@ -20,42 +20,38 @@ export component OperationTimelineRow inherits InfoRow {
     collapse-trailing-label: root.collapse-label;
 }
 
-export component OperationTimelinePanel inherits PanelSlot {
+export component OperationTimelinePanel inherits HubListPanelSlot {
     in property <string> timeline-title;
     in property <string> empty-title;
     in property <string> empty-detail;
     in property <[OperationTimelineRowData]> operation-timeline;
     in property <int> operation-timeline-count;
-    in property <length> row-height: HubTokens.list-row-sm;
     in-out property <length> timeline-scroll-y: 0px;
     in property <bool> collapse-label: false;
 
-    PanelHeader {
-        title: root.timeline-title;
-        subtitle: "";
-        show-badge: true;
-        badge-text: root.operation-timeline-count + "";
-        badge-tone: "info";
+    private property <length> timeline-empty-height: root.row-height + HubTokens.space-2;
+
+    title: root.timeline-title;
+    show-badge: true;
+    badge-text: root.operation-timeline-count + "";
+    badge-tone: "info";
+    scroll-y <=> root.timeline-scroll-y;
+    row-count: root.operation-timeline-count;
+    row-height: HubTokens.list-row-sm;
+    vertical-padding: HubTokens.space-0;
+    empty-height: root.timeline-empty-height;
+
+    for record in root.operation-timeline: OperationTimelineRow {
+        record: record;
+        row-height: root.row-height;
+        collapse-label: root.collapse-label;
     }
 
-    PanelListViewport {
-        scroll-y <=> root.timeline-scroll-y;
-        row-count: root.operation-timeline-count;
-        row-height: root.row-height;
-        vertical-padding: HubTokens.space-0;
-        empty-height: HubTokens.list-row-lg + HubTokens.space-4;
-
-        for record in root.operation-timeline: OperationTimelineRow {
-            record: record;
-            collapse-label: root.collapse-label;
-        }
-
-        if root.operation-timeline-count == 0: EmptyStateBlock {
-            height: HubTokens.list-row-lg + HubTokens.space-4;
-            title: root.empty-title;
-            detail: root.empty-detail;
-            body-padding: MaterialStyleMetrics.padding_16;
-            center-content: true;
-        }
+    if root.operation-timeline-count == 0: EmptyStateBlock {
+        height: root.timeline-empty-height;
+        title: root.empty-title;
+        detail: root.empty-detail;
+        body-padding: MaterialStyleMetrics.padding_16;
+        center-content: true;
     }
 }

@@ -178,7 +178,7 @@ impl World {
         })
     }
 
-    fn project_world_matrix_for_read(&self, entity: EntityId) -> Option<Mat4> {
+    pub(super) fn project_world_matrix_for_read(&self, entity: EntityId) -> Option<Mat4> {
         self.project_world_matrix_for_read_inner(entity, &mut HashSet::new())
     }
 

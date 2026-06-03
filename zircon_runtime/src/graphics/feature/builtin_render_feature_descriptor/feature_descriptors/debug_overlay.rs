@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::QueueLane;
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -18,6 +19,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         )
         .with_executor_id("overlay.gizmo")
         .read_texture("scene-color")
-        .write_external("viewport-output")],
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .write_external(PostProcessGraphResourceNames::VIEWPORT_OUTPUT)],
     )
 }

@@ -7,8 +7,7 @@ mod retained_adapter;
 mod runtime;
 mod showcase_demo_state;
 
-#[cfg(test)]
-pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
+pub(crate) use builtin::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_WINDOW_DOCUMENT_ID};
 pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
 pub use host_nodes::{
     RetainedUiHostBindingProjection, RetainedUiHostModel, RetainedUiHostNodeProjection,

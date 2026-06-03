@@ -671,7 +671,7 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     assert_child_controls_max_square(
         &workbench_shell,
         &["nodes", "activity_rail"],
-        "IconButton",
+        "WorkbenchRailButton",
         32.0,
         &mut failures,
     );

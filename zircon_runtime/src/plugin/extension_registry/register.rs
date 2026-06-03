@@ -2,57 +2,21 @@ use crate::asset::{
     AssetImporterDescriptor, AssetImporterHandler, DiagnosticOnlyAssetImporter,
     NativeAssetImporterHandler,
 };
-use crate::core::{ManagerDescriptor, ModuleDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::plugin::{
-    ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
-    RuntimeExtensionRegistryError, SceneRuntimeHookRegistration, UiComponentDescriptor,
-};
-use crate::scene::SystemStage;
+use crate::plugin::{LoadedNativePlugin, RuntimeExtensionRegistryError};
 use std::sync::Arc;
 
 use super::RuntimeExtensionRegistry;
 
+mod metadata;
+mod runtime_core;
+mod scene_hook;
+
 impl RuntimeExtensionRegistry {
-    pub fn register_manager(
-        &mut self,
-        _plugin_id: impl Into<String>,
-        descriptor: ManagerDescriptor,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .managers
-            .iter()
-            .any(|existing| existing.name == descriptor.name)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateManager(
-                descriptor.name.to_string(),
-            ));
-        }
-        self.managers.push(descriptor);
-        Ok(())
-    }
-
-    pub fn register_module(
-        &mut self,
-        descriptor: ModuleDescriptor,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .modules
-            .iter()
-            .any(|existing| existing.name == descriptor.name)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateModule(
-                descriptor.name,
-            ));
-        }
-        self.modules.push(descriptor);
-        Ok(())
-    }
-
     pub fn register_render_feature(
         &mut self,
         descriptor: RenderFeatureDescriptor,
@@ -163,108 +127,6 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
-    pub fn register_component(
-        &mut self,
-        descriptor: ComponentTypeDescriptor,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        let expected_prefix = format!("{}.", descriptor.plugin_id);
-        if !descriptor.type_id.starts_with(&expected_prefix) {
-            return Err(RuntimeExtensionRegistryError::InvalidComponentType(
-                format!(
-                    "component type {} must be prefixed by plugin id {}",
-                    descriptor.type_id, descriptor.plugin_id
-                ),
-            ));
-        }
-        if self
-            .components
-            .iter()
-            .any(|existing| existing.type_id == descriptor.type_id)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateComponentType(
-                descriptor.type_id,
-            ));
-        }
-        self.components.push(descriptor);
-        Ok(())
-    }
-
-    pub fn register_ui_component(
-        &mut self,
-        descriptor: UiComponentDescriptor,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        let expected_prefix = format!("{}.", descriptor.plugin_id);
-        if !descriptor.component_id.starts_with(&expected_prefix) {
-            return Err(RuntimeExtensionRegistryError::InvalidUiComponent(format!(
-                "ui component {} must be prefixed by plugin id {}",
-                descriptor.component_id, descriptor.plugin_id
-            )));
-        }
-        if !descriptor.ui_document.ends_with(".zui") {
-            return Err(RuntimeExtensionRegistryError::InvalidUiComponent(format!(
-                "ui component {} document `{}` must reference a .zui component asset",
-                descriptor.component_id, descriptor.ui_document
-            )));
-        }
-        if self
-            .ui_components
-            .iter()
-            .any(|existing| existing.component_id == descriptor.component_id)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateUiComponent(
-                descriptor.component_id,
-            ));
-        }
-        self.ui_components.push(descriptor);
-        Ok(())
-    }
-
-    pub fn register_plugin_option(
-        &mut self,
-        descriptor: PluginOptionManifest,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        if descriptor.key.trim().is_empty() || descriptor.key.trim() != descriptor.key {
-            return Err(RuntimeExtensionRegistryError::InvalidPluginOption(
-                descriptor.key,
-            ));
-        }
-        if self
-            .plugin_options
-            .iter()
-            .any(|existing| existing.key == descriptor.key)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicatePluginOption(
-                descriptor.key,
-            ));
-        }
-        self.plugin_options.push(descriptor);
-        Ok(())
-    }
-
-    pub fn register_plugin_event_catalog(
-        &mut self,
-        descriptor: PluginEventCatalogManifest,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        if descriptor.namespace.trim().is_empty()
-            || descriptor.namespace.trim() != descriptor.namespace
-        {
-            return Err(RuntimeExtensionRegistryError::InvalidPluginEventCatalog(
-                descriptor.namespace,
-            ));
-        }
-        if self
-            .plugin_event_catalogs
-            .iter()
-            .any(|existing| existing.namespace == descriptor.namespace)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicatePluginEventCatalog(
-                descriptor.namespace,
-            ));
-        }
-        self.plugin_event_catalogs.push(descriptor);
-        Ok(())
-    }
-
     pub fn register_asset_importer(
         &mut self,
         importer: impl AssetImporterHandler + 'static,
@@ -301,67 +163,4 @@ impl RuntimeExtensionRegistry {
             .register_arc(importer)
             .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
     }
-
-    pub fn register_scene_hook(
-        &mut self,
-        registration: SceneRuntimeHookRegistration,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        validate_scene_hook_registration(&registration)?;
-        let id = registration.descriptor().id.as_str();
-        if self
-            .scene_hooks
-            .iter()
-            .any(|existing| existing.descriptor().id == id)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateSceneHook(
-                id.to_string(),
-            ));
-        }
-        self.scene_hooks.push(registration);
-        sort_scene_hooks(&mut self.scene_hooks);
-        Ok(())
-    }
-}
-
-fn validate_scene_hook_registration(
-    registration: &SceneRuntimeHookRegistration,
-) -> Result<(), RuntimeExtensionRegistryError> {
-    let descriptor = registration.descriptor();
-    if descriptor.id.trim().is_empty() || descriptor.id.trim() != descriptor.id {
-        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(
-            descriptor.id.clone(),
-        ));
-    }
-    if descriptor.plugin_id.trim().is_empty() || descriptor.plugin_id.trim() != descriptor.plugin_id
-    {
-        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(
-            descriptor.plugin_id.clone(),
-        ));
-    }
-    let expected_prefix = format!("{}.", descriptor.plugin_id);
-    if !descriptor.id.starts_with(&expected_prefix) {
-        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(format!(
-            "scene hook {} must be prefixed by plugin id {}",
-            descriptor.id, descriptor.plugin_id
-        )));
-    }
-    Ok(())
-}
-
-fn sort_scene_hooks(hooks: &mut [SceneRuntimeHookRegistration]) {
-    hooks.sort_by(|left, right| {
-        scene_stage_rank(left.descriptor().stage)
-            .cmp(&scene_stage_rank(right.descriptor().stage))
-            .then(left.descriptor().order.cmp(&right.descriptor().order))
-            .then(
-                left.descriptor()
-                    .id
-                    .as_str()
-                    .cmp(right.descriptor().id.as_str()),
-            )
-    });
-}
-
-fn scene_stage_rank(stage: SystemStage) -> usize {
-    stage.rank()
 }

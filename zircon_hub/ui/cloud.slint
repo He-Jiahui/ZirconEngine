@@ -1,5 +1,5 @@
 import { CloudServiceData, CloudSummaryData, OperationTimelineRowData, UiTextData } from "shared.slint";
-import { HubTokens, HubVisualSpec, OperationTimelinePanel, OverviewPanel, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
+import { Column, HubCompactTabStrip, HubTokens, HubVisualSpec, OperationTimelinePanel, OverviewPanel, PageScrollSurface, ResponsiveCollapse, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
 import { CloudMetricSlot, CloudPackageActionsPanel, CloudServicesPanel } from "cloud_page_components.slint";
 
 export component CloudPage inherits PageScrollSurface {
@@ -37,6 +37,9 @@ export component CloudPage inherits PageScrollSurface {
     private property <length> service-list-height: root.service-count == 0 ? HubTokens.list-row-lg + HubTokens.space-4 : root.service-panel-rows * HubTokens.list-row-lg + (root.service-panel-rows - 1) * HubTokens.space-2 + HubTokens.space-1 * 2;
     private property <length> actions-panel-height: root.service-panel-chrome-height + HubTokens.list-row-sm * 2 + HubTokens.toolbar-gap;
     private property <length> services-panel-height: root.service-panel-chrome-height + root.service-list-height;
+    private property <bool> workflow-compact: root.content-width < HubTokens.panel-min-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
+    private property <length> workflow-row-height: HubTokens.workspace-row-build-detail;
+    private property <length> workflow-timeline-height: max(HubTokens.control-md + HubTokens.list-row-sm + HubTokens.space-2, root.workflow-row-height - root.actions-panel-height - HubTokens.panel-gap);
     private property <length> service-scroll-y: 0px;
     private property <length> operation-timeline-scroll-y: 0px;
 
@@ -53,6 +56,15 @@ export component CloudPage inherits PageScrollSurface {
         title: root.overview-title;
         subtitle: root.overview-detail;
         badge-text: root.summary.status;
+    }
+
+    HubCompactTabStrip {
+        current-index: 0;
+        first-label: "Overview";
+        second-label: root.ui-text.cloud-packages;
+        third-label: root.ui-text.cloud-services;
+        fourth-label: root.ui-text.operation-timeline;
+        tab-width: HubTokens.control-md * 4;
     }
 
     WorkspacePanelSection {
@@ -124,40 +136,69 @@ export component CloudPage inherits PageScrollSurface {
         }
     }
 
-    CloudPackageActionsPanel {
-        horizontal-stretch: 1;
-        height: root.actions-panel-height;
-        summary: root.summary;
-        ui-text: root.ui-text;
-        overview-detail: root.overview-detail;
-        package-project => {
-            root.package-project();
-        }
-        install-device => {
-            root.install-device();
-        }
-    }
+    WorkspacePanelSection {
+        compact: root.workflow-compact;
+        row-height: root.workflow-row-height;
+        spacing-horizontal: HubTokens.panel-gap;
+        spacing-vertical: HubTokens.panel-gap;
 
-    CloudServicesPanel {
-        horizontal-stretch: 1;
-        height: root.services-panel-height;
-        ui-text: root.ui-text;
-        services: root.services;
-        service-count: root.service-count;
-        overview-detail: root.overview-detail;
-        collapse-label: label-collapse.collapsed;
-        service-scroll-y <=> root.service-scroll-y;
-    }
+        CloudServicesPanel {
+            basis: HubTokens.panel-min-lg;
+            flex-basis: HubTokens.panel-min-lg;
+            grow: 2;
+            flex-grow: 2;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.workflow-compact ? root.content-width : HubTokens.panel-min-lg;
+            height: root.workflow-row-height;
+            ui-text: root.ui-text;
+            services: root.services;
+            service-count: root.service-count;
+            overview-detail: root.overview-detail;
+            collapse-label: label-collapse.collapsed;
+            service-scroll-y <=> root.service-scroll-y;
+        }
 
-    OperationTimelinePanel {
-        horizontal-stretch: 1;
-        height: root.actions-panel-height;
-        timeline-title: root.summary.operation-timeline-title;
-        empty-title: root.summary.operation-timeline-empty-title;
-        empty-detail: root.summary.operation-timeline-empty-detail;
-        operation-timeline: root.operation-timeline;
-        operation-timeline-count: root.operation-timeline-count;
-        collapse-label: label-collapse.collapsed;
-        timeline-scroll-y <=> root.operation-timeline-scroll-y;
+        ResponsiveSlot {
+            basis: HubTokens.panel-min-md;
+            flex-basis: HubTokens.panel-min-md;
+            grow: 1;
+            flex-grow: 1;
+            shrink: 1;
+            flex-shrink: 1;
+            min-width: root.workflow-compact ? root.content-width : HubTokens.panel-min-md;
+            height: root.workflow-row-height;
+
+            Column {
+                width: parent.width;
+                height: parent.height;
+                gap: HubTokens.panel-gap;
+
+                CloudPackageActionsPanel {
+                    height: root.actions-panel-height;
+                    summary: root.summary;
+                    ui-text: root.ui-text;
+                    overview-detail: root.overview-detail;
+                    package-project => {
+                        root.package-project();
+                    }
+                    install-device => {
+                        root.install-device();
+                    }
+                }
+
+                OperationTimelinePanel {
+                    height: root.workflow-timeline-height;
+                    timeline-title: root.summary.operation-timeline-title;
+                    empty-title: root.summary.operation-timeline-empty-title;
+                    empty-detail: root.summary.operation-timeline-empty-detail;
+                    operation-timeline: root.operation-timeline;
+                    operation-timeline-count: root.operation-timeline-count;
+                    row-height: HubTokens.list-row-sm;
+                    collapse-label: label-collapse.collapsed;
+                    timeline-scroll-y <=> root.operation-timeline-scroll-y;
+                }
+            }
+        }
     }
 }

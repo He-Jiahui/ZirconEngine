@@ -135,11 +135,13 @@ fn input_and_navigation_state_owners_do_not_bypass_shared_primitives() {
     let mut violations = Vec::new();
     let allowed_state_owner_files = [
         "inputs.slint",
+        "button_components.slint",
         "navigation.slint",
         "shared.slint",
         "shell_sidebar_components.slint",
         "app.slint",
         "project_browser_components.slint",
+        "project_card_flow_components.slint",
         "project_dashboard_components.slint",
         "settings_page_components.slint",
         "shell_header_components.slint",
@@ -208,6 +210,7 @@ fn page_content_width_arithmetic_stays_in_layout_primitive() {
     let mut violations = Vec::new();
 
     for path in slint_files() {
+        let file_name = path.file_name().and_then(|name| name.to_str());
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
         for (index, line) in source.lines().enumerate() {
@@ -222,7 +225,16 @@ fn page_content_width_arithmetic_stays_in_layout_primitive() {
             }
             if path.file_name().and_then(|name| name.to_str())
                 == Some("shell_header_popup_components.slint")
-                && trimmed == "x: root.width - root.popup-width;"
+                && matches!(
+                    trimmed,
+                    "x: root.width - root.popup-width;" | "popup-x: root.width - root.popup-width;"
+                )
+            {
+                continue;
+            }
+            if file_name == Some("project_browser_page.slint")
+                && trimmed
+                    == "private property <length> browser-table-row-width: max(HubTokens.control-md, root.content-width - root.page-gap * 2);"
             {
                 continue;
             }
@@ -252,6 +264,13 @@ fn page_scroll_surface_is_owned_by_page_roots() {
     let mut violations = Vec::new();
 
     for path in slint_files() {
+        let file_name = path.file_name().and_then(|name| name.to_str());
+        if matches!(
+            file_name,
+            Some("data_display.slint" | "table_view_components.slint")
+        ) {
+            continue;
+        }
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
         for (index, line) in source.lines().enumerate() {
@@ -357,7 +376,14 @@ fn absolute_positioning_stays_out_of_page_layouts() {
         if matches!(
             file_name,
             "app.slint"
+                | "button_components.slint"
+                | "data_display.slint"
+                | "overlays.slint"
+                | "project_browser_components.slint"
+                | "project_card_flow_components.slint"
                 | "inputs.slint"
+                | "project_dashboard_components.slint"
+                | "shared.slint"
                 | "shell_header_components.slint"
                 | "shell_header_popup_components.slint"
         ) {

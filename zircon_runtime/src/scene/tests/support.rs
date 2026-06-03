@@ -352,6 +352,7 @@ fn write_default_scene(path: PathBuf) {
                     model: asset_reference("res://models/triangle.obj"),
                     mesh: Some(asset_reference("res://meshes/triangle.zmesh")),
                     material: asset_reference("res://materials/grid.zmaterial"),
+                    morph_weights: Vec::new(),
                     primitives: Vec::new(),
                 }),
                 ambient_light: None,

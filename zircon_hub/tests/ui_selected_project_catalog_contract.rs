@@ -139,6 +139,10 @@ fn selected_project_catalog_pages_surface_scope_copy() {
         "root.has-selected-project ? root.ui-text.asset-catalog-selected : root.ui-text.asset-catalog",
         "root.has-selected-project ? root.ui-text.asset-empty-selected-detail : root.ui-text.asset-empty-global-detail",
         "empty-detail: root.assets-empty-detail;",
+        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine assets.\" : \"Project and Source Engine asset index.\";",
+        "detail-subtitle: root.detail-summary;",
+        "detail-check-two-detail: \"Source, kind, size, path columns aligned\";",
+        "detail-check-three-detail: root.asset-count == 0 ? root.assets-empty-detail : \"Review paths and source ownership\";",
     ] {
         assert!(
             assets_page.contains(snippet),
@@ -191,15 +195,24 @@ fn selected_project_catalog_pages_surface_scope_copy() {
     let catalog_components = read_ui_file("catalog_page_components.slint");
     let plugin_surface = format!("{plugins}\n{catalog_components}");
     assert_catalog_page_inherits_geometry("plugins.slint", "PluginsPage", &plugins);
-    assert!(
-        plugin_surface.contains("root.plugin.scope +"),
-        "PluginsPage rows must display whether a plugin came from the selected project or engine"
-    );
+    for snippet in [
+        "metadata: root.plugin.scope;",
+        "tag-text: root.plugin.category;",
+    ] {
+        assert!(
+            plugin_surface.contains(snippet),
+            "PluginsPage rows must split plugin source and category into stable compact columns; missing {snippet}"
+        );
+    }
     for snippet in [
         "in property <bool> has-selected-project: false;",
         "root.has-selected-project ? root.ui-text.plugin-catalog-selected : root.ui-text.plugin-catalog",
         "root.has-selected-project ? root.ui-text.plugin-empty-selected-detail : root.ui-text.plugin-empty-global-detail",
         "empty-detail: root.plugins-empty-detail;",
+        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine plugins.\" : \"Source Engine and local plugin roots.\";",
+        "detail-subtitle: root.detail-summary;",
+        "detail-check-two-detail: \"Category, module, path columns aligned\";",
+        "detail-check-three-detail: root.plugin-count == 0 ? root.plugins-empty-detail : \"Review package state before release\";",
     ] {
         assert!(
             plugins.contains(snippet),
@@ -232,7 +245,12 @@ fn selected_project_catalog_pages_surface_scope_copy() {
         "root.has-selected-project ? root.ui-text.learn-library-selected : root.ui-text.learn-library",
         "root.has-selected-project ? root.ui-text.learn-empty-selected-detail : root.ui-text.learn-empty-global-detail",
         "empty-detail: root.resources-empty-detail;",
-        "root.resource.source +",
+        "metadata: root.resource.source;",
+        "tag-text: root.resource.category;",
+        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine docs.\" : \"Source Engine and local docs.\";",
+        "detail-subtitle: root.detail-summary;",
+        "detail-check-two-detail: \"Source, category, path columns aligned\";",
+        "detail-check-three-detail: root.resource-count == 0 ? root.resources-empty-detail : \"Open topics from the list\";",
     ] {
         assert!(
             shared.contains(snippet) || learn_surface.contains(snippet),
@@ -294,15 +312,21 @@ fn selected_project_catalog_pages_surface_scope_copy() {
     }
 
     let team = read_ui_file("team.slint");
+    let team_components = read_ui_file("team_page_components.slint");
+    let team_surface = format!("{team}\n{team_components}");
     for snippet in [
         "in property <bool> has-selected-project: false;",
-        "root.has-selected-project ? root.ui-text.team-workspace-selected : root.ui-text.team-workspace",
-        "root.has-selected-project ? root.ui-text.team-empty-selected-detail : root.ui-text.team-empty-global-detail",
-        "title: root.workspace-title;",
+        "private property <string> members-empty-detail: root.has-selected-project ? root.ui-text.team-empty-selected-detail : root.ui-text.team-empty-global-detail;",
+        "TeamSummarySlot {",
+        "label: root.ui-text.team-repository;",
+        "primary: root.summary.repository-path;",
+        "secondary: root.summary.status;",
+        "members-empty-detail: root.members-empty-detail;",
+        "repository-path: root.summary.repository-path;",
         "detail: root.members-empty-detail;",
     ] {
         assert!(
-            team.contains(snippet),
+            team_surface.contains(snippet),
             "TeamPage must explain whether local Git data is scoped to the selected project or Source Engine fallback; missing {snippet}"
         );
     }

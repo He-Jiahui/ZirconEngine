@@ -8,7 +8,7 @@ use crate::ui::template::{
     UiAssetImports, UiBindingRef, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope,
 };
 
-use super::{UiV2StyleDeclarationBlock, UiV2StyleSheet};
+use super::{UiV2Repeat, UiV2StyleDeclarationBlock, UiV2StyleSheet};
 
 pub const UI_V2_ASSET_SCHEMA_VERSION: u32 = 2;
 
@@ -71,6 +71,8 @@ pub struct UiV2NodeDefinition {
     pub state: BTreeMap<String, Value>,
     #[serde(default)]
     pub layout: Option<BTreeMap<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<UiV2Repeat>,
     #[serde(default)]
     pub style: UiV2StyleDeclarationBlock,
     #[serde(default)]

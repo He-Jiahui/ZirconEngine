@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_axis_value_field.zui"
+version = 2
+display_name = "Workbench Axis Value Field"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchAxisValueField]
+root = "root"
+default_classes = ["workbench-field", "workbench-axis-value-field", "workbench-primitive"]
+
+[nodes.root]
+component = "InputField"
+control_id = "WorkbenchAxisValueFieldRoot"
+classes = ["workbench-field", "workbench-axis-value-field"]
+props = { value = "0.0", placeholder = "0", validation_level = "normal", focused = false, hovered = false, disabled = false, editable_text = true, layout_padding_left = 7.0, layout_padding_right = 7.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0, layout_min_height = 24.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 54.0, preferred = 62.0, max = 72.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 26.0, stretch = "Fixed" } }

@@ -48,6 +48,7 @@ pub fn sound_options() -> Vec<PluginOptionManifest> {
             "enum",
             "disabled",
         )
+        .with_enum_values(["disabled", "preview", "balanced", "cinematic"])
         .with_required_capability("runtime.capability.ray_query"),
         PluginOptionManifest::new(
             "sound.default_mixer_preset",

@@ -51,6 +51,20 @@ pub(in crate::graphics::scene::resources) fn create_fallback_texture(
     });
     GpuTextureResource {
         id: None,
+        descriptor: crate::core::framework::render::RenderImageDescriptor {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+            dimension: crate::core::framework::render::RenderImageDimension::D2,
+            format: crate::asset::RGBA8_UNORM_SRGB_FORMAT.to_string(),
+            color_space: crate::core::framework::render::RenderImageColorSpace::Srgb,
+            sampler: crate::core::framework::render::RenderSamplerDescriptor::default(),
+            usage: vec![crate::core::framework::render::RenderImageUsage::Sampled],
+            asset_usage: Vec::new(),
+            mip_count: 1,
+            array_layer_count: 1,
+            fallback: crate::core::framework::render::RenderImageFallbackKind::OpaqueWhite,
+        },
         texture,
         view,
         sampler,

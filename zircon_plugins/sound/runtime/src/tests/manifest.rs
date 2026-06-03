@@ -576,6 +576,7 @@ fn option_manifests_from_plugin_toml(
     let mut display_name = None;
     let mut value_type = None;
     let mut default_value = None;
+    let mut enum_values = Vec::new();
     let mut required_capability = None;
     let mut inside_option = false;
 
@@ -587,6 +588,7 @@ fn option_manifests_from_plugin_toml(
                 &mut display_name,
                 &mut value_type,
                 &mut default_value,
+                &mut enum_values,
                 &mut required_capability,
             );
             inside_option = true;
@@ -599,6 +601,7 @@ fn option_manifests_from_plugin_toml(
                 &mut display_name,
                 &mut value_type,
                 &mut default_value,
+                &mut enum_values,
                 &mut required_capability,
             );
             inside_option = false;
@@ -635,6 +638,13 @@ fn option_manifests_from_plugin_toml(
             continue;
         }
         if let Some(value) = line
+            .strip_prefix("enum_values = [")
+            .and_then(|value| value.strip_suffix(']'))
+        {
+            enum_values = string_array_values(value);
+            continue;
+        }
+        if let Some(value) = line
             .strip_prefix("required_capability = \"")
             .and_then(|value| value.strip_suffix('"'))
         {
@@ -647,6 +657,7 @@ fn option_manifests_from_plugin_toml(
         &mut display_name,
         &mut value_type,
         &mut default_value,
+        &mut enum_values,
         &mut required_capability,
     );
     options
@@ -658,9 +669,11 @@ fn push_option_manifest(
     display_name: &mut Option<String>,
     value_type: &mut Option<String>,
     default_value: &mut Option<String>,
+    enum_values: &mut Vec<String>,
     required_capability: &mut Option<String>,
 ) {
     let Some(key) = key.take() else {
+        enum_values.clear();
         return;
     };
     let mut option = zircon_runtime::plugin::PluginOptionManifest::new(
@@ -675,6 +688,10 @@ fn push_option_manifest(
             .take()
             .expect("sound option should declare default_value"),
     );
+    let values = std::mem::take(enum_values);
+    if !values.is_empty() {
+        option = option.with_enum_values(values);
+    }
     if let Some(capability) = required_capability.take() {
         option = option.with_required_capability(capability);
     }
@@ -683,12 +700,13 @@ fn push_option_manifest(
 
 fn option_manifest_tuple(
     option: zircon_runtime::plugin::PluginOptionManifest,
-) -> (String, String, String, String, Option<String>) {
+) -> (String, String, String, String, Vec<String>, Option<String>) {
     (
         option.key,
         option.display_name,
         option.value_type,
         option.default_value,
+        option.enum_values,
         option.required_capability,
     )
 }

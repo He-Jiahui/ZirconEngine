@@ -817,6 +817,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                     model: asset_reference("res://models/triangle.model.toml"),
                     mesh: None,
                     material: asset_reference(material_uri),
+                    morph_weights: Vec::new(),
                     primitives: Vec::new(),
                 }),
                 ambient_light: None,

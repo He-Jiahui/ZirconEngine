@@ -23,11 +23,13 @@ fn components_reexport_data_container_primitives() {
     let components = read_ui_file("components.slint");
     for snippet in [
         "TreeItemData,",
+        "HubRowSurface,",
         "HubListPanelSlot,",
         "HubListView,",
+        "} from \"data_display.slint\";",
         "HubTreeRow,",
         "HubTreeView,",
-        "} from \"data_display.slint\";",
+        "} from \"tree_view_components.slint\";",
         "HubTableView,",
         "HubTableBody,",
         "} from \"table_view_components.slint\";",
@@ -43,7 +45,8 @@ fn components_reexport_data_container_primitives() {
 fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
     let data_display = read_ui_file("data_display.slint");
     let table_view = read_ui_file("table_view_components.slint");
-    let data_surface = format!("{data_display}\n{table_view}");
+    let tree_view = read_ui_file("tree_view_components.slint");
+    let data_surface = format!("{data_display}\n{table_view}\n{tree_view}");
     for snippet in [
         "export struct TreeItemData",
         "depth: int,",
@@ -66,9 +69,12 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         "minimum-row-height: HubVisualSpec.visual-table-row-height;",
         "export component HubTableBody inherits PanelListViewport",
         "row-height: HubVisualSpec.visual-table-row-height;",
-        "export component HubTreeRow inherits Rectangle",
+        "export component HubTreeRow inherits HubRowSurface",
+        "selected: root.item.selected;",
+        "enabled: !root.item.disabled;",
         "private property <length> depth-indent: root.item.depth * HubTokens.space-4;",
         "StateLayerArea {",
+        "color: root.content-foreground;",
         "ListTile {",
         "source: root.item.expanded ? @image-url(\"../assets/icons/ui/chevron-down.svg\") : @image-url(\"../assets/icons/ui/chevron-right.svg\");",
         "StatusBadge {",
@@ -92,6 +98,8 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
     ] {
         let wrapper_source = if wrapper_name.contains("Table") {
             &table_view
+        } else if wrapper_name.contains("Tree") {
+            &tree_view
         } else {
             &data_display
         };
@@ -103,14 +111,22 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         for forbidden in ["TouchArea", "area.has-hover", "LineEdit"] {
             assert!(
                 !wrapper.contains(forbidden),
-                "{wrapper_name} must not reintroduce hand-rolled data container behavior: {forbidden}"
+            "{wrapper_name} must not reintroduce hand-rolled data container behavior: {forbidden}"
             );
         }
+    }
+
+    for tree_component in ["TreeItemData", "HubTreeRow", "HubTreeView"] {
+        assert!(
+            !data_display.contains(&format!("export component {tree_component}"))
+                && !data_display.contains(&format!("export struct {tree_component}")),
+            "data_display.slint should not regain tree-view ownership after the tree module split: {tree_component}"
+        );
     }
 }
 
 #[test]
-fn cloud_and_team_lower_lists_consume_hub_list_panel_slot() {
+fn cloud_and_team_lower_lists_consume_shared_panel_slots() {
     let cloud_components = read_ui_file("cloud_page_components.slint");
     let team_components = read_ui_file("team_page_components.slint");
 
@@ -123,11 +139,11 @@ fn cloud_and_team_lower_lists_consume_hub_list_panel_slot() {
             "title: root.ui-text.cloud-services;",
         ),
         (
-            "TeamMembersPanel",
+            "TeamActionsPanel",
             &team_components,
-            "export component TeamMembersPanel inherits HubListPanelSlot",
-            "scroll-y <=> root.member-scroll-y;",
-            "title: root.ui-text.team-members-found;",
+            "export component TeamActionsPanel inherits HubListPanelSlot",
+            "row-count: 6;",
+            "title: \"Actions\";",
         ),
     ] {
         for snippet in [
@@ -136,14 +152,11 @@ fn cloud_and_team_lower_lists_consume_hub_list_panel_slot() {
             "body-padding: MaterialStyleMetrics.padding_16;",
             "body-spacing: HubTokens.toolbar-gap;",
             title_binding,
-            "show-badge: true;",
             scroll_binding,
-            "empty-height: HubTokens.list-row-lg + HubTokens.space-4;",
-            "EmptyStateBlock {",
         ] {
             assert!(
                 source.contains(snippet),
-                "{name} must consume HubListPanelSlot while preserving title, badge, scroll, and empty-state bindings; missing {snippet}"
+                "{name} must consume HubListPanelSlot while preserving title, row, and scroll bindings; missing {snippet}"
             );
         }
 
@@ -158,6 +171,23 @@ fn cloud_and_team_lower_lists_consume_hub_list_panel_slot() {
                 "{name} should not reintroduce a local panel/list shell after moving to HubListPanelSlot: {forbidden}"
             );
         }
+    }
+
+    for snippet in [
+        "export component TeamMembersPanel inherits PanelSlot",
+        "PanelHeader {",
+        "title: \"Team Overview\";",
+        "HubCompactTabStrip {",
+        "PanelListViewport {",
+        "scroll-y <=> root.member-scroll-y;",
+        "TeamIdentityRow {",
+        "if root.member-count == 0: EmptyStateBlock {",
+        "for member in root.members: TeamMemberRow {",
+    ] {
+        assert!(
+            team_components.contains(snippet),
+            "TeamMembersPanel must keep the compact overview rows in shared PanelSlot/ListViewport primitives; missing {snippet}"
+        );
     }
 }
 
@@ -242,7 +272,7 @@ fn project_template_rail_consumes_hub_list_panel_slot() {
         "row-height: root.row-height;",
         "empty-height: HubTokens.list-row-lg;",
         "for template in root.templates: TemplateChoiceRow {",
-        "selected(id) => { root.selected(id); }",
+        "template-selected(id) => { root.selected(id); }",
     ] {
         assert!(
             project_components.contains(snippet),
@@ -405,6 +435,10 @@ fn dashboard_recent_table_consumes_shared_hub_table_body() {
         "show-divider: false;",
         "minimum-row-height: root.table-row-height;",
         "DataTable {",
+        "show-selection: false;",
+        "show-thumbnail-accent: false;",
+        "thumbnail-size: HubTokens.control-md - MaterialStyleMetrics.size_8;",
+        "thumbnail-radius: MaterialStyleMetrics.size_3;",
     ] {
         assert!(
             dashboard_components.contains(snippet),

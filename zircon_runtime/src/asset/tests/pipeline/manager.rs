@@ -14,8 +14,8 @@ use crate::asset::tests::support::{
 };
 use crate::asset::watch::AssetChangeKind;
 use crate::asset::{
-    AssetImporterCapabilityStatus, AssetManager, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, ProjectAssetManager, VirtualGeometryAsset,
+    AssetImporterCapabilityStatus, AssetManager, AssetReference, AssetUri, MaterialAsset,
+    MeshVertex, ModelAsset, ModelPrimitiveAsset, ProjectAssetManager, VirtualGeometryAsset,
     VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
     VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
@@ -104,12 +104,16 @@ fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
     write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let expected_model = sample_virtual_geometry_model_asset();
+    let authored_model = sample_virtual_geometry_model_asset();
     let model_path = paths
         .assets_root()
         .join("models")
         .join("nanite_teapot.model.toml");
-    fs::write(&model_path, expected_model.to_toml_string().unwrap()).unwrap();
+    fs::write(&model_path, authored_model.to_toml_string().unwrap()).unwrap();
+    let mut expected_model = authored_model;
+    expected_model.primitives[0].mesh = Some(AssetReference::from_locator(
+        AssetUri::parse("res://models/nanite_teapot.model.toml#Mesh0/Primitive0").unwrap(),
+    ));
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager

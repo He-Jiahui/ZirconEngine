@@ -1,0 +1,99 @@
+use std::sync::OnceLock;
+
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
+use zircon_runtime_interface::ui::component::UiComponentDescriptor;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ComponentContractTokens {
+    pub category: &'static str,
+    pub layout_role: &'static str,
+}
+
+pub(super) fn descriptor_for_component(
+    component_id: &str,
+) -> Option<&'static UiComponentDescriptor> {
+    runtime_component_registry().descriptor(component_id)
+}
+
+pub(super) fn tokens_for_component_role(
+    component_id: &str,
+    component_role: &str,
+) -> ComponentContractTokens {
+    descriptor_for_component(component_id)
+        .map(|descriptor| ComponentContractTokens {
+            category: descriptor.category.as_str(),
+            layout_role: descriptor.layout_role.as_str(),
+        })
+        .unwrap_or_else(|| fallback_tokens_for_component_role(component_id, component_role))
+}
+
+fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
+    static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
+    UI_COMPONENT_REGISTRY.get_or_init(|| {
+        let mut registry = UiComponentDescriptorRegistry::editor_showcase();
+        for descriptor in UiComponentDescriptorRegistry::material_editor_foundation()
+            .descriptors()
+            .cloned()
+        {
+            registry
+                .register(descriptor)
+                .expect("retained host component registry descriptors must validate");
+        }
+        registry
+    })
+}
+
+fn fallback_tokens_for_component_role(
+    component_id: &str,
+    component_role: &str,
+) -> ComponentContractTokens {
+    ComponentContractTokens {
+        category: fallback_category_for_component_role(component_role),
+        layout_role: fallback_layout_role_for_component_role(component_id, component_role),
+    }
+}
+
+fn fallback_category_for_component_role(component_role: &str) -> &'static str {
+    match component_role {
+        "text" | "label" | "image" | "icon" | "svg" | "svg-icon" | "divider" => "visual",
+        "number-field" | "range-field" | "slider" | "color-field" | "vector-field" => "numeric",
+        "dropdown"
+        | "select"
+        | "search-select"
+        | "segmented-control"
+        | "tab"
+        | "menu"
+        | "context-action-menu" => "selection",
+        "reference-field" | "asset-field" | "scene-reference-field" => "reference",
+        "table" | "table-row" | "list" | "list-item" | "tree-row" | "virtual-list" => "collection",
+        "container" | "panel" | "paper" | "card" | "toolbar" | "drawer" | "inspector-section"
+        | "property-grid" => "container",
+        "alert" | "tooltip" | "toast" | "snackbar" | "progress" | "badge" | "skeleton" => {
+            "feedback"
+        }
+        "button" | "icon-button" | "toggle-button" | "input-field" | "text-field" | "checkbox"
+        | "radio" | "switch" | "toggle" => "input",
+        _ => "",
+    }
+}
+
+fn fallback_layout_role_for_component_role(
+    component_id: &str,
+    component_role: &str,
+) -> &'static str {
+    match component_id {
+        "HorizontalBox" | "HorizontalGroup" | "VerticalBox" | "VerticalGroup" | "Container"
+        | "Panel" | "Toolbar" | "Drawer" | "Card" | "Paper" => "flex",
+        "Grid" | "GridBox" | "Table" => "grid",
+        "Popup" | "Popover" | "Popper" | "Tooltip" | "Menu" | "ContextActionMenu" => "popup",
+        "Canvas" => "canvas",
+        "VirtualList" => "virtual-list",
+        _ => match component_role {
+            "container" | "panel" | "paper" | "card" | "toolbar" | "drawer" => "flex",
+            "table" => "grid",
+            "tooltip" | "popover" | "popper" | "menu" | "context-action-menu" => "popup",
+            "virtual-list" => "virtual-list",
+            _ => "leaf",
+        },
+    }
+}

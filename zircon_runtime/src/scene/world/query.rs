@@ -82,8 +82,9 @@ impl World {
     }
 
     pub fn set_active_camera(&mut self, entity: EntityId) {
-        if self.cameras.contains_key(&entity) {
+        if self.cameras.contains_key(&entity) && self.active_camera != entity {
             self.active_camera = entity;
+            self.mark_node_cache_dirty();
         }
     }
 
@@ -107,10 +108,7 @@ impl World {
     }
 
     pub fn world_matrix(&self, entity: EntityId) -> Option<Mat4> {
-        self.world_matrices
-            .get(&entity)
-            .copied()
-            .map(|matrix| matrix.0)
+        self.project_world_matrix_for_read(entity)
     }
 
     pub fn world_transform(&self, entity: EntityId) -> Option<Transform> {

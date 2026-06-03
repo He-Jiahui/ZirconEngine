@@ -1,0 +1,387 @@
+import { MutedText } from "shared.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { PanelHeader, PanelSlot } from "surfaces.slint";
+import { HubRowLeadingIconSlot, HubRowTrailingSlot } from "row_slot_components.slint";
+import {
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+} from "material_bridge.slint";
+
+component CatalogDetailStatCell inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> detail;
+    in property <int> accent: 0;
+    private property <color> accent-color: root.accent == 0 ? MaterialPalette.primary : (root.accent == 1 ? MaterialPalette.secondary : (root.accent == 2 ? MaterialPalette.tertiary : MaterialPalette.on_surface_variant));
+    private property <color> accent-fill: root.accent == 0 ? MaterialPalette.primary_container : (root.accent == 1 ? MaterialPalette.secondary_container : (root.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
+
+    height: HubTokens.list-row-sm;
+    min-width: 1px;
+    preferred-width: 0px;
+    horizontal-stretch: 1;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: HubTokens.border-width;
+    border-color: HubVisualSpec.outline-muted;
+    background: root.accent-fill.with_alpha(0.22);
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        padding-top: HubTokens.space-2;
+        padding-bottom: HubTokens.space-2;
+        spacing: MaterialStyleMetrics.spacing_2;
+
+        MaterialText {
+            text: root.label;
+            overflow: elide;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.label_medium;
+        }
+
+        MaterialText {
+            text: root.value;
+            overflow: elide;
+            color: root.accent-color;
+            style: MaterialTypography.title_small;
+        }
+
+        MutedText {
+            text: root.detail;
+            overflow: elide;
+        }
+    }
+}
+
+component CatalogDetailCheckRow inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <image> icon-image: @image-url("../assets/icons/ui/alert.svg");
+
+    height: HubTokens.list-row-sm;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: HubTokens.border-width;
+    border-color: HubVisualSpec.outline-muted;
+    background: HubVisualSpec.panel-background;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        spacing: HubTokens.space-3;
+        alignment: center;
+
+        HubRowLeadingIconSlot {
+            row-height: HubTokens.list-row-sm;
+            slot-width: HubTokens.control-sm;
+            shell-size: HubTokens.control-sm;
+            icon-size: HubTokens.icon-sm;
+            shell-radius: HubVisualSpec.compact-radius;
+            icon-image: root.icon-image;
+        }
+
+        VerticalLayout {
+            min-width: 1px;
+            vertical-stretch: 1;
+            spacing: MaterialStyleMetrics.spacing_2;
+
+            MaterialText {
+                text: root.title;
+                overflow: elide;
+                color: HubTokens.text-primary;
+                style: MaterialTypography.label_medium;
+            }
+
+            MutedText {
+                text: root.detail;
+                overflow: elide;
+            }
+        }
+
+        HubRowTrailingSlot {
+            row-height: HubTokens.list-row-sm;
+            badge-text: root.badge-text;
+            badge-tone: root.badge-tone;
+            badge-width: HubTokens.control-md * 2 + HubTokens.space-4;
+        }
+    }
+}
+
+component CatalogDetailPreviewBand inherits Rectangle {
+    in property <image> icon-image;
+    in property <bool> has-icon-image: true;
+    in property <string> primary;
+    in property <string> secondary;
+    in property <length> preview-height: HubTokens.list-row-lg + HubTokens.space-6;
+
+    height: root.preview-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    border-radius: HubVisualSpec.panel-radius;
+    border-width: HubTokens.border-width;
+    border-color: HubVisualSpec.accent-stroke;
+    background: MaterialPalette.primary_container.with_alpha(0.18);
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-4;
+        padding-right: HubTokens.space-4;
+        spacing: HubTokens.space-4;
+        alignment: center;
+
+        Rectangle {
+            width: HubTokens.control-lg;
+            height: HubTokens.control-lg;
+            border-radius: HubVisualSpec.panel-radius;
+            border-width: HubTokens.border-width;
+            border-color: HubVisualSpec.accent-stroke;
+            background: HubVisualSpec.panel-background;
+
+            if root.has-icon-image: Image {
+                width: HubTokens.icon-lg;
+                height: HubTokens.icon-lg;
+                source: root.icon-image;
+                colorize: MaterialPalette.primary;
+                image-fit: contain;
+            }
+        }
+
+        VerticalLayout {
+            min-width: 1px;
+            vertical-stretch: 1;
+            spacing: MaterialStyleMetrics.spacing_4;
+
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+            MaterialText {
+                text: root.primary;
+                overflow: elide;
+                color: HubTokens.text-primary;
+                style: MaterialTypography.title_medium;
+            }
+
+            MutedText {
+                text: root.secondary;
+                overflow: elide;
+            }
+
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+        }
+    }
+}
+
+component CatalogDetailStatGrid inherits Rectangle {
+    in property <string> stat-one-label;
+    in property <string> stat-one-value;
+    in property <string> stat-one-detail;
+    in property <string> stat-two-label;
+    in property <string> stat-two-value;
+    in property <string> stat-two-detail;
+    in property <string> stat-three-label;
+    in property <string> stat-three-value;
+    in property <string> stat-three-detail;
+    in property <string> stat-four-label;
+    in property <string> stat-four-value;
+    in property <string> stat-four-detail;
+
+    height: HubTokens.list-row-sm * 2 + HubTokens.space-2;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-2;
+
+        HorizontalLayout {
+            height: HubTokens.list-row-sm;
+            spacing: HubTokens.space-2;
+
+            CatalogDetailStatCell {
+                label: root.stat-one-label;
+                value: root.stat-one-value;
+                detail: root.stat-one-detail;
+                accent: 0;
+            }
+
+            CatalogDetailStatCell {
+                label: root.stat-two-label;
+                value: root.stat-two-value;
+                detail: root.stat-two-detail;
+                accent: 1;
+            }
+        }
+
+        HorizontalLayout {
+            height: HubTokens.list-row-sm;
+            spacing: HubTokens.space-2;
+
+            CatalogDetailStatCell {
+                label: root.stat-three-label;
+                value: root.stat-three-value;
+                detail: root.stat-three-detail;
+                accent: 2;
+            }
+
+            CatalogDetailStatCell {
+                label: root.stat-four-label;
+                value: root.stat-four-value;
+                detail: root.stat-four-detail;
+                accent: 3;
+            }
+        }
+    }
+}
+
+component CatalogDetailCheckList inherits Rectangle {
+    in property <string> check-one-title;
+    in property <string> check-one-detail;
+    in property <string> check-one-badge: "Ready";
+    in property <string> check-one-tone: "ok";
+    in property <string> check-two-title;
+    in property <string> check-two-detail;
+    in property <string> check-two-badge: "Ready";
+    in property <string> check-two-tone: "neutral";
+    in property <string> check-three-title;
+    in property <string> check-three-detail;
+    in property <string> check-three-badge: "Review";
+    in property <string> check-three-tone: "warning";
+
+    height: HubTokens.list-row-sm * 3 + HubTokens.space-2 * 2;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-2;
+
+        CatalogDetailCheckRow {
+            title: root.check-one-title;
+            detail: root.check-one-detail;
+            badge-text: root.check-one-badge;
+            badge-tone: root.check-one-tone;
+            icon-image: @image-url("../assets/icons/ui/folder.svg");
+        }
+
+        CatalogDetailCheckRow {
+            title: root.check-two-title;
+            detail: root.check-two-detail;
+            badge-text: root.check-two-badge;
+            badge-tone: root.check-two-tone;
+            icon-image: @image-url("../assets/icons/ui/settings.svg");
+        }
+
+        CatalogDetailCheckRow {
+            title: root.check-three-title;
+            detail: root.check-three-detail;
+            badge-text: root.check-three-badge;
+            badge-tone: root.check-three-tone;
+            icon-image: @image-url("../assets/icons/ui/alert.svg");
+        }
+    }
+}
+
+export component CatalogDetailPanel inherits PanelSlot {
+    in property <string> panel-title;
+    in property <string> panel-subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "accent";
+    in property <length> badge-width: HubTokens.control-md * 4;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: true;
+    in property <string> primary;
+    in property <string> secondary;
+    in property <string> stat-one-label;
+    in property <string> stat-one-value;
+    in property <string> stat-one-detail;
+    in property <string> stat-two-label;
+    in property <string> stat-two-value;
+    in property <string> stat-two-detail;
+    in property <string> stat-three-label;
+    in property <string> stat-three-value;
+    in property <string> stat-three-detail;
+    in property <string> stat-four-label;
+    in property <string> stat-four-value;
+    in property <string> stat-four-detail;
+    in property <string> check-one-title;
+    in property <string> check-one-detail;
+    in property <string> check-one-badge: "Ready";
+    in property <string> check-one-tone: "ok";
+    in property <string> check-two-title;
+    in property <string> check-two-detail;
+    in property <string> check-two-badge: "Ready";
+    in property <string> check-two-tone: "neutral";
+    in property <string> check-three-title;
+    in property <string> check-three-detail;
+    in property <string> check-three-badge: "Review";
+    in property <string> check-three-tone: "warning";
+    private property <length> preview-height: HubTokens.list-row-lg + HubTokens.space-6;
+
+    body-padding: MaterialStyleMetrics.padding_16;
+    body-spacing: HubTokens.toolbar-gap;
+
+    PanelHeader {
+        title: root.panel-title;
+        subtitle: root.panel-subtitle;
+        show-badge: true;
+        badge-text: root.badge-text;
+        badge-tone: root.badge-tone;
+        badge-width: root.badge-width;
+    }
+
+    CatalogDetailPreviewBand {
+        preview-height: root.preview-height;
+        icon-image: root.icon-image;
+        has-icon-image: root.has-icon-image;
+        primary: root.primary;
+        secondary: root.secondary;
+    }
+
+    CatalogDetailStatGrid {
+        stat-one-label: root.stat-one-label;
+        stat-one-value: root.stat-one-value;
+        stat-one-detail: root.stat-one-detail;
+        stat-two-label: root.stat-two-label;
+        stat-two-value: root.stat-two-value;
+        stat-two-detail: root.stat-two-detail;
+        stat-three-label: root.stat-three-label;
+        stat-three-value: root.stat-three-value;
+        stat-three-detail: root.stat-three-detail;
+        stat-four-label: root.stat-four-label;
+        stat-four-value: root.stat-four-value;
+        stat-four-detail: root.stat-four-detail;
+    }
+
+    CatalogDetailCheckList {
+        check-one-title: root.check-one-title;
+        check-one-detail: root.check-one-detail;
+        check-one-badge: root.check-one-badge;
+        check-one-tone: root.check-one-tone;
+        check-two-title: root.check-two-title;
+        check-two-detail: root.check-two-detail;
+        check-two-badge: root.check-two-badge;
+        check-two-tone: root.check-two-tone;
+        check-three-title: root.check-three-title;
+        check-three-detail: root.check-three-detail;
+        check-three-badge: root.check-three-badge;
+        check-three-tone: root.check-three-tone;
+    }
+
+    Rectangle { vertical-stretch: 1; min-height: 0px; }
+}

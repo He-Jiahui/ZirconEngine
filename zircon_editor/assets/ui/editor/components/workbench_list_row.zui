@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_list_row.zui"
+version = 2
+display_name = "Workbench List Row"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchListRow]
+root = "root"
+default_classes = ["workbench-list-row", "workbench-primitive"]
+
+[nodes.root]
+component = "ListRow"
+control_id = "WorkbenchListRowRoot"
+classes = ["workbench-list-row"]
+props = { text = "List item", value = "item", selected = false, focused = false, hovered = false, pressed = false, layout_padding_left = 12.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }

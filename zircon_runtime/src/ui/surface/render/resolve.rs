@@ -7,6 +7,10 @@ use zircon_runtime_interface::ui::surface::{
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
+use zircon_runtime_interface::ui::{
+    event_ui::UiStateFlags,
+    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+};
 
 pub(super) fn resolve_command_kind(
     style: &UiResolvedStyle,
@@ -33,9 +37,15 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
         .or_else(|| resolve_style_number(metadata, "font_size"))
         .unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
     UiResolvedStyle {
-        background_color: resolve_style_color(metadata, "background"),
-        foreground_color: resolve_style_color(metadata, "foreground"),
-        border_color: resolve_style_color(metadata, "border"),
+        background_color: resolve_style_color(metadata, "background")
+            .or_else(|| resolve_style_color(metadata, "background_color")),
+        foreground_color: resolve_style_color(metadata, "foreground")
+            .or_else(|| resolve_style_color(metadata, "foreground_color"))
+            .or_else(|| resolve_style_color(metadata, "fg"))
+            .or_else(|| resolve_style_color(metadata, "color")),
+        border_color: resolve_style_color(metadata, "border")
+            .or_else(|| resolve_style_color(metadata, "border_color"))
+            .or_else(|| resolve_style_color(metadata, "outline")),
         border_width: resolve_style_table_number(metadata, "border", "width")
             .or_else(|| resolve_style_number(metadata, "border_width"))
             .unwrap_or(0.0),
@@ -75,7 +85,62 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
             .or_else(|| resolve_style_string(metadata, "text_render_mode"))
             .and_then(parse_text_render_mode)
             .unwrap_or_default(),
+        ..UiResolvedStyle::default()
     }
+}
+
+pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) -> UiPainterFamily {
+    let Some(metadata) = metadata else {
+        return UiPainterFamily::Generic;
+    };
+    match metadata.component.as_str() {
+        "Button" | "ToggleButton" => UiPainterFamily::Button,
+        "IconButton" => UiPainterFamily::IconButton,
+        "Checkbox" => UiPainterFamily::Checkbox,
+        "Radio" => UiPainterFamily::Radio,
+        "Toggle" | "Switch" => UiPainterFamily::Toggle,
+        "RangeField" | "Slider" | "RangeSlider" => UiPainterFamily::Slider,
+        "Dropdown" | "ComboBox" | "Select" => UiPainterFamily::Dropdown,
+        "PopupRow" | "MenuItem" => UiPainterFamily::PopupRow,
+        "Tooltip" => UiPainterFamily::Tooltip,
+        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" => {
+            UiPainterFamily::TextField
+        }
+        "ListRow" => UiPainterFamily::ListRow,
+        "TreeRow" => UiPainterFamily::TreeRow,
+        "Tab" => UiPainterFamily::Tab,
+        "Toast" => UiPainterFamily::Toast,
+        _ => UiPainterFamily::Generic,
+    }
+}
+
+pub(super) fn resolve_painter_state(
+    metadata: Option<&UiTemplateNodeMetadata>,
+    state_flags: &UiStateFlags,
+) -> UiPainterResolvedState {
+    let family = resolve_painter_family(metadata);
+    let state = UiPainterState {
+        hovered: resolve_bool_attribute(metadata, "hovered").unwrap_or(false),
+        pressed: state_flags.pressed
+            || resolve_bool_attribute(metadata, "pressed").unwrap_or(false),
+        focused: resolve_bool_attribute(metadata, "focused").unwrap_or(false),
+        disabled: !state_flags.enabled
+            || resolve_bool_attribute(metadata, "disabled").unwrap_or(false),
+        checked: state_flags.checked
+            || resolve_bool_attribute(metadata, "checked")
+                .or_else(|| resolve_bool_attribute(metadata, "value"))
+                .unwrap_or(false),
+        selected: resolve_bool_attribute(metadata, "selected").unwrap_or(false),
+        open: resolve_bool_attribute(metadata, "open")
+            .or_else(|| resolve_bool_attribute(metadata, "popup_open"))
+            .unwrap_or(false),
+        dragging: resolve_bool_attribute(metadata, "dragging").unwrap_or(false),
+        drop_hovered: resolve_bool_attribute(metadata, "drop_hovered")
+            .or_else(|| resolve_bool_attribute(metadata, "active_drag_target"))
+            .unwrap_or(false),
+        loading: resolve_bool_attribute(metadata, "loading").unwrap_or(false),
+    };
+    state.resolved_state_for_family(family)
 }
 
 pub(super) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {

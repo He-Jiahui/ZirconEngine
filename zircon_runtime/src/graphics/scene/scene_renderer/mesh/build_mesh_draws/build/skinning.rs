@@ -8,9 +8,10 @@ pub(super) fn skin_mesh_asset_primitive(
     mesh: &MeshAsset,
     skeleton: &AnimationSkeletonAsset,
     pose: &AnimationPoseOutput,
+    morph_weights: &[f32],
 ) -> Result<ModelPrimitiveAsset, String> {
     let primitive = mesh
-        .to_morphed_model_primitive(&[])
+        .to_morphed_model_primitive(morph_weights)
         .map_err(|error| error.to_string())?;
     skin_model_primitive(&primitive, skeleton, pose)
 }
@@ -163,7 +164,7 @@ mod tests {
     use super::{skin_mesh_asset_primitive, skin_model_primitive};
     use crate::asset::{
         AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetUri, MeshAsset,
-        MeshAttributeValues, MeshIndices, MeshVertex, ModelPrimitiveAsset,
+        MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex, ModelPrimitiveAsset,
         MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
         MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
     };
@@ -234,7 +235,7 @@ mod tests {
         let skeleton = unit_test_skeleton();
         let pose = joint_quarter_turn_pose();
 
-        let skinned = skin_mesh_asset_primitive(&mesh, &skeleton, &pose)
+        let skinned = skin_mesh_asset_primitive(&mesh, &skeleton, &pose, &[])
             .expect("expected direct mesh payload to skin through the shared primitive helper");
         let vertex = &skinned.vertices[0];
 
@@ -247,6 +248,56 @@ mod tests {
         assert!(
             Vec3::from_array(vertex.normal).abs_diff_eq(Vec3::Y, 1.0e-4),
             "expected direct mesh normal to follow the posed joint rotation"
+        );
+    }
+
+    #[test]
+    fn skin_mesh_asset_primitive_applies_morph_weights_before_skinning() {
+        let mut mesh = MeshAsset::new(
+            AssetUri::parse("res://meshes/morphed-skinned-direct.zmesh").unwrap(),
+            RenderMeshTopology::PointList,
+            BTreeMap::from([
+                (
+                    MESH_ATTRIBUTE_POSITION.to_string(),
+                    MeshAttributeValues::Float32x3(vec![[2.0, 0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_NORMAL.to_string(),
+                    MeshAttributeValues::Float32x3(vec![[1.0, 0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_UV0.to_string(),
+                    MeshAttributeValues::Float32x2(vec![[0.0, 0.0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_JOINT_INDEX.to_string(),
+                    MeshAttributeValues::Uint16x4(vec![[1, 0, 0, 0]]),
+                ),
+                (
+                    MESH_ATTRIBUTE_JOINT_WEIGHT.to_string(),
+                    MeshAttributeValues::Float32x4(vec![[1.0, 0.0, 0.0, 0.0]]),
+                ),
+            ]),
+            Some(MeshIndices::U32(vec![0])),
+        )
+        .unwrap();
+        mesh.morph_targets = vec![MeshMorphTargetAsset {
+            name: Some("Lift".to_string()),
+            attributes: BTreeMap::from([(
+                MESH_ATTRIBUTE_POSITION.to_string(),
+                MeshAttributeValues::Float32x3(vec![[0.0, 1.0, 0.0]]),
+            )]),
+        }];
+        let skeleton = unit_test_skeleton();
+        let pose = joint_quarter_turn_pose();
+
+        let skinned = skin_mesh_asset_primitive(&mesh, &skeleton, &pose, &[1.0])
+            .expect("expected direct mesh morph weights to apply before CPU skinning");
+        let vertex = &skinned.vertices[0];
+
+        assert!(
+            Vec3::from_array(vertex.position).abs_diff_eq(Vec3::new(0.0, 1.0, 0.0), 1.0e-4),
+            "expected morphed position to be transformed by the posed joint"
         );
     }
 

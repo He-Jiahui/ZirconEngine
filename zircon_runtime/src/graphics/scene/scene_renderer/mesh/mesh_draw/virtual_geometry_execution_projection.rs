@@ -15,7 +15,7 @@ impl MeshDraw {
         draw_index: usize,
     ) -> RenderVirtualGeometryExecutionDraw {
         RenderVirtualGeometryExecutionDraw {
-            indirect_args_buffer: self.indirect_args_buffer.clone(),
+            indirect_args_buffer_available: self.indirect_args_buffer.is_some(),
             indirect_args_offset: self.indirect_args_offset,
             uses_indirect_draw: self.indirect_args_buffer.is_some(),
             execution_selection_key: self.virtual_geometry_execution_selection_key(),
@@ -162,7 +162,10 @@ mod tests {
         );
 
         assert_eq!(
-            execution_draw_ref_index(Some(submission_detail), 3 * super::INDIRECT_ARGS_STRIDE_BYTES),
+            execution_draw_ref_index(
+                Some(submission_detail),
+                3 * super::INDIRECT_ARGS_STRIDE_BYTES
+            ),
             9,
             "expected execution ownership to keep the authoritative draw-ref index emitted by the shared submission truth instead of reconstructing it from indirect args offsets"
         );

@@ -34,4 +34,23 @@ impl AntiAliasMode {
             Self::Fxaa | Self::Smaa | Self::Taa | Self::Cas | Self::Dlss
         )
     }
+
+    pub const fn graph_sample_count(self) -> u32 {
+        match self {
+            Self::Msaa { samples } => {
+                if samples > 1 {
+                    samples
+                } else {
+                    1
+                }
+            }
+            Self::Off
+            | Self::Auto
+            | Self::Fxaa
+            | Self::Taa
+            | Self::Smaa
+            | Self::Cas
+            | Self::Dlss => 1,
+        }
+    }
 }

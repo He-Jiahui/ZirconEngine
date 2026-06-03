@@ -9,6 +9,6 @@ pub use phase_queue::{
     build_mesh_phase_queue, build_sprite_phase_queue, MeshPhaseInput, RenderPhaseQueue,
     SpritePhaseInput,
 };
-pub use phase_sort::RenderPhaseSortKey;
+pub use phase_sort::{RenderPhaseSortComponents, RenderPhaseSortKey};
 pub use pipeline_kind::CorePipelineKind;
 pub use render_phase::RenderPhase;

@@ -1,0 +1,166 @@
+import { HubRowSurface, PanelListViewport } from "data_display.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { HubPanel, PanelHeader, StatusBadge } from "surfaces.slint";
+import {
+    Icon,
+    ListTile,
+    MaterialPalette,
+    StateLayerArea,
+} from "material_bridge.slint";
+
+export struct TreeItemData {
+    id: string,
+    title: string,
+    detail: string,
+    depth: int,
+    expanded: bool,
+    selected: bool,
+    disabled: bool,
+    has-children: bool,
+    icon-image: image,
+    has-icon-image: bool,
+    trailing-text: string,
+    trailing-tone: string,
+}
+
+export component HubTreeRow inherits HubRowSurface {
+    in property <TreeItemData> item;
+    in property <length> row-spacing: HubTokens.space-2;
+    callback activated(string);
+    callback toggle-expanded(string);
+
+    private property <length> depth-indent: root.item.depth * HubTokens.space-4;
+    private property <string> supporting-text: root.item.detail;
+
+    selected: root.item.selected;
+    enabled: !root.item.disabled;
+    idle-background: HubVisualSpec.panel-background;
+    selected-background: MaterialPalette.secondary_container;
+    selected-border-width: HubTokens.border-width;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.content-foreground;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if root.enabled {
+                root.activated(root.item.id);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        spacing: root.row-spacing;
+        alignment: center;
+
+        Rectangle {
+            width: root.depth-indent;
+            height: parent.height;
+            background: transparent;
+        }
+
+        Rectangle {
+            width: HubTokens.control-sm;
+            height: HubTokens.control-sm;
+            border-radius: HubVisualSpec.compact-radius;
+            background: transparent;
+            clip: true;
+
+            if root.item.has-children: StateLayerArea {
+                width: parent.width;
+                height: parent.height;
+                color: MaterialPalette.on_surface_variant;
+                border_radius: HubVisualSpec.compact-radius;
+                clicked => {
+                    if root.enabled {
+                        root.toggle-expanded(root.item.id);
+                    }
+                }
+            }
+
+            if root.item.has-children: Icon {
+                width: HubTokens.icon-sm;
+                height: HubTokens.icon-sm;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: root.item.expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
+                colorize: MaterialPalette.on_surface_variant;
+            }
+        }
+
+        ListTile {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            height: parent.height;
+            text: root.item.title;
+            supporting_text: root.supporting-text;
+            avatar_icon: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/brand/zircon-mark.svg");
+            avatar_background: HubVisualSpec.neutral-icon-background;
+            avatar_foreground: HubVisualSpec.neutral-icon-foreground;
+            enabled: root.enabled;
+            clicked => {
+                if root.enabled {
+                    root.activated(root.item.id);
+                }
+            }
+
+            if root.item.trailing-text != "": StatusBadge {
+                text: root.item.trailing-text;
+                tone: root.item.trailing-tone;
+            }
+        }
+    }
+}
+
+export component HubTreeView inherits HubPanel {
+    in-out property <length> scroll-y: 0px;
+    in property <string> title;
+    in property <[TreeItemData]> items;
+    in property <int> item-count;
+    in property <length> row-height: HubTokens.list-row-md;
+    in property <bool> show-header: false;
+    callback activated(string);
+    callback toggle-expanded(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-height: root.row-height * 3;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: HubTokens.space-4;
+        spacing: HubTokens.space-2;
+
+        if root.show-header: PanelHeader {
+            title: root.title;
+            show-badge: true;
+            badge-text: root.item-count + "";
+            badge-tone: "info";
+        }
+
+        PanelListViewport {
+            scroll-y <=> root.scroll-y;
+            row-count: root.item-count;
+            row-height: root.row-height;
+            row-spacing: HubTokens.space-1;
+            vertical-padding: HubTokens.space-0;
+
+            for item in root.items: HubTreeRow {
+                item: item;
+                row-height: root.row-height;
+                activated(id) => {
+                    root.activated(id);
+                }
+                toggle-expanded(id) => {
+                    root.toggle-expanded(id);
+                }
+            }
+        }
+    }
+}

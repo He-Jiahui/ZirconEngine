@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{RenderFrameExtract, RenderPhase};
-use crate::render_graph::RenderGraphBuilder;
+use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphBuilder};
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
 use crate::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
     RenderFeatureDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
+    RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
@@ -94,13 +95,13 @@ impl RenderPipelineAsset {
                 RenderFeatureResourceKind::Texture => {
                     texture_resources.insert(
                         name.clone(),
-                        graph.create_transient_texture(texture_desc_for(name)),
+                        graph.create_transient_texture(texture_desc_for(name, extract, options)),
                     );
                 }
                 RenderFeatureResourceKind::Buffer => {
                     buffer_resources.insert(
                         name.clone(),
-                        graph.create_transient_buffer(buffer_desc_for(name)),
+                        graph.create_transient_buffer(buffer_desc_for(name, extract)),
                     );
                 }
                 RenderFeatureResourceKind::External => {
@@ -110,6 +111,7 @@ impl RenderPipelineAsset {
         }
         let mut previous = None;
         let mut pass_stages = Vec::new();
+        let mut produced_texture_resources = BTreeSet::<String>::new();
         for stage in &self.renderer.stages {
             for pass_descriptor in stage_pass_descriptors(*stage, &enabled_descriptors) {
                 pass_stages.push(CompiledRenderPipelinePassStage::new(
@@ -125,6 +127,11 @@ impl RenderPipelineAsset {
                 graph
                     .set_pass_flags(pass, pass_descriptor.flags)
                     .map_err(|error| error.to_string())?;
+                if let Some(workload) = pass_descriptor.compute_workload.clone() {
+                    graph
+                        .set_compute_workload(pass, workload)
+                        .map_err(|error| error.to_string())?;
+                }
                 for resource in &pass_descriptor.resources {
                     match (resource.kind, resource.access) {
                         (RenderFeatureResourceKind::Texture, RenderFeatureResourceAccess::Read) => {
@@ -145,12 +152,53 @@ impl RenderPipelineAsset {
                             RenderFeatureResourceKind::Texture,
                             RenderFeatureResourceAccess::Write,
                         ) => match graph_resources[&resource.name] {
-                            RenderFeatureResourceKind::Texture => graph
-                                .write_texture(pass, texture_resources[&resource.name])
-                                .map_err(|error| error.to_string())?,
-                            RenderFeatureResourceKind::External => graph
-                                .write_external(pass, external_resources[&resource.name])
-                                .map_err(|error| error.to_string())?,
+                            RenderFeatureResourceKind::Texture => {
+                                if resource.write_mode == RenderFeatureResourceWriteMode::Storage {
+                                    graph
+                                        .write_storage_texture(
+                                            pass,
+                                            texture_resources[&resource.name],
+                                        )
+                                        .map_err(|error| error.to_string())?;
+                                } else {
+                                    let ops = resource.attachment_ops.unwrap_or_else(|| {
+                                        if produced_texture_resources.contains(&resource.name) {
+                                            RenderGraphAttachmentOps::load_store()
+                                        } else {
+                                            RenderGraphAttachmentOps::clear_store()
+                                        }
+                                    });
+                                    graph
+                                        .write_texture_with_ops(
+                                            pass,
+                                            texture_resources[&resource.name],
+                                            ops,
+                                        )
+                                        .map_err(|error| error.to_string())?;
+                                }
+                                produced_texture_resources.insert(resource.name.clone());
+                            }
+                            RenderFeatureResourceKind::External => {
+                                if resource.write_mode == RenderFeatureResourceWriteMode::Storage {
+                                    graph
+                                        .write_storage_external(
+                                            pass,
+                                            external_resources[&resource.name],
+                                        )
+                                        .map_err(|error| error.to_string())?;
+                                } else {
+                                    let ops = resource
+                                        .attachment_ops
+                                        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+                                    graph
+                                        .write_external_with_ops(
+                                            pass,
+                                            external_resources[&resource.name],
+                                            ops,
+                                        )
+                                        .map_err(|error| error.to_string())?;
+                                }
+                            }
                             RenderFeatureResourceKind::Buffer => unreachable!(
                                 "texture resource `{}` was compiled as a buffer",
                                 resource.name
@@ -175,9 +223,29 @@ impl RenderPipelineAsset {
                                 RenderFeatureResourceKind::Buffer => graph
                                     .write_buffer(pass, buffer_resources[&resource.name])
                                     .map_err(|error| error.to_string())?,
-                                RenderFeatureResourceKind::External => graph
-                                    .write_external(pass, external_resources[&resource.name])
-                                    .map_err(|error| error.to_string())?,
+                                RenderFeatureResourceKind::External => {
+                                    if resource.write_mode
+                                        == RenderFeatureResourceWriteMode::Storage
+                                    {
+                                        graph
+                                            .write_storage_external(
+                                                pass,
+                                                external_resources[&resource.name],
+                                            )
+                                            .map_err(|error| error.to_string())?;
+                                    } else {
+                                        let ops = resource
+                                            .attachment_ops
+                                            .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+                                        graph
+                                            .write_external_with_ops(
+                                                pass,
+                                                external_resources[&resource.name],
+                                                ops,
+                                            )
+                                            .map_err(|error| error.to_string())?;
+                                    }
+                                }
                                 RenderFeatureResourceKind::Texture => unreachable!(
                                     "buffer resource `{}` was compiled as a texture",
                                     resource.name
@@ -196,9 +264,25 @@ impl RenderPipelineAsset {
                             RenderFeatureResourceKind::External,
                             RenderFeatureResourceAccess::Write,
                         ) => {
-                            graph
-                                .write_external(pass, external_resources[&resource.name])
-                                .map_err(|error| error.to_string())?;
+                            if resource.write_mode == RenderFeatureResourceWriteMode::Storage {
+                                graph
+                                    .write_storage_external(
+                                        pass,
+                                        external_resources[&resource.name],
+                                    )
+                                    .map_err(|error| error.to_string())?;
+                            } else {
+                                let ops = resource
+                                    .attachment_ops
+                                    .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+                                graph
+                                    .write_external_with_ops(
+                                        pass,
+                                        external_resources[&resource.name],
+                                        ops,
+                                    )
+                                    .map_err(|error| error.to_string())?;
+                            }
                         }
                     }
                 }
@@ -297,6 +381,30 @@ fn validate_descriptor_names(descriptors: &[RenderFeatureDescriptor]) -> Result<
         if descriptor.name.trim().is_empty() {
             return Err("feature descriptor name must not be empty".to_string());
         }
+        let mut extract_sections = BTreeSet::new();
+        for section in &descriptor.required_extract_sections {
+            if section.trim().is_empty() {
+                return Err(format!(
+                    "feature descriptor `{}` extract section name must not be empty",
+                    descriptor.name
+                ));
+            }
+            if !extract_sections.insert(section.as_str()) {
+                return Err(format!(
+                    "feature descriptor `{}` declares duplicate extract section `{}`",
+                    descriptor.name, section
+                ));
+            }
+        }
+        let mut history_slots = BTreeSet::new();
+        for binding in &descriptor.history_bindings {
+            if !history_slots.insert(binding.slot) {
+                return Err(format!(
+                    "feature descriptor `{}` declares duplicate history binding for slot `{:?}`",
+                    descriptor.name, binding.slot
+                ));
+            }
+        }
         for pass in &descriptor.stage_passes {
             if pass.pass_name.trim().is_empty() {
                 return Err(format!(
@@ -310,11 +418,59 @@ fn validate_descriptor_names(descriptors: &[RenderFeatureDescriptor]) -> Result<
                     descriptor.name, pass.pass_name
                 ));
             }
+            if let Some(workload) = &pass.compute_workload {
+                if pass.queue != crate::render_graph::QueueLane::AsyncCompute {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` cannot declare compute workload on `{:?}` queue",
+                        descriptor.name, pass.pass_name, pass.queue
+                    ));
+                }
+                if workload.pipeline_label.trim().is_empty() {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` compute workload pipeline label must not be empty",
+                        descriptor.name, pass.pass_name
+                    ));
+                }
+                if workload
+                    .workgroup_size
+                    .iter()
+                    .any(|dimension| *dimension == 0)
+                {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` compute workload workgroup size dimensions must be nonzero",
+                        descriptor.name, pass.pass_name
+                    ));
+                }
+            }
             for resource in &pass.resources {
                 if resource.name.trim().is_empty() {
                     return Err(format!(
                         "feature descriptor `{}` pass `{}` resource name must not be empty",
                         descriptor.name, pass.pass_name
+                    ));
+                }
+                if resource.access == RenderFeatureResourceAccess::Read
+                    && resource.attachment_ops.is_some()
+                {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` resource `{}` cannot declare attachment ops for a read access",
+                        descriptor.name, pass.pass_name, resource.name
+                    ));
+                }
+                if resource.access == RenderFeatureResourceAccess::Read
+                    && resource.write_mode == RenderFeatureResourceWriteMode::Storage
+                {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` resource `{}` cannot declare storage write mode for a read access",
+                        descriptor.name, pass.pass_name, resource.name
+                    ));
+                }
+                if resource.write_mode == RenderFeatureResourceWriteMode::Storage
+                    && resource.attachment_ops.is_some()
+                {
+                    return Err(format!(
+                        "feature descriptor `{}` pass `{}` resource `{}` cannot declare attachment ops for a storage write",
+                        descriptor.name, pass.pass_name, resource.name
                     ));
                 }
             }
@@ -468,37 +624,61 @@ impl PipelineGraphResourceUsage {
     }
 }
 
-fn texture_desc_for(name: &str) -> TextureDesc {
+fn texture_desc_for(
+    name: &str,
+    extract: &RenderFrameExtract,
+    options: &RenderPipelineCompileOptions,
+) -> TextureDesc {
+    let view_size = extract.view.effective_render_size();
     let format = if name.contains("depth") || name.contains("shadow") {
         TextureFormat::Depth32Float
+    } else if extract.view.camera.hdr && is_scene_color_resource(name) {
+        TextureFormat::Rgba16Float
     } else {
         TextureFormat::Rgba8UnormSrgb
     };
-    TextureDesc::new(
-        name,
-        1,
-        1,
-        format,
-        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
-    )
+    let mut usage =
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC;
+    if !format.is_depth() {
+        usage |= TextureUsage::STORAGE | TextureUsage::COPY_DST;
+    }
+    let sample_count = if name.contains("shadow") {
+        1
+    } else {
+        options.graph_msaa_sample_count(extract.view.camera.msaa_samples)
+    };
+    TextureDesc::new(name, view_size.x.max(1), view_size.y.max(1), format, usage)
+        .with_sample_count(sample_count)
 }
 
-fn buffer_desc_for(name: &str) -> BufferDesc {
+fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
+    let view_size = extract.view.effective_render_size();
+    let pixel_count = u64::from(view_size.x.max(1)) * u64::from(view_size.y.max(1));
     BufferDesc::new(
         name,
-        4,
+        pixel_count.max(1) * 4,
         BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
     )
 }
 
+fn is_scene_color_resource(name: &str) -> bool {
+    matches!(
+        name,
+        "scene-color" | "final-color" | "final-composited" | "bloom-texture" | "ambient-occlusion"
+    ) || name.starts_with("gbuffer-")
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::PostProcessGraphResourceNames;
     use crate::core::framework::render::{
-        RenderFrameExtract, RenderPipelineHandle, RenderWorldSnapshotHandle,
+        RenderFrameExtract, RenderPhase, RenderPipelineHandle, RenderWorldSnapshotHandle,
     };
     use crate::graphics::feature::{RenderFeatureDescriptor, RenderFeaturePassDescriptor};
     use crate::graphics::pipeline::{RenderPassStage, RenderPipelineAsset, RendererAsset};
-    use crate::render_graph::QueueLane;
+    use crate::render_graph::{
+        QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
+    };
     use crate::scene::world::World;
 
     #[test]
@@ -553,6 +733,94 @@ mod tests {
         );
         assert_eq!(compiled.pass_stage("missing-pass"), None);
         assert_eq!(compiled.pass_stages.len(), compiled.graph.passes().len());
+    }
+
+    #[test]
+    fn compile_preserves_compute_workload_from_feature_descriptor() {
+        let pipeline = RenderPipelineAsset {
+            handle: RenderPipelineHandle::new(78),
+            name: "compute-workload-test".to_string(),
+            core_pipeline: crate::core::framework::render::CorePipelineKind::Core3d,
+            phase_mapping: vec![RenderPhase::PostProcess],
+            renderer: RendererAsset {
+                name: "compute-workload-renderer".to_string(),
+                stages: vec![RenderPassStage::AmbientOcclusion],
+                features: vec![crate::graphics::pipeline::RendererFeatureAsset::plugin(
+                    RenderFeatureDescriptor::new(
+                        "compute-workload-feature",
+                        Vec::new(),
+                        Vec::new(),
+                        vec![RenderFeaturePassDescriptor::new(
+                            RenderPassStage::AmbientOcclusion,
+                            "ssao-evaluate",
+                            QueueLane::AsyncCompute,
+                        )
+                        .with_executor_id("ao.ssao-evaluate")
+                        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                            "zircon-ssao-pipeline",
+                            [8, 8, 1],
+                        ))
+                        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+                        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+                    ),
+                )],
+            },
+        };
+
+        let compiled = pipeline.compile(&test_extract()).unwrap();
+        let pass = compiled
+            .graph
+            .passes()
+            .iter()
+            .find(|pass| pass.name == "ssao-evaluate")
+            .unwrap();
+        let workload = pass.compute_workload.as_ref().unwrap();
+
+        assert_eq!(workload.pipeline_label, "zircon-ssao-pipeline");
+        assert_eq!(workload.workgroup_size, [8, 8, 1]);
+        assert_eq!(
+            workload.dispatch_extent,
+            RenderGraphComputeDispatchExtent::Viewport
+        );
+    }
+
+    #[test]
+    fn compile_rejects_compute_workload_on_non_compute_queue() {
+        let pipeline = RenderPipelineAsset {
+            handle: RenderPipelineHandle::new(79),
+            name: "compute-workload-queue-test".to_string(),
+            core_pipeline: crate::core::framework::render::CorePipelineKind::Core3d,
+            phase_mapping: vec![RenderPhase::PostProcess],
+            renderer: RendererAsset {
+                name: "compute-workload-queue-renderer".to_string(),
+                stages: vec![RenderPassStage::PostProcess],
+                features: vec![crate::graphics::pipeline::RendererFeatureAsset::plugin(
+                    RenderFeatureDescriptor::new(
+                        "invalid-compute-workload-feature",
+                        Vec::new(),
+                        Vec::new(),
+                        vec![RenderFeaturePassDescriptor::new(
+                            RenderPassStage::PostProcess,
+                            "bad-compute",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("bad.compute")
+                        .with_compute_workload(
+                            RenderGraphComputeWorkload::fixed("bad-pipeline", [1, 1, 1], [1, 1, 1]),
+                        )],
+                    ),
+                )],
+            },
+        };
+
+        let error = pipeline.compile(&test_extract()).unwrap_err();
+
+        assert!(
+            error.contains(
+                "feature descriptor `invalid-compute-workload-feature` pass `bad-compute` cannot declare compute workload on `Graphics` queue"
+            ),
+            "{error}"
+        );
     }
 
     fn test_extract() -> RenderFrameExtract {

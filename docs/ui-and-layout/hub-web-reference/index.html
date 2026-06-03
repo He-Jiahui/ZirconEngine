@@ -5,17 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Zircon Hub Web Reference</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="material-styles.css">
   <link rel="stylesheet" href="covers.css">
   <link rel="stylesheet" href="responsive.css">
   <link rel="stylesheet" href="fullscreen-preview.css">
   <link rel="stylesheet" href="interaction-states.css">
   <script src="cover-rendering.js" defer></script>
+  <script src="material-components.js" defer></script>
   <script src="app.js" defer></script>
   <script src="interaction-enhancements.js" defer></script>
 </head>
 <body>
-  <main class="hub-shell" aria-label="Zircon Hub reference layout">
-    <header class="topbar">
+  <main class="hub-shell" data-component="window-view" data-material-slot="window-view" aria-label="Zircon Hub reference layout">
+    <header class="topbar" data-component="topbar" data-material-slot="app-bar">
       <section class="brand-block" aria-label="Zircon Hub">
         <img class="brand-logo" src="../../../zircon_hub/assets/brand/zircon-mark.svg" alt="">
         <div>
@@ -24,7 +26,7 @@
         </div>
       </section>
 
-      <button class="engine-select" type="button" data-route="hub-source-engine-popup">
+      <button class="engine-select" data-component="select-button" type="button" data-route="hub-source-engine-popup">
         <span>Zircon Engine 1.8.2</span>
         <img src="../../../zircon_hub/assets/icons/ui/chevron-down.svg" alt="">
       </button>
@@ -37,19 +39,19 @@
       </section>
 
       <section class="top-actions" aria-label="Window actions">
-        <button class="icon-only" type="button" data-route="hub-state-loading"><img src="../../../zircon_hub/assets/icons/ui/bell.svg" alt=""></button>
-        <button class="icon-only" type="button" data-route="hub-learn"><img src="../../../zircon_hub/assets/icons/ui/help.svg" alt=""></button>
-        <button class="icon-only" type="button" data-route="hub-settings"><img src="../../../zircon_hub/assets/icons/ui/settings.svg" alt=""></button>
+        <button class="icon-only" data-component="icon-button" type="button" data-route="hub-state-loading"><img src="../../../zircon_hub/assets/icons/ui/bell.svg" alt=""></button>
+        <button class="icon-only" data-component="icon-button" type="button" data-route="hub-learn"><img src="../../../zircon_hub/assets/icons/ui/help.svg" alt=""></button>
+        <button class="icon-only" data-component="icon-button" type="button" data-route="hub-settings"><img src="../../../zircon_hub/assets/icons/ui/settings.svg" alt=""></button>
         <span class="divider"></span>
         <button class="user-menu" type="button" data-route="hub-user-menu"><span>AD</span> Alex Developer <img src="../../../zircon_hub/assets/icons/ui/chevron-down.svg" alt=""></button>
         <span class="divider"></span>
-        <button class="window-control" type="button" data-ui-action="window-minimize">-</button>
-        <button class="window-control square" type="button" data-ui-action="window-maximize"></button>
-        <button class="window-control close" type="button" data-ui-action="window-close">x</button>
+        <button class="window-control" data-component="icon-button" type="button" data-ui-action="window-minimize">-</button>
+        <button class="window-control square" data-component="icon-button" type="button" data-ui-action="window-maximize"></button>
+        <button class="window-control close" data-component="icon-button" type="button" data-ui-action="window-close">x</button>
       </section>
     </header>
 
-    <aside class="sidebar">
+    <aside class="sidebar" data-component="sidebar-drawer" data-material-slot="drawer-shell">
       <nav id="hub-nav" class="nav-list" aria-label="Hub sections"></nav>
 
       <section class="engine-card">
@@ -62,7 +64,7 @@
       <button class="collapse-button" type="button" data-ui-action="toggle-sidebar"><img src="../../../zircon_hub/assets/icons/ui/collapse.svg" alt="">Collapse</button>
     </aside>
 
-    <section id="workspace" class="workspace" aria-live="polite"></section>
+    <section id="workspace" class="workspace" data-component="workspace" data-material-slot="workspace-surface page-content-slot" aria-live="polite"></section>
 
     <section class="button-states" aria-label="Button states">
       <div class="state-group primary-states">

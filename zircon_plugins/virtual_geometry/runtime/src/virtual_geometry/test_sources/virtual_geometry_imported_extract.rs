@@ -45,6 +45,7 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/imported.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,

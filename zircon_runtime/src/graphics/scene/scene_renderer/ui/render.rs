@@ -8,7 +8,9 @@ use zircon_runtime_interface::ui::surface::{
     UiTextPaintDecorationKind, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
 };
 
+use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::types::ViewportRenderFrame;
+use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 
@@ -77,11 +79,13 @@ impl ScreenSpaceUiRenderer {
         encoder: &mut wgpu::CommandEncoder,
         color_view: &wgpu::TextureView,
         frame: &ViewportRenderFrame,
+        attachment_ops: RenderGraphAttachmentOps,
     ) {
         let Some(prepared) = prepare_screen_space_ui(device, frame) else {
             self.last_text_prepare_report = Default::default();
             return;
         };
+        self.last_attachment_ops = attachment_ops;
         self.text_system.prepare(
             device,
             queue,
@@ -98,10 +102,7 @@ impl ScreenSpaceUiRenderer {
                 view: color_view,
                 depth_slice: None,
                 resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                },
+                ops: color_attachment_operations(attachment_ops, wgpu::Color::TRANSPARENT),
             })],
             depth_stencil_attachment: None,
             occlusion_query_set: None,
@@ -149,6 +150,11 @@ impl ScreenSpaceUiRenderer {
 
     pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
         self.last_text_prepare_report
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn last_attachment_ops(&self) -> RenderGraphAttachmentOps {
+        self.last_attachment_ops
     }
 }
 

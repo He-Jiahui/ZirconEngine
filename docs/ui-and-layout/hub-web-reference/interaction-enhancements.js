@@ -7,7 +7,9 @@
     "Open in Editor": "hub-editor",
     "Build Project": "hub-builds",
     "Package Project": "hub-cloud",
+    "Package Selected Project": "hub-cloud",
     "Install to Device": "hub-builds",
+    "Install Selected Project": "hub-state-loading",
     "Upload Package": "hub-state-loading",
     "Deploy Preview": "hub-state-loading",
     "Open Service Logs": "hub-state-loading",
@@ -16,6 +18,7 @@
     "Request Review": "hub-state-loading",
     "Open Team Home": "hub-team",
     "Sync Metadata": "hub-state-loading",
+    "Remove from Hub": "hub-state-empty",
     "Delete Project": "hub-projects-detail-delete-confirm",
     "Open Task Log": "hub-builds",
     "Check for Updates": "hub-state-loading",
@@ -124,7 +127,8 @@
 
   function isLocalUiButton(button) {
     return Boolean(
-      button?.matches(".collapse-button, .window-control, .mode-button.active") ||
+      button?.dataset.uiAction ||
+        button?.matches(".collapse-button, .window-control, .mode-button.active") ||
         button?.closest(".button-states"),
     );
   }
@@ -173,6 +177,28 @@
       return true;
     }
 
+    if (button.dataset.uiAction === "tab-select") {
+      const strip = button.closest(".tab-strip");
+      strip?.querySelectorAll("button").forEach((candidate) => {
+        const active = candidate === button;
+        candidate.classList.toggle("active", active);
+        candidate.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      return true;
+    }
+
+    if (button.dataset.uiAction === "toggle-switch" || button.dataset.uiAction === "checkbox-toggle") {
+      const checked = !button.classList.contains("checked");
+      button.classList.toggle("checked", checked);
+      button.setAttribute("aria-pressed", checked ? "true" : "false");
+      return true;
+    }
+
+    if (button.dataset.uiAction === "combo-preview") {
+      setPressed(button, !button.classList.contains("is-demo-selected"));
+      return true;
+    }
+
     if (button.matches(".mode-button.active")) {
       setPressed(button, true);
       return true;
@@ -188,7 +214,7 @@
       return;
     }
     const candidates = workspace.querySelectorAll(
-      ".project-card, .project-row, .browser-row, .catalog-row, .template-row, .quick-row, .action-row",
+      ".project-card, .project-row, .browser-row, .catalog-row, .catalog-column-row, .catalog-data-table .data-table-row, .template-row, .quick-row, .action-row",
     );
     candidates.forEach((candidate) => {
       const hidden = Boolean(query) && !candidate.innerText.toLowerCase().includes(query);

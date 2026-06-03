@@ -286,6 +286,14 @@ fn importer_capability_report_marks_diagnostic_only_backends() {
         .any(
             |report| report.descriptor.id == "zircon.builtin.zmesh" && report.status.is_available()
         ));
+    let cube_lut_report = importer
+        .capability_report_for_source(Path::new("grade.cube"))
+        .expect("cube LUT importer report");
+    assert_eq!(
+        cube_lut_report.descriptor.id,
+        "zircon.builtin.texture.cube_lut"
+    );
+    assert!(cube_lut_report.status.is_available());
 }
 
 #[test]
@@ -761,6 +769,7 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
             let mesh = entity.mesh.as_ref().expect("node mesh");
             assert_eq!(mesh.model.locator, gltf_test_label_uri("Mesh0"));
             assert_eq!(mesh.material.locator, gltf_test_label_uri("Material0"));
+            assert_eq!(mesh.morph_weights, vec![0.5]);
             assert_eq!(mesh.primitives.len(), 1);
             assert_eq!(
                 mesh.primitives[0].mesh.locator,
@@ -1353,6 +1362,7 @@ fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {
   "meshes": [
     {
       "name": "TriangleMesh",
+      "weights": [0.5],
       "primitives": [
         {
           "attributes": { "POSITION": 0 },

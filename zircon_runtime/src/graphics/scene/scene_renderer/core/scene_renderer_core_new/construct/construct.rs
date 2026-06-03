@@ -26,6 +26,7 @@ impl SceneRendererCore {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
+        backend_name: &str,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -64,7 +65,8 @@ impl SceneRendererCore {
             &texture_bind_group_layout,
             target_format,
         );
-        let post_process = ScenePostProcessResources::new(device, queue, target_format);
+        let post_process =
+            ScenePostProcessResources::new(device, queue, target_format, backend_name);
         let overlay_renderer = ViewportOverlayRenderer::new(
             device,
             target_format,

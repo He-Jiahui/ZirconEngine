@@ -2,8 +2,8 @@ use crate::core::framework::render::{RenderPhaseMeshSource, RenderPhaseQueue};
 use crate::graphics::scene::resources::GpuMeshResource;
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::super::super::mesh_draw::MeshDraw;
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
+use super::super::super::mesh_draw::{MeshDraw, MeshDrawGeometrySource};
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
@@ -120,16 +120,21 @@ pub(crate) fn build_mesh_draws(
             .into_iter()
             .map(
                 |(indirect_args_offset, original_index, submission_detail, pending_draw)| {
-                    let mesh = match pending_draw.mesh {
-                        super::pending_mesh_draw::PendingMeshGeometry::Prepared(mesh) => mesh,
-                        super::pending_mesh_draw::PendingMeshGeometry::Skinned(primitive) => {
-                            std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive))
+                    let (mesh, geometry_source) = match pending_draw.mesh {
+                        super::pending_mesh_draw::PendingMeshGeometry::Prepared(mesh) => {
+                            (mesh, MeshDrawGeometrySource::Prepared)
                         }
+                        super::pending_mesh_draw::PendingMeshGeometry::Dynamic(primitive) => (
+                            std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive)),
+                            MeshDrawGeometrySource::Dynamic,
+                        ),
                     };
                     create_mesh_draw(
                         device,
                         model_layout,
                         mesh,
+                        geometry_source,
+                        pending_draw.mobility,
                         pending_draw.texture,
                         pending_draw.material_uniform,
                         pending_draw.pipeline_key,
@@ -272,24 +277,9 @@ mod tests {
             extract.view.core_pipeline,
             extract.geometry.meshes.clone(),
             vec![
-                GeometryPhaseInput {
-                    entity: 30,
-                    mesh_index: 0,
-                    material_alpha_mode: RenderMaterialAlphaMode::Blend,
-                    depth: 3.0,
-                },
-                GeometryPhaseInput {
-                    entity: 10,
-                    mesh_index: 1,
-                    material_alpha_mode: RenderMaterialAlphaMode::Opaque,
-                    depth: 1.0,
-                },
-                GeometryPhaseInput {
-                    entity: 20,
-                    mesh_index: 2,
-                    material_alpha_mode: RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
-                    depth: 2.0,
-                },
+                GeometryPhaseInput::new(30, 0, RenderMaterialAlphaMode::Blend, 3.0),
+                GeometryPhaseInput::new(10, 1, RenderMaterialAlphaMode::Opaque, 1.0),
+                GeometryPhaseInput::new(20, 2, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, 2.0),
             ],
         );
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
@@ -314,6 +304,7 @@ mod tests {
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 &format!("builtin://test-material/{node_id}"),
             )),
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: u32::MAX,

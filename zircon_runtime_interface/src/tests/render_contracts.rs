@@ -150,6 +150,90 @@ fn ui_icon_paint_payload_carries_frame_and_dpi_target_size_for_vector_cache() {
 }
 
 #[test]
+fn ui_image_control_paint_elements_preserve_background_image_and_border_order() {
+    let command = UiRenderCommand {
+        node_id: UiNodeId::new(78),
+        kind: UiRenderCommandKind::Quad,
+        frame: UiFrame::new(4.0, 8.0, 32.0, 24.0),
+        clip_frame: None,
+        z_index: 4,
+        style: UiResolvedStyle {
+            background_color: Some("#12383d".to_string()),
+            border_color: Some("#35c7d0".to_string()),
+            border_width: 1.0,
+            corner_radius: 6.0,
+            ..UiResolvedStyle::default()
+        },
+        text_layout: None,
+        text: None,
+        image: Some(UiVisualAssetRef::Icon("toolbar/move.svg".to_string())),
+        opacity: 1.0,
+    };
+
+    let elements = command.to_paint_elements(9);
+
+    assert_eq!(elements.len(), 3);
+    assert_eq!(elements[0].paint_order, 9);
+    assert_eq!(elements[1].paint_order, 10);
+    assert_eq!(elements[2].paint_order, 11);
+
+    let UiPaintPayload::Brush { brushes } = &elements[0].payload else {
+        panic!("expected background brush payload");
+    };
+    assert!(matches!(brushes.fill, Some(UiBrushPayload::Rounded(_))));
+    assert!(brushes.border.is_none());
+
+    let UiPaintPayload::Brush { brushes } = &elements[1].payload else {
+        panic!("expected image brush payload");
+    };
+    assert!(matches!(brushes.fill, Some(UiBrushPayload::Image(_))));
+    assert!(brushes.border.is_none());
+
+    let UiPaintPayload::Brush { brushes } = &elements[2].payload else {
+        panic!("expected border brush payload");
+    };
+    assert!(brushes.fill.is_none());
+    assert!(matches!(brushes.border, Some(UiBrushPayload::Border(_))));
+}
+
+#[test]
+fn ui_render_list_paint_order_accounts_for_split_image_controls() {
+    let image_control = UiRenderCommand {
+        node_id: UiNodeId::new(79),
+        kind: UiRenderCommandKind::Quad,
+        frame: UiFrame::new(4.0, 8.0, 32.0, 24.0),
+        clip_frame: None,
+        z_index: 4,
+        style: UiResolvedStyle {
+            background_color: Some("#12383d".to_string()),
+            border_color: Some("#35c7d0".to_string()),
+            border_width: 1.0,
+            corner_radius: 6.0,
+            ..UiResolvedStyle::default()
+        },
+        text_layout: None,
+        text: None,
+        image: Some(UiVisualAssetRef::Icon("toolbar/move.svg".to_string())),
+        opacity: 1.0,
+    };
+    let list = UiRenderList {
+        commands: vec![image_control, solid_command(80, 48.0, 0.0)],
+    };
+
+    let elements = list.to_paint_elements();
+
+    assert_eq!(elements.len(), 4);
+    assert_eq!(
+        elements
+            .iter()
+            .map(|element| element.paint_order)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 2, 3]
+    );
+    assert_eq!(elements[3].node_id, UiNodeId::new(80));
+}
+
+#[test]
 fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
     let layout = UiResolvedTextLayout {
         direction: UiTextDirection::LeftToRight,

@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::style::{UiPainterFamily, UiPainterResolvedState};
+
 use super::{UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextWrap};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiResolvedStyle {
     pub background_color: Option<String>,
     pub foreground_color: Option<String>,
@@ -19,6 +22,8 @@ pub struct UiResolvedStyle {
     pub text_overflow: UiTextOverflow,
     pub rich_text: bool,
     pub text_render_mode: UiTextRenderMode,
+    pub painter_family: UiPainterFamily,
+    pub painter_state: UiPainterResolvedState,
 }
 
 impl UiResolvedStyle {
@@ -27,6 +32,16 @@ impl UiResolvedStyle {
 
     pub fn default_line_height(font_size: f32) -> f32 {
         font_size * Self::DEFAULT_LINE_HEIGHT_SCALE
+    }
+
+    pub fn with_painter_state(
+        mut self,
+        family: UiPainterFamily,
+        state: UiPainterResolvedState,
+    ) -> Self {
+        self.painter_family = family;
+        self.painter_state = state;
+        self
     }
 }
 
@@ -48,6 +63,8 @@ impl Default for UiResolvedStyle {
             text_overflow: UiTextOverflow::default(),
             rich_text: false,
             text_render_mode: UiTextRenderMode::default(),
+            painter_family: UiPainterFamily::default(),
+            painter_state: UiPainterResolvedState::default(),
         }
     }
 }

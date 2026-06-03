@@ -15,7 +15,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError, UiTreeNode},
 };
 
-use super::arrange::arrange_node;
+use super::arrange::{arrange_node, hide_subtree_layout};
 use super::engine::UiLayoutPassEngineContext;
 use super::slot::{ordered_children_for_container, slot_for_container_child};
 
@@ -43,15 +43,20 @@ pub(super) fn try_arrange_taffy_owned_children(
         );
         return Ok(false);
     }
-    if let Some(reason) = taffy_child_contracts_unsupported(tree, parent_id, children, container)? {
+    let (layout_children, hidden_children) =
+        taffy_layout_children(tree, parent_id, children, container)?;
+    if let Some(reason) =
+        taffy_child_contracts_unsupported(tree, parent_id, &layout_children, container)?
+    {
         engine_context.record_taffy_fallback(parent_id, container, reason, None);
         return Ok(false);
     }
 
-    let ordered_children = ordered_children_for_container(tree, parent_id, children, container);
     let mut taffy: TaffyTree<()> = TaffyTree::new();
-    let mut taffy_children = Vec::with_capacity(ordered_children.len());
-    for child_id in &ordered_children {
+    // Zircon projections preserve authored fractional metrics such as 30.5px controls.
+    taffy.disable_rounding();
+    let mut taffy_children = Vec::with_capacity(layout_children.len());
+    for child_id in &layout_children {
         let child = tree
             .node(*child_id)
             .ok_or(UiTreeError::MissingNode(*child_id))?;
@@ -107,8 +112,8 @@ pub(super) fn try_arrange_taffy_owned_children(
         return Ok(false);
     }
 
-    let mut child_frames = Vec::with_capacity(ordered_children.len());
-    for (child_id, taffy_child) in ordered_children.iter().copied().zip(taffy_children) {
+    let mut child_frames = Vec::with_capacity(layout_children.len());
+    for (child_id, taffy_child) in layout_children.iter().copied().zip(taffy_children) {
         let Ok(layout) = taffy.layout(taffy_child) else {
             engine_context.record_taffy_fallback(
                 parent_id,
@@ -130,11 +135,38 @@ pub(super) fn try_arrange_taffy_owned_children(
     }
 
     engine_context.record_taffy_native(parent_id, container, complete_taffy_tree_build);
+    for child_id in hidden_children {
+        hide_subtree_layout(tree, child_id)?;
+    }
     for (child_id, child_frame) in child_frames {
         arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
     }
 
     Ok(true)
+}
+
+fn taffy_layout_children(
+    tree: &mut UiTree,
+    parent_id: UiNodeId,
+    children: &[UiNodeId],
+    container: UiContainerKind,
+) -> Result<(Vec<UiNodeId>, Vec<UiNodeId>), UiTreeError> {
+    let ordered_children = ordered_children_for_container(tree, parent_id, children, container);
+    let mut layout_children = Vec::with_capacity(ordered_children.len());
+    let mut hidden_children = Vec::new();
+    for child_id in ordered_children {
+        let child = tree
+            .node(child_id)
+            .ok_or(UiTreeError::MissingNode(child_id))?;
+        if child.effective_visibility().occupies_layout() {
+            layout_children.push(child_id);
+        } else if matches!(container, UiContainerKind::GridBox(_)) {
+            return Ok((children.to_vec(), Vec::new()));
+        } else {
+            hidden_children.push(child_id);
+        }
+    }
+    Ok((layout_children, hidden_children))
 }
 
 fn taffy_tree_stats(node_count: usize) -> UiLayoutEngineTaffyTreeBuildStats {

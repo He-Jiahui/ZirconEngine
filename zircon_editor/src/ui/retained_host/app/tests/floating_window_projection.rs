@@ -32,8 +32,13 @@ fn child_window_hierarchy_pointer_move_prefers_projected_floating_window_content
         ChildWindowHostHarness::new("zircon_retained_child_window_floating_content_projection");
     let child = harness.detach_view_to_child_window("editor.hierarchy#1", "window:hierarchy");
     let (expected_size, geometry_content_size) = {
-        let host = harness.host.borrow();
         let window_id = MainPageId::new("window:hierarchy");
+        let mut host = harness.host.borrow_mut();
+        host.shell_geometry
+            .as_mut()
+            .expect("child window host should have shell geometry")
+            .floating_window_frames
+            .insert(window_id.clone(), ShellFrame::new(18.0, 22.0, 640.0, 480.0));
         let projected_frame = host
             .floating_window_projection_bundle
             .content_frame(&window_id)

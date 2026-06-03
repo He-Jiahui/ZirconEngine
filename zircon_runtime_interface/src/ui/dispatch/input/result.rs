@@ -10,11 +10,39 @@ use super::{
 };
 use crate::ui::layout::UiPoint;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiInputRoutePolicy {
+    #[default]
+    Unrouted,
+    PreviewTunnel,
+    Bubble,
+    Direct,
+    FocusPath,
+    PointerCapture,
+    DefaultAction,
+}
+
+impl UiInputRoutePolicy {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unrouted => "unrouted",
+            Self::PreviewTunnel => "preview_tunnel",
+            Self::Bubble => "bubble",
+            Self::Direct => "direct",
+            Self::FocusPath => "focus_path",
+            Self::PointerCapture => "pointer_capture",
+            Self::DefaultAction => "default_action",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiInputDispatchDiagnostics {
     pub routed: bool,
     pub handled_phase: Option<String>,
+    pub route_policy: UiInputRoutePolicy,
     pub route_target: Option<UiNodeId>,
     pub blocked_by: Option<UiNodeId>,
     pub notes: Vec<String>,

@@ -1,13 +1,17 @@
 use std::sync::Arc;
 
+use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, GpuTextureResource, PipelineKey,
 };
 
+use super::geometry_source::MeshDrawGeometrySource;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
+    pub(super) geometry_source: MeshDrawGeometrySource,
+    pub(super) mobility: Mobility,
     pub(super) first_index: u32,
     pub(super) draw_index_count: u32,
     pub(super) indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
@@ -28,6 +32,8 @@ impl MeshDraw {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         mesh: Arc<GpuMeshResource>,
+        geometry_source: MeshDrawGeometrySource,
+        mobility: Mobility,
         first_index: u32,
         draw_index_count: u32,
         indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
@@ -41,6 +47,8 @@ impl MeshDraw {
     ) -> Self {
         Self {
             mesh,
+            geometry_source,
+            mobility,
             first_index,
             draw_index_count,
             indirect_args_buffer,

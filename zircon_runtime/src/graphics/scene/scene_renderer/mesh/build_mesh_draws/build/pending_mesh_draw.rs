@@ -2,17 +2,19 @@ use std::sync::Arc;
 
 use crate::asset::ModelPrimitiveAsset;
 use crate::core::framework::scene::EntityId;
+use crate::core::framework::scene::Mobility;
 use crate::core::math::Vec4;
 use crate::graphics::scene::resources::GpuMaterialUniformResource;
 use bytemuck::{Pod, Zeroable};
 
 pub(super) enum PendingMeshGeometry {
     Prepared(Arc<crate::graphics::scene::resources::GpuMeshResource>),
-    Skinned(ModelPrimitiveAsset),
+    Dynamic(ModelPrimitiveAsset),
 }
 
 pub(super) struct PendingMeshDraw {
     pub(super) mesh: PendingMeshGeometry,
+    pub(super) mobility: Mobility,
     pub(super) texture: Arc<crate::graphics::scene::resources::GpuTextureResource>,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: crate::graphics::scene::resources::PipelineKey,

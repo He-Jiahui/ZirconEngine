@@ -12,7 +12,23 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_source.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/declarations/mod.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/debug_overlay.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/mod.rs
   - zircon_runtime/src/graphics/pipeline/mod.rs
@@ -25,6 +41,23 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_report.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
   - zircon_runtime/src/graphics/pipeline/declarations/mod.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/debug_overlay.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/mod.rs
   - zircon_runtime/src/graphics/pipeline/mod.rs
@@ -38,6 +71,17 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/mod.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_empty_descriptor_extract_section_names
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_duplicate_history_bindings_in_one_descriptor
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_assigns_attachment_ops_from_resource_write_order
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::depth_prepass_executor_requires_prepass_context_instead_of_nooping
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::preview_sky_executor_requires_preview_renderer_context_instead_of_nooping
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::overlay_executor_requires_overlay_context_instead_of_nooping
+  - cargo test -p zircon_runtime --lib render_pass_executor_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/project_render.rs::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path
   - cargo test -p zircon_runtime --locked renderer_data_asset --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never
@@ -93,6 +137,22 @@ M2 asset-aware compile validation passed on 2026-05-20 with `CARGO_TARGET_DIR=F:
 RendererData complements the product render pipeline instead of replacing it. Runtime product profiles still choose which renderer product is active, and `RenderPipelineAsset::compile_with_options(...)` remains the hard graph compiler for descriptors, pass stages, phase ordering, resource IO, and core-pipeline requirements. RendererData supplies an authoring-facing document and feature contract reference layer that can be converted into the same `RendererAsset` and `RendererFeatureAsset` declarations consumed by those existing compilers.
 
 The asset-aware compile path is therefore a reporting layer around the graph compiler. It resolves `.zshader` and `.zmaterial` references after hard graph validation, records authoring diagnostics in `RenderPipelineCompileReport`, and leaves the compiled pipeline usable when only shader/material contract mismatches are present. This matches the SRP intent from Unity renderer data assets while deliberately diverging from Unity's runtime resource creation and render-pass invalidation hooks for this milestone.
+
+## Graph Resource Descriptors
+
+The render-main-chain M2 slice moves compiled graph resources away from placeholder 1x1 descriptors. `RenderPipelineAsset::compile_with_options(...)` now derives transient texture and buffer descriptors from the submitted `RenderFrameExtract`: headless target or explicit viewport size determines the graph extent, camera HDR selects `Rgba16Float` for scene color-style resources, and camera MSAA samples propagate into non-shadow transient attachments.
+
+This remains an SRP compile-time contract rather than direct GPU allocation. Concrete WGPU texture ownership still belongs to the renderer/resource registry, but the compiled graph can now expose realistic width, height, format, sample-count, usage, and storage/copy intent for validation, scheduling, and later executor cutover.
+
+Descriptor validation also covers the SRP feature metadata that controls extraction and temporal resources. Feature descriptors reject empty or duplicate required extract sections, empty pass executors, conflicting resource kinds, explicit external/transient name collisions, and duplicate history slot bindings inside a single feature descriptor. Separate features may still merge history access for the same slot during pipeline compile.
+
+The built-in `HistoryResolve` feature now declares temporal scene-color resources by role: it reads `scene-color` plus external `history.previous.scene-color`, and writes external `postprocess.history-resolved`. `history.current.scene-color` is reserved for the renderer-owned texture updated by the history-copy step after the frame. Pipeline compile tests explicitly reject the old single `history-scene-color` graph resource, because a temporal pass must not hide previous input and current output behind one name.
+
+SRP compile now assigns graph attachment operations from resource write order. The first transient texture producer receives `Clear + Store`; later producers for the same transient texture receive `Load + Store`; imported external writes use `Load + Store` by default. Feature pass descriptors can explicitly declare write ops when the pass owns target initialization, for example Deferred preview sky clears imported `final-color` before later passes read it as the background. This lets transparent mesh, sprite, postprocess, UI, overlay, and preview-sky executors consume graph metadata for WGPU load/store decisions instead of carrying private pass-name rules. The UI and debug-overlay descriptors both write the external `viewport-output` resource, so the compiled graph names the final view target independently from post-process `final-color`.
+
+The mesh, UI, overlay, Deferred, and post-process descriptors now mirror the current WGPU shader reality. Forward mesh descriptors start the `DepthPrepass` stage with `preview-sky` writing `scene-color` and `scene-depth`; Deferred geometry starts the same stage with `preview-sky` writing imported `final-color` and `scene-depth`. `depth-prepass` then writes `scene-depth` and `gbuffer-normal`; `mesh.depth-prepass` / `deferred.depth-prepass` are concrete graph executors rather than registered no-ops. SSAO, clustered lighting, and bloom preparation are separate concrete executors: `ao.ssao-evaluate` writes external `ambient-occlusion`, `lighting.clustered-cull` writes the `light-list` buffer, and `post.bloom-extract` writes external `bloom-texture`. `post.stack` now consumes graph-bound scene color, AO, bloom, final color, global illumination, and light-list resources for final post-process composition only. `overlay.gizmo` reads `scene-depth` and writes external `viewport-output`, matching the concrete overlay renderer's depth-tested line/icon passes. `deferred.gbuffer` reads `scene-depth` and writes `gbuffer-albedo`; alpha-mask geometry is included in the non-transparent G-buffer input rather than modeled as a separate scene-color pass. `lighting.deferred` reads `gbuffer-albedo`, `gbuffer-normal`, and external `final-color` as the preview/background input, then writes `scene-color`. The executor registry still validates compiled SRP executor ids, but concrete built-in executor bodies now live in post-process and scene child modules so RendererData-driven pass expansion does not require growing the registry owner itself. `RenderPassExecutionContext` remains the SRP metadata/resource-access context; its renderer-side GPU payload and concrete draw/dispatch bridges live in `render_pass_execution_context/gpu.rs`. No built-in descriptor declares `gbuffer-material` until a concrete shader and offscreen resource produce that target.
+
+Focused SRP compile validation on 2026-06-02 passed with 43 `pipeline_compile` tests, including the extract-section, duplicate-history-binding, extract-derived descriptor, history-slot-split, attachment-op write-order, preview-sky pass ordering/clear-load behavior, truthful Deferred resource, overlay depth/viewport-output, and SSAO/cluster/bloom external frame-resource regressions added for the render-main-chain slices. The latest run used `cargo test -p zircon_runtime --lib --locked pipeline_compile --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never`.
 
 The remaining gaps are explicit: no GPU prewarm, no shader variant compilation, no WGPU pipeline specialization, no mutable editor authoring surface, no ShaderGraph or VFX graph, and no real GPU preview. Editor work after this runtime milestone should consume the `RendererAsset` and diagnostic rows as read-only projection data.
 

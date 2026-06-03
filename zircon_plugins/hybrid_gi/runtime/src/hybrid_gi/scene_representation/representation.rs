@@ -487,6 +487,7 @@ fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/card/{card_id}/material"
         ))),
+        morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         render_layer_mask: u32::MAX,

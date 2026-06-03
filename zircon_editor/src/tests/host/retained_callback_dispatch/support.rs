@@ -1,5 +1,6 @@
 pub(super) use crate::core::editor_event::{
-    EditorAssetEvent, EditorEvent, EditorViewportEvent, InspectorFieldChange, MenuAction,
+    EditorAssetEvent, EditorEvent, EditorEventTransient, EditorViewportEvent, InspectorFieldChange,
+    MenuAction,
 };
 pub(super) use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, ViewOrientation,
@@ -17,14 +18,19 @@ pub(super) use crate::ui::retained_host::callback_dispatch::{
     dispatch_builtin_host_menu_action, dispatch_builtin_host_page_activation,
     dispatch_builtin_inspector_surface_control, dispatch_builtin_pane_surface_control,
     dispatch_builtin_viewport_toolbar_control, dispatch_builtin_welcome_surface_control,
-    dispatch_hierarchy_selection, dispatch_inspector_apply, dispatch_inspector_delete_selected,
-    dispatch_inspector_draft_field, dispatch_layout_command, dispatch_menu_action,
-    dispatch_mesh_import_path_edit, dispatch_tab_drop, dispatch_viewport_command,
-    dispatch_viewport_pointer_event, BuiltinAssetSurfaceTemplateBridge,
-    BuiltinFloatingWindowSourceTemplateBridge, BuiltinHostDrawerSourceTemplateBridge,
-    BuiltinHostWindowTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
-    BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
-    BuiltinWelcomeSurfaceTemplateBridge, SharedViewportPointerBridge,
+    dispatch_componentized_workbench_control, dispatch_componentized_workbench_menu_item_selected,
+    dispatch_componentized_workbench_option_selected,
+    dispatch_componentized_workbench_pointer_event,
+    dispatch_componentized_workbench_popup_cancelled,
+    dispatch_componentized_workbench_surface_control_edited, dispatch_hierarchy_selection,
+    dispatch_inspector_apply, dispatch_inspector_delete_selected, dispatch_inspector_draft_field,
+    dispatch_layout_command, dispatch_menu_action, dispatch_mesh_import_path_edit,
+    dispatch_tab_drop, dispatch_viewport_command, dispatch_viewport_pointer_event,
+    BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceTemplateBridge,
+    BuiltinHostDrawerSourceTemplateBridge, BuiltinHostWindowTemplateBridge,
+    BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
+    BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge, SharedViewportPointerBridge,
 };
 pub(super) use crate::ui::retained_host::tab_drag::{
     HostDragTargetGroup, ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop,

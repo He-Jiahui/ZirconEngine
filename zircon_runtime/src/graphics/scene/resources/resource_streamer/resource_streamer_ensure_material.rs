@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
     RenderMaterialAlphaMode, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialPropertyUniformPayload,
+    RenderMaterialFallbackUsage, RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload,
     RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
     RenderMaterialValidationError,
@@ -104,6 +104,12 @@ impl ResourceStreamer {
             RenderMaterialAlphaMode::Mask { cutoff } => (false, true, Some(cutoff)),
             RenderMaterialAlphaMode::Blend => (true, false, None),
         };
+        let lighting_model = if descriptor.unlit {
+            RenderMaterialLightingModel::Unlit
+        } else {
+            descriptor.lighting_model.clone()
+        };
+        let unlit = lighting_model.is_unlit();
         let texture_support = texture_upload_support_from_device(device);
         let base_color_texture = self.resolve_texture_reference_with_support(
             "base_color_texture",
@@ -280,7 +286,8 @@ impl ResourceStreamer {
             double_sided: descriptor.double_sided,
             alpha_blend,
             alpha_cutoff,
-            unlit: descriptor.unlit,
+            lighting_model: lighting_model.clone(),
+            unlit,
             base_color_texture: base_color_texture.id(),
             normal_texture: normal_texture.id(),
             metallic_roughness_texture: metallic_roughness_texture.id(),
@@ -296,7 +303,8 @@ impl ResourceStreamer {
                 alpha_blend,
                 alpha_mask,
                 alpha_cutoff_bits: alpha_cutoff.map(f32::to_bits),
-                unlit: descriptor.unlit,
+                lighting_model,
+                unlit,
                 has_base_color_texture: descriptor.base_color_texture.is_some(),
                 has_normal_texture: descriptor.normal_texture.is_some(),
                 has_metallic_roughness_texture: descriptor.metallic_roughness_texture.is_some(),

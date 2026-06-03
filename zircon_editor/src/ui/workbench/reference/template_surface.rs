@@ -1,0 +1,211 @@
+use thiserror::Error;
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{UiFrame, UiSize},
+    tree::UiTreeError,
+};
+
+use crate::ui::control::EditorUiControlService;
+use crate::ui::template_runtime::{
+    EditorUiHostRuntime, EditorUiHostRuntimeError, RetainedUiHostProjection, RetainedUiProjection,
+    WORKBENCH_WINDOW_DOCUMENT_ID,
+};
+
+use super::EditorWorkbenchReferenceMetrics;
+
+pub struct EditorWorkbenchTemplateControlIds;
+
+impl EditorWorkbenchTemplateControlIds {
+    pub const ROOT: &'static str = "WorkbenchWindowRoot";
+    pub const TOP_TOOLBAR: &'static str = "WorkbenchWindowTopToolbarRegion";
+    pub const MAIN_BAND: &'static str = "WorkbenchWindowMainBandRegion";
+    pub const ACTIVITY_RAIL: &'static str = "WorkbenchMainBandActivityRail";
+    pub const SCENE_TREE: &'static str = "WorkbenchMainBandSceneTreePanel";
+    pub const VIEWPORT: &'static str = "WorkbenchMainBandViewportPanel";
+    pub const INSPECTOR: &'static str = "WorkbenchMainBandInspectorPanel";
+    pub const COMPONENT_DRAWER: &'static str = "WorkbenchWindowComponentDrawerRegion";
+    pub const STATUS_BAR: &'static str = "WorkbenchWindowStatusBarRegion";
+    pub const PRIMARY_BUTTON: &'static str = "WorkbenchPrimaryButton";
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EditorWorkbenchTemplateFrames {
+    pub root: UiFrame,
+    pub top_toolbar: UiFrame,
+    pub main_band: UiFrame,
+    pub activity_rail: UiFrame,
+    pub scene_tree: UiFrame,
+    pub viewport: UiFrame,
+    pub inspector: UiFrame,
+    pub component_drawer: UiFrame,
+    pub status_bar: UiFrame,
+}
+
+impl EditorWorkbenchTemplateFrames {
+    fn from_surface(surface: &UiSurface) -> Result<Self, EditorWorkbenchTemplateSurfaceError> {
+        Ok(Self {
+            root: required_control_frame(surface, EditorWorkbenchTemplateControlIds::ROOT)?,
+            top_toolbar: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::TOP_TOOLBAR,
+            )?,
+            main_band: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::MAIN_BAND,
+            )?,
+            activity_rail: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL,
+            )?,
+            scene_tree: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::SCENE_TREE,
+            )?,
+            viewport: required_control_frame(surface, EditorWorkbenchTemplateControlIds::VIEWPORT)?,
+            inspector: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::INSPECTOR,
+            )?,
+            component_drawer: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER,
+            )?,
+            status_bar: required_control_frame(
+                surface,
+                EditorWorkbenchTemplateControlIds::STATUS_BAR,
+            )?,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct EditorWorkbenchTemplateSurface {
+    pub surface: UiSurface,
+    pub metrics: EditorWorkbenchReferenceMetrics,
+    pub frames: EditorWorkbenchTemplateFrames,
+    pub host_projection: RetainedUiHostProjection,
+    layout_size: UiSize,
+    source_projection: RetainedUiProjection,
+}
+
+impl EditorWorkbenchTemplateSurface {
+    pub fn recompute_layout(
+        &mut self,
+        runtime: &EditorUiHostRuntime,
+        size: UiSize,
+    ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.surface.compute_layout(size)?;
+        self.layout_size = size;
+        self.refresh_projection(runtime)
+    }
+
+    pub(crate) fn refresh_after_state_change(
+        &mut self,
+        runtime: &EditorUiHostRuntime,
+    ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.surface.rebuild_dirty(self.layout_size)?;
+        self.refresh_projection(runtime)
+    }
+
+    pub fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
+        control_frame(&self.surface, control_id)
+    }
+
+    pub fn visible_control_frame(&self, control_id: &str) -> Option<UiFrame> {
+        visible_control_frame(&self.surface, control_id)
+    }
+
+    fn refresh_projection(
+        &mut self,
+        runtime: &EditorUiHostRuntime,
+    ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.frames = EditorWorkbenchTemplateFrames::from_surface(&self.surface)?;
+        self.host_projection = runtime
+            .build_retained_host_projection_with_surface(&self.source_projection, &self.surface)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum EditorWorkbenchTemplateSurfaceError {
+    #[error(transparent)]
+    Runtime(#[from] EditorUiHostRuntimeError),
+    #[error(transparent)]
+    Tree(#[from] UiTreeError),
+    #[error("componentized workbench template is missing required control {control_id}")]
+    MissingControl { control_id: &'static str },
+}
+
+pub fn build_editor_workbench_template_surface(
+    runtime: &EditorUiHostRuntime,
+    metrics: EditorWorkbenchReferenceMetrics,
+) -> Result<EditorWorkbenchTemplateSurface, EditorWorkbenchTemplateSurfaceError> {
+    let mut source_projection = runtime.project_document(WORKBENCH_WINDOW_DOCUMENT_ID)?;
+    let mut route_service = EditorUiControlService::default();
+    runtime.register_projection_routes(&mut route_service, &mut source_projection)?;
+    let mut surface = runtime.build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)?;
+    surface.compute_layout(metrics.target_size())?;
+    let frames = EditorWorkbenchTemplateFrames::from_surface(&surface)?;
+    let host_projection =
+        runtime.build_retained_host_projection_with_surface(&source_projection, &surface)?;
+    Ok(EditorWorkbenchTemplateSurface {
+        surface,
+        metrics,
+        frames,
+        host_projection,
+        layout_size: metrics.target_size(),
+        source_projection,
+    })
+}
+
+fn required_control_frame(
+    surface: &UiSurface,
+    control_id: &'static str,
+) -> Result<UiFrame, EditorWorkbenchTemplateSurfaceError> {
+    control_frame(surface, control_id)
+        .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id })
+}
+
+fn control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
+    surface.tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+            .filter(|candidate| *candidate == control_id)
+            .map(|_| node.layout_cache.frame)
+    })
+}
+
+fn visible_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
+    surface.tree.nodes.values().find_map(|node| {
+        if !surface_node_render_visible(surface, node.node_id) {
+            return None;
+        }
+        node.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+            .filter(|candidate| *candidate == control_id)
+            .map(|_| node.layout_cache.frame)
+    })
+}
+
+fn surface_node_render_visible(surface: &UiSurface, node_id: UiNodeId) -> bool {
+    let mut current = Some(node_id);
+    while let Some(id) = current {
+        if let Some(node) = surface.arranged_tree.get(id) {
+            if !node.is_render_visible() {
+                return false;
+            }
+            current = node.parent;
+        } else if let Some(node) = surface.tree.nodes.get(&id) {
+            if !node.is_render_visible() {
+                return false;
+            }
+            current = node.parent;
+        } else {
+            return false;
+        };
+    }
+    true
+}

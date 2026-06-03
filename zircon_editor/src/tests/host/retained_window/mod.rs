@@ -15,6 +15,7 @@ mod native_template_text;
 mod native_viewport_image;
 mod native_window_targets;
 mod native_workbench_reference;
+mod native_workbench_window_menus;
 mod presenter_store;
 mod shell_window;
 mod support;

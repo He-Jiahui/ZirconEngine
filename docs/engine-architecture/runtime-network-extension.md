@@ -138,6 +138,7 @@ tests:
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
   - zircon_plugins/net/features/websocket/runtime/src/tests.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --locked --jobs 1 --message-format short --color never (passed 12 tests after net.runtime_mode enum values were declared)
   - passed: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --offline
@@ -276,6 +277,8 @@ The ownership split is fixed:
 
 `framework` stays DTO-only. It does not own Tokio, HTTP clients, WebSocket engines, asset caches,
 or replication runtime state.
+
+The base runtime manifest follows the strict package option contract. `net.runtime_mode` is an enum option rather than a free-form string; its allowed values are `client`, `listen_server`, and `dedicated_server`, and the default remains `client`. This keeps project/export option materialization aligned with `NetRuntimeMode` without letting arbitrary strings pass the registry.
 
 ## Contract Shape
 
@@ -557,6 +560,7 @@ Validation status for the net package is now:
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --tests --locked` passed after the HTTP retry slice, with existing unrelated `zircon_runtime` dead-code warnings for `SystemState::state` and `World::entity_ids_matching_query_archetypes`.
 - The first HTTP lib-test command hit the 15-minute timeout while rebuilding after the repository low-disk cleanup policy triggered at 45.51 GiB free on `E:`; `cargo clean --manifest-path zircon_plugins/Cargo.toml` removed 28.1 GiB before the timed-out rebuild attempt.
 - Retried `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --lib --locked --jobs 1 --message-format short --color never` passed after the HTTP retry slice: 6 tests passed, 0 failed, with the same unrelated `zircon_runtime` dead-code warnings.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --locked --jobs 1 --message-format short --color never` passed on 2026-06-01 with 12 tests after `net.runtime_mode` declared its enum values. This was a package metadata repair exposed by the full plugin workspace M6 gate, not a transport behavior change.
 
 Full plugin-workspace and root-workspace Cargo validation remain broader milestone gates because the
 workspace is currently dirty with unrelated active asset/render/editor/platform-input work. Current

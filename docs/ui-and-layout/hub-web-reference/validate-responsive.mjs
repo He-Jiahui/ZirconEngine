@@ -140,11 +140,13 @@ function validateRuntimeDependencies() {
   const html = readFileSync(resolve(here, "index.html"), "utf8");
   for (const requiredLocalFile of [
     "styles.css",
+    "material-styles.css",
     "covers.css",
     "responsive.css",
     "fullscreen-preview.css",
     "interaction-states.css",
     "cover-rendering.js",
+    "material-components.js",
     "app.js",
     "interaction-enhancements.js",
   ]) {
@@ -183,6 +185,100 @@ function validateRuntimeDependencies() {
   for (const snippet of [".project-cover-image", "object-fit: cover", "filter: saturate"]) {
     if (!coverSource.includes(snippet)) {
       throw new Error(`covers.css must style real project-cover image previews: ${snippet}`);
+    }
+  }
+
+  const componentSource = readFileSync(resolve(here, "material-components.js"), "utf8");
+  for (const snippet of [
+    "componentCatalog",
+    "createMaterialComponents",
+    "data-component=\"button\"",
+    "data-component=\"search-input\"",
+    "data-component=\"select-button\"",
+    "select-trigger",
+    "menu-anchor",
+    "data-component=\"tab-strip\"",
+    "data-component=\"metric-grid\"",
+    "data-component=\"data-table\"",
+    "data-component=\"catalog-column-row\"",
+    "data-component=\"source-engine-row\"",
+    "data-component=\"setting-summary-row\"",
+    "data-component=\"project-status-strip\"",
+    "data-component=\"project-detail-actions-section\"",
+    "data-component=\"input-box\"",
+    "data-component=\"combo-box\"",
+    "data-component=\"checkbox\"",
+    "data-component=\"toggle\"",
+    "data-component=\"action-command-button\"",
+    "data-component=\"project-table\"",
+    "data-component=\"quick-actions\"",
+    "data-component=\"menu\"",
+    "anchored-popover",
+    "select-menu",
+    "select-menu-surface",
+    "popover-paper",
+    "menu-list",
+    "menu-item",
+    "row-surface",
+    "table-row-surface",
+    "menu-row",
+    "dense-menu-row",
+    "selected-row",
+    "row-leading-icon-slot",
+    "row-selection-slot",
+    "row-main-slot",
+    "row-meta-slot",
+    "row-trailing-slot",
+    "selected-item",
+    "disabled-item",
+    "combo-box-trigger",
+    "data-component=\"delete-confirm\"",
+    "data-component=\"source-engine-popup\"",
+    "data-component=\"user-menu-popup\"",
+    "windowSurfaces",
+    "window-view",
+    "app-bar",
+    "topbar",
+    "drawer-shell",
+    "sidebar-drawer",
+    "workspace-surface",
+    "workspace",
+    "page-content-slot",
+  ]) {
+    if (!componentSource.includes(snippet)) {
+      throw new Error(`material-components.js must define the bottom-up Material reference component layer: ${snippet}`);
+    }
+  }
+
+  const componentStyleSource = readFileSync(resolve(here, "material-styles.css"), "utf8");
+  for (const snippet of [
+    "Bottom-up Material-style component layer",
+    ".button",
+    ".search-box",
+    ".tab-strip",
+    ".data-table",
+    ".catalog-column-row",
+    ".source-engine-row",
+    ".setting-summary-row",
+    ".project-status-strip",
+    ".project-detail-actions-section",
+    ".action-command-button",
+    ".field-control",
+    ".choice-row",
+    ".project-card",
+    ".browser-table",
+    ".row-surface",
+    ".table-row-surface",
+    ".row-trailing-slot",
+    ".menu-panel",
+    ".menu-list",
+    ".menu-item",
+    ".menu-row",
+    ".dense-menu-row",
+    ".confirm-panel",
+  ]) {
+    if (!componentStyleSource.includes(snippet)) {
+      throw new Error(`material-styles.css must own the bottom-up Material reference styling layer: ${snippet}`);
     }
   }
 }
@@ -236,6 +332,94 @@ function responsiveAuditExpression(width, height) {
     ]);
     const bodyScrollWidth = document.scrollingElement.scrollWidth;
     const bodyScrollHeight = document.scrollingElement.scrollHeight;
+    const requiredComponents = [
+      "button",
+      "page-heading",
+      "topbar",
+      "sidebar-drawer",
+      "workspace"
+    ];
+    if (document.querySelector(".tag")) {
+      requiredComponents.push("tag");
+    }
+    if (document.querySelector(".toolbar")) {
+      requiredComponents.push("toolbar", "search-input");
+    }
+    if (document.querySelector(".select-button")) {
+      requiredComponents.push("select-button");
+    }
+    if (document.querySelector(".tab-strip")) {
+      requiredComponents.push("tab-strip");
+    }
+    if (document.querySelector('[data-component="metric-grid"]')) {
+      requiredComponents.push("metric-grid", "metric-card");
+    }
+    if (document.querySelector(".data-table")) {
+      requiredComponents.push("data-table");
+    }
+    if (document.querySelector(".catalog-column-row")) {
+      requiredComponents.push("catalog-column-row", "row-leading-icon-slot", "row-main-slot", "row-meta-slot", "row-trailing-slot");
+    }
+    if (document.querySelector(".info-row, .action-row")) {
+      requiredComponents.push("row-leading-icon-slot", "row-main-slot", "row-trailing-slot");
+    }
+    if (document.querySelector(".source-engine-row")) {
+      requiredComponents.push("source-engine-row", "row-leading-icon-slot", "row-main-slot", "row-trailing-slot", "icon-button");
+    }
+    if (document.querySelector(".setting-summary-row")) {
+      requiredComponents.push("setting-summary-row", "row-meta-slot", "row-main-slot", "row-trailing-slot");
+    }
+    if (document.querySelector(".project-status-strip")) {
+      requiredComponents.push("project-status-strip", "row-meta-slot", "row-trailing-slot");
+    }
+    if (document.querySelector(".project-detail-actions-section")) {
+      requiredComponents.push("project-detail-actions-section", "action-command-button");
+      if (document.querySelector(".project-detail-actions-section .toggle-row")) {
+        requiredComponents.push("toggle");
+      }
+      if (document.querySelector(".project-detail-actions-section .source-engine-row")) {
+        requiredComponents.push("source-engine-row");
+      }
+    }
+    if (document.querySelector(".project-row, .browser-row")) {
+      requiredComponents.push("row-trailing-slot");
+    }
+    if (document.querySelector(".input-box")) {
+      requiredComponents.push("input-box");
+    }
+    if (document.querySelector(".path-field-row")) {
+      requiredComponents.push("path-field-row", "input-box", "button");
+    }
+    if (document.querySelector(".combo-box")) {
+      requiredComponents.push("combo-box");
+    }
+    if (document.querySelector(".checkbox-row")) {
+      requiredComponents.push("checkbox", "row-selection-slot", "row-main-slot");
+    }
+    if (document.querySelector(".toggle-row")) {
+      requiredComponents.push("toggle");
+    }
+    if (document.querySelector(".icon-only, .mode-button, .project-card .cover button, .project-row button")) {
+      requiredComponents.push("icon-button");
+    }
+    if (pageId === "projects-dashboard") {
+      requiredComponents.push("project-card", "project-table", "quick-actions");
+    }
+    if (pageId.startsWith("hub-projects-browser")) {
+      requiredComponents.push("search-input");
+      if (pageId !== "hub-projects-browser") {
+        requiredComponents.push("menu");
+      }
+    }
+    if (pageId === "hub-projects-detail-delete-confirm") {
+      requiredComponents.push("delete-confirm");
+    }
+    if (pageId === "hub-source-engine-popup") {
+      requiredComponents.push("source-engine-popup");
+    }
+    if (pageId === "hub-user-menu") {
+      requiredComponents.push("user-menu-popup");
+    }
 
     if (Math.abs(shellRect.width - width) > 1) failures.push("shell does not fill viewport width");
     if (Math.abs(shellRect.height - height) > 1) failures.push("shell does not fill viewport height");
@@ -312,6 +496,11 @@ function responsiveAuditExpression(width, height) {
     if (forbiddenImages.length > 0) failures.push("runtime reuses Hub draft/export PNGs: " + forbiddenImages.join(", "));
     if (projectCoverPages.has(pageId) && document.querySelectorAll(".project-cover-image").length === 0) {
       failures.push("project page is missing real reference project cover images");
+    }
+    for (const component of requiredComponents) {
+      if (!document.querySelector('[data-component="' + component + '"]')) {
+        failures.push("missing required Material reference component " + component);
+      }
     }
 
     const visibleOutliers = [...document.querySelectorAll("body *")].flatMap((node) => {

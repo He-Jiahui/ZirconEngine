@@ -271,6 +271,7 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
+  - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
@@ -278,6 +279,8 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
+  - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m01-ecs-schedule-foundation/validation-evidence.md
+  - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m02-derived-transform-active/validation-evidence.md
   - zircon_runtime/src/scene/tests/world_basics.rs
   - wsl.exe env CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-ecs-query-ice-debug-wsl cargo test -p zircon_runtime --lib scene::tests::ecs_query::system_query_iter_many_mut_preserves_order_duplicates_and_run_window_filters --no-default-features --features core-min --locked --message-format=short --jobs 1 -- --exact --test-threads=1 --nocapture (2026-05-23: passed, 1 passed)
   - wsl.exe env CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-ecs-query-ice-debug-wsl cargo test -p zircon_runtime --lib scene::tests::ecs_query::query_state_get_mut_helpers_mutate_targets_and_reject_aliases --no-default-features --features core-min --locked --message-format=short --jobs 1 -- --exact --test-threads=1 --nocapture (2026-05-23: passed, 1 passed)
@@ -399,6 +402,32 @@ Observer callbacks are cloned out of the store before invocation. This avoids bo
 `LifecycleEventKind` currently covers `Add`, `Insert`, `Replace`, `Remove`, and `Despawn`, matching the milestone language while staying close to Bevy's lifecycle split between add/insert and removal/despawn behavior. `World::insert<T>` triggers `Add` for first presence, `Replace` for an existing component, and `Insert` after every successful insert. `World::remove<T>` triggers `Remove` before the component leaves storage. `World::remove_entity` triggers `Remove` and `Despawn` for every component id still present on that entity before storage and fixed scene maps are cleared.
 
 `MessageStore` is the scheduled counterpart to immediate observers. It stores `Messages<T>` by `TypeId`, assigns monotonically increasing `MessageId<T>` values, and exposes typed `MessageWriterParam<T>` / `MessageReaderParam<T>` system params. Message reads do not clear the shared buffer; the reader cursor advances per system state, matching Bevy's reader-cursor model. `World::clear_messages<T>` is the explicit retention boundary for later schedule maintenance.
+
+## Schedule Convergence Guardrails
+
+The current scene schedule is already converged on `First -> PreUpdate -> FixedUpdate -> Update -> PostUpdate -> Last -> RenderExtract`. M01 therefore treats schedule work as verification rather than another stage migration. The focused M01 tests and source audit prove:
+
+- built-in derived systems remain registered in `PostUpdate`, with render-extract preparation in `RenderExtract`;
+- native systems, plugin hooks, internal descriptors, and `ApplyDeferred` barriers share one deterministic sorted stage list;
+- command-producing native systems expose an `ApplyDeferred` barrier in both scheduled steps and conflict-graph batches;
+- duplicate/blank system ids and missing required resources report structured initialization diagnostics;
+- the runner's post-step built-in flush is success-only (`result.is_ok()`), while existing success-path tests keep current dirty-flag built-ins idempotent;
+- scene scheduling owner paths (`src/scene/ecs`, `src/scene/module`, and `src/scene/world`) must not contain `LateUpdate`, which prevents local compatibility aliases, shims, reintroduced stages, and bridge exports.
+
+`SceneScheduleRunner` still executes current internal built-ins through the sorted step list and then calls `run_internal_scene_systems_for_stage(stage)` again only when the stage succeeds. Current built-ins are dirty-flag idempotent, so that double-flush is safe today and useful as a final consistency sweep. Future non-idempotent internal scene systems should not be added to this path until the runner contract is narrowed or the system is made explicitly idempotent.
+
+## Derived-State Dirty Lanes
+
+M02 keeps the derived scene systems inside the existing schedule vocabulary instead of adding a new stage. `DerivedStateDirty` still tracks hierarchy, active hierarchy, transforms, node cache, and render-extract freshness. The dependency lanes are:
+
+- hierarchy mutations mark hierarchy, active, transforms, node cache, and render extract;
+- active-self mutations mark active, node cache, and render extract;
+- transform mutations mark transforms, node cache, and render extract;
+- node-cache-only product-field mutations mark node cache and render extract.
+
+`RenderExtractPrepare` remains the render-extract freshness boundary: it runs hierarchy validity, active hierarchy, world transform, and node-cache systems before the render-extract dirty flag is cleared. The systems are still idempotent rebuilds from authoritative maps, so repeated `PostUpdate` or `RenderExtract` flushes must not duplicate node records, corrupt parent links, or change results after the first successful flush. If a future internal scene system needs non-idempotent side effects or exact-once execution, it must not enter this path until `SceneScheduleRunner`'s success-final-flush contract is narrowed with Technical Advisor approval.
+
+Projected read APIs intentionally do not clear dirty flags. `active_in_hierarchy(...)`, `world_transform(...)`, `world_matrix(...)`, `node_records()`, and `find_node(...)` can reflect pending hierarchy/active/transform inputs for editor/runtime reads, while `nodes()` remains the retained cache and only refreshes after `PostUpdate`/`RenderExtractPrepare`. `set_active_camera(...)` and property-path component edits that affect render rows mark node-cache/render-extract freshness only on real changes; no-op setters keep the world clean. M02 validation lives in `zircon_runtime/src/scene/tests/derived_state.rs` and the workflow evidence file listed in this document header.
 
 ## Query Model
 

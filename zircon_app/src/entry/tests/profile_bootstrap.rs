@@ -22,11 +22,11 @@ use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset, RendererFeatureAsset,
-    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
-    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
-    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
-    VirtualGeometryRuntimeUpdate,
+    RenderFeaturePassDescriptor, RenderPassExecutionContext, RenderPassExecutorRegistration,
+    RenderPassStage, RenderPipelineAsset, RendererFeatureAsset, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
 };
 use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
@@ -461,7 +461,9 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
             RuntimePluginId::VirtualGeometry,
             "zircon_plugin_virtual_geometry_runtime",
         )
-        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capability("runtime.plugin.virtual_geometry")
+        .with_capability("runtime.render.advanced.virtual_geometry"),
     });
 
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(&config, [report])
@@ -484,7 +486,9 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
             RuntimePluginId::VirtualGeometry,
             "zircon_plugin_virtual_geometry_runtime",
         )
-        .with_target_modes([RuntimeTargetMode::EditorHost]),
+        .with_target_modes([RuntimeTargetMode::EditorHost])
+        .with_capability("runtime.plugin.virtual_geometry")
+        .with_capability("runtime.render.advanced.virtual_geometry"),
     });
 
     let error = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
@@ -695,7 +699,9 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
             RuntimePluginId::VirtualGeometry,
             "zircon_plugin_virtual_geometry_runtime",
         )
-        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capability("runtime.plugin.virtual_geometry")
+        .with_capability("runtime.render.advanced.virtual_geometry"),
     });
     let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
         .expect("linked render feature plugin should bootstrap");
@@ -866,6 +872,10 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
             "VirtualGeometryPlugin",
             "Linked virtual geometry plugin module",
         ))?;
+        registry.register_render_pass_executor(RenderPassExecutorRegistration::new(
+            "virtual-geometry.prepare",
+            linked_virtual_geometry_prepare_executor,
+        ))?;
         registry.register_render_feature(
             RenderFeatureDescriptor::new(
                 "virtual_geometry",
@@ -887,6 +897,19 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
                 Arc::new(LinkedVirtualGeometryRuntimeProvider),
             ),
         )
+    }
+}
+
+fn linked_virtual_geometry_prepare_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    if context.pass_name == "linked-virtual-geometry-pass" {
+        Ok(())
+    } else {
+        Err(format!(
+            "linked virtual geometry executor received unexpected pass `{}`",
+            context.pass_name
+        ))
     }
 }
 

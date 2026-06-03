@@ -63,7 +63,9 @@ pub(crate) fn runtime_features_from_pipeline(
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+    use crate::core::framework::render::{
+        PostProcessGraphResourceNames, RenderFrameExtract, RenderWorldSnapshotHandle,
+    };
     use crate::render_graph::QueueLane;
     use crate::scene::world::World;
     use crate::{
@@ -254,7 +256,7 @@ mod tests {
                     )
                     .with_executor_id("plugin.ssao.runtime-flag")
                     .read_texture("scene-depth")
-                    .write_texture("ambient-occlusion")],
+                    .write_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
                 ),
                 RenderFeatureDescriptor::new(
                     "reflection_probes",

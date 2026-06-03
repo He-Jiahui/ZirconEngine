@@ -1,5 +1,7 @@
 #[path = "ui/apply_presentation.rs"]
 mod apply_presentation_impl;
+#[path = "ui/component_contract_metadata.rs"]
+mod component_contract_metadata;
 mod pane_data_conversion;
 #[cfg(test)]
 #[path = "ui/reference_component_tests.rs"]
@@ -16,6 +18,8 @@ mod structure_component_tests;
 mod template_node_conversion;
 #[cfg(test)]
 mod tests;
+#[path = "ui/workbench_window_projection.rs"]
+mod workbench_window_projection;
 
 pub(crate) use apply_presentation_impl::apply_presentation;
 #[cfg(test)]
@@ -32,3 +36,5 @@ pub(crate) use pane_data_conversion::to_host_contract_hierarchy_pane_from_host_p
 pub(crate) use pane_data_conversion::to_host_contract_inspector_pane_from_host_pane;
 #[cfg(test)]
 pub(crate) use pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use workbench_window_projection::to_host_contract_workbench_window_nodes;

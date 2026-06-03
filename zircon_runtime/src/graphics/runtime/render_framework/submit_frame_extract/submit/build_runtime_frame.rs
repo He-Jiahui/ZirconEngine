@@ -50,6 +50,8 @@ fn apply_effective_post_process_graph(
 ) -> RenderFrameExtract {
     extract.post_process.bloom = context.post_process_bloom();
     extract.post_process.color_grading = context.post_process_color_grading();
+    extract.post_process.effect_stack = context.post_process_effect_stack();
+    extract.post_process.volume_stack = Default::default();
     extract.post_process.stack = context.post_process_stack().clone();
     extract.post_process.graph = context.post_process_graph().clone();
     extract
@@ -343,11 +345,14 @@ mod tests {
         );
         let context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
+            UVec2::new(640, 480),
             RenderPipelineHandle::new(1),
             0,
             None,
             empty_pipeline(),
             VisibilityContext::from_extract(&extract),
+            Default::default(),
+            None,
             Default::default(),
             Default::default(),
             Default::default(),

@@ -5,7 +5,8 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::resource::ResourceId;
 
 use super::super::prepared::{
-    PreparedMaterial, PreparedMesh, PreparedModel, PreparedShader, PreparedTexture,
+    PreparedMaterial, PreparedMesh, PreparedModel, PreparedPostProcessLutTexture, PreparedShader,
+    PreparedTexture,
 };
 use super::super::{GpuMaterialUniformResource, GpuTextureResource};
 
@@ -16,6 +17,7 @@ pub(crate) struct ResourceStreamer {
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,
     pub(super) textures: HashMap<ResourceId, PreparedTexture>,
+    pub(super) post_process_lut_textures: HashMap<ResourceId, PreparedPostProcessLutTexture>,
     pub(super) shaders: HashMap<ResourceId, PreparedShader>,
     pub(super) fallback_texture: Arc<GpuTextureResource>,
     pub(super) fallback_material_uniform: Arc<GpuMaterialUniformResource>,
@@ -27,4 +29,10 @@ pub(crate) struct ResourceStreamer {
     pub(super) last_sprite_count: usize,
     pub(super) last_sprite_ready_count: usize,
     pub(super) last_sprite_texture_fallback_count: usize,
+    pub(super) last_post_process_lut_request_count: usize,
+    pub(super) last_post_process_lut_ready_count: usize,
+    pub(super) last_post_process_lut_fallback_count: usize,
+    pub(super) last_post_process_lut_2d_strip_ready_count: usize,
+    pub(super) last_post_process_lut_3d_request_count: usize,
+    pub(super) last_post_process_lut_unsupported_shape_count: usize,
 }

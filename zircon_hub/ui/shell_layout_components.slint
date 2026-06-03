@@ -1,0 +1,68 @@
+import { Fill } from "layout.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+
+export component HubShellRootSurface inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: HubVisualSpec.page-background;
+    clip: true;
+
+    @children
+}
+
+export component HubShellStack inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-width: 1px;
+    min-height: 0px;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        @children
+    }
+}
+
+export component HubShellBody inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-width: 1px;
+    min-height: 0px;
+    preferred-height: 0px;
+    background: HubVisualSpec.page-background;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        @children
+    }
+}
+
+export component HubWorkspaceSurface inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    min-height: 0px;
+    preferred-height: 0px;
+    background: HubVisualSpec.page-background;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        @children
+    }
+}
+
+export component HubPageContentSlot inherits Fill {
+    min-height: 0px;
+    preferred-height: 0px;
+    clip: true;
+}

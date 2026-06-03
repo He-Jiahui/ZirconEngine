@@ -1,4 +1,5 @@
 use super::data::FrameRect;
+use super::frame_geometry::{union_frame, visible_frame};
 use crate::ui::retained_host::ui_perf::{
     current_ui_perf_scenario, record_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
@@ -200,28 +201,6 @@ impl NativePointerDispatchResult {
 
     pub(super) fn redraw(self) -> HostRedrawRequest {
         self.redraw
-    }
-}
-
-fn visible_frame(frame: &FrameRect) -> bool {
-    frame.x.is_finite()
-        && frame.y.is_finite()
-        && frame.width.is_finite()
-        && frame.height.is_finite()
-        && frame.width > 0.0
-        && frame.height > 0.0
-}
-
-fn union_frame(left: &FrameRect, right: &FrameRect) -> FrameRect {
-    let x0 = left.x.min(right.x);
-    let y0 = left.y.min(right.y);
-    let x1 = (left.x + left.width).max(right.x + right.width);
-    let y1 = (left.y + left.height).max(right.y + right.height);
-    FrameRect {
-        x: x0,
-        y: y0,
-        width: (x1 - x0).max(0.0),
-        height: (y1 - y0).max(0.0),
     }
 }
 

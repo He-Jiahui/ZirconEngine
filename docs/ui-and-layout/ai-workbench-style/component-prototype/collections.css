@@ -51,13 +51,19 @@
 .zr-tree-row {
   position: relative;
   height: 28px;
+  width: 100%;
   display: grid;
   grid-template-columns: 20px 18px minmax(0, 1fr) 24px 24px;
   align-items: center;
   gap: 4px;
   padding: 0 5px;
+  border: 0;
+  background: transparent;
   color: var(--text);
+  font: inherit;
+  text-align: left;
   border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
 .zr-tree-row.is-child {
@@ -125,8 +131,14 @@
   display: grid;
   grid-template-columns: minmax(110px, 1fr) 104px 96px 112px 26px;
   align-items: center;
+  width: 100%;
   padding: 0 8px;
+  border: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
 }
 
 .zr-table-head {
@@ -155,9 +167,14 @@
   grid-template-columns: 20px minmax(0, 1fr) 20px;
   align-items: center;
   gap: 7px;
+  width: 100%;
   padding: 0 10px;
+  border: 0;
   color: var(--text);
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  background: transparent;
+  font: inherit;
+  text-align: left;
 }
 
 .zr-list-item:last-child {
@@ -171,6 +188,10 @@
 
 .zr-list-item.is-disabled {
   color: var(--text-dim);
+}
+
+.zr-list-item:disabled {
+  cursor: default;
 }
 
 .zr-list-handle {
@@ -195,9 +216,14 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 20px;
   align-items: center;
+  width: 100%;
   padding: 0 7px;
+  border: 0;
   border-radius: var(--radius-xs);
+  background: transparent;
   color: var(--text);
+  font: inherit;
+  text-align: left;
 }
 
 .zr-menu-row:hover {

@@ -51,9 +51,7 @@ runtime/editor/native/VM module rows. Editor module rows (`kind = "editor"`)
 must target only `editor_host`, so editor-only crates cannot be projected into
 client or server runtime package availability. Runtime and editor module
 `capabilities` must also match their module kind with `runtime.*` and
-`editor.*` namespaces respectively. Every module capability must also stay
-under the declaring package or optional-feature namespace, so module rows cannot
-claim another plugin's local capability surface.
+`editor.*` namespaces respectively.
 Package, optional-feature, and module string arrays reject duplicate entries for
 targets, capabilities, target modes, and default packaging so repeated metadata
 cannot leak into availability or export diagnostics.
@@ -65,10 +63,12 @@ by the same manifest before readiness diagnostics consume them.
 Capability status rows must publish non-empty capability ids, use known status
 spellings (`complete`, `partial`, `stub`, `externalized`, `unsupported`), stay
 unique per manifest capability, and keep optional target/reference arrays
-non-empty and de-duplicated when present. Optional `bevy_references` entries
-must be repository-relative paths under `dev/bevy` and resolve to existing
-files, so package maturity/status traceability cannot point at stale upstream
-source locations.
+non-empty and de-duplicated when present. Optional status `target_modes` must be
+covered by package-level `supported_targets`, so readiness metadata cannot be
+broader than package availability. Optional `bevy_references` entries must be
+repository-relative paths under `dev/bevy` and resolve to existing files, so
+package maturity/status traceability cannot point at stale upstream source
+locations.
 Package-level dependency rows must publish non-empty `id` and `capability` plus
 an explicit `required` marker before plugin availability or editor/export
 diagnostics consume them; duplicate package dependency `id` + `capability`
@@ -105,9 +105,7 @@ to package names in the `zircon_plugins` workspace under the declaring package
 root.
 Runtime/editor module capabilities must stay in the matching `runtime.*` or
 `editor.*` namespace, so runtime/editor/native/VM module projection stays
-explicit. Module capability rows must also include the same package or
-optional-feature namespace before loader, plugin-window, availability, or
-export projections consume them.
+explicit.
 
 Runtime crates depend only on runtime contracts. Editor crates may depend on
 `zircon_editor` plus their matching runtime crate when one exists.
@@ -235,17 +233,27 @@ importer, inspector, component drawer, and asset creation template without
 requiring runtime linkage.
 Static `[[options]]` rows are guarded for globally unique lowercase
 dot-separated namespace keys, trimmed display/default strings, known option
-value types, default values that parse according to their declared type, and
-non-empty optional capability gates before runtime reports or editor
-configuration panels consume them.
+value types, default values that parse according to their declared type,
+lowercase token defaults for enum options, duplicate-free lowercase
+`enum_values` lists whose defaults are members, and non-empty optional
+capability gates before runtime reports or editor configuration panels consume
+them. Programmatic plugin registrations go through the same runtime extension
+registry guard for option key shape, typed defaults, enum value sets, and
+non-enum `enum_values` rejection, so native or linked plugins cannot bypass the
+static manifest contract by registering options directly.
 Static `[[event_catalogs]]` rows are guarded for globally unique lowercase
-dot-separated catalog namespaces, positive manifest versions, explicit non-empty
-`events` arrays, and lowercase namespace-scoped event ids before event
-reflection or runtime reports consume catalog metadata. Optional event
-`payload_schema` ids must also use lowercase dot-separated namespace segments so
-runtime reports and plugin-window diagnostics do not inherit display labels or
-free-form schema names, and they must end with an explicit positive version
-segment such as `v1` before schema metadata is accepted.
+dot-separated catalog namespaces, package-owned namespace prefixes, positive
+manifest versions, explicit non-empty `events` arrays, and lowercase
+namespace-scoped event ids before event reflection or runtime reports consume
+catalog metadata. Optional event `payload_schema` ids must also use lowercase
+dot-separated namespace segments under the declaring package id so runtime
+reports and plugin-window diagnostics do not inherit display labels or free-form
+schema names, and they must end with an explicit positive version segment such
+as `v1` before schema metadata is accepted. Programmatic plugin registrations
+go through the same runtime extension registry guard for event catalog
+namespace shape, positive versions, non-empty event rows, namespace-owned event
+ids, duplicate rejection, trimmed display names, and package-owned versioned
+payload schema ids.
 
 `native_dynamic_fixture` is the SDK fixture for the NativeDynamic ABI loader.
 Its static `plugin.toml` and embedded native-library manifest both publish the

@@ -86,7 +86,11 @@ pub(in crate::ui::retained_host::host_contract) fn paint_host_frame(
     }
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_draw_host_scene");
-        draw_host_scene(&mut frame, &root, presentation);
+        if draws_componentized_workbench_window(presentation) {
+            draw_componentized_workbench_window(&mut frame, presentation);
+        } else {
+            draw_host_scene(&mut frame, &root, presentation);
+        }
     }
     frame
 }
@@ -117,7 +121,11 @@ pub(in crate::ui::retained_host::host_contract) fn record_host_frame_commands(
     }
     let root = resolve_root_frames(width, height, presentation);
     draw_root_skeleton(&mut frame, &root, presentation);
-    draw_host_scene(&mut frame, &root, presentation);
+    if draws_componentized_workbench_window(presentation) {
+        draw_componentized_workbench_window(&mut frame, presentation);
+    } else {
+        draw_host_scene(&mut frame, &root, presentation);
+    }
     (frame.into_recorded_commands(), damage)
 }
 
@@ -165,7 +173,11 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_host_frame_region(
     }
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_region_draw_host_scene");
-        draw_host_scene(frame, &root, presentation);
+        if draws_componentized_workbench_window(presentation) {
+            draw_componentized_workbench_window(frame, presentation);
+        } else {
+            draw_host_scene(frame, &root, presentation);
+        }
     }
     frame.replace_paint_clip(previous_clip);
     Some(damage)
@@ -358,6 +370,30 @@ fn draw_root_template_overlay(
         &frame_bounds,
         None,
     );
+}
+
+fn draws_componentized_workbench_window(presentation: &HostWindowPresentationData) -> bool {
+    has_template_nodes(&presentation.workbench_window_nodes)
+}
+
+fn draw_componentized_workbench_window(
+    frame: &mut HostRgbaFrame,
+    presentation: &HostWindowPresentationData,
+) {
+    let frame_bounds = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: frame.width() as f32,
+        height: frame.height() as f32,
+    };
+    draw_template_nodes(
+        frame,
+        &presentation.workbench_window_nodes,
+        &zero_origin(),
+        &frame_bounds,
+        Some(&presentation.text_input_focus),
+    );
+    draw_root_template_overlay(frame, presentation);
 }
 
 fn draw_menu_bar_labels(frame: &mut HostRgbaFrame, presentation: &HostWindowPresentationData) {

@@ -4,8 +4,12 @@ use thiserror::Error;
 pub enum RuntimeExtensionRegistryError {
     #[error("manager {0} already registered")]
     DuplicateManager(String),
+    #[error("invalid manager contribution: {0}")]
+    InvalidManager(String),
     #[error("module {0} already registered")]
     DuplicateModule(String),
+    #[error("invalid module contribution: {0}")]
+    InvalidModule(String),
     #[error("render feature {0} already registered")]
     DuplicateRenderFeature(String),
     #[error("render pass executor {0} already registered")]

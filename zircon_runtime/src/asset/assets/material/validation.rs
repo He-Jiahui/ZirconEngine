@@ -19,7 +19,7 @@ pub fn validate_shader_contract(
     shader: &ShaderAsset,
 ) -> Vec<RenderMaterialValidationError> {
     let mut errors = Vec::new();
-    for (name, value) in material.property_overrides() {
+    for (name, value) in material.shader_property_overrides() {
         match shader
             .property_schema
             .iter()
@@ -42,7 +42,7 @@ pub fn validate_shader_contract(
         }
     }
     for schema in &shader.property_schema {
-        if schema.required && !material.property_overrides().contains_key(&schema.name) {
+        if schema.required && material.shader_property_override(&schema.name).is_none() {
             errors.push(RenderMaterialValidationError::MissingRequiredProperty {
                 source: RenderMaterialDiagnosticSource::ShaderSchema,
                 path: format!("overrides.{}", schema.name),

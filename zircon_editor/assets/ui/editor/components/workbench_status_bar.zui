@@ -1,0 +1,100 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_status_bar.zui"
+version = 2
+display_name = "Workbench Status Bar"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_chip.zui#WorkbenchChip",
+  "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+]
+styles = []
+
+[components.WorkbenchStatusBar]
+root = "status_bar"
+default_classes = ["workbench-status"]
+
+[nodes.status_bar]
+component = "HorizontalGroup"
+control_id = "WorkbenchWindowStatusBar"
+classes = ["workbench-status"]
+props = { status_right_offset_y = -0.5, status_right_text_color = "#7d8990" }
+layout = { container = { kind = "HorizontalBox", gap = 14.0 }, width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_fill" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
+
+[nodes.status_ready]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchStatusReady"
+classes = ["workbench-status-item"]
+props = { text = "Ready", layout_offset_x = 4.0, layout_offset_y = -1.0, layout_gap = 8.0, text_color = "#8f9aa0", icon_fill = "#4eaa5f", icon_size = 9.0 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.status_errors]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchStatusErrors"
+classes = ["workbench-status-item"]
+props = { text = "No Errors", layout_offset_x = 18.0, layout_offset_y = -1.0, text_color = "#7b868d", icon_fill = "#58b866", icon_color = "#112018", icon_stroke = "#112018", layout_icon_size = 12.04 }
+layout = { width = { min = 116.0, preferred = 116.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.status_warnings]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchStatusWarnings"
+classes = ["workbench-status-item", "workbench-status-warning"]
+props = { text = "2 Warnings", layout_offset_x = 5.5, layout_offset_y = -2.0, layout_gap = 6.45, text_color = "#879299", icon_fill = "#f2c356", icon_color = "#11181a", icon_stroke = "#11181a", icon_stroke_width = 1.45, icon_size = 21.0, icon_offset_y = -2.0 }
+layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.status_messages]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchStatusMessages"
+classes = ["workbench-status-item"]
+props = { text = "0 Messages", layout_offset_x = -6.0, layout_offset_y = -2.0, text_color = "#97a3a9", icon_fill = "#4c9ae8", icon_size = 18.0, icon_offset_y = 2.0 }
+layout = { width = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.status_fill]
+component = "Container"
+control_id = "WorkbenchStatusFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_grid]
+component = "WorkbenchChip"
+control_id = "WorkbenchStatusGrid"
+classes = ["workbench-chip", "workbench-status-right-control"]
+props = { text = "Grid: 10 cm" }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_snap]
+component = "WorkbenchChip"
+control_id = "WorkbenchStatusSnap"
+classes = ["workbench-chip", "workbench-status-right-control"]
+props = { text = "Snap: On" }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_snap_icon]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchStatusSnapToggle"
+classes = ["workbench-icon-button", "workbench-status-right-icon"]
+props = { icon = "snap", label = "Snap" }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_world_icon]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchStatusWorld"
+classes = ["workbench-icon-button", "workbench-status-right-icon"]
+props = { icon = "globe", label = "World" }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_target_icon]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchStatusTarget"
+classes = ["workbench-icon-button", "workbench-status-right-icon"]
+props = { icon = "target", label = "Target" }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_zoom]
+component = "WorkbenchChip"
+control_id = "WorkbenchStatusZoom"
+classes = ["workbench-chip", "workbench-status-right-control"]
+props = { text = "100%" }
+layout = { width = { min = 94.0, preferred = 94.0, max = 94.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

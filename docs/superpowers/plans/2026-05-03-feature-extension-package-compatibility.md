@@ -34,7 +34,7 @@
 - Modify: `zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs`
 - Modify: `zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs`
 - Modify: `zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs`
-- Modify: `zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_feature_registration_report.rs`
+- Modify: `zircon_runtime/src/plugin/runtime_plugin/feature_registration_report.rs`
 - Test: `zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs`
 
 - [x] Link embedded external feature packages from `zircon_plugins/<provider_package_id>/runtime` when selected as `LibraryEmbed`.

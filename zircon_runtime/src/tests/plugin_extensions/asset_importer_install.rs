@@ -10,8 +10,8 @@ use crate::asset::{
 };
 use crate::core::resource::ResourceKind;
 use crate::plugin::{
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
 use crate::{RuntimePluginId, RuntimeTargetMode};
 
@@ -66,6 +66,87 @@ fn runtime_module_registration_reports_install_asset_importers_before_project_op
     assert_weather_asset_imported(manager.as_ref(), &paths);
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_plugin_registration_report_validates_shadowed_manifest_asset_importers() {
+    let plugin = ShadowedInvalidImporterRuntimePlugin::new();
+    let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
+
+    assert!(!registration.is_success());
+    assert_eq!(
+        registration
+            .extensions
+            .asset_importers()
+            .descriptors()
+            .len(),
+        1
+    );
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("asset importer registration failed")
+        && diagnostic.contains("weather.data")
+        && diagnostic.contains("source extension or full suffix")));
+
+    let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
+
+    assert!(!catalog.is_success());
+    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
+        .contains("asset importer registration failed")
+        && diagnostic.contains("weather.data")
+        && diagnostic.contains("source extension or full suffix")));
+}
+
+#[test]
+fn native_runtime_plugin_registration_report_registers_manifest_asset_importers_once() {
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+        PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_asset_importer(
+                AssetImporterDescriptor::new(
+                    "weather.data",
+                    "weather",
+                    crate::asset::AssetKind::Data,
+                    1,
+                )
+                .with_source_extensions(["weather"]),
+            ),
+    );
+
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    let descriptors = registration.extensions.asset_importers().descriptors();
+    assert_eq!(descriptors.len(), 1);
+    assert_eq!(descriptors[0].id, "weather.data");
+}
+
+#[test]
+fn native_runtime_plugin_registration_report_diagnoses_invalid_manifest_asset_importers_once() {
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+        PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_asset_importer(AssetImporterDescriptor::new(
+                "weather.data",
+                "weather",
+                crate::asset::AssetKind::Data,
+                1,
+            )),
+    );
+
+    assert!(!registration.is_success());
+    assert!(registration
+        .extensions
+        .asset_importers()
+        .descriptors()
+        .is_empty());
+    let importer_diagnostics = registration
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.contains("asset importer registration failed")
+                && diagnostic.contains("weather.data")
+                && diagnostic.contains("source extension or full suffix")
+        })
+        .count();
+    assert_eq!(importer_diagnostics, 1, "{:?}", registration.diagnostics);
 }
 
 fn assert_weather_asset_imported(manager: &ProjectAssetManager, paths: &ProjectPaths) {
@@ -146,7 +227,8 @@ impl WeatherImporterRuntimePlugin {
                 RuntimePluginId::Particles,
                 "zircon_plugin_weather_runtime",
             )
-            .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+            .with_target_modes([RuntimeTargetMode::ClientRuntime])
+            .with_capability("runtime.plugin.weather"),
         }
     }
 }
@@ -154,6 +236,50 @@ impl WeatherImporterRuntimePlugin {
 impl RuntimePlugin for WeatherImporterRuntimePlugin {
     fn descriptor(&self) -> &RuntimePluginDescriptor {
         &self.descriptor
+    }
+
+    fn register_runtime_extensions(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        registry.register_asset_importer(weather_importer())
+    }
+}
+
+#[derive(Debug)]
+struct ShadowedInvalidImporterRuntimePlugin {
+    descriptor: RuntimePluginDescriptor,
+}
+
+impl ShadowedInvalidImporterRuntimePlugin {
+    fn new() -> Self {
+        Self {
+            descriptor: RuntimePluginDescriptor::new(
+                "weather",
+                "Weather",
+                RuntimePluginId::Particles,
+                "zircon_plugin_weather_runtime",
+            )
+            .with_target_modes([RuntimeTargetMode::ClientRuntime])
+            .with_capability("runtime.plugin.weather"),
+        }
+    }
+}
+
+impl RuntimePlugin for ShadowedInvalidImporterRuntimePlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
+        &self.descriptor
+    }
+
+    fn package_manifest(&self) -> PluginPackageManifest {
+        self.descriptor
+            .package_manifest()
+            .with_asset_importer(AssetImporterDescriptor::new(
+                "weather.data",
+                "weather",
+                crate::asset::AssetKind::Data,
+                1,
+            ))
     }
 
     fn register_runtime_extensions(

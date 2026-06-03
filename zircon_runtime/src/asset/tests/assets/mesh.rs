@@ -261,14 +261,10 @@ fn mesh_asset_to_morphed_model_primitive_applies_weighted_position_and_normal_de
 
     let primitive = mesh.to_morphed_model_primitive(&[0.5, 1.0]).unwrap();
 
-    assert!(
-        Vec3::from_array(primitive.vertices[0].position)
-            .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6)
-    );
-    assert!(
-        Vec3::from_array(primitive.vertices[0].normal)
-            .abs_diff_eq(Vec3::new(0.0, 1.0, 1.0).normalize(), 1.0e-6)
-    );
+    assert!(Vec3::from_array(primitive.vertices[0].position)
+        .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6));
+    assert!(Vec3::from_array(primitive.vertices[0].normal)
+        .abs_diff_eq(Vec3::new(0.0, 0.5, 1.0).normalize(), 1.0e-6));
     assert_eq!(primitive.indices, vec![0, 1, 2]);
     assert_eq!(primitive.virtual_geometry, mesh.virtual_geometry);
 }

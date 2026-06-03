@@ -4,43 +4,142 @@ import {
     PluginData,
     UiTextData,
 } from "shared.slint";
-import { HubTokens, InfoRow } from "components.slint";
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { HubRowLeadingIconSlot, HubRowMetaSlot, HubRowTrailingSlot } from "row_slot_components.slint";
+import {
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
+} from "material_bridge.slint";
 
-export component AssetRow inherits InfoRow {
+component CatalogColumnRow inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> metadata;
+    in property <string> tag-text;
+    in property <string> tag-tone: "accent";
+    in property <image> icon-image;
+    in property <bool> collapse-trailing-label: false;
+    in property <bool> show-arrow: false;
+    in property <length> row-height: HubTokens.list-row-md;
+    callback clicked;
+
+    private property <length> avatar-size: HubTokens.control-lg;
+    private property <length> arrow-size: HubTokens.control-md;
+    private property <length> tag-width: root.show-arrow ? max(HubTokens.control-md * 4, min(HubTokens.panel-min-sm, root.width / 4)) : max(HubTokens.control-md * 3, min(HubTokens.control-lg * 7 / 2, root.width / 7));
+    private property <length> meta-width: root.show-arrow ? max(HubTokens.control-md * 3, min(HubTokens.control-md * 4, root.width / 7)) : max(HubTokens.control-md * 3, min(HubTokens.control-md * 4, root.width / 6));
+
+    height: root.row-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    border-radius: HubVisualSpec.panel-radius;
+    border-width: HubTokens.border-width;
+    border-color: HubVisualSpec.outline-muted;
+    background: HubVisualSpec.panel-background;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: MaterialPalette.on_surface;
+        border_radius: HubVisualSpec.panel-radius;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        spacing: HubTokens.space-3;
+        alignment: stretch;
+
+        HubRowLeadingIconSlot {
+            row-height: root.row-height;
+            slot-width: root.avatar-size;
+            shell-size: root.avatar-size;
+            icon-size: HubTokens.icon-lg;
+            icon-image: root.icon-image;
+        }
+
+        VerticalLayout {
+            min-width: HubTokens.panel-min-sm * 3 / 5;
+            horizontal-stretch: 3;
+            vertical-stretch: 1;
+            spacing: MaterialStyleMetrics.spacing_2;
+
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+            MaterialText {
+                text: root.title;
+                overflow: elide;
+                color: HubTokens.text-primary;
+                style: MaterialTypography.title_small;
+            }
+
+            MaterialText {
+                text: root.detail;
+                overflow: elide;
+                color: MaterialPalette.on_surface_variant;
+                style: MaterialTypography.body_small;
+            }
+
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+        }
+
+        HubRowMetaSlot {
+            text: root.metadata;
+            row-height: root.row-height;
+            slot-width: root.meta-width;
+        }
+
+        if !root.collapse-trailing-label || root.show-arrow: HubRowTrailingSlot {
+            row-height: root.row-height;
+            badge-text: root.tag-text;
+            badge-tone: root.tag-tone;
+            badge-width: root.tag-width;
+            collapse-badge: root.collapse-trailing-label;
+            show-chevron: root.show-arrow;
+            chevron-size: root.arrow-size;
+            clicked => { root.clicked(); }
+        }
+    }
+}
+
+export component AssetRow inherits CatalogColumnRow {
     in property <AssetData> asset;
     in property <UiTextData> ui-text;
     in property <bool> collapse-label: false;
 
     title: root.asset.name;
     detail: root.asset.path;
-    meta: root.ui-text.asset-source + ": " + root.asset.source + "    " + root.ui-text.asset-size + ": " + root.asset.size;
-    leading-image: @image-url("../assets/icons/nav/assets.svg");
-    has-leading-image: true;
-    trailing-text: root.asset.kind;
-    trailing-tone: "accent";
-    show-trailing-badge: true;
+    metadata: root.asset.source;
+    tag-text: root.asset.kind;
+    tag-tone: "accent";
+    icon-image: @image-url("../assets/icons/nav/assets.svg");
     collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
+    row-height: HubTokens.list-row-md;
 }
 
-export component PluginRow inherits InfoRow {
+export component PluginRow inherits CatalogColumnRow {
     in property <PluginData> plugin;
     in property <UiTextData> ui-text;
     in property <bool> collapse-label: false;
 
     title: root.plugin.title;
     detail: root.plugin.description;
-    meta: root.plugin.scope + "    " + root.ui-text.plugin-packaging + ": " + root.plugin.packaging + "    " + root.ui-text.plugin-modules + ": " + root.plugin.modules + "    " + root.ui-text.plugin-maturity + ": " + root.plugin.maturity + "    " + root.plugin.path;
-    leading-image: @image-url("../assets/icons/nav/plugins.svg");
-    has-leading-image: true;
-    trailing-text: root.plugin.category;
-    trailing-tone: "accent";
-    show-trailing-badge: true;
+    metadata: root.plugin.scope;
+    tag-text: root.plugin.category;
+    tag-tone: "accent";
+    icon-image: @image-url("../assets/icons/nav/plugins.svg");
     collapse-trailing-label: root.collapse-label;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
+    row-height: HubTokens.list-row-md;
 }
 
-export component LearnRow inherits InfoRow {
+export component LearnRow inherits CatalogColumnRow {
     in property <LearnData> resource;
     in property <UiTextData> ui-text;
     in property <bool> collapse-label: false;
@@ -48,15 +147,13 @@ export component LearnRow inherits InfoRow {
 
     title: root.resource.title;
     detail: root.resource.summary;
-    meta: root.resource.source + "    " + root.ui-text.learn-category + ": " + root.resource.category + "    " + root.resource.path;
-    leading-image: @image-url("../assets/icons/ui/help.svg");
-    has-leading-image: true;
-    trailing-text: root.resource.category;
-    trailing-tone: "accent";
-    show-trailing-badge: true;
+    metadata: root.resource.source;
+    tag-text: root.resource.category;
+    tag-tone: "accent";
+    icon-image: @image-url("../assets/icons/ui/help.svg");
     collapse-trailing-label: root.collapse-label;
+    row-height: HubTokens.list-row-md;
     show-arrow: true;
-    row-height: HubTokens.list-row-lg + HubTokens.space-6;
     clicked => {
         root.open-resource(root.resource.path);
     }

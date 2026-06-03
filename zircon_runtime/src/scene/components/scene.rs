@@ -166,6 +166,8 @@ pub struct MeshRenderer {
     pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub morph_weights: Vec<Real>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primitives: Vec<MeshRendererPrimitiveBinding>,
     pub tint: Vec4,
     #[serde(default)]
@@ -181,6 +183,7 @@ impl MeshRenderer {
             model,
             mesh: None,
             material,
+            morph_weights: Vec::new(),
             primitives: Vec::new(),
             tint: Vec4::ONE,
             material_alpha_mode: RenderMaterialAlphaMode::Opaque,

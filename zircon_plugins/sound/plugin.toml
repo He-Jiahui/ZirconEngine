@@ -125,6 +125,7 @@ key = "sound.ray_tracing_quality"
 display_name = "Ray Tracing Quality"
 value_type = "enum"
 default_value = "disabled"
+enum_values = ["disabled", "preview", "balanced", "cinematic"]
 required_capability = "runtime.capability.ray_query"
 
 [[options]]

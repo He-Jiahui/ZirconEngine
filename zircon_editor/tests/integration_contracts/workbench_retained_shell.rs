@@ -37,8 +37,12 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
             &[
                 "UiHostWindowRoot",
                 "WorkbenchBody",
-                "WorkbenchShellReferenceImage",
-                "ui/editor/reference/workbench.png",
+                "editor_workbench_strict.v2.ui.toml",
+                "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+                "res://ui/editor/components/workbench_rail_button.zui#WorkbenchRailButton",
+                "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+                "WorkbenchScaffold",
+                "StatusBarRoot",
             ] as &[_],
         ),
         (
@@ -62,5 +66,19 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
         for marker in markers {
             assert!(asset.contains(marker), "{relative} missing `{marker}`");
         }
+    }
+
+    let shell = source("assets/ui/editor/host/workbench_shell.v2.ui.toml");
+    for forbidden in [
+        "WorkbenchShellReferenceImage",
+        "ui/editor/reference/workbench.png",
+        "docs/ui-and-layout/workbench.png",
+        "component = \"IconButton\"",
+        "component = \"Label\"",
+    ] {
+        assert!(
+            !shell.contains(forbidden),
+            "workbench shell must stay componentized instead of rendering `{forbidden}`"
+        );
     }
 }

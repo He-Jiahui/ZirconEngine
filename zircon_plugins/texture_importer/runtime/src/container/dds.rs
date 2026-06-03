@@ -545,11 +545,14 @@ fn read_mip_count(context: &AssetImportContext, flags: u32) -> Result<u32, Asset
     if flags & DDSD_MIPMAPCOUNT == 0 {
         return Ok(1);
     }
-    read_nonzero_u32(
-        context,
-        28,
-        "dds mip map count when DDSD_MIPMAPCOUNT is set",
-    )
+    let mip_count = read_u32_le(context, 28)?;
+    if mip_count == 0 {
+        return parse_error(
+            context,
+            "dds mip map count must be nonzero when DDSD_MIPMAPCOUNT is set",
+        );
+    }
+    Ok(mip_count)
 }
 
 fn fourcc_string(

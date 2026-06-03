@@ -8,6 +8,7 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
+use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use serde_json::Value;
 use zircon_runtime_interface::ui::binding::UiEventBinding;
 
@@ -204,6 +205,9 @@ impl EditorEventDispatcher for EditorEventRuntime {
         if is_material_component_lab_binding(&binding) {
             return Ok(self.record_material_component_lab_feedback(source, &binding));
         }
+        if let Some(action_id) = component_lab_preview_action_id(&binding) {
+            return Ok(self.record_component_lab_preview_action(source, &binding, action_id));
+        }
         let event = normalize_editor_event_binding(&binding)?;
         self.dispatch_normalized_event(source, event)
     }
@@ -225,6 +229,17 @@ fn is_material_component_lab_binding(binding: &EditorUiBinding) -> bool {
         .is_some_and(|call| call.symbol == "MaterialComponentLab")
 }
 
+fn component_lab_preview_action_id(binding: &EditorUiBinding) -> Option<&str> {
+    match binding.payload() {
+        crate::ui::binding::EditorUiBindingPayload::MenuAction { action_id }
+            if is_workbench_preview_action(action_id) =>
+        {
+            Some(action_id.as_str())
+        }
+        _ => None,
+    }
+}
+
 impl EditorEventRuntime {
     fn record_material_component_lab_feedback(
         &self,
@@ -236,10 +251,12 @@ impl EditorEventRuntime {
         inner.next_sequence += 1;
 
         let revision = inner.revision;
+        let node_path = binding_node_path(binding);
         let event = EditorEvent::Transient(EditorEventTransient::PressNode {
-            node_path: binding.path().control_id.clone(),
+            node_path,
             pressed: false,
         });
+        let undo_policy = undo_policy_for_event(&event);
         let record = EditorEventRecord {
             event_id: EditorEventId::new(inner.next_event_id),
             sequence: EditorEventSequence::new(inner.next_sequence),
@@ -250,12 +267,7 @@ impl EditorEventRuntime {
             operation_arguments: None,
             operation_group: Some("MaterialComponentLab".to_string()),
             effects: Vec::new(),
-            undo_policy: undo_policy_for_event(&EditorEvent::Transient(
-                EditorEventTransient::PressNode {
-                    node_path: binding.path().control_id.clone(),
-                    pressed: false,
-                },
-            )),
+            undo_policy,
             before_revision: revision,
             after_revision: revision,
             result: EditorEventResult::success(event_result_value(revision, false)),
@@ -264,4 +276,49 @@ impl EditorEventRuntime {
         inner.event_listeners.notify(&record);
         record
     }
+
+    fn record_component_lab_preview_action(
+        &self,
+        source: EditorEventSource,
+        binding: &EditorUiBinding,
+        action_id: &str,
+    ) -> EditorEventRecord {
+        let mut inner = self.lock_inner();
+        inner.next_event_id += 1;
+        inner.next_sequence += 1;
+
+        let revision = inner.revision;
+        let node_path = binding_node_path(binding);
+        let event = EditorEvent::Transient(EditorEventTransient::PressNode {
+            node_path: node_path.clone(),
+            pressed: false,
+        });
+        let undo_policy = undo_policy_for_event(&event);
+        let record = EditorEventRecord {
+            event_id: EditorEventId::new(inner.next_event_id),
+            sequence: EditorEventSequence::new(inner.next_sequence),
+            source,
+            event,
+            operation_id: None,
+            operation_display_name: Some("Component Lab Preview Action".to_string()),
+            operation_arguments: Some(serde_json::json!({
+                "control_id": binding.path().control_id.clone(),
+                "node_path": node_path,
+                "action_id": action_id,
+            })),
+            operation_group: Some("ComponentLabPreview".to_string()),
+            effects: Vec::new(),
+            undo_policy,
+            before_revision: revision,
+            after_revision: revision,
+            result: EditorEventResult::success(event_result_value(revision, false)),
+        };
+        inner.journal.push(record.clone());
+        inner.event_listeners.notify(&record);
+        record
+    }
+}
+
+fn binding_node_path(binding: &EditorUiBinding) -> String {
+    format!("{}/{}", binding.path().view_id, binding.path().control_id)
 }

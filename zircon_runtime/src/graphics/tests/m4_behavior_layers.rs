@@ -21,7 +21,10 @@ use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::graphics::{offline_bake_frame, OfflineBakeSettings, WgpuRenderFramework};
+use crate::graphics::{
+    offline_bake_frame, OfflineBakeSettings, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, WgpuRenderFramework,
+};
 use crate::RenderFeatureDescriptor;
 
 use super::plugin_render_feature_fixtures::{
@@ -38,6 +41,7 @@ fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),
@@ -89,6 +93,7 @@ fn color_grading_extract_tints_scene_after_post_process() {
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),
@@ -146,6 +151,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             render_layer_mask: default_render_layer_mask(),
@@ -225,8 +231,13 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
         }];
     });
 
-    let particle_server =
-        fixture.server_with_render_features([particle_render_feature_descriptor()]);
+    let particle_server = fixture.server_with_render_features(
+        [particle_render_feature_descriptor()],
+        [RenderPassExecutorRegistration::new(
+            "particle.transparent",
+            particle_transparent_billboard_executor,
+        )],
+    );
     let particle_frame = fixture.render_extract(
         &particle_server,
         extract.clone(),
@@ -341,13 +352,14 @@ impl RenderFixture {
     fn server_with_render_features(
         &self,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     ) -> WgpuRenderFramework {
         let mut features = default_rendering_feature_descriptors();
         features.extend(render_features);
         WgpuRenderFramework::new_with_plugin_render_features(
             self.asset_manager.clone(),
             features,
-            Vec::new(),
+            render_pass_executors,
             Vec::new(),
         )
         .unwrap()
@@ -387,6 +399,14 @@ impl RenderFixture {
         server.destroy_viewport(viewport).unwrap();
         frame
     }
+}
+
+fn particle_transparent_billboard_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    context
+        .require_gpu()?
+        .record_particle_billboards_to_resources("scene-color", "scene-depth")
 }
 
 impl Drop for RenderFixture {

@@ -32,13 +32,17 @@ implementation_files:
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
+  - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/plan.md
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - tests/acceptance/ecs-to-render-chain.md
+  - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/validation-evidence.md
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
   - .github/workflows/ci.yml
 doc_type: module-detail
@@ -70,11 +74,17 @@ The prepared path is:
 
 `World::build_prepared_render_frame_extract_for_request(...)` emits sorted meshes, directional lights, point lights, rect lights, spot lights, and active ambient light records. Mesh rows include stable node id, world transform, model handle, material handle, tint, mobility, and render-layer mask. Light row types live under `render::light`; `LightingExtract` only aggregates those rows with reflection-probe, baked-lighting, and Hybrid GI sidebands. Rect light rows follow Bevy's orientation contract by deriving the emitted direction from the entity transform's forward vector, while keeping the authored color, intensity, range, and size in `RenderRectLightSnapshot`. Ambient light snapshots are no longer marked renderer-degraded because the basic forward/deferred scene uniform now folds active authored ambient color times intensity into `SceneUniform::ambient_color`; rect lights remain renderer-degraded until a concrete area-light shader path lands. The prepared frame path also builds `GeometryPhaseInput` from the same sorted mesh rows and each `MeshRenderer.material_alpha_mode`, so mesh indices and phase classification stay aligned for opaque, alpha-mask, and transparent queues. Camera rows preserve explicit viewport-request overrides and derive aspect ratio from the request size when present.
 
+The phase inputs now expose the full render-order surface needed by the WGPU main chain: render queue, material queue, depth, depth bias, order in layer, UI z-index, and entity tie-breaker. Current scene components still populate only the stable defaults plus material alpha/depth/z-order, but the DTO and queue builder contract are ready for material cache, sprite atlas, UI graph, and renderer-specific ordering data without adding a second sorting path.
+
 Inactive entities are filtered by `ActiveInHierarchy`. Because `RenderExtractPrepare` runs before the rows are collected, parent active-state propagation, parent reorders, and world transform propagation are current when the renderer sees the prepared extract. Read-only clone-based helpers can also produce a fresh packet or frame extract, but they do not clear dirty bits on the original world.
 
 M3 now fills the non-snapshot frame sections with explicit defaults. `PostProcessExtract` carries preview/display mode plus default bloom and color grading. `GeometryExtract` carries the request's virtual-geometry debug override and an empty VG sideband. `LightingExtract` carries an empty disabled Hybrid GI sideband. `VisibilityInput` is derived from the same sorted mesh rows so renderable, static, dynamic, and layer-mask inputs are aligned with geometry. The renderer submit path treats an empty VG sideband as no authored VG payload, preserving automatic provider extraction for advanced profiles while still making the scene-produced frame shape canonical. Render submit statistics also split extracted lights into ready/degraded slots: authored ambient entries and the first directional slot are visible as basic-renderer-ready, while extra directional lights plus point, spot, and rect lights remain explicit degraded slots until their concrete PBR/clustered/area-light shader paths land.
 
 ## Validation Scope
+
+Fresh workflow M03 validation is recorded separately from the older May M3 history. The current workflow uses `m03-canonical-render-extract/validation-evidence.md` and the focused `zircon_runtime/src/scene/tests/render_extract.rs` module to lock the canonical producer contract: `World` and `LevelSystem` populate `RenderFrameExtract` directly, `LevelSystem` keeps animation pose ownership, inactive cameras preserve deterministic default sideband shape while removing scene payload rows, camera-layer filtering applies uniformly to meshes, sprites, and visibility inputs, request camera layers override scene-camera layers, and production scene/submit paths do not route through snapshot adapters. This evidence remains focused `zircon_runtime` scene/graphics validation only and is not a root workspace, plugin workspace, export, or final green claim.
+
+Fresh workflow M03 named validation on 2026-06-02 used `D:\cargo-targets\zircon-m03-canonical-render-extract`. The focused `scene::tests::render_extract` module passed with `6 passed`, the structural no-snapshot-adapter guard passed with `1 passed`, exact carry-forward `ecs_schedule` guards each passed with `1 passed`, `world_basics` passed with `14 passed`, the M5 sideband smoke passed with `1 passed`, `graphics::tests::visibility` passed with `23 passed`, and aggregate `scene::tests` passed with `205 passed; 2272 filtered out`. `cargo check -p zircon_runtime --lib --locked --jobs 1` passed with existing warning-only output after rerunning through transient concurrent renderer/submit edit and plugin feature-shape visibility mismatches. The required root `cargo fmt --all --check` passed after `cargo fmt --all` formatted unrelated active-lane files; this root formatting gate is recorded as a validation fix/rerun, not as a workspace build/test claim.
 
 The focused M1/M2 tests verify that:
 
@@ -85,6 +95,8 @@ The focused M1/M2 tests verify that:
 - asset-bound mesh, physics, animation, and graphics render-framework tests still consume the same frame boundary.
 - dirty-only parent, active, transform, mobility, and render-layer mutations remain pending until `PostUpdate` or `RenderExtract` systems flush them;
 - render extract preparation handles parent reorder plus inactive-parent propagation before collecting mesh rows.
+- M02 derived-state regressions prove both clone-based legacy viewport packets and mutable prepared `RenderFrameExtract` flush pending parent/active/transform/node-cache work before reading render rows; clone-based helpers leave the source world's dirty flags pending, while the prepared mutable path clears the live world.
+- M02 also locks active-camera selection and property-path product-field edits as node-cache/render-extract freshness inputs without changing scheduler or main-loop ordering.
 - M3 canonical render-frame extraction populates direct frame sections, including camera aspect, visibility buckets, postprocess defaults, VG debug/default sidebands, and disabled Hybrid GI sidebands.
 - M4A prepared render-frame extraction queues alpha-mask and transparent meshes from `MeshRenderer` alpha hints instead of treating production world meshes as all opaque.
 - M5 light authoring projects scene-authored `AmbientLight` and `RectLight` into both legacy viewport packets and canonical `LightingExtract`; authored ambient now reaches the basic scene uniform, while rect light snapshots preserve explicit renderer-degraded diagnostics for the unimplemented area-light shading path. The same ambient/rect fields now round-trip through `SceneAsset` before extraction.

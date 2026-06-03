@@ -39,6 +39,7 @@ pub(crate) fn resolve_view_tab(
         dirty: instance.dirty,
         content_kind: descriptor_content_kind(&descriptor.descriptor_id),
         pane_template: descriptor.pane_template.clone(),
+        activity_window_template: descriptor.activity_window_template.clone(),
         placeholder: false,
     }
 }

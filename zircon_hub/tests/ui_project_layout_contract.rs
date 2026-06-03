@@ -94,7 +94,9 @@ fn project_pages_use_responsive_taffy_sizing() {
     let app = read_ui_file("app.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let dashboard_surface = format!("{dashboard}\n{dashboard_components}");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
+    let dashboard_surface =
+        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
     let projects = read_ui_file("projects.slint");
     let project_components = read_ui_file("project_page_components.slint");
     let project_browser_components = read_ui_file("project_browser_components.slint");
@@ -197,6 +199,10 @@ fn project_pages_use_responsive_taffy_sizing() {
         "HubListPanelSlot,",
         "prominent: true;",
         "component DashboardViewToggleButton inherits HubIconButton",
+        "active-background: HubVisualSpec.view-toggle-active-fill;",
+        "active-border: HubVisualSpec.view-toggle-active-stroke;",
+        "active-foreground: HubVisualSpec.view-toggle-active-foreground;",
+        "idle-foreground: HubVisualSpec.view-toggle-idle-foreground;",
         "component ProjectFlowNextButton inherits HubIconButton",
         "HubFloatingIconButton {",
         "text: root.visual-detail;",
@@ -252,6 +258,21 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectCard",
         "ProjectFlow",
         "DashboardProjectCardsSection",
+    ] {
+        assert!(
+            project_card_flow_components.contains(&format!("export component {component_name}")),
+            "project_card_flow_components.slint should own the exported project-card-flow component {component_name}"
+        );
+        assert!(
+            !dashboard_components.contains(&format!("export component {component_name}")),
+            "project_dashboard_components.slint should not regain project card-flow ownership: {component_name}"
+        );
+        assert!(
+            !dashboard.contains(&format!("component {component_name} inherits")),
+            "project_dashboard.slint should import {component_name} instead of declaring it locally"
+        );
+    }
+    for component_name in [
         "DashboardToolbar",
         "DashboardQuickActionRow",
         "DashboardRecentProjectsPanel",
@@ -266,17 +287,18 @@ fn project_pages_use_responsive_taffy_sizing() {
             "project_dashboard.slint should import {component_name} instead of declaring it locally"
         );
     }
-    let project_cover = dashboard_components
+    let project_cover = project_card_flow_components
         .split("export component ProjectCover")
         .nth(1)
         .and_then(|source| source.split("export component ProjectCard").next())
-        .expect("project_dashboard_components.slint must export ProjectCover before ProjectCard");
+        .expect("project_card_flow_components.slint must export ProjectCover before ProjectCard");
     assert!(
         !project_cover.contains("MaterialPalette.shadow_15"),
         "ProjectCover should render the reference project cover PNGs without an extra darkening overlay"
     );
     for snippet in [
-        "import {\n    HubFloatingIconButton,\n} from \"button_components.slint\";",
+        "HubFloatingIconButton,",
+        "} from \"button_components.slint\";",
         "HubFloatingIconButton {",
         "button-width: root.menu-width;",
         "button-height: root.menu-height;",
@@ -285,7 +307,7 @@ fn project_pages_use_responsive_taffy_sizing() {
         "root.menu-clicked();",
     ] {
         assert!(
-            dashboard_components.contains(snippet),
+            project_card_flow_components.contains(snippet),
             "ProjectCover should route its cover menu through the shared floating icon-button primitive: {snippet}"
         );
     }
@@ -307,7 +329,7 @@ fn project_pages_use_responsive_taffy_sizing() {
     ] {
         assert!(
             !dashboard.contains(forbidden),
-            "ProjectDashboardPage should leave dashboard component internals inside project_dashboard_components.slint: {forbidden}"
+            "ProjectDashboardPage should leave dashboard component internals inside focused component modules: {forbidden}"
         );
     }
     for snippet in [
@@ -415,6 +437,7 @@ fn project_pages_use_responsive_taffy_sizing() {
         "select-engine(id) => { root.select-engine(id); }",
         "component ProjectCreateField inherits Rectangle",
         "ProjectCreateField {",
+        "HubPathFieldRow {",
         "field-label: root.ui-text.project-name;",
         "field-text <=> root.project-name;",
         "field-label: root.ui-text.location;",
@@ -480,12 +503,15 @@ fn project_pages_use_responsive_taffy_sizing() {
         "row-count: root.template-count;",
         "empty-height: HubTokens.list-row-lg;",
         "for template in root.templates: TemplateChoiceRow",
-        "selected(id) => { root.selected(id); }",
+        "template-selected(id) => { root.selected(id); }",
         "private property <CheckState> selection-state: root.template.selected ? CheckState.checked : CheckState.unchecked;",
-        "HubCheckBox {",
+        "export component TemplateChoiceRow inherits HubRowSurface",
+        "HubRowSelectionSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
         "check-state: root.selection-state;",
         "StateLayerArea {",
-        "StatusBadge {",
+        "badge-text: root.trailing-label;",
         "flow-visible-height: max(root.content-height - root.header-height - root.page-gap, root.project-settings-panel-height);",
         "flow-height: root.narrow-flow ? root.project-settings-panel-height + root.page-gap + root.summary-panel-height + root.page-gap + root.template-panel-height : max(root.flow-visible-height, root.template-panel-height);",
         "height: root.choice-row-height;",
@@ -522,12 +548,12 @@ fn project_pages_use_responsive_taffy_sizing() {
         "detail-title-header-height: root.narrow-flow ? HubTokens.control-md : HubTokens.list-row-sm;",
         "detail-info-header-height: root.narrow-flow ? HubTokens.control-md : HubTokens.list-row-sm;",
         "detail-info-section-height: root.detail-info-header-height + root.info-row-height * 5 + root.detail-info-row-gap * 5;",
-        "component ProjectDetailStatusStrip inherits Rectangle",
+        "component ProjectDetailStatusStrip inherits HubBadgeMetaStrip",
         "in property <ProjectDetailData> detail;",
         "in property <UiTextData> copy;",
-        "text: root.detail.version;",
-        "text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
-        "text: root.copy.modified-prefix + root.detail.modified;",
+        "first-badge-text: root.detail.version;",
+        "second-badge-text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
+        "meta-text: root.copy.modified-prefix + root.detail.modified;",
         "ProjectDetailStatusStrip {",
         "row-height: root.status-row-height;",
         "row-spacing: root.status-gap;",
@@ -549,15 +575,31 @@ fn project_pages_use_responsive_taffy_sizing() {
         "project: root.project;",
         "ui-text: root.ui-text;",
         "detail-engine-list-height: root.engine-count == 0 ? HubTokens.list-row-lg : root.detail-engine-panel-rows * root.detail-choice-row-height + (root.detail-engine-panel-rows - 1) * root.detail-engine-row-gap;",
-        "component ProjectDetailActionButton inherits PillButton",
-        "height: root.action-height;",
-        "ProjectDetailActionButton {",
+        "component ProjectDetailActionsSection inherits PanelSlot",
+        "body-padding: root.panel-padding;",
+        "body-spacing: root.panel-spacing;",
+        "ProjectDetailActionsSection {",
+        "panel-padding: root.detail-panel-padding;",
+        "panel-spacing: root.page-gap;",
+        "project: root.project;",
+        "copy: root.ui-text;",
+        "engine-section-height: root.detail-engine-section-height;",
+        "engine-list-height: root.detail-engine-list-height;",
+        "engine-scroll-y <=> root.detail-engine-scroll-y;",
+        "engine-row-height: root.detail-choice-row-height;",
+        "engine-row-spacing: root.detail-engine-row-gap;",
+        "collapse-engine-label: root.narrow-flow;",
+        "HubActionCommandButton {",
+        "source-image: @image-url(\"../assets/icons/nav/editor.svg\");",
+        "source-image: @image-url(\"../assets/icons/ui/close.svg\");",
+        "source-image: @image-url(\"../assets/icons/ui/alert.svg\");",
+        "has-source-image: true;",
         "action-height: root.action-row-height;",
-        "text: root.ui-text.confirm-delete;",
-        "text: root.ui-text.cancel-delete;",
-        "text: root.ui-text.open;",
-        "text: root.ui-text.remove-from-hub;",
-        "text: root.ui-text.delete-project;",
+        "text: root.copy.confirm-delete;",
+        "text: root.copy.cancel-delete;",
+        "text: root.copy.open;",
+        "text: root.copy.remove-from-hub;",
+        "text: root.copy.delete-project;",
         "component ProjectDetailPinToggleRow inherits HubToggleRow",
         "checked: root.detail.pinned;",
         "label: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
@@ -565,9 +607,9 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectDetailPinToggleRow {",
         "row-height: root.pin-toggle-row-height;",
         "toggled(checked) => { root.toggle-pin(); }",
-        "list-height: root.detail-engine-list-height;",
-        "list-scroll-y <=> root.detail-engine-scroll-y;",
-        "row-height: root.detail-choice-row-height;",
+        "list-height: root.engine-list-height;",
+        "list-scroll-y <=> root.engine-scroll-y;",
+        "row-height: root.engine-row-height;",
         "empty-height: HubTokens.list-row-lg;",
         "component ProjectDetailEngineSection inherits HubSection",
         "in property <ProjectDetailData> detail;",
@@ -578,11 +620,11 @@ fn project_pages_use_responsive_taffy_sizing() {
         "registered-label: root.copy.registered;",
         "empty-title: root.copy.no-source-engine-available;",
         "ProjectDetailEngineSection {",
-        "section-height: root.detail-engine-section-height;",
-        "section-spacing: root.page-gap;",
+        "section-height: root.engine-section-height;",
+        "section-spacing: root.panel-spacing;",
         "detail: root.project;",
-        "copy: root.ui-text;",
-        "list-scroll-y <=> root.detail-engine-scroll-y;",
+        "copy: root.copy;",
+        "list-scroll-y <=> root.engine-scroll-y;",
         "selected(id) => { root.select-engine(id); }",
         "detail-main-panel-height: root.detail-panel-padding * 2 + root.cover-height + root.detail-title-header-height + root.status-row-height + root.detail-info-section-height + root.page-gap * 3;",
         "detail-action-panel-height: root.detail-panel-padding * 2 + (root.project.pending-delete ? root.detail-action-delete-height : root.detail-action-standard-height);",
@@ -613,9 +655,35 @@ fn project_pages_use_responsive_taffy_sizing() {
             "project_pages.slint and project_detail_page.slint should import {component_name} instead of declaring it locally"
         );
     }
+    let project_create_field = project_components
+        .split("export component ProjectCreateField")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .expect("project_page_components.slint must declare ProjectCreateField");
+    for snippet in [
+        "HubPathFieldRow {",
+        "label: root.field-label;",
+        "placeholder: root.field-placeholder;",
+        "text <=> root.field-text;",
+        "field-height: root.field-height;",
+        "show-action: root.show-browse;",
+        "action-label: root.browse-label;",
+        "action-clicked =>",
+    ] {
+        assert!(
+            project_create_field.contains(snippet),
+            "ProjectCreateField must consume the shared HubPathFieldRow primitive; missing {snippet}"
+        );
+    }
+    for forbidden in ["HubTextField {", "PillButton {", "HorizontalLayout {"] {
+        assert!(
+            !project_create_field.contains(forbidden),
+            "ProjectCreateField must not keep page-local field/action layout after HubPathFieldRow extraction: {forbidden}"
+        );
+    }
     for component_name in [
-        "ProjectDetailActionButton",
         "ProjectDetailPinToggleRow",
+        "ProjectDetailActionsSection",
         "ProjectDetailStatusStrip",
         "ProjectDetailInfoSection",
         "ProjectDetailEngineSection",
@@ -631,6 +699,11 @@ fn project_pages_use_responsive_taffy_sizing() {
             "Project Detail components should live in project_detail_components.slint and be imported by the page"
         );
     }
+    assert!(
+        !project_detail_components.contains("export component ProjectDetailActionButton")
+            && !project_detail_components.contains("ProjectDetailActionButton {"),
+        "Project Detail command actions should consume HubActionCommandButton directly instead of keeping a pass-through wrapper"
+    );
     for component_name in [
         "ProjectFilterSelect",
         "ProjectSortSelect",
@@ -784,18 +857,25 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectDetailEngineSection should reuse ProjectEngineChoiceList for detail engine choices"
     );
     assert_eq!(
-        project_detail_page
-            .matches("ProjectDetailActionButton {")
+        project_detail_components
+            .matches("HubActionCommandButton {")
             .count(),
         5,
-        "ProjectDetailPage should route command actions through ProjectDetailActionButton and reserve pin state for ProjectDetailPinToggleRow"
+        "ProjectDetailActionsSection should route command actions directly through HubActionCommandButton and reserve pin state for ProjectDetailPinToggleRow"
     );
     assert_eq!(
-        project_detail_page
+        project_detail_components
             .matches("ProjectDetailPinToggleRow {")
             .count(),
         1,
-        "ProjectDetailPage should route pin/unpin through one ProjectDetailPinToggleRow"
+        "ProjectDetailActionsSection should route pin/unpin through one ProjectDetailPinToggleRow"
+    );
+    assert_eq!(
+        project_detail_page
+            .matches("ProjectDetailActionsSection {")
+            .count(),
+        1,
+        "ProjectDetailPage should route the actions column through one ProjectDetailActionsSection"
     );
     assert_eq!(
         project_detail_page
@@ -817,10 +897,10 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectNewPage should leave its create button row inside ProjectCreateSettingsPanel"
     );
     assert_eq!(
-        project_detail_page
+        project_detail_components
             .matches("ProjectDetailEngineSection {")
             .count(),
         1,
-        "ProjectDetailPage should route Change Source Engine controls through one ProjectDetailEngineSection"
+        "ProjectDetailActionsSection should route Change Source Engine controls through one ProjectDetailEngineSection"
     );
 }

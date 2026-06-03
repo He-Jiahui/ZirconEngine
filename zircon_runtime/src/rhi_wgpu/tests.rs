@@ -7,8 +7,11 @@ fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
     let caps = wgpu_backend_caps("wgpu-test", wgpu::Features::empty(), true);
 
     assert!(caps.supports_queue(RenderQueueClass::Graphics));
+    assert!(caps.supports_queue(RenderQueueClass::Compute));
     assert!(caps.supports_queue(RenderQueueClass::Copy));
     assert!(!caps.acceleration_structures.supported);
+    assert!(!caps.supports_neural_compute);
+    assert!(!caps.supports_sparse_texture);
 }
 
 #[test]

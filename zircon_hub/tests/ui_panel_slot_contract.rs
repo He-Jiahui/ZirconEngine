@@ -56,7 +56,7 @@ fn panel_slot_wraps_responsive_slot_and_material_panel_body() {
 }
 
 #[test]
-fn overview_panel_wraps_cloud_and_team_summary_headers() {
+fn overview_panel_wraps_cloud_summary_header_and_team_uses_metric_first_overview() {
     let surfaces = read_ui_file("surfaces.slint");
     let components = read_ui_file("components.slint");
     let cloud = read_ui_file("cloud.slint");
@@ -82,52 +82,48 @@ fn overview_panel_wraps_cloud_and_team_summary_headers() {
         "components.slint must re-export OverviewPanel for page modules"
     );
 
-    for (page, source, title_snippet, badge_snippet) in [
-        (
-            "CloudPage",
-            &cloud,
-            "title: root.overview-title;",
-            "badge-text: root.summary.status;",
-        ),
-        (
-            "TeamPage",
-            &team,
-            "title: root.workspace-title;",
-            "badge-text: root.member-count + \" \" + root.ui-text.team-members-found;",
-        ),
+    let cloud_top_region = cloud
+        .split("WorkspacePanelSection {")
+        .next()
+        .expect("CloudPage should declare its overview before WorkspacePanelSection");
+    assert!(
+        cloud.contains("OverviewPanel,") && cloud_top_region.contains("OverviewPanel {"),
+        "CloudPage should route the top summary card through OverviewPanel"
+    );
+    for snippet in [
+        "height: root.header-height;",
+        "title: root.overview-title;",
+        "badge-text: root.summary.status;",
     ] {
-        let top_region = source
-            .split("WorkspacePanelSection {")
-            .next()
-            .expect("Cloud/Team pages should declare their overview before WorkspacePanelSection");
         assert!(
-            source.contains("OverviewPanel,"),
-            "{page} should import the shared OverviewPanel primitive"
-        );
-        assert!(
-            top_region.contains("OverviewPanel {"),
-            "{page} should route the top summary card through OverviewPanel"
-        );
-        for snippet in ["height: root.header-height;", title_snippet, badge_snippet] {
-            assert!(
-                top_region.contains(snippet),
-                "{page} OverviewPanel should preserve summary header bindings: {snippet}"
-            );
-        }
-        assert!(
-            !top_region.contains("HubPanel {")
-                && !top_region.contains("padding-left: MaterialStyleMetrics.padding_16;")
-                && !top_region.contains("padding-top: MaterialStyleMetrics.padding_14;"),
-            "{page} should not repeat top summary HubPanel/VerticalLayout padding boilerplate"
+            cloud_top_region.contains(snippet),
+            "CloudPage OverviewPanel should preserve summary header bindings: {snippet}"
         );
     }
+    assert!(
+        !cloud_top_region.contains("HubPanel {")
+            && !cloud_top_region.contains("padding-left: MaterialStyleMetrics.padding_16;")
+            && !cloud_top_region.contains("padding-top: MaterialStyleMetrics.padding_14;"),
+        "CloudPage should not repeat top summary HubPanel/VerticalLayout padding boilerplate"
+    );
+
+    assert!(
+        !team.contains("OverviewPanel,")
+            && !team.contains("OverviewPanel {")
+            && team.contains("summary-compact: root.content-width < HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
+            && team.contains("compact-rows: 4;")
+            && team.matches("TeamSummarySlot {").count() == 4
+            && team.contains("TeamMembersPanel {")
+            && team.contains("TeamActionsPanel {"),
+        "TeamPage should use the HTML-reference metric-first layout instead of a sparse top OverviewPanel"
+    );
 }
 
 #[test]
 fn empty_state_primitives_wrap_project_and_team_empty_states() {
     let surfaces = read_ui_file("surfaces.slint");
     let components = read_ui_file("components.slint");
-    let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
     let team = read_ui_file("team.slint");
     let team_components = read_ui_file("team_page_components.slint");
 
@@ -156,16 +152,16 @@ fn empty_state_primitives_wrap_project_and_team_empty_states() {
         "components.slint must re-export empty-state primitives for page and data-display modules"
     );
 
-    let project_flow = dashboard_components
+    let project_flow = project_card_flow_components
         .split("export component ProjectFlow")
         .nth(1)
         .and_then(|source| {
             source
-                .split("export component DashboardQuickActionRow")
+                .split("export component DashboardProjectCardsSection")
                 .next()
         })
         .expect(
-            "project_dashboard_components.slint must export ProjectFlow before DashboardQuickActionRow",
+            "project_card_flow_components.slint must export ProjectFlow before DashboardProjectCardsSection",
         );
     for snippet in [
         "if root.project-card-count == 0: EmptyStatePanel",
@@ -231,10 +227,10 @@ fn builds_page_uses_panel_slot_for_workspace_panels() {
         builds_components.matches("inherits PanelSlot").count()
             + builds_components.matches("inherits HubListPanelSlot").count()
             + operation_timeline
-                .matches("export component OperationTimelinePanel inherits PanelSlot")
+                .matches("export component OperationTimelinePanel inherits HubListPanelSlot")
                 .count(),
         5,
-        "BuildsPage should route its five workspace panels through focused PanelSlot-backed components, with the shared operation timeline hosted by operation_timeline_components.slint"
+        "BuildsPage should route its five workspace panels through focused panel/list-slot-backed components, with the shared operation timeline hosted by operation_timeline_components.slint"
     );
     assert!(
         builds.contains("BuildTaskHistoryPanel {")
@@ -267,7 +263,8 @@ fn builds_page_uses_panel_slot_for_workspace_panels() {
     }
     assert!(
         builds.contains("OperationTimelinePanel {")
-            && operation_timeline.contains("export component OperationTimelinePanel inherits PanelSlot"),
+            && operation_timeline
+                .contains("export component OperationTimelinePanel inherits HubListPanelSlot"),
         "BuildsPage should route operation timeline chrome through the shared operation-timeline OperationTimelinePanel"
     );
     for forbidden in [
@@ -392,10 +389,14 @@ fn editor_page_uses_panel_slot_for_standard_workspace_panels() {
     for snippet in [
         "body-spacing: HubTokens.space-3;",
         "actions-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
+        "editor-config-height: HubTokens.workspace-row-editor-config - HubTokens.list-row-md - HubTokens.control-lg;",
+        "side-list-empty-height: HubTokens.list-row-sm + HubTokens.space-4;",
         "order: root.actions-first ? 1 : 0;",
         "flex-order: root.actions-first ? 1 : 0;",
         "order: root.actions-first ? 0 : 1;",
         "flex-order: root.actions-first ? 0 : 1;",
+        "row-height: root.editor-config-height;",
+        "height: root.editor-config-height;",
         "export component EditorSourceSummaryPanel inherits PanelSlot",
         "export component EditorSourceSettingsPanel inherits PanelSlot",
         "EditorSourceSummaryPanel {",
@@ -422,7 +423,7 @@ fn editor_page_uses_panel_slot_for_standard_workspace_panels() {
         "source-build-history: root.source-build-history;",
         "source-build-history-count: root.source-build-history-count;",
         "empty-title: root.ui-text.no-source-engines;",
-        "empty-title: root.ui-text.no-build-history;",
+        "empty-title: root.ui-text.no-build-history-short;",
         "ui-text: root.ui-text;",
         "output-path: root.source-engine.output-path;",
         "row-height: root.build-row-height;",
@@ -599,7 +600,11 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             && cloud_components
                 .contains("export component CloudPackageActionsPanel inherits HubListPanelSlot")
             && cloud.contains("CloudPackageActionsPanel {")
+            && cloud.contains("row-height: root.workflow-row-height;")
             && cloud.contains("height: root.actions-panel-height;")
+            && cloud.contains("Column {")
+            && cloud.contains("OperationTimelinePanel {")
+            && cloud.contains("height: root.workflow-timeline-height;")
             && cloud.contains("summary: root.summary;")
             && cloud.contains("ui-text: root.ui-text;")
             && cloud.contains("package-project => {")
@@ -613,6 +618,7 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
         component_source,
         component_call,
         component_export,
+        sizing_snippet,
         height_snippet,
         scroll_snippet,
         title_snippet,
@@ -623,7 +629,8 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             &cloud_components,
             "CloudServicesPanel {",
             "export component CloudServicesPanel inherits HubListPanelSlot",
-            "height: root.services-panel-height;",
+            "flex-basis: HubTokens.panel-min-lg;",
+            "height: root.workflow-row-height;",
             "service-scroll-y <=> root.service-scroll-y;",
             "title: root.ui-text.cloud-services;",
         ),
@@ -632,10 +639,11 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             &team,
             &team_components,
             "TeamMembersPanel {",
-            "export component TeamMembersPanel inherits HubListPanelSlot",
-            "height: root.members-panel-height;",
+            "export component TeamMembersPanel inherits PanelSlot",
+            "flex-basis: HubTokens.panel-min-lg;",
+            "height: root.overview-section-height;",
             "member-scroll-y <=> root.member-scroll-y;",
-            "title: root.ui-text.team-members-found;",
+            "title: \"Team Overview\";",
         ),
     ] {
         assert!(
@@ -651,7 +659,7 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             source.contains(component_call) && component_source.contains(component_export),
             "{page} should route its lower list panel through a typed PanelSlot-backed component"
         );
-        for snippet in ["horizontal-stretch: 1;", height_snippet, scroll_snippet] {
+        for snippet in [sizing_snippet, height_snippet, scroll_snippet] {
             assert!(
                 source.contains(snippet),
                 "{page} lower typed panel call should preserve list panel sizing and scroll forwarding: {snippet}"
@@ -670,6 +678,16 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             );
         }
     }
+
+    assert!(
+        team.contains("TeamActionsPanel {")
+            && team.contains("action-row-height: root.action-row-height;")
+            && team_components.contains("export component TeamActionsPanel inherits HubListPanelSlot")
+            && team_components.contains("export component TeamActionRow inherits ActionRow")
+            && team_components.contains("HubToggleRow {")
+            && team_components.contains("HubCheckBoxRow {"),
+        "TeamPage should pair the compact Team Overview panel with a HubListPanelSlot-backed actions panel that reuses shared action/toggle/checkbox rows"
+    );
 
     for forbidden in [
         "PanelListViewport {\n            scroll-y <=> root.service-scroll-y;",
@@ -709,9 +727,11 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
     let project_pages = read_ui_file("project_pages.slint");
     let new_page = read_ui_file("project_new_page.slint");
     let project_components = read_ui_file("project_page_components.slint");
+    let detail_components = read_ui_file("project_detail_components.slint");
     let browser_page = read_ui_file("project_browser_page.slint");
     let detail_page = read_ui_file("project_detail_page.slint");
     let project_new_surface = format!("{new_page}\n{project_components}");
+    let project_detail_surface = format!("{detail_page}\n{detail_components}");
 
     assert!(
         !new_page.contains("PanelSlot")
@@ -744,8 +764,13 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
     );
     assert_eq!(
         detail_page.matches("PanelSlot {").count(),
-        2,
-        "ProjectDetailPage should route detail and actions columns through PanelSlot"
+        1,
+        "ProjectDetailPage should keep the main detail column as a direct PanelSlot and route actions through ProjectDetailActionsSection"
+    );
+    assert!(
+        detail_page.contains("ProjectDetailActionsSection {")
+            && detail_components.contains("export component ProjectDetailActionsSection inherits PanelSlot"),
+        "ProjectDetailPage should route the actions column through a typed PanelSlot-backed component"
     );
     assert_eq!(
         browser_page.matches("PanelSlot {").count(),
@@ -791,15 +816,15 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
         "row-height: root.status-row-height;",
         "ProjectDetailInfoSection {",
         "section-height: root.detail-info-section-height;",
-        "title: root.ui-text.project-actions-title;",
+        "PanelHeader { title: root.copy.project-actions-title; }",
         "detail-engine-scroll-y: 0px;",
         "ProjectEngineChoiceList {",
-        "list-scroll-y <=> root.detail-engine-scroll-y;",
+        "list-scroll-y <=> root.engine-scroll-y;",
         "ProjectDetailEngineSection {",
-        "section-height: root.detail-engine-section-height;",
+        "section-height: root.engine-section-height;",
     ] {
         assert!(
-            project_new_surface.contains(snippet) || detail_page.contains(snippet),
+            project_new_surface.contains(snippet) || project_detail_surface.contains(snippet),
             "Projects PanelSlot migration should preserve panel content and sizing: {snippet}"
         );
     }
@@ -836,7 +861,7 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
     );
     assert_eq!(
         settings_components.matches("inherits PanelSlot").count(),
-        2,
+        3,
         "SettingsPage should keep the non-list Settings panels on direct PanelSlot components"
     );
     assert_eq!(
@@ -848,16 +873,19 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
     );
 
     for snippet in [
+        "export component SettingsConfigurationOverviewPanel inherits PanelSlot",
         "export component SettingsToolchainPanel inherits PanelSlot",
         "export component SettingsBuildDefaultsPanel inherits PanelSlot",
         "export component SettingsDefaultPathsPanel inherits HubListPanelSlot",
         "export component SettingsConfigurationHealthPanel inherits HubListPanelSlot",
         "private property <length> paths-scroll-y: 0px;",
         "private property <length> health-scroll-y: 0px;",
+        "SettingsConfigurationOverviewPanel {",
         "SettingsToolchainPanel {",
         "SettingsBuildDefaultsPanel {",
         "SettingsDefaultPathsPanel {",
         "SettingsConfigurationHealthPanel {",
+        "panel-title: \"Configuration Overview\";",
         "panel-title: root.ui-text.toolchain;",
         "panel-title: root.ui-text.build-defaults;",
         "panel-title: root.ui-text.default-paths;",
@@ -889,6 +917,7 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
         );
     }
     for (component, base) in [
+        ("SettingsConfigurationOverviewPanel", "PanelSlot"),
         ("SettingsToolchainPanel", "PanelSlot"),
         ("SettingsBuildDefaultsPanel", "PanelSlot"),
         ("SettingsDefaultPathsPanel", "HubListPanelSlot"),

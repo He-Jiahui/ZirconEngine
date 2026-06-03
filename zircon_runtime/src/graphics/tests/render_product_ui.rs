@@ -96,6 +96,9 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
     assert!(stats
         .last_graph_executed_executor_ids
         .contains(&"ui.screen-space".to_string()));
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"overlay.gizmo".to_string()));
 }
 
 fn assert_ui_after_postprocess_before_overlay(

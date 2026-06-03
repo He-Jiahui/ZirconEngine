@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -17,6 +17,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outputDir = resolve(here, "_screenshots");
 const referenceUrl = pathToFileURL(resolve(here, "index.html")).href;
 const port = Number.parseInt(process.env.ZIRCON_WORKBENCH_CDP_PORT ?? String(11480 + Math.floor(Math.random() * 500)), 10);
+const outputPrefix = process.env.ZIRCON_WORKBENCH_OUTPUT_PREFIX ?? "";
+const desktopOnly = process.env.ZIRCON_WORKBENCH_DESKTOP_ONLY === "1";
+const extraCss = loadExtraCss();
 const profile = mkdirTempProfile();
 const browser = spawn(
   edge,
@@ -43,10 +46,12 @@ try {
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
 
-  for (const shot of [
+  const shots = [
     ["workbench-1672x941-final.png", 1672, 941],
     ["workbench-720x760.png", 720, 760],
-  ]) {
+  ];
+
+  for (const shot of desktopOnly ? shots.slice(0, 1) : shots) {
     const [fileName, width, height] = shot;
     await cdp.send("Emulation.setDeviceMetricsOverride", {
       width,
@@ -56,6 +61,7 @@ try {
     });
     await cdp.send("Page.navigate", { url: referenceUrl });
     await waitForWorkbench(cdp);
+    await injectExtraCss(cdp, extraCss);
     await settleLayout(cdp);
     await delay(250);
     const result = await cdp.send("Page.captureScreenshot", {
@@ -63,8 +69,9 @@ try {
       captureBeyondViewport: false,
       fromSurface: true,
     });
-    await writePngWithRetry(resolve(outputDir, fileName), Buffer.from(result.data, "base64"));
-    console.log(`captured ${fileName} at ${width}x${height}`);
+    const outputName = `${outputPrefix}${fileName}`;
+    await writePngWithRetry(resolve(outputDir, outputName), Buffer.from(result.data, "base64"));
+    console.log(`captured ${outputName} at ${width}x${height}`);
   }
 
   cdp.close();
@@ -78,11 +85,31 @@ function mkdirTempProfile() {
   return root;
 }
 
+function loadExtraCss() {
+  if (process.env.ZIRCON_WORKBENCH_EXTRA_CSS_FILE) {
+    return readFileSync(resolve(here, process.env.ZIRCON_WORKBENCH_EXTRA_CSS_FILE), "utf8");
+  }
+  return process.env.ZIRCON_WORKBENCH_EXTRA_CSS ?? "";
+}
+
+async function injectExtraCss(cdp, cssText) {
+  if (!cssText) return;
+  await evaluate(cdp, `
+    (() => {
+      const style = document.createElement("style");
+      style.setAttribute("data-zircon-candidate-css", "true");
+      style.textContent = ${JSON.stringify(cssText)};
+      document.head.appendChild(style);
+    })()
+  `);
+}
+
 async function waitForWorkbench(cdp, attempts = 80) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const ready = await evaluate(cdp, `Boolean(
       document.querySelector(".zr-window") &&
-      document.querySelector(".zr-viewport-reference")?.complete &&
+      document.querySelector(".zr-module-main") &&
+      document.querySelector("[data-module-panel='bottom']") &&
       (!document.fonts || document.fonts.status === "loaded")
     )`);
     if (ready) return;
@@ -176,7 +203,7 @@ async function evaluate(cdp, expression) {
 async function cleanup() {
   await terminateBrowser();
   assertSafeTemporaryProfile(profile);
-  rmSync(profile, { recursive: true, force: true });
+  await removeTemporaryProfile(profile);
 }
 
 async function terminateBrowser() {
@@ -239,6 +266,44 @@ function assertSafeTemporaryProfile(profilePath) {
   if (!resolvedProfile.startsWith(tmpWithSeparator) || !resolvedProfile.includes("zircon-workbench-cdp-")) {
     throw new Error(`Refusing to remove unexpected temporary profile path: ${profilePath}`);
   }
+}
+
+async function removeTemporaryProfile(profilePath, attempts = 40) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      rmSync(profilePath, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!["EBUSY", "EPERM", "EACCES"].includes(error.code) || attempt === attempts - 1) {
+        if (attempt === attempts - 1) {
+          scheduleTemporaryProfileRemoval(profilePath);
+          return;
+        }
+        throw error;
+      }
+      await delay(250 + attempt * 25);
+    }
+  }
+}
+
+function scheduleTemporaryProfileRemoval(profilePath) {
+  const retryPath = `${profilePath}.delete-${Date.now()}`;
+  try {
+    renameSync(profilePath, retryPath);
+  } catch (_) {
+    // Leave the locked profile in temp; the next OS cleanup can remove it.
+  }
+  const targetPath = existsSync(retryPath) ? retryPath : profilePath;
+  console.warn(`warning: deferred temporary browser profile cleanup for ${targetPath}`);
+  const command = [
+    "Start-Sleep -Seconds 3;",
+    "Remove-Item -LiteralPath $args[0] -Recurse -Force -ErrorAction SilentlyContinue",
+  ].join(" ");
+  spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command, targetPath], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: true,
+  }).unref();
 }
 
 function delay(ms) {

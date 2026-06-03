@@ -11,11 +11,13 @@ use zircon_runtime_interface::ui::surface::{
     UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
 };
 use zircon_runtime_interface::ui::template::{UiBindingRef, UiNamedSlotSchema};
-use zircon_runtime_interface::ui::tree::UiInputPolicy;
+use zircon_runtime_interface::ui::tree::{UiInputPolicy, UiVisibility};
 use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetError, UiV2AssetHeader, UiV2AssetKind, UiV2ChildMount,
     UiV2NodeDefinition, UiV2Root, UiV2StyleDeclarationBlock, UiV2StyleRule, UiV2StyleSheet,
-    UI_V2_ASSET_SCHEMA_VERSION,
+    UI_V2_ASSET_SCHEMA_VERSION, UI_V2_REPEAT_ATTRIBUTE, UI_V2_REPEAT_FIELD_AUTHORED_COUNT,
+    UI_V2_REPEAT_FIELD_KIND, UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE,
+    UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
 };
 
 use crate::ui::layout::compute_virtual_list_window;
@@ -102,6 +104,115 @@ text = "Run"
     assert_eq!(document.components.len(), 1);
     assert!(document.components.contains_key("PrimaryToolbar"));
     assert!(document.nodes.contains_key("root"));
+}
+
+#[test]
+fn ui_v2_repeat_declaration_is_preserved_in_compiled_surface_metadata() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/repeat.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "Rows"
+repeat = { kind = "virtual_rows", prototype = "RowPrototype", virtual_control_prefix = "VirtualRow", authored_count = 1, node_path_namespace = "v2" }
+children = [{ node = "row" }]
+
+[nodes.row]
+component = "Text"
+control_id = "RowPrototype"
+props = { text = "Row" }
+"#,
+    )
+    .unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("repeat root"))
+        .unwrap();
+    let repeat = root.repeat.as_ref().expect("compiled repeat declaration");
+    assert_eq!(repeat.kind, UI_V2_REPEAT_KIND_VIRTUAL_ROWS);
+    assert_eq!(repeat.prototype, "RowPrototype");
+    assert_eq!(repeat.virtual_control_prefix, "VirtualRow");
+
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.repeat_metadata"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let root_id = node_id_by_control_id(&surface, "Rows");
+    let repeat = surface
+        .tree
+        .nodes
+        .get(&root_id)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap()
+        .attributes
+        .get(UI_V2_REPEAT_ATTRIBUTE)
+        .and_then(Value::as_table)
+        .expect("surface repeat metadata");
+
+    assert_eq!(
+        repeat.get(UI_V2_REPEAT_FIELD_KIND).and_then(Value::as_str),
+        Some(UI_V2_REPEAT_KIND_VIRTUAL_ROWS)
+    );
+    assert_eq!(
+        repeat
+            .get(UI_V2_REPEAT_FIELD_AUTHORED_COUNT)
+            .and_then(Value::as_integer),
+        Some(1)
+    );
+    assert_eq!(
+        repeat
+            .get(UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE)
+            .and_then(Value::as_str),
+        Some("v2")
+    );
+}
+
+#[test]
+fn ui_v2_rejects_invalid_repeat_declaration_before_surface_build() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/repeat_invalid.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "Rows"
+repeat = { kind = "virtual_rows", prototype = "", virtual_control_prefix = "VirtualRow", authored_count = 1, node_path_namespace = "v2" }
+children = [{ node = "row" }]
+
+[nodes.row]
+component = "Text"
+control_id = "RowPrototype"
+props = { text = "Row" }
+"#,
+    )
+    .unwrap();
+
+    let error = UiV2DocumentCompiler::compile(&document).unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. }
+            if detail.contains("repeat.prototype") && detail.contains("must not be empty")
+    ));
 }
 
 #[test]
@@ -642,6 +753,117 @@ fn ui_v2_surface_property_mutation_restyles_checked_and_disabled_pseudo_state() 
     assert!(dirty.input);
     assert!(dirty.render);
     assert!(!dirty.layout);
+}
+
+#[test]
+fn ui_v2_surface_property_mutation_restyles_focused_pseudo_state() {
+    let mut document = v2_document(
+        "asset://ui/tests/runtime_style_focus_property.v2.ui",
+        "root",
+    );
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Dropdown".to_string(),
+            control_id: Some("RuntimeDropdown".to_string()),
+            classes: vec!["runtime-dropdown".to_string()],
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "runtime_focus_property_material".to_string(),
+        rules: vec![
+            style_rule("Dropdown.runtime-dropdown", [("background", "#101010")]),
+            style_rule(
+                "Dropdown.runtime-dropdown:focus",
+                [("background", "#151b1f")],
+            ),
+        ],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.runtime_style_focus_property"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "RuntimeDropdown");
+
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#101010")
+    );
+
+    let focused = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            node_id,
+            "focused",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(focused.status, UiPropertyMutationStatus::Accepted);
+    assert!(surface
+        .component_state(node_id)
+        .is_some_and(|state| state.flags.focused));
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#151b1f")
+    );
+}
+
+#[test]
+fn ui_v2_surface_property_mutation_updates_runtime_style_baseline_metadata() {
+    let mut document = v2_document("asset://ui/tests/runtime_style_visibility.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Panel".to_string(),
+            control_id: Some("RuntimePanel".to_string()),
+            classes: vec!["runtime-panel".to_string()],
+            props: BTreeMap::from([(
+                "visibility".to_string(),
+                Value::String("collapsed".to_string()),
+            )]),
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "runtime_visibility_material".to_string(),
+        rules: vec![style_rule(
+            "Panel.runtime-panel:hover",
+            [("background", "#202020")],
+        )],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.runtime_style_visibility"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "RuntimePanel");
+    surface.tree.nodes.get_mut(&node_id).unwrap().visibility = UiVisibility::Collapsed;
+
+    let visibility = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            node_id,
+            "visibility",
+            UiValue::String("visible".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(visibility.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(
+        surface.tree.nodes.get(&node_id).unwrap().visibility,
+        UiVisibility::Visible
+    );
+    assert_eq!(
+        runtime_attr(&surface, node_id, "visibility"),
+        Some("visible")
+    );
 }
 
 #[test]

@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
-    AntiAliasSettings, PostProcessStackDescriptor, RenderBloomSettings, RenderColorGradingSettings,
-    RenderFrameExtract, RenderFrameworkError, RenderHybridGiPayloadSource, RenderViewportHandle,
+    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessStackDescriptor,
+    RenderBloomSettings, RenderColorGradingSettings, RenderFrameExtract, RenderFrameworkError,
+    RenderHybridGiPayloadSource, RenderPostProcessEffectStackSettings, RenderViewportHandle,
     RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
@@ -11,7 +12,9 @@ use crate::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
-use super::compile_pipeline::compile_submission_pipeline;
+use super::compile_pipeline::{
+    compile_submission_pipeline, compile_submission_pipeline_with_options,
+};
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::target_resolution::resolve_camera_target_size;
@@ -28,6 +31,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let mut sized_extract = extract.clone();
     sized_extract.apply_viewport_size(submission_size);
     let extract = &sized_extract;
+    let render_size = extract.view.effective_render_size();
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
@@ -49,12 +53,16 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .enabled_features
         .iter()
         .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::AntiAlias));
+    let resolved_post_process = extract
+        .post_process
+        .resolved_settings_for_layers(&extract.view.camera.render_layers);
     let effective_bloom = bloom_enabled
-        .then_some(extract.post_process.bloom)
+        .then_some(resolved_post_process.bloom)
         .unwrap_or_else(RenderBloomSettings::default);
     let effective_color_grading = color_grading_enabled
-        .then_some(extract.post_process.color_grading)
+        .then_some(resolved_post_process.color_grading)
         .unwrap_or_else(RenderColorGradingSettings::default);
+    let effective_effect_stack = resolved_post_process.effect_stack;
     let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
         extract.geometry.virtual_geometry.clone(),
         extract.geometry.virtual_geometry_debug,
@@ -87,6 +95,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         &visibility_extract,
         effective_bloom,
         effective_color_grading,
+        effective_effect_stack,
     );
     let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
         .as_ref()
@@ -104,15 +113,16 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         &effective_history_key_extract,
         compiled_feature_names(&compiled_pipeline),
     );
-    let history_available = history_resolve_enabled
-        && has_compatible_frame_history(
-            server,
-            viewport,
-            submission_size,
-            viewport_state.pipeline_handle(),
-            &compiled_pipeline,
-            &history_validation_key,
-        );
+    let history_invalidation_reason = frame_history_invalidation_reason(
+        server,
+        viewport,
+        submission_size,
+        render_size,
+        viewport_state.pipeline_handle(),
+        &compiled_pipeline,
+        &history_validation_key,
+    );
+    let history_available = history_resolve_enabled && history_invalidation_reason.is_none();
     let requested_anti_alias = if anti_alias_feature_enabled {
         extract.view.anti_alias
     } else {
@@ -120,13 +130,23 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     };
     let anti_alias_report =
         requested_anti_alias.resolve(viewport_state.capabilities(), history_available);
-    let post_process_stack = PostProcessStackDescriptor::from_extract_settings_with_anti_alias(
-        &effective_bloom,
-        &effective_color_grading,
-        history_resolve_enabled,
-        history_available,
-        &anti_alias_report.effective_settings(),
-    );
+    let compiled_pipeline = compile_submission_pipeline_with_options(
+        &viewport_state,
+        extract,
+        &viewport_state
+            .compile_options()
+            .clone()
+            .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count()),
+    )?;
+    let post_process_stack =
+        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+            &effective_bloom,
+            &effective_color_grading,
+            &effective_effect_stack,
+            history_resolve_enabled,
+            history_available,
+            &anti_alias_report.effective_settings(),
+        );
     let post_process_graph = post_process_stack.validated_graph();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
@@ -143,17 +163,20 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
 
     Ok(FrameSubmissionContext::new(
         submission_size,
+        render_size,
         viewport_state.pipeline_handle(),
         viewport_state.viewport_generation(),
         viewport_state.take_quality_profile(),
         compiled_pipeline,
         visibility_context,
         history_validation_key,
+        history_invalidation_reason,
         ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
         effective_bloom,
         effective_color_grading,
+        effective_effect_stack,
         anti_alias_report,
         advanced_runtime_plan,
         solari_runtime_report,
@@ -189,35 +212,41 @@ fn post_process_extract_with_effective_settings(
     extract: &RenderFrameExtract,
     bloom: RenderBloomSettings,
     color_grading: RenderColorGradingSettings,
+    effect_stack: RenderPostProcessEffectStackSettings,
 ) -> RenderFrameExtract {
     let mut extract = extract.clone();
     extract.post_process.bloom = bloom;
     extract.post_process.color_grading = color_grading;
+    extract.post_process.effect_stack = effect_stack;
+    extract.post_process.volume_stack = Default::default();
     extract.post_process.rebuild_graph(false, false);
     extract
 }
 
-fn has_compatible_frame_history(
+fn frame_history_invalidation_reason(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    size: crate::core::math::UVec2,
+    target_size: crate::core::math::UVec2,
+    render_size: crate::core::math::UVec2,
     pipeline_handle: crate::core::framework::render::RenderPipelineHandle,
     compiled_pipeline: &crate::CompiledRenderPipeline,
     history_validation_key: &FrameHistoryValidationKey,
-) -> bool {
+) -> Option<FrameHistoryInvalidationReason> {
     let state = server.lock_state();
-    state
+    let Some(history) = state
         .viewports
         .get(&viewport)
         .and_then(|record| record.history())
-        .is_some_and(|history| {
-            history.is_compatible(
-                size,
-                pipeline_handle,
-                &compiled_pipeline.history_bindings,
-                history_validation_key,
-            )
-        })
+    else {
+        return Some(FrameHistoryInvalidationReason::NoPreviousFrame);
+    };
+    history.incompatibility_reason(
+        target_size,
+        render_size,
+        pipeline_handle,
+        &compiled_pipeline.history_bindings,
+        history_validation_key,
+    )
 }
 
 fn apply_virtual_geometry_debug_override(

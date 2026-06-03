@@ -10,5 +10,6 @@ pub use render_feature::RenderFeature;
 pub use render_feature_capability_requirement::RenderFeatureCapabilityRequirement;
 pub use render_feature_descriptor::RenderFeatureDescriptor;
 pub use render_feature_pass_descriptor::{
-    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
+    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
+    RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };

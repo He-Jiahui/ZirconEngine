@@ -7,16 +7,19 @@ use super::super::frame_submission_context::FrameSubmissionContext;
 pub(super) struct ResolvedHistoryHandle {
     allocated_history: Option<FrameHistoryHandle>,
     current_history_handle: Option<FrameHistoryHandle>,
+    previous_history_available: bool,
 }
 
 impl ResolvedHistoryHandle {
     fn new(
         allocated_history: Option<FrameHistoryHandle>,
         current_history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
     ) -> Self {
         Self {
             allocated_history,
             current_history_handle,
+            previous_history_available,
         }
     }
 
@@ -26,6 +29,10 @@ impl ResolvedHistoryHandle {
 
     pub(super) fn current_history_handle(&self) -> Option<FrameHistoryHandle> {
         self.current_history_handle
+    }
+
+    pub(super) fn previous_history_available(&self) -> bool {
+        self.previous_history_available
     }
 }
 
@@ -38,8 +45,15 @@ pub(super) fn resolve_history_handle(
         should_rotate_history(state, viewport, context).then(|| allocate_history_handle(state));
     let current_history_handle =
         allocated_history.or_else(|| current_history_handle(state, viewport));
+    let previous_history_available = current_history_handle.is_some()
+        && allocated_history.is_none()
+        && context.history_invalidation_reason().is_none();
 
-    ResolvedHistoryHandle::new(allocated_history, current_history_handle)
+    ResolvedHistoryHandle::new(
+        allocated_history,
+        current_history_handle,
+        previous_history_available,
+    )
 }
 
 fn should_rotate_history(
@@ -54,6 +68,7 @@ fn should_rotate_history(
         .is_none_or(|history| {
             !history.is_compatible(
                 context.size(),
+                context.render_size(),
                 context.pipeline_handle(),
                 &context.compiled_pipeline().history_bindings,
                 context.history_validation_key(),

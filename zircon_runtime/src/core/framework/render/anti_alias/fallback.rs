@@ -71,4 +71,12 @@ impl AntiAliasFallbackReport {
             None => None,
         }
     }
+
+    pub const fn requested_graph_sample_count(self) -> u32 {
+        self.requested_mode.graph_sample_count()
+    }
+
+    pub const fn effective_graph_sample_count(self) -> u32 {
+        self.effective_mode.graph_sample_count()
+    }
 }

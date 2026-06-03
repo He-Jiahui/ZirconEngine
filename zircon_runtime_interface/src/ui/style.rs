@@ -204,6 +204,210 @@ pub enum ButtonInteractionState {
     Loading,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiPainterFamily {
+    #[default]
+    Generic,
+    Button,
+    IconButton,
+    Toggle,
+    Checkbox,
+    Radio,
+    Slider,
+    Dropdown,
+    PopupRow,
+    Tooltip,
+    TextField,
+    ListRow,
+    TreeRow,
+    Tab,
+    Toast,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiPainterResolvedState {
+    #[default]
+    Normal,
+    Hovered,
+    Pressed,
+    Focused,
+    Disabled,
+    Checked,
+    Selected,
+    Open,
+    Dragging,
+    DropHovered,
+    Loading,
+}
+
+/// Cross-host pseudo-state consumed by painter style selectors.
+///
+/// Slate keeps event replies separate from widget state; Zircon mirrors that split by storing the
+/// durable state here and letting each painter family choose its resolved visual style from it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiPainterState {
+    pub hovered: bool,
+    pub pressed: bool,
+    pub focused: bool,
+    pub disabled: bool,
+    pub checked: bool,
+    pub selected: bool,
+    pub open: bool,
+    pub dragging: bool,
+    pub drop_hovered: bool,
+    pub loading: bool,
+}
+
+impl UiPainterState {
+    pub const fn normal() -> Self {
+        Self {
+            hovered: false,
+            pressed: false,
+            focused: false,
+            disabled: false,
+            checked: false,
+            selected: false,
+            open: false,
+            dragging: false,
+            drop_hovered: false,
+            loading: false,
+        }
+    }
+
+    pub const fn is_active(self) -> bool {
+        self.pressed || self.checked || self.selected || self.open || self.dragging
+    }
+
+    pub const fn is_focus_visible(self) -> bool {
+        self.focused || self.checked || self.selected
+    }
+
+    pub const fn is_pointer_hot(self) -> bool {
+        self.hovered || self.drop_hovered || self.dragging
+    }
+
+    pub const fn resolved_state_for_family(self, family: UiPainterFamily) -> UiPainterResolvedState {
+        match family {
+            UiPainterFamily::Button => self.button_resolved_state(),
+            UiPainterFamily::Checkbox | UiPainterFamily::Radio | UiPainterFamily::Toggle => {
+                self.selection_control_resolved_state()
+            }
+            UiPainterFamily::Slider => self.slider_resolved_state(),
+            UiPainterFamily::Generic
+            | UiPainterFamily::IconButton
+            | UiPainterFamily::Dropdown
+            | UiPainterFamily::PopupRow
+            | UiPainterFamily::Tooltip
+            | UiPainterFamily::TextField
+            | UiPainterFamily::ListRow
+            | UiPainterFamily::TreeRow
+            | UiPainterFamily::Tab
+            | UiPainterFamily::Toast => self.interactive_resolved_state(),
+        }
+    }
+
+    pub const fn interactive_resolved_state(self) -> UiPainterResolvedState {
+        if self.disabled {
+            UiPainterResolvedState::Disabled
+        } else if self.loading {
+            UiPainterResolvedState::Loading
+        } else if self.pressed {
+            UiPainterResolvedState::Pressed
+        } else if self.focused {
+            UiPainterResolvedState::Focused
+        } else if self.open {
+            UiPainterResolvedState::Open
+        } else if self.dragging {
+            UiPainterResolvedState::Dragging
+        } else if self.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if self.hovered {
+            UiPainterResolvedState::Hovered
+        } else if self.selected {
+            UiPainterResolvedState::Selected
+        } else if self.checked {
+            UiPainterResolvedState::Checked
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn selection_control_resolved_state(self) -> UiPainterResolvedState {
+        if self.disabled {
+            UiPainterResolvedState::Disabled
+        } else if self.pressed {
+            UiPainterResolvedState::Pressed
+        } else if self.focused {
+            UiPainterResolvedState::Focused
+        } else if self.dragging {
+            UiPainterResolvedState::Dragging
+        } else if self.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if self.hovered {
+            UiPainterResolvedState::Hovered
+        } else if self.selected {
+            UiPainterResolvedState::Selected
+        } else if self.checked {
+            UiPainterResolvedState::Checked
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn slider_resolved_state(self) -> UiPainterResolvedState {
+        if self.disabled {
+            UiPainterResolvedState::Disabled
+        } else if self.pressed {
+            UiPainterResolvedState::Pressed
+        } else if self.focused {
+            UiPainterResolvedState::Focused
+        } else if self.dragging {
+            UiPainterResolvedState::Dragging
+        } else if self.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if self.hovered {
+            UiPainterResolvedState::Hovered
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn button_resolved_state(self) -> UiPainterResolvedState {
+        if self.disabled {
+            UiPainterResolvedState::Disabled
+        } else if self.loading {
+            UiPainterResolvedState::Loading
+        } else if self.pressed {
+            UiPainterResolvedState::Pressed
+        } else if self.is_focus_visible() {
+            UiPainterResolvedState::Focused
+        } else if self.is_pointer_hot() || self.open {
+            UiPainterResolvedState::Hovered
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn button_interaction_state(self) -> ButtonInteractionState {
+        match self.button_resolved_state() {
+            UiPainterResolvedState::Disabled => ButtonInteractionState::Disabled,
+            UiPainterResolvedState::Loading => ButtonInteractionState::Loading,
+            UiPainterResolvedState::Pressed => ButtonInteractionState::Pressed,
+            UiPainterResolvedState::Focused => ButtonInteractionState::Focused,
+            UiPainterResolvedState::Hovered
+            | UiPainterResolvedState::Open
+            | UiPainterResolvedState::Dragging
+            | UiPainterResolvedState::DropHovered => ButtonInteractionState::Hover,
+            UiPainterResolvedState::Normal
+            | UiPainterResolvedState::Checked
+            | UiPainterResolvedState::Selected => ButtonInteractionState::Normal,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ButtonEventKind {

@@ -21,12 +21,14 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/generated_files.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_descriptor_builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_manifest.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/capability_status.rs
   - zircon_runtime/src/plugin/plugin_maturity.rs
@@ -389,9 +391,9 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/generated_files.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_descriptor_builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_manifest.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/capability_status.rs
   - zircon_runtime/src/plugin/plugin_maturity.rs

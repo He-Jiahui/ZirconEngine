@@ -3,10 +3,9 @@ use thiserror::Error;
 
 use super::capabilities::{RenderBackendCaps, RenderQueueClass};
 use super::descriptors::{
-    BufferDesc, BufferUsage, PipelineDesc, SamplerDesc, ShaderModuleDesc, TextureDesc, TextureUsage,
+    BufferDesc, BufferUsage, PipelineDesc, PipelineKind, SamplerDesc, ShaderModuleDesc,
+    TextureDesc, TextureUsage,
 };
-
-pub type GpuBuffer = wgpu::Buffer;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BufferHandle(u64);
@@ -122,6 +121,19 @@ pub enum RhiError {
         required: TextureUsage,
         actual: TextureUsage,
     },
+    #[error("pipeline `{pipeline}` kind {actual:?} does not satisfy required kind {required:?}")]
+    InvalidPipelineUsage {
+        pipeline: u64,
+        required: PipelineKind,
+        actual: PipelineKind,
+    },
+    #[error("command `{command}` cannot be recorded for queue `{queue:?}`")]
+    InvalidCommandQueue {
+        queue: RenderQueueClass,
+        command: String,
+    },
+    #[error("invalid compute dispatch: {reason}")]
+    InvalidComputeDispatch { reason: String },
     #[error(
         "buffer copy range is outside source `{source_buffer}` or destination `{destination_buffer}`: source offset {source_offset}, destination offset {destination_offset}, size {size}"
     )]
@@ -184,6 +196,14 @@ pub enum CommandListCommand {
         width: u32,
         height: u32,
     },
+    SetPipeline {
+        pipeline: PipelineHandle,
+    },
+    DispatchCompute {
+        x: u32,
+        y: u32,
+        z: u32,
+    },
 }
 
 pub trait CommandList: Send {
@@ -225,6 +245,10 @@ pub trait CommandList: Send {
         width: u32,
         height: u32,
     );
+
+    fn set_pipeline(&mut self, pipeline: PipelineHandle);
+
+    fn dispatch_compute(&mut self, x: u32, y: u32, z: u32);
 }
 
 pub trait RenderDevice: Send + Sync {

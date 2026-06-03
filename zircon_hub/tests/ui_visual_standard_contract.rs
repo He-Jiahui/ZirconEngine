@@ -209,16 +209,40 @@ fn hub_visual_spec_is_exported_from_shared_tokens() {
         "accent-fill: MaterialPalette.primary_container;",
         "accent-stroke: MaterialPalette.primary;",
         "nav-active-fill: rgb(20, 55, 54);",
+        "nav-active-stroke: rgb(22, 74, 74);",
+        "nav-idle-foreground: rgb(143, 143, 142);",
+        "neutral-icon-background: rgb(38, 38, 38);",
+        "neutral-icon-stroke: rgb(70, 70, 70);",
+        "neutral-icon-foreground: rgb(190, 190, 189);",
         "badge-accent-fill: rgb(28, 56, 56);",
         "badge-accent-stroke: rgb(42, 118, 121);",
-        "success-stroke: rgb(112, 226, 128);",
-        "warning-fill: MaterialPalette.tertiary_container;",
-        "warning-stroke: MaterialPalette.tertiary;",
-        "error-fill: MaterialPalette.error_container;",
-        "error-stroke: MaterialPalette.error;",
-        "button-state-primary-default-background: rgb(8, 119, 121);",
-        "button-state-secondary-default-background: rgb(45, 47, 48);",
-        "button-state-icon-primary-background: rgb(7, 122, 124);",
+        "command-primary-fill: rgb(21, 70, 70);",
+        "command-primary-stroke: rgb(31, 112, 111);",
+        "search-prominent-background: rgb(28, 28, 28);",
+        "search-prominent-stroke: rgb(110, 155, 152);",
+        "search-prominent-placeholder: rgb(96, 96, 95);",
+        "toolbar-select-foreground: rgb(142, 142, 141);",
+        "view-toggle-active-fill: rgb(22, 50, 50);",
+        "view-toggle-active-stroke: rgb(49, 123, 124);",
+        "view-toggle-active-foreground: rgb(144, 153, 153);",
+        "view-toggle-idle-foreground: rgb(143, 143, 142);",
+        "brand-title-foreground: rgb(180, 180, 179);",
+        "brand-subtitle-foreground: rgb(121, 121, 120);",
+        "user-avatar-background: rgb(84, 84, 83);",
+        "user-avatar-foreground: rgb(205, 205, 204);",
+        "user-name-foreground: rgb(142, 142, 141);",
+        "topbar-icon-foreground: rgb(142, 142, 141);",
+        "status-running-fill: rgb(16, 31, 31);",
+        "status-running-stroke: rgb(53, 164, 163);",
+        "success-stroke: rgb(68, 137, 64);",
+        "warning-fill: rgb(37, 30, 16);",
+        "warning-stroke: rgb(160, 117, 49);",
+        "error-fill: rgb(34, 21, 20);",
+        "error-stroke: rgb(145, 69, 61);",
+        "button-state-primary-default-background: rgb(18, 88, 88);",
+        "button-state-secondary-default-background: rgb(36, 36, 36);",
+        "button-state-icon-primary-background: rgb(17, 108, 108);",
+        "button-state-icon-primary-hover-background: rgb(20, 70, 70);",
         "button-state-strip-background: rgb(22, 22, 22);",
     ] {
         assert!(
@@ -270,7 +294,7 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "data_display.slint",
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "border-radius: HubVisualSpec.panel-radius;",
+                "row-radius: HubVisualSpec.panel-radius;",
                 "border-radius: HubVisualSpec.compact-radius;",
                 "background: !root.enabled ? HubVisualSpec.panel-background",
             ],
@@ -280,8 +304,17 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
                 "row-height: HubVisualSpec.visual-table-row-height;",
-                "border-radius: HubVisualSpec.compact-radius;",
-                "background: root.project.selected ? HubVisualSpec.accent-fill : transparent;",
+                "export component ProjectTableRow inherits HubRowSurface",
+                "selected-background: HubVisualSpec.accent-fill;",
+            ],
+        ),
+        (
+            "tree_view_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "export component HubTreeRow inherits HubRowSurface",
+                "border_radius: HubVisualSpec.compact-radius;",
+                "avatar_background: HubVisualSpec.neutral-icon-background;",
             ],
         ),
         (
@@ -308,13 +341,21 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             ],
         ),
         (
-            "project_dashboard_components.slint",
+            "project_card_flow_components.slint",
             &[
                 "HubVisualSpec,",
                 "cover-height: HubVisualSpec.card-cover-height;",
                 "card-height: HubVisualSpec.visual-card-height;",
                 "border_radius: HubVisualSpec.panel-radius;",
+            ],
+        ),
+        (
+            "project_dashboard_components.slint",
+            &[
+                "HubVisualSpec,",
                 "HubVisualSpec.button-state-primary-default-background",
+                "HubVisualSpec.button-state-icon-primary-hover-background",
+                "root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background",
                 "background: HubVisualSpec.button-state-strip-background;",
             ],
         ),
@@ -324,7 +365,8 @@ fn hub_shared_components_consume_visual_spec_tokens() {
                 "HubVisualSpec,",
                 "select-height: HubVisualSpec.toolbar-density-height;",
                 "border-radius: HubVisualSpec.panel-radius;",
-                "background: root.project.selected ? MaterialPalette.secondary_container : HubVisualSpec.panel-background;",
+                "export component ProjectBrowserRow inherits HubRowSurface",
+                "selected-background: MaterialPalette.secondary_container;",
             ],
         ),
         (
@@ -349,7 +391,9 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "shell_header_popup_components.slint",
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "border-radius: HubVisualSpec.panel-radius;",
+                "import { HubAnchoredPopupPanel } from \"overlays.slint\";",
+                "import { HubMenuRow, PanelListViewport } from \"data_display.slint\";",
+                "export component HeaderEngineOption inherits HubMenuRow",
                 "border-color: HubVisualSpec.accent-stroke;",
             ],
         ),
@@ -472,9 +516,7 @@ fn hub_root_pages_remain_shared_component_compositions() {
                 "background: HubVisualSpec.page-background;",
                 "ProjectDetailStatusStrip {",
                 "ProjectDetailInfoSection {",
-                "ProjectDetailActionButton {",
-                "ProjectDetailPinToggleRow {",
-                "ProjectDetailEngineSection {",
+                "ProjectDetailActionsSection {",
             ][..],
         ),
         (
@@ -537,9 +579,9 @@ fn hub_root_pages_remain_shared_component_compositions() {
             "export component TeamPage inherits PageScrollSurface",
             &[
                 "background: HubVisualSpec.page-background;",
-                "OverviewPanel {",
                 "TeamSummarySlot {",
                 "TeamMembersPanel {",
+                "TeamActionsPanel {",
             ][..],
         ),
         (
@@ -1000,7 +1042,11 @@ fn hub_ai_reference_manifest_and_web_exporter_cover_artifacts() {
         read_repo_file("docs/ui-and-layout/hub-web-reference/validate-interactions.mjs");
     let page_registry = read_repo_file("docs/ui-and-layout/hub-web-reference/page-registry.mjs");
     let web_app = read_repo_file("docs/ui-and-layout/hub-web-reference/app.js");
-    let web_styles = read_repo_file("docs/ui-and-layout/hub-web-reference/styles.css");
+    let web_styles = format!(
+        "{}\n{}",
+        read_repo_file("docs/ui-and-layout/hub-web-reference/styles.css"),
+        read_repo_file("docs/ui-and-layout/hub-web-reference/material-styles.css")
+    );
     let responsive_validator =
         read_repo_file("docs/ui-and-layout/hub-web-reference/validate-responsive.mjs");
 
@@ -1288,6 +1334,7 @@ fn hub_visual_documentation_lists_reference_design_artifacts() {
         "BuildTaskHistoryPanel",
         "CloudServicesPanel",
         "TeamMembersPanel",
+        "TeamActionsPanel",
         "SettingsToolchainPanel",
         "OperationTimelinePanel",
         "HubVisualSpec.success-stroke",

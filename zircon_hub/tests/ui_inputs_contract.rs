@@ -27,15 +27,15 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "FilledButton,",
         "FilledIconButton,",
         "IconButton as MaterialIconButton,",
-        "OutlineButton,",
         "OutlineIconButton,",
         "TonalButton,",
-        "TonalIconButton,",
         "StateLayerArea,",
         "export component PillButton",
         "FilledButton {",
         "TonalButton {",
         "export component HubCommandButton",
+        "export component HubActionCommandButton",
+        "export component HubActionStack",
         "export component IconButton",
         "FilledIconButton {",
         "OutlineIconButton {",
@@ -45,30 +45,52 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "MaterialIconButton {",
     ] {
         assert!(
-            shared.contains(snippet),
-            "shared.slint must keep Hub button APIs backed by Material button primitives; missing {snippet}"
+            button_components.contains(snippet),
+            "button_components.slint must keep Hub button APIs backed by Material button primitives; missing {snippet}"
+        );
+    }
+    for removed_snippet in [
+        "export component PillButton",
+        "export component HubCommandButton",
+        "export component HubActionCommandButton",
+        "export component HubActionStack",
+        "export component IconButton",
+        "export component HubIconButton",
+        "export component WindowButton",
+    ] {
+        assert!(
+            !shared.contains(removed_snippet),
+            "shared.slint should not retain button-family component ownership after extraction to button_components.slint: {removed_snippet}"
         );
     }
 
-    let pill_start = shared
+    let pill_start = button_components
         .find("export component PillButton")
-        .expect("shared.slint must declare PillButton");
-    let icon_start = shared
+        .expect("button_components.slint must declare PillButton");
+    let icon_start = button_components
         .find("export component IconButton")
-        .expect("shared.slint must declare IconButton");
-    let command_start = shared
+        .expect("button_components.slint must declare IconButton");
+    let command_start = button_components
         .find("export component HubCommandButton")
-        .expect("shared.slint must declare HubCommandButton before IconButton");
-    let hub_icon_start = shared
+        .expect("button_components.slint must declare HubCommandButton before IconButton");
+    let action_start = button_components
+        .find("export component HubActionCommandButton")
+        .expect("button_components.slint must declare HubActionCommandButton before IconButton");
+    let stack_start = button_components
+        .find("export component HubActionStack")
+        .expect("button_components.slint must declare HubActionStack before IconButton");
+    let hub_icon_start = button_components
         .find("export component HubIconButton")
-        .expect("shared.slint must declare HubIconButton after IconButton");
-    let nav_start = shared
-        .find("export component NavButton")
-        .expect("shared.slint must declare NavButton after HubIconButton");
-    let pill_button = &shared[pill_start..command_start];
-    let command_button = &shared[command_start..icon_start];
-    let icon_button = &shared[icon_start..hub_icon_start];
-    let hub_icon_button = &shared[hub_icon_start..nav_start];
+        .expect("button_components.slint must declare HubIconButton after IconButton");
+    let window_start = button_components
+        .find("export component WindowButton")
+        .expect("button_components.slint must declare WindowButton");
+    let pill_button = &button_components[pill_start..command_start];
+    let command_button = &button_components[command_start..action_start];
+    let action_button = &button_components[action_start..stack_start];
+    let action_stack = &button_components[stack_start..icon_start];
+    let icon_button = &button_components[icon_start..hub_icon_start];
+    let hub_icon_button = &button_components[hub_icon_start..window_start];
     for snippet in [
         "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
         "height: MaterialStyleMetrics.size_40;",
@@ -122,11 +144,13 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "export component HubCommandButton inherits Rectangle",
         "in property <length> button-width: root.primary ? HubTokens.control-lg * 4 + HubTokens.space-7 + HubTokens.space-1 : HubTokens.control-lg * 4 + HubTokens.space-1;",
         "in property <length> button-height: HubTokens.control-lg;",
+        "private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;",
+        "private property <color> primary-command-stroke: HubVisualSpec.command-primary-stroke;",
         "border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;",
-        "border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.primary ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted);",
-        "background: root.primary ? HubVisualSpec.accent-fill : HubVisualSpec.panel-background;",
+        "border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.primary ? root.primary-command-stroke : HubVisualSpec.outline-muted);",
+        "background: root.primary ? root.primary-command-fill : HubVisualSpec.panel-background;",
         "StateLayerArea {",
-        "color: root.primary ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;",
+        "color: root.primary ? root.primary-command-stroke : MaterialPalette.on_surface;",
         "HorizontalLayout {",
         "width: root.with-menu ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;",
         "padding-left: root.primary ? HubTokens.space-6 + MaterialStyleMetrics.size_4 : HubTokens.space-4;",
@@ -134,7 +158,7 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "source-image: root.source-image;",
         "MaterialText {",
         "if root.with-menu: Rectangle",
-        "background: HubVisualSpec.accent-stroke.with_alpha(0.22);",
+        "background: root.primary-command-stroke.with_alpha(0.22);",
         "if root.with-menu: Image",
         "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
     ] {
@@ -146,6 +170,49 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
     assert!(
         !command_button.contains("TouchArea"),
         "HubCommandButton should use Material StateLayerArea instead of direct TouchArea handling"
+    );
+    for snippet in [
+        "export component HubActionCommandButton inherits Rectangle",
+        "in property <length> action-height: HubTokens.control-md;",
+        "horizontal-stretch: 1;",
+        "min-width: 1px;",
+        "preferred-width: 0px;",
+        "height: root.action-height;",
+        "HubCommandButton {",
+        "button-width: parent.width;",
+        "button-height: parent.height;",
+        "source-image: root.source-image;",
+        "has-source-image: root.has-source-image;",
+        "clicked => { root.clicked(); }",
+    ] {
+        assert!(
+            action_button.contains(snippet),
+            "HubActionCommandButton must centralize full-width action command rows over HubCommandButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !action_button.contains("TouchArea"),
+        "HubActionCommandButton should delegate pointer behavior through HubCommandButton"
+    );
+    for snippet in [
+        "export component HubActionStack inherits Rectangle",
+        "in property <length> stack-height: HubTokens.control-md;",
+        "in property <length> stack-spacing: HubTokens.panel-gap;",
+        "horizontal-stretch: 1;",
+        "preferred-width: 0px;",
+        "height: root.stack-height;",
+        "VerticalLayout {",
+        "spacing: root.stack-spacing;",
+        "@children",
+    ] {
+        assert!(
+            action_stack.contains(snippet),
+            "HubActionStack must centralize vertical command/action stack spacing over child action rows; missing {snippet}"
+        );
+    }
+    assert!(
+        !action_stack.contains("TouchArea") && !action_stack.contains("HubCommandButton {"),
+        "HubActionStack should own only stack layout and leave row interaction to child actions"
     );
     for snippet in [
         "export component HubIconButton inherits Rectangle",
@@ -179,7 +246,7 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "HubIconButton should use Material StateLayerArea instead of direct TouchArea handling"
     );
     for snippet in [
-        "export { HubFloatingIconButton } from \"button_components.slint\";",
+        "export { PillButton, HubCommandButton, HubActionCommandButton, HubActionStack, IconButton, HubIconButton, WindowButton, HubFloatingIconButton } from \"button_components.slint\";",
         "export component HubFloatingIconButton inherits HubIconButton",
         "button-width: MaterialStyleMetrics.padding_28;",
         "button-height: MaterialStyleMetrics.size_32 - MaterialStyleMetrics.size_1;",
@@ -196,18 +263,16 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
             "HubFloatingIconButton must centralize reference card-overlay icon button chrome; missing {snippet}"
         );
     }
+    let floating_button = button_components
+        .split("export component HubFloatingIconButton")
+        .nth(1)
+        .expect("button_components.slint must declare HubFloatingIconButton");
     assert!(
-        !button_components.contains("TouchArea") && !button_components.contains("StateLayerArea {"),
+        !floating_button.contains("TouchArea") && !floating_button.contains("StateLayerArea {"),
         "HubFloatingIconButton should inherit HubIconButton interaction instead of declaring another local pointer layer"
     );
 
-    let window_start = shared
-        .find("export component WindowButton")
-        .expect("shared.slint must declare WindowButton");
-    let panel_start = shared
-        .find("export component Panel")
-        .expect("shared.slint must declare Panel after WindowButton");
-    let window_button = &shared[window_start..panel_start];
+    let window_button = &button_components[window_start..];
     for snippet in [
         "MaterialIconButton {",
         "in property <image> fallback-icon-image: @image-url(\"../assets/icons/ui/close.svg\");",
@@ -240,8 +305,8 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
 fn hub_form_text_inputs_use_material_text_field_wrapper() {
     let components = read_ui_file("components.slint");
     assert!(
-        components.contains("HubTextField"),
-        "components.slint must re-export the Hub Material-backed text field wrapper"
+        components.contains("HubTextField") && components.contains("HubPathFieldRow"),
+        "components.slint must re-export the Hub Material-backed text field and path-field row wrappers"
     );
 
     let inputs = read_ui_file("inputs.slint");
@@ -290,8 +355,8 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         ),
     ] {
         assert!(
-            source.contains("HubTextField"),
-            "{page} form fields must use the HubTextField wrapper"
+            source.contains("HubTextField") || source.contains("HubPathFieldRow"),
+            "{page} form fields must use Hub input wrappers instead of raw text controls"
         );
         assert!(
             !source.contains("LineEdit"),
@@ -385,7 +450,20 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
     ] {
         assert!(
             editor_controls.contains(snippet),
-            "EditorPage Source Engine settings rows should use one exported HubTextField/PillButton row component while preserving bindings and actions: {snippet}"
+            "EditorPage Source Engine settings rows should use the exported HubPathFieldRow wrapper while preserving bindings and actions: {snippet}"
+        );
+    }
+    for snippet in [
+        "HubPathFieldRow {",
+        "label: root.field-label;",
+        "text <=> root.field-text;",
+        "action-label: root.button-text;",
+        "row-padding: HubTokens.space-2;",
+        "framed: true;",
+    ] {
+        assert!(
+            editor_components.contains(snippet),
+            "EditorPathFieldRow should delegate field/action geometry to HubPathFieldRow: {snippet}"
         );
     }
     assert!(
@@ -415,10 +493,12 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "in property <bool> show-browse: false;",
         "callback browse-clicked();",
         "height: root.field-height;",
+        "HubPathFieldRow {",
         "label: root.field-label;",
         "placeholder: root.field-placeholder;",
         "text <=> root.field-text;",
-        "if root.show-browse: PillButton",
+        "show-action: root.show-browse;",
+        "action-label: root.browse-label;",
         "root.browse-clicked();",
         "export component ProjectCreateSettingsPanel inherits PanelSlot",
         "export component ProjectCreateCompactSummaryPanel inherits PanelSlot",
@@ -457,6 +537,17 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         assert!(
             project_create_controls.contains(snippet),
             "ProjectNewPage create fields should use typed ProjectCreateSettingsPanel wrappers while preserving bindings and browse behavior: {snippet}"
+        );
+    }
+    let project_create_field = project_components
+        .split("export component ProjectCreateField")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .expect("project_page_components.slint must declare ProjectCreateField");
+    for forbidden in ["HubTextField {", "if root.show-browse: PillButton"] {
+        assert!(
+            !project_create_field.contains(forbidden),
+            "ProjectCreateField should delegate path/name row structure to HubPathFieldRow: {forbidden}"
         );
     }
     for component_name in [
@@ -599,7 +690,7 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
         "private property <bool> highlighted: root.focused || root.prominent;",
         "private property <color> state-border:",
         "private property <color> placeholder-color:",
-        "border-width: root.highlighted ? HubVisualSpec.focus-ring-width : HubTokens.border-width;",
+        "border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;",
         "border-color: root.state-border;",
         "background: root.state-background;",
         "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
@@ -614,7 +705,7 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
     for (component, next_component, required) in [
         (
             "HubTextField",
-            "ToolbarSelect",
+            "HubPathFieldRow",
             &[
                 "in property <bool> enabled: true;",
                 "out property <bool> focused: material-field.has-focus;",
@@ -625,6 +716,22 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
                 "border-color: root.focus-border;",
                 "opacity: root.state-opacity;",
                 "enabled: root.enabled;",
+            ][..],
+        ),
+        (
+            "HubPathFieldRow",
+            "ToolbarSelect",
+            &[
+                "in property <bool> enabled: true;",
+                "in property <bool> show-action: true;",
+                "in property <bool> action-enabled: true;",
+                "in property <length> field-height: HubTokens.input-field;",
+                "in property <length> action-width: HubTokens.control-md * 3;",
+                "in property <length> row-spacing: HubTokens.toolbar-gap;",
+                "in property <bool> framed: false;",
+                "HubTextField {",
+                "HubCommandButton {",
+                "enabled: root.action-enabled && root.enabled;",
             ][..],
         ),
         (
@@ -714,6 +821,8 @@ fn hub_search_box_uses_reference_outlined_text_input() {
         "border-color: root.state-border;",
         "background: root.state-background;",
         "color: root.placeholder-color;",
+        "root.focused ? HubVisualSpec.focus-ring-color : (root.prominent ? HubVisualSpec.search-prominent-stroke",
+        "root.focused ? MaterialPalette.on_surface_variant : (root.prominent ? HubVisualSpec.search-prominent-placeholder",
         "source: @image-url(\"../assets/icons/ui/search.svg\");",
         "search-field := TextInput",
         "single-line: true;",
@@ -817,18 +926,18 @@ fn hub_toolbar_select_uses_material_menu_primitives() {
     for snippet in [
         "MenuItem",
         "OutlineButton",
-        "HubPopupMenu",
-        "import { HubDropDownSurface, HubPopupMenu } from \"overlays.slint\";",
+        "HubSelectMenu",
+        "import { HubSelectDropDownSurface, HubSelectMenu } from \"overlays.slint\";",
         "in property <length> select-height: HubVisualSpec.toolbar-density-height;",
         "in property <[MenuItem]> menu-items: [];",
-        "private property <length> menu-width: max(root.select-width, HubTokens.input-width / 2);",
-        "private property <length> menu-offset-x: min(0px, root.select-width - root.menu-width);",
         "private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));",
         "private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);",
         "private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;",
         "private property <color> select-background:",
         "private property <color> select-border:",
+        "private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;",
         "private property <color> select-foreground:",
+        "private property <color> select-foreground: root.focused ? MaterialPalette.on_surface_variant : HubVisualSpec.toolbar-select-foreground;",
         "clip: false;",
         "trigger := OutlineButton",
         "opacity: 0%;",
@@ -844,10 +953,11 @@ fn hub_toolbar_select_uses_material_menu_primitives() {
         "y: (parent.height - self.height) / 2;",
         "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
         "colorize: root.select-foreground;",
-        "menu := HubPopupMenu",
-        "x: root.menu-offset-x;",
-        "menu-width: root.menu-width;",
-        "menu-items: root.menu-items;",
+        "menu := HubSelectMenu",
+        "anchor-width: root.select-width;",
+        "anchor-height: root.height;",
+        "menu-min-width: HubTokens.input-width / 2;",
+        "select-items: root.menu-items;",
         "root.selected(root.options[index].id);",
     ] {
         assert!(

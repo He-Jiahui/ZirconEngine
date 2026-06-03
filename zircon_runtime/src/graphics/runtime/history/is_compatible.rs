@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderPipelineHandle;
+use crate::core::framework::render::{FrameHistoryInvalidationReason, RenderPipelineHandle};
 use crate::core::math::UVec2;
 
 use crate::FrameHistoryBinding;
@@ -8,14 +8,39 @@ use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 impl ViewportFrameHistory {
     pub(crate) fn is_compatible(
         &self,
-        viewport_size: UVec2,
+        target_size: UVec2,
+        render_size: UVec2,
         pipeline: RenderPipelineHandle,
         bindings: &[FrameHistoryBinding],
         validation_key: &FrameHistoryValidationKey,
     ) -> bool {
-        self.viewport_size == viewport_size
-            && self.pipeline == pipeline
-            && self.bindings == bindings
-            && self.validation_key == *validation_key
+        self.incompatibility_reason(target_size, render_size, pipeline, bindings, validation_key)
+            .is_none()
+    }
+
+    pub(crate) fn incompatibility_reason(
+        &self,
+        target_size: UVec2,
+        render_size: UVec2,
+        pipeline: RenderPipelineHandle,
+        bindings: &[FrameHistoryBinding],
+        validation_key: &FrameHistoryValidationKey,
+    ) -> Option<FrameHistoryInvalidationReason> {
+        if self.target_size != target_size {
+            return Some(FrameHistoryInvalidationReason::ViewportResized);
+        }
+        if self.render_size != render_size {
+            return Some(FrameHistoryInvalidationReason::RenderSizeChanged);
+        }
+        if self.pipeline != pipeline {
+            return Some(FrameHistoryInvalidationReason::PipelineChanged);
+        }
+        if self.bindings != bindings {
+            return Some(FrameHistoryInvalidationReason::HistoryBindingChanged);
+        }
+        if self.validation_key != *validation_key {
+            return Some(FrameHistoryInvalidationReason::FrameInputsChanged);
+        }
+        None
     }
 }

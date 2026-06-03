@@ -71,32 +71,34 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         assert_sets_equal(
             &surface_frames,
             &host_frames,
-            "{document_id} host model must consume the same arranged frames as UiSurfaceFrame",
+            &format!(
+                "{document_id} host model must consume the same arranged frames as UiSurfaceFrame"
+            ),
         );
         assert_sets_equal(
             &surface_attributes,
             &host_attributes,
-            "{document_id} host model must preserve runtime template attributes",
+            &format!("{document_id} host model must preserve runtime template attributes"),
         );
         assert_sets_equal(
             &surface_style_tokens,
             &host_style_tokens,
-            "{document_id} host model must preserve runtime style tokens",
+            &format!("{document_id} host model must preserve runtime style tokens"),
         );
         assert_sets_equal(
             &surface_bindings,
             &host_bindings,
-            "{document_id} host model route bindings must mirror runtime bindings",
+            &format!("{document_id} host model route bindings must mirror runtime bindings"),
         );
         assert_sets_equal(
             &host_frames,
             &retained_frames,
-            "{document_id} Retained/native projection must retain host model frames",
+            &format!("{document_id} Retained/native projection must retain host model frames"),
         );
         assert_sets_equal(
             &host_route_bindings,
             &retained_route_bindings,
-            "{document_id} Retained/native projection must retain registered host routes",
+            &format!("{document_id} Retained/native projection must retain registered host routes"),
         );
     }
 }
@@ -287,9 +289,39 @@ fn stable_attribute_entries(document_id: &str, entries: Vec<String>) -> BTreeSet
     entries
         .into_iter()
         .filter(|entry| {
-            document_id != COMPONENT_SHOWCASE_DOCUMENT_ID || !is_showcase_state_overlay_key(entry)
+            if document_id == COMPONENT_SHOWCASE_DOCUMENT_ID && is_showcase_state_overlay_key(entry)
+            {
+                return false;
+            }
+            !is_default_false_widget_state_overlay_key(entry)
         })
         .collect()
+}
+
+fn is_default_false_widget_state_overlay_key(entry: &str) -> bool {
+    let Some((path_and_key, value)) = entry.split_once('=') else {
+        return false;
+    };
+    if value != "false" {
+        return false;
+    }
+    let Some((_path, key)) = path_and_key.rsplit_once('.') else {
+        return false;
+    };
+    matches!(
+        key,
+        "active_drag_target"
+            | "checked"
+            | "disabled"
+            | "dragging"
+            | "drop_hovered"
+            | "expanded"
+            | "focused"
+            | "hovered"
+            | "popup_open"
+            | "pressed"
+            | "selected"
+    )
 }
 
 fn is_showcase_state_overlay_key(entry: &str) -> bool {

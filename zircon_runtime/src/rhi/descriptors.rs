@@ -58,8 +58,56 @@ impl BufferDesc {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TextureFormat {
+    R8Unorm,
+    R16Float,
+    R32Float,
+    Rg16Float,
+    Rgba8Unorm,
     Rgba8UnormSrgb,
+    Bgra8Unorm,
+    Bgra8UnormSrgb,
+    Rgba16Float,
+    Rgba32Float,
+    Depth24Plus,
+    Depth24PlusStencil8,
     Depth32Float,
+}
+
+impl TextureFormat {
+    pub const fn bytes_per_pixel(self) -> u32 {
+        match self {
+            Self::R8Unorm => 1,
+            Self::R16Float => 2,
+            Self::R32Float | Self::Rg16Float => 4,
+            Self::Rgba8Unorm
+            | Self::Rgba8UnormSrgb
+            | Self::Bgra8Unorm
+            | Self::Bgra8UnormSrgb
+            | Self::Depth24Plus
+            | Self::Depth24PlusStencil8
+            | Self::Depth32Float => 4,
+            Self::Rgba16Float => 8,
+            Self::Rgba32Float => 16,
+        }
+    }
+
+    pub const fn is_depth(self) -> bool {
+        matches!(
+            self,
+            Self::Depth24Plus | Self::Depth24PlusStencil8 | Self::Depth32Float
+        )
+    }
+
+    pub const fn is_hdr_color(self) -> bool {
+        matches!(
+            self,
+            Self::R16Float
+                | Self::R32Float
+                | Self::Rg16Float
+                | Self::Rgba16Float
+                | Self::Rgba32Float
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -101,8 +149,16 @@ impl BitOrAssign for TextureUsage {
 pub enum TextureDimension {
     D1,
     D2,
+    D2Array,
     D3,
     Cube,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextureResidency {
+    #[default]
+    Dense,
+    SparseReserved,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,6 +172,8 @@ pub struct TextureDesc {
     pub format: TextureFormat,
     pub usage: TextureUsage,
     pub dimension: TextureDimension,
+    #[serde(default)]
+    pub residency: TextureResidency,
 }
 
 impl TextureDesc {
@@ -136,12 +194,77 @@ impl TextureDesc {
             format,
             usage,
             dimension: TextureDimension::D2,
+            residency: TextureResidency::Dense,
         }
     }
 
     pub fn with_dimension(mut self, dimension: TextureDimension) -> Self {
         self.dimension = dimension;
         self
+    }
+
+    pub fn with_depth(mut self, depth: u32) -> Self {
+        self.depth = depth;
+        self
+    }
+
+    pub fn with_array_layers(mut self, layers: u32) -> Self {
+        self.depth = layers;
+        self
+    }
+
+    pub fn with_mip_levels(mut self, mip_levels: u32) -> Self {
+        self.mip_levels = mip_levels;
+        self
+    }
+
+    pub fn with_sample_count(mut self, sample_count: u32) -> Self {
+        self.sample_count = sample_count;
+        self
+    }
+
+    pub fn with_sparse_residency(mut self) -> Self {
+        self.residency = TextureResidency::SparseReserved;
+        self
+    }
+
+    pub const fn is_sparse_reserved(&self) -> bool {
+        matches!(self.residency, TextureResidency::SparseReserved)
+    }
+
+    pub fn checked_storage_size_bytes(&self) -> Option<u64> {
+        let mut total = 0_u64;
+        for level in 0..self.mip_levels {
+            let width = mip_extent(self.width, level);
+            let height = mip_extent(self.height, level);
+            let depth = match self.dimension {
+                TextureDimension::D3 => mip_extent(self.depth, level),
+                TextureDimension::D1
+                | TextureDimension::D2
+                | TextureDimension::D2Array
+                | TextureDimension::Cube => self.depth,
+            };
+            let level_size = u64::from(width)
+                .checked_mul(u64::from(height))?
+                .checked_mul(u64::from(depth))?
+                .checked_mul(u64::from(self.sample_count))?
+                .checked_mul(u64::from(self.format.bytes_per_pixel()))?;
+            total = total.checked_add(level_size)?;
+        }
+        Some(total)
+    }
+}
+
+const fn mip_extent(value: u32, level: u32) -> u32 {
+    let shifted = if level >= u32::BITS {
+        0
+    } else {
+        value >> level
+    };
+    if shifted == 0 {
+        1
+    } else {
+        shifted
     }
 }
 

@@ -12,9 +12,11 @@ pub use graph::{
     CompiledRenderGraphTransientAllocationPlan, CompiledRenderPass,
 };
 pub use types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResource,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
-    RenderGraphResourceLifetime, RenderPassId, TransientBuffer, TransientTexture,
+    ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
+    RenderGraphAttachmentStoreOp, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
+    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
+    TransientBuffer, TransientTexture,
 };
 
 #[cfg(test)]

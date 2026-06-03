@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_icon_button.zui"
+version = 2
+display_name = "Workbench Icon Button"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchIconButton]
+root = "root"
+default_classes = ["workbench-icon-button", "workbench-primitive"]
+
+[nodes.root]
+component = "IconButton"
+control_id = "WorkbenchIconButtonRoot"
+classes = ["workbench-icon-button"]
+props = { icon = "zircon_editor_shell/toolbar/select.svg", text = "", label = "Tool", button_variant = "text", button_color = "secondary", button_size = "small", button_interaction_state = "normal", icon_placement = "icon_only", selected = false, focused = false, hovered = false, pressed = false, disabled = false, layout_padding_left = 8.0, layout_padding_right = 8.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 4.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 18.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 34.0, preferred = 40.0, max = 54.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 40.0, max = 54.0, stretch = "Fixed" } }

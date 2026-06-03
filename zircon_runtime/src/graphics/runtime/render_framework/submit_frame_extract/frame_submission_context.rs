@@ -1,9 +1,10 @@
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport,
-    PostProcessPassGraph, PostProcessStackDescriptor, RenderAmbientLightSnapshot,
-    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
-    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
-    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderSpotLightSnapshot,
+    FrameHistoryInvalidationReason, PostProcessPassGraph, PostProcessStackDescriptor,
+    RenderAmbientLightSnapshot, RenderBloomSettings, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiPayloadSource,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderPostProcessEffectStackSettings, RenderRectLightSnapshot, RenderSpotLightSnapshot,
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
     RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, SolariRuntimeReport,
 };
@@ -26,16 +27,20 @@ pub(super) struct UiSubmissionStats {
 }
 
 pub(super) struct FrameSubmissionContext {
-    size: UVec2,
+    // Presentation/imported target extent. Internal graph resources may use a smaller render size.
+    target_size: UVec2,
+    render_size: UVec2,
     pipeline_handle: RenderPipelineHandle,
     viewport_generation: u64,
     quality_profile: Option<String>,
     compiled_pipeline: CompiledRenderPipeline,
     visibility_context: VisibilityContext,
     history_validation_key: FrameHistoryValidationKey,
+    history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
     ui_stats: UiSubmissionStats,
     post_process_bloom: RenderBloomSettings,
     post_process_color_grading: RenderColorGradingSettings,
+    post_process_effect_stack: RenderPostProcessEffectStackSettings,
     anti_alias_fallback: AntiAliasFallbackReport,
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
     solari_runtime_report: SolariRuntimeReport,
@@ -66,16 +71,19 @@ pub(super) struct FrameSubmissionContext {
 impl FrameSubmissionContext {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
-        size: UVec2,
+        target_size: UVec2,
+        render_size: UVec2,
         pipeline_handle: RenderPipelineHandle,
         viewport_generation: u64,
         quality_profile: Option<String>,
         compiled_pipeline: CompiledRenderPipeline,
         visibility_context: VisibilityContext,
         history_validation_key: FrameHistoryValidationKey,
+        history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
         ui_stats: UiSubmissionStats,
         post_process_bloom: RenderBloomSettings,
         post_process_color_grading: RenderColorGradingSettings,
+        post_process_effect_stack: RenderPostProcessEffectStackSettings,
         anti_alias_fallback: AntiAliasFallbackReport,
         advanced_runtime_plan: AdvancedProfileRuntimePlan,
         solari_runtime_report: SolariRuntimeReport,
@@ -139,16 +147,19 @@ impl FrameSubmissionContext {
             .flatten();
 
         Self {
-            size,
+            target_size,
+            render_size,
             pipeline_handle,
             viewport_generation,
             quality_profile,
             compiled_pipeline,
             visibility_context,
             history_validation_key,
+            history_invalidation_reason,
             ui_stats,
             post_process_bloom,
             post_process_color_grading,
+            post_process_effect_stack,
             anti_alias_fallback,
             advanced_runtime_plan,
             solari_runtime_report,
@@ -177,7 +188,11 @@ impl FrameSubmissionContext {
     }
 
     pub(super) fn size(&self) -> UVec2 {
-        self.size
+        self.target_size
+    }
+
+    pub(super) fn render_size(&self) -> UVec2 {
+        self.render_size
     }
 
     pub(super) fn pipeline_handle(&self) -> RenderPipelineHandle {
@@ -204,6 +219,10 @@ impl FrameSubmissionContext {
         &self.history_validation_key
     }
 
+    pub(super) fn history_invalidation_reason(&self) -> Option<FrameHistoryInvalidationReason> {
+        self.history_invalidation_reason
+    }
+
     pub(super) fn ui_stats(&self) -> &UiSubmissionStats {
         &self.ui_stats
     }
@@ -214,6 +233,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn post_process_color_grading(&self) -> RenderColorGradingSettings {
         self.post_process_color_grading
+    }
+
+    pub(super) fn post_process_effect_stack(&self) -> RenderPostProcessEffectStackSettings {
+        self.post_process_effect_stack
     }
 
     pub(super) fn anti_alias_fallback(&self) -> AntiAliasFallbackReport {
@@ -539,11 +562,14 @@ mod tests {
         );
         FrameSubmissionContext::new(
             UVec2::new(64, 64),
+            UVec2::new(64, 64),
             RenderPipelineHandle::new(1),
             0,
             None,
             empty_pipeline(),
             VisibilityContext::from_extract(&extract),
+            Default::default(),
+            None,
             Default::default(),
             Default::default(),
             Default::default(),

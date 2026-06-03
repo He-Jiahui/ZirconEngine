@@ -211,6 +211,7 @@ struct RetainedEditorHost {
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
     builtin_template_runtime: Arc<EditorUiHostRuntime>,
     template_bridge: callback_dispatch::BuiltinHostWindowTemplateBridge,
+    workbench_window_bridge: callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,

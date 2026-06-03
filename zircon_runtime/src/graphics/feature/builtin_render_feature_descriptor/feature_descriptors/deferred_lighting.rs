@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::QueueLane;
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -22,9 +23,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             QueueLane::Graphics,
         )
         .with_executor_id("lighting.deferred")
-        .read_texture("gbuffer-albedo")
-        .read_texture("gbuffer-normal")
-        .read_texture("gbuffer-material")
-        .write_texture("scene-color")],
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_external(PostProcessGraphResourceNames::FINAL_COLOR)
+        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
     )
 }

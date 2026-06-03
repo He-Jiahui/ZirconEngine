@@ -10,24 +10,44 @@ use super::material_primitives::{
 use super::material_state_layer::push_state_layer_commands;
 use super::mui_x_primitives::push_mui_x_primitive_commands;
 use super::render_commands::{draw_host_paint_commands, HostPaintCommand};
+use super::template_alerts::push_alert_commands;
+use super::template_axis_labels::push_axis_label_commands;
+use super::template_axis_value_fields::push_axis_value_field_commands;
+use super::template_buttons::push_button_commands;
+use super::template_chips::push_chip_commands;
+use super::template_dropdowns::{dropdown_paint_rect, push_dropdown_commands};
+use super::template_fields::push_field_commands;
+use super::template_icon_buttons::push_icon_button_commands;
+use super::template_inspector_rows::push_inspector_row_commands;
+use super::template_list_rows::push_list_row_commands;
+use super::template_node_labels::template_node_label;
+use super::template_popup_rows::push_template_popup_row_commands;
+use super::template_property_rows::push_property_row_text_commands;
+use super::template_section_titles::push_section_title_commands;
+use super::template_segmented_controls::push_segmented_control_commands;
+use super::template_selection_controls::push_selection_control_commands;
+use super::template_shell_panels::push_shell_panel_commands;
+use super::template_sliders::push_slider_commands;
+use super::template_status_controls::push_status_control_commands;
+use super::template_style::{
+    border_color, draws_elevation_shadow, elevation_shadow_rect, is_mui_overlay_surface_node,
+    resolved_style_color, surface_color, template_border_width, template_corner_radius, text_color,
+};
+use super::template_table_rows::{push_table_row_commands, push_table_row_text_commands};
+use super::template_tooltips::push_tooltip_commands;
+use super::template_tree_rows::push_tree_row_commands;
+use super::template_viewport_scene::push_viewport_scene_commands;
 use super::theme::PALETTE;
 use super::visual_assets::{raster_size_from_frame, template_image_pixels, template_image_tint};
-use zircon_runtime_interface::ui::style::{
-    ButtonColor, ButtonInteractionState, ButtonVariant, UiStyleColor,
-};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const DEFAULT_TEMPLATE_FONT_SIZE: f32 = 12.0;
 const TEXT_HORIZONTAL_INSET: f32 = 5.0;
 const TEXT_VERTICAL_INSET: f32 = 5.0;
 const MIN_TEXT_RECT_HEIGHT: f32 = 12.0;
-const MATERIAL_ELEVATION_SHADOW_OFFSET: f32 = 2.0;
 const MATERIAL_ELEVATION_SHADOW_OPACITY: f32 = 0.72;
 const MATERIAL_PROGRESS_TRACK: [u8; 4] = [42, 52, 60, 255];
 const MUI_BACKDROP_SCRIM: [u8; 4] = [0, 0, 0, 128];
-const MUI_TOOLTIP_BG: [u8; 4] = [97, 97, 97, 255];
-const MUI_SNACKBAR_BG: [u8; 4] = [50, 50, 50, 255];
-const MUI_ON_DARK: [u8; 4] = [255, 255, 255, 255];
 const TEMPLATE_NODE_ORDER_STRIDE: i32 = 4;
 const TEMPLATE_NODE_Z_LAYER_STRIDE: i32 = 100_000;
 
@@ -139,6 +159,96 @@ fn push_template_node_commands(
         return;
     }
 
+    if push_shell_panel_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_selection_control_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_segmented_control_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_button_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_dropdown_commands(commands, node, &rect, &node_clip, order, opacity) {
+        let popup_anchor = dropdown_paint_rect(node, &rect);
+        push_template_popup_row_commands(
+            commands,
+            node,
+            &popup_anchor,
+            origin,
+            clip,
+            order,
+            opacity,
+        );
+        return;
+    }
+
+    if push_tree_row_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_list_row_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_table_row_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_status_control_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_chip_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_viewport_scene_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_section_title_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_icon_button_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_inspector_row_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_axis_value_field_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_axis_label_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_field_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_slider_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_alert_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_tooltip_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
     if push_material_primitive_commands(commands, node, &rect, &node_clip, order, opacity) {
         return;
     }
@@ -188,9 +298,16 @@ fn push_template_node_commands(
 
     push_template_image_command(commands, node, &rect, &node_clip, order + 2, opacity);
 
-    let label = node_label(node, text_input_focus);
-    if (!label.is_empty() && !is_icon_only_node(node))
-        || matches!(node.role.as_str(), "Label" | "Button")
+    let property_row_text_painted =
+        push_property_row_text_commands(commands, node, &rect, &node_clip, order + 3, opacity);
+    let table_row_text_painted = !property_row_text_painted
+        && push_table_row_text_commands(commands, node, &rect, &node_clip, order + 3, opacity);
+
+    let label = template_node_label(node, text_input_focus);
+    if !property_row_text_painted
+        && !table_row_text_painted
+        && ((!label.is_empty() && !is_icon_only_node(node))
+            || matches!(node.role.as_str(), "Label" | "Button"))
     {
         let text_rect = text_rect_for_node(node, &rect);
         let font_size = node_font_size(node, text_rect.height);
@@ -211,6 +328,8 @@ fn push_template_node_commands(
             opacity,
         ));
     }
+
+    push_template_popup_row_commands(commands, node, &rect, origin, clip, order, opacity);
 }
 
 fn template_node_paint_order(node: &TemplatePaneNodeData, row_order: i32) -> i32 {
@@ -534,7 +653,11 @@ fn progress_fill_color(node: &TemplatePaneNodeData) -> [u8; 4] {
 }
 
 fn material_tone_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    match first_non_empty(&[node.validation_level.as_str(), node.text_tone.as_str()]) {
+    let tone = [node.validation_level.as_str(), node.text_tone.as_str()]
+        .into_iter()
+        .find(|value| !value.trim().is_empty())
+        .unwrap_or("");
+    match tone {
         "warning" => Some(PALETTE.warning),
         "error" | "danger" => Some(PALETTE.error),
         "success" => Some(PALETTE.success),
@@ -595,7 +718,7 @@ fn image_rect_for_node(
     image_height: u32,
 ) -> FrameRect {
     if is_icon_node(node) {
-        let label = node_label(node, None);
+        let label = template_node_label(node, None);
         if !label.is_empty() && !is_icon_only_node(node) {
             let size = leading_icon_size(rect);
             return FrameRect {
@@ -675,7 +798,7 @@ fn text_rect_for_node(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRec
 }
 
 fn is_leading_icon_text_node(node: &TemplatePaneNodeData) -> bool {
-    is_icon_node(node) && !is_icon_only_node(node) && !node_label(node, None).is_empty()
+    is_icon_node(node) && !is_icon_only_node(node) && !template_node_label(node, None).is_empty()
 }
 
 fn leading_icon_size(rect: &FrameRect) -> f32 {
@@ -728,395 +851,11 @@ fn draws_border(node: &TemplatePaneNodeData) -> bool {
         || matches!(node.role.as_str(), "Button" | "Mount")
 }
 
-fn template_border_width(node: &TemplatePaneNodeData) -> f32 {
-    let width = node
-        .border_width
-        .max(node.button_style.element.border_width)
-        .max(0.0);
-    if matches!(
-        button_interaction_state(node),
-        ButtonInteractionState::Pressed | ButtonInteractionState::Focused
-    ) || node.selected
-        || node.checked
-    {
-        width.max(2.0)
-    } else {
-        width
-    }
-}
-
-fn template_corner_radius(node: &TemplatePaneNodeData) -> f32 {
-    node.corner_radius
-        .max(node.button_style.element.corner_radius)
-        .max(0.0)
-}
-
-fn draws_elevation_shadow(node: &TemplatePaneNodeData) -> bool {
-    node.elevation > 0.0 && !is_button_disabled(node)
-}
-
-fn elevation_shadow_rect(rect: &FrameRect, elevation: f32) -> FrameRect {
-    let offset = elevation.max(1.0) * MATERIAL_ELEVATION_SHADOW_OFFSET;
-    FrameRect {
-        x: rect.x + offset,
-        y: rect.y + offset,
-        width: rect.width,
-        height: rect.height,
-    }
-}
-
-fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if is_button_disabled(node) {
-        return PALETTE.surface_disabled;
-    }
-    if matches!(node.validation_level.as_str(), "error" | "danger")
-        || matches!(node.surface_variant.as_str(), "danger" | "error")
-    {
-        return PALETTE.error_container;
-    }
-    if node.validation_level.as_str() == "warning" {
-        return PALETTE.warning_container;
-    }
-    if node.validation_level.as_str() == "success" || node.surface_variant.as_str() == "success" {
-        return PALETTE.success_container;
-    }
-    if node.validation_level.as_str() == "info" || node.surface_variant.as_str() == "info" {
-        return PALETTE.info_container;
-    }
-    match button_interaction_state(node) {
-        ButtonInteractionState::Pressed => return PALETTE.surface_pressed,
-        ButtonInteractionState::Focused => return PALETTE.surface_selected,
-        ButtonInteractionState::Hover => {
-            return if is_primary_contained_button(node) {
-                PALETTE.accent_soft
-            } else {
-                PALETTE.surface_hover
-            };
-        }
-        ButtonInteractionState::Disabled => return PALETTE.surface_disabled,
-        ButtonInteractionState::Loading | ButtonInteractionState::Normal => {}
-    }
-    if let Some(color) = resolved_style_color(node.button_style.element.background_color.as_ref()) {
-        return color;
-    }
-    if let Some(color) = typed_button_variant_background(node) {
-        return color;
-    }
-    match node.surface_variant.as_str() {
-        "tooltip" => return MUI_TOOLTIP_BG,
-        "snackbar" => return MUI_SNACKBAR_BG,
-        "paper" | "paper-outlined" | "dialog" | "popover" => return PALETTE.popup,
-        _ => {}
-    }
-    if matches!(node.button_variant.as_str(), "primary" | "filled")
-        || matches!(node.surface_variant.as_str(), "accent" | "primary")
-    {
-        return PALETTE.accent;
-    }
-    match node.surface_variant.as_str() {
-        "inset" | "scroll-body" | "asset-tree-row" | "reference-row" => PALETTE.surface_inset,
-        "popup" | "elevated" => PALETTE.popup,
-        "panel" | "asset-preview" | "asset-preview-visual" => PALETTE.surface,
-        "shell" => PALETTE.shell_background,
-        _ => match node.role.as_str() {
-            "Button" if node.surface_variant.is_empty() && is_explicit_text_button(node) => {
-                [0, 0, 0, 0]
-            }
-            "Button" if node.surface_variant.is_empty() => PALETTE.surface_hover,
-            _ => PALETTE.surface,
-        },
-    }
-}
-
-fn border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if is_button_disabled(node) {
-        return PALETTE.border_disabled;
-    }
-    if matches!(node.validation_level.as_str(), "error" | "danger")
-        || matches!(node.surface_variant.as_str(), "danger" | "error")
-    {
-        return PALETTE.error;
-    }
-    if node.validation_level.as_str() == "warning" {
-        return PALETTE.warning;
-    }
-    if node.validation_level.as_str() == "success" || node.surface_variant.as_str() == "success" {
-        return PALETTE.success;
-    }
-    if node.validation_level.as_str() == "info" || node.surface_variant.as_str() == "info" {
-        return PALETTE.info;
-    }
-    if let Some(color) = resolved_style_color(node.button_style.element.border_color.as_ref()) {
-        return color;
-    }
-    if matches!(
-        button_interaction_state(node),
-        ButtonInteractionState::Pressed | ButtonInteractionState::Focused
-    ) || node.selected
-        || node.checked
-    {
-        PALETTE.focus_ring
-    } else if let Some(color) = typed_button_tone_color(node) {
-        color
-    } else if matches!(node.button_variant.as_str(), "primary" | "filled")
-        || matches!(node.surface_variant.as_str(), "accent" | "primary")
-        || matches!(
-            button_interaction_state(node),
-            ButtonInteractionState::Hover
-        )
-    {
-        PALETTE.focus_ring
-    } else {
-        PALETTE.border
-    }
-}
-
-fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if is_button_disabled(node) {
-        return PALETTE.text_disabled;
-    }
-    if let Some(color) = resolved_style_color(node.button_style.element.foreground_color.as_ref()) {
-        return color;
-    }
-    if is_primary_contained_button(node)
-        && matches!(
-            button_interaction_state(node),
-            ButtonInteractionState::Normal | ButtonInteractionState::Hover
-        )
-    {
-        return [8, 20, 22, 255];
-    }
-    match node.text_tone.as_str() {
-        "inverse" | "on-dark" | "tooltip" | "snackbar" => MUI_ON_DARK,
-        "muted" | "subtle" => PALETTE.text_muted,
-        "accent" | "primary" | "default" => PALETTE.focus_ring,
-        "warning" => PALETTE.warning,
-        "error" | "danger" => PALETTE.error,
-        "success" => PALETTE.success,
-        "info" => PALETTE.info,
-        _ => PALETTE.text,
-    }
-}
-
-fn is_mui_overlay_surface_node(node: &TemplatePaneNodeData) -> bool {
-    matches!(
-        node.component_role.as_str(),
-        "paper"
-            | "dialog"
-            | "alert-dialog"
-            | "popover"
-            | "menu"
-            | "tooltip"
-            | "snackbar"
-            | "drawer"
-    )
-}
-
-pub(super) fn is_button_disabled(node: &TemplatePaneNodeData) -> bool {
-    node.disabled
-        || node.button_style.disabled
-        || matches!(
-            node.button_style.interaction_state,
-            ButtonInteractionState::Disabled
-        )
-}
-
-fn button_interaction_state(node: &TemplatePaneNodeData) -> ButtonInteractionState {
-    if is_button_disabled(node) {
-        return ButtonInteractionState::Disabled;
-    }
-    // Slint Material gives focus priority over pressed for the state-layer overlay.
-    if node.selected
-        || node.checked
-        || node.focused
-        || matches!(
-            node.button_style.interaction_state,
-            ButtonInteractionState::Focused
-        )
-    {
-        return ButtonInteractionState::Focused;
-    }
-    if node.pressed
-        || matches!(
-            node.button_style.interaction_state,
-            ButtonInteractionState::Pressed
-        )
-    {
-        return ButtonInteractionState::Pressed;
-    }
-    if node.hovered
-        || node.drop_hovered
-        || node.active_drag_target
-        || matches!(
-            node.button_style.interaction_state,
-            ButtonInteractionState::Hover
-        )
-    {
-        return ButtonInteractionState::Hover;
-    }
-    if matches!(
-        node.button_style.interaction_state,
-        ButtonInteractionState::Loading
-    ) {
-        ButtonInteractionState::Loading
-    } else {
-        ButtonInteractionState::Normal
-    }
-}
-
-fn typed_button_variant_background(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    if !matches!(node.role.as_str(), "Button" | "IconButton") {
-        return None;
-    }
-    match node.button_style.variant.normalized() {
-        ButtonVariant::Contained => Some(button_container_color(&node.button_style.color)),
-        ButtonVariant::Outlined => Some(PALETTE.surface_inset),
-        ButtonVariant::Text | ButtonVariant::Default => None,
-    }
-}
-
-fn is_explicit_text_button(node: &TemplatePaneNodeData) -> bool {
-    matches!(node.button_variant.as_str(), "default" | "text")
-        || (!node.button_variant.is_empty()
-            && node.button_style.variant.normalized() == ButtonVariant::Text)
-}
-
-fn is_primary_contained_button(node: &TemplatePaneNodeData) -> bool {
-    (node.button_style.variant.normalized() == ButtonVariant::Contained
-        && is_primary_button_color(&node.button_style.color))
-        || matches!(node.button_variant.as_str(), "primary" | "filled")
-        || matches!(node.surface_variant.as_str(), "accent" | "primary")
-}
-
-fn button_container_color(color: &ButtonColor) -> [u8; 4] {
-    match color {
-        ButtonColor::Warning => PALETTE.warning_container,
-        ButtonColor::Error => PALETTE.error_container,
-        ButtonColor::Success => PALETTE.success_container,
-        ButtonColor::Info => PALETTE.info_container,
-        ButtonColor::Custom(color) => color.to_u8(),
-        ButtonColor::Style(role) => material_role_color(role).unwrap_or(PALETTE.surface_selected),
-        ButtonColor::Default | ButtonColor::Primary => PALETTE.accent,
-        ButtonColor::Secondary | ButtonColor::Inherit => PALETTE.surface_selected,
-    }
-}
-
-fn typed_button_tone_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    if !matches!(node.role.as_str(), "Button" | "IconButton") {
-        return None;
-    }
-    match &node.button_style.color {
-        ButtonColor::Warning => Some(PALETTE.warning),
-        ButtonColor::Error => Some(PALETTE.error),
-        ButtonColor::Success => Some(PALETTE.success),
-        ButtonColor::Info => Some(PALETTE.info),
-        ButtonColor::Custom(color) => Some(color.to_u8()),
-        ButtonColor::Style(role) => material_role_color(role),
-        ButtonColor::Default | ButtonColor::Primary
-            if matches!(
-                node.button_style.variant.normalized(),
-                ButtonVariant::Contained | ButtonVariant::Outlined
-            ) =>
-        {
-            Some(PALETTE.focus_ring)
-        }
-        ButtonColor::Secondary
-        | ButtonColor::Inherit
-        | ButtonColor::Default
-        | ButtonColor::Primary => None,
-    }
-}
-
-fn is_primary_button_color(color: &ButtonColor) -> bool {
-    matches!(color, ButtonColor::Default | ButtonColor::Primary)
-}
-
-fn resolved_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {
-    match color? {
-        UiStyleColor::Rgba(color) => Some(color.to_u8()),
-        UiStyleColor::Transparent => Some([0, 0, 0, 0]),
-        UiStyleColor::Inherit => None,
-        UiStyleColor::Role(role) => material_role_color(role),
-    }
-}
-
-fn material_role_color(role: &str) -> Option<[u8; 4]> {
-    match role {
-        "primary" | "accent" | "material.primary" | "material_color_primary" => {
-            Some(PALETTE.accent)
-        }
-        "on_primary" | "material.on_primary" | "material_color_on_primary" => {
-            Some([8, 20, 22, 255])
-        }
-        "surface" | "material.surface" => Some(PALETTE.surface),
-        "surface_inset" | "material.surface_inset" => Some(PALETTE.surface_inset),
-        "surface_hover" | "material.surface_hover" => Some(PALETTE.surface_hover),
-        "surface_pressed" | "material.surface_pressed" => Some(PALETTE.surface_pressed),
-        "surface_selected" | "material.surface_selected" => Some(PALETTE.surface_selected),
-        "disabled" | "material.disabled" => Some(PALETTE.surface_disabled),
-        "border" | "outline" | "material.outline" => Some(PALETTE.border),
-        "focus" | "focus_ring" | "material.focus_ring" => Some(PALETTE.focus_ring),
-        "text" | "on_surface" | "material.text" | "material.on_surface" => Some(PALETTE.text),
-        "text_muted" | "muted" | "material.text_muted" => Some(PALETTE.text_muted),
-        "text_disabled" | "material.text_disabled" => Some(PALETTE.text_disabled),
-        "warning" | "material.warning" => Some(PALETTE.warning),
-        "error" | "danger" | "material.error" => Some(PALETTE.error),
-        "success" | "material.success" => Some(PALETTE.success),
-        "info" | "material.info" => Some(PALETTE.info),
-        _ => None,
-    }
-}
-
-fn node_label(
-    node: &TemplatePaneNodeData,
-    text_input_focus: Option<&HostTextInputFocusData>,
-) -> String {
-    if let Some(focus) = focused_text_value(node, text_input_focus) {
-        return focus.to_string();
-    }
-    let values = if is_text_input_node(node) {
-        [
-            node.value_text.as_str(),
-            node.text.as_str(),
-            node.options_text.as_str(),
-        ]
-    } else {
-        [
-            node.text.as_str(),
-            node.value_text.as_str(),
-            node.options_text.as_str(),
-        ]
-    };
-    first_non_empty(&values).to_string()
-}
-
-fn focused_text_value<'a>(
-    node: &TemplatePaneNodeData,
-    text_input_focus: Option<&'a HostTextInputFocusData>,
-) -> Option<&'a str> {
-    let focus = text_input_focus?;
-    (focus.is_active() && focus.control_id.as_str() == node.control_id.as_str())
-        .then_some(focus.value_text.as_str())
-}
-
-fn is_text_input_node(node: &TemplatePaneNodeData) -> bool {
-    matches!(node.component_role.as_str(), "input-field" | "number-field")
-        || matches!(node.role.as_str(), "InputField" | "LineEdit")
-        || !node.edit_action_id.is_empty()
-        || !node.commit_action_id.is_empty()
-}
-
-fn first_non_empty<'a>(values: &[&'a str]) -> &'a str {
-    values
-        .iter()
-        .copied()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or("")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::super::super::data::TemplateNodeFrameData;
+    use super::super::super::data::{
+        TemplateNodeFrameData, TemplatePaneMenuItemData, TemplatePaneOptionData,
+    };
     use super::*;
     use crate::ui::layouts::common::model_rc;
 
@@ -1161,6 +900,41 @@ mod tests {
         assert!(changed_pixel_count(frame.as_bytes(), 40, 20, 0, 10, 10) > 0);
     }
 
+    #[test]
+    fn template_nodes_paint_open_dropdown_option_rows_below_control() {
+        let bytes = paint_template_nodes_for_test(128, 128, model_rc(vec![dropdown_node()]));
+
+        assert!(changed_pixel_count(&bytes, 128, 12, 48, 112, 66) > 0);
+    }
+
+    #[test]
+    fn template_nodes_anchor_workbench_dropdown_popup_to_declared_layout_offset() {
+        let mut node = dropdown_node();
+        node.control_id = "WorkbenchInputDropdown".into();
+        node.layout_offset_x = 10.0;
+        node.layout_offset_y = 6.0;
+        let bytes = paint_template_nodes_for_test(160, 160, model_rc(vec![node]));
+
+        assert!(changed_pixel_count(&bytes, 160, 22, 54, 112, 66) > 0);
+        assert_eq!(changed_pixel_count(&bytes, 160, 12, 44, 8, 84), 0);
+    }
+
+    #[test]
+    fn template_nodes_paint_open_dropdown_option_rows_above_control_when_below_clipped() {
+        let bytes =
+            paint_template_nodes_for_test(160, 160, model_rc(vec![dropdown_near_bottom_node()]));
+
+        assert!(changed_pixel_count(&bytes, 160, 20, 32, 100, 84) > 0);
+        assert_eq!(changed_pixel_count(&bytes, 160, 20, 152, 100, 8), 0);
+    }
+
+    #[test]
+    fn template_nodes_paint_open_popup_menu_rows_inside_menu_frame() {
+        let bytes = paint_template_nodes_for_test(160, 128, model_rc(vec![popup_menu_node()]));
+
+        assert!(changed_pixel_count(&bytes, 160, 16, 16, 128, 96) > 0);
+    }
+
     fn panel_node(
         control_id: &str,
         x: f32,
@@ -1179,6 +953,106 @@ mod tests {
                 height,
             },
             ..TemplatePaneNodeData::default()
+        }
+    }
+
+    fn dropdown_node() -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            control_id: "Dropdown".into(),
+            role: "Dropdown".into(),
+            component_role: "dropdown".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 12.0,
+                y: 12.0,
+                width: 112.0,
+                height: 28.0,
+            },
+            structured_options: model_rc(vec![
+                option("dropdown", true, false, false, false),
+                option("option_a", false, true, true, false),
+                option("option_b", false, false, false, true),
+            ]),
+            ..TemplatePaneNodeData::default()
+        }
+    }
+
+    fn dropdown_near_bottom_node() -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            control_id: "Dropdown".into(),
+            role: "Dropdown".into(),
+            component_role: "dropdown".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 20.0,
+                y: 120.0,
+                width: 100.0,
+                height: 28.0,
+            },
+            structured_options: model_rc(vec![
+                option("dropdown", true, false, false, false),
+                option("option_a", false, true, true, false),
+                option("option_b", false, false, false, false),
+            ]),
+            ..TemplatePaneNodeData::default()
+        }
+    }
+
+    fn popup_menu_node() -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            control_id: "PopupMenu".into(),
+            role: "Menu".into(),
+            component_role: "menu".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 16.0,
+                y: 16.0,
+                width: 128.0,
+                height: 96.0,
+            },
+            structured_menu_items: model_rc(vec![
+                menu_item("New", false, false, false),
+                menu_item("Open", false, false, false),
+                menu_item("Save", true, false, false),
+                menu_item("", false, true, false),
+                menu_item("Delete", false, false, true),
+            ]),
+            ..TemplatePaneNodeData::default()
+        }
+    }
+
+    fn option(
+        id: &str,
+        selected: bool,
+        hovered: bool,
+        special: bool,
+        disabled: bool,
+    ) -> TemplatePaneOptionData {
+        TemplatePaneOptionData {
+            id: id.into(),
+            label: id.into(),
+            selected,
+            hovered,
+            special,
+            disabled,
+            ..TemplatePaneOptionData::default()
+        }
+    }
+
+    fn menu_item(
+        action_id: &str,
+        checked: bool,
+        separator: bool,
+        hovered: bool,
+    ) -> TemplatePaneMenuItemData {
+        TemplatePaneMenuItemData {
+            action_id: action_id.into(),
+            label: action_id.into(),
+            checked,
+            separator,
+            disabled: separator,
+            hovered,
+            ..TemplatePaneMenuItemData::default()
         }
     }
 

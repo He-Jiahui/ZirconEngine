@@ -355,6 +355,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/cooked.zmaterial",
                 )),
+                morph_weights: Vec::new(),
                 tint: Default::default(),
                 mobility: Mobility::Dynamic,
                 render_layer_mask: 1,
@@ -367,6 +368,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/plain.zmaterial",
                 )),
+                morph_weights: Vec::new(),
                 tint: Default::default(),
                 mobility: Mobility::Dynamic,
                 render_layer_mask: 1,
@@ -468,6 +470,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -506,6 +509,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -548,6 +552,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -590,6 +595,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -643,6 +649,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -700,6 +707,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -757,6 +765,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -808,6 +817,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -859,6 +869,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -910,6 +921,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -957,6 +969,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -1008,6 +1021,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -1059,6 +1073,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,
@@ -1106,6 +1121,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/cooked.zmaterial",
             )),
+            morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             render_layer_mask: 1,

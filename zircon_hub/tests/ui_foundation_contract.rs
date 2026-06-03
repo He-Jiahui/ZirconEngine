@@ -68,13 +68,17 @@ fn components_entrypoint_stays_thin_and_reexports_new_modules() {
         "surfaces.slint",
         "inputs.slint",
         "shell_header_components.slint",
+        "shell_layout_components.slint",
         "shell_sidebar_components.slint",
         "shell_page_components.slint",
         "button_components.slint",
+        "row_slot_components.slint",
         "navigation.slint",
         "data_display.slint",
         "table_view_components.slint",
+        "tree_view_components.slint",
         "operation_timeline_components.slint",
+        "project_card_flow_components.slint",
         "overlays.slint",
         "material_bridge.slint",
     ] {
@@ -100,19 +104,22 @@ fn foundation_visual_tokens_include_focus_disabled_and_status_roles() {
         "in property <color> status-info-fill: MaterialPalette.secondary_container;",
         "in property <color> status-info-stroke: MaterialPalette.secondary;",
         "in property <color> status-info-foreground: MaterialPalette.on_secondary_container;",
-        "in property <color> status-success-fill: MaterialPalette.primary_container;",
+        "in property <color> status-running-fill: rgb(16, 31, 31);",
+        "in property <color> status-running-stroke: rgb(53, 164, 163);",
+        "in property <color> status-running-foreground: rgb(46, 140, 139);",
+        "in property <color> status-success-fill: rgb(24, 32, 21);",
         "in property <color> status-success-stroke: root.success-stroke;",
-        "in property <color> status-success-foreground: MaterialPalette.on_primary_container;",
+        "in property <color> status-success-foreground: rgb(84, 128, 76);",
         "in property <color> nav-active-fill: rgb(20, 55, 54);",
         "in property <color> badge-accent-fill: rgb(28, 56, 56);",
         "in property <color> badge-accent-stroke: rgb(42, 118, 121);",
         "in property <color> badge-accent-foreground: MaterialPalette.on_primary_container;",
         "in property <color> status-warning-fill: root.warning-fill;",
         "in property <color> status-warning-stroke: root.warning-stroke;",
-        "in property <color> status-warning-foreground: MaterialPalette.on_tertiary_container;",
+        "in property <color> status-warning-foreground: rgb(160, 117, 49);",
         "in property <color> status-error-fill: root.error-fill;",
         "in property <color> status-error-stroke: root.error-stroke;",
-        "in property <color> status-error-foreground: MaterialPalette.on_error_container;",
+        "in property <color> status-error-foreground: rgb(145, 69, 61);",
     ] {
         assert!(
             tokens.contains(snippet),
@@ -172,12 +179,18 @@ fn app_and_page_entrypoints_stay_structural() {
 fn focused_component_modules_own_page_helpers() {
     for (file, required_components) in [
         (
-            "project_dashboard_components.slint",
+            "project_card_flow_components.slint",
             &[
                 ComponentExport::Public("ProjectCover"),
                 ComponentExport::Public("ProjectCard"),
                 ComponentExport::Public("ProjectFlow"),
                 ComponentExport::Public("DashboardProjectCardsSection"),
+                ComponentExport::Private("ProjectFlowNextButton"),
+            ][..],
+        ),
+        (
+            "project_dashboard_components.slint",
+            &[
                 ComponentExport::Public("DashboardToolbar"),
                 ComponentExport::Public("DashboardRecentProjectsPanel"),
                 ComponentExport::Public("DashboardQuickActionsPanel"),
@@ -191,6 +204,7 @@ fn focused_component_modules_own_page_helpers() {
                 ComponentExport::Public("ProjectCreateField"),
                 ComponentExport::Public("ProjectCreateActionRow"),
                 ComponentExport::Public("ProjectEngineChoiceList"),
+                ComponentExport::Public("ProjectSettingSummaryRow"),
                 ComponentExport::Public("ProjectTemplateRailPanel"),
             ][..],
         ),
@@ -207,8 +221,8 @@ fn focused_component_modules_own_page_helpers() {
         (
             "project_detail_components.slint",
             &[
-                ComponentExport::Public("ProjectDetailActionButton"),
                 ComponentExport::Public("ProjectDetailPinToggleRow"),
+                ComponentExport::Public("ProjectDetailActionsSection"),
                 ComponentExport::Public("ProjectDetailStatusStrip"),
                 ComponentExport::Public("ProjectDetailInfoSection"),
                 ComponentExport::Public("ProjectDetailEngineSection"),
@@ -255,8 +269,11 @@ fn focused_component_modules_own_page_helpers() {
         (
             "team_page_components.slint",
             &[
+                ComponentExport::Public("TeamActionRow"),
+                ComponentExport::Public("TeamIdentityRow"),
                 ComponentExport::Public("TeamSummarySlot"),
                 ComponentExport::Public("TeamMembersPanel"),
+                ComponentExport::Public("TeamActionsPanel"),
             ][..],
         ),
         (
@@ -268,6 +285,27 @@ fn focused_component_modules_own_page_helpers() {
             ][..],
         ),
         (
+            "catalog_detail_components.slint",
+            &[
+                ComponentExport::Private("CatalogDetailStatCell"),
+                ComponentExport::Private("CatalogDetailCheckRow"),
+                ComponentExport::Private("CatalogDetailPreviewBand"),
+                ComponentExport::Private("CatalogDetailStatGrid"),
+                ComponentExport::Private("CatalogDetailCheckList"),
+                ComponentExport::Public("CatalogDetailPanel"),
+            ][..],
+        ),
+        (
+            "row_slot_components.slint",
+            &[
+                ComponentExport::Public("HubRowLeadingIconSlot"),
+                ComponentExport::Public("HubRowMainSlot"),
+                ComponentExport::Public("HubRowMetaSlot"),
+                ComponentExport::Public("HubRowSelectionSlot"),
+                ComponentExport::Public("HubRowTrailingSlot"),
+            ][..],
+        ),
+        (
             "table_view_components.slint",
             &[
                 ComponentExport::Public("TableColumnHeader"),
@@ -275,6 +313,13 @@ fn focused_component_modules_own_page_helpers() {
                 ComponentExport::Public("HubTableBody"),
                 ComponentExport::Public("DataTable"),
                 ComponentExport::Public("HubTableView"),
+            ][..],
+        ),
+        (
+            "tree_view_components.slint",
+            &[
+                ComponentExport::Public("HubTreeRow"),
+                ComponentExport::Public("HubTreeView"),
             ][..],
         ),
         (
@@ -297,6 +342,16 @@ fn focused_component_modules_own_page_helpers() {
             &[
                 ComponentExport::Public("HeaderEngineSelector"),
                 ComponentExport::Private("HeaderEngineOption"),
+            ][..],
+        ),
+        (
+            "shell_layout_components.slint",
+            &[
+                ComponentExport::Public("HubShellRootSurface"),
+                ComponentExport::Public("HubShellStack"),
+                ComponentExport::Public("HubShellBody"),
+                ComponentExport::Public("HubWorkspaceSurface"),
+                ComponentExport::Public("HubPageContentSlot"),
             ][..],
         ),
         (

@@ -1,3 +1,4 @@
+use crate::core::framework::render::RenderMaterialLightingModel;
 use crate::core::resource::ResourceId;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -8,6 +9,7 @@ pub(crate) struct PipelineKey {
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_mask: bool,
     pub(crate) alpha_cutoff_bits: Option<u32>,
+    pub(crate) lighting_model: RenderMaterialLightingModel,
     pub(crate) unlit: bool,
     pub(crate) has_base_color_texture: bool,
     pub(crate) has_normal_texture: bool,
@@ -19,5 +21,9 @@ pub(crate) struct PipelineKey {
 impl PipelineKey {
     pub(crate) fn is_transparent(&self) -> bool {
         self.alpha_blend
+    }
+
+    pub(crate) fn is_alpha_mask(&self) -> bool {
+        self.alpha_mask && !self.alpha_blend
     }
 }

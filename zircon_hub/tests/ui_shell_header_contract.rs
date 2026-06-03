@@ -33,6 +33,7 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
 
     let shell_header_components = read_ui_file("shell_header_components.slint");
     let shell_header_popup_components = read_ui_file("shell_header_popup_components.slint");
+    let shared_components = read_ui_file("shared.slint");
     for snippet in [
         "component HeaderControlSlot inherits Rectangle",
         "slot-height: HubTokens.shell-header-height;",
@@ -123,6 +124,22 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
         !header.contains("private property <string> brand-subtitle: root.ui-text.game-engine;"),
         "HubTopHeader brand subtitle must not become static game-engine copy when a project is selected"
     );
+    assert!(
+        !header.contains("danger: true;"),
+        "HubTopHeader window controls should keep the neutral reference chrome; close must not use the red danger icon state"
+    );
+    for snippet in [
+        "export component BrandMark inherits Rectangle",
+        "width: MaterialStyleMetrics.size_40 + MaterialStyleMetrics.size_1;",
+        "source: @image-url(\"../assets/brand/zircon-mark.svg\");",
+        "y: MaterialStyleMetrics.size_1;",
+        "opacity: 0.68;",
+    ] {
+        assert!(
+            shared_components.contains(snippet),
+            "BrandMark should keep the topbar mark sized and toned toward the reference header chrome; missing {snippet}"
+        );
+    }
 
     let user_menu = shell_header_popup_components
         .split("export component HeaderUserMenu")

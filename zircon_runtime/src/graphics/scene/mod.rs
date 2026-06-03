@@ -10,6 +10,8 @@ mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;
 
+#[cfg(test)]
+pub(crate) use resources::ResourceStreamer;
 pub use scene_renderer::SceneRenderer;
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;

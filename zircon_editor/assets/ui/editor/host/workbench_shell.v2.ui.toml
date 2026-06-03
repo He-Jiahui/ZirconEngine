@@ -7,10 +7,18 @@ display_name = "workbench shell"
 [root]
 node = "host"
 
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench_rail_button.zui#WorkbenchRailButton",
+  "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+]
+styles = ["res://ui/theme/editor_workbench_strict.v2.ui.toml"]
+
 [nodes.host]
 component = "UiHostWindow"
 control_id = "UiHostWindowRoot"
-classes = ["editor-workbench"]
+classes = ["editor-workbench", "workbench-shell-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }]
 children = [
@@ -18,7 +26,6 @@ children = [
   { node = "left_drawer_shell" },
   { node = "right_drawer_shell" },
   { node = "bottom_drawer_shell" },
-  { node = "workbench_reference_image" },
 ]
 
 [nodes.scaffold]
@@ -36,38 +43,44 @@ children = [
 [nodes.menu_bar]
 component = "UiHostToolbar"
 control_id = "WorkbenchMenuBarRoot"
+classes = ["workbench-topbar"]
 layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "open_project" }, { node = "save_project" }, { node = "reset_layout" }]
 
 [nodes.open_project]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "OpenProject"
-props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+classes = ["workbench-toolbar-button"]
+props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
 
 [nodes.save_project]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "SaveProject"
-props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+classes = ["workbench-toolbar-button"]
+props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
 
 [nodes.reset_layout]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "ResetLayout"
-props = { icon = "editor_pages/workbench/dock/reset-layout.svg", label = "Reset Layout", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+classes = ["workbench-toolbar-button"]
+props = { icon = "editor_pages/workbench/dock/reset-layout.svg", label = "Reset Layout", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "MenuAction.ResetLayout" }]
 
 [nodes.host_page_strip]
 component = "Container"
 control_id = "HostPageStripRoot"
+classes = ["workbench-strip"]
 layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.host_page_separator]
 component = "Container"
 control_id = "HostPageStripSeparator"
+classes = ["workbench-divider"]
 layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
 [nodes.body]
@@ -79,27 +92,28 @@ children = [{ node = "activity_rail" }, { node = "document_host" }]
 [nodes.activity_rail]
 component = "ActivityRail"
 control_id = "ActivityRailRoot"
+classes = ["workbench-rail"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "hierarchy_toggle" }, { node = "assets_toggle" }, { node = "console_toggle" }]
 
 [nodes.assets_toggle]
-component = "IconButton"
+component = "WorkbenchRailButton"
 control_id = "AssetsToggle"
-props = { icon = "editor_pages/asset_browser/navigation/folder.svg", label = "Assets", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/asset_browser/navigation/folder.svg", label = "Assets", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/AssetsToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 
 [nodes.hierarchy_toggle]
-component = "IconButton"
+component = "WorkbenchRailButton"
 control_id = "HierarchyToggle"
-props = { icon = "editor_pages/hierarchy/entity/scene.svg", label = "Hierarchy", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/hierarchy/entity/scene.svg", label = "Hierarchy", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/HierarchyToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 
 [nodes.console_toggle]
-component = "IconButton"
+component = "WorkbenchRailButton"
 control_id = "ConsoleToggle"
-props = { icon = "editor_pages/console_profiler/logs/log-info.svg", label = "Console", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
+props = { icon = "editor_pages/console_profiler/logs/log-info.svg", label = "Console", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ActivityRail/ConsoleToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
 
@@ -126,11 +140,12 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.status_bar]
 component = "StatusBar"
 control_id = "StatusBarRoot"
+classes = ["workbench-status"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "status_text" }]
 
 [nodes.status_text]
-component = "Label"
+component = "WorkbenchStatusItem"
 control_id = "StatusText"
 props = { text = "Ready" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
@@ -138,6 +153,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.left_drawer_shell]
 component = "Overlay"
 control_id = "LeftDrawerShellRoot"
+classes = ["workbench-overlay-region"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
 children = [{ node = "left_drawer_header" }, { node = "left_drawer_content" }]
 
@@ -154,6 +170,7 @@ layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch
 [nodes.right_drawer_shell]
 component = "Overlay"
 control_id = "RightDrawerShellRoot"
+classes = ["workbench-overlay-region"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
 children = [{ node = "right_drawer_header" }, { node = "right_drawer_content" }]
 
@@ -170,6 +187,7 @@ layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch
 [nodes.bottom_drawer_shell]
 component = "Overlay"
 control_id = "BottomDrawerShellRoot"
+classes = ["workbench-overlay-region"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
 children = [{ node = "bottom_drawer_header" }, { node = "bottom_drawer_content" }]
 
@@ -182,9 +200,3 @@ layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch
 component = "Container"
 control_id = "BottomDrawerContentRoot"
 layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
-
-[nodes.workbench_reference_image]
-component = "Image"
-control_id = "WorkbenchShellReferenceImage"
-props = { image = "ui/editor/reference/workbench.png", value = "ui/editor/reference/workbench.png", reference_source = "docs/ui-and-layout/workbench.png", reference_width = 1672.0, reference_height = 941.0 }
-layout = { input_policy = "Ignore", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

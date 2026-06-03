@@ -55,7 +55,9 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
+  - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
@@ -106,6 +108,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 plan_sources:
@@ -123,11 +126,13 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
+  - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_particles_runtime --locked --jobs 1 --message-format short --color never (passed 21 tests after package option strictness fix)
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - tests/acceptance/particles-gpu-readback-mailbox.md
 validation:
@@ -165,11 +170,13 @@ The first implemented backend is CPU sprite simulation. GPU simulation now has t
 - `ParticleGpuFramePlanner` accumulates burst and spawn-rate requests for GPU assets. It produces one emitter parameter block per frame, including capacity ranges, module constants, shape parameters, transform rows, color and size endpoints, and the per-emitter spawn count.
 - `ParticleExtract.gpu_frame` carries the neutral renderer-facing GPU frame summary for GPU-backed emitters: alive count, spawned total, per-emitter spawned counts, and non-indexed indirect draw args. This is runtime-framework DTO data, not a particles concrete type.
 - `ParticleGpuBackend` owns double-buffered particle storage, emitter params, atomic counters, alive index compaction, indirect draw args, and a debug/readback buffer. Its frame order is spawn/update compute, compact-alive compute, build-indirect-args compute.
-- `particle_render_pass_executor_registrations` exposes four normal graph executors: `particle.gpu.spawn-update`, `particle.gpu.compact-alive`, `particle.gpu.indirect-args`, and `particle.transparent`. The executors validate their pass metadata/resource contract in metadata-only tests and, when the renderer attaches a GPU context, can consume named graph resources or emit neutral particle readback outputs through `RenderPluginRendererOutputs`.
+- `particle_render_pass_executor_registrations` exposes four normal graph executors: `particle.gpu.spawn-update`, `particle.gpu.compact-alive`, `particle.gpu.indirect-args`, and `particle.transparent`. The descriptor targets the runtime `Transparent3d` graph stage, and the runtime registry no longer supplies a descriptor-created noop for particle executor ids, so linked particles must contribute explicit executor registrations. The transparent executor validates its resource contract, then uses `RenderPassGpuExecutionContext::record_particle_billboards_to_resources("scene-color", "scene-depth")` for the CPU sprite fallback path without naming runtime-internal renderer types.
 - `ParticleGpuCounterReadback` decodes the debug/readback counter words and projects them into neutral `RenderParticleGpuReadbackOutputs`, including alive count, spawned total, debug flags, per-emitter spawned counts, and indirect draw args. `SceneRendererAdvancedPluginOutputs` stores this payload in the shared plugin renderer output mailbox and can take the particle slot without clearing VG/HGI slots.
 - `ParticleRuntimeFeedback` and `ParticleGpuFeedback` are neutral runtime feedback carriers in `zircon_runtime`. Runtime submission now drains the renderer particle mailbox and merges prepared sideband particle outputs into this feedback packet, updates particle GPU feedback stats, and leaves concrete state application to the particles plugin manager or host. `ParticlesManager::apply_gpu_feedback` stores the last non-empty neutral particle readback packet for diagnostics/parity without mutating the CPU simulation snapshot; empty feedback means no new GPU packet and does not erase the prior diagnostic packet.
 - The editor authoring surface is registered from `zircon_plugins/particles/editor/src/authoring.rs`. It contributes the `particles.authoring` and `particles.preview` views, concrete `.ui.toml` templates for authoring/preview/component drawer surfaces, a `ParticleSystemComponent` drawer, a `particles.system` asset editor, a CPU sprite particle-system creation template, and descriptor-level operations for create, add component, open, add emitter, add module, edit curve, validate, preview play, pause, stop, rewind, and warmup.
 - The CPU sprite creation template points at `zircon_plugins/particles/templates/cpu_sprite_system.toml`, a starter TOML document for a local-space CPU sprite emitter. Until concrete editor operation handlers are added, non-view particles authoring menu rows are registered disabled and the corresponding operations are not callable from remote/CLI. This keeps schema/template discovery visible without presenting an enabled click path that would fail with an unhandled operation.
+
+The runtime package options now satisfy the shared manifest validator directly. `particles.backend` is an enum with `cpu` and `gpu` values and a `cpu` default; `particles.fixed_preview_dt` is a finite `number` option instead of the older non-standard `scalar` spelling. Capability-gated options still use boolean defaults and remain gated by their physics or animation capability rows.
 
 ## Data Flow
 
@@ -234,6 +241,8 @@ Runtime submission feedback tests in `prepared_runtime_submission.rs`, `submit/c
 2026-05-04 scoped validation for the particle feedback continuation used `target\codex-shared-a` with `--locked --offline` after an offline `zircon_plugins/Cargo.lock` refresh added the dependency edges Cargo required. Runtime and particle test targets compiled, targeted particle feedback merge/sideband/direct-submit tests passed, the manager feedback ingest regression passed, scoped `rustfmt --check` passed, and scoped `git diff --check` found no whitespace errors beyond LF-to-CRLF warnings. Full workspace validation was still not run from this dirty checkout.
 
 2026-05-31 metadata parity validation used `D:\cargo-targets\zircon-particles-runtime-metadata` with `--locked --offline`. The linked particles registration test first failed because `runtime.plugin.particles` lacked a partial status row in the linked package manifest, then passed after the descriptor gained explicit runtime/experimental/partial metadata. The static runtime manifest test first failed because `zircon_plugins/particles/plugin.toml` defaulted to `uncategorized`, then passed after static TOML and the built-in catalog exposed the same three owner optional features and dependency rows. Existing runtime warnings were left unchanged.
+
+2026-06-01 M6 manifest validation reran `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_particles_runtime --locked --jobs 1 --message-format short --color never` after the full plugin workspace gate rejected option rows that used enum defaults without `enum_values` and the non-standard `scalar` type. The focused particles runtime command passed with 21 tests and 0 failures after `particles.backend` declared `cpu`/`gpu` enum values and `particles.fixed_preview_dt` moved to `number`.
 
 ## Open Issues
 

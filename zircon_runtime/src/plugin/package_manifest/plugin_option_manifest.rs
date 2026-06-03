@@ -6,6 +6,8 @@ pub struct PluginOptionManifest {
     pub display_name: String,
     pub value_type: String,
     pub default_value: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub enum_values: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required_capability: Option<String>,
 }
@@ -22,8 +24,18 @@ impl PluginOptionManifest {
             display_name: display_name.into(),
             value_type: value_type.into(),
             default_value: default_value.into(),
+            enum_values: Vec::new(),
             required_capability: None,
         }
+    }
+
+    pub fn with_enum_values<I, S>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.enum_values = values.into_iter().map(Into::into).collect();
+        self
     }
 
     pub fn with_required_capability(mut self, capability: impl Into<String>) -> Self {

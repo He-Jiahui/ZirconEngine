@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_toast.zui"
+version = 2
+display_name = "Workbench Toast"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchToast]
+root = "root"
+default_classes = ["workbench-alert", "workbench-toast", "workbench-primitive"]
+
+[nodes.root]
+component = "Alert"
+control_id = "WorkbenchToastRoot"
+classes = ["workbench-alert", "workbench-toast"]
+props = { text = "Operation completed successfully", severity = "info", variant = "outlined", color = "info", icon = "info", show_icon = true, closeText = "Close", layout_offset_x = -15.0, layout_offset_y = 0.0, status_mark_size = 18.0, status_mark_color = "#209fa9", action_color = "#238f98" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }

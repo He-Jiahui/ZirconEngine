@@ -22,6 +22,8 @@ pub(crate) mod ui_perf;
 mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_pointer;
+pub(crate) mod workbench_popup_actions;
+pub(crate) mod workbench_preview_actions;
 
 pub(crate) use app::HostInvalidationMask;
 pub(crate) use host_contract::*;
@@ -50,3 +52,5 @@ pub(crate) use ui::to_host_contract_hierarchy_pane_from_host_pane;
 pub(crate) use ui::to_host_contract_inspector_pane_from_host_pane;
 #[cfg(test)]
 pub(crate) use ui::to_host_contract_runtime_diagnostics_pane_from_host_pane;
+#[cfg(test)]
+pub(crate) use ui::to_host_contract_workbench_window_nodes;

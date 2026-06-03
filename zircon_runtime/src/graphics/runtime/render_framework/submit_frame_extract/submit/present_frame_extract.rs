@@ -99,6 +99,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
                 &runtime_frame,
                 context.compiled_pipeline(),
                 resolved_history.current_history_handle(),
+                resolved_history.previous_history_available(),
                 surface_lease.value_mut(),
             )
         };

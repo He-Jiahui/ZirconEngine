@@ -30,6 +30,7 @@ const iconPaths = {
   chevronUp: '<path d="m6 15 6-6 6 6"/>',
   search: '<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>',
   grid: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>',
+  renderer: '<path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"/><path d="M7 8h2M15 8h2M7 16h2M15 16h2"/>',
   list: '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
   columns: '<path d="M4 5h16v14H4z"/><path d="M12 5v14"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',

@@ -24,6 +24,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::root_template_overlay::to_host_contract_root_template_overlay_nodes;
 use super::template_node_conversion::to_host_contract_template_nodes;
+use super::workbench_window_projection::to_host_contract_workbench_window_nodes;
 
 pub(crate) fn apply_presentation(
     ui: &UiHostWindow,
@@ -44,6 +45,7 @@ pub(crate) fn apply_presentation(
     module_plugins: &host_window::ModulePluginsPaneViewData,
     build_export: &host_window::BuildExportPaneViewData,
     root_template_projection: Option<&RetainedUiHostProjection>,
+    workbench_window_projection: Option<&RetainedUiHostProjection>,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
@@ -204,6 +206,9 @@ pub(crate) fn apply_presentation(
         text_input_focus: current_host_presentation.text_input_focus,
         viewport_image: current_host_presentation.viewport_image,
         root_template_nodes: to_host_contract_root_template_overlay_nodes(root_template_projection),
+        workbench_window_nodes: to_host_contract_workbench_window_nodes(
+            workbench_window_projection,
+        ),
     };
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");

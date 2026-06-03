@@ -8,8 +8,12 @@ related_code:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
+  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -24,8 +28,12 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
+  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -45,6 +53,8 @@ tests:
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
   - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
+  - zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties
+  - zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track
   - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_gltf_multi_primitive_material_labels
   - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_scene_labels
@@ -56,6 +66,7 @@ tests:
   - cargo test -p zircon_runtime --lib scene_asset_overview --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 scene record set: passed, 11 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 M6 minimal asset-flow sample with typed facade load-state, primitive binding, and aggregate management assertions: passed, 1 passed, 2211 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 minimal asset-flow sample with glTF morph target/default weight and aggregate management assertions: passed, 1 passed, 2303 filtered; existing zircon_runtime lib-test warnings only)
 doc_type: module-detail
 ---
 
@@ -65,7 +76,7 @@ doc_type: module-detail
 
 `SceneAsset` is the serialized scene root used by runtime project loading, prefab payloads, and imported scene entries. It owns ordered `SceneEntityAsset` rows. Each entity row can carry camera, mesh/model/material binding, light, physics, animation, terrain, tilemap, and prefab-instance components.
 
-The scene asset format remains authoring-focused. `SceneMeshInstanceAsset.mesh` is an optional direct `MeshAsset` reference beside the compatibility `model` envelope and material binding. `SceneMeshInstanceAsset.primitives` is the multi-primitive form: each `SceneMeshPrimitiveBindingAsset` pairs one direct mesh reference with the material that should shade that primitive. Both optional fields are skipped when absent or empty, so existing `.scene` assets and prefab scene payloads keep loading without serialized churn.
+The scene asset format remains authoring-focused. `SceneMeshInstanceAsset.mesh` is an optional direct `MeshAsset` reference beside the compatibility `model` envelope and material binding. `SceneMeshInstanceAsset.primitives` is the multi-primitive form: each `SceneMeshPrimitiveBindingAsset` pairs one direct mesh reference with the material that should shade that primitive. `SceneMeshInstanceAsset.morph_weights` stores authored per-instance morph target weights beside those mesh bindings. Optional mesh, primitive, and morph-weight fields are skipped when absent or empty, so existing `.scene` assets and prefab scene payloads keep loading without serialized churn.
 
 ## Direct References
 
@@ -75,13 +86,13 @@ The scene asset format remains authoring-focused. `SceneMeshInstanceAsset.mesh` 
 
 ## Management DTOs
 
-`SceneEntityOverview` is a compact read-only row for one scene entity. It carries the stable entity id, name, parent id, active flag, render layer mask, mobility, direct reference count, direct mesh reference count, primitive mesh/material binding count, and component-presence flags for camera, mesh, direct mesh reference, light variants, physics components, animation bindings, terrain, tilemap, and prefab instance. Helper methods derive light, physics, and animation binding counts from those flags.
+`SceneEntityOverview` is a compact read-only row for one scene entity. It carries the stable entity id, name, parent id, active flag, render layer mask, mobility, direct reference count, direct mesh reference count, primitive mesh/material binding count, morph weight count, and component-presence flags for camera, mesh, direct mesh reference, light variants, physics components, animation bindings, terrain, tilemap, and prefab instance. Helper methods derive light, physics, and animation binding counts from those flags.
 
-`SceneAssetOverview` aggregates the entity rows into scene-level counts: total entities, active entities, roots, cameras, mesh instances, direct mesh references, primitive mesh/material bindings, mesh material bindings, collider material bindings, lights, physics components, animation bindings, terrain bindings, tilemap bindings, prefab instances, and direct references. `SceneAsset::entity_overviews()` returns ordered entity rows, and `SceneAsset::overview()` returns the aggregate view.
+`SceneAssetOverview` aggregates the entity rows into scene-level counts: total entities, active entities, roots, cameras, mesh instances, direct mesh references, primitive mesh/material bindings, morph weights, mesh material bindings, collider material bindings, lights, physics components, animation bindings, terrain bindings, tilemap bindings, prefab instances, and direct references. `SceneAsset::entity_overviews()` returns ordered entity rows, and `SceneAsset::overview()` returns the aggregate view.
 
 `SceneAssetManagementRecord` wraps a `ResourceId` with the scene overview. `SceneAsset::management_record(...)` is the asset-level constructor, and `ResourceStreamer::scene_asset_overview(...)` / `scene_asset_management_record(...)` load the same read model through the runtime asset manager for renderer-side management panels that already work with resource ids.
 
-`SceneAssetManagementRecordSet` sorts scene records by `ResourceId` and carries `SceneAssetManagementRecordSetSummary`. The summary totals scene count, entity count, active/root entities, direct references, camera/mesh/direct-mesh/primitive-binding/material/collider/light/physics/animation counts, and terrain/tilemap/prefab bindings for scene-list headers. `ResourceStreamer::scene_asset_management_records(...)` and `scene_asset_management_record_set(...)` expose that list-level read model without forcing UI callers to scan scene rows themselves.
+`SceneAssetManagementRecordSet` sorts scene records by `ResourceId` and carries `SceneAssetManagementRecordSetSummary`. The summary totals scene count, entity count, active/root entities, direct references, camera/mesh/direct-mesh/primitive-binding/morph-weight/material/collider/light/physics/animation counts, and terrain/tilemap/prefab bindings for scene-list headers. `ResourceStreamer::scene_asset_management_records(...)` and `scene_asset_management_record_set(...)` expose that list-level read model without forcing UI callers to scan scene rows themselves.
 
 `SceneEntityManagementRecord` is the cross-scene row form for entity tables. It pairs the owning scene `ResourceId` with one `SceneEntityOverview`, so a panel can list entities directly while still preserving the scene identity needed for selection, navigation, or stale-row repair. `SceneAssetManagementRecord::entity_management_records(...)` projects one scene record into entity rows, `SceneAsset::entity_management_records(...)` constructs those rows directly from the asset, and `SceneEntityManagementRecordSet` sorts rows by `(scene_id, entity)` with a `SceneEntityManagementRecordSetSummary` that mirrors the scene summary counters at entity-row granularity. `ResourceStreamer::scene_entity_management_records(...)` and `scene_entity_management_record_set(...)` expose that flattened read model across all registered scene assets.
 
@@ -89,7 +100,9 @@ These DTOs do not attempt to instantiate ECS entities, resolve handles, or valid
 
 ## Runtime Bridge
 
-`World::from_scene_asset(...)` maps optional direct mesh references into `MeshRenderer.mesh` and primitive mesh/material pairs into `MeshRenderer.primitives`. `World::to_scene_asset(...)` writes both forms back when persistent locators exist. Render extraction keeps `RenderMeshSnapshot` single-mesh: when `MeshRenderer.primitives` is non-empty, extraction emits one ordinary snapshot per primitive with that primitive's mesh and material; when the primitive list is empty, it emits the legacy model/direct-mesh snapshot. Keeping primitive expansion at extract time avoids adding primitive-list behavior to every renderer, Hybrid GI, Virtual Geometry, and submit-path consumer.
+`World::from_scene_asset(...)` maps optional direct mesh references into `MeshRenderer.mesh`, primitive mesh/material pairs into `MeshRenderer.primitives`, and authored morph weights into `MeshRenderer.morph_weights`. `World::to_scene_asset(...)` writes those forms back when persistent locators or non-empty weights exist. `MeshRenderer.morph_weights.N` is exposed as an animatable scalar component property path; writes grow the vector with zeroes so animation tracks can target sparse morph indices. Fixed reflection exposes the vector as a read-only list for inspection while property access remains the mutation API.
+
+Render extraction keeps `RenderMeshSnapshot` single-mesh: when `MeshRenderer.primitives` is non-empty, extraction emits one ordinary snapshot per primitive with that primitive's mesh, material, and the renderer's morph weights; when the primitive list is empty, it emits the legacy model/direct-mesh snapshot with the same weight vector. Keeping primitive expansion at extract time avoids adding primitive-list behavior to every renderer, Hybrid GI, Virtual Geometry, and submit-path consumer.
 
 During resource streaming, `ResourceStreamer::ensure_scene_resources(...)` prepares any direct snapshot mesh through `ensure_mesh(...)`; if a snapshot does not carry a direct mesh, the existing model preparation path remains the fallback. The draw builder consumes a prepared direct mesh first and otherwise renders the prepared model. The compatibility model handle remains on scene mesh instances while legacy model paths exist, but imported glTF scenes can now bind every primitive to its labeled `MeshAsset` and material without relying on the root model envelope for normal rendering.
 
@@ -97,10 +110,12 @@ During resource streaming, `ResourceStreamer::ensure_scene_resources(...)` prepa
 
 `zircon_runtime/src/asset/tests/assets/scene.rs` covers TOML roundtrip for core scene, camera, light, physics, and animation fields. The overview tests lock the new read model for populated scenes with camera, model/direct-mesh/material, collider material, light, physics, animation, terrain, tilemap, and prefab references, plus empty-scene behavior. The record-set regression covers stable scene id sorting, list-level totals across populated and empty scene records, projection from scene records into entity rows, stable `(scene_id, entity)` sorting, and entity-row summary totals.
 
-`zircon_runtime/src/scene/tests/asset_scene.rs` covers the runtime bridge from scene asset to world component, render extract, and saved scene asset. The direct-mesh test fixture binds `res://meshes/triangle.zmesh` as the optional direct mesh and asserts the world and render snapshot preserve that mesh handle beside the model and material handles. The primitive-binding test constructs a scene with `SceneMeshPrimitiveBindingAsset`, verifies it becomes `MeshRenderer.primitives`, verifies render extraction emits a direct mesh/material snapshot for that primitive, and verifies `World::to_scene_asset(...)` preserves the binding.
+`zircon_runtime/src/scene/tests/asset_scene.rs` covers the runtime bridge from scene asset to world component, render extract, and saved scene asset. The direct-mesh test fixture binds `res://meshes/triangle.zmesh` as the optional direct mesh and asserts the world and render snapshot preserve that mesh handle beside the model and material handles. The primitive-binding test constructs a scene with `SceneMeshPrimitiveBindingAsset` and authored morph weights, verifies they become `MeshRenderer.primitives` plus `MeshRenderer.morph_weights`, verifies render extraction emits a direct mesh/material snapshot carrying those weights, and verifies `World::to_scene_asset(...)` preserves both the binding and weight vector.
+
+`zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties` covers the component-property path for `MeshRenderer.morph_weights.N`, including sparse growth and readback. `zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track` covers the animation sequence path by applying a scalar track to `MeshRenderer.morph_weights.1`.
 
 `zircon_runtime/src/asset/tests/assets/importer.rs`, `zircon_runtime/src/asset/tests/assets/gltf_importer.rs`, and `zircon_plugins/gltf_importer/runtime/src/tests.rs` cover imported glTF scene bindings. Triangle, multi-scene, and two-primitive/two-material fixtures now assert that scene entities carry `Mesh{n}/Primitive{p}` plus `Material{m}` primitive bindings and that scene dependencies include every primitive mesh and material label.
 
-`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` covers the imported glTF scene/entity path in a project scan. It asserts `Scene0` and `Node0` ready records, checks the exact `Scene0 -> Node0/Mesh0/Mesh0/Primitive0/Material0` dependency set, verifies the scene entity carries a primitive binding from `Mesh0/Primitive0` to `Material0`, and verifies the scene plus flattened entity management summaries count one direct primitive mesh reference and one primitive binding. It also loads `Scene0` as a typed `SceneAsset` through `ProjectAssetManager` and verifies root, direct dependency, and recursive dependency load states are all loaded for the full scene graph.
+`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` covers the imported glTF scene/entity path in a project scan. It asserts `Scene0` and `Node0` ready records, checks the exact `Scene0 -> Node0/Mesh0/Mesh0/Primitive0/Material0` dependency set, verifies the scene entity carries a primitive binding from `Mesh0/Primitive0` to `Material0`, preserves the glTF mesh default weight as `SceneMeshInstanceAsset.morph_weights`, and verifies the scene plus flattened entity management summaries count one direct primitive mesh reference, one primitive binding, and one morph weight. It also loads `Scene0` as a typed `SceneAsset` through `ProjectAssetManager` and verifies root, direct dependency, and recursive dependency load states are all loaded for the full scene graph.
 
 Broader milestone acceptance still needs the full asset/model/importer and renderer validation from the asset gap plan before the overall model/material/mesh/entity/shader management loop is complete.

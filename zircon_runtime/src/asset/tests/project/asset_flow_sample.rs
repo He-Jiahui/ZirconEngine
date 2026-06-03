@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
@@ -9,13 +10,16 @@ use crate::asset::{
     AssetManager, AssetMetaDocument, AssetReference, AssetSourceUnit, AssetUri, AssetUuid,
     DependencyLoadState, FunctionAssetImporter, ImportedAsset, MaterialAsset,
     MaterialAssetManagementRecordSet, MaterialTextureSlotValue, MeshAsset,
-    MeshAssetManagementRecordSet, ModelAsset, ModelAssetManagementRecordSet, ProjectAssetManager,
-    ProjectManager, ProjectManifest, ProjectPaths, RecursiveDependencyLoadState,
-    SceneAssetManagementRecordSet, SceneEntityManagementRecordSet, ShaderAsset,
-    ShaderAssetManagementRecordSet, TextureAsset, TextureUploadSupport,
+    MeshAssetManagementRecordSet, MeshAttributeValues, ModelAsset, ModelAssetManagementRecordSet,
+    ProjectAssetManager, ProjectManager, ProjectManifest, ProjectPaths,
+    RecursiveDependencyLoadState, SceneAssetManagementRecordSet, SceneEntityManagementRecordSet,
+    ShaderAsset, ShaderAssetManagementRecordSet, TextureAsset, TextureUploadSupport,
+    MESH_ATTRIBUTE_POSITION,
 };
 use crate::core::framework::render::RenderMaterialManagementRecordSet;
 use crate::core::resource::ResourceState;
+use crate::graphics::backend::RenderBackend;
+use crate::graphics::scene::ResourceStreamer;
 
 #[test]
 fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
@@ -104,7 +108,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         ],
     );
 
-    let asset_manager = project_asset_manager_with_sample_importers();
+    let asset_manager = Arc::new(project_asset_manager_with_sample_importers());
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -152,6 +156,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         uri("res://models/hero.gltf#Material0")
     );
     assert!(entity_mesh.mesh.is_none());
+    assert_eq!(entity_mesh.morph_weights, vec![0.5]);
     assert_eq!(entity_mesh.primitives.len(), 1);
     assert_eq!(
         entity_mesh.primitives[0].mesh.locator,
@@ -165,6 +170,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(scene_overview.direct_reference_count, 4);
     assert_eq!(scene_overview.direct_mesh_reference_count, 1);
     assert_eq!(scene_overview.mesh_primitive_binding_count, 1);
+    assert_eq!(scene_overview.morph_weight_count, 1);
     let scene_management = SceneAssetManagementRecordSet::from_records(vec![
         scene.management_record(scene_record.id())
     ]);
@@ -174,6 +180,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(scene_management.summary.direct_reference_count, 4);
     assert_eq!(scene_management.summary.direct_mesh_reference_count, 1);
     assert_eq!(scene_management.summary.mesh_primitive_binding_count, 1);
+    assert_eq!(scene_management.summary.morph_weight_count, 1);
     assert_eq!(scene_management.summary.mesh_material_binding_count, 1);
     let scene_entity_management = SceneEntityManagementRecordSet::from_records(
         scene_management.records[0].entity_management_records(),
@@ -191,6 +198,10 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         1
     );
     assert_eq!(
+        scene_entity_management.records[0].entity.morph_weight_count,
+        1
+    );
+    assert_eq!(
         scene_entity_management.summary.direct_mesh_reference_count,
         1
     );
@@ -198,6 +209,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         scene_entity_management.summary.mesh_primitive_binding_count,
         1
     );
+    assert_eq!(scene_entity_management.summary.morph_weight_count, 1);
 
     let mesh_model = load_model(&manager, "res://models/hero.gltf#Mesh0");
     let mesh_model_record = resource_record(&manager, "res://models/hero.gltf#Mesh0");
@@ -214,6 +226,19 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     let mesh_overview = mesh.overview().unwrap();
     assert_eq!(mesh_overview.vertex_count, 3);
     assert_eq!(mesh_overview.index_count, 3);
+    assert_eq!(mesh.morph_targets.len(), 1);
+    assert_eq!(mesh_overview.morph_target_count, 1);
+    assert_eq!(mesh_overview.morph_target_attribute_count, 1);
+    assert_eq!(
+        mesh.morph_targets[0]
+            .attributes
+            .get(MESH_ATTRIBUTE_POSITION),
+        Some(&MeshAttributeValues::Float32x3(vec![
+            [0.0, 0.0, 0.2],
+            [0.0, 0.0, 0.2],
+            [0.0, 0.0, 0.2],
+        ]))
+    );
     let mesh_management = MeshAssetManagementRecordSet::from_results(vec![(
         mesh_record.id(),
         mesh.management_record(mesh_record.id()),
@@ -221,6 +246,8 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(mesh_management.summary.valid_mesh_count, 1);
     assert_eq!(mesh_management.summary.vertex_count, 3);
     assert_eq!(mesh_management.summary.index_count, 3);
+    assert_eq!(mesh_management.summary.morph_target_count, 1);
+    assert_eq!(mesh_management.summary.morph_target_attribute_count, 1);
 
     let gltf_material = load_material(&manager, "res://models/hero.gltf#Material0");
     assert_eq!(
@@ -302,6 +329,78 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
             .entity_mesh_primitive_binding_count,
         1
     );
+    assert_eq!(aggregate_management.summary.mesh_morph_target_count, 1);
+    assert_eq!(
+        aggregate_management
+            .summary
+            .mesh_morph_target_attribute_count,
+        1
+    );
+    assert_eq!(aggregate_management.summary.entity_morph_weight_count, 1);
+
+    let project_management = asset_manager.asset_management_record_sets();
+    assert_eq!(project_management.summary.managed_record_count, 17);
+    assert_eq!(project_management.summary.degraded_record_count, 2);
+    assert_eq!(project_management.summary.model_count, 4);
+    assert_eq!(project_management.summary.mesh_count, 1);
+    assert_eq!(project_management.summary.valid_mesh_count, 1);
+    assert_eq!(project_management.summary.scene_count, 2);
+    assert_eq!(project_management.summary.entity_count, 2);
+    assert_eq!(project_management.summary.material_count, 5);
+    assert_eq!(project_management.summary.material_ready_count, 3);
+    assert_eq!(project_management.summary.material_degraded_count, 2);
+    assert_eq!(project_management.summary.material_issue_row_count, 2);
+    assert_eq!(project_management.summary.prepared_material_count, 0);
+    assert_eq!(project_management.summary.shader_count, 3);
+    assert_eq!(
+        project_management
+            .summary
+            .entity_direct_mesh_reference_count,
+        2
+    );
+    assert_eq!(
+        project_management
+            .summary
+            .entity_mesh_primitive_binding_count,
+        2
+    );
+    assert_eq!(project_management.summary.mesh_morph_target_count, 1);
+    assert_eq!(
+        project_management.summary.mesh_morph_target_attribute_count,
+        1
+    );
+    assert_eq!(project_management.summary.entity_morph_weight_count, 2);
+    assert_eq!(
+        asset_manager.asset_management_overview().summary,
+        project_management.summary
+    );
+    assert_eq!(
+        asset_manager.asset_management_family_summaries(),
+        project_management.families
+    );
+    assert_eq!(
+        asset_manager.asset_management_family_status_index(),
+        project_management.family_status_index
+    );
+
+    let RenderBackend { device, queue, .. } = RenderBackend::new_offscreen().unwrap();
+    let texture_layout = texture_bind_group_layout(&device);
+    let streamer =
+        ResourceStreamer::new_for_test(asset_manager.clone(), &device, &queue, &texture_layout);
+    let streamer_management = streamer.asset_management_record_sets();
+    assert_eq!(streamer_management, project_management);
+    assert_eq!(
+        streamer.asset_management_overview().summary,
+        streamer_management.summary
+    );
+    assert_eq!(
+        streamer.asset_management_family_summaries(),
+        streamer_management.families
+    );
+    assert_eq!(
+        streamer.asset_management_family_status_index(),
+        streamer_management.family_status_index
+    );
 
     let compressed_texture = load_texture(&manager, "res://textures/hero_albedo_bc1.dds");
     assert_eq!(
@@ -377,13 +476,14 @@ fn write_minimal_textured_gltf(path: PathBuf) {
   "asset": { "version": "2.0" },
   "buffers": [
     {
-      "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAABAAIA",
-      "byteLength": 42
+      "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAABAAIAAAAAAAAAAAAAAM3MTD4AAAAAAAAAAM3MTD4AAAAAAAAAAM3MTD4=",
+      "byteLength": 80
     }
   ],
   "bufferViews": [
     { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
-    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 }
+    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 },
+    { "buffer": 0, "byteOffset": 44, "byteLength": 36, "target": 34962 }
   ],
   "accessors": [
     {
@@ -399,6 +499,12 @@ fn write_minimal_textured_gltf(path: PathBuf) {
       "componentType": 5123,
       "count": 3,
       "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3"
     }
   ],
   "images": [
@@ -421,11 +527,15 @@ fn write_minimal_textured_gltf(path: PathBuf) {
   "meshes": [
     {
       "name": "HeroTriangle",
+      "weights": [0.5],
       "primitives": [
         {
           "attributes": { "POSITION": 0 },
           "indices": 1,
-          "material": 0
+          "material": 0,
+          "targets": [
+            { "POSITION": 2 }
+          ]
         }
       ]
     }
@@ -761,6 +871,30 @@ fn load_texture(manager: &ProjectManager, uri_text: &str) -> TextureAsset {
         ImportedAsset::Texture(texture) => texture,
         other => panic!("unexpected texture artifact for {uri_text}: {other:?}"),
     }
+}
+
+fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("zircon-project-asset-flow-texture-layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    })
 }
 
 fn uri(value: &str) -> AssetUri {

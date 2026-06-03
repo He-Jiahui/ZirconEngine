@@ -37,6 +37,8 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
             valid_mesh_count: 2,
             invalid_mesh_count: 1,
             vertex_count: 36,
+            morph_target_count: 2,
+            morph_target_attribute_count: 3,
             ..Default::default()
         },
     };
@@ -62,6 +64,7 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
             direct_mesh_reference_count: 0,
             mesh_primitive_binding_count: 0,
             mesh_material_binding_count: 3,
+            morph_weight_count: 4,
             collider_material_binding_count: 1,
             light_count: 2,
             physics_component_count: 2,
@@ -130,6 +133,8 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
     assert_eq!(aggregate.summary.mesh_count, 3);
     assert_eq!(aggregate.summary.valid_mesh_count, 2);
     assert_eq!(aggregate.summary.invalid_mesh_count, 1);
+    assert_eq!(aggregate.summary.mesh_morph_target_count, 2);
+    assert_eq!(aggregate.summary.mesh_morph_target_attribute_count, 3);
     assert_eq!(aggregate.summary.scene_count, 1);
     assert_eq!(aggregate.summary.scene_entity_count, 5);
     assert_eq!(aggregate.summary.entity_count, 5);
@@ -140,6 +145,7 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
     assert_eq!(aggregate.summary.entity_mesh_instance_count, 3);
     assert_eq!(aggregate.summary.entity_direct_mesh_reference_count, 0);
     assert_eq!(aggregate.summary.entity_mesh_primitive_binding_count, 0);
+    assert_eq!(aggregate.summary.entity_morph_weight_count, 4);
     assert_eq!(aggregate.summary.entity_mesh_material_binding_count, 3);
     assert_eq!(aggregate.summary.entity_collider_material_binding_count, 1);
     assert_eq!(aggregate.summary.entity_light_count, 2);

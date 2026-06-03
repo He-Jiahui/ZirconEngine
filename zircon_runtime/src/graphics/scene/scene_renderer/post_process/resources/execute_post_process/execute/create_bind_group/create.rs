@@ -6,19 +6,27 @@ pub(in super::super) fn create_bind_group(
     resources: &ScenePostProcessResources,
     device: &wgpu::Device,
     scene_color_view: &wgpu::TextureView,
+    scene_depth_view: &wgpu::TextureView,
+    scene_normal_view: &wgpu::TextureView,
     ao_view: &wgpu::TextureView,
     previous_scene_color_view: Option<&wgpu::TextureView>,
     previous_global_illumination_view: Option<&wgpu::TextureView>,
     bloom_view: &wgpu::TextureView,
+    effect_lut_view: &wgpu::TextureView,
+    effect_lut_3d_view: &wgpu::TextureView,
     cluster_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
     let entries = bind_group_entries(
         resources,
         scene_color_view,
+        scene_depth_view,
+        scene_normal_view,
         ao_view,
         previous_scene_color_view,
         previous_global_illumination_view,
         bloom_view,
+        effect_lut_view,
+        effect_lut_3d_view,
         cluster_buffer,
     );
     device.create_bind_group(&wgpu::BindGroupDescriptor {
