@@ -18,6 +18,9 @@
     metricGrid,
     sectionTitle,
     tabStrip,
+    tabbedListPanel,
+    formPanel,
+    contentPanel,
     htmlCell,
     dataTable,
     rowIcon,
@@ -25,6 +28,7 @@
     sourceEngineRow,
     settingSummaryRow,
     projectStatusStrip,
+    projectDetailMainPanel,
     projectDetailActionsSection,
     actionRow,
     emptyState,
@@ -327,8 +331,7 @@
       ${pageHeading(page, `${button("Refresh Sources", "ui/refresh.svg")}${button("Open Editor", "actions/open-editor.svg", "primary")}`)}
       ${tabStrip(["Overview", "Source Paths", "Timeline", "Actions"], 0)}
       <section class="editor-layout">
-        <article class="panel editor-source-panel">
-          ${sectionTitle(page.sourceTitle, "Registered source channels, launch paths, and profile state reuse the compact Hub component set.")}
+        ${contentPanel(page.sourceTitle, `
           <div class="editor-source-summary">
             ${smallStat("Active Source", "1.8.2", "origin/main", "accent")}
             ${smallStat("Editor Target", "Debug", "ready to launch", "success")}
@@ -342,7 +345,7 @@
           <div class="row-list source-engine-list compact">
             ${page.sourceRows.map(([mark, title, detail, badge, tone], index) => sourceEngineRow(mark, title, detail, badge, tone, index === 1)).join("")}
           </div>
-        </article>
+        `, "editor-source-panel", "Registered source channels, launch paths, and profile state reuse the compact Hub component set.")}
         <aside class="panel editor-side-panel">
           ${sectionTitle(page.controlTitle, "Launch profile")}
           <div class="launch-card">
@@ -383,8 +386,7 @@
       ${pageHeading(page, `${button("Open Output", "actions/open-editor.svg")}${button("Build Project", "actions/build-project.svg", "primary")}`)}
       ${tabStrip(["Overview", "Pipeline", "History", "Timeline"], 0)}
       <section class="build-summary-layout">
-        <article class="panel build-main build-overview-panel">
-          ${sectionTitle("Source Build", "No project selected / ZirconEngine Source / Active")}
+        ${contentPanel("Source Build", `
           <div class="row-list compact build-source-list">
             ${infoRow("BD", "Source:", "D:\\Engines\\ZirconEngine / Last build: Not built yet", "Active", "warning")}
             ${infoRow("OUT", "Output:", "D:\\Builds\\Zircon / Profile debug", "1 jobs", "")}
@@ -393,7 +395,7 @@
             ${tag("debug", "accent")}
             ${tag("1 jobs", "")}
           </div>
-        </article>
+        `, "build-main build-overview-panel", "No project selected / ZirconEngine Source / Active")}
         <article class="panel build-controls-panel">
           ${sectionTitle("Selected Project Actions")}
           <div class="row-list compact build-actions-list">
@@ -572,11 +574,13 @@
       ${pageHeading(page, `${button(isCloud ? "Package Project" : "Request Review", isCloud ? "actions/package-project.svg" : "ui/plus.svg")}${button(isCloud ? "Deploy Preview" : "Open Source Control", "ui/plus.svg", "primary")}`)}
       ${metricGrid(metrics.map(([label, value, detail], index) => [label, value, detail, index === 0 ? "accent" : ""]), "four")}
       <section class="content-grid two-wide overview-grid">
-        <article class="panel tall">
-          ${sectionTitle(isCloud ? "Cloud Overview" : "Team Overview", isCloud ? "Package, service, and deploy status in the same row density as Projects." : "Identity, reviewers, and local collaboration status in compact Hub rows.")}
-          ${tabStrip(isCloud ? ["Package", "Services", "Health"] : ["Identity", "Review", "Access"], 0)}
-          <div class="row-list compact">${leftRows.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join("")}</div>
-        </article>
+        ${tabbedListPanel(
+          isCloud ? "Cloud Overview" : "Team Overview",
+          isCloud ? "Package, service, and deploy status in the same row density as Projects." : "Identity, reviewers, and local collaboration status in compact Hub rows.",
+          isCloud ? ["Package", "Services", "Health"] : ["Identity", "Review", "Access"],
+          leftRows.map(([mark, title, detail, badge, tone]) => infoRow(mark, title, detail, badge, tone)).join(""),
+          isCloud ? "cloud-overview-panel" : "team-overview-panel",
+        )}
         <article class="panel tall">
           ${sectionTitle("Actions", "Primary page actions reuse the Dashboard quick-action row rhythm.")}
           <div class="row-list compact">${actions.map(([mark, title, detail]) => actionRow(mark, title, detail)).join("")}</div>
@@ -614,8 +618,7 @@
       ${pageHeading(page, `${button("Reset", "ui/refresh.svg")}${button("Save Settings", "ui/plus.svg", "primary")}`)}
       ${tabStrip(["General", "Build", "Paths", "Health"], 0)}
       <section class="settings-layout">
-        <article class="panel settings-health">
-          ${sectionTitle("Configuration Overview", "Shared Hub defaults, local source roots, and launch policy.")}
+        ${contentPanel("Configuration Overview", `
           <div class="mini-stat-grid">
             ${smallStat("Config", "Valid", "hub.toml parsed", "success")}
             ${smallStat("Sources", "3", "registered engines", "accent")}
@@ -623,14 +626,9 @@
           </div>
           ${progress("Toolchain readiness", 92, "success")}
           ${progress("Path coverage", 78, "accent")}
-        </article>
+        `, "settings-health", "Shared Hub defaults, local source roots, and launch policy.")}
         ${panels.filter(([title]) => title !== "Build Defaults").map(([title, rows]) => `
-          <article class="panel settings-panel">
-            ${sectionTitle(title)}
-            <div class="row-list compact">
-              ${rows.join("")}
-            </div>
-          </article>`).join("")}
+          ${formPanel(title, rows.join(""))}`).join("")}
       </section>`;
   }
 
@@ -661,12 +659,10 @@
                   ["Engine Beta", "v1.9.4", false],
                   ["Engine Gamma", "v3.2.0", false],
                   ["Engine Delta", "v0.8.7", false],
-                ].map(([name, version, selected]) => `
-                  <button class="engine-option ${selected ? "selected" : ""}" type="button" data-route="hub-source-engine-popup">
-                    ${rowIcon("EN")}
-                    <strong>${esc(name)}</strong>
-                    ${tag(version, selected ? "accent" : "")}
-                  </button>`).join("")}
+                ].map(([name, version, selected]) => sourceEngineRow("EN", name, version, version, selected ? "accent" : "", selected, {
+                  className: "engine-option",
+                  showAction: false,
+                })).join("")}
               </div>
               <div class="engine-info-card">
                 ${rowIcon("ZE")}
@@ -787,39 +783,7 @@
     return `
       ${pageHeading(page, `${button("Project Browser", "nav/projects.svg")}${button("Open in Editor", "actions/open-editor.svg", "primary")}`)}
       <section class="detail-layout">
-        <article class="panel detail-main">
-          <div class="detail-hero">
-            ${projectCover(selected, "hero")}
-            <div>
-              <h3 class="detail-title">${esc(selected.title)}</h3>
-              <p class="detail-path">${esc(selected.path)}</p>
-              ${projectStatusStrip(selected.version, "Not pinned", selected.modified)}
-            </div>
-          </div>
-          <div class="detail-stats">
-            ${smallStat("Assets", "1,284", "indexed", "accent")}
-            ${smallStat("Builds", "12", "last 7 days", "success")}
-            ${smallStat("Warnings", "1", "non-blocking", "warning")}
-            ${smallStat("Size", "12.8 GB", "workspace", "")}
-          </div>
-          <div class="detail-grid">
-            <div class="row-list compact">
-              ${infoRow("ST", "Status", "Project files are present and indexed", "Ready", "success")}
-              ${infoRow("EN", "Source Engine", "Zircon Engine 1.8.2", "Active", "accent")}
-              ${infoRow("VR", "Engine Version", selected.version, selected.version, "accent")}
-              ${infoRow("PL", "Platform", selected.platform, selected.platform)}
-            </div>
-            <div class="activity-panel">
-              ${sectionTitle("Activity", "Latest project events")}
-              ${[
-                ["Asset catalog refreshed", "2h ago", "success"],
-                ["Build package queued", "5h ago", "accent"],
-                ["Shader warning recorded", "Yesterday", "warning"],
-              ].map(([title, time, tone]) => `
-                <div class="timeline-item ${tone}"><span></span><strong>${esc(title)}</strong><em>${esc(time)}</em>${tag(tone || "Info", tone)}</div>`).join("")}
-            </div>
-          </div>
-        </article>
+        ${projectDetailMainPanel(selected)}
         ${projectDetailActionsSection(confirmDelete)}
       </section>
       ${confirmDelete ? renderDeleteConfirm() : ""}`;

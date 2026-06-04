@@ -4,8 +4,9 @@ import {
     SourceEngineRowData,
     UiTextData,
 } from "shared.slint";
-import { IconButton, PillButton } from "button_components.slint";
-import { CheckState, EmptyStateBlock, HubKeyValueRow, HubListPanelSlot, HubPathFieldRow, HubRowMainSlot, HubRowSelectionSlot, HubRowSurface, HubRowTrailingSlot, HubTokens, HubVisualSpec, InfoRow, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, PanelHeader, PanelListViewport, PanelSlot, StateLayerArea } from "components.slint";
+import { HubFormActionRow } from "button_components.slint";
+import { HubBackButton } from "icon_button_components.slint";
+import { CheckState, EmptyStateBlock, HubContentPanelSlot, HubInteractiveRowSurface, HubKeyValueRow, HubListPanelSlot, HubPathFieldRow, HubRowLeadingIconSlot, HubRowMainSlot, HubRowSelectionSlot, HubRowTrailingSlot, HubSection, HubTokens, HubVisualSpec, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, PanelListViewport } from "components.slint";
 export {
     ProjectFilterSelect,
     ProjectSortSelect,
@@ -13,6 +14,42 @@ export {
     ProjectBrowserRow,
     ProjectBrowserResultsPanel,
 } from "project_browser_components.slint";
+
+component PageHeaderTitleStack inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <length> stack-height: MaterialStyleMetrics.size_48;
+    in property <length> stack-spacing: MaterialStyleMetrics.spacing_2;
+
+    height: root.stack-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    background: transparent;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.stack-spacing;
+
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+        MaterialText {
+            text: root.title;
+            overflow: elide;
+            color: MaterialPalette.on_surface;
+            style: MaterialTypography.title_large;
+            vertical_alignment: center;
+        }
+
+        MutedText {
+            text: root.subtitle;
+            overflow: elide;
+        }
+
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
+    }
+}
 
 export component PageHeader inherits Rectangle {
     in property <string> title;
@@ -37,36 +74,16 @@ export component PageHeader inherits Rectangle {
             spacing: MaterialStyleMetrics.spacing_12;
             alignment: start;
 
-            IconButton {
-                width: root.back-size;
-                height: root.back-size;
-                icon-image: @image-url("../assets/icons/ui/chevron-left.svg");
-                has-icon-image: true;
+            HubBackButton {
+                button-size: root.back-size;
                 clicked => { root.back(); }
             }
 
-            VerticalLayout {
-                height: parent.height;
-                horizontal-stretch: 1;
-                min-width: 1px;
-                spacing: MaterialStyleMetrics.spacing_2;
-
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
-
-                MaterialText {
-                    text: root.title;
-                    overflow: elide;
-                    color: MaterialPalette.on_surface;
-                    style: MaterialTypography.title_large;
-                    vertical_alignment: center;
-                }
-
-                MutedText {
-                    text: root.subtitle;
-                    overflow: elide;
-                }
-
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            PageHeaderTitleStack {
+                stack-height: parent.height;
+                title: root.title;
+                subtitle: root.subtitle;
+                stack-spacing: MaterialStyleMetrics.spacing_2;
             }
         }
 
@@ -74,40 +91,82 @@ export component PageHeader inherits Rectangle {
     }
 }
 
-export component EngineChoiceRow inherits Rectangle {
+export component EngineChoiceRow inherits HubInteractiveRowSurface {
     in property <SourceEngineRowData> engine;
-    in property <length> row-height: HubTokens.list-row-md;
     in property <string> selected-label: "Selected";
     in property <string> registered-label: "Registered";
     in property <bool> collapse-label: false;
-    callback selected(string);
+    callback engine-selected(string);
 
     private property <length> effective-row-height: max(root.row-height, HubTokens.list-row-md);
+    private property <string> supporting-text: root.engine.version == "" ? root.engine.source-path : (root.engine.source-path == "" ? root.engine.version : root.engine.version + " / " + root.engine.source-path);
+    private property <string> trailing-label: root.engine.active ? root.selected-label : root.registered-label;
+    private property <length> trailing-badge-width: HubTokens.control-md * 3;
 
     height: root.effective-row-height;
-    horizontal-stretch: 1;
-    min-width: 1px;
+    row-height: root.effective-row-height;
+    row-radius: HubVisualSpec.panel-radius;
+    idle-border-width: HubTokens.border-width;
+    selected-border-width: HubTokens.border-width;
+    idle-border: HubVisualSpec.outline-muted;
+    selected-border: HubVisualSpec.accent-stroke;
+    idle-background: HubVisualSpec.panel-background;
+    selected-background: MaterialPalette.secondary_container;
+    selected: root.engine.active;
+    interaction-foreground: root.content-foreground;
 
-    InfoRow {
+    clicked => {
+        root.engine-selected(root.engine.id);
+    }
+
+    HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        row-height: root.effective-row-height;
-        title: root.engine.title;
-        detail: root.engine.version;
-        meta: root.engine.source-path;
-        leading-image: @image-url("../assets/icons/nav/editor.svg");
-        has-leading-image: true;
-        accent: 0;
-        selected: root.engine.active;
-        trailing-text: root.engine.active ? root.selected-label : root.registered-label;
-        trailing-tone: root.engine.active ? "accent" : "neutral";
-        show-trailing-badge: true;
-        collapse-trailing-label: root.collapse-label;
-        clicked => { root.selected(root.engine.id); }
+        padding-left: HubTokens.space-3;
+        padding-right: HubTokens.space-3;
+        spacing: HubTokens.space-2;
+        alignment: stretch;
+
+        HubRowLeadingIconSlot {
+            row-height: root.effective-row-height;
+            slot-width: HubTokens.control-lg;
+            icon-image: @image-url("../assets/icons/nav/editor.svg");
+            has-icon-image: true;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            preferred-width: 0px;
+            height: parent.height;
+            background: transparent;
+            clip: true;
+
+            HubRowMainSlot {
+                width: parent.width;
+                height: parent.height;
+                row-height: root.effective-row-height;
+                title: root.engine.title;
+                detail: root.supporting-text;
+                title-foreground: root.content-foreground;
+                detail-foreground: MaterialPalette.on_surface_variant;
+            }
+        }
+
+        HubRowTrailingSlot {
+            row-height: root.effective-row-height;
+            slot-width: root.collapse-label ? 0px : root.trailing-badge-width;
+            badge-width: root.trailing-badge-width;
+            badge-text: root.trailing-label;
+            badge-tone: root.engine.active ? "accent" : "neutral";
+            show-badge: true;
+            collapse-badge: root.collapse-label;
+            show-action: false;
+        }
     }
 }
 
-export component TemplateChoiceRow inherits HubRowSurface {
+export component TemplateChoiceRow inherits HubInteractiveRowSurface {
     in property <ProjectTemplateData> template;
     in property <string> soon-label: "Soon";
     in property <bool> collapse-label: false;
@@ -129,17 +188,12 @@ export component TemplateChoiceRow inherits HubRowSurface {
     disabled-background: HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);
     selected: root.template.selected;
     enabled: root.template.enabled;
+    interaction-enabled: root.template.enabled;
+    interaction-foreground: root.template.selected ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;
 
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.template.selected ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;
-        border_radius: HubVisualSpec.panel-radius;
-        enabled: root.template.enabled;
-        clicked => {
-            if (root.template.enabled) {
-                root.template-selected(root.template.id);
-            }
+    clicked => {
+        if (root.template.enabled) {
+            root.template-selected(root.template.id);
         }
     }
 
@@ -198,9 +252,7 @@ export component ProjectSettingSummaryRow inherits HubKeyValueRow {
     row-spacing: max(MaterialStyleMetrics.spacing_8, root.row-height / 5);
 }
 
-export component ProjectCreateSummary inherits Rectangle {
-    in property <string> title;
-    in property <string> subtitle;
+export component ProjectCreateSummary inherits HubSection {
     in property <string> root-path-label;
     in property <string> create-label;
     in property <string> ready-label;
@@ -212,35 +264,21 @@ export component ProjectCreateSummary inherits Rectangle {
     in property <length> summary-height: HubTokens.list-row-sm + HubTokens.control-md * 2 + HubTokens.panel-gap;
     in property <length> row-spacing: HubTokens.panel-gap / 2;
 
-    height: root.summary-height;
-    horizontal-stretch: 1;
-    min-width: 1px;
-    vertical-stretch: 0;
-    background: transparent;
+    section-height: root.summary-height;
+    section-spacing: root.row-spacing;
 
-    VerticalLayout {
-        width: parent.width;
-        height: parent.height;
-        spacing: root.row-spacing;
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.root-path-label;
+        value: root.project-location + "\\" + root.project-name;
+    }
 
-        PanelHeader {
-            title: root.title;
-            subtitle: root.subtitle;
-        }
-
-        ProjectSettingSummaryRow {
-            row-height: root.row-height;
-            label: root.root-path-label;
-            value: root.project-location + "\\" + root.project-name;
-        }
-
-        ProjectSettingSummaryRow {
-            row-height: root.row-height;
-            label: root.create-label;
-            value: root.form-ready ? root.ready-label : root.complete-label;
-            badge-value: true;
-            badge-tone: root.form-ready ? "accent" : "warning";
-        }
+    ProjectSettingSummaryRow {
+        row-height: root.row-height;
+        label: root.create-label;
+        value: root.form-ready ? root.ready-label : root.complete-label;
+        badge-value: true;
+        badge-tone: root.form-ready ? "accent" : "warning";
     }
 }
 
@@ -279,37 +317,8 @@ export component ProjectCreateField inherits Rectangle {
     }
 }
 
-export component ProjectCreateActionRow inherits Rectangle {
-    in property <length> row-height;
-    in property <length> row-spacing;
-    in property <string> action-label;
-    in property <bool> action-enabled;
-    callback action-clicked();
-
-    horizontal-stretch: 1;
-    min-width: 1px;
-    preferred-width: 0px;
-    height: root.row-height;
-    vertical-stretch: 0;
-    background: transparent;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        alignment: center;
-        spacing: root.row-spacing;
-
-        Rectangle { horizontal-stretch: 1; }
-
-        PillButton {
-            text: root.action-label;
-            icon-image: @image-url("../assets/icons/ui/plus.svg");
-            has-icon-image: true;
-            primary: true;
-            enabled: root.action-enabled;
-            clicked => { root.action-clicked(); }
-        }
-    }
+export component ProjectCreateActionRow inherits HubFormActionRow {
+    action-icon: @image-url("../assets/icons/ui/plus.svg");
 }
 
 export component ProjectEngineChoiceList inherits PanelListViewport {
@@ -344,11 +353,22 @@ export component ProjectEngineChoiceList inherits PanelListViewport {
         selected-label: root.selected-label;
         registered-label: root.registered-label;
         collapse-label: root.collapse-label;
-        selected(id) => { root.selected(id); }
+        engine-selected(id) => { root.selected(id); }
     }
 }
 
-export component ProjectCreateSettingsPanel inherits PanelSlot {
+component ProjectCreateSectionLabel inherits MaterialText {
+    in property <string> label-text;
+    in property <length> label-height;
+
+    height: root.label-height;
+    text: root.label-text;
+    color: MaterialPalette.on_surface_variant;
+    style: MaterialTypography.body_small;
+    vertical_alignment: center;
+}
+
+export component ProjectCreateSettingsPanel inherits HubContentPanelSlot {
     in-out property <string> project-name;
     in-out property <string> project-location;
     in property <[SourceEngineRowData]> engines;
@@ -382,10 +402,9 @@ export component ProjectCreateSettingsPanel inherits PanelSlot {
     body-padding: HubTokens.space-4;
     body-spacing: root.page-gap;
 
-    PanelHeader {
-        title: root.ui-text.project-settings-title;
-        subtitle: root.ui-text.project-settings-subtitle;
-    }
+    title: root.ui-text.project-settings-title;
+    subtitle: root.ui-text.project-settings-subtitle;
+    content-spacing: root.page-gap;
 
     ProjectCreateField {
         field-height: root.field-height;
@@ -412,12 +431,9 @@ export component ProjectCreateSettingsPanel inherits PanelSlot {
         vertical-stretch: 0;
         spacing: MaterialStyleMetrics.spacing_8;
 
-        MaterialText {
-            height: root.section-label-height;
-            text: root.ui-text.source-engine;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.body_small;
-            vertical_alignment: center;
+        ProjectCreateSectionLabel {
+            label-height: root.section-label-height;
+            label-text: root.ui-text.source-engine;
         }
 
         ProjectEngineChoiceList {
@@ -467,11 +483,9 @@ export component ProjectCreateSettingsPanel inherits PanelSlot {
     }
 }
 
-export component ProjectCreateCompactSummaryPanel inherits PanelSlot {
+export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot {
     in property <length> panel-padding: HubTokens.space-3;
     in property <length> page-gap;
-    in property <string> title;
-    in property <string> subtitle;
     in property <string> root-path-label;
     in property <string> create-label;
     in property <string> ready-label;
@@ -484,6 +498,8 @@ export component ProjectCreateCompactSummaryPanel inherits PanelSlot {
 
     body-padding: root.panel-padding;
     body-spacing: 0px;
+    content-spacing: 0px;
+    show-header: false;
 
     ProjectCreateSummary {
         title: root.title;

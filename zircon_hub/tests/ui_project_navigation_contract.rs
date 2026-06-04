@@ -126,7 +126,7 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
             .matches("root.select(root.project.open-path);")
             .count()
             >= 1,
-        "ProjectBrowserRow row state must still select the non-detail row body"
+        "ProjectBrowserRow shared row interaction must still select the row project"
     );
     assert_eq!(
         browser_row
@@ -135,35 +135,40 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
         1,
         "ProjectBrowserRow detail navigation should be limited to the trailing detail hit branch"
     );
-    assert!(
-        browser_row.contains("StateLayerArea {")
-            && browser_row.contains("row-state :=")
-            && browser_row.contains("border_radius: HubVisualSpec.compact-radius;"),
-        "ProjectBrowserRow must use Material StateLayerArea for whole-row hover/press behavior"
-    );
-    let state_index = browser_row
-        .find("row-state := StateLayerArea {")
-        .expect("ProjectBrowserRow must declare a row StateLayerArea");
     let detail_slot_index = browser_row
         .find("detail-slot := HubRowTrailingSlot {")
         .expect("ProjectBrowserRow must expose a trailing detail slot");
+    let row_click_index = browser_row
+        .find("clicked => {\n        root.select(root.project.open-path);\n    }")
+        .expect("ProjectBrowserRow must map inherited row clicks to project selection");
     assert!(
-        state_index < detail_slot_index,
-        "ProjectBrowserRow row StateLayerArea must own the full row before laying out the trailing detail slot"
+        row_click_index < detail_slot_index,
+        "ProjectBrowserRow shared row click handler must be declared before the trailing detail slot"
     );
-    let state_body = &browser_row[state_index..detail_slot_index];
+    for snippet in [
+        "inherits HubInteractiveRowSurface",
+        "row-radius: HubVisualSpec.compact-radius;",
+        "interaction-foreground: root.content-foreground;",
+        "clicked =>",
+        "root.select(root.project.open-path);",
+    ] {
+        assert!(
+            browser_row.contains(snippet),
+            "ProjectBrowserRow must consume the shared interactive row surface for Browser row selection; missing {snippet}"
+        );
+    }
+    let content_index = browser_row
+        .find("Rectangle {\n            horizontal-stretch: 1;\n            min-width: 1px;\n            height: parent.height;\n            background: transparent;")
+        .expect("ProjectBrowserRow must keep an elastic content body before the trailing detail slot");
+    let content_body = &browser_row[content_index..detail_slot_index];
     assert!(
-        state_body.contains("root.select(root.project.open-path);"),
-        "ProjectBrowserRow StateLayerArea should select clicks outside the detail zone"
+        content_body.contains("horizontal-stretch: 1;") && content_body.contains("min-width: 1px;"),
+        "ProjectBrowserRow content body should let layout reserve the trailing detail zone instead of subtracting row width by hand"
     );
     assert!(
-        state_body.contains("horizontal-stretch: 1;") && state_body.contains("min-width: 1px;"),
-        "ProjectBrowserRow StateLayerArea should let layout reserve the trailing detail zone instead of subtracting row width by hand"
-    );
-    assert!(
-        !state_body.contains("row-state.mouse-x")
-            && !state_body.contains("root.open-detail(root.project.open-path);"),
-        "ProjectBrowserRow row StateLayerArea should not infer detail clicks from mouse coordinates"
+        !content_body.contains("row-state.mouse-x")
+            && !content_body.contains("root.open-detail(root.project.open-path);"),
+        "ProjectBrowserRow content body should not infer detail clicks from mouse coordinates"
     );
     assert!(
         browser_row
@@ -192,13 +197,15 @@ fn project_browser_row_selects_and_detail_button_opens_detail() {
         "ProjectBrowserRow should not recreate local detail-button internals after adopting HubRowTrailingSlot"
     );
     for forbidden in [
+        "row-state := StateLayerArea {",
+        "StateLayerArea {",
         "thumb-area := TouchArea",
         "body-area := TouchArea",
         "area := TouchArea",
     ] {
         assert!(
             !browser_row.contains(forbidden),
-            "ProjectBrowserRow must not return to custom cell/root TouchArea navigation: {forbidden}"
+            "ProjectBrowserRow must not return to local row/cell interaction handling after adopting HubInteractiveRowSurface: {forbidden}"
         );
     }
 }
@@ -208,21 +215,25 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
     let projects_page = read_ui_file("projects.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
+    let button_components = read_ui_file("button_components.slint");
+    let icon_button_components = read_ui_file("icon_button_components.slint");
     let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
-    let dashboard_surface =
-        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
+    let dashboard_surface = format!(
+        "{dashboard}\n{dashboard_components}\n{button_components}\n{icon_button_components}\n{project_card_flow_components}"
+    );
     let project_projection = read_crate_file("src/app/view_model/projects.rs");
 
     let show_more_block = project_card_flow_components
-        .split("text: root.expanded ? root.collapse-label : root.show-more-label;")
+        .split("HubDisclosureButton {")
         .nth(1)
-        .expect("DashboardProjectCardsSection must keep the Show More button inside the project-card-flow component module");
+        .expect("DashboardProjectCardsSection must keep the Show More disclosure button inside the project-card-flow component module");
     assert!(
-        show_more_block.contains("clicked => { root.expanded = !root.expanded; }"),
+        show_more_block.contains("toggled(expanded) => { root.expanded = expanded; }"),
         "Dashboard Show More must only expand/collapse project cards"
     );
     for forbidden in [
         "project-browser",
+        "PillButton {",
         "root.view-all-projects();",
         "root.show-project-subpage",
         "root.set-project-view-mode(\"list\")",
@@ -243,8 +254,10 @@ fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
         "root.project-view-mode = \"list\";",
         "root.project-subpage = \"project-browser\";",
         "root.view-all-projects();",
+        "HubViewToggleGroup {",
+        "selected-mode: root.project-view-mode;",
         "icon-image: @image-url(\"../assets/icons/ui/list.svg\");",
-        "active: root.project-view-mode == \"list\";",
+        "active: root.selected-mode == \"list\";",
         "root.set-project-view-mode(\"list\");",
         "root.show-project-subpage(\"project-browser\");",
     ] {

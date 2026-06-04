@@ -42,8 +42,14 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_combinations_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_single_error.rs
-  - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/unique_entities.rs
+  - docs/zircon_runtime/scene/ecs/query_state.md
   - zircon_runtime/src/scene/ecs/removal.rs
   - zircon_runtime/src/scene/ecs/resource.rs
   - zircon_runtime/src/scene/ecs/resource_id.rs
@@ -81,6 +87,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/system/system_param_error.rs
   - zircon_runtime/src/scene/ecs/system/system_state.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/change_detection.rs
@@ -148,8 +155,14 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_combinations_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_single_error.rs
-  - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/unique_entities.rs
+  - docs/zircon_runtime/scene/ecs/query_state.md
   - zircon_runtime/src/scene/ecs/removal.rs
   - zircon_runtime/src/scene/ecs/resource.rs
   - zircon_runtime/src/scene/ecs/resource_id.rs
@@ -187,6 +200,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/system/system_param_error.rs
   - zircon_runtime/src/scene/ecs/system/system_state.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/change_detection.rs
@@ -241,7 +255,9 @@ plan_sources:
   - user: 2026-05-22 Native ECS Systems Milestone 3 scheduled param parity
   - user: 2026-05-25 resource direct change-tracker API continuation
   - user: 2026-05-25 component direct change-tracker API continuation
+  - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
+  - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/ZirconEngine Bevy-Style 自研 ECS 与场景编辑模式计划.md
   - docs/superpowers/specs/2026-05-18-native-ecs-systems-design.md
   - docs/superpowers/plans/2026-05-18-native-ecs-systems-implementation.md
@@ -267,6 +283,7 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_query_single.rs
   - zircon_runtime/src/scene/tests/ecs_query_combinations.rs
   - zircon_runtime/src/scene/tests/ecs_system_query_cache.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
@@ -305,7 +322,7 @@ doc_type: module-detail
 - typed component/resource/bundle contracts and registries for the M2 public `World` API without importing `bevy_ecs`;
 - typed resource and event stores for systems without ad hoc global maps;
 - typed query/access descriptors for M3 runtime borrow-safety checks;
-- cached query state metadata and runtime archetype signatures for the M11 performance-parity path;
+- cached query state metadata and runtime archetype signatures for the M11 performance-parity path, with `QueryState` split into cache-state, cached-direct, read-only, mutable, helper, and system-param owners;
 - typed deferred command queues, Bevy-style system parameter state, event params, and per-system run windows for M4-style systems;
 - per-component/resource change ticks plus `Added<T>`, `Changed<T>`, `Ref<T>`, `Mut<T>`, and removed-component readers for M5 change detection;
 - stage/system descriptors plus same-stage conflict graph, conservative parallel-batch foundations, and a `JobScheduler`-backed batch executor for independent registered tasks while `WorldDriver` continues to run native scene systems and plugin hooks in one deterministic schedule.
@@ -554,7 +571,7 @@ Native scene system objects live under `scene::ecs::system::native` and are part
 
 `ScheduleParallelExecutor` is the first M11 `JobScheduler` execution bridge. It consumes `ScheduleParallelBatch` values and a `ScheduleParallelTaskRegistry`, verifies that every system id in a batch has a registered task before starting that batch, runs single-task batches inline, and runs multi-task batches inside `JobScheduler::install(...)` using scoped Rayon tasks. Batch boundaries remain sequential: all tasks in one batch finish before the next batch starts, and task failures are reported in deterministic batch order through `ScheduleParallelExecutorError`. This executor is deliberately limited to independent registered closures; it does not yet run mutable `World` systems or plugin hooks in parallel.
 
-`SceneScheduleRunner` merges built-in descriptors, native system ids, generated native `ApplyDeferred` sync steps, and plugin `SceneRuntimeHookRegistration` values for each stage. Native system execution temporarily removes the boxed system from `World`'s schedule registry, runs it with `&mut World`, and restores it; any native command flush happens only when the separate scheduled sync step executes. Plugin hooks run outside the world mutex, so a hook can safely call `LevelSystem::with_world_mut(...)` while still participating in the same `order`/`id` sorted stage sequence. The runner defers eager derived-state flushing while a stage is running so plugin hooks can mutate local scene state through the normal dirty path. When the stage finishes successfully, the runner disables defer mode and runs that stage's built-in systems once more. This preserves plugin hook order semantics while still making hook mutations and deferred ECS command effects visible before the next stage or frame boundary.
+`SceneScheduleRunner` merges built-in descriptors, native system ids, generated native `ApplyDeferred` sync steps, and plugin `SceneRuntimeHookRegistration` values for each stage. `WorldDriver` snapshots schedule stages, built-in descriptors, and scene runtime hooks once per tick, then passes borrowed slices into each stage runner; the sorted stage plan clones only the entries that actually execute in that stage. Native system execution temporarily removes the boxed system from `World`'s schedule registry, runs it with `&mut World`, and restores it; any native command flush happens only when the separate scheduled sync step executes. Plugin hooks run outside the world mutex, so a hook can safely call `LevelSystem::with_world_mut(...)` while still participating in the same `order`/`id` sorted stage sequence. The runner defers eager derived-state flushing while a stage is running so plugin hooks can mutate local scene state through the normal dirty path. When the stage finishes successfully, the runner disables defer mode and runs that stage's built-in systems once more. This preserves plugin hook order semantics while avoiding per-stage hook-locking and pre-filter clone churn before the next stage or frame boundary.
 
 ## Derived State Systems
 
@@ -577,6 +594,8 @@ The typed ECS M2 tests cover tuple bundle spawn, typed insert/get/get_mut/remove
 The typed ECS M3 query tests cover required component reads, optional component reads, stable `EntityId` query items, `With<T>` and `Without<T>` filters, single-component mutable iteration, fixed scene component queries, access conflict detection, filter-proven disjointness, and duplicate mutable access rejection.
 
 The typed ECS system-param/change-detection tests cover deferred command visibility before/after `World::apply_deferred()`, entity command builder ordering, tuple system params up to eight items, tuple params combining query/resource/commands access, optional and required resource params, `ParamSet` segmented conflicting access up to eight items, event reader/writer current/next queues, counted event-writer batches that remain in the next queue until event update, event reader cursor retention and clearing across system runs, persistent local params, scheduled native-system local state across stage runs, explicit scheduled native `Added<T>`/`Changed<T>` windows, scheduled native message and removed-component reader cursors, scheduled native deferred command invisibility before the producer returns, later ordered scheduled native visibility after deferred flush, generated native `ApplyDeferred` step visibility in the sorted schedule plan, generated native `ApplyDeferred` barrier visibility in the conflict graph and conservative batch plan, `Ref<T>`/`Mut<T>` query wrappers, `Added<T>` windows, `Changed<T>` windows after direct mutable component access, cached and cached-direct system query iteration, cache-backed system mutable query iteration, single-result helpers, targeted get helpers, many-get helpers, unique mutable many-get helpers, read-only projection for mutable query data including cached-direct `Mut<T>` tick metadata, read-only iter-many helpers including cached and cached-direct run-window variants, read-only combination helpers with cached run-window filters, mutable combination helpers with fetch-next alias discipline, mutable iter-many helpers with fetch-next alias discipline and run-window filters, mutable get/many-get helpers with alias rejection, count/empty/contains helpers against run-window filters, removed-component readers, and explicit `ApplyDeferred` schedule flushing.
+
+The scheduled-native tests also include a source guard for the M5 schedule-runner hot path: `WorldDriver` must snapshot scene runtime hooks once per tick, `SceneScheduleRunner` must receive borrowed descriptor/hook slices, and `ScheduledSceneStep::sorted_for_stage(...)` must not take owned descriptor or hook vectors for pre-filtered stage work.
 
 The M11 query-cache tests in `ecs_query.rs` verify that cached iteration is built once for an existing query, reuses the cache across component value replacement, rebuilds after a matching entity is spawned, rebuilds after a queried component is removed, keeps cached stable and component storage locations aligned with world entity/component rows, moves entity locations across archetype signatures on component add/remove, does not treat optional reads as required archetype membership, preserves write-access component locations during mutable-query cache rebuild, drives mutable `for_each_mut(...)` from the cached structural candidate list, supports five-plus query data/filter tuple shapes, can query `StableEntityLocation`, reports read-only single-query zero/one/many outcomes with `QuerySingleError`, exposes targeted get, many-get, unique many-get, and count/empty/contains helpers over cached and cached-direct candidates, adds normal/cached/cached-direct read-only iter-many helpers, preserves many-get and iter-many input order plus duplicate read-only entity requests, rejects duplicate entity ids for unique many-get helpers, supports mutable targeted get and many-get while rejecting duplicate mutable entities, supports mutable iter-many with cursor-style duplicate entity requests, rejects nonexistent entities for get/contains checks, skips nonexistent entities during read-only and mutable iter-many, and can use `iter_cached_direct(...)` / `single_cached_direct(...)` for read-only `EntityId`, `StableEntityLocation`, `&T`, `Option<&T>`, and `Ref<T>` items over both table and sparse-set storage. The dedicated `ecs_query_many.rs`, `ecs_query_single.rs`, `ecs_query_combinations.rs`, `ecs_system_query_cache.rs`, and `ecs_performance_acceptance.rs` modules keep newer many-query, single-query, combination, system-cache, and hot-path acceptance coverage out of the large legacy query/system files; many-query tests cover mutable-data read-only projection, cached-direct `&mut T` projection, cached-direct `Mut<T>` projection to `Ref<T>`, unique mutable many-get order, mutation, mismatch diagnostics, and system run-window filtering in addition to unique mutable iteration; combination tests cover normal/cached pair and triple groups, `K > N` empty results, `Changed<T>` run-window filtering, and mutable `fetch_next()` pair traversal for both manual `QueryState` and system `Query`; system-cache tests cover default system `Query::iter(...)` cache reuse, dynamic `Changed<T>` filter rechecks, structural cache rebuild after spawn, cached stable-entity index rebuild after component removal, cached iter-many order/duplicate semantics, and the distinction between non-cached `QueryState::iter(...)` and cached/default system iteration carrying cached component locations; performance-acceptance tests cover 128-entity spawn/query reuse, value replacement without cache rebuild, matching spawn rebuild, `Changed<T>` matching only 16 mutated entities without rebuild, and 128 repeated transform projections over pending derived state. The storage tests verify table-row location lookup, table swap-remove row updates, stale table-location rejection, sparse-set location reporting, direct table-row reads, and direct location reads with ticks. The M11 schedule-conflict tests in `ecs_schedule.rs` verify same-stage component read/write conflicts, `With<T>`/`Without<T>` disjointness, stage isolation, resource read/write conflicts, event/message write conflicts, concrete `SystemParamConflictKind` values, conflict lookup, conservative batch grouping, batch separation at stage boundaries, `JobScheduler` batch execution, missing-task diagnostics, and task-failure diagnostics.
 

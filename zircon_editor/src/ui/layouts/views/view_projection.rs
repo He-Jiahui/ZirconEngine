@@ -31,7 +31,7 @@ pub(crate) struct ViewTemplateVisualAssets {
 #[derive(Debug, Error)]
 pub enum ViewTemplateProjectionError {
     #[error("editor view projection requires v2 UI assets, got `{0}`")]
-    LegacyAssetPath(String),
+    NonV2AssetPath(String),
     #[error(transparent)]
     V2Asset(#[from] UiV2AssetError),
     #[error(transparent)]
@@ -74,7 +74,7 @@ pub(crate) fn build_view_template_nodes_with_imports(
     }
 
     let _ = (widget_imports, style_imports, size, text_overrides);
-    Err(ViewTemplateProjectionError::LegacyAssetPath(
+    Err(ViewTemplateProjectionError::NonV2AssetPath(
         layout_asset_path.to_string(),
     ))
 }
@@ -710,10 +710,10 @@ mod tests {
     use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
     #[test]
-    fn view_template_projection_rejects_legacy_asset_paths() {
+    fn view_template_projection_rejects_non_v2_asset_paths() {
         let text_overrides = BTreeMap::new();
         let error = build_view_template_nodes(
-            "view.legacy.project_overview",
+            "view.archived.project_overview",
             "/assets/ui/editor/project_overview.ui.toml",
             &[],
             UiSize::new(640.0, 480.0),
@@ -723,7 +723,7 @@ mod tests {
 
         assert!(matches!(
             error,
-            ViewTemplateProjectionError::LegacyAssetPath(path)
+            ViewTemplateProjectionError::NonV2AssetPath(path)
                 if path == "/assets/ui/editor/project_overview.ui.toml"
         ));
     }

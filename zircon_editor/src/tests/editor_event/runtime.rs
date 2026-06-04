@@ -505,7 +505,7 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.Secret.Refresh"),
-            action_id: "onClick".to_string(),
+            action_id: "workbench.menu.item.click".to_string(),
             arguments: Vec::new(),
         });
     assert!(matches!(
@@ -1684,8 +1684,8 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
         menu,
         UiControlResponse::Node(Some(node))
             if node.display_name == "Refresh Cloud Layers"
-                && node.actions["onClick"].binding_symbol == "EditorOperation"
-                && node.actions["onClick"].callable_from_remote
+                && node.actions["workbench.menu.item.click"].binding_symbol == "EditorOperation"
+                && node.actions["workbench.menu.item.click"].callable_from_remote
                 && node.properties["operation_path"].reflected_value
                     == json!("Weather.CloudLayer.Refresh")
                 && node.properties["shortcut"].reflected_value == json!("Ctrl+Alt+R")
@@ -1695,7 +1695,7 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.CloudLayer.Refresh"),
-            action_id: "onClick".to_string(),
+            action_id: "workbench.menu.item.click".to_string(),
             arguments: Vec::new(),
         });
     assert!(matches!(
@@ -1755,7 +1755,7 @@ fn editor_operation_ui_binding_arguments_are_preserved_in_journal() {
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/menu/tools/Weather.CloudLayer.Refresh"),
-            action_id: "onClick".to_string(),
+            action_id: "workbench.menu.item.click".to_string(),
             arguments: vec![
                 UiBindingValue::String("storm".to_string()),
                 UiBindingValue::Unsigned(7),
@@ -1861,15 +1861,15 @@ fn editor_runtime_projects_plugin_views_into_view_menu_operations() {
             if node.display_name == "Cloud Layers"
                 && node.properties["operation_path"].reflected_value
                     == json!("View.weather.cloud_layers.Open")
-                && node.actions["onClick"].binding_symbol == "EditorOperation"
-                && node.actions["onClick"].callable_from_remote
+                && node.actions["workbench.menu.item.click"].binding_symbol == "EditorOperation"
+                && node.actions["workbench.menu.item.click"].callable_from_remote
     ));
 
     let invoked = runtime
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/menu/view/View.weather.cloud_layers.Open"),
-            action_id: "onClick".to_string(),
+            action_id: "workbench.menu.item.click".to_string(),
             arguments: Vec::new(),
         });
     assert!(matches!(
@@ -2608,7 +2608,7 @@ fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event
 
     let retained_record = retained_host
         .runtime
-        .dispatch_envelope(retained_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(retained_menu_action("workbench.scene.node.create.cube").unwrap())
         .unwrap();
     let binding_record = binding
         .runtime
@@ -2622,7 +2622,7 @@ fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/menu/selection/CreateNode.Cube"),
-            action_id: "onClick".to_string(),
+            action_id: "workbench.menu.item.click".to_string(),
             arguments: Vec::new(),
         });
     let UiControlResponse::Invocation(action_result) = action_response else {
@@ -2678,7 +2678,7 @@ fn serialized_journal_replays_editor_and_layout_state_through_the_same_runtime_p
     let source = EventRuntimeHarness::new("zircon_editor_event_replay_source");
     source
         .runtime
-        .dispatch_envelope(retained_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(retained_menu_action("workbench.scene.node.create.cube").unwrap())
         .unwrap();
     source
         .runtime
@@ -2874,8 +2874,8 @@ fn material_component_lab_binding_records_feedback_without_business_effects() {
 
 #[test]
 fn retained_preset_menu_actions_normalize_to_layout_events_with_expected_names() {
-    let save = retained_menu_action("SavePreset.rider").unwrap();
-    let load = retained_menu_action("LoadPreset.").unwrap();
+    let save = retained_menu_action("workbench.layout.preset.save.rider").unwrap();
+    let load = retained_menu_action("workbench.layout.preset.load.").unwrap();
 
     assert_eq!(
         save.event,

@@ -146,20 +146,20 @@ fn capture_controls(profile: &ProfileSnapshot) -> Vec<PerformanceTimelineCapture
                 "Start Capture".to_string()
             },
             action_id: if profile.active {
-                "PerformanceTimeline.StopCapture".to_string()
+                "workbench.performance_timeline.capture.stop".to_string()
             } else {
-                "PerformanceTimeline.StartCapture".to_string()
+                "workbench.performance_timeline.capture.start".to_string()
             },
             enabled: profile.feature_enabled,
         },
         PerformanceTimelineCaptureControlPayload {
             label: "Export Report".to_string(),
-            action_id: "PerformanceTimeline.ExportReport".to_string(),
+            action_id: "workbench.performance_timeline.report.export".to_string(),
             enabled: profile.feature_enabled && has_samples(profile),
         },
         PerformanceTimelineCaptureControlPayload {
             label: "Reset".to_string(),
-            action_id: "PerformanceTimeline.Reset".to_string(),
+            action_id: "workbench.performance_timeline.reset".to_string(),
             enabled: profile.feature_enabled && has_samples(profile),
         },
     ]

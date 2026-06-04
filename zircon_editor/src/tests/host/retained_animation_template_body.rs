@@ -125,6 +125,7 @@ fn animation_pane(
             performance_timeline: Default::default(),
             module_plugins: Default::default(),
             build_export: Default::default(),
+            generated_bottom: Default::default(),
             ui_asset: Default::default(),
             animation: AnimationEditorPaneViewData {
                 nodes: crate::ui::retained_host::primitives::ModelRc::default(),

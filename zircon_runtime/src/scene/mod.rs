@@ -21,7 +21,7 @@ pub type NodeId = EntityId;
 pub mod components;
 pub mod dynamic_scene;
 pub mod ecs;
-pub mod editor_projection;
+pub mod inspection;
 pub mod reflect;
 mod render_extract;
 pub mod semantics;
@@ -32,9 +32,7 @@ pub use dynamic_scene::{
     DynamicComponent, DynamicEntity, DynamicResource, DynamicScene, DynamicSceneError, EntityRemap,
     ScenePatch, DYNAMIC_SCENE_FORMAT_VERSION,
 };
-pub use editor_projection::{
-    SceneEditorHierarchyRow, SceneEditorInspectorField, SceneEditorProjection,
-};
+pub use inspection::{WorldInspection, WorldInspectionField, WorldInspectionHierarchyRow};
 pub use reflect::{
     json_from_reflected, reflected_from_json, reflected_from_scene_value,
     scene_value_from_reflected, ReflectComponent, ReflectResource, RuntimeTypeRegistration,

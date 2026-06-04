@@ -3,9 +3,21 @@ use super::super::template_component_family::{
     is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
 use super::render_commands::HostPaintCommand;
+use super::style_selector::{select_workbench_text_field_style, WorkbenchTextFieldStyle};
+#[cfg(test)]
+use super::style_selector::{
+    WORKBENCH_TEXT_FIELD_BORDER as FIELD_BORDER,
+    WORKBENCH_TEXT_FIELD_DISABLED_BORDER as FIELD_DISABLED_BORDER,
+    WORKBENCH_TEXT_FIELD_DISABLED_SURFACE as FIELD_DISABLED_SURFACE,
+    WORKBENCH_TEXT_FIELD_DISABLED_TEXT as FIELD_DISABLED_TEXT,
+    WORKBENCH_TEXT_FIELD_FOCUSED_BORDER as FIELD_FOCUSED_BORDER,
+    WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE as FIELD_FOCUSED_SURFACE,
+    WORKBENCH_TEXT_FIELD_PLACEHOLDER as FIELD_PLACEHOLDER,
+    WORKBENCH_TEXT_FIELD_SURFACE as FIELD_SURFACE,
+};
 use super::template_node_labels::template_node_label;
-use super::template_style::resolved_style_color;
-use super::theme::PALETTE;
+#[cfg(test)]
+use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const FIELD_FONT_SIZE: f32 = 11.0;
@@ -15,16 +27,6 @@ const FIELD_TEXT_LEFT: f32 = 10.0;
 const FIELD_TEXT_RIGHT: f32 = 8.0;
 const STEPPER_WIDTH: f32 = 18.0;
 const STEPPER_DIVIDER: [u8; 4] = [42, 53, 60, 255];
-const FIELD_SURFACE: [u8; 4] = [16, 22, 26, 255];
-const FIELD_HOVER_SURFACE: [u8; 4] = [20, 27, 31, 255];
-const FIELD_FOCUSED_SURFACE: [u8; 4] = [15, 24, 28, 255];
-const FIELD_DISABLED_SURFACE: [u8; 4] = [36, 41, 45, 255];
-const FIELD_BORDER: [u8; 4] = [50, 63, 71, 255];
-const FIELD_FOCUSED_BORDER: [u8; 4] = [27, 152, 160, 255];
-const FIELD_DISABLED_BORDER: [u8; 4] = [48, 56, 62, 255];
-const FIELD_TEXT: [u8; 4] = [205, 216, 221, 255];
-const FIELD_PLACEHOLDER: [u8; 4] = [122, 134, 142, 255];
-const FIELD_DISABLED_TEXT: [u8; 4] = [125, 135, 141, 255];
 
 pub(super) fn push_field_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -42,13 +44,14 @@ pub(super) fn push_field_commands(
         return true;
     }
     let opacity = field_opacity(node, opacity);
+    let style = field_style(node);
 
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(field_surface(node)),
-        Some(field_border(node)),
+        Some(style.surface),
+        Some(style.border),
         1.0,
         FIELD_RADIUS,
         opacity,
@@ -56,9 +59,18 @@ pub(super) fn push_field_commands(
 
     let stepper = is_stepper_field(node);
     if stepper {
-        push_stepper(commands, node, &rect, clip, order + 2, opacity);
+        push_stepper(commands, &rect, clip, order + 2, opacity, &style);
     }
-    push_field_text(commands, node, &rect, clip, order + 3, stepper, opacity);
+    push_field_text(
+        commands,
+        node,
+        &rect,
+        clip,
+        order + 3,
+        stepper,
+        opacity,
+        &style,
+    );
     true
 }
 
@@ -83,6 +95,7 @@ fn push_field_text(
     order: i32,
     stepper: bool,
     opacity: f32,
+    style: &WorkbenchTextFieldStyle,
 ) {
     let label = field_label(node);
     if label.trim().is_empty() {
@@ -103,7 +116,7 @@ fn push_field_text(
         Some(clip.clone()),
         order,
         label,
-        field_text_color(node),
+        style.text,
         FIELD_FONT_SIZE,
         FIELD_LINE_HEIGHT,
         UiTextRunPaintStyle::default(),
@@ -113,11 +126,11 @@ fn push_field_text(
 
 fn push_stepper(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    style: &WorkbenchTextFieldStyle,
 ) {
     let left = rect.x + rect.width - STEPPER_WIDTH;
     commands.push(HostPaintCommand::quad(
@@ -141,17 +154,12 @@ fn push_stepper(
         width: 10.0,
         height: 16.0,
     };
-    let color = if node.disabled {
-        PALETTE.text_disabled
-    } else {
-        PALETTE.text_muted
-    };
     push_segments(
         commands,
         &glyph,
         clip,
         order + 1,
-        color,
+        style.stepper,
         opacity,
         &[
             (4.0, 2.0, 2.0, 2.0),
@@ -163,49 +171,28 @@ fn push_stepper(
 }
 
 fn field_surface(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        FIELD_DISABLED_SURFACE
-    } else if node.focused || node.control_id.as_str() == "WorkbenchInputFocused" {
-        FIELD_FOCUSED_SURFACE
-    } else if node.pressed || node.hovered {
-        FIELD_HOVER_SURFACE
-    } else {
-        FIELD_SURFACE
-    }
+    field_style(node).surface
 }
 
 fn field_border(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        FIELD_DISABLED_BORDER
-    } else if matches!(node.validation_level.as_str(), "error" | "danger") {
-        PALETTE.error
-    } else if node.focused || node.control_id.as_str() == "WorkbenchInputFocused" {
-        declared_border_color(node).unwrap_or(FIELD_FOCUSED_BORDER)
-    } else if node.pressed {
-        PALETTE.focus_ring
-    } else if node.hovered {
-        PALETTE.border
-    } else {
-        declared_border_color(node).unwrap_or(FIELD_BORDER)
-    }
+    field_style(node).border
 }
 
 fn field_opacity(node: &TemplatePaneNodeData, inherited_opacity: f32) -> f32 {
     (inherited_opacity * node.button_style.element.opacity).clamp(0.0, 1.0)
 }
 
-fn declared_border_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    resolved_style_color(node.button_style.element.border_color.as_ref())
+fn field_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+    field_style(node).text
 }
 
-fn field_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        FIELD_DISABLED_TEXT
-    } else if field_label_is_placeholder(node) {
-        FIELD_PLACEHOLDER
-    } else {
-        FIELD_TEXT
-    }
+#[cfg(test)]
+fn field_visual_state(node: &TemplatePaneNodeData) -> UiPainterResolvedState {
+    field_style(node).state
+}
+
+fn field_style(node: &TemplatePaneNodeData) -> WorkbenchTextFieldStyle {
+    select_workbench_text_field_style(node, field_label_is_placeholder(node))
 }
 
 fn field_label(node: &TemplatePaneNodeData) -> String {
@@ -367,6 +354,31 @@ mod tests {
 
         assert!((field_opacity(&node, 1.0) - 0.94).abs() < 0.001);
         assert!((field_opacity(&node, 0.5) - 0.47).abs() < 0.001);
+    }
+
+    #[test]
+    fn workbench_field_selector_uses_shared_text_field_state_priority() {
+        let mut node =
+            positioned_field_node("WorkbenchInputText", "Text field", 12.0, 8.0, 170.0, 32.0);
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+
+        assert_eq!(field_visual_state(&node), UiPainterResolvedState::Pressed);
+        assert_eq!(field_surface(&node), FIELD_FOCUSED_SURFACE);
+
+        node.pressed = false;
+        assert_eq!(field_visual_state(&node), UiPainterResolvedState::Focused);
+        assert_eq!(field_border(&node), FIELD_FOCUSED_BORDER);
+
+        node.disabled = true;
+        assert_eq!(field_visual_state(&node), UiPainterResolvedState::Disabled);
+        assert_eq!(field_surface(&node), FIELD_DISABLED_SURFACE);
+        assert_eq!(field_text_color(&node), FIELD_DISABLED_TEXT);
+
+        let placeholder =
+            positioned_field_node("WorkbenchInputDisabled", "", 12.0, 8.0, 170.0, 32.0);
+        assert_eq!(field_text_color(&placeholder), FIELD_PLACEHOLDER);
     }
 
     #[test]

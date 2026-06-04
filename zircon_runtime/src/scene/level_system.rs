@@ -4,7 +4,9 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::animation::AnimationPoseOutput;
-use crate::core::framework::physics::{PhysicsContactEvent, PhysicsWorldStepPlan};
+use crate::core::framework::physics::{
+    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan,
+};
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
@@ -38,6 +40,7 @@ pub struct LevelSystem {
 struct WorldRuntimeState {
     physics_step_plan: Option<PhysicsWorldStepPlan>,
     physics_contacts: Vec<PhysicsContactEvent>,
+    physics_triggers: Vec<PhysicsTriggerEvent>,
     animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
     animation_graph_times: BTreeMap<EntityId, Real>,
     animation_state_machine_times: BTreeMap<EntityId, Real>,
@@ -109,14 +112,20 @@ impl LevelSystem {
         self.runtime_state.lock().unwrap().physics_contacts.clone()
     }
 
+    pub fn physics_triggers(&self) -> Vec<PhysicsTriggerEvent> {
+        self.runtime_state.lock().unwrap().physics_triggers.clone()
+    }
+
     pub fn record_physics_step(
         &self,
         physics_step_plan: PhysicsWorldStepPlan,
         physics_contacts: Vec<PhysicsContactEvent>,
+        physics_triggers: Vec<PhysicsTriggerEvent>,
     ) {
         let mut runtime_state = self.runtime_state.lock().unwrap();
         runtime_state.physics_step_plan = Some(physics_step_plan);
         runtime_state.physics_contacts = physics_contacts;
+        runtime_state.physics_triggers = physics_triggers;
     }
 
     pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {

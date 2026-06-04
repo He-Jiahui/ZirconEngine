@@ -9,6 +9,7 @@ struct SceneUniform {
 @group(1) @binding(0) var gbuffer_albedo_tex: texture_2d<f32>;
 @group(1) @binding(1) var normal_tex: texture_2d<f32>;
 @group(1) @binding(2) var background_tex: texture_2d<f32>;
+@group(1) @binding(3) var gbuffer_material_tex: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -37,9 +38,19 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
 
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
     let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
+    let material = textureLoad(gbuffer_material_tex, coord, 0);
+    let metallic = clamp(material.r, 0.0, 1.0);
+    let roughness = clamp(max(material.g, 0.04), 0.04, 1.0);
+    let occlusion = clamp(max(material.b, 0.0), 0.0, 1.0);
     let light_dir = normalize(-scene.light_dir.xyz);
+    let view_dir = vec3<f32>(0.0, 0.0, 1.0);
+    let half_dir = normalize(light_dir + view_dir);
     let lambert = max(dot(light_dir, normal), 0.0);
-    let lighting = scene.ambient_color.rgb + scene.light_color.rgb * lambert;
-    let color = albedo.rgb * lighting;
+    let specular_power = mix(96.0, 8.0, roughness);
+    let specular_strength = (1.0 - roughness) * mix(0.04, 1.0, metallic);
+    let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * specular_strength;
+    let lighting = (scene.ambient_color.rgb + scene.light_color.rgb * lambert) * occlusion;
+    let diffuse_color = albedo.rgb * mix(1.0, 0.55, metallic);
+    let color = diffuse_color * lighting + scene.light_color.rgb * specular;
     return vec4<f32>(color, albedo.a);
 }

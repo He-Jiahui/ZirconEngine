@@ -517,7 +517,7 @@ fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real
         host.refresh_ui();
     }
     for index in 0..10 {
-        harness.dispatch_menu_action(&format!("SavePreset.alpha-{index:02}"));
+        harness.dispatch_menu_action(&format!("workbench.layout.preset.save.alpha-{index:02}"));
     }
 
     let (click_x, click_y) = {

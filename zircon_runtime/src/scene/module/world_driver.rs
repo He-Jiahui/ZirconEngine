@@ -1,7 +1,7 @@
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::scene::ecs::SceneScheduleRunner;
-use crate::scene::{LevelSystem, SystemStage};
+use crate::scene::LevelSystem;
 
 #[derive(Debug, Default)]
 pub struct WorldDriver;
@@ -19,29 +19,11 @@ impl WorldDriver {
                 world.schedule().systems().to_vec(),
             )
         });
+        let hooks = core.scene_runtime_hooks_snapshot();
         for stage in stages {
-            let hooks = core.scene_runtime_hooks_for_stage(stage);
-            SceneScheduleRunner::run_stage(
-                core,
-                level,
-                stage,
-                delta_seconds,
-                systems_for_stage(&systems, stage),
-                hooks,
-            )?;
+            SceneScheduleRunner::run_stage(core, level, stage, delta_seconds, &systems, &hooks)?;
         }
 
         Ok(())
     }
-}
-
-fn systems_for_stage(
-    systems: &[crate::scene::ecs::SceneSystemDescriptor],
-    stage: SystemStage,
-) -> Vec<crate::scene::ecs::SceneSystemDescriptor> {
-    systems
-        .iter()
-        .filter(|system| system.stage == stage)
-        .cloned()
-        .collect()
 }

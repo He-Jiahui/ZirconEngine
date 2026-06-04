@@ -13,8 +13,8 @@ pub enum UiPipelineStage {
     A11yExtract,
     RenderExtract,
     BatchPrepare,
-    // Legacy stage names are still deserializable for archived diagnostics, but they are not part
-    // of the required Bevy-aligned runtime schedule order.
+    // Archived diagnostic V1 names stay deserializable for stored reports only.
+    // They are intentionally excluded from the Bevy-aligned runtime schedule order.
     FocusInteraction,
     ContentMeasure,
     PostLayoutStack,
@@ -24,6 +24,8 @@ pub enum UiPipelineStage {
 }
 
 impl UiPipelineStage {
+    pub const ARCHIVED_DIAGNOSTIC_FORMAT_VERSION: u16 = 1;
+
     pub const ORDER: [Self; 10] = [
         Self::InputCollect,
         Self::Focus,
@@ -37,8 +39,63 @@ impl UiPipelineStage {
         Self::BatchPrepare,
     ];
 
+    pub const ARCHIVED_DIAGNOSTIC_STAGES: [Self; 6] = [
+        Self::FocusInteraction,
+        Self::ContentMeasure,
+        Self::PostLayoutStack,
+        Self::HitGrid,
+        Self::PaintSubmit,
+        Self::Diagnostics,
+    ];
+
     pub const fn ordered() -> &'static [Self; 10] {
         &Self::ORDER
+    }
+
+    pub const fn archived_diagnostic_stages() -> &'static [Self; 6] {
+        &Self::ARCHIVED_DIAGNOSTIC_STAGES
+    }
+
+    pub const fn is_runtime_schedule_stage(self) -> bool {
+        match self {
+            Self::InputCollect
+            | Self::Focus
+            | Self::WidgetBehavior
+            | Self::TextMeasure
+            | Self::Layout
+            | Self::PostLayout
+            | Self::Picking
+            | Self::A11yExtract
+            | Self::RenderExtract
+            | Self::BatchPrepare => true,
+            Self::FocusInteraction
+            | Self::ContentMeasure
+            | Self::PostLayoutStack
+            | Self::HitGrid
+            | Self::PaintSubmit
+            | Self::Diagnostics => false,
+        }
+    }
+
+    pub const fn is_archived_diagnostic_stage(self) -> bool {
+        match self {
+            Self::FocusInteraction
+            | Self::ContentMeasure
+            | Self::PostLayoutStack
+            | Self::HitGrid
+            | Self::PaintSubmit
+            | Self::Diagnostics => true,
+            Self::InputCollect
+            | Self::Focus
+            | Self::WidgetBehavior
+            | Self::TextMeasure
+            | Self::Layout
+            | Self::PostLayout
+            | Self::Picking
+            | Self::A11yExtract
+            | Self::RenderExtract
+            | Self::BatchPrepare => false,
+        }
     }
 
     pub const fn as_str(self) -> &'static str {

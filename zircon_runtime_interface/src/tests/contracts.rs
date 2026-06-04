@@ -13,11 +13,12 @@ use crate::{
             UiComponentEmissionPolicy, UiComponentEventReport, UiDeviceId, UiDispatchAppliedEffect,
             UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequest,
             UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchRejectedEffect, UiDispatchReply,
-            UiDispatchReplyStep, UiDragDropEffectKind, UiDragDropInputEvent,
-            UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason, UiImeInputEvent,
-            UiImeInputEventKind, UiInputDispatchDiagnostics, UiInputDispatchResult, UiInputEvent,
-            UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
-            UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputRoutePolicy,
+            UiDispatchReplyStep, UiDispatchReplyStepTrace, UiDragDropEffectKind,
+            UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
+            UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics,
+            UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
+            UiInputMethodRequestKind, UiInputMethodSurroundingText,
+            UiInputMethodSurroundingTextError, UiInputRoutePolicy, UiInputRouteTrace,
             UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
             UiNavigationInputEvent, UiNavigationRequestPolicy, UiPointerCaptureReason,
             UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchContext,
@@ -1856,6 +1857,22 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             handled_phase: Some("bubble".to_string()),
             route_policy: UiInputRoutePolicy::Bubble,
             route_target: Some(target),
+            route_trace: UiInputRouteTrace {
+                preview_tunnel: vec![target],
+                target: Some(target),
+                bubble_path: vec![target],
+                focus_path: vec![target],
+                ..UiInputRouteTrace::default()
+            },
+            route_steps: vec![UiDispatchReplyStepTrace {
+                phase: UiDispatchPhase::Bubble,
+                target: Some(target),
+                handler: Some(target),
+                disposition: UiDispatchDisposition::Handled,
+                effect_start: 0,
+                effect_count: 1,
+                stopped: true,
+            }],
             blocked_by: None,
             notes: vec!["handled".to_string()],
         },
@@ -1906,6 +1923,19 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(result.reply.effects.len(), effects.len());
     assert!(result.diagnostics.routed);
+    assert_eq!(result.diagnostics.route_steps.len(), 1);
+    assert_eq!(
+        result.diagnostics.route_steps[0].phase,
+        UiDispatchPhase::Bubble
+    );
+    let mut legacy_result_json = serde_json::to_value(&result).unwrap();
+    legacy_result_json
+        .get_mut("diagnostics")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap()
+        .remove("route_steps");
+    let legacy_result: UiInputDispatchResult = serde_json::from_value(legacy_result_json).unwrap();
+    assert!(legacy_result.diagnostics.route_steps.is_empty());
     assert_eq!(
         UiDispatchReply::unhandled().disposition,
         UiDispatchDisposition::Unhandled
@@ -1973,6 +2003,34 @@ fn ui_dispatch_reply_merge_records_phase_handler_and_stops_route() {
     assert_eq!(report.reply.phase, Some(UiDispatchPhase::Target));
     assert_eq!(report.reply.effects.len(), 2);
     assert!(report.reply.stops_propagation());
+    assert_eq!(report.steps.len(), 3);
+    assert_eq!(report.steps[0].phase, UiDispatchPhase::Preprocess);
+    assert_eq!(report.steps[0].target, None);
+    assert_eq!(report.steps[0].handler, None);
+    assert_eq!(
+        report.steps[0].disposition,
+        UiDispatchDisposition::Unhandled
+    );
+    assert_eq!(report.steps[0].effect_start, 0);
+    assert_eq!(report.steps[0].effect_count, 0);
+    assert!(!report.steps[0].stopped);
+    assert_eq!(report.steps[1].phase, UiDispatchPhase::PreviewTunnel);
+    assert_eq!(report.steps[1].target, Some(root));
+    assert_eq!(report.steps[1].handler, Some(root));
+    assert_eq!(
+        report.steps[1].disposition,
+        UiDispatchDisposition::Passthrough
+    );
+    assert_eq!(report.steps[1].effect_start, 0);
+    assert_eq!(report.steps[1].effect_count, 1);
+    assert!(!report.steps[1].stopped);
+    assert_eq!(report.steps[2].phase, UiDispatchPhase::Target);
+    assert_eq!(report.steps[2].target, Some(field));
+    assert_eq!(report.steps[2].handler, Some(field));
+    assert_eq!(report.steps[2].disposition, UiDispatchDisposition::Handled);
+    assert_eq!(report.steps[2].effect_start, 1);
+    assert_eq!(report.steps[2].effect_count, 1);
+    assert!(report.steps[2].stopped);
 }
 
 #[test]

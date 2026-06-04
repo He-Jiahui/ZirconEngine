@@ -562,6 +562,7 @@ fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>
         "PerformanceTimeline" => Some(&pane.performance_timeline.nodes),
         "ModulePlugins" => Some(&pane.module_plugins.nodes),
         "BuildExport" => Some(&pane.build_export.nodes),
+        "GeneratedBottom" => Some(&pane.generated_bottom.nodes),
         "UiAssetEditor" => Some(&pane.ui_asset.nodes),
         "AnimationSequenceEditor" | "AnimationGraphEditor" => Some(&pane.animation.nodes),
         _ => None,
@@ -908,7 +909,7 @@ mod tests {
             .project_overview
             .nodes = ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
             control_id: "OffClipAction".into(),
-            action_id: "Project/OffClipAction".into(),
+            action_id: "workbench.project.off_clip_action".into(),
             frame: super::super::data::TemplateNodeFrameData {
                 x: 120.0,
                 y: 120.0,

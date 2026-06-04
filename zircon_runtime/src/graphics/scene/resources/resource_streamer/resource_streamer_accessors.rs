@@ -21,12 +21,11 @@ use crate::core::framework::render::{
     RenderMaterialManagementRecordSummary, RenderMaterialManagementSelection,
     RenderMaterialManagementSnapshot, RenderMaterialManagementSortOrder,
     RenderMaterialManagementStatusIndex, RenderMaterialManagementStatusView,
-    RenderMaterialPreparedState,
-    RenderMaterialPropertyUniformField, RenderMaterialPropertyUniformSummary,
-    RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyValueState,
-    RenderMaterialPropertyValueSummary, RenderMaterialReadinessReport,
-    RenderMaterialReadinessStatus, RenderMaterialReadinessSummary, RenderMaterialTextureSlotState,
-    RenderMaterialTextureSlotSummary,
+    RenderMaterialPreparedState, RenderMaterialPropertyUniformField,
+    RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,
+    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
+    RenderMaterialReadinessReport, RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
+    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;

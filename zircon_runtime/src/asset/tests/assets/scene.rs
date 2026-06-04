@@ -314,6 +314,8 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                 axis: [0.0, 1.0, 0.0],
                 limits: Some([-0.5, 0.5]),
                 collide_connected: false,
+                constraint: Default::default(),
+                skeleton_binding: None,
             }),
             animation_skeleton: Some(SceneAnimationSkeletonAsset {
                 skeleton: AssetReference::new(
@@ -695,6 +697,8 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
         axis: [0.0, 1.0, 0.0],
         limits: None,
         collide_connected: false,
+        constraint: Default::default(),
+        skeleton_binding: None,
     });
     hero_entity.animation_graph_player = Some(SceneAnimationGraphPlayerAsset {
         graph: animation_graph.clone(),

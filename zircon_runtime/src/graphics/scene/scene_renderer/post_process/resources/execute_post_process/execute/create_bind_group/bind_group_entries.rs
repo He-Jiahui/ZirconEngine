@@ -7,6 +7,7 @@ pub(super) fn bind_group_entries<'a>(
     scene_color_view: &'a wgpu::TextureView,
     scene_depth_view: &'a wgpu::TextureView,
     scene_normal_view: &'a wgpu::TextureView,
+    scene_material_view: Option<&'a wgpu::TextureView>,
     ao_view: &'a wgpu::TextureView,
     previous_scene_color_view: Option<&'a wgpu::TextureView>,
     previous_global_illumination_view: Option<&'a wgpu::TextureView>,
@@ -14,7 +15,7 @@ pub(super) fn bind_group_entries<'a>(
     effect_lut_view: &'a wgpu::TextureView,
     effect_lut_3d_view: &'a wgpu::TextureView,
     cluster_buffer: &'a wgpu::Buffer,
-) -> [wgpu::BindGroupEntry<'a>; 16] {
+) -> [wgpu::BindGroupEntry<'a>; 17] {
     let scene_depth_binding_view = match resources.depth_sampling_mode {
         PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
         PostProcessDepthSamplingMode::ViewportDepthFallback => &resources.black_texture_view,
@@ -88,6 +89,12 @@ pub(super) fn bind_group_entries<'a>(
         wgpu::BindGroupEntry {
             binding: 15,
             resource: wgpu::BindingResource::Sampler(&resources.scene_depth_sampler),
+        },
+        wgpu::BindGroupEntry {
+            binding: 16,
+            resource: wgpu::BindingResource::TextureView(
+                scene_material_view.unwrap_or(&resources.black_texture_view),
+            ),
         },
     ]
 }

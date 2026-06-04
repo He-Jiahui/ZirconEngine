@@ -11,6 +11,7 @@ pub enum PanePayload {
     PerformanceTimelineV1(PerformanceTimelinePanePayload),
     ModulePluginsV1(ModulePluginsPanePayload),
     BuildExportV1(BuildExportPanePayload),
+    GeneratedBottomV1(GeneratedBottomPanePayload),
     UiComponentShowcaseV1(UiComponentShowcasePanePayload),
 }
 
@@ -216,6 +217,11 @@ pub struct BuildExportTargetPayload {
     pub generated_files: String,
     pub diagnostics: String,
     pub fatal: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeneratedBottomPanePayload {
+    pub status: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

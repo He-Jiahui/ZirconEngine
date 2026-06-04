@@ -1,21 +1,18 @@
 use std::os::raw::c_void;
 use std::ptr::NonNull;
-use std::slice;
 
 use zircon_runtime::asset::NavMeshAsset;
-use zircon_runtime::core::framework::navigation::{
-    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus,
-};
+use zircon_runtime::core::framework::navigation::{NavPathQuery, NavPathResult};
 use zircon_runtime::core::math::Real;
 
+use crate::asset_ffi::{detour_area_costs, detour_off_mesh_links, detour_polygons, flat_vertices};
+use crate::detour_result::convert_path_result;
 use crate::ffi::{
-    self, ZrNavDetourAreaCost, ZrNavDetourOffMeshLink, ZrNavDetourPathResult,
-    ZrNavDetourTileCacheCreateResult, ZrNavDetourTileCacheObstacle, ZrNavRecastBakePolygon,
+    self, ZrNavDetourPathResult, ZrNavDetourTileCacheCreateResult, ZrNavDetourTileCacheObstacle,
 };
 
 const ZR_NAV_DETOUR_OK: u32 = 1;
 const ZR_NAV_DETOUR_NO_PATH: u32 = 2;
-const DT_STRAIGHTPATH_OFFMESH_CONNECTION: u8 = 0x04;
 const ZR_NAV_TILE_CACHE_SHAPE_CYLINDER: u8 = 0;
 const ZR_NAV_TILE_CACHE_SHAPE_BOX: u8 = 1;
 
@@ -143,73 +140,6 @@ impl Drop for TileCacheQuery {
     }
 }
 
-fn convert_path_result(result: &ZrNavDetourPathResult) -> Option<NavPathResult> {
-    if result.points.is_null() || result.point_count == 0 {
-        return None;
-    }
-    let points = unsafe { slice::from_raw_parts(result.points, result.point_count as usize) }
-        .iter()
-        .map(|point| NavPathPoint {
-            position: point.position,
-            area: point.area,
-            flags: path_point_flags(point.flags),
-        })
-        .collect::<Vec<_>>();
-    Some(NavPathResult {
-        status: NavPathStatus::Complete,
-        points,
-        length: result.length,
-        visited_nodes: (result.visited_nodes as usize).max(1),
-    })
-}
-
-fn flat_vertices(asset: &NavMeshAsset) -> Vec<Real> {
-    let mut vertices = Vec::with_capacity(asset.vertices.len() * 3);
-    for vertex in &asset.vertices {
-        vertices.extend_from_slice(vertex);
-    }
-    vertices
-}
-
-fn detour_polygons(asset: &NavMeshAsset) -> Vec<ZrNavRecastBakePolygon> {
-    asset
-        .polygons
-        .iter()
-        .map(|polygon| ZrNavRecastBakePolygon {
-            first_index: polygon.first_index,
-            index_count: polygon.index_count,
-            area: polygon.area,
-            tile: polygon.tile,
-        })
-        .collect()
-}
-
-fn detour_area_costs(asset: &NavMeshAsset) -> Vec<ZrNavDetourAreaCost> {
-    asset
-        .area_costs
-        .iter()
-        .map(|cost| ZrNavDetourAreaCost {
-            area: cost.area,
-            cost: cost.cost,
-            walkable: u8::from(cost.walkable),
-        })
-        .collect()
-}
-
-fn detour_off_mesh_links(asset: &NavMeshAsset) -> Vec<ZrNavDetourOffMeshLink> {
-    asset
-        .off_mesh_links
-        .iter()
-        .map(|link| ZrNavDetourOffMeshLink {
-            start: link.start,
-            end: link.end,
-            radius: link.width.max(0.05),
-            bidirectional: u8::from(link.bidirectional),
-            area: link.area,
-        })
-        .collect()
-}
-
 fn detour_obstacles(obstacles: &[RecastNavigationObstacle]) -> Vec<ZrNavDetourTileCacheObstacle> {
     obstacles
         .iter()
@@ -224,11 +154,4 @@ fn detour_obstacles(obstacles: &[RecastNavigationObstacle]) -> Vec<ZrNavDetourTi
             },
         })
         .collect()
-}
-
-fn path_point_flags(flags: u8) -> Vec<String> {
-    if flags & DT_STRAIGHTPATH_OFFMESH_CONNECTION == 0 {
-        return Vec::new();
-    }
-    vec!["off_mesh_link".to_string()]
 }

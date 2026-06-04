@@ -8,22 +8,22 @@ pub(super) fn demo_input_for_showcase_edit(
     action_id: &str,
     value: &str,
 ) -> UiComponentShowcaseDemoEventInput {
-    if action_id.contains("ContextActionMenuOpenAt") {
+    if action_matches(action_id, "context_action_menu_open_at") {
         if let Some((x, y)) = parse_popup_anchor(value) {
             return UiComponentShowcaseDemoEventInput::OpenPopupAt { x, y };
         }
     }
-    if action_id.contains("VirtualListScrolled") {
+    if action_matches(action_id, "virtual_list_scrolled") {
         if let Some(input) = parse_virtual_list_range(value) {
             return input;
         }
     }
-    if action_id.contains("PagedList") {
+    if action_matches(action_id, "paged_list") {
         if let Some(input) = parse_paged_list_request(value) {
             return input;
         }
     }
-    if action_id.contains("ArrayFieldRemoveElement") {
+    if action_matches(action_id, "array_field_remove_element") {
         if let Some(index) = value
             .strip_prefix("array-")
             .and_then(|index| index.parse::<usize>().ok())
@@ -31,7 +31,7 @@ pub(super) fn demo_input_for_showcase_edit(
             return UiComponentShowcaseDemoEventInput::RemoveElement { index };
         }
     }
-    if action_id.contains("ArrayFieldMoveElement") {
+    if action_matches(action_id, "array_field_move_element") {
         if let Some((row_id, to)) = value.split_once('=') {
             if let (Some(from), Some(to)) = (
                 row_id
@@ -43,7 +43,7 @@ pub(super) fn demo_input_for_showcase_edit(
             }
         }
     }
-    if action_id.contains("ArrayFieldSetElement") {
+    if action_matches(action_id, "array_field_set_element") {
         if let Some((row_id, value)) = value.split_once('=') {
             if let Some(index) = row_id
                 .strip_prefix("array-")
@@ -56,14 +56,14 @@ pub(super) fn demo_input_for_showcase_edit(
             }
         }
     }
-    if action_id.contains("MapFieldRemoveEntry") {
+    if action_matches(action_id, "map_field_remove_entry") {
         if let Some(key) = value.strip_prefix("map-") {
             return UiComponentShowcaseDemoEventInput::RemoveMapEntry {
                 key: key.to_string(),
             };
         }
     }
-    if action_id.contains("MapFieldSetEntry") {
+    if action_matches(action_id, "map_field_set_entry") {
         if let Some((row_id, value)) = value.split_once('=') {
             if let Some(key) = row_id.strip_prefix("key:map-") {
                 return UiComponentShowcaseDemoEventInput::RenameMapEntry {
@@ -79,14 +79,15 @@ pub(super) fn demo_input_for_showcase_edit(
             }
         }
     }
-    let value = if action_id.contains("NumberField") || action_id.contains("RangeField") {
-        value
-            .parse::<f64>()
-            .map(UiValue::Float)
-            .unwrap_or_else(|_| UiValue::String(value.to_string()))
-    } else {
-        UiValue::String(value.to_string())
-    };
+    let value =
+        if action_matches(action_id, "number_field") || action_matches(action_id, "range_field") {
+            value
+                .parse::<f64>()
+                .map(UiValue::Float)
+                .unwrap_or_else(|_| UiValue::String(value.to_string()))
+        } else {
+            UiValue::String(value.to_string())
+        };
     UiComponentShowcaseDemoEventInput::Value(value)
 }
 
@@ -95,58 +96,69 @@ pub(super) fn demo_input_for_showcase_action(
     action_id: &str,
 ) -> UiComponentShowcaseDemoEventInput {
     match action_id {
-        action if action.contains("NumberFieldDragUpdate") => {
+        action if action_matches(action, "number_field_drag_update") => {
             UiComponentShowcaseDemoEventInput::DragDelta(5.0)
         }
-        action if action.contains("NumberFieldLargeDragUpdate") => {
+        action if action_matches(action, "number_field_large_drag_update") => {
             UiComponentShowcaseDemoEventInput::LargeDragDelta(1.0)
         }
-        action if action.contains("NumberFieldChanged") => {
+        action if action_matches(action, "number_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(47.0))
         }
-        action if action.contains("RangeFieldChanged") => {
+        action if action_matches(action, "range_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(72.0))
         }
-        action if action.contains("ColorFieldChanged") => {
+        action if action_matches(action, "color_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Color("#ffcc33".to_string()))
         }
-        action if action.contains("Vector2FieldChanged") => {
+        action if action_matches(action, "vector2_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Vec2([16.0, 32.0]))
         }
-        action if action.contains("Vector3FieldChanged") => {
+        action if action_matches(action, "vector3_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Vec3([3.0, 4.0, 5.0]))
         }
-        action if action.contains("Vector4FieldChanged") => {
+        action if action_matches(action, "vector4_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Vec4([0.25, 0.5, 0.75, 1.0]))
         }
-        action if action.contains("InputField") => UiComponentShowcaseDemoEventInput::Value(
-            UiValue::String("Runtime UI event".to_string()),
-        ),
-        action if action.contains("TextField") => UiComponentShowcaseDemoEventInput::Value(
+        action if action_matches(action, "input_field") => {
+            UiComponentShowcaseDemoEventInput::Value(UiValue::String(
+                "Runtime UI event".to_string(),
+            ))
+        }
+        action if action_matches(action, "text_field") => UiComponentShowcaseDemoEventInput::Value(
             UiValue::String("Runtime UI event-driven text".to_string()),
         ),
-        action if action.contains("ToggleButtonChanged") || action.contains("CheckboxChanged") => {
+        action
+            if action_matches(action, "toggle_button_changed")
+                || action_matches(action, "checkbox_changed") =>
+        {
             UiComponentShowcaseDemoEventInput::Toggle(false)
         }
-        action if action.contains("RadioChanged") => {
+        action if action_matches(action, "radio_changed") => {
             UiComponentShowcaseDemoEventInput::Toggle(true)
         }
-        action if action.contains("SegmentedControlChanged") => select_option("rotate", true),
-        action if action.contains("DropdownChanged") => select_option("editor", true),
-        action if action.contains("ComboBoxChanged") => select_option("native", true),
-        action if action.contains("EnumFieldChanged") => select_option("UnityInspector", true),
-        action if action.contains("FlagsFieldChanged") => select_option("Disabled", true),
-        action if action.contains("SearchSelectChanged") => {
+        action if action_matches(action, "segmented_control_changed") => {
+            select_option("rotate", true)
+        }
+        action if action_matches(action, "dropdown_changed") => select_option("editor", true),
+        action if action_matches(action, "combo_box_changed") => select_option("native", true),
+        action if action_matches(action, "enum_field_changed") => {
+            select_option("UnityInspector", true)
+        }
+        action if action_matches(action, "flags_field_changed") => select_option("Disabled", true),
+        action if action_matches(action, "search_select_changed") => {
             select_option("runtime.ui.RangeField", true)
         }
-        action if action.contains("SearchSelectQueryChanged") => {
+        action if action_matches(action, "search_select_query_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::String("vector".to_string()))
         }
-        action if action.contains("ContextActionMenuOpenAt") => {
+        action if action_matches(action, "context_action_menu_open_at") => {
             UiComponentShowcaseDemoEventInput::OpenPopupAt { x: 184.0, y: 88.0 }
         }
-        action if action.contains("ContextActionMenuChanged") => select_option("Open Source", true),
-        action if action.contains("AssetFieldDropped") => {
+        action if action_matches(action, "context_action_menu_changed") => {
+            select_option("Open Source", true)
+        }
+        action if action_matches(action, "asset_field_dropped") => {
             UiComponentShowcaseDemoEventInput::DropReference {
                 payload: UiDragPayload::new(
                     UiDragPayloadKind::Asset,
@@ -155,13 +167,13 @@ pub(super) fn demo_input_for_showcase_action(
             }
         }
         action
-            if action.contains("AssetFieldClear")
-                || action.contains("AssetFieldLocate")
-                || action.contains("AssetFieldOpen") =>
+            if action_matches(action, "asset_field_clear")
+                || action_matches(action, "asset_field_locate")
+                || action_matches(action, "asset_field_open") =>
         {
             UiComponentShowcaseDemoEventInput::None
         }
-        action if action.contains("InstanceFieldDropped") => {
+        action if action_matches(action, "instance_field_dropped") => {
             UiComponentShowcaseDemoEventInput::DropReference {
                 payload: UiDragPayload::new(
                     UiDragPayloadKind::SceneInstance,
@@ -169,7 +181,7 @@ pub(super) fn demo_input_for_showcase_action(
                 ),
             }
         }
-        action if action.contains("ObjectFieldDropped") => {
+        action if action_matches(action, "object_field_dropped") => {
             UiComponentShowcaseDemoEventInput::DropReference {
                 payload: UiDragPayload::new(
                     UiDragPayloadKind::Object,
@@ -177,73 +189,75 @@ pub(super) fn demo_input_for_showcase_action(
                 ),
             }
         }
-        action if action.contains("GroupToggled") => {
+        action if action_matches(action, "group_toggled") => {
             UiComponentShowcaseDemoEventInput::Toggle(false)
         }
-        action if action.contains("FoldoutToggled") => {
+        action if action_matches(action, "foldout_toggled") => {
             UiComponentShowcaseDemoEventInput::Toggle(true)
         }
-        action if action.contains("InspectorSectionToggled") => {
+        action if action_matches(action, "inspector_section_toggled") => {
             UiComponentShowcaseDemoEventInput::Toggle(false)
         }
-        action if action.contains("TreeRowToggled") => {
+        action if action_matches(action, "tree_row_toggled") => {
             UiComponentShowcaseDemoEventInput::Toggle(false)
         }
-        action if action.contains("ArrayFieldAddElement") => {
+        action if action_matches(action, "array_field_add_element") => {
             UiComponentShowcaseDemoEventInput::AddElement {
                 value: UiValue::String("MapField".to_string()),
             }
         }
-        action if action.contains("ArrayFieldSetElement") => {
+        action if action_matches(action, "array_field_set_element") => {
             UiComponentShowcaseDemoEventInput::SetElement {
                 index: 1,
                 value: UiValue::String("Vector3Field".to_string()),
             }
         }
-        action if action.contains("ArrayFieldRemoveElement") => {
+        action if action_matches(action, "array_field_remove_element") => {
             UiComponentShowcaseDemoEventInput::RemoveElement { index: 0 }
         }
-        action if action.contains("ArrayFieldMoveElement") => {
+        action if action_matches(action, "array_field_move_element") => {
             UiComponentShowcaseDemoEventInput::MoveElement { from: 0, to: 1 }
         }
-        action if action.contains("MapFieldAddEntry") => {
+        action if action_matches(action, "map_field_add_entry") => {
             UiComponentShowcaseDemoEventInput::AddMapEntry {
                 key: "layer".to_string(),
                 value: UiValue::String("Editor".to_string()),
             }
         }
-        action if action.contains("MapFieldSetEntry") => {
+        action if action_matches(action, "map_field_set_entry") => {
             UiComponentShowcaseDemoEventInput::SetMapEntry {
                 key: "speed".to_string(),
                 value: UiValue::Float(2.5),
             }
         }
-        action if action.contains("MapFieldRemoveEntry") => {
+        action if action_matches(action, "map_field_remove_entry") => {
             UiComponentShowcaseDemoEventInput::RemoveMapEntry {
                 key: "speed".to_string(),
             }
         }
-        action if action.contains("ListRowClicked") => UiComponentShowcaseDemoEventInput::None,
-        action if action.contains("VirtualListScrolled") => {
+        action if action_matches(action, "list_row_clicked") => {
+            UiComponentShowcaseDemoEventInput::None
+        }
+        action if action_matches(action, "virtual_list_scrolled") => {
             UiComponentShowcaseDemoEventInput::SetVisibleRange {
                 start: 240,
                 count: DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
             }
         }
-        action if action.contains("PagedListNextPage") => {
+        action if action_matches(action, "paged_list_next_page") => {
             UiComponentShowcaseDemoEventInput::SetPage {
                 page_index: 1,
                 page_size: DEFAULT_PAGED_LIST_PAGE_SIZE,
             }
         }
-        action if action.contains("WorldSpaceSurfaceMoved") => {
+        action if action_matches(action, "world_space_surface_moved") => {
             UiComponentShowcaseDemoEventInput::SetWorldTransform {
                 position: [1.0, 2.0, 4.0],
                 rotation: [0.0, 180.0, 0.0],
                 scale: [1.0, 1.0, 1.0],
             }
         }
-        action if action.contains("WorldSpaceSurfaceConfigured") => {
+        action if action_matches(action, "world_space_surface_configured") => {
             UiComponentShowcaseDemoEventInput::SetWorldSurface {
                 size: [2.5, 1.25],
                 pixels_per_meter: 256.0,
@@ -253,11 +267,42 @@ pub(super) fn demo_input_for_showcase_action(
                 camera_target: "viewport-main".to_string(),
             }
         }
-        action if action.contains("Show") && control_id.starts_with("ComponentShowcase") => {
+        action if action_matches(action, "show") && control_id.starts_with("ComponentShowcase") => {
             UiComponentShowcaseDemoEventInput::None
         }
         _ => UiComponentShowcaseDemoEventInput::None,
     }
+}
+
+fn action_matches(action_id: &str, needle: &str) -> bool {
+    action_key(action_id).contains(needle)
+}
+
+fn action_key(action_id: &str) -> String {
+    action_id
+        .split(['/', '.', ':'])
+        .filter(|segment| !segment.is_empty())
+        .map(camel_to_snake_segment)
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn camel_to_snake_segment(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 fn parse_collection_edit_value(value: &str) -> UiValue {
@@ -347,7 +392,7 @@ mod tests {
     fn showcase_edit_input_maps_collection_row_payloads_to_typed_events() {
         assert_eq!(
             demo_input_for_showcase_edit(
-                "UiComponentShowcase/ArrayFieldSetElement",
+                "ui_component_showcase.array_field_set_element",
                 "array-0=Vector3Field",
             ),
             UiComponentShowcaseDemoEventInput::SetElement {
@@ -356,7 +401,10 @@ mod tests {
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/MapFieldSetEntry", "map-speed=2.5"),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.map_field_set_entry",
+                "map-speed=2.5"
+            ),
             UiComponentShowcaseDemoEventInput::SetMapEntry {
                 key: "speed".to_string(),
                 value: UiValue::Float(2.5),
@@ -364,7 +412,7 @@ mod tests {
         );
         assert_eq!(
             demo_input_for_showcase_edit(
-                "UiComponentShowcase/MapFieldSetEntry",
+                "ui_component_showcase.map_field_set_entry",
                 "map-visible=false"
             ),
             UiComponentShowcaseDemoEventInput::SetMapEntry {
@@ -374,7 +422,7 @@ mod tests {
         );
         assert_eq!(
             demo_input_for_showcase_edit(
-                "UiComponentShowcase/MapFieldSetEntry",
+                "ui_component_showcase.map_field_set_entry",
                 "key:map-speed=velocity",
             ),
             UiComponentShowcaseDemoEventInput::RenameMapEntry {
@@ -383,29 +431,44 @@ mod tests {
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/ArrayFieldMoveElement", "array-2=1",),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.array_field_move_element",
+                "array-2=1",
+            ),
             UiComponentShowcaseDemoEventInput::MoveElement { from: 2, to: 1 }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/ArrayFieldRemoveElement", "array-1",),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.array_field_remove_element",
+                "array-1",
+            ),
             UiComponentShowcaseDemoEventInput::RemoveElement { index: 1 }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/MapFieldRemoveEntry", "map-visible",),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.map_field_remove_entry",
+                "map-visible",
+            ),
             UiComponentShowcaseDemoEventInput::RemoveMapEntry {
                 key: "visible".to_string(),
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/ContextActionMenuOpenAt", "212,96",),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.context_action_menu_open_at",
+                "212,96",
+            ),
             UiComponentShowcaseDemoEventInput::OpenPopupAt { x: 212.0, y: 96.0 }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/InputFieldCommitted", "committed"),
+            demo_input_for_showcase_edit(
+                "ui_component_showcase.input_field_committed",
+                "committed"
+            ),
             UiComponentShowcaseDemoEventInput::Value(UiValue::String("committed".to_string()))
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/NumberFieldCommitted", "51"),
+            demo_input_for_showcase_edit("ui_component_showcase.number_field_committed", "51"),
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(51.0))
         );
     }
@@ -414,7 +477,7 @@ mod tests {
     fn showcase_edit_input_maps_virtual_list_scroll_payload_to_visible_range() {
         assert_eq!(
             demo_input_for_showcase_edit(
-                "UiComponentShowcase/VirtualListScrolled",
+                "ui_component_showcase.virtual_list_scrolled",
                 "start=512,count=48",
             ),
             UiComponentShowcaseDemoEventInput::SetVisibleRange {
@@ -423,14 +486,14 @@ mod tests {
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/VirtualListScrolled", "128,24",),
+            demo_input_for_showcase_edit("ui_component_showcase.virtual_list_scrolled", "128,24"),
             UiComponentShowcaseDemoEventInput::SetVisibleRange {
                 start: 128,
                 count: 24,
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/VirtualListScrolled", "240",),
+            demo_input_for_showcase_edit("ui_component_showcase.virtual_list_scrolled", "240"),
             UiComponentShowcaseDemoEventInput::SetVisibleRange {
                 start: 240,
                 count: DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
@@ -442,7 +505,7 @@ mod tests {
     fn showcase_edit_input_maps_paged_list_payload_to_page_request() {
         assert_eq!(
             demo_input_for_showcase_edit(
-                "UiComponentShowcase/PagedListNextPage",
+                "ui_component_showcase.paged_list_next_page",
                 "page=3,size=100",
             ),
             UiComponentShowcaseDemoEventInput::SetPage {
@@ -451,14 +514,14 @@ mod tests {
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/PagedListGoToPage", "4,50",),
+            demo_input_for_showcase_edit("ui_component_showcase.paged_list_go_to_page", "4,50"),
             UiComponentShowcaseDemoEventInput::SetPage {
                 page_index: 4,
                 page_size: 50,
             }
         );
         assert_eq!(
-            demo_input_for_showcase_edit("UiComponentShowcase/PagedListPreviousPage", "2",),
+            demo_input_for_showcase_edit("ui_component_showcase.paged_list_previous_page", "2"),
             UiComponentShowcaseDemoEventInput::SetPage {
                 page_index: 2,
                 page_size: DEFAULT_PAGED_LIST_PAGE_SIZE,

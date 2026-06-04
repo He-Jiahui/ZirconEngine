@@ -27,20 +27,20 @@ fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
     assert!(matches!(
         scene,
         UiControlResponse::Node(Some(node))
-            if node.actions["focus_view"].callable_from_remote
-                && node.actions["focus_view"].route_id.is_some()
-                && node.actions["detach_to_window"].callable_from_remote
-                && node.actions["detach_to_window"].route_id.is_some()
-                && node.actions["pointer_move"].callable_from_remote
-                && node.actions["pointer_move"].route_id.is_some()
-                && node.actions["left_press"].callable_from_remote
-                && node.actions["left_press"].route_id.is_some()
-                && node.actions["left_release"].callable_from_remote
-                && node.actions["left_release"].route_id.is_some()
-                && node.actions["scroll"].callable_from_remote
-                && node.actions["scroll"].route_id.is_some()
-                && node.actions["resize"].callable_from_remote
-                && node.actions["resize"].route_id.is_some()
+            if node.actions["workbench.view.focus"].callable_from_remote
+                && node.actions["workbench.view.focus"].route_id.is_some()
+                && node.actions["workbench.view.detach_to_window"].callable_from_remote
+                && node.actions["workbench.view.detach_to_window"].route_id.is_some()
+                && node.actions["workbench.viewport.pointer.move"].callable_from_remote
+                && node.actions["workbench.viewport.pointer.move"].route_id.is_some()
+                && node.actions["workbench.viewport.pointer.left.press"].callable_from_remote
+                && node.actions["workbench.viewport.pointer.left.press"].route_id.is_some()
+                && node.actions["workbench.viewport.pointer.left.release"].callable_from_remote
+                && node.actions["workbench.viewport.pointer.left.release"].route_id.is_some()
+                && node.actions["workbench.viewport.scroll"].callable_from_remote
+                && node.actions["workbench.viewport.scroll"].route_id.is_some()
+                && node.actions["workbench.viewport.resize"].callable_from_remote
+                && node.actions["workbench.viewport.resize"].route_id.is_some()
     ));
 
     let inspector = service.handle_request(UiControlRequest::QueryNode {
@@ -49,12 +49,12 @@ fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
     assert!(matches!(
         inspector,
         UiControlResponse::Node(Some(node))
-            if node.actions["apply_batch"].callable_from_remote
-                && node.actions["apply_batch"].route_id.is_some()
-                && node.actions["edit_field"].callable_from_remote
-                && node.actions["edit_field"].route_id.is_some()
-                && node.actions["create_animation_track"].callable_from_remote
-                && node.actions["create_animation_track"].route_id.is_some()
+            if node.actions["inspector.apply_batch.invoke"].callable_from_remote
+                && node.actions["inspector.apply_batch.invoke"].route_id.is_some()
+                && node.actions["inspector.field.edit"].callable_from_remote
+                && node.actions["inspector.field.edit"].route_id.is_some()
+                && node.actions["animation.track.create"].callable_from_remote
+                && node.actions["animation.track.create"].route_id.is_some()
     ));
 
     let assets = service.handle_request(UiControlRequest::QueryNode {
@@ -63,9 +63,9 @@ fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
     assert!(matches!(
         assets,
         UiControlResponse::Node(Some(node))
-            if node.actions["set_mesh_import_path"].callable_from_remote
-                && node.actions["set_mesh_import_path"].route_id.is_some()
-                && node.actions["import_model"].callable_from_remote
-                && node.actions["import_model"].route_id.is_some()
+            if node.actions["workbench.asset.mesh_import.path.set"].callable_from_remote
+                && node.actions["workbench.asset.mesh_import.path.set"].route_id.is_some()
+                && node.actions["workbench.asset.model.import"].callable_from_remote
+                && node.actions["workbench.asset.model.import"].route_id.is_some()
     ));
 }

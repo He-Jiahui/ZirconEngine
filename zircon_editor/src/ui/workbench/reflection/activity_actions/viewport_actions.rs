@@ -6,52 +6,60 @@ use zircon_runtime_interface::ui::{
 pub(super) fn viewport_actions() -> Vec<UiActionDescriptor> {
     vec![
         UiActionDescriptor::new(
-            "pointer_move",
+            "workbench.viewport.pointer.move",
             UiEventKind::Hover,
             "ViewportCommand.PointerMoved",
         )
         .with_parameter(UiParameterDescriptor::new("x", UiValueType::Float))
         .with_parameter(UiParameterDescriptor::new("y", UiValueType::Float)),
         UiActionDescriptor::new(
-            "left_press",
+            "workbench.viewport.pointer.left.press",
             UiEventKind::Press,
             "ViewportCommand.LeftPressed",
         )
         .with_parameter(UiParameterDescriptor::new("x", UiValueType::Float))
         .with_parameter(UiParameterDescriptor::new("y", UiValueType::Float)),
         UiActionDescriptor::new(
-            "left_release",
+            "workbench.viewport.pointer.left.release",
             UiEventKind::Release,
             "ViewportCommand.LeftReleased",
         ),
         UiActionDescriptor::new(
-            "right_press",
+            "workbench.viewport.pointer.right.press",
             UiEventKind::Press,
             "ViewportCommand.RightPressed",
         )
         .with_parameter(UiParameterDescriptor::new("x", UiValueType::Float))
         .with_parameter(UiParameterDescriptor::new("y", UiValueType::Float)),
         UiActionDescriptor::new(
-            "right_release",
+            "workbench.viewport.pointer.right.release",
             UiEventKind::Release,
             "ViewportCommand.RightReleased",
         ),
         UiActionDescriptor::new(
-            "middle_press",
+            "workbench.viewport.pointer.middle.press",
             UiEventKind::Press,
             "ViewportCommand.MiddlePressed",
         )
         .with_parameter(UiParameterDescriptor::new("x", UiValueType::Float))
         .with_parameter(UiParameterDescriptor::new("y", UiValueType::Float)),
         UiActionDescriptor::new(
-            "middle_release",
+            "workbench.viewport.pointer.middle.release",
             UiEventKind::Release,
             "ViewportCommand.MiddleReleased",
         ),
-        UiActionDescriptor::new("scroll", UiEventKind::Scroll, "ViewportCommand.Scrolled")
-            .with_parameter(UiParameterDescriptor::new("delta", UiValueType::Float)),
-        UiActionDescriptor::new("resize", UiEventKind::Resize, "ViewportCommand.Resized")
-            .with_parameter(UiParameterDescriptor::new("width", UiValueType::Unsigned))
-            .with_parameter(UiParameterDescriptor::new("height", UiValueType::Unsigned)),
+        UiActionDescriptor::new(
+            "workbench.viewport.scroll",
+            UiEventKind::Scroll,
+            "ViewportCommand.Scrolled",
+        )
+        .with_parameter(UiParameterDescriptor::new("delta", UiValueType::Float)),
+        UiActionDescriptor::new(
+            "workbench.viewport.resize",
+            UiEventKind::Resize,
+            "ViewportCommand.Resized",
+        )
+        .with_parameter(UiParameterDescriptor::new("width", UiValueType::Unsigned))
+        .with_parameter(UiParameterDescriptor::new("height", UiValueType::Unsigned)),
     ]
 }

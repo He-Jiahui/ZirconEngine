@@ -87,7 +87,7 @@ tooltip = "Launch action"
 }
 
 #[test]
-fn legacy_template_conversion_only_authors_non_default_contract_sections() {
+fn source_template_fixture_conversion_only_authors_non_default_contract_sections() {
     const LEGACY_TEMPLATE_TOML: &str = r#"
 version = 1
 
@@ -105,9 +105,9 @@ template = "ContractButton"
 control_id = "Launch"
 "#;
 
-    let migrated = crate::ui::template::UiAssetSchemaMigrator::migrate_legacy_template_str(
-        "legacy.contract_sections",
-        "Legacy Contract Sections",
+    let migrated = crate::ui::template::UiAssetSchemaMigrator::migrate_source_template_fixture_str(
+        "source.contract_sections",
+        "Source Contract Sections",
         LEGACY_TEMPLATE_TOML,
     )
     .unwrap()

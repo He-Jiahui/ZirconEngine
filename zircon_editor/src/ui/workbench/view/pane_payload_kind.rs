@@ -11,5 +11,6 @@ pub enum PanePayloadKind {
     PerformanceTimelineV1,
     ModulePluginsV1,
     BuildExportV1,
+    GeneratedBottomV1,
     UiComponentShowcaseV1,
 }

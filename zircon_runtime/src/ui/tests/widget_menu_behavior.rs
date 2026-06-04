@@ -21,9 +21,11 @@ use zircon_runtime_interface::ui::{
 #[test]
 fn menu_item_pointer_activation_closes_nearest_popup() {
     let mut surface = menu_surface();
+    assert_popup_stack(&surface, &["root/popup"]);
     let result = click_menu_item(&mut surface);
 
     assert_popup_open(&surface, false);
+    assert_popup_stack(&surface, &[]);
     assert!(result.component_events.iter().any(|event| {
         event.node_id == UiNodeId::new(3)
             && matches!(
@@ -113,8 +115,45 @@ fn menu_item_keyboard_activation_without_item_binding_still_closes_popup() {
 }
 
 #[test]
+fn popup_keyboard_activation_updates_shared_popup_stack() {
+    let mut surface = menu_surface_closed();
+    assert_popup_stack(&surface, &[]);
+    assert!(!surface
+        .tree
+        .node(UiNodeId::new(2))
+        .unwrap()
+        .supports_pointer());
+    surface.focus.focused = Some(UiNodeId::new(2));
+
+    let opened = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(keyboard_pressed("Enter", 13)),
+        )
+        .unwrap();
+
+    assert_eq!(opened.reply.disposition, UiDispatchDisposition::Handled);
+    assert_popup_open(&surface, true);
+    assert_popup_stack(&surface, &["root/popup"]);
+
+    let closed = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(keyboard_pressed("Space", 32)),
+        )
+        .unwrap();
+
+    assert_eq!(closed.reply.disposition, UiDispatchDisposition::Handled);
+    assert_popup_open(&surface, false);
+    assert_popup_stack(&surface, &[]);
+}
+
+#[test]
 fn escape_on_focused_menu_item_closes_nearest_popup_without_activation() {
     let mut surface = menu_surface();
+    assert_popup_stack(&surface, &["root/popup"]);
     surface.focus_node(UiNodeId::new(3)).unwrap();
 
     let result = surface
@@ -131,6 +170,7 @@ fn escape_on_focused_menu_item_closes_nearest_popup_without_activation() {
         Some("keyboard.popup_dismiss")
     );
     assert_popup_open(&surface, false);
+    assert_popup_stack(&surface, &[]);
     assert!(result.component_events.iter().all(|event| {
         !matches!(
             &event.event,
@@ -205,9 +245,11 @@ fn escape_on_descendant_does_not_close_disabled_popup_owner() {
 #[test]
 fn outside_pointer_click_closes_open_popup_without_menu_item_activation() {
     let mut surface = menu_surface();
+    assert_popup_stack(&surface, &["root/popup"]);
     let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
 
     assert_popup_open(&surface, false);
+    assert_popup_stack(&surface, &[]);
     assert!(result.component_events.iter().any(|event| {
         event.node_id == UiNodeId::new(2)
             && matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
@@ -267,11 +309,13 @@ fn outside_pointer_click_does_not_close_disabled_popup_owner() {
 fn outside_pointer_click_closes_topmost_popup_only() {
     let mut surface = menu_surface();
     insert_nested_popup(&mut surface);
+    assert_popup_stack(&surface, &["root/popup", "root/popup/nested"]);
 
     let result = click_point(&mut surface, UiPoint::new(170.0, 100.0));
 
     assert_popup_node_open(&surface, UiNodeId::new(2), true);
     assert_popup_node_open(&surface, UiNodeId::new(4), false);
+    assert_popup_stack(&surface, &["root/popup"]);
     assert!(result.component_events.iter().any(|event| {
         event.node_id == UiNodeId::new(4)
             && matches!(&event.envelope.event, UiComponentEvent::ClosePopup)
@@ -348,6 +392,14 @@ fn click_point(
 }
 
 fn menu_surface() -> UiSurface {
+    menu_surface_with_popup_open(true)
+}
+
+fn menu_surface_closed() -> UiSurface {
+    menu_surface_with_popup_open(false)
+}
+
+fn menu_surface_with_popup_open(popup_open: bool) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.widget.menu.behavior"));
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
@@ -363,7 +415,7 @@ fn menu_surface() -> UiSurface {
                 .with_state_flags(container_state())
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "MenuPopup".to_string(),
-                    attributes: [("popup_open".to_string(), toml::Value::Boolean(true))]
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(popup_open))]
                         .into_iter()
                         .collect(),
                     bindings: vec![binding("MenuPopup/ClosePopup", UiEventKind::Click)],
@@ -439,6 +491,18 @@ fn assert_popup_node_open(surface: &UiSurface, node_id: UiNodeId, expected: bool
         .as_ref()
         .unwrap();
     assert_eq!(metadata.attributes["popup_open"].as_bool(), Some(expected));
+}
+
+fn assert_popup_stack(surface: &UiSurface, expected: &[&str]) {
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        expected
+    );
 }
 
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {

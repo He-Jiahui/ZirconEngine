@@ -159,37 +159,37 @@ pub(super) enum BuildExportAction<'a> {
 
 pub(super) fn parse_build_export_action(action_id: &str) -> Option<BuildExportAction<'_>> {
     if let Some(profile_name) = action_id
-        .strip_prefix("BuildExport.Execute.")
+        .strip_prefix("workbench.build_export.execute.")
         .filter(|profile_name| !profile_name.trim().is_empty())
     {
         return Some(BuildExportAction::Execute { profile_name });
     }
     if let Some(profile_name) = action_id
-        .strip_prefix("BuildExport.Cancel.")
+        .strip_prefix("workbench.build_export.cancel.")
         .filter(|profile_name| !profile_name.trim().is_empty())
     {
         return Some(BuildExportAction::Cancel { profile_name });
     }
     if let Some(profile_name) = action_id
-        .strip_prefix("BuildExport.ClearOutput.")
+        .strip_prefix("workbench.build_export.output.clear.")
         .filter(|profile_name| !profile_name.trim().is_empty())
     {
         return Some(BuildExportAction::ClearOutput { profile_name });
     }
     if let Some(profile_name) = action_id
-        .strip_prefix("BuildExport.RevealOutput.")
+        .strip_prefix("workbench.build_export.output.reveal.")
         .filter(|profile_name| !profile_name.trim().is_empty())
     {
         return Some(BuildExportAction::RevealOutput { profile_name });
     }
     if let Some(profile_name) = action_id
-        .strip_prefix("BuildExport.ChooseOutput.")
+        .strip_prefix("workbench.build_export.output.choose.")
         .filter(|profile_name| !profile_name.trim().is_empty())
     {
         return Some(BuildExportAction::ChooseOutput { profile_name });
     }
     action_id
-        .strip_prefix("BuildExport.SetOutput.")
+        .strip_prefix("workbench.build_export.output.set.")
         .and_then(|rest| rest.split_once('|'))
         .and_then(|(profile_name, output_root)| {
             if profile_name.trim().is_empty() || output_root.trim().is_empty() {
@@ -835,19 +835,21 @@ mod tests {
 
     #[test]
     fn build_export_actions_parse_execute_profile() {
-        match parse_build_export_action("BuildExport.Execute.desktop_windows") {
+        match parse_build_export_action("workbench.build_export.execute.desktop_windows") {
             Some(BuildExportAction::Execute { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("execute action should parse"),
         }
-        match parse_build_export_action("BuildExport.Cancel.desktop_windows") {
+        match parse_build_export_action("workbench.build_export.cancel.desktop_windows") {
             Some(BuildExportAction::Cancel { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("cancel action should parse"),
         }
-        match parse_build_export_action("BuildExport.SetOutput.desktop_windows|D:/Builds/Zircon") {
+        match parse_build_export_action(
+            "workbench.build_export.output.set.desktop_windows|D:/Builds/Zircon",
+        ) {
             Some(BuildExportAction::SetOutput {
                 profile_name,
                 output_root,
@@ -857,26 +859,28 @@ mod tests {
             }
             _ => panic!("set-output action should parse"),
         }
-        match parse_build_export_action("BuildExport.ChooseOutput.desktop_windows") {
+        match parse_build_export_action("workbench.build_export.output.choose.desktop_windows") {
             Some(BuildExportAction::ChooseOutput { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("choose-output action should parse"),
         }
-        match parse_build_export_action("BuildExport.ClearOutput.desktop_windows") {
+        match parse_build_export_action("workbench.build_export.output.clear.desktop_windows") {
             Some(BuildExportAction::ClearOutput { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("clear-output action should parse"),
         }
-        match parse_build_export_action("BuildExport.RevealOutput.desktop_windows") {
+        match parse_build_export_action("workbench.build_export.output.reveal.desktop_windows") {
             Some(BuildExportAction::RevealOutput { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("reveal-output action should parse"),
         }
-        assert!(parse_build_export_action("BuildExport.Execute.").is_none());
-        assert!(parse_build_export_action("BuildExport.Unknown.desktop_windows").is_none());
+        assert!(parse_build_export_action("workbench.build_export.execute.").is_none());
+        assert!(
+            parse_build_export_action("workbench.build_export.unknown.desktop_windows").is_none()
+        );
     }
 
     #[test]

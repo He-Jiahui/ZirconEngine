@@ -122,7 +122,14 @@ fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
 fn is_asset_change_control(control_id: &str) -> bool {
     matches!(
         control_id,
-        "SearchEdited" | "SetKindFilter" | "SetViewMode" | "SetUtilityTab"
+        "SearchEdited"
+            | "SetKindFilter"
+            | "SetViewMode"
+            | "SetUtilityTab"
+            | "workbench.asset.search.edit"
+            | "workbench.asset.kind_filter.set"
+            | "workbench.asset.view_mode.set"
+            | "workbench.asset.utility_tab.set"
     )
 }
 
@@ -167,7 +174,7 @@ mod tests {
     #[test]
     fn workbench_menu_item_routes_as_surface_action() {
         let mut hit = hit_with_kind("workbench_menu_item");
-        hit.action_id = "Menu/Open".into();
+        hit.action_id = "workbench.menu.open".into();
         hit.binding_id = "MenuBindingShouldNotWin".into();
 
         assert_eq!(
@@ -179,12 +186,15 @@ mod tests {
     #[test]
     fn asset_dispatch_source_and_change_controls_are_classified() {
         let mut hit = hit_with_kind("asset:browser");
-        hit.action_id = "SearchEdited".into();
+        hit.action_id = "workbench.asset.search.edit".into();
 
         let activation = asset_primary_activation(&hit).expect("asset dispatch should route");
 
         assert_eq!(activation.source.as_str(), "browser");
-        assert_eq!(activation.control_id.as_str(), "SearchEdited");
+        assert_eq!(
+            activation.control_id.as_str(),
+            "workbench.asset.search.edit"
+        );
         assert_eq!(activation.kind, AssetPrimaryActivationKind::Change);
     }
 

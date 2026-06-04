@@ -888,7 +888,7 @@ fn native_host_menu_click_unions_text_focus_damage_without_full_frame() {
         "Project",
         vec![TemplatePaneNodeData {
             component_role: "input-field".into(),
-            edit_action_id: "Project/Name".into(),
+            edit_action_id: "workbench.project.name.edit".into(),
             value_text: "Cube".into(),
             surface_variant: "inset".into(),
             ..template_node("NameField", "InputField", "Cube", 20.0, 12.0, 180.0, 24.0)

@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::sound::{
-    SoundBackendCapability, SoundOutputDeviceDescriptor, SoundOutputDeviceInfo,
+    SoundBackendCapability, SoundChannelLayout, SoundOutputDeviceDescriptor, SoundOutputDeviceInfo,
 };
 
 use crate::SoundConfig;
@@ -16,6 +16,12 @@ pub(crate) fn software_backend_capabilities() -> Vec<SoundBackendCapability> {
         max_sample_rate_hz: 384_000,
         min_channel_count: 1,
         max_channel_count: 64,
+        supported_channel_layouts: vec![
+            SoundChannelLayout::mono(),
+            SoundChannelLayout::stereo(),
+            SoundChannelLayout::surround_5_1(),
+            SoundChannelLayout::surround_7_1(),
+        ],
         min_block_size_frames: 1,
         max_block_size_frames: 65_536,
         notes: vec![
@@ -30,13 +36,16 @@ pub(crate) fn supports_software_backend(backend: &str) -> bool {
 }
 
 pub(crate) fn software_output_devices(config: &SoundConfig) -> Vec<SoundOutputDeviceInfo> {
+    let mut descriptor = SoundOutputDeviceDescriptor::software(
+        SOFTWARE_NULL_BACKEND,
+        config.sample_rate_hz,
+        config.channel_count,
+        config.block_size_frames,
+    );
+    descriptor.channel_layout = config.channel_layout.clone();
+
     vec![SoundOutputDeviceInfo {
-        descriptor: SoundOutputDeviceDescriptor::software(
-            SOFTWARE_NULL_BACKEND,
-            config.sample_rate_hz,
-            config.channel_count,
-            config.block_size_frames,
-        ),
+        descriptor,
         is_default: true,
         available: true,
         diagnostic: None,

@@ -49,6 +49,13 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
         .split("export component HubTopHeader")
         .nth(1)
         .expect("shell_header_components.slint must export HubTopHeader");
+    let brand_title_stack = shell_header_components
+        .split("component HeaderBrandTitleStack")
+        .nth(1)
+        .and_then(|source| source.split("export component HubTopHeader").next())
+        .expect(
+            "shell_header_components.slint must declare HeaderBrandTitleStack before HubTopHeader",
+        );
     assert!(
         !ui_dir().join("shell.slint").exists(),
         "shell.slint was a migration-only compatibility note and must stay deleted after shell chrome extraction"
@@ -63,9 +70,10 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
         "shell_header_components.slint should import Source Engine popup components from shell_header_popup_components.slint instead of defining them inline"
     );
     assert!(
-        shell_header_components.contains("HubIconButton,")
+        shell_header_components
+            .contains("import { HubTopbarIconButton } from \"icon_button_components.slint\";")
             && !shell_header_components.contains("component HeaderPlainIconButton"),
-        "HubTopHeader should consume the shared HubIconButton primitive instead of owning a local plain icon button"
+        "HubTopHeader should consume the shared HubTopbarIconButton primitive instead of owning a local plain icon button"
     );
     for snippet in [
         "HorizontalLayout {",
@@ -113,16 +121,70 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
 
     for snippet in [
         "private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;",
-        "text: root.brand-subtitle;",
+        "HeaderBrandTitleStack {",
+        "stack-height: parent.height;",
+        "subtitle-text: root.brand-subtitle;",
     ] {
         assert!(
             header.contains(snippet),
-            "HubTopHeader must show selected-project context when available and fall back to product copy in the empty selection state; missing {snippet}"
+            "HubTopHeader must forward selected-project context through the focused brand title stack; missing {snippet}"
+        );
+    }
+    assert!(
+        shell_header_components.contains("component HeaderBrandTitleStack inherits Rectangle"),
+        "shell_header_components.slint must keep HeaderBrandTitleStack as a private focused helper"
+    );
+    for snippet in [
+        "in property <string> title-text: \"ZIRCON HUB\";",
+        "in property <string> subtitle-text;",
+        "MaterialText {",
+        "text: root.title-text;",
+        "color: HubVisualSpec.brand-title-foreground;",
+        "style: MaterialTypography.title_medium;",
+        "text: root.subtitle-text;",
+        "color: HubVisualSpec.brand-subtitle-foreground;",
+        "style: MaterialTypography.body_medium;",
+    ] {
+        assert!(
+            brand_title_stack.contains(snippet),
+            "HeaderBrandTitleStack must own top-header brand typography: {snippet}"
         );
     }
     assert!(
         !header.contains("private property <string> brand-subtitle: root.ui-text.game-engine;"),
         "HubTopHeader brand subtitle must not become static game-engine copy when a project is selected"
+    );
+    for forbidden in [
+        "MaterialText {",
+        "text: \"ZIRCON HUB\";",
+        "                        text: root.brand-subtitle;",
+        "style: MaterialTypography.title_medium;",
+        "style: MaterialTypography.body_medium;",
+    ] {
+        assert!(
+            !header.contains(forbidden),
+            "HubTopHeader should not own brand text after adopting HeaderBrandTitleStack: {forbidden}"
+        );
+    }
+    for snippet in [
+        "HubTopbarIconButton {",
+        "button-size: root.header-button-size;",
+        "icon-image: @image-url(\"../assets/icons/ui/bell.svg\");",
+        "icon-image: @image-url(\"../assets/icons/ui/help.svg\");",
+        "icon-image: @image-url(\"../assets/icons/ui/settings.svg\");",
+        "clicked => {",
+        "root.settings-clicked();",
+    ] {
+        assert!(
+            header.contains(snippet),
+            "HubTopHeader topbar tool buttons should consume HubTopbarIconButton instead of repeating transparent HubIconButton chrome: {snippet}"
+        );
+    }
+    assert!(
+        !header.contains("HubIconButton {")
+            && !header.contains("idle-background: transparent;")
+            && !header.contains("button-border-width: 0px;"),
+        "HubTopHeader should not repeat transparent topbar HubIconButton styling after HubTopbarIconButton extraction"
     );
     assert!(
         !header.contains("danger: true;"),
@@ -145,6 +207,23 @@ fn top_header_uses_aligned_interactive_titlebar_regions() {
         .split("export component HeaderUserMenu")
         .nth(1)
         .expect("shell_header_popup_components.slint must export HeaderUserMenu");
+    for snippet in [
+        "HubUserMenuTriggerButton {",
+        "avatar-text: root.ui-text.local-user-initials;",
+        "user-name: root.ui-text.local-user;",
+        "tight: root.tight;",
+    ] {
+        assert!(
+            user_menu.contains(snippet),
+            "HeaderUserMenu should route its trigger through the shared button wrapper; missing {snippet}"
+        );
+    }
+    for forbidden in ["StateLayerArea {", "MaterialTypography.label_medium"] {
+        assert!(
+            !user_menu.contains(forbidden),
+            "HeaderUserMenu should not retain local trigger state/text styling after delegating to HubUserMenuTriggerButton: {forbidden}"
+        );
+    }
     for forbidden in ["height: root.width;", "border-radius: root.width / 2;"] {
         assert!(
             !user_menu.contains(forbidden),

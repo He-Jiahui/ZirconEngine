@@ -74,6 +74,7 @@ pub(super) fn bottom_drawer(subsystems: &EditorSubsystemReport) -> ActivityDrawe
         tabs.push(performance_timeline);
     }
     tabs.push(ViewInstanceId::new("editor.build_export_desktop#1"));
+    tabs.push(ViewInstanceId::new("editor.generated_bottom#1"));
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::Bottom,
         tab_stack: TabStackLayout {

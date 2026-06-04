@@ -9,21 +9,34 @@ impl DeferredSceneResources {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         gbuffer_albedo_view: &wgpu::TextureView,
+        gbuffer_material_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        attachment_ops: RenderGraphAttachmentOps,
+        albedo_attachment_ops: RenderGraphAttachmentOps,
+        material_attachment_ops: RenderGraphAttachmentOps,
         mesh_draws: I,
     ) where
         I: IntoIterator<Item = &'a MeshDraw>,
     {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("DeferredGeometryPass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: gbuffer_albedo_view,
-                resolve_target: None,
-                depth_slice: None,
-                ops: color_attachment_operations(attachment_ops, wgpu::Color::TRANSPARENT),
-            })],
+            color_attachments: &[
+                Some(wgpu::RenderPassColorAttachment {
+                    view: gbuffer_albedo_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(
+                        albedo_attachment_ops,
+                        wgpu::Color::TRANSPARENT,
+                    ),
+                }),
+                Some(wgpu::RenderPassColorAttachment {
+                    view: gbuffer_material_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(material_attachment_ops, wgpu::Color::BLACK),
+                }),
+            ],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: depth_view,
                 depth_ops: Some(wgpu::Operations {

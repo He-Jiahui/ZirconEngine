@@ -28,6 +28,7 @@ impl DefaultSoundManager {
                 detail: Some("sound playback is disabled".to_string()),
                 sample_rate_hz: config.sample_rate_hz,
                 channel_count: config.channel_count,
+                channel_layout: config.channel_layout,
             };
         }
 
@@ -46,6 +47,7 @@ impl DefaultSoundManager {
                 detail: Some(detail),
                 sample_rate_hz: config.sample_rate_hz,
                 channel_count: config.channel_count,
+                channel_layout: config.channel_layout,
             };
         }
 
@@ -56,6 +58,7 @@ impl DefaultSoundManager {
             detail: None,
             sample_rate_hz: config.sample_rate_hz,
             channel_count: config.channel_count,
+            channel_layout: config.channel_layout,
         }
     }
 }

@@ -1,5 +1,5 @@
 import { TeamData, TeamMemberData, UiTextData } from "shared.slint";
-import { HubTokens, HubVisualSpec, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
+import { HubMetricSectionState, HubTokens, HubVisualSpec, PageScrollSurface, ResponsiveCollapse, WorkspacePanelSection } from "components.slint";
 import { TeamActionsPanel, TeamMembersPanel, TeamSummarySlot } from "team_page_components.slint";
 
 export component TeamPage inherits PageScrollSurface {
@@ -8,11 +8,9 @@ export component TeamPage inherits PageScrollSurface {
     in property <int> member-count;
     in property <bool> has-selected-project: false;
     in property <UiTextData> ui-text;
-    private property <bool> summary-compact: root.content-width < HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;
     private property <bool> overview-compact: root.content-width < HubTokens.panel-min-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
     private property <length> member-row-height: HubTokens.list-row-md;
     private property <length> action-row-height: HubTokens.list-row-sm;
-    private property <length> summary-section-height: root.summary-compact ? HubTokens.workspace-row-team-summary * 4 + HubTokens.panel-gap * 3 : HubTokens.workspace-row-team-summary;
     private property <length> member-row-slot-height: root.member-row-height + HubTokens.space-2;
     private property <length> member-panel-chrome-height: HubTokens.list-row-sm + HubTokens.control-md + HubTokens.toolbar-gap * 2 + HubTokens.space-4 * 2;
     private property <int> member-visible-rows: root.member-count < 3 ? root.member-count : 3;
@@ -32,71 +30,81 @@ export component TeamPage inherits PageScrollSurface {
         collapse-at: HubTokens.breakpoint-medium;
     }
 
+    summary-metrics := HubMetricSectionState {
+        content-width: root.content-width;
+        metric-gap: HubTokens.panel-gap;
+        regular-row-height: HubTokens.workspace-row-team-summary;
+        compact-row-height: HubTokens.workspace-row-team-summary;
+        allow-two-columns: false;
+        wide-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;
+        compact-card-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;
+    }
+
     WorkspacePanelSection {
-        compact: root.summary-compact;
-        compact-rows: 4;
-        row-height: HubTokens.workspace-row-team-summary;
-        spacing-horizontal: HubTokens.panel-gap;
-        spacing-vertical: HubTokens.panel-gap;
+        compact: summary-metrics.row-count > 1;
+        compact-rows: summary-metrics.row-count;
+        row-height: summary-metrics.row-height;
+        spacing-horizontal: summary-metrics.metric-gap;
+        spacing-vertical: summary-metrics.metric-gap;
 
         TeamSummarySlot {
-            basis: HubTokens.panel-min-sm * 3 / 4;
-            flex-basis: HubTokens.panel-min-sm * 3 / 4;
-            grow: 1;
-            flex-grow: 1;
+            basis: summary-metrics.slot-basis;
+            flex-basis: summary-metrics.slot-basis;
+            grow: summary-metrics.slot-grow;
+            flex-grow: summary-metrics.slot-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
-            height: HubTokens.workspace-row-team-summary;
+            min-width: summary-metrics.slot-min-width;
+            height: summary-metrics.row-height;
             label: root.ui-text.team-git-identity;
             primary: root.summary.identity-name;
             secondary: root.summary.identity-email;
-            compact-card: root.summary-compact;
+            compact-card: summary-metrics.compact-card;
         }
 
         TeamSummarySlot {
-            basis: HubTokens.panel-min-sm * 3 / 4;
-            flex-basis: HubTokens.panel-min-sm * 3 / 4;
-            grow: 1;
-            flex-grow: 1;
+            basis: summary-metrics.slot-basis;
+            flex-basis: summary-metrics.slot-basis;
+            grow: summary-metrics.slot-grow;
+            flex-grow: summary-metrics.slot-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
-            height: HubTokens.workspace-row-team-summary;
+            min-width: summary-metrics.slot-min-width;
+            height: summary-metrics.row-height;
             label: root.ui-text.team-repository;
             primary: root.summary.repository-path;
             secondary: root.summary.status;
-            compact-card: root.summary-compact;
+            compact-card: summary-metrics.compact-card;
         }
 
         TeamSummarySlot {
-            basis: HubTokens.panel-min-sm * 3 / 4;
-            flex-basis: HubTokens.panel-min-sm * 3 / 4;
-            grow: 1;
-            flex-grow: 1;
+            basis: summary-metrics.slot-basis;
+            flex-basis: summary-metrics.slot-basis;
+            grow: summary-metrics.slot-grow;
+            flex-grow: summary-metrics.slot-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
-            height: HubTokens.workspace-row-team-summary;
+            min-width: summary-metrics.slot-min-width;
+            height: summary-metrics.row-height;
             label: "Members";
             primary: root.member-count + " active";
             secondary: "Reviewers assigned";
-            compact-card: root.summary-compact;
+            compact-card: summary-metrics.compact-card;
         }
 
         TeamSummarySlot {
-            basis: HubTokens.panel-min-sm * 3 / 4;
-            flex-basis: HubTokens.panel-min-sm * 3 / 4;
-            grow: 1;
-            flex-grow: 1;
+            basis: summary-metrics.slot-basis;
+            flex-basis: summary-metrics.slot-basis;
+            grow: summary-metrics.slot-grow;
+            flex-grow: summary-metrics.slot-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.summary-compact ? root.content-width : HubTokens.panel-min-sm * 3 / 4;
-            height: HubTokens.workspace-row-team-summary;
+            min-width: summary-metrics.slot-min-width;
+            height: summary-metrics.row-height;
             label: "Access";
             primary: "Local";
             secondary: "No cloud sign-in required";
-            compact-card: root.summary-compact;
+            compact-card: summary-metrics.compact-card;
         }
     }
 

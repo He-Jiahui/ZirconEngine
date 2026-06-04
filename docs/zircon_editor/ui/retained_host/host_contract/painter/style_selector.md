@@ -9,35 +9,43 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_selection_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_slider.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_text_field.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_toast.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tooltip.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_alerts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_tooltips.rs
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs
   - zircon_runtime_interface/src/ui/style.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_list_row.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_text_field.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_toast.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tooltip.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_alerts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_tooltips.rs
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native replication request
   - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - docs/ui-and-layout/ai-workbench-style/component-prototype/README.md
 tests:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_alerts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_tooltips.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_list_row.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_toast.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tooltip.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_alerts.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_tooltips.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_text_field.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - node verify-native-component-contract.mjs
+  - cargo test -p zircon_editor --lib template_fields --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_editor --lib template_list_rows --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_editor --lib template_segmented_controls --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_editor --lib template_alerts --locked --jobs 1 --message-format short --color never
@@ -70,6 +78,17 @@ The focused regression `segmented_and_tab_styles_use_shared_state_priority` veri
 - declared row background, text, and icon colors still win where the template author provided them, preserving the component-drawer list samples.
 
 `template_list_rows.rs` now keeps row recognition, label geometry, adornment geometry, and the check/chevron/disabled mark paint commands. The focused regression `list_row_style_uses_shared_state_priority` covers disabled, pressed, and selected state precedence, while `verify-native-component-contract.mjs` checks that the native ListRow selector exists and handles pressed/disabled states.
+
+## Text Fields
+
+`workbench_text_field.rs` owns Workbench text-field visual resolution:
+
+- field surface, border, text, placeholder, and stepper glyph colors resolve from `UiPainterFamily::TextField` through the shared interactive state priority;
+- disabled state wins over pressed/focused/hovered and mutes the field text plus stepper glyph, while pressed/focused state shares the focus-border semantics used by the runtime text-field render path;
+- `.zui` declared background and border colors still override selector defaults, so audited Workbench input samples keep their authored chrome;
+- `template_fields.rs` now keeps Workbench text-input recognition, field frame offsets, half-pixel height preservation, placeholder fallback label, text geometry, and stepper drawing.
+
+The focused regression `workbench_field_selector_uses_shared_text_field_state_priority` covers disabled-over-pressed/focused/hovered priority, pressed before focused, the focused visual sample path, and placeholder color selection. The browser/native component contract now checks that the native TextField selector exists and handles pressed/disabled states.
 
 ## Tooltips And Toasts
 

@@ -435,7 +435,7 @@ fn window_menu_items(
     let mut items = vec![HostMenuChromeItemData {
         label: "Save Preset Asset".into(),
         shortcut: resolved_preset_name.clone(),
-        action_id: format!("SavePreset.{resolved_preset_name}").into(),
+        action_id: format!("workbench.layout.preset.save.{resolved_preset_name}").into(),
         enabled: true,
         children: ModelRc::default(),
     }];
@@ -449,7 +449,7 @@ fn window_menu_items(
             } else {
                 "".into()
             },
-            action_id: format!("LoadPreset.{preset}").into(),
+            action_id: format!("workbench.layout.preset.load.{preset}").into(),
             enabled: true,
             children: ModelRc::default(),
         })

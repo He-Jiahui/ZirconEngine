@@ -8,11 +8,13 @@ import {
     HubActionCommandButton,
     HubActionStack,
     HubBadgeMetaStrip,
+    HubContentPanelSlot,
+    HubMediaContentPanelSlot,
     HubSection,
     HubToggleRow,
     HubTokens,
-    PanelHeader,
-    PanelSlot,
+    HubVisualSpec,
+    MaterialPalette,
     StatusBanner,
 } from "components.slint";
 import {
@@ -28,6 +30,15 @@ export component ProjectDetailPinToggleRow inherits HubToggleRow {
     checked: root.detail.pinned;
     label: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;
     supporting-text: root.detail.pinned ? root.copy.unpin-project : root.copy.pin-project;
+}
+
+component ProjectDetailActionNote inherits MutedText {
+    in property <string> note-text;
+    in property <length> note-height: HubTokens.control-sm;
+
+    height: root.note-height;
+    text: root.note-text;
+    overflow: elide;
 }
 
 export component ProjectDetailActionStack inherits HubActionStack {
@@ -70,10 +81,9 @@ export component ProjectDetailActionStack inherits HubActionStack {
         clicked => { root.remove-from-hub(); }
     }
 
-    MutedText {
-        height: root.note-height;
-        text: root.copy.remove-from-hub-detail;
-        overflow: elide;
+    ProjectDetailActionNote {
+        note-height: root.note-height;
+        note-text: root.copy.remove-from-hub-detail;
     }
 
     HubActionCommandButton {
@@ -154,7 +164,7 @@ export component ProjectDetailEngineSection inherits HubSection {
     }
 }
 
-export component ProjectDetailActionsSection inherits PanelSlot {
+export component ProjectDetailActionsSection inherits HubContentPanelSlot {
     in property <ProjectDetailData> project;
     in property <[SourceEngineRowData]> engines;
     in property <int> engine-count;
@@ -179,8 +189,8 @@ export component ProjectDetailActionsSection inherits PanelSlot {
 
     body-padding: root.panel-padding;
     body-spacing: root.panel-spacing;
-
-    PanelHeader { title: root.copy.project-actions-title; }
+    content-spacing: root.panel-spacing;
+    title: root.copy.project-actions-title;
 
     if root.project.pending-delete: ProjectDetailDeleteActionStack {
         project: root.project;
@@ -277,5 +287,51 @@ export component ProjectDetailInfoSection inherits HubSection {
         row-height: root.row-height;
         label: root.ui-text.last-modified-column;
         value: root.project.modified;
+    }
+}
+
+export component ProjectDetailMainPanel inherits HubMediaContentPanelSlot {
+    in property <ProjectDetailData> project;
+    in property <UiTextData> ui-text;
+    in property <length> cover-height;
+    in property <length> status-row-height;
+    in property <length> status-row-spacing;
+    in property <length> info-section-height;
+    in property <length> info-row-height;
+    in property <length> info-row-spacing;
+    in property <length> content-stack-spacing: HubTokens.panel-gap;
+    in property <string> header-subtitle;
+    in property <string> info-header-subtitle;
+    in property <length> version-badge-width;
+    in property <length> pin-badge-width;
+
+    title: root.project.title;
+    subtitle: root.header-subtitle;
+    show-badge: true;
+    badge-text: root.project.status;
+    badge-tone: root.project.missing ? "warning" : "accent";
+    media-height: root.cover-height;
+    media-radius: HubVisualSpec.panel-radius;
+    media-background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : MaterialPalette.tertiary_container);
+    media-source: root.project.cover-image;
+    has-media-source: root.project.has-cover;
+    content-spacing: root.content-stack-spacing;
+
+    ProjectDetailStatusStrip {
+        row-height: root.status-row-height;
+        row-spacing: root.status-row-spacing;
+        version-badge-width: root.version-badge-width;
+        pin-badge-width: root.pin-badge-width;
+        detail: root.project;
+        copy: root.ui-text;
+    }
+
+    ProjectDetailInfoSection {
+        section-height: root.info-section-height;
+        row-height: root.info-row-height;
+        row-spacing: root.info-row-spacing;
+        header-subtitle: root.info-header-subtitle;
+        project: root.project;
+        ui-text: root.ui-text;
     }
 }

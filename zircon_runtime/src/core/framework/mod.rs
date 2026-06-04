@@ -1,5 +1,6 @@
 //! Shared framework contracts and protocol data shared across runtime modules.
 
+pub mod ai;
 pub mod animation;
 pub mod asset;
 pub mod camera_controller;

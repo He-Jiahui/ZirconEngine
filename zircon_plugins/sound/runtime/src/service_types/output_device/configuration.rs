@@ -20,9 +20,11 @@ impl DefaultSoundManager {
         config.backend = descriptor.backend.clone();
         config.sample_rate_hz = descriptor.sample_rate_hz;
         config.channel_count = descriptor.channel_count;
+        config.channel_layout = descriptor.channel_layout.clone();
         config.block_size_frames = descriptor.block_size_frames;
         state.graph.sample_rate_hz = config.sample_rate_hz;
         state.graph.channel_count = config.channel_count;
+        state.graph.channel_layout = config.channel_layout.clone();
         state.effect_states.clear();
         state.track_states.clear();
         state.hrtf_states.clear();

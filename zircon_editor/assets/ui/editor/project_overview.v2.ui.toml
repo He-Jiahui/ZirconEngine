@@ -218,7 +218,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 component = "Button"
 control_id = "OpenAssetsView"
 classes = ["primary"]
-props = { label = "Open Assets", dispatch_kind = "surface", action_id = "OpenView.editor.assets", button_variant = "primary" }
+props = { label = "Open Assets", dispatch_kind = "surface", action_id = "workbench.view.open.editor.assets", button_variant = "primary" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 6.0 }, width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.catalog_open_browser_button]

@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_post_process_workspace.zui"
+version = 2
+display_name = "Workbench Extension Post Process Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+[components.WorkbenchExtensionPostProcessWorkspace]
+root = "post_process_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.post_process_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPostProcessWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_rail_gap" }, { node = "post_process_left" }, { node = "post_process_center" }, { node = "post_process_right" }]
+
+[nodes.post_process_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionPostProcessRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.post_process_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_title" }, { node = "post_process_stack_tab" }, { node = "post_process_volumes_tab" }, { node = "post_process_warnings_tab" }, { node = "post_process_global_row" }, { node = "post_process_cinematic_row" }, { node = "post_process_volume_row" }]
+
+[nodes.post_process_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPostProcessTitle"
+props = { text = "Post Process" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.post_process_stack_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPostProcessStackTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Stack", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessStackTab", event = "Click", route = "WorkbenchExtension.PostProcess.Stack" }]
+
+[nodes.post_process_volumes_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPostProcessVolumesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Volumes", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessVolumesTab", event = "Click", route = "WorkbenchExtension.PostProcess.Volumes" }]
+
+[nodes.post_process_warnings_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPostProcessWarningsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Warnings", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessWarningsTab", event = "Click", route = "WorkbenchExtension.PostProcess.Warnings" }]
+
+[nodes.post_process_global_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPostProcessGlobalStackRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Global Stack", icon = "renderer", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessGlobalStackRow", event = "Click", route = "WorkbenchExtension.PostProcess.Stack.Global" }]
+
+[nodes.post_process_cinematic_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPostProcessCinematicStackRow"
+classes = ["workbench-list-row"]
+props = { text = "Cinematic Grade", icon = "sun", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessCinematicStackRow", event = "Click", route = "WorkbenchExtension.PostProcess.Stack.Cinematic" }]
+
+[nodes.post_process_volume_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPostProcessVolumeBlendRow"
+classes = ["workbench-list-row"]
+props = { text = "Volume Blend", icon = "cube", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessVolumeBlendRow", event = "Click", route = "WorkbenchExtension.PostProcess.VolumeBlend" }]
+
+[nodes.post_process_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_center_header" }, { node = "post_process_pass_table" }, { node = "post_process_output" }]
+
+[nodes.post_process_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPostProcessCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "post_process_center_title" }, { node = "post_process_header_fill" }, { node = "post_process_preview_button" }, { node = "post_process_apply_button" }]
+
+[nodes.post_process_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPostProcessCenterTitle"
+props = { text = "Post Process Stack" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.post_process_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionPostProcessHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.post_process_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPostProcessPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessPreview", event = "Click", route = "WorkbenchExtension.PostProcess.Preview" }]
+
+[nodes.post_process_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPostProcessApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessApply", event = "Click", route = "WorkbenchExtension.PostProcess.Apply" }]
+
+[nodes.post_process_pass_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessPassTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_bloom_row" }, { node = "post_process_tonemap_row" }, { node = "post_process_lut_row" }, { node = "post_process_exposure_warning_row" }]
+
+[nodes.post_process_bloom_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPostProcessBloomTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Bloom", value_text = "0.65 intensity   threshold 1.0   Ready", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessBloomTableRow", event = "Click", route = "WorkbenchExtension.PostProcess.Pass.Bloom" }]
+
+[nodes.post_process_tonemap_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPostProcessTonemapTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Tonemap", value_text = "Filmic   exposure +0.4   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessTonemapTableRow", event = "Click", route = "WorkbenchExtension.PostProcess.Pass.Tonemap" }]
+
+[nodes.post_process_lut_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPostProcessLutTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Color LUT", value_text = "LUT_CityWarm   33 cube   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessLutTableRow", event = "Click", route = "WorkbenchExtension.PostProcess.Pass.Lut" }]
+
+[nodes.post_process_exposure_warning_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPostProcessExposureWarningTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Exposure Warning", value_text = "Interior volume   EV +2.1   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessExposureWarningTableRow", event = "Click", route = "WorkbenchExtension.PostProcess.Pass.ExposureWarning" }]
+
+[nodes.post_process_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPostProcessOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Post Process", value_text = "Preview ready   1 warning   stack active" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PostProcessOutput", event = "Click", route = "WorkbenchExtension.PostProcess.Output" }]
+
+[nodes.post_process_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_details_title" }, { node = "post_process_profile_dropdown" }, { node = "post_process_volume_field" }, { node = "post_process_blend_dropdown" }]
+
+[nodes.post_process_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPostProcessDetailsTitle"
+props = { text = "Stack Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.post_process_profile_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPostProcessProfileDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Profile: Cinematic", value = "cinematic", options = ["gameplay", "cinematic", "debug"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PostProcessProfileEdit", event = "Change", route = "WorkbenchExtension.PostProcess.Profile.Edit" },
+  { id = "WorkbenchExtension/PostProcessProfileCommit", event = "Submit", route = "WorkbenchExtension.PostProcess.Profile.Commit" },
+]
+
+[nodes.post_process_volume_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionPostProcessVolumeField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "PPV_CityGlobal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PostProcessVolumeEdit", event = "Change", route = "WorkbenchExtension.PostProcess.Volume.Edit" },
+  { id = "WorkbenchExtension/PostProcessVolumeCommit", event = "Submit", route = "WorkbenchExtension.PostProcess.Volume.Commit" },
+]
+
+[nodes.post_process_blend_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPostProcessBlendDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Blend: Weighted", value = "weighted", options = ["override", "weighted", "additive"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PostProcessBlendEdit", event = "Change", route = "WorkbenchExtension.PostProcess.Blend.Edit" },
+  { id = "WorkbenchExtension/PostProcessBlendCommit", event = "Submit", route = "WorkbenchExtension.PostProcess.Blend.Commit" },
+]

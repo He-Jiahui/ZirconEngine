@@ -7,8 +7,19 @@ const sources = {
   moduleComponents: readLocal("./module-components.js"),
   app: readLocal("./app.js"),
   templateNodes: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs"),
+  buttonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_button.rs"),
+  iconButtonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_icon_button.rs"),
+  textFieldStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_text_field.rs"),
+  selectionControlStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_selection_control.rs"),
+  dropdownStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_dropdown.rs"),
+  sliderStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_slider.rs"),
+  popupRowStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_popup_row.rs"),
   listRowStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_list_row.rs"),
+  treeRowStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tree_row.rs"),
+  tableRowStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_table_row.rs"),
   segmentedStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs"),
+  tooltipStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tooltip.rs"),
+  toastStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_toast.rs"),
   selectionControls: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/template_selection_controls.rs"),
   componentFamily: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs"),
   inputSemantics: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/template_input_semantics.rs"),
@@ -20,18 +31,30 @@ const sources = {
   popupLayout: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs"),
   virtualRows: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs"),
   popupPrimitives: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs"),
+  runtimeButtons: readRepo("../../../../zircon_runtime/src/ui/surface/render/buttons.rs"),
+  runtimeCollectionRows: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/mod.rs"),
+  runtimeCollectionRowsShared: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/shared.rs"),
+  runtimeCollectionRowsList: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/list.rs"),
+  runtimeCollectionRowsTree: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/tree.rs"),
+  runtimeCollectionRowsTable: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/table.rs"),
   runtimeSelectionControls: readRepo("../../../../zircon_runtime/src/ui/surface/render/selection_controls.rs"),
+  runtimeSegmentedControls: readRepo("../../../../zircon_runtime/src/ui/surface/render/segmented_controls.rs"),
   runtimeSliders: readRepo("../../../../zircon_runtime/src/ui/surface/render/sliders.rs"),
   runtimeDropdowns: readRepo("../../../../zircon_runtime/src/ui/surface/render/dropdowns.rs"),
+  runtimeFeedback: readRepo("../../../../zircon_runtime/src/ui/surface/render/feedback.rs"),
   runtimeTextFields: readRepo("../../../../zircon_runtime/src/ui/surface/render/text_fields.rs"),
   runtimeExtract: readRepo("../../../../zircon_runtime/src/ui/surface/render/extract.rs"),
   runtimePopupRows: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_rows.rs"),
   runtimePopupMenu: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_menu.rs"),
   runtimePopupOptions: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_options.rs"),
   runtimeTestsMod: readRepo("../../../../zircon_runtime/src/ui/tests/mod.rs"),
+  runtimeButtonTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_buttons.rs"),
+  runtimeCollectionRowTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_collection_rows.rs"),
   runtimeSelectionTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_selection_controls.rs"),
+  runtimeSegmentedControlTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_segmented_controls.rs"),
   runtimeSliderTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_sliders.rs"),
   runtimeDropdownTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_dropdowns.rs"),
+  runtimeFeedbackTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_feedback.rs"),
   runtimeTextFieldTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_text_fields.rs"),
   runtimePopupOptionsTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_popup_options.rs")
 };
@@ -304,12 +327,88 @@ for (const contract of nativeInteractionContracts) {
 }
 
 checks.push([
+  "native button selector state",
+  sources.buttonStyle.includes("select_workbench_button_style")
+    && sources.buttonStyle.includes("WorkbenchButtonStyle")
+    && sources.buttonStyle.includes("button_interaction_state()")
+    && sources.buttonStyle.includes("ButtonInteractionState::Pressed")
+    && sources.buttonStyle.includes("ButtonInteractionState::Disabled")
+]);
+checks.push([
+  "native icon button selector state",
+  sources.iconButtonStyle.includes("select_workbench_icon_button_style")
+    && sources.iconButtonStyle.includes("WorkbenchIconButtonStyle")
+    && sources.iconButtonStyle.includes("UiPainterFamily::IconButton")
+    && sources.iconButtonStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.iconButtonStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native text field selector state",
+  sources.textFieldStyle.includes("select_workbench_text_field_style")
+    && sources.textFieldStyle.includes("WorkbenchTextFieldStyle")
+    && sources.textFieldStyle.includes("UiPainterFamily::TextField")
+    && sources.textFieldStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.textFieldStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native selection control selector state",
+  sources.selectionControlStyle.includes("select_workbench_selection_control_style")
+    && sources.selectionControlStyle.includes("WorkbenchSelectionControlKind")
+    && sources.selectionControlStyle.includes("UiPainterFamily::Checkbox")
+    && sources.selectionControlStyle.includes("UiPainterFamily::Radio")
+    && sources.selectionControlStyle.includes("UiPainterFamily::Toggle")
+    && sources.selectionControlStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.selectionControlStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native dropdown selector state",
+  sources.dropdownStyle.includes("select_workbench_dropdown_style")
+    && sources.dropdownStyle.includes("WorkbenchDropdownStyle")
+    && sources.dropdownStyle.includes("UiPainterFamily::Dropdown")
+    && sources.dropdownStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.dropdownStyle.includes("UiPainterResolvedState::Open")
+    && sources.dropdownStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native slider selector state",
+  sources.sliderStyle.includes("select_workbench_slider_style")
+    && sources.sliderStyle.includes("WorkbenchSliderStyle")
+    && sources.sliderStyle.includes("slider_resolved_state()")
+    && sources.sliderStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.sliderStyle.includes("UiPainterResolvedState::Focused")
+    && sources.sliderStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native popup row selector state",
+  sources.popupRowStyle.includes("select_workbench_popup_row_style")
+    && sources.popupRowStyle.includes("WorkbenchPopupRowStyle")
+    && sources.popupRowStyle.includes("UiPainterFamily::PopupRow")
+    && sources.popupRowStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.popupRowStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
   "native list row selector state",
   sources.listRowStyle.includes("select_workbench_list_row_style")
     && sources.listRowStyle.includes("WorkbenchListRowStyle")
     && sources.listRowStyle.includes("UiPainterFamily::ListRow")
     && sources.listRowStyle.includes("UiPainterResolvedState::Pressed")
     && sources.listRowStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native tree row selector state",
+  sources.treeRowStyle.includes("select_workbench_tree_row_style")
+    && sources.treeRowStyle.includes("WorkbenchTreeRowStyle")
+    && sources.treeRowStyle.includes("UiPainterFamily::TreeRow")
+    && sources.treeRowStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.treeRowStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native table row selector state",
+  sources.tableRowStyle.includes("select_workbench_table_row_style")
+    && sources.tableRowStyle.includes("WorkbenchTableRowStyle")
+    && sources.tableRowStyle.includes("UiPainterFamily::TableRow")
+    && sources.tableRowStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.tableRowStyle.includes("UiPainterResolvedState::Disabled")
 ]);
 checks.push([
   "native tabs segmented selector state",
@@ -320,12 +419,72 @@ checks.push([
     && sources.segmentedStyle.includes("UiPainterResolvedState::Disabled")
 ]);
 checks.push([
+  "native tooltip selector state",
+  sources.tooltipStyle.includes("select_workbench_tooltip_style")
+    && sources.tooltipStyle.includes("WorkbenchTooltipStyle")
+    && sources.tooltipStyle.includes("UiPainterFamily::Tooltip")
+    && sources.tooltipStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.tooltipStyle.includes("UiPainterResolvedState::Focused")
+    && sources.tooltipStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "native toast selector state",
+  sources.toastStyle.includes("select_workbench_toast_style")
+    && sources.toastStyle.includes("WorkbenchToastStyle")
+    && sources.toastStyle.includes("UiPainterFamily::Toast")
+    && sources.toastStyle.includes("UiPainterResolvedState::Pressed")
+    && sources.toastStyle.includes("UiPainterResolvedState::Focused")
+    && sources.toastStyle.includes("UiPainterResolvedState::Disabled")
+]);
+checks.push([
+  "button icon button runtime extract",
+  sources.runtimeButtons.includes('"Button" | "ToggleButton" | "IconButton"')
+    && sources.runtimeButtons.includes("button_render_commands")
+    && sources.runtimeButtons.includes("button_suppresses_owner_text")
+    && sources.runtimeButtons.includes("button_suppresses_owner_image")
+    && sources.runtimeButtons.includes("UiPainterFamily::Button")
+    && sources.runtimeButtons.includes("UiPainterFamily::IconButton")
+    && sources.runtimeButtons.includes("UiVisualAssetRef::Icon")
+    && sources.runtimeExtract.includes("button_render_commands")
+    && sources.runtimeExtract.includes("button_suppresses_owner_text")
+    && sources.runtimeExtract.includes("button_suppresses_owner_image")
+]);
+checks.push([
+  "collection row runtime extract",
+  sources.runtimeCollectionRows.includes("collection_row_render_commands")
+    && sources.runtimeCollectionRows.includes("collection_row_suppresses_owner_text")
+    && sources.runtimeCollectionRows.includes("collection_row_suppresses_owner_image")
+    && sources.runtimeCollectionRowsShared.includes('"ListRow"')
+    && sources.runtimeCollectionRowsShared.includes('"TreeRow"')
+    && sources.runtimeCollectionRowsShared.includes('"Table" | "TableRow"')
+    && sources.runtimeCollectionRowsShared.includes("UiPainterFamily::ListRow")
+    && sources.runtimeCollectionRowsShared.includes("UiPainterFamily::TreeRow")
+    && sources.runtimeCollectionRowsShared.includes("UiPainterFamily::TableRow")
+    && sources.runtimeCollectionRowsList.includes("list_row_commands")
+    && sources.runtimeCollectionRowsTree.includes("tree_row_commands")
+    && sources.runtimeCollectionRowsTable.includes("table_row_commands")
+    && sources.runtimeExtract.includes("collection_row_render_commands")
+    && sources.runtimeExtract.includes("collection_row_suppresses_owner_text")
+    && sources.runtimeExtract.includes("collection_row_suppresses_owner_image")
+]);
+checks.push([
   "selection controls runtime extract",
   sources.runtimeSelectionControls.includes('SelectionControlKind::Checkbox')
     && sources.runtimeSelectionControls.includes('SelectionControlKind::Radio')
     && sources.runtimeSelectionControls.includes('SelectionControlKind::Toggle')
     && sources.runtimeExtract.includes("selection_control_render_commands")
     && sources.runtimeExtract.includes("selection_control_suppresses_owner_text")
+]);
+checks.push([
+  "tabs segmented controls runtime extract",
+  sources.runtimeSegmentedControls.includes('"SegmentedControl" | "Segmented"')
+    && sources.runtimeSegmentedControls.includes('"Tab" | "PanelTab"')
+    && sources.runtimeSegmentedControls.includes("segmented_control_render_commands")
+    && sources.runtimeSegmentedControls.includes("segmented_control_suppresses_owner_text")
+    && sources.runtimeSegmentedControls.includes("push_selected_segment")
+    && sources.runtimeSegmentedControls.includes("UiPainterFamily::Tab")
+    && sources.runtimeExtract.includes("segmented_control_render_commands")
+    && sources.runtimeExtract.includes("segmented_control_suppresses_owner_text")
 ]);
 checks.push([
   "slider runtime extract",
@@ -346,6 +505,21 @@ checks.push([
     && sources.runtimeDropdowns.includes("option_label_for_value")
     && sources.runtimeExtract.includes("dropdown_render_commands")
     && sources.runtimeExtract.includes("dropdown_suppresses_owner_text")
+]);
+checks.push([
+  "feedback runtime extract",
+  sources.runtimeFeedback.includes('"Alert" => Some(FeedbackKind::Alert)')
+    && sources.runtimeFeedback.includes('"Tooltip" => Some(FeedbackKind::Tooltip)')
+    && sources.runtimeFeedback.includes('"Toast" | "Snackbar" | "SnackbarContent"')
+    && sources.runtimeFeedback.includes("feedback_render_commands")
+    && sources.runtimeFeedback.includes("feedback_suppresses_owner_text")
+    && sources.runtimeFeedback.includes("feedback_suppresses_owner_image")
+    && sources.runtimeFeedback.includes("UiPainterFamily::Alert")
+    && sources.runtimeFeedback.includes("UiPainterFamily::Tooltip")
+    && sources.runtimeFeedback.includes("UiPainterFamily::Toast")
+    && sources.runtimeExtract.includes("feedback_render_commands")
+    && sources.runtimeExtract.includes("feedback_suppresses_owner_text")
+    && sources.runtimeExtract.includes("feedback_suppresses_owner_image")
 ]);
 checks.push([
   "text field runtime extract",
@@ -369,14 +543,23 @@ checks.push([
 ]);
 checks.push([
   "runtime component render tests registered",
-  sources.runtimeTestsMod.includes("mod render_selection_controls;")
+  sources.runtimeTestsMod.includes("mod render_buttons;")
+    && sources.runtimeTestsMod.includes("mod render_collection_rows;")
+    && sources.runtimeTestsMod.includes("mod render_selection_controls;")
+    && sources.runtimeTestsMod.includes("mod render_segmented_controls;")
     && sources.runtimeTestsMod.includes("mod render_sliders;")
     && sources.runtimeTestsMod.includes("mod render_dropdowns;")
+    && sources.runtimeTestsMod.includes("mod render_feedback;")
     && sources.runtimeTestsMod.includes("mod render_text_fields;")
     && sources.runtimeTestsMod.includes("mod render_popup_options;")
+    && sources.runtimeButtonTest.includes("render_extract_expands_button_primitives")
+    && sources.runtimeButtonTest.includes("render_extract_expands_icon_button_state_surface")
+    && sources.runtimeCollectionRowTest.includes("render_extract_expands_collection_row_primitives")
     && sources.runtimeSelectionTest.includes("render_extract_expands_selection_control_indicators")
+    && sources.runtimeSegmentedControlTest.includes("render_extract_expands_tabs_and_segmented_control_primitives")
     && sources.runtimeSliderTest.includes("render_extract_expands_slider_primitives")
     && sources.runtimeDropdownTest.includes("render_extract_expands_dropdown_trigger_primitives")
+    && sources.runtimeFeedbackTest.includes("render_extract_expands_feedback_primitives")
     && sources.runtimeTextFieldTest.includes("render_extract_expands_text_field_primitives")
     && sources.runtimePopupOptionsTest.includes("render_extract_expands_open_dropdown_options")
 ]);
@@ -399,7 +582,7 @@ if (failed.length > 0) {
 }
 
 console.log(
-  `native component contract: families=${nativeComponentFamilies.length} interactions=${nativeInteractionContracts.length} runtimeExtract=selection,slider,dropdown,text-field,popup`,
+  `native component contract: families=${nativeComponentFamilies.length} interactions=${nativeInteractionContracts.length} runtimeExtract=button,collection-row,selection,segmented,slider,dropdown,feedback,text-field,popup`,
 );
 console.log("ok native component family contract");
 

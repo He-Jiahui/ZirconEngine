@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_montage_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Montage Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionMontageEditorWorkspace]
+root = "montage_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.montage_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMontageEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_rail_gap" }, { node = "montage_editor_left" }, { node = "montage_editor_center" }, { node = "montage_editor_right" }]
+
+[nodes.montage_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionMontageEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.montage_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMontageEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_title" }, { node = "montage_editor_sections_tab" }, { node = "montage_editor_notifies_tab" }, { node = "montage_editor_curves_tab" }, { node = "montage_editor_attack_row" }, { node = "montage_editor_combo_row" }, { node = "montage_editor_cancel_window_row" }]
+
+[nodes.montage_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMontageEditorTitle"
+props = { text = "Montage Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.montage_editor_sections_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMontageEditorSectionsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Sections", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorSectionsTab", event = "Click", route = "WorkbenchExtension.MontageEditor.Sections" }]
+
+[nodes.montage_editor_notifies_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMontageEditorNotifiesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Notifies", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorNotifiesTab", event = "Click", route = "WorkbenchExtension.MontageEditor.Notifies" }]
+
+[nodes.montage_editor_curves_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMontageEditorCurvesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Curves", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorCurvesTab", event = "Click", route = "WorkbenchExtension.MontageEditor.Curves" }]
+
+[nodes.montage_editor_attack_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMontageEditorAttackRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "AM_DashAttack", icon = "play", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorAttackRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Montage.Attack" }]
+
+[nodes.montage_editor_combo_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMontageEditorComboRow"
+classes = ["workbench-list-row"]
+props = { text = "Combo Window", icon = "history", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorComboRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Montage.Combo" }]
+
+[nodes.montage_editor_cancel_window_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMontageEditorCancelWindowRow"
+classes = ["workbench-list-row"]
+props = { text = "Cancel Window", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorCancelWindowRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Montage.CancelWindow" }]
+
+[nodes.montage_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMontageEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_center_header" }, { node = "montage_editor_timeline_table" }, { node = "montage_editor_output" }]
+
+[nodes.montage_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMontageEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "montage_editor_center_title" }, { node = "montage_editor_header_fill" }, { node = "montage_editor_preview_button" }, { node = "montage_editor_apply_button" }]
+
+[nodes.montage_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMontageEditorCenterTitle"
+props = { text = "Section Timeline" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.montage_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionMontageEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.montage_editor_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMontageEditorPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorPreview", event = "Click", route = "WorkbenchExtension.MontageEditor.Preview" }]
+
+[nodes.montage_editor_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMontageEditorApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorApply", event = "Click", route = "WorkbenchExtension.MontageEditor.Apply" }]
+
+[nodes.montage_editor_timeline_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMontageEditorTimelineTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_intro_table_row" }, { node = "montage_editor_combo_table_row" }, { node = "montage_editor_notify_table_row" }, { node = "montage_editor_root_motion_table_row" }]
+
+[nodes.montage_editor_intro_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMontageEditorIntroTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Intro Section", value_text = "0.00-0.38s   Slot UpperBody   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorIntroTableRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Section.Intro" }]
+
+[nodes.montage_editor_combo_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMontageEditorComboTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Combo Branch", value_text = "0.38-0.74s   next section   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorComboTableRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Section.Combo" }]
+
+[nodes.montage_editor_notify_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMontageEditorNotifyTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Notify HitPause", value_text = "0.46s   gameplay cue   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorNotifyTableRow", event = "Click", route = "WorkbenchExtension.MontageEditor.Notify.HitPause" }]
+
+[nodes.montage_editor_root_motion_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMontageEditorRootMotionTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Root Motion", value_text = "Extracted   2.8m forward   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorRootMotionTableRow", event = "Click", route = "WorkbenchExtension.MontageEditor.RootMotion" }]
+
+[nodes.montage_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMontageEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Montage", value_text = "AM_DashAttack   4 sections   3 notifies" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MontageEditorOutput", event = "Click", route = "WorkbenchExtension.MontageEditor.Output" }]
+
+[nodes.montage_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMontageEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_details_title" }, { node = "montage_editor_montage_dropdown" }, { node = "montage_editor_slot_field" }, { node = "montage_editor_blend_dropdown" }]
+
+[nodes.montage_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMontageEditorDetailsTitle"
+props = { text = "Montage Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.montage_editor_montage_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMontageEditorMontageDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "AM_DashAttack", value = "AM_DashAttack", options = ["AM_DashAttack", "AM_Combo_01", "AM_Evade"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MontageEditorMontageEdit", event = "Change", route = "WorkbenchExtension.MontageEditor.Montage.Edit" },
+  { id = "WorkbenchExtension/MontageEditorMontageCommit", event = "Submit", route = "WorkbenchExtension.MontageEditor.Montage.Commit" },
+]
+
+[nodes.montage_editor_slot_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionMontageEditorSlotField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Slot: UpperBody" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MontageEditorSlotEdit", event = "Change", route = "WorkbenchExtension.MontageEditor.Slot.Edit" },
+  { id = "WorkbenchExtension/MontageEditorSlotCommit", event = "Submit", route = "WorkbenchExtension.MontageEditor.Slot.Commit" },
+]
+
+[nodes.montage_editor_blend_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMontageEditorBlendDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Blend 0.15s", value = "0.15", options = ["0.05", "0.15", "0.30"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MontageEditorBlendEdit", event = "Change", route = "WorkbenchExtension.MontageEditor.Blend.Edit" },
+  { id = "WorkbenchExtension/MontageEditorBlendCommit", event = "Submit", route = "WorkbenchExtension.MontageEditor.Blend.Commit" },
+]

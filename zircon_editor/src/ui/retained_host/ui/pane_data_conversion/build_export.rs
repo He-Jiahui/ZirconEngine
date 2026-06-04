@@ -275,12 +275,12 @@ fn build_export_row_actions(target: &BuildExportTargetViewData) -> Vec<BuildExpo
     let (primary_label, primary_action_id) = if export_busy {
         (
             "Cancel",
-            format!("BuildExport.Cancel.{}", target.profile_name),
+            format!("workbench.build_export.cancel.{}", target.profile_name),
         )
     } else {
         (
             "Export",
-            format!("BuildExport.Execute.{}", target.profile_name),
+            format!("workbench.build_export.execute.{}", target.profile_name),
         )
     };
 
@@ -294,21 +294,30 @@ fn build_export_row_actions(target: &BuildExportTargetViewData) -> Vec<BuildExpo
         },
         BuildExportRowAction {
             label: "Choose",
-            action_id: format!("BuildExport.ChooseOutput.{}", target.profile_name),
+            action_id: format!(
+                "workbench.build_export.output.choose.{}",
+                target.profile_name
+            ),
             variant: "secondary",
             disabled: false,
             width: BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,
         },
         BuildExportRowAction {
             label: "Open",
-            action_id: format!("BuildExport.RevealOutput.{}", target.profile_name),
+            action_id: format!(
+                "workbench.build_export.output.reveal.{}",
+                target.profile_name
+            ),
             variant: "secondary",
             disabled: false,
             width: BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,
         },
         BuildExportRowAction {
             label: "Default",
-            action_id: format!("BuildExport.ClearOutput.{}", target.profile_name),
+            action_id: format!(
+                "workbench.build_export.output.clear.{}",
+                target.profile_name
+            ),
             variant: "secondary",
             disabled: false,
             width: BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,
@@ -440,19 +449,19 @@ mod tests {
         assert_eq!(row_node.actions.row_count(), 4);
         assert_eq!(
             row_node.actions.row_data(0).map(|action| action.action_id),
-            Some("BuildExport.Execute.desktop_windows".into())
+            Some("workbench.build_export.execute.desktop_windows".into())
         );
         assert_eq!(
             row_node.actions.row_data(1).map(|action| action.action_id),
-            Some("BuildExport.ChooseOutput.desktop_windows".into())
+            Some("workbench.build_export.output.choose.desktop_windows".into())
         );
         assert_eq!(
             row_node.actions.row_data(2).map(|action| action.action_id),
-            Some("BuildExport.RevealOutput.desktop_windows".into())
+            Some("workbench.build_export.output.reveal.desktop_windows".into())
         );
         assert_eq!(
             row_node.actions.row_data(3).map(|action| action.action_id),
-            Some("BuildExport.ClearOutput.desktop_windows".into())
+            Some("workbench.build_export.output.clear.desktop_windows".into())
         );
         let counts = (0..data.nodes.row_count())
             .filter_map(|row| data.nodes.row_data(row))
@@ -471,19 +480,19 @@ mod tests {
         assert_eq!(actions.len(), 4);
         assert_eq!(
             actions[0].action_id.as_str(),
-            "BuildExport.Execute.desktop_windows"
+            "workbench.build_export.execute.desktop_windows"
         );
         assert_eq!(
             actions[1].action_id.as_str(),
-            "BuildExport.ChooseOutput.desktop_windows"
+            "workbench.build_export.output.choose.desktop_windows"
         );
         assert_eq!(
             actions[2].action_id.as_str(),
-            "BuildExport.RevealOutput.desktop_windows"
+            "workbench.build_export.output.reveal.desktop_windows"
         );
         assert_eq!(
             actions[3].action_id.as_str(),
-            "BuildExport.ClearOutput.desktop_windows"
+            "workbench.build_export.output.clear.desktop_windows"
         );
         assert!(!actions[0].disabled);
     }
@@ -546,7 +555,7 @@ mod tests {
         assert_eq!(row_action.label.as_str(), "Cancel");
         assert_eq!(
             row_action.action_id.as_str(),
-            "BuildExport.Cancel.desktop_linux"
+            "workbench.build_export.cancel.desktop_linux"
         );
         let button = (0..data.nodes.row_count())
             .filter_map(|row| data.nodes.row_data(row))
@@ -555,7 +564,7 @@ mod tests {
         assert_eq!(button.text.as_str(), "Cancel");
         assert_eq!(
             button.action_id.as_str(),
-            "BuildExport.Cancel.desktop_linux"
+            "workbench.build_export.cancel.desktop_linux"
         );
     }
 

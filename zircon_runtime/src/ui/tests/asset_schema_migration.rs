@@ -225,10 +225,10 @@ fn below_minimum_schema_version_is_rejected_with_structured_error() {
 }
 
 #[test]
-fn legacy_template_fixture_converts_through_schema_migrator() {
-    let outcome = UiAssetSchemaMigrator::migrate_legacy_template_str(
-        "legacy.workbench",
-        "Legacy Workbench",
+fn source_template_fixture_converts_through_schema_migrator() {
+    let outcome = UiAssetSchemaMigrator::migrate_source_template_fixture_str(
+        "source.workbench",
+        "Source Workbench",
         LEGACY_TEMPLATE_TOML,
     )
     .unwrap();
@@ -239,8 +239,8 @@ fn legacy_template_fixture_converts_through_schema_migrator() {
     );
     assert_eq!(outcome.report.source_schema_version, Some(1));
     assert_eq!(outcome.document.asset.kind, UiAssetKind::Layout);
-    assert_eq!(outcome.document.asset.id, "legacy.workbench");
-    assert_eq!(outcome.document.asset.display_name, "Legacy Workbench");
+    assert_eq!(outcome.document.asset.id, "source.workbench");
+    assert_eq!(outcome.document.asset.display_name, "Source Workbench");
     assert_eq!(
         outcome.document.asset.version,
         UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
@@ -250,7 +250,7 @@ fn legacy_template_fixture_converts_through_schema_migrator() {
         .steps
         .contains(&UiAssetMigrationStep::LegacyTemplateConverted));
 
-    let root = outcome.document.root.as_ref().expect("legacy root");
+    let root = outcome.document.root.as_ref().expect("source fixture root");
     assert_eq!(root.node_id, "root");
     assert_eq!(root.widget_type.as_deref(), Some("VerticalBox"));
     assert_eq!(root.children[0].node.widget_type.as_deref(), Some("Button"));

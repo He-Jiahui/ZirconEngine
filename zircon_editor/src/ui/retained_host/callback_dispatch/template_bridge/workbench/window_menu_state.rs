@@ -59,17 +59,17 @@ const TOOLBAR_WINDOW_MENUS: &[ToolbarWindowMenu] = &[
     ToolbarWindowMenu {
         trigger_control_id: "WorkbenchToolbarMenu",
         menu_control_id: "WorkbenchToolbarMainMenu",
-        action_ids: &["OpenMainMenu"],
+        action_ids: &["workbench.menu.main.open"],
     },
     ToolbarWindowMenu {
         trigger_control_id: "WorkbenchRunMode",
         menu_control_id: "WorkbenchRunModeMenu",
-        action_ids: &["OpenRunModeMenu"],
+        action_ids: &["workbench.run_mode.menu.open"],
     },
     ToolbarWindowMenu {
         trigger_control_id: "WorkbenchLayoutGrid",
         menu_control_id: "WorkbenchLayoutMenu",
-        action_ids: &["OpenLayoutMenu"],
+        action_ids: &["workbench.layout.menu.open"],
     },
 ];
 

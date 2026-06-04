@@ -20,33 +20,42 @@ pub(super) fn register_action_route(
     }
 
     let route_id = match action.action_id.as_str() {
-        "focus_view" | "detach_to_window" => register_docking_route(
+        "workbench.view.focus" | "workbench.view.detach_to_window" => register_docking_route(
             service,
             activity_meta,
             action.action_id.as_str(),
             action.event_kind,
         ),
-        "create_animation_track" => register_animation_route(
+        "animation.track.create" => register_animation_route(
             service,
             activity_meta,
             action.action_id.as_str(),
             action.event_kind,
         ),
-        "apply_batch" => register_inspector_route(service, activity_meta, action.event_kind),
-        "edit_field" | "set_mesh_import_path" => register_draft_route(
+        "inspector.apply_batch.invoke" => {
+            register_inspector_route(service, activity_meta, action.event_kind)
+        }
+        "inspector.field.edit" | "workbench.asset.mesh_import.path.set" => register_draft_route(
             service,
             activity_meta,
             action.action_id.as_str(),
             action.event_kind,
         ),
-        "import_model" => register_asset_route(
+        "workbench.asset.model.import" => register_asset_route(
             service,
             activity_meta,
             action.action_id.as_str(),
             action.event_kind,
         ),
-        "pointer_move" | "left_press" | "left_release" | "right_press" | "right_release"
-        | "middle_press" | "middle_release" | "scroll" | "resize" => register_viewport_route(
+        "workbench.viewport.pointer.move"
+        | "workbench.viewport.pointer.left.press"
+        | "workbench.viewport.pointer.left.release"
+        | "workbench.viewport.pointer.right.press"
+        | "workbench.viewport.pointer.right.release"
+        | "workbench.viewport.pointer.middle.press"
+        | "workbench.viewport.pointer.middle.release"
+        | "workbench.viewport.scroll"
+        | "workbench.viewport.resize" => register_viewport_route(
             service,
             activity_meta,
             action.action_id.as_str(),

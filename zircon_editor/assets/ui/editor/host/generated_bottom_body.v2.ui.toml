@@ -1,0 +1,31 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.generated_bottom.body"
+version = 2
+display_name = "generated bottom pane body"
+
+[root]
+node = "root"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
+]
+styles = []
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "GeneratedBottomPaneBodyRoot"
+classes = ["editor-pane", "generated-bottom-pane"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "panel_host" }]
+
+[nodes.panel_host]
+component = "Overlay"
+control_id = "GeneratedBottomPanePanelHost"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "panel_body" }]
+
+[nodes.panel_body]
+component = "WorkbenchGeneratedBottomPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

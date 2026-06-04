@@ -6,18 +6,19 @@ import {
 import {
     Badge,
     EmptyStateBlock,
+    HubInteractiveRowSurface,
     HubTableBody,
     HubTableView,
     HubTokens,
-    HubRowSurface,
     HubRowTrailingSlot,
     HubVisualSpec,
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialText,
     MaterialTypography,
-    StateLayerArea,
     StatusBadge,
+    TableCellText,
+    TableColumnHeader,
     ToolbarSelect,
 } from "components.slint";
 
@@ -121,52 +122,93 @@ export component ProjectBrowserTableHeader inherits Rectangle {
 
         Rectangle { width: root.thumbnail-column-width; }
 
-        MaterialText {
+        TableColumnHeader {
             text: root.name-label;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.label_medium;
+            row-height: root.header-height;
             horizontal-stretch: 1;
             min-width: 1px;
-            horizontal_alignment: left;
-            vertical_alignment: center;
         }
 
-        if !root.compact-table: MaterialText {
+        if !root.compact-table: TableColumnHeader {
             width: root.engine-column-width;
             text: root.engine-label;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.label_medium;
-            horizontal_alignment: left;
-            vertical_alignment: center;
+            row-height: root.header-height;
         }
 
-        if !root.compact-table: MaterialText {
+        if !root.compact-table: TableColumnHeader {
             width: root.modified-column-width;
             text: root.modified-label;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.label_medium;
-            horizontal_alignment: left;
-            vertical_alignment: center;
+            row-height: root.header-height;
         }
 
-        if !root.compact-table: MaterialText {
+        if !root.compact-table: TableColumnHeader {
             width: root.status-column-width;
             text: root.status-label;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.label_medium;
-            horizontal_alignment: left;
-            vertical_alignment: center;
+            row-height: root.header-height;
         }
 
         Rectangle { width: root.detail-column-width; }
     }
 }
 
-export component ProjectBrowserRow inherits HubRowSurface {
+component ProjectBrowserNameCell inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    in property <length> cell-height: HubTokens.list-row-lg;
+    in property <length> table-gap: HubTokens.space-2;
+    in property <length> title-line-height: MaterialStyleMetrics.size_20;
+    in property <length> pinned-badge-width: HubTokens.control-md * 2;
+    in property <length> missing-badge-width: HubTokens.control-md * 2;
+    in property <string> pinned-label: "Pinned";
+    in property <string> missing-label: "Missing";
+    in property <color> title-foreground: MaterialPalette.on_surface;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    height: root.cell-height;
+    background: transparent;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: MaterialStyleMetrics.spacing_2;
+
+        HorizontalLayout {
+            height: root.title-line-height;
+            spacing: max(MaterialStyleMetrics.spacing_6, root.table-gap * 2 / 3);
+            alignment: start;
+
+            MaterialText {
+                text: root.project.title;
+                overflow: elide;
+                color: root.title-foreground;
+                style: MaterialTypography.label_large;
+                horizontal-stretch: 1;
+                horizontal_alignment: left;
+                vertical_alignment: center;
+            }
+
+            if root.project.pinned: Badge {
+                text: root.pinned-label;
+                tone: "accent";
+                badge-width: root.pinned-badge-width;
+            }
+
+            if root.project.missing: Badge {
+                text: root.missing-label;
+                tone: "warning";
+                badge-width: root.missing-badge-width;
+            }
+        }
+
+        MutedText {
+            text: root.project.project-path;
+            overflow: elide;
+        }
+    }
+}
+
+export component ProjectBrowserRow inherits HubInteractiveRowSurface {
     in property <RecentProjectRowData> project;
     in property <length> row-width: 0px;
     in property <length> table-padding-x: HubTokens.space-3;
@@ -195,6 +237,12 @@ export component ProjectBrowserRow inherits HubRowSurface {
     idle-background: HubVisualSpec.panel-background;
     selected-background: MaterialPalette.secondary_container;
     selected-border-width: MaterialStyleMetrics.size_1;
+    row-radius: HubVisualSpec.compact-radius;
+    interaction-foreground: root.content-foreground;
+
+    clicked => {
+        root.select(root.project.open-path);
+    }
 
     HorizontalLayout {
         width: parent.width;
@@ -204,15 +252,11 @@ export component ProjectBrowserRow inherits HubRowSurface {
         spacing: root.table-gap;
         alignment: stretch;
 
-        row-state := StateLayerArea {
+        Rectangle {
             horizontal-stretch: 1;
             min-width: 1px;
             height: parent.height;
-            color: root.content-foreground;
-            border_radius: HubVisualSpec.compact-radius;
-            clicked => {
-                root.select(root.project.open-path);
-            }
+            background: transparent;
 
             HorizontalLayout {
                 width: parent.width;
@@ -250,60 +294,28 @@ export component ProjectBrowserRow inherits HubRowSurface {
                     }
                 }
 
-                Rectangle {
-                    horizontal-stretch: 1;
-                    min-width: 1px;
-                    height: parent.height;
-                    background: transparent;
-                    clip: true;
-
-                    VerticalLayout {
-                        width: parent.width;
-                        height: parent.height;
-                        spacing: MaterialStyleMetrics.spacing_2;
-
-                        HorizontalLayout {
-                            height: root.title-line-height;
-                            spacing: max(MaterialStyleMetrics.spacing_6, root.table-gap * 2 / 3);
-                            alignment: start;
-                            MaterialText {
-                                text: root.project.title;
-                                overflow: elide;
-                                color: root.content-foreground;
-                                style: MaterialTypography.label_large;
-                                horizontal-stretch: 1;
-                                horizontal_alignment: left;
-                                vertical_alignment: center;
-                            }
-                            if root.project.pinned: Badge { text: root.pinned-label; tone: "accent"; badge-width: root.pinned-badge-width; }
-                            if root.project.missing: Badge { text: root.missing-label; tone: "warning"; badge-width: root.missing-badge-width; }
-                        }
-
-                        MutedText {
-                            text: root.project.project-path;
-                            overflow: elide;
-                        }
-                    }
+                ProjectBrowserNameCell {
+                    cell-height: root.row-height;
+                    project: root.project;
+                    table-gap: root.table-gap;
+                    title-line-height: root.title-line-height;
+                    pinned-label: root.pinned-label;
+                    missing-label: root.missing-label;
+                    pinned-badge-width: root.pinned-badge-width;
+                    missing-badge-width: root.missing-badge-width;
+                    title-foreground: root.content-foreground;
                 }
 
-                if !root.compact-table: MaterialText {
+                if !root.compact-table: TableCellText {
                     width: root.engine-column-width;
+                    row-height: root.row-height;
                     text: root.project.version;
-                    overflow: elide;
-                    color: MaterialPalette.on_surface_variant;
-                    style: MaterialTypography.body_small;
-                    horizontal_alignment: left;
-                    vertical_alignment: center;
                 }
 
-                if !root.compact-table: MaterialText {
+                if !root.compact-table: TableCellText {
                     width: root.modified-column-width;
+                    row-height: root.row-height;
                     text: root.project.modified;
-                    overflow: elide;
-                    color: MaterialPalette.on_surface_variant;
-                    style: MaterialTypography.body_small;
-                    horizontal_alignment: left;
-                    vertical_alignment: center;
                 }
 
                 if !root.compact-table: StatusBadge {

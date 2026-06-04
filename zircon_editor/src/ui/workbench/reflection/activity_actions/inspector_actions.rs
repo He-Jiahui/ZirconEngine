@@ -5,14 +5,18 @@ use zircon_runtime_interface::ui::{
 
 pub(super) fn inspector_actions() -> Vec<UiActionDescriptor> {
     vec![
-        UiActionDescriptor::new("apply_batch", UiEventKind::Click, "InspectorFieldBatch")
-            .with_parameter(UiParameterDescriptor::new(
-                "subject_path",
-                UiValueType::String,
-            ))
-            .with_parameter(UiParameterDescriptor::new("changes", UiValueType::Array)),
         UiActionDescriptor::new(
-            "edit_field",
+            "inspector.apply_batch.invoke",
+            UiEventKind::Click,
+            "InspectorFieldBatch",
+        )
+        .with_parameter(UiParameterDescriptor::new(
+            "subject_path",
+            UiValueType::String,
+        ))
+        .with_parameter(UiParameterDescriptor::new("changes", UiValueType::Array)),
+        UiActionDescriptor::new(
+            "inspector.field.edit",
             UiEventKind::Change,
             "DraftCommand.SetInspectorField",
         )
@@ -23,7 +27,7 @@ pub(super) fn inspector_actions() -> Vec<UiActionDescriptor> {
         .with_parameter(UiParameterDescriptor::new("field_id", UiValueType::String))
         .with_parameter(UiParameterDescriptor::new("value", UiValueType::String)),
         UiActionDescriptor::new(
-            "create_animation_track",
+            "animation.track.create",
             UiEventKind::Click,
             "AnimationCommand.CreateTrack",
         )

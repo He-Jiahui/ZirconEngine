@@ -158,6 +158,7 @@ impl UiSurface {
                 let _ = self.component_states.set_disabled(*node_id, true);
             }
         }
+        self.seed_popup_stack_from_tree_metadata();
     }
 
     pub(crate) fn apply_runtime_state_style_all(
@@ -321,6 +322,7 @@ impl UiSurface {
             && matches!(property.as_str(), "open" | "popup_open")
         {
             if let UiValue::Bool(open) = value {
+                self.sync_popup_stack_for_node(node_id, open);
                 report.focus_change = self.apply_mui_modal_focus_transition(node_id, open)?;
             }
         }
@@ -561,8 +563,10 @@ impl UiSurface {
         }
         result.diagnostics.focus_changed = focus_before_dispatch != self.focus.focused;
         result.diagnostics.capture_released = result.diagnostics.capture_released
-            || (matches!(event.kind, UiPointerEventKind::Up)
-                && capture_before_dispatch.is_some()
+            || (matches!(
+                event.kind,
+                UiPointerEventKind::Up | UiPointerEventKind::Cancel
+            ) && capture_before_dispatch.is_some()
                 && self.focus.captured.is_none());
         if result.diagnostics.capture_released {
             if let Some(owner) = capture_before_dispatch
@@ -676,6 +680,13 @@ impl UiSurface {
             }
             _ => {}
         }
+        if matches!(route.kind, UiPointerEventKind::Cancel) {
+            if let Some(pressed) = route.pressed {
+                if self.component_states.set_pressed(pressed, false) {
+                    self.mark_component_state_render_dirty(pressed)?;
+                }
+            }
+        }
         if focus_before_dispatch == self.focus.focused {
             return Ok(());
         }
@@ -716,6 +727,11 @@ impl UiSurface {
                 }
             }
             _ => {}
+        }
+        if matches!(route.kind, UiPointerEventKind::Cancel) {
+            if let Some(pressed) = route.pressed {
+                self.set_node_pressed_dirty(pressed, false)?;
+            }
         }
         Ok(())
     }
@@ -1017,6 +1033,9 @@ impl UiSurface {
             } else {
                 self.input.clear_pointer_capture();
             }
+        } else if matches!(kind, UiPointerEventKind::Cancel) {
+            self.focus.pressed = None;
+            self.release_pointer_capture();
         }
         let pressed = if matches!(kind, UiPointerEventKind::Down) {
             self.focus.pressed

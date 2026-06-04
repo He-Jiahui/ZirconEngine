@@ -9,13 +9,16 @@ use zircon_runtime_interface::{
 pub(super) const PERFORMANCE_TIMELINE_ACTION_CONTROL_ID: &str = "PerformanceTimelineCaptureControl";
 
 #[cfg(feature = "profiling")]
-const PERFORMANCE_TIMELINE_START_CAPTURE_ACTION: &str = "PerformanceTimeline.StartCapture";
+const PERFORMANCE_TIMELINE_START_CAPTURE_ACTION: &str =
+    "workbench.performance_timeline.capture.start";
 #[cfg(feature = "profiling")]
-const PERFORMANCE_TIMELINE_STOP_CAPTURE_ACTION: &str = "PerformanceTimeline.StopCapture";
+const PERFORMANCE_TIMELINE_STOP_CAPTURE_ACTION: &str =
+    "workbench.performance_timeline.capture.stop";
 #[cfg(feature = "profiling")]
-const PERFORMANCE_TIMELINE_EXPORT_REPORT_ACTION: &str = "PerformanceTimeline.ExportReport";
+const PERFORMANCE_TIMELINE_EXPORT_REPORT_ACTION: &str =
+    "workbench.performance_timeline.report.export";
 #[cfg(feature = "profiling")]
-const PERFORMANCE_TIMELINE_RESET_ACTION: &str = "PerformanceTimeline.Reset";
+const PERFORMANCE_TIMELINE_RESET_ACTION: &str = "workbench.performance_timeline.reset";
 
 impl RetainedEditorHost {
     pub(super) fn runtime_diagnostics_with_profile(&self) -> RuntimeDiagnosticsSnapshot {
@@ -166,23 +169,23 @@ mod tests {
     #[test]
     fn performance_timeline_actions_map_to_profile_control_commands() {
         assert_eq!(
-            profile_command_for_action("PerformanceTimeline.StartCapture"),
+            profile_command_for_action("workbench.performance_timeline.capture.start"),
             Some(ProfileControlCommand::StartCapture)
         );
         assert_eq!(
-            profile_command_for_action("PerformanceTimeline.StopCapture"),
+            profile_command_for_action("workbench.performance_timeline.capture.stop"),
             Some(ProfileControlCommand::StopCapture)
         );
         assert_eq!(
-            profile_command_for_action("PerformanceTimeline.ExportReport"),
+            profile_command_for_action("workbench.performance_timeline.report.export"),
             Some(ProfileControlCommand::ExportReport)
         );
         assert_eq!(
-            profile_command_for_action("PerformanceTimeline.Reset"),
+            profile_command_for_action("workbench.performance_timeline.reset"),
             Some(ProfileControlCommand::Reset)
         );
         assert_eq!(
-            profile_command_for_action("PerformanceTimeline.Unknown"),
+            profile_command_for_action("workbench.performance_timeline.unknown"),
             None
         );
     }

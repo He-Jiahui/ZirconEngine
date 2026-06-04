@@ -59,9 +59,21 @@ pub(super) fn post_process_pipeline(
 mod tests {
     use super::{PostProcessDepthSamplingMode, POST_PROCESS_SHADER};
 
+    fn validate_post_process_shader_source(name: &str, shader_source: &str) {
+        let module = naga::front::wgsl::parse_str(shader_source)
+            .unwrap_or_else(|error| panic!("{name}: {}", error.emit_to_string(shader_source)));
+        let mut validator = naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        );
+        validator
+            .validate(&module)
+            .unwrap_or_else(|error| panic!("{name}: {error}"));
+    }
+
     #[test]
     fn post_process_shader_parses_after_lut_binding_expansion() {
-        naga::front::wgsl::parse_str(POST_PROCESS_SHADER).expect("post-process shader must parse");
+        validate_post_process_shader_source("post_process.wgsl", POST_PROCESS_SHADER);
     }
 
     #[test]
@@ -93,7 +105,23 @@ mod tests {
         assert!(
             POST_PROCESS_SHADER.contains("load_scene_view_depth(vec2<i32>(coord), viewport_size)")
         );
-        assert!(POST_PROCESS_SHADER.contains("abs(reflected_depth - current_depth)"));
+        assert!(POST_PROCESS_SHADER.contains("fn trace_screen_space_reflection"));
+        assert!(POST_PROCESS_SHADER.contains("let sample_depth = load_scene_view_depth"));
+        assert!(POST_PROCESS_SHADER.contains("abs(sample_depth - ray_depth)"));
+        assert!(POST_PROCESS_SHADER.contains("fn reconstruct_view_position"));
+        assert!(POST_PROCESS_SHADER.contains("fn project_view_position_to_pixel"));
+    }
+
+    #[test]
+    fn post_process_shader_uses_lens_bokeh_depth_of_field_kernel() {
+        assert!(POST_PROCESS_SHADER.contains("effect_dof_lens: vec4<f32>"));
+        assert!(POST_PROCESS_SHADER.contains("const DOF_BOKEH_SAMPLE_COUNT: u32 = 12u"));
+        assert!(POST_PROCESS_SHADER.contains("fn depth_of_field_radius"));
+        assert!(POST_PROCESS_SHADER.contains("fn bokeh_aperture_radius"));
+        assert!(POST_PROCESS_SHADER.contains("fn sample_depth_of_field_bokeh"));
+        assert!(POST_PROCESS_SHADER.contains("params.effect_dof_lens.x / 50.0"));
+        assert!(POST_PROCESS_SHADER.contains("round(params.effect_dof_lens.z)"));
+        assert!(POST_PROCESS_SHADER.contains("sample_index < DOF_BOKEH_SAMPLE_COUNT"));
     }
 
     #[test]
@@ -101,8 +129,52 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(14) var scene_normal_tex"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(scene_normal_tex"));
         assert!(POST_PROCESS_SHADER.contains("fn load_scene_normal"));
-        assert!(POST_PROCESS_SHADER.contains("let normal = load_scene_normal(coord_i32"));
+        assert!(POST_PROCESS_SHADER.contains("effect_view_x: vec4<f32>"));
+        assert!(POST_PROCESS_SHADER.contains("effect_view_y: vec4<f32>"));
+        assert!(POST_PROCESS_SHADER.contains("effect_view_z: vec4<f32>"));
+        assert!(POST_PROCESS_SHADER.contains("fn world_normal_to_view_space"));
+        assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_x.xyz, world_normal)"));
+        assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_y.xyz, world_normal)"));
+        assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_z.xyz, world_normal)"));
+        assert!(POST_PROCESS_SHADER
+            .contains("let normal = world_normal_to_view_space(load_scene_normal"));
         assert!(POST_PROCESS_SHADER.contains("reflect(view_direction, normal)"));
+    }
+
+    #[test]
+    fn post_process_shader_ray_marches_ssr_with_bounds_and_edge_fade() {
+        assert!(POST_PROCESS_SHADER.contains("fn trace_screen_space_reflection"));
+        assert!(POST_PROCESS_SHADER.contains("for (var step_index = 1u"));
+        assert!(POST_PROCESS_SHADER.contains("min(params.effect_flags.z, 128u)"));
+        assert!(POST_PROCESS_SHADER.contains("params.effect_ssr_limits.x"));
+        assert!(POST_PROCESS_SHADER.contains("params.effect_projection.x"));
+        assert!(POST_PROCESS_SHADER.contains("project_view_position_to_pixel(ray_position"));
+        assert!(POST_PROCESS_SHADER.contains("fn screen_edge_fade"));
+        assert!(POST_PROCESS_SHADER.contains("traced_reflection.a"));
+    }
+
+    #[test]
+    fn post_process_shader_refines_projected_ssr_hits() {
+        assert!(POST_PROCESS_SHADER.contains("const SSR_HIT_REFINE_STEPS: u32 = 4u"));
+        assert!(POST_PROCESS_SHADER.contains("fn sample_screen_space_reflection_hit"));
+        assert!(POST_PROCESS_SHADER.contains("fn refine_screen_space_reflection_hit"));
+        assert!(POST_PROCESS_SHADER
+            .contains("for (var refine_index = 0u; refine_index < SSR_HIT_REFINE_STEPS"));
+        assert!(
+            POST_PROCESS_SHADER.contains("let refined_hit = refine_screen_space_reflection_hit")
+        );
+        assert!(POST_PROCESS_SHADER.contains("(candidate_hit.z > 0.0 && ray_direction.z < 0.0)"));
+        assert!(POST_PROCESS_SHADER.contains("if (hit.w < 0.0)"));
+    }
+
+    #[test]
+    fn post_process_shader_samples_bound_scene_material_texture_for_ssr_roughness() {
+        assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(16) var scene_material_tex"));
+        assert!(POST_PROCESS_SHADER.contains("textureLoad(scene_material_tex"));
+        assert!(POST_PROCESS_SHADER.contains("fn load_scene_material_roughness"));
+        assert!(POST_PROCESS_SHADER
+            .contains("let roughness = load_scene_material_roughness(coord_i32, viewport_size)"));
+        assert!(POST_PROCESS_SHADER.contains("roughness_visibility"));
     }
 
     #[test]
@@ -110,8 +182,10 @@ mod tests {
         let shader_source = PostProcessDepthSamplingMode::ViewportDepthFallback
             .post_process_shader_source(POST_PROCESS_SHADER);
 
-        naga::front::wgsl::parse_str(&shader_source)
-            .expect("fallback post-process shader must parse");
+        validate_post_process_shader_source(
+            "post_process.viewport_depth_fallback.wgsl",
+            &shader_source,
+        );
         assert!(!shader_source.contains("texture_depth_2d"));
         assert!(!shader_source.contains("textureSample(scene_depth_tex"));
         assert!(

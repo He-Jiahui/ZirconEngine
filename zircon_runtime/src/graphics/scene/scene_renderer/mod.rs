@@ -21,7 +21,7 @@ pub use graph_execution::{
 };
 
 pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
-pub(crate) use deferred::GBUFFER_ALBEDO_FORMAT;
+pub(crate) use deferred::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
 pub(crate) use post_process::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};

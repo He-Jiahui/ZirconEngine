@@ -1,20 +1,16 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
-use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
-use hyper::body::{Bytes, Incoming};
-use hyper::service::service_fn;
-use hyper::{Request, Response, StatusCode};
-use hyper_util::rt::TokioIo;
-use tokio::net::TcpListener;
 use zircon_plugin_net_runtime::{HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
 use zircon_runtime::core::framework::net::{
-    NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
-    NetRequestId, NetRouteId,
+    NetError, NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetRouteId,
 };
+
+mod client;
+mod method;
+mod security;
+mod server;
 
 #[derive(Clone, Debug, Default)]
 pub struct HyperReqwestHttpBackend;
@@ -32,20 +28,7 @@ impl HttpRuntimeBackend for HyperReqwestHttpBackend {
         bind: SocketAddr,
         routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
     ) -> Result<ManagedHttpListener, NetError> {
-        let listener = runtime
-            .block_on(TcpListener::bind(bind))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = listener
-            .local_addr()
-            .map(NetEndpoint::from)
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let abort_handle = runtime
-            .spawn(serve_http_listener(listener, routes))
-            .abort_handle();
-        Ok(ManagedHttpListener {
-            local_endpoint,
-            abort_handle: Some(abort_handle),
-        })
+        server::listen_http(runtime, bind, routes)
     }
 
     fn send_http_request(
@@ -53,261 +36,6 @@ impl HttpRuntimeBackend for HyperReqwestHttpBackend {
         runtime: &tokio::runtime::Runtime,
         request: NetHttpRequestDescriptor,
     ) -> Result<NetHttpResponseDescriptor, NetError> {
-        runtime.block_on(send_http_request(request))
-    }
-}
-
-async fn send_http_request(
-    request: NetHttpRequestDescriptor,
-) -> Result<NetHttpResponseDescriptor, NetError> {
-    validate_http_security_policy(&request)?;
-    let max_attempts = request.max_retry_attempts.saturating_add(1);
-    let mut attempt = 0;
-    let mut last_error = None;
-    while attempt < max_attempts {
-        match send_http_request_once(&request).await {
-            Ok(response)
-                if response_is_retryable(response.status_code) && attempt + 1 < max_attempts =>
-            {
-                attempt += 1;
-                continue;
-            }
-            Ok(response) => return Ok(response),
-            Err(error) if attempt + 1 < max_attempts => {
-                last_error = Some(error);
-                attempt += 1;
-            }
-            Err(error) => return Err(error),
-        }
-    }
-    Err(last_error.unwrap_or_else(|| NetError::Io("HTTP retry attempts exhausted".to_string())))
-}
-
-async fn send_http_request_once(
-    request: &NetHttpRequestDescriptor,
-) -> Result<NetHttpResponseDescriptor, NetError> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_millis(request.timeout_ms))
-        .use_rustls_tls()
-        .build()
-        .map_err(|error| NetError::Io(error.to_string()))?;
-    let mut builder = client.request(method_to_reqwest(request.method), &request.url);
-    for (name, value) in &request.headers {
-        builder = builder.header(name, value);
-    }
-    if !request.body.is_empty() {
-        builder = builder.body(request.body.clone());
-    }
-    let response = builder
-        .send()
-        .await
-        .map_err(|error| NetError::Io(error.to_string()))?;
-    let status_code = response.status().as_u16();
-    let headers = response
-        .headers()
-        .iter()
-        .filter_map(|(name, value)| {
-            value
-                .to_str()
-                .ok()
-                .map(|value| (name.to_string(), value.to_string()))
-        })
-        .collect::<Vec<_>>();
-    let body = response
-        .bytes()
-        .await
-        .map_err(|error| NetError::Io(error.to_string()))?
-        .to_vec();
-    let mut response = NetHttpResponseDescriptor::new(request.request, status_code, body);
-    response.headers = headers;
-    Ok(response)
-}
-
-fn response_is_retryable(status_code: u16) -> bool {
-    matches!(status_code, 408 | 425 | 429 | 500 | 502 | 503 | 504)
-}
-
-fn validate_http_security_policy(request: &NetHttpRequestDescriptor) -> Result<(), NetError> {
-    if request.security.certificate_pinning {
-        let host =
-            http_url_host(&request.url).ok_or_else(|| NetError::SecurityPolicyViolation {
-                reason: "HTTP certificate pinning requires a valid request host".to_string(),
-            })?;
-        if !request.security.has_pin_for_host(&host) {
-            return Err(NetError::SecurityPolicyViolation {
-                reason: format!("HTTP certificate pinning has no configured pin for host: {host}"),
-            });
-        }
-    }
-
-    if request.security.tls_required
-        && !request.url.starts_with("https://")
-        && !(request.security.allow_insecure_loopback && http_url_is_loopback(&request.url))
-    {
-        return Err(NetError::SecurityPolicyViolation {
-            reason: "HTTP request requires HTTPS by security policy".to_string(),
-        });
-    }
-
-    Ok(())
-}
-
-fn http_url_is_loopback(url: &str) -> bool {
-    http_url_host(url)
-        .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1" | "[::1]"))
-}
-
-fn http_url_host(url: &str) -> Option<String> {
-    let authority = url
-        .strip_prefix("http://")
-        .or_else(|| url.strip_prefix("https://"))
-        .map(|rest| rest.split('/').next().unwrap_or_default())?;
-    Some(
-        authority
-            .rsplit_once('@')
-            .map(|(_, host)| host)
-            .unwrap_or(authority)
-            .split(':')
-            .next()
-            .unwrap_or_default()
-            .to_string(),
-    )
-}
-
-async fn serve_http_listener(
-    listener: TcpListener,
-    routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
-) {
-    loop {
-        let (stream, _) = match listener.accept().await {
-            Ok(accepted) => accepted,
-            Err(_) => return,
-        };
-        let routes = routes.clone();
-        tokio::spawn(async move {
-            let io = TokioIo::new(stream);
-            let service = service_fn(move |request| handle_route_request(request, routes.clone()));
-            let _ = hyper::server::conn::http1::Builder::new()
-                .serve_connection(io, service)
-                .await;
-        });
-    }
-}
-
-async fn handle_route_request(
-    request: Request<Incoming>,
-    routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let method = http_method_from_hyper(request.method());
-    let path = request.uri().path().to_string();
-    let matched = method.and_then(|method| {
-        routes
-            .lock()
-            .expect("net HTTP routes mutex poisoned")
-            .values()
-            .find(|entry| entry.route.path == path && entry.route.methods.contains(&method))
-            .map(|entry| (method, entry.response.clone(), entry.handler.clone()))
-    });
-    let Some((method, route_response, route_handler)) = matched else {
-        return Ok(route_not_found());
-    };
-
-    let headers = request
-        .headers()
-        .iter()
-        .filter_map(|(name, value)| {
-            value
-                .to_str()
-                .ok()
-                .map(|value| (name.to_string(), value.to_string()))
-        })
-        .collect::<Vec<_>>();
-    let body = match collect_route_request_body(request.into_body()).await {
-        Ok(body) => body,
-        Err(RouteBodyError::TooLarge) => return Ok(payload_too_large()),
-        Err(RouteBodyError::ReadFailed) => return Ok(internal_server_error()),
-    };
-    let mut request = NetHttpRequestDescriptor::new(NetRequestId::new(0), method, path);
-    request.headers = headers;
-    request.body = body;
-    let response = route_handler
-        .as_ref()
-        .map(|handler| handler(request.clone()))
-        .unwrap_or_else(|| route_response.for_request(request.request));
-
-    let mut builder = Response::builder().status(response.status_code);
-    for (name, value) in response.headers {
-        builder = builder.header(name, value);
-    }
-    let response = builder
-        .body(Full::new(Bytes::from(response.body)))
-        .unwrap_or_else(|_| internal_server_error());
-
-    Ok(response)
-}
-
-enum RouteBodyError {
-    TooLarge,
-    ReadFailed,
-}
-
-async fn collect_route_request_body(body: Incoming) -> Result<Vec<u8>, RouteBodyError> {
-    Limited::new(body, HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES)
-        .collect()
-        .await
-        .map(|collected| collected.to_bytes().to_vec())
-        .map_err(|error| {
-            if error.downcast_ref::<LengthLimitError>().is_some() {
-                RouteBodyError::TooLarge
-            } else {
-                RouteBodyError::ReadFailed
-            }
-        })
-}
-
-fn route_not_found() -> Response<Full<Bytes>> {
-    Response::builder()
-        .status(StatusCode::NOT_FOUND)
-        .body(Full::new(Bytes::from_static(b"route not found")))
-        .expect("static HTTP response should build")
-}
-
-fn payload_too_large() -> Response<Full<Bytes>> {
-    Response::builder()
-        .status(StatusCode::PAYLOAD_TOO_LARGE)
-        .body(Full::new(Bytes::from_static(b"request body too large")))
-        .expect("static HTTP response should build")
-}
-
-fn internal_server_error() -> Response<Full<Bytes>> {
-    Response::builder()
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
-        .body(Full::new(Bytes::from_static(b"internal server error")))
-        .expect("static HTTP response should build")
-}
-
-fn method_to_reqwest(method: NetHttpMethod) -> reqwest::Method {
-    match method {
-        NetHttpMethod::Get => reqwest::Method::GET,
-        NetHttpMethod::Post => reqwest::Method::POST,
-        NetHttpMethod::Put => reqwest::Method::PUT,
-        NetHttpMethod::Patch => reqwest::Method::PATCH,
-        NetHttpMethod::Delete => reqwest::Method::DELETE,
-    }
-}
-
-fn http_method_from_hyper(method: &hyper::Method) -> Option<NetHttpMethod> {
-    if method == hyper::Method::GET {
-        Some(NetHttpMethod::Get)
-    } else if method == hyper::Method::POST {
-        Some(NetHttpMethod::Post)
-    } else if method == hyper::Method::PUT {
-        Some(NetHttpMethod::Put)
-    } else if method == hyper::Method::PATCH {
-        Some(NetHttpMethod::Patch)
-    } else if method == hyper::Method::DELETE {
-        Some(NetHttpMethod::Delete)
-    } else {
-        None
+        runtime.block_on(client::send_http_request(request))
     }
 }

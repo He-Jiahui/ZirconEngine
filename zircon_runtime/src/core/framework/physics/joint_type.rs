@@ -6,4 +6,7 @@ pub enum PhysicsJointType {
     Fixed,
     Distance,
     Hinge,
+    Slider,
+    ConeTwist,
+    Generic6Dof,
 }

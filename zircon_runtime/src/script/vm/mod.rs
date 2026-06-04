@@ -22,7 +22,9 @@ pub use host::{
 pub use module::{module_descriptor, ScriptModule};
 pub use plugin::{
     discover_vm_plugin_package, discover_vm_plugin_packages, DiscoveredVmPluginPackage,
-    VmPluginInstance, VmPluginManifest, VmPluginPackage, VmPluginPackageSource, VmStateBlob,
-    ZrVmExecutionMode, ZrVmPluginProjectSource,
+    VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
+    VmPluginInstance, VmPluginManagementPolicy, VmPluginManifest, VmPluginMemoryPolicy,
+    VmPluginPackage, VmPluginPackageSource, VmStateBlob, ZrVmExecutionMode,
+    ZrVmPluginProjectSource,
 };
-pub use runtime::{HotReloadCoordinator, VmPluginManager, VmPluginSlotRecord};
+pub use runtime::{HotReloadCoordinator, VmPluginManager, VmPluginSlotRecord, VmPluginSlotState};

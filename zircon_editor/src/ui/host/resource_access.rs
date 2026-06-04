@@ -5,13 +5,13 @@ use zircon_runtime_interface::resource::{
 };
 
 pub(crate) fn resolve_ready_handle<TMarker>(
-    resource_server: &(impl ResourceManager + ?Sized),
+    resource_manager: &(impl ResourceManager + ?Sized),
     locator: &ResourceLocator,
 ) -> Result<ResourceHandle<TMarker>, String>
 where
     TMarker: ResourceMarker,
 {
-    let status: ResourceRecord = resource_server
+    let status: ResourceRecord = resource_manager
         .resource_status(&locator.to_string())
         .ok_or_else(|| format!("resource {locator} is missing from the resource registry"))?;
 

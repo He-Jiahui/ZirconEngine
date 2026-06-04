@@ -5,7 +5,7 @@ import {
     UiTextData,
     WorkspaceActionReadinessData,
 } from "shared.slint";
-import { HubCompactTabStrip, HubTokens, HubVisualSpec, PageScrollSurface, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
+import { HubTokens, HubVisualSpec, HubWorkspaceSplitState, HubWorkspaceTabStrip, PageScrollSurface, ResponsiveSlot, WorkspacePanelSection } from "components.slint";
 import { EditorActionsPanel, EditorBuildHistoryPanel, EditorSourceEngineListPanel, EditorSourceSettingsPanel, EditorSourceSummaryPanel } from "editor_page_components.slint";
 
 export component EditorPage inherits PageScrollSurface {
@@ -19,19 +19,15 @@ export component EditorPage inherits PageScrollSurface {
     in property <int> source-build-history-count;
     in property <WorkspaceActionReadinessData> readiness;
     in property <UiTextData> ui-text;
-    private property <length> side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;
-    private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
-    private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
     private property <length> engine-list-scroll-y: 0px;
     private property <length> build-history-scroll-y: 0px;
     private property <length> build-row-height: HubTokens.list-row-sm;
     private property <length> build-summary-height: HubTokens.workspace-row-editor-summary;
     private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.toolbar-gap * 3 + HubTokens.space-4 * 2;
     private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
-    private property <bool> actions-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
+    private property <bool> actions-first: workspace-split.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
     private property <length> editor-config-height: HubTokens.workspace-row-editor-config - HubTokens.list-row-md - HubTokens.control-lg;
     private property <length> side-list-empty-height: HubTokens.list-row-sm + HubTokens.space-4;
-    private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-wide;
     callback save-settings();
     callback browse-folder(string);
     callback select-engine(string);
@@ -44,53 +40,57 @@ export component EditorPage inherits PageScrollSurface {
     background: HubVisualSpec.page-background;
     clip: true;
 
-        HubCompactTabStrip {
+        workspace-split := HubWorkspaceSplitState {
+            content-width: root.content-width;
+            compact-label-breakpoint: HubTokens.breakpoint-wide;
+        }
+
+        HubWorkspaceTabStrip {
             current-index: 0;
             first-label: "Overview";
             second-label: "Source Paths";
             third-label: "Timeline";
             fourth-label: "Actions";
-            tab-width: HubTokens.control-md * 4;
         }
 
         WorkspacePanelSection {
-            compact: root.compact;
+            compact: workspace-split.compact;
             row-height: root.build-summary-height;
             compact-height-override: root.build-summary-section-height;
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
             EditorSourceSummaryPanel {
-                basis: root.overview-min-width;
-                flex-basis: root.overview-min-width;
-                grow: 2;
-                flex-grow: 2;
+                basis: workspace-split.main-basis;
+                flex-basis: workspace-split.main-basis;
+                grow: workspace-split.main-grow;
+                flex-grow: workspace-split.main-grow;
                 shrink: 1;
                 flex-shrink: 1;
                 order: root.actions-first ? 1 : 0;
                 flex-order: root.actions-first ? 1 : 0;
-                min-width: root.compact ? root.content-width : root.overview-min-width;
-                height: root.compact ? root.build-source-summary-height : root.build-summary-height;
+                min-width: workspace-split.main-min-width;
+                height: workspace-split.compact ? root.build-source-summary-height : root.build-summary-height;
                 readiness: root.readiness;
                 source-engine: root.source-engine;
                 ui-text: root.ui-text;
                 row-height: root.build-row-height;
-                collapse-label: root.compact-labels;
+                collapse-label: workspace-split.compact-labels;
                 launch-editor => {
                     root.launch-editor();
                 }
             }
 
             EditorActionsPanel {
-                basis: root.side-panel-min-width;
-                flex-basis: root.side-panel-min-width;
-                grow: 1;
-                flex-grow: 1;
+                basis: workspace-split.side-basis;
+                flex-basis: workspace-split.side-basis;
+                grow: workspace-split.side-grow;
+                flex-grow: workspace-split.side-grow;
                 shrink: 1;
                 flex-shrink: 1;
                 order: root.actions-first ? 0 : 1;
                 flex-order: root.actions-first ? 0 : 1;
-                min-width: root.compact ? root.content-width : root.side-panel-min-width;
+                min-width: workspace-split.side-min-width;
                 height: root.build-summary-height;
                 readiness: root.readiness;
                 ui-text: root.ui-text;
@@ -112,19 +112,19 @@ export component EditorPage inherits PageScrollSurface {
         }
 
         WorkspacePanelSection {
-            compact: root.compact;
+            compact: workspace-split.compact;
             row-height: root.editor-config-height;
             spacing-horizontal: HubTokens.panel-gap;
             spacing-vertical: HubTokens.panel-gap;
 
             EditorSourceSettingsPanel {
-                basis: root.overview-min-width;
-                flex-basis: root.overview-min-width;
-                grow: 2;
-                flex-grow: 2;
+                basis: workspace-split.main-basis;
+                flex-basis: workspace-split.main-basis;
+                grow: workspace-split.main-grow;
+                flex-grow: workspace-split.main-grow;
                 shrink: 1;
                 flex-shrink: 1;
-                min-width: root.compact ? root.content-width : root.overview-min-width;
+                min-width: workspace-split.main-min-width;
                 height: root.editor-config-height;
                 active-engine-name <=> root.active-engine-name;
                 source-path <=> root.source-path;
@@ -139,13 +139,13 @@ export component EditorPage inherits PageScrollSurface {
             }
 
             ResponsiveSlot {
-                basis: root.side-panel-min-width;
-                flex-basis: root.side-panel-min-width;
-                grow: 1;
-                flex-grow: 1;
+                basis: workspace-split.side-basis;
+                flex-basis: workspace-split.side-basis;
+                grow: workspace-split.side-grow;
+                flex-grow: workspace-split.side-grow;
                 shrink: 1;
                 flex-shrink: 1;
-                min-width: root.compact ? root.content-width : root.side-panel-min-width;
+                min-width: workspace-split.side-min-width;
                 height: root.editor-config-height;
 
                 VerticalLayout {
@@ -162,7 +162,7 @@ export component EditorPage inherits PageScrollSurface {
                         source-engines: root.source-engines;
                         source-engine-count: root.source-engine-count;
                         empty-title: root.ui-text.no-source-engines;
-                        collapse-label: root.compact-labels;
+                        collapse-label: workspace-split.compact-labels;
                         selected(id) => {
                             root.select-engine(id);
                         }
@@ -180,7 +180,7 @@ export component EditorPage inherits PageScrollSurface {
                         source-build-history: root.source-build-history;
                         source-build-history-count: root.source-build-history-count;
                         empty-title: root.ui-text.no-build-history-short;
-                        collapse-label: root.compact-labels;
+                        collapse-label: workspace-split.compact-labels;
                     }
                 }
             }

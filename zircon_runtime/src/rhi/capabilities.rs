@@ -53,6 +53,9 @@ pub struct RenderBackendCaps {
     pub supports_partially_bound_binding_array: bool,
     pub supports_neural_compute: bool,
     pub supports_sparse_texture: bool,
+    pub supports_debug_markers: bool,
+    pub supports_debug_groups: bool,
+    pub supports_graphics_debugger_capture: bool,
     pub acceleration_structures: AccelerationStructureCaps,
 }
 
@@ -75,6 +78,9 @@ impl RenderBackendCaps {
             supports_partially_bound_binding_array: false,
             supports_neural_compute: false,
             supports_sparse_texture: false,
+            supports_debug_markers: false,
+            supports_debug_groups: false,
+            supports_graphics_debugger_capture: false,
             acceleration_structures: AccelerationStructureCaps::disabled(),
         }
     }
@@ -160,8 +166,57 @@ impl RenderBackendCaps {
         self
     }
 
+    pub fn with_debug_markers(mut self, enabled: bool) -> Self {
+        self.supports_debug_markers = enabled;
+        self
+    }
+
+    pub fn with_debug_groups(mut self, enabled: bool) -> Self {
+        self.supports_debug_groups = enabled;
+        self
+    }
+
+    pub fn with_graphics_debugger_capture(mut self, enabled: bool) -> Self {
+        self.supports_graphics_debugger_capture = enabled;
+        self
+    }
+
     pub fn with_acceleration_structures(mut self, caps: AccelerationStructureCaps) -> Self {
         self.acceleration_structures = caps;
         self
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderDebugInstrumentationStatus {
+    pub backend_name: String,
+    pub debug_markers_supported: bool,
+    pub debug_groups_supported: bool,
+    pub graphics_debugger_capture_supported: bool,
+    pub active_graphics_debugger_capture: bool,
+    pub last_error: Option<String>,
+}
+
+impl RenderDebugInstrumentationStatus {
+    pub fn from_caps(caps: &RenderBackendCaps) -> Self {
+        Self {
+            backend_name: caps.backend_name.clone(),
+            debug_markers_supported: caps.supports_debug_markers,
+            debug_groups_supported: caps.supports_debug_groups,
+            graphics_debugger_capture_supported: caps.supports_graphics_debugger_capture,
+            active_graphics_debugger_capture: false,
+            last_error: None,
+        }
+    }
+
+    pub fn unavailable(backend_name: impl Into<String>) -> Self {
+        Self {
+            backend_name: backend_name.into(),
+            debug_markers_supported: false,
+            debug_groups_supported: false,
+            graphics_debugger_capture_supported: false,
+            active_graphics_debugger_capture: false,
+            last_error: None,
+        }
     }
 }

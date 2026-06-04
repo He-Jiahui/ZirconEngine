@@ -112,15 +112,15 @@ fn to_host_contract_workbench_window_node(
     let menu_item_values = string_array_property(&node.properties, "menu_items", &node.menu_items);
     let collection_item_values =
         string_array_property(&node.properties, "collection_items", &node.collection_items);
-    let action_id = preferred_route_binding(
+    let action_id = preferred_route_action_id(
         &node.routes,
         [UiEventKind::Click, UiEventKind::Toggle, UiEventKind::Change],
     )
     .unwrap_or_default();
     let edit_action_id =
-        preferred_route_binding(&node.routes, [UiEventKind::Change]).unwrap_or_default();
+        preferred_route_action_id(&node.routes, [UiEventKind::Change]).unwrap_or_default();
     let commit_action_id =
-        preferred_route_binding(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
+        preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
     let button_style_values = toml_values_from_host_properties(&node.properties);
     let structured_options = structured_options_for_node(&option_values, &button_style_values);
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
@@ -571,6 +571,40 @@ fn preferred_route_binding<const N: usize>(
         .find_map(|kind| routes.iter().find(|route| route.event_kind == *kind))
         .or_else(|| routes.first())
         .map(|route| route.binding_id.clone())
+}
+
+fn preferred_route_action_id<const N: usize>(
+    routes: &[RetainedUiHostRouteProjection],
+    kinds: [UiEventKind; N],
+) -> Option<String> {
+    preferred_route_binding(routes, kinds).map(|binding_id| binding_path_action_id(&binding_id))
+}
+
+fn binding_path_action_id(binding_id: &str) -> String {
+    binding_id
+        .split(['/', '.', ':'])
+        .filter(|segment| !segment.is_empty())
+        .map(camel_to_snake_segment)
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn camel_to_snake_segment(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 fn color_property(

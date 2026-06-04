@@ -825,6 +825,12 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "BuildExportPaneBody",
             "BuildExportPaneBody/FocusBuildExport",
         ),
+        (
+            "editor.generated_bottom",
+            "pane.generated_bottom.body",
+            "GeneratedBottomPaneBody",
+            "WorkbenchGeneratedBottom/OpenPanel",
+        ),
     ];
 
     for (descriptor_id, document_id, component_id, binding_id) in cases {

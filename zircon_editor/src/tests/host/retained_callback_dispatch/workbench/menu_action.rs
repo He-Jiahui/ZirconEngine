@@ -7,7 +7,8 @@ fn menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects() {
     let harness = EventRuntimeHarness::new("zircon_retained_callback_menu");
     let before = harness.runtime.editor_snapshot().scene_entries.len();
 
-    let effects = dispatch_menu_action(&harness.runtime, "CreateNode.Cube").unwrap();
+    let effects =
+        dispatch_menu_action(&harness.runtime, "workbench.scene.node.create.cube").unwrap();
 
     assert_eq!(
         harness.runtime.editor_snapshot().scene_entries.len(),

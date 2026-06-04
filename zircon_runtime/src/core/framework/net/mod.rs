@@ -60,3 +60,6 @@ pub use websocket::{
     NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
     NetWebSocketListenerDescriptor,
 };
+
+#[cfg(test)]
+mod tests;

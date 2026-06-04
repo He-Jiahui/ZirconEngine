@@ -196,7 +196,7 @@ tests:
   - cargo test -p zircon_asset tests::editor::boundary::resource_state_protocol_lives_in_resource_crate --offline --target-dir target/tdd-red-asset -- --exact
   - cargo test -p zircon_asset resource_server_reports_resource_records_for_project_assets --offline --target-dir target/tdd-red-asset
   - cargo test -p zircon_editor asset_manager_boundary --offline --target-dir target/tdd-red-editor
-  - cargo test -p zircon_editor resolve_ready_handle_returns_typed_handle_from_resource_server --offline --target-dir target/tdd-red-editor --quiet
+  - cargo test -p zircon_editor resolve_ready_handle_returns_typed_handle_from_resource_manager --offline --target-dir target/tdd-red-editor --quiet
   - cargo test -p zircon_manager tests::manager_public_surface_excludes_resource_status_wrapper --offline --target-dir target/tdd-status-manager -- --exact
   - cargo test -p zircon_asset tests::editor::boundary::resource_status_protocol_lives_in_resource_crate --offline --target-dir target/tdd-status-asset -- --exact
   - cargo test -p zircon_asset resource_server_reports_resource_records_for_project_assets --offline --target-dir target/tdd-status-asset
@@ -642,7 +642,7 @@ graphics public owner cutover 在入口侧已经继续收口：
 - `cargo test -p zircon_asset tests::editor::boundary::resource_state_protocol_lives_in_resource_crate --offline --target-dir target/tdd-red-asset -- --exact`
 - `cargo test -p zircon_asset resource_server_reports_resource_records_for_project_assets --offline --target-dir target/tdd-red-asset`
 - `cargo test -p zircon_editor asset_manager_boundary --offline --target-dir target/tdd-red-editor`
-- `cargo test -p zircon_editor resolve_ready_handle_returns_typed_handle_from_resource_server --offline --target-dir target/tdd-red-editor --quiet`
+- `cargo test -p zircon_editor resolve_ready_handle_returns_typed_handle_from_resource_manager --offline --target-dir target/tdd-red-editor --quiet`
 - `cargo test -p zircon_manager tests::manager_public_surface_excludes_resource_status_wrapper --offline --target-dir target/tdd-status-manager -- --exact`
 - `cargo test -p zircon_asset tests::editor::boundary::resource_status_protocol_lives_in_resource_crate --offline --target-dir target/tdd-status-asset -- --exact`
 - `cargo test -p zircon_asset resource_server_reports_resource_records_for_project_assets --offline --target-dir target/tdd-status-asset`

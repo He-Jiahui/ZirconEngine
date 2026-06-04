@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::ops::{BitOr, BitOrAssign};
 
+mod pipeline;
+
+pub use pipeline::{
+    BlendComponentDesc, BlendFactor, BlendOperation, BlendStateDesc, ColorTargetDesc,
+    ColorWriteMask, CullMode, DepthStencilStateDesc, FrontFace, PipelineDesc, PipelineKind,
+    PipelineLayoutDesc, PrimitiveStateDesc, PrimitiveTopology, RasterPipelineStateDesc,
+    ShaderModuleDesc, ShaderStage, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat,
+    VertexInputLayoutDesc, VertexStepMode,
+};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BufferUsage(u32);
 
@@ -15,6 +25,17 @@ impl BufferUsage {
     pub const INDIRECT: Self = Self(1 << 6);
     pub const COPY_SRC: Self = Self(1 << 7);
     pub const COPY_DST: Self = Self(1 << 8);
+    pub const ALL: Self = Self(
+        Self::VERTEX.0
+            | Self::INDEX.0
+            | Self::UNIFORM.0
+            | Self::STORAGE.0
+            | Self::STAGING_READ.0
+            | Self::STAGING_WRITE.0
+            | Self::INDIRECT.0
+            | Self::COPY_SRC.0
+            | Self::COPY_DST.0,
+    );
 
     pub const fn bits(self) -> u32 {
         self.0
@@ -22,6 +43,10 @@ impl BufferUsage {
 
     pub const fn contains(self, other: Self) -> bool {
         (self.0 & other.0) == other.0
+    }
+
+    pub const fn has_unknown_bits(self) -> bool {
+        (self.0 & !Self::ALL.0) != 0
     }
 }
 
@@ -96,6 +121,10 @@ impl TextureFormat {
             self,
             Self::Depth24Plus | Self::Depth24PlusStencil8 | Self::Depth32Float
         )
+    }
+
+    pub const fn has_stencil(self) -> bool {
+        matches!(self, Self::Depth24PlusStencil8)
     }
 
     pub const fn is_hdr_color(self) -> bool {
@@ -232,6 +261,25 @@ impl TextureDesc {
         matches!(self.residency, TextureResidency::SparseReserved)
     }
 
+    pub const fn max_full_mip_levels(&self) -> u32 {
+        let max_extent = match self.dimension {
+            TextureDimension::D1 => self.width,
+            TextureDimension::D2 | TextureDimension::D2Array | TextureDimension::Cube => {
+                max_u32(self.width, self.height)
+            }
+            TextureDimension::D3 => max_u32(max_u32(self.width, self.height), self.depth),
+        };
+        if max_extent == 0 {
+            0
+        } else {
+            u32::BITS - max_extent.leading_zeros()
+        }
+    }
+
+    pub const fn mip_levels_fit_shape(&self) -> bool {
+        self.mip_levels > 0 && self.mip_levels <= self.max_full_mip_levels()
+    }
+
     pub fn checked_storage_size_bytes(&self) -> Option<u64> {
         let mut total = 0_u64;
         for level in 0..self.mip_levels {
@@ -255,6 +303,14 @@ impl TextureDesc {
     }
 }
 
+const fn max_u32(left: u32, right: u32) -> u32 {
+    if left >= right {
+        left
+    } else {
+        right
+    }
+}
+
 const fn mip_extent(value: u32, level: u32) -> u32 {
     let shifted = if level >= u32::BITS {
         0
@@ -275,70 +331,149 @@ pub enum AddressMode {
     MirrorRepeat,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FilterMode {
+    Nearest,
+    Linear,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MipmapFilterMode {
+    Nearest,
+    Linear,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompareFunction {
+    Never,
+    Less,
+    LessEqual,
+    Equal,
+    GreaterEqual,
+    Greater,
+    NotEqual,
+    Always,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SamplerDesc {
     pub label: Option<String>,
-    pub linear_filtering: bool,
+    pub mag_filter: FilterMode,
+    pub min_filter: FilterMode,
+    pub mipmap_filter: MipmapFilterMode,
     pub address_mode_u: AddressMode,
     pub address_mode_v: AddressMode,
     pub address_mode_w: AddressMode,
+    pub lod_min_clamp: f32,
+    pub lod_max_clamp: f32,
+    pub compare: Option<CompareFunction>,
+    pub anisotropy_clamp: u16,
 }
 
 impl SamplerDesc {
     pub fn linear(label: impl Into<String>) -> Self {
         Self {
             label: Some(label.into()),
-            linear_filtering: true,
+            mag_filter: FilterMode::Linear,
+            min_filter: FilterMode::Linear,
+            mipmap_filter: MipmapFilterMode::Nearest,
             address_mode_u: AddressMode::ClampToEdge,
             address_mode_v: AddressMode::ClampToEdge,
             address_mode_w: AddressMode::ClampToEdge,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 32.0,
+            compare: None,
+            anisotropy_clamp: 1,
         }
     }
 
     pub fn nearest(label: impl Into<String>) -> Self {
         Self {
             label: Some(label.into()),
-            linear_filtering: false,
+            mag_filter: FilterMode::Nearest,
+            min_filter: FilterMode::Nearest,
+            mipmap_filter: MipmapFilterMode::Nearest,
             address_mode_u: AddressMode::ClampToEdge,
             address_mode_v: AddressMode::ClampToEdge,
             address_mode_w: AddressMode::ClampToEdge,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 32.0,
+            compare: None,
+            anisotropy_clamp: 1,
         }
+    }
+
+    pub fn linear_mipmap_linear(label: impl Into<String>) -> Self {
+        Self::linear(label).with_mipmap_filter(MipmapFilterMode::Linear)
+    }
+
+    pub const fn with_mipmap_filter(mut self, mipmap_filter: MipmapFilterMode) -> Self {
+        self.mipmap_filter = mipmap_filter;
+        self
+    }
+
+    pub const fn with_lod_clamp(mut self, min: f32, max: f32) -> Self {
+        self.lod_min_clamp = min;
+        self.lod_max_clamp = max;
+        self
+    }
+
+    pub const fn with_compare(mut self, compare: CompareFunction) -> Self {
+        self.compare = Some(compare);
+        self
+    }
+
+    pub const fn with_anisotropy_clamp(mut self, anisotropy_clamp: u16) -> Self {
+        self.anisotropy_clamp = anisotropy_clamp;
+        self
+    }
+
+    pub const fn uses_anisotropy(&self) -> bool {
+        self.anisotropy_clamp > 1
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ShaderStage {
-    Vertex,
-    Fragment,
-    Compute,
+pub enum BindingResourceType {
+    UniformBuffer,
+    StorageBuffer,
+    Texture,
+    StorageTexture,
+    Sampler,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ShaderModuleDesc {
-    pub label: Option<String>,
-    pub source: String,
-    pub stage: ShaderStage,
-    pub entry_point: String,
+pub struct BindGroupLayoutEntryDesc {
+    pub binding: u32,
+    pub visibility: Vec<ShaderStage>,
+    pub resource_type: BindingResourceType,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PipelineKind {
-    Raster,
-    Compute,
-    RayTracing,
+impl BindGroupLayoutEntryDesc {
+    pub fn new(
+        binding: u32,
+        resource_type: BindingResourceType,
+        visibility: impl Into<Vec<ShaderStage>>,
+    ) -> Self {
+        Self {
+            binding,
+            visibility: visibility.into(),
+            resource_type,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PipelineDesc {
+pub struct BindGroupLayoutDesc {
     pub label: Option<String>,
-    pub kind: PipelineKind,
+    pub entries: Vec<BindGroupLayoutEntryDesc>,
 }
 
-impl PipelineDesc {
-    pub fn new(label: impl Into<String>, kind: PipelineKind) -> Self {
+impl BindGroupLayoutDesc {
+    pub fn new(label: impl Into<String>, entries: Vec<BindGroupLayoutEntryDesc>) -> Self {
         Self {
             label: Some(label.into()),
-            kind,
+            entries,
         }
     }
 }

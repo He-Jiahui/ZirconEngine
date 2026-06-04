@@ -53,14 +53,14 @@ events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "AssetCo
 [nodes.toolbar_view_mode_list_button]
 component = "Button"
 control_id = "AssetsActivityViewModeListButton"
-props = { label = "List", dispatch_kind = "asset", action_id = "SetViewMode", value = "list" }
+props = { label = "List", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "list" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
 
 [nodes.toolbar_view_mode_thumb_button]
 component = "Button"
 control_id = "AssetsActivityViewModeThumbButton"
-props = { label = "Thumb", dispatch_kind = "asset", action_id = "SetViewMode", value = "thumbnail" }
+props = { label = "Thumb", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
 layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
 
@@ -73,42 +73,42 @@ children = [{ node = "toolbar_search_field" }, { node = "toolbar_view_mode_list_
 [nodes.toolbar_kind_all_chip]
 component = "Button"
 control_id = "AssetsActivityKindAllChip"
-props = { label = "All", dispatch_kind = "asset", action_id = "SetKindFilter", value_text = "" }
+props = { label = "All", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value_text = "" }
 layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_texture_chip]
 component = "Button"
 control_id = "AssetsActivityKindTextureChip"
-props = { label = "Tex", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Texture" }
+props = { label = "Tex", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Texture" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_material_chip]
 component = "Button"
 control_id = "AssetsActivityKindMaterialChip"
-props = { label = "Mat", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Material" }
+props = { label = "Mat", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Material" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_scene_chip]
 component = "Button"
 control_id = "AssetsActivityKindSceneChip"
-props = { label = "Scn", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Scene" }
+props = { label = "Scn", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Scene" }
 layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_model_chip]
 component = "Button"
 control_id = "AssetsActivityKindModelChip"
-props = { label = "Mesh", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Model" }
+props = { label = "Mesh", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Model" }
 layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_shader_chip]
 component = "Button"
 control_id = "AssetsActivityKindShaderChip"
-props = { label = "Shd", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Shader" }
+props = { label = "Shd", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Shader" }
 layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
@@ -121,42 +121,42 @@ children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_c
 [nodes.toolbar_kind_physics_chip]
 component = "Button"
 control_id = "AssetsActivityKindPhysicsChip"
-props = { label = "Phy", dispatch_kind = "asset", action_id = "SetKindFilter", value = "PhysicsMaterial" }
+props = { label = "Phy", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "PhysicsMaterial" }
 layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_skeleton_chip]
 component = "Button"
 control_id = "AssetsActivityKindSkeletonChip"
-props = { label = "Skel", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationSkeleton" }
+props = { label = "Skel", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationSkeleton" }
 layout = { width = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_clip_chip]
 component = "Button"
 control_id = "AssetsActivityKindClipChip"
-props = { label = "Clip", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationClip" }
+props = { label = "Clip", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationClip" }
 layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_sequence_chip]
 component = "Button"
 control_id = "AssetsActivityKindSequenceChip"
-props = { label = "Seq", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationSequence" }
+props = { label = "Seq", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationSequence" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_graph_chip]
 component = "Button"
 control_id = "AssetsActivityKindGraphChip"
-props = { label = "Gph", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationGraph" }
+props = { label = "Gph", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationGraph" }
 layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_state_chip]
 component = "Button"
 control_id = "AssetsActivityKindStateChip"
-props = { label = "Stat", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationStateMachine" }
+props = { label = "Stat", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationStateMachine" }
 layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
@@ -248,14 +248,14 @@ children = [{ node = "tree_panel" }, { node = "content_panel" }]
 [nodes.utility_preview_button]
 component = "Button"
 control_id = "AssetsActivityPreviewTabButton"
-props = { label = "Preview", dispatch_kind = "asset", action_id = "SetUtilityTab", value = "preview" }
+props = { label = "Preview", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value = "preview" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 
 [nodes.utility_references_button]
 component = "Button"
 control_id = "AssetsActivityReferencesTabButton"
-props = { label = "Refs", dispatch_kind = "asset", action_id = "SetUtilityTab", value = "references" }
+props = { label = "Refs", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value = "references" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 

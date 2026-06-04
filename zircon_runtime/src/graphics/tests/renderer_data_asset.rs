@@ -170,6 +170,12 @@ enabled = true
 quality_gate = "SparseTexture"
 
 [[features]]
+name = "Particle"
+source = "Particle"
+enabled = true
+quality_gate = "Particle"
+
+[[features]]
 name = "Terrain"
 source = "Terrain"
 enabled = true
@@ -266,6 +272,7 @@ quality_gate = "ColorSpace"
 
     let expected = [
         BuiltinRenderFeature::SparseTexture,
+        BuiltinRenderFeature::Particle,
         BuiltinRenderFeature::Terrain,
         BuiltinRenderFeature::Tree,
         BuiltinRenderFeature::Projector,

@@ -12,6 +12,9 @@ fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
     assert!(!caps.acceleration_structures.supported);
     assert!(!caps.supports_neural_compute);
     assert!(!caps.supports_sparse_texture);
+    assert!(caps.supports_debug_markers);
+    assert!(caps.supports_debug_groups);
+    assert!(caps.supports_graphics_debugger_capture);
 }
 
 #[test]

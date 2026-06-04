@@ -8,8 +8,8 @@ pub enum HubError {
     TomlEncode(#[from] toml::ser::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Slint platform error: {0}")]
-    Slint(#[from] slint::PlatformError),
+    #[error("Tauri error: {0}")]
+    Tauri(#[from] tauri::Error),
     #[error("{0}")]
     Message(String),
 }

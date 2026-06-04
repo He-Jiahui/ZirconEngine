@@ -11,12 +11,16 @@ use zircon_runtime_interface::ui::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfacePopupState {
     pub popup_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<UiNodeId>,
     pub anchor: Option<UiPoint>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceTooltipState {
     pub tooltip_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<UiNodeId>,
     pub visible: bool,
 }
 
@@ -79,10 +83,18 @@ impl UiSurfaceInputState {
         self.input_method_request = None;
     }
 
-    pub fn open_popup(&mut self, popup_id: String, anchor: Option<UiPoint>) {
+    pub fn open_popup(
+        &mut self,
+        popup_id: String,
+        owner: Option<UiNodeId>,
+        anchor: Option<UiPoint>,
+    ) {
         self.close_popup(popup_id.as_str());
-        self.popup_stack
-            .push(UiSurfacePopupState { popup_id, anchor });
+        self.popup_stack.push(UiSurfacePopupState {
+            popup_id,
+            owner,
+            anchor,
+        });
     }
 
     pub fn close_popup(&mut self, popup_id: &str) -> bool {
@@ -92,22 +104,37 @@ impl UiSurfaceInputState {
         previous_len != self.popup_stack.len()
     }
 
-    pub fn toggle_popup(&mut self, popup_id: String, anchor: Option<UiPoint>) {
+    pub fn toggle_popup(
+        &mut self,
+        popup_id: String,
+        owner: Option<UiNodeId>,
+        anchor: Option<UiPoint>,
+    ) {
         if !self.close_popup(popup_id.as_str()) {
-            self.open_popup(popup_id, anchor);
+            self.open_popup(popup_id, owner, anchor);
         }
     }
 
-    pub fn arm_tooltip(&mut self, tooltip_id: String) {
+    pub fn popup_owner(&self, popup_id: &str) -> Option<UiNodeId> {
+        self.popup_stack
+            .iter()
+            .rev()
+            .find(|popup| popup.popup_id.as_str() == popup_id)
+            .and_then(|popup| popup.owner)
+    }
+
+    pub fn arm_tooltip(&mut self, tooltip_id: String, owner: Option<UiNodeId>) {
         self.tooltip = Some(UiSurfaceTooltipState {
             tooltip_id,
+            owner,
             visible: false,
         });
     }
 
-    pub fn show_tooltip(&mut self, tooltip_id: String) {
+    pub fn show_tooltip(&mut self, tooltip_id: String, owner: Option<UiNodeId>) {
         self.tooltip = Some(UiSurfaceTooltipState {
             tooltip_id,
+            owner,
             visible: true,
         });
     }
@@ -120,6 +147,13 @@ impl UiSurfaceInputState {
         {
             self.tooltip = None;
         }
+    }
+
+    pub fn tooltip_owner(&self, tooltip_id: &str) -> Option<UiNodeId> {
+        self.tooltip
+            .as_ref()
+            .filter(|tooltip| tooltip.tooltip_id.as_str() == tooltip_id)
+            .and_then(|tooltip| tooltip.owner)
     }
 
     pub fn begin_drag_drop(

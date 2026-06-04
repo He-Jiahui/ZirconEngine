@@ -11,12 +11,17 @@ struct PostProcessParams {
     effect_flags: vec4<u32>,
     effect_tonemap_lut: vec4<f32>,
     effect_blur_dof: vec4<f32>,
+    effect_dof_lens: vec4<f32>,
     effect_vignette_grain: vec4<f32>,
     effect_chromatic_fog: vec4<f32>,
     effect_fog_color: vec4<f32>,
     effect_dither_ssr: vec4<f32>,
     effect_ssr_limits: vec4<f32>,
     effect_depth: vec4<f32>,
+    effect_projection: vec4<f32>,
+    effect_view_x: vec4<f32>,
+    effect_view_y: vec4<f32>,
+    effect_view_z: vec4<f32>,
 };
 
 struct ReflectionProbe {
@@ -54,6 +59,7 @@ struct HybridGiTraceRegion {
 @group(0) @binding(13) var effect_lut_sampler: sampler;
 @group(0) @binding(14) var scene_normal_tex: texture_2d<f32>;
 @group(0) @binding(15) var scene_depth_sampler: sampler;
+@group(0) @binding(16) var scene_material_tex: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -74,6 +80,11 @@ const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.05;
 const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE: f32 = 1.0;
 const HYBRID_GI_HISTORY_BLEND_MAX: f32 = 0.45;
 const HYBRID_GI_HISTORY_SIGNATURE_SCALE: f32 = 255.0;
+const SSR_HIT_REFINE_STEPS: u32 = 4u;
+const DOF_BOKEH_SAMPLE_COUNT: u32 = 12u;
+const DOF_BOKEH_RING_SAMPLE_COUNT: u32 = 6u;
+const DOF_MAX_FINAL_PASS_RADIUS: f32 = 12.0;
+const TAU: f32 = 6.283185307179586;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
@@ -133,6 +144,29 @@ fn load_scene_normal(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     return decoded / normal_length;
 }
 
+fn world_normal_to_view_space(world_normal: vec3<f32>) -> vec3<f32> {
+    let view_normal = vec3<f32>(
+        dot(params.effect_view_x.xyz, world_normal),
+        dot(params.effect_view_y.xyz, world_normal),
+        dot(params.effect_view_z.xyz, world_normal)
+    );
+    let normal_length = length(view_normal);
+    if (normal_length <= 0.001) {
+        return vec3<f32>(0.0, 0.0, 1.0);
+    }
+    return view_normal / normal_length;
+}
+
+fn load_scene_material_roughness(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
+    let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
+    let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
+    let material = textureLoad(scene_material_tex, clamped, 0).rgb;
+    if (max(material.r, max(material.g, material.b)) <= 0.001) {
+        return 1.0;
+    }
+    return clamp(max(material.g, 0.04), 0.04, 1.0);
+}
+
 fn linearize_scene_depth(raw_depth: f32) -> f32 {
     let near_plane = max(params.effect_depth.x, 0.001);
     let far_plane = max(params.effect_depth.y, near_plane + 0.001);
@@ -149,6 +183,243 @@ fn normalized_view_depth(view_depth: f32) -> f32 {
 
 fn load_scene_view_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     return linearize_scene_depth(load_scene_depth(coord, viewport_size));
+}
+
+fn coord_to_screen_uv(coord: vec2<u32>, viewport_size: vec2<u32>) -> vec2<f32> {
+    return (vec2<f32>(coord) + vec2<f32>(0.5, 0.5)) / vec2<f32>(viewport_size);
+}
+
+fn screen_uv_to_ndc(uv: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
+}
+
+fn reconstruct_view_position(coord: vec2<u32>, viewport_size: vec2<u32>, view_depth: f32) -> vec3<f32> {
+    let ndc = screen_uv_to_ndc(coord_to_screen_uv(coord, viewport_size));
+    let safe_depth = max(view_depth, params.effect_depth.x);
+    if (params.effect_depth.w > 0.5) {
+        return vec3<f32>(
+            ndc.x * safe_depth / max(params.effect_projection.x, 0.001),
+            ndc.y * safe_depth / max(params.effect_projection.y, 0.001),
+            -safe_depth
+        );
+    }
+    return vec3<f32>(
+        ndc.x * max(params.effect_projection.z, 0.001),
+        ndc.y * max(params.effect_projection.w, 0.001),
+        -safe_depth
+    );
+}
+
+fn project_view_position_to_pixel(view_position: vec3<f32>, viewport_size: vec2<u32>) -> vec2<f32> {
+    var ndc = vec2<f32>(0.0, 0.0);
+    if (params.effect_depth.w > 0.5) {
+        let safe_depth = max(-view_position.z, params.effect_depth.x);
+        ndc = vec2<f32>(
+            view_position.x * params.effect_projection.x / safe_depth,
+            view_position.y * params.effect_projection.y / safe_depth
+        );
+    } else {
+        ndc = vec2<f32>(
+            view_position.x / max(params.effect_projection.z, 0.001),
+            view_position.y / max(params.effect_projection.w, 0.001)
+        );
+    }
+    return vec2<f32>(
+        (ndc.x * 0.5 + 0.5) * f32(viewport_size.x) - 0.5,
+        (0.5 - ndc.y * 0.5) * f32(viewport_size.y) - 0.5
+    );
+}
+
+fn screen_edge_fade(sample_position: vec2<f32>, viewport_size: vec2<u32>) -> f32 {
+    let uv = (sample_position + vec2<f32>(0.5, 0.5)) / vec2<f32>(viewport_size);
+    let edge_distance = min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y));
+    return smoothstep(0.0, 0.08, edge_distance);
+}
+
+fn screen_space_reflection_hit_visibility(
+    ray_depth: f32,
+    sample_depth: f32,
+    current_depth: f32,
+    ray_distance: f32,
+    max_view_distance: f32,
+    sample_position: vec2<f32>,
+    viewport_size: vec2<u32>
+) -> f32 {
+    let thickness = max(params.effect_dither_ssr.w, 0.0001);
+    let thickness_window = max(thickness, ray_depth * 0.01);
+    let depth_visibility =
+        1.0
+        - smoothstep(
+            thickness_window,
+            thickness_window * max(params.effect_ssr_limits.y, 2.0),
+            abs(sample_depth - ray_depth)
+        );
+    let behind_origin = step(
+        current_depth + thickness * 0.25,
+        sample_depth
+    );
+    let distance_visibility =
+        1.0 - clamp(ray_distance / max(max_view_distance, 0.001), 0.0, 1.0);
+    return depth_visibility
+        * behind_origin
+        * distance_visibility
+        * screen_edge_fade(sample_position, viewport_size);
+}
+
+fn sample_screen_space_reflection_hit(
+    ray_position: vec3<f32>,
+    current_depth: f32,
+    ray_distance: f32,
+    max_view_distance: f32,
+    viewport_size: vec2<u32>
+) -> vec4<f32> {
+    let ray_depth = -ray_position.z;
+    if (ray_depth <= params.effect_depth.x || ray_depth >= params.effect_depth.y) {
+        return vec4<f32>(0.0, 0.0, 0.0, -1.0);
+    }
+
+    let sample_position = project_view_position_to_pixel(ray_position, viewport_size);
+    if (
+        sample_position.x < 0.0
+        || sample_position.y < 0.0
+        || sample_position.x >= f32(viewport_size.x)
+        || sample_position.y >= f32(viewport_size.y)
+    ) {
+        return vec4<f32>(0.0, 0.0, 0.0, -1.0);
+    }
+
+    let sample_coord = vec2<i32>(round(sample_position));
+    let sample_depth = load_scene_view_depth(sample_coord, viewport_size);
+    let visibility = screen_space_reflection_hit_visibility(
+        ray_depth,
+        sample_depth,
+        current_depth,
+        ray_distance,
+        max_view_distance,
+        sample_position,
+        viewport_size
+    );
+    return vec4<f32>(
+        f32(sample_coord.x),
+        f32(sample_coord.y),
+        sample_depth - ray_depth,
+        visibility
+    );
+}
+
+fn refine_screen_space_reflection_hit(
+    view_origin: vec3<f32>,
+    ray_direction: vec3<f32>,
+    previous_distance: f32,
+    hit_distance: f32,
+    current_depth: f32,
+    max_view_distance: f32,
+    viewport_size: vec2<u32>
+) -> vec4<f32> {
+    var lower_distance = max(previous_distance, 0.0);
+    var upper_distance = max(hit_distance, lower_distance + 0.0001);
+    var best_hit = sample_screen_space_reflection_hit(
+        view_origin + ray_direction * upper_distance,
+        current_depth,
+        upper_distance,
+        max_view_distance,
+        viewport_size
+    );
+    var best_error = abs(best_hit.z);
+
+    for (var refine_index = 0u; refine_index < SSR_HIT_REFINE_STEPS; refine_index = refine_index + 1u) {
+        let candidate_distance = (lower_distance + upper_distance) * 0.5;
+        let candidate_hit = sample_screen_space_reflection_hit(
+            view_origin + ray_direction * candidate_distance,
+            current_depth,
+            candidate_distance,
+            max_view_distance,
+            viewport_size
+        );
+
+        if (candidate_hit.w < 0.0) {
+            upper_distance = candidate_distance;
+            continue;
+        }
+        if (candidate_hit.w > 0.01 && abs(candidate_hit.z) < best_error) {
+            best_hit = candidate_hit;
+            best_error = abs(candidate_hit.z);
+        }
+
+        if (
+            (candidate_hit.z > 0.0 && ray_direction.z < 0.0)
+            || (candidate_hit.z <= 0.0 && ray_direction.z >= 0.0)
+        ) {
+            lower_distance = candidate_distance;
+        } else {
+            upper_distance = candidate_distance;
+        }
+    }
+
+    return best_hit;
+}
+
+fn trace_screen_space_reflection(
+    coord: vec2<u32>,
+    viewport_size: vec2<u32>,
+    view_origin: vec3<f32>,
+    reflected_direction: vec3<f32>
+) -> vec4<f32> {
+    let max_steps = min(params.effect_flags.z, 128u);
+    if (max_steps == 0u) {
+        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    }
+
+    let reflected_direction_length = length(reflected_direction);
+    if (reflected_direction_length <= 0.001) {
+        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    }
+
+    let ray_direction = reflected_direction / reflected_direction_length;
+    let max_view_distance = max(params.effect_ssr_limits.x, 1.0);
+    let step_distance = max(max_view_distance / f32(max_steps), params.effect_depth.x * 0.25);
+    let current_depth = -view_origin.z;
+
+    var hit_color = vec3<f32>(0.0, 0.0, 0.0);
+    var hit_visibility = 0.0;
+    var previous_distance = 0.0;
+    for (var step_index = 1u; step_index <= max_steps; step_index = step_index + 1u) {
+        let ray_distance = step_distance * f32(step_index);
+        let ray_position = view_origin + ray_direction * ray_distance;
+        let hit = sample_screen_space_reflection_hit(
+            ray_position,
+            current_depth,
+            ray_distance,
+            max_view_distance,
+            viewport_size
+        );
+        if (hit.w < 0.0) {
+            break;
+        }
+
+        if (hit.w > 0.01) {
+            let refined_hit = refine_screen_space_reflection_hit(
+                view_origin,
+                ray_direction,
+                previous_distance,
+                ray_distance,
+                current_depth,
+                max_view_distance,
+                viewport_size
+            );
+            var resolved_hit = hit;
+            if (refined_hit.w > 0.01) {
+                resolved_hit = refined_hit;
+            }
+            let hit_coord = vec2<i32>(i32(resolved_hit.x), i32(resolved_hit.y));
+            hit_color = load_scene_rgb(hit_coord, viewport_size);
+            hit_visibility = resolved_hit.w;
+            break;
+        }
+        previous_distance = ray_distance;
+    }
+
+    return vec4<f32>(hit_color, hit_visibility);
 }
 
 fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
@@ -181,31 +452,72 @@ fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> v
     return mix(color, neighbor_average, blend);
 }
 
+fn depth_of_field_radius(scene_depth: f32) -> f32 {
+    let focus_depth = max(params.effect_blur_dof.y, params.effect_depth.x);
+    let focus_range = max(params.effect_dof_lens.y, 0.001);
+    let focal_length_scale = clamp(params.effect_dof_lens.x / 50.0, 0.1, 6.0);
+    let max_radius = max(params.effect_blur_dof.w, 0.0);
+    let focus_error = abs(scene_depth - focus_depth) / focus_range;
+    return clamp(
+        focus_error * max(params.effect_blur_dof.z, 0.0) * focal_length_scale * max_radius,
+        0.0,
+        max_radius
+    );
+}
+
+fn bokeh_aperture_radius(angle: f32) -> f32 {
+    let blade_count = clamp(round(params.effect_dof_lens.z), 3.0, 12.0);
+    let sector = TAU / blade_count;
+    let local_angle = (angle / sector - floor(angle / sector)) * sector - sector * 0.5;
+    return clamp(cos(sector * 0.5) / max(cos(local_angle), 0.001), 0.65, 1.0);
+}
+
+fn dof_bokeh_sample_offset(sample_index: u32, radius: f32) -> vec2<i32> {
+    let ring_index = sample_index / DOF_BOKEH_RING_SAMPLE_COUNT;
+    let spoke_index = sample_index % DOF_BOKEH_RING_SAMPLE_COUNT;
+    let ring_radius = mix(0.55, 1.0, f32(ring_index));
+    let angle =
+        ((f32(spoke_index) + f32(ring_index) * 0.5) / f32(DOF_BOKEH_RING_SAMPLE_COUNT))
+        * TAU
+        + params.effect_dof_lens.w;
+    let aperture_radius = bokeh_aperture_radius(angle);
+    let offset = vec2<f32>(cos(angle), sin(angle)) * radius * ring_radius * aperture_radius;
+    return vec2<i32>(round(offset));
+}
+
+fn sample_depth_of_field_bokeh(
+    coord: vec2<u32>,
+    viewport_size: vec2<u32>,
+    color: vec3<f32>,
+    blur_radius: f32
+) -> vec3<f32> {
+    let coord_i32 = vec2<i32>(coord);
+    var accumulated = color;
+    var total_weight = 1.0;
+
+    for (var sample_index = 0u; sample_index < DOF_BOKEH_SAMPLE_COUNT; sample_index = sample_index + 1u) {
+        let offset = dof_bokeh_sample_offset(sample_index, blur_radius);
+        var sample_weight = 1.0;
+        if (sample_index < DOF_BOKEH_RING_SAMPLE_COUNT) {
+            sample_weight = 0.75;
+        }
+        accumulated += load_scene_rgb(coord_i32 + offset, viewport_size) * sample_weight;
+        total_weight += sample_weight;
+    }
+
+    return accumulated / max(total_weight, 0.001);
+}
+
 fn apply_effect_blur_family(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let scene_depth = load_scene_view_depth(vec2<i32>(coord), viewport_size);
-    let focus_depth = max(params.effect_blur_dof.y, params.effect_depth.x);
-    let focus_error = abs(scene_depth - focus_depth) / max(focus_depth, 0.001);
-    let dof_radius =
-        clamp(
-            focus_error
-            * params.effect_blur_dof.z
-            * params.effect_blur_dof.w
-            * 3.0,
-            0.0,
-            params.effect_blur_dof.w
-        );
-    let blur_radius = max(params.effect_blur_dof.x, dof_radius);
+    let blur_radius = max(params.effect_blur_dof.x, depth_of_field_radius(scene_depth));
     if (blur_radius <= 0.001) {
         return color;
     }
-    let offset = i32(round(clamp(blur_radius, 1.0, 8.0)));
-    let coord_i32 = vec2<i32>(coord);
-    let north = load_scene_rgb(coord_i32 + vec2<i32>(0, -offset), viewport_size);
-    let south = load_scene_rgb(coord_i32 + vec2<i32>(0, offset), viewport_size);
-    let west = load_scene_rgb(coord_i32 + vec2<i32>(-offset, 0), viewport_size);
-    let east = load_scene_rgb(coord_i32 + vec2<i32>(offset, 0), viewport_size);
-    let average = (north + south + west + east + color) * 0.2;
-    return mix(color, average, clamp(blur_radius / 8.0, 0.0, 1.0));
+
+    let clamped_radius = clamp(blur_radius, 1.0, DOF_MAX_FINAL_PASS_RADIUS);
+    let bokeh = sample_depth_of_field_bokeh(coord, viewport_size, color, clamped_radius);
+    return mix(color, bokeh, clamp(clamped_radius / DOF_MAX_FINAL_PASS_RADIUS, 0.0, 1.0));
 }
 
 fn apply_chromatic_aberration(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
@@ -227,38 +539,22 @@ fn apply_screen_space_reflection_seed(coord: vec2<u32>, viewport_size: vec2<u32>
         return color;
     }
     let coord_i32 = vec2<i32>(coord);
-    let normal = load_scene_normal(coord_i32, viewport_size);
-    let view_direction = vec3<f32>(0.0, 0.0, -1.0);
-    let reflected_direction = reflect(view_direction, normal);
-    let ray_pixels = clamp(params.effect_ssr_limits.x * 0.02, 1.0, max(params.effect_ssr_limits.y, 1.0));
-    let normal_reflected_coord = clamp(
-        coord_i32 + vec2<i32>(
-            i32(round(reflected_direction.x * ray_pixels)),
-            i32(round(-reflected_direction.y * ray_pixels))
-        ),
-        vec2<i32>(0, 0),
-        vec2<i32>(viewport_size - vec2<u32>(1u, 1u))
-    );
-    let flipped_coord = vec2<i32>(
-        i32(coord.x),
-        i32(viewport_size.y - 1u - coord.y)
-    );
-    var reflected_coord = normal_reflected_coord;
-    if (normal_reflected_coord.x == coord_i32.x && normal_reflected_coord.y == coord_i32.y) {
-        reflected_coord = flipped_coord;
-    }
-    let reflected = load_scene_rgb(reflected_coord, viewport_size);
+    let normal = world_normal_to_view_space(load_scene_normal(coord_i32, viewport_size));
+    let roughness = load_scene_material_roughness(coord_i32, viewport_size);
     let current_depth = load_scene_view_depth(coord_i32, viewport_size);
-    let reflected_depth = load_scene_view_depth(reflected_coord, viewport_size);
-    let thickness = max(params.effect_dither_ssr.w, 0.0001);
-    let depth_match =
-        1.0
-        - smoothstep(
-            thickness,
-            thickness * max(params.effect_ssr_limits.y, 2.0),
-            abs(reflected_depth - current_depth)
-        );
-    return mix(color, reflected, clamp(intensity * depth_match * 0.12, 0.0, 0.35));
+    let view_position = reconstruct_view_position(coord, viewport_size, current_depth);
+    let view_direction = normalize(view_position);
+    let reflected_direction = reflect(view_direction, normal);
+    let traced_reflection = trace_screen_space_reflection(
+        coord,
+        viewport_size,
+        view_position,
+        reflected_direction
+    );
+    let roughness_visibility = 1.0 - smoothstep(0.45, 1.0, roughness);
+    let reflection_visibility =
+        clamp(intensity * traced_reflection.a * roughness_visibility * 0.18, 0.0, 0.35);
+    return mix(color, traced_reflection.rgb, reflection_visibility);
 }
 
 fn apply_effect_fog(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {

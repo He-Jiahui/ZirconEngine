@@ -16,10 +16,12 @@ pub enum AssetImporterRegistryError {
     DuplicateImporterId(String),
     #[error("duplicate importer matcher {matcher} at priority {priority}")]
     DuplicateMatcher { matcher: String, priority: i32 },
-    #[error("asset importer {0} cannot register legacy .ui.toml; UI assets must use .zui")]
-    LegacyUiTomlImporter(String),
-    #[error("asset importer {0} cannot register legacy .v2.ui.toml; UI components must use .zui")]
-    LegacyV2UiTomlImporter(String),
+    #[error(
+        "asset importer {0} cannot register source-template .ui.toml; UI assets must use .zui"
+    )]
+    UiTomlSourceImporter(String),
+    #[error("asset importer {0} cannot register source-template .v2.ui.toml; UI components must use .zui")]
+    V2UiTomlSourceImporter(String),
     #[error("asset importer {0} must declare at least one source extension or full suffix")]
     MissingMatcher(String),
 }
@@ -75,7 +77,7 @@ impl AssetImporterRegistry {
         }
         if lower_file_name(source_path).ends_with(".v2.ui.toml") {
             return Err(AssetImportError::UnsupportedFormat(
-                "legacy UI v2 suffix `.v2.ui.toml` has no registered importer; use `.zui`"
+                "UI v2 source-template suffix `.v2.ui.toml` has no registered importer; use `.zui`"
                     .to_string(),
             ));
         }
@@ -219,9 +221,9 @@ fn validate_descriptor(
         .full_suffixes
         .iter()
         .any(|suffix| normalize_full_suffix(suffix) == ".ui.toml")
-        && !legacy_ui_toml_importer_allowed_for_tests(descriptor)
+        && !ui_toml_source_importer_allowed_for_tests(descriptor)
     {
-        return Err(AssetImporterRegistryError::LegacyUiTomlImporter(
+        return Err(AssetImporterRegistryError::UiTomlSourceImporter(
             descriptor.id.clone(),
         ));
     }
@@ -229,9 +231,9 @@ fn validate_descriptor(
         .full_suffixes
         .iter()
         .any(|suffix| normalize_full_suffix(suffix) == ".v2.ui.toml")
-        && !legacy_v2_ui_toml_importer_allowed_for_tests(descriptor)
+        && !v2_ui_toml_source_importer_allowed_for_tests(descriptor)
     {
-        return Err(AssetImporterRegistryError::LegacyV2UiTomlImporter(
+        return Err(AssetImporterRegistryError::V2UiTomlSourceImporter(
             descriptor.id.clone(),
         ));
     }
@@ -239,7 +241,7 @@ fn validate_descriptor(
 }
 
 #[cfg(test)]
-fn legacy_ui_toml_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
+fn ui_toml_source_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
     descriptor.id == "ui_document_importer.typed_toml"
         && descriptor.plugin_id == "ui_document_importer"
         && descriptor
@@ -249,7 +251,7 @@ fn legacy_ui_toml_importer_allowed_for_tests(descriptor: &AssetImporterDescripto
 }
 
 #[cfg(test)]
-fn legacy_v2_ui_toml_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
+fn v2_ui_toml_source_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
     descriptor.id == "ui_document_importer.v2_typed_toml"
         && descriptor.plugin_id == "ui_document_importer"
         && descriptor
@@ -259,12 +261,12 @@ fn legacy_v2_ui_toml_importer_allowed_for_tests(descriptor: &AssetImporterDescri
 }
 
 #[cfg(not(test))]
-fn legacy_ui_toml_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
+fn ui_toml_source_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
     false
 }
 
 #[cfg(not(test))]
-fn legacy_v2_ui_toml_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
+fn v2_ui_toml_source_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
     false
 }
 

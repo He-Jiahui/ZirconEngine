@@ -110,8 +110,8 @@ fn app_window_routes_shell_chrome_through_components() {
     let top_header_call = app
         .split("HubTopHeader {")
         .nth(1)
-        .and_then(|source| source.split("HubNavSidebar {").next())
-        .expect("app.slint must compose HubTopHeader before HubNavSidebar");
+        .and_then(|source| source.split("HubNavigationDrawer {").next())
+        .expect("app.slint must compose HubTopHeader before HubNavigationDrawer");
     for snippet in [
         "project: root.project-detail;",
         "source-engine: root.source-engine;",
@@ -125,21 +125,25 @@ fn app_window_routes_shell_chrome_through_components() {
         );
     }
 
-    let nav_sidebar_call = app
-        .split("HubNavSidebar {")
+    let nav_drawer_call = app
+        .split("HubNavigationDrawer {")
         .nth(1)
         .and_then(|source| source.split("clicked(id) =>").next())
-        .expect("app.slint must compose HubNavSidebar before routed pages");
+        .expect("app.slint must compose HubNavigationDrawer before routed pages");
     for snippet in [
         "project: root.project-detail;",
         "source-engine: root.source-engine;",
         "ui-text: root.ui-text;",
     ] {
         assert!(
-            nav_sidebar_call.contains(snippet),
-            "HubNavSidebar must receive selected project and active Source Engine context from HubWindow; missing {snippet}"
+            nav_drawer_call.contains(snippet),
+            "HubNavigationDrawer must receive selected project and active Source Engine context from HubWindow; missing {snippet}"
         );
     }
+    assert!(
+        !app.contains("HubNavSidebar {"),
+        "app.slint should compose the semantic HubNavigationDrawer shell instead of placing HubNavSidebar directly in the shell body"
+    );
     let components = read_ui_file("components.slint");
     let shell_header_components = read_ui_file("shell_header_components.slint");
     let shell_header_popup_components = read_ui_file("shell_header_popup_components.slint");
@@ -147,6 +151,7 @@ fn app_window_routes_shell_chrome_through_components() {
     let shell_sidebar_components = read_ui_file("shell_sidebar_components.slint");
     let shell_page_components = read_ui_file("shell_page_components.slint");
     let button_components = read_ui_file("button_components.slint");
+    let icon_button_components = read_ui_file("icon_button_components.slint");
     let shell_surface = format!(
         "{shell_header_components}\n{shell_header_popup_components}\n{shell_layout_components}\n{shell_sidebar_components}\n{shell_page_components}"
     );
@@ -186,13 +191,13 @@ fn app_window_routes_shell_chrome_through_components() {
         "shell_header_popup_components.slint should stay an internal top-header helper imported by shell_header_components.slint"
     );
     assert!(
-        components.contains("HubNavSidebar,")
+        components.contains("HubNavSidebar, HubNavigationDrawer")
             && components.contains("} from \"shell_sidebar_components.slint\";"),
-        "components.slint should publicly export sidebar chrome from shell_sidebar_components.slint"
+        "components.slint should publicly export the sidebar content and navigation drawer chrome from shell_sidebar_components.slint"
     );
     assert!(
-        components.contains("HubPageHeader,")
-            && components.contains("HubStatusBar,")
+        components.contains("HubPageHeader")
+            && components.contains("HubStatusBar")
             && components.contains("} from \"shell_page_components.slint\";"),
         "components.slint should publicly export page-title and bottom-status chrome from shell_page_components.slint"
     );
@@ -201,6 +206,13 @@ fn app_window_routes_shell_chrome_through_components() {
         .nth(1)
         .and_then(|source| source.split("export component HubStatusBar").next())
         .expect("shell_page_components.slint must export HubPageHeader before HubStatusBar");
+    let page_header_title_stack = shell_page_components
+        .split("component HubPageHeaderTitleStack")
+        .nth(1)
+        .and_then(|source| source.split("export component HubPageHeader").next())
+        .expect(
+            "shell_page_components.slint must declare HubPageHeaderTitleStack before HubPageHeader",
+        );
     for snippet in [
         "in property <bool> header-visible: true;",
         "in property <bool> project-actions-visible: true;",
@@ -218,21 +230,22 @@ fn app_window_routes_shell_chrome_through_components() {
         "content-offset-y: HubTokens.space-3 + MaterialStyleMetrics.size_1;",
         "if root.action-strip-visible: VerticalLayout",
         "padding-bottom: MaterialStyleMetrics.size_8;",
-        "height: root.action-height;",
-        "height: root.action-height;",
-        "text: root.projects-action-strip-visible ? root.ui-text.import-project : root.secondary-action-label;",
-        "source-image: root.projects-action-strip-visible ? @image-url(\"../assets/icons/ui/import.svg\") : root.secondary-action-image;",
+        "HubHeaderCommandGroup {",
+        "action-height: root.action-height;",
+        "action-gap: root.gap;",
+        "secondary-text: root.projects-action-strip-visible ? root.ui-text.import-project : root.secondary-action-label;",
+        "secondary-image: root.projects-action-strip-visible ? @image-url(\"../assets/icons/ui/import.svg\") : root.secondary-action-image;",
+        "secondary-clicked => {",
         "callback page-action(string);",
         "root.page-action(root.secondary-action-id);",
-        "text: root.projects-action-strip-visible ? root.ui-text.create-project : root.primary-action-label;",
-        "source-image: root.projects-action-strip-visible ? @image-url(\"../assets/icons/ui/plus.svg\") : root.primary-action-image;",
-        "with-menu: root.projects-action-strip-visible || root.primary-action-with-menu;",
+        "primary-text: root.projects-action-strip-visible ? root.ui-text.create-project : root.primary-action-label;",
+        "primary-image: root.projects-action-strip-visible ? @image-url(\"../assets/icons/ui/plus.svg\") : root.primary-action-image;",
+        "primary-with-menu: root.projects-action-strip-visible || root.primary-action-with-menu;",
+        "primary-clicked => {",
         "root.page-action(root.primary-action-id);",
-        "text: root.selected-page-title;",
-        "style: MaterialTypography.headline_medium;",
-        "text: root.selected-page-subtitle;",
-        "style: MaterialTypography.body_medium;",
-        "HubCommandButton {",
+        "HubPageHeaderTitleStack {",
+        "title-text: root.selected-page-title;",
+        "subtitle-text: root.selected-page-subtitle;",
     ] {
         assert!(
             page_header.contains(snippet),
@@ -264,15 +277,33 @@ fn app_window_routes_shell_chrome_through_components() {
         !page_header.contains("font-size:") && !page_header.contains("font-weight:"),
         "HubPageHeader typography should stay on MaterialText styles instead of raw Text font bindings"
     );
+    for snippet in [
+        "MaterialText {",
+        "text: root.title-text;",
+        "style: MaterialTypography.headline_medium;",
+        "text: root.subtitle-text;",
+        "style: MaterialTypography.body_medium;",
+    ] {
+        assert!(
+            page_header_title_stack.contains(snippet),
+            "HubPageHeaderTitleStack should own page-title MaterialText styling: {snippet}"
+        );
+    }
     assert!(
         shell_page_components
-            .contains("import { HubCommandButton } from \"button_components.slint\";")
+            .contains("import { HubHeaderCommandGroup } from \"button_components.slint\";")
             && !shell_page_components.contains("component HeaderActionButton"),
-        "shell_page_components.slint should consume the shared HubCommandButton instead of owning HeaderActionButton locally"
+        "shell_page_components.slint should consume the shared HubHeaderCommandGroup instead of owning HeaderActionButton locally"
+    );
+    assert!(
+        !page_header.contains("HubCommandButton {"),
+        "HubPageHeader should consume HubHeaderCommandGroup instead of spelling the two command buttons locally"
     );
     assert!(
         button_components
-            .contains("private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;")
+            .contains("export component HubHeaderCommandGroup inherits HorizontalLayout")
+            && button_components
+                .contains("private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;")
             && button_components
                 .contains("private property <color> primary-command-stroke: HubVisualSpec.command-primary-stroke;")
             && button_components.contains(
@@ -302,9 +333,8 @@ fn app_window_routes_shell_chrome_through_components() {
         "if !root.compact: Badge",
         "badge-width: root.context-badge-width;",
         "tone: root.project.selected ? \"accent\" : \"neutral\";",
-        "MaterialText {",
-        "text: root.status-detail;",
-        "style: MaterialTypography.label_medium;",
+        "HubStatusDetailText {",
+        "detail-text: root.status-detail;",
     ] {
         assert!(
             status_bar.contains(snippet),
@@ -324,32 +354,37 @@ fn app_window_routes_shell_chrome_through_components() {
     let engine_selector = shell_header_popup_components
         .split("export component HeaderEngineSelector")
         .nth(1)
+        .and_then(|source| source.split("export component HeaderUserMenu").next())
         .expect("shell_header_popup_components.slint must export HeaderEngineSelector");
     for snippet in [
-        "MaterialText {",
-        "color: MaterialPalette.on_surface_variant;",
-        "color: MaterialPalette.on_surface_variant;",
-        "padding-left: HubTokens.space-3;",
-        "text: root.ui-text.source-engines;",
-        "style: MaterialTypography.label_large;",
-        "text: root.ui-text.registered;",
-        "style: MaterialTypography.label_medium;",
+        "HubSelectTrigger {",
+        "trigger-width: parent.width;",
+        "trigger-height: parent.height;",
+        "text: root.current-engine.title;",
+        "dense-label: true;",
+        "idle-foreground: HubVisualSpec.toolbar-select-foreground;",
+        "activated => { popup.show(); }",
         "private property <length> popup-height: root.selector-height * 7;",
         "private property <length> popup-header-height: HubTokens.icon-lg;",
         "private property <length> popup-list-height: max(HubTokens.list-row-lg, root.popup-height - HubTokens.toolbar-gap * 2 - root.popup-header-height - HubTokens.space-2);",
         "private property <length> engine-popup-scroll-y: 0px;",
         "popup := HubAnchoredPopupPanel",
         "popup-height: root.popup-height;",
-        "engine-list := PanelListViewport {",
+        "HubPopupSectionHeader {",
+        "section-height: root.popup-header-height;",
+        "title: root.ui-text.source-engines;",
+        "meta: root.ui-text.registered;",
+        "engine-list := HeaderEngineOptionsList {",
         "height: root.popup-list-height;",
         "scroll-y <=> root.engine-popup-scroll-y;",
-        "row-count: root.engine-count;",
-        "row-height: HubTokens.list-row-md;",
-        "empty-height: HubTokens.list-row-lg;",
+        "engines: root.engines;",
+        "engine-count: root.engine-count;",
+        "ui-text: root.ui-text;",
+        "picked(id) =>",
     ] {
         assert!(
             engine_selector.contains(snippet),
-            "HeaderEngineSelector popup chrome should use MaterialText typography; missing {snippet}"
+            "HeaderEngineSelector popup chrome should share the Hub select trigger and anchored popup/list stack; missing {snippet}"
         );
     }
     assert!(
@@ -358,9 +393,14 @@ fn app_window_routes_shell_chrome_through_components() {
         "Source Engine popup components should live in shell_header_popup_components.slint instead of shell_header_components.slint"
     );
     assert!(
-        shell_header_popup_components.contains("import { HubAnchoredPopupPanel } from \"overlays.slint\";")
+        shell_header_popup_components.contains("HubAnchoredPopupPanel")
+            && shell_header_popup_components.contains("HubPopupSectionHeader")
+            && shell_header_popup_components.contains("HubPopupProfileHeader")
+            && shell_header_popup_components.contains("HubPopupDivider")
             && shell_header_popup_components.matches("HubAnchoredPopupPanel {").count() == 2
             && shell_header_popup_components.contains("user-menu-popup := HubAnchoredPopupPanel")
+            && shell_header_popup_components.contains("HubPopupProfileHeader {")
+            && shell_header_popup_components.contains("HubPopupDivider {}")
             && !shell_header_popup_components
                 .lines()
                 .any(|line| line.trim() == "PopupPanel {")
@@ -370,7 +410,7 @@ fn app_window_routes_shell_chrome_through_components() {
             && !shell_header_popup_components
                 .lines()
                 .any(|line| line.trim() == "HubPanel {"),
-        "top-header popups should consume the shared anchored popup panel instead of instantiating popup window/panel shells directly"
+        "top-header popups should consume shared anchored popup/profile/header/divider primitives instead of instantiating popup shells directly"
     );
     assert!(
         !shell_header_popup_components.contains("popup := PopupWindow")
@@ -380,8 +420,10 @@ fn app_window_routes_shell_chrome_through_components() {
         "top-header popups should route PopupWindow ownership through HubAnchoredPopupPanel"
     );
     assert!(
-        shell_header_popup_components
-            .contains("import { HubMenuRow, PanelListViewport } from \"data_display.slint\";")
+        shell_header_popup_components.contains("import { HubMenuRow } from \"data_display.slint\";")
+            && shell_header_popup_components.contains(
+                "import { HubMenuListViewport } from \"list_container_components.slint\";"
+            )
             && shell_header_popup_components
                 .contains("export component HeaderEngineOption inherits HubMenuRow")
             && shell_header_popup_components.contains("callback picked(string);")
@@ -397,10 +439,18 @@ fn app_window_routes_shell_chrome_through_components() {
                 .contains("enabled-avatar-foreground: HubVisualSpec.neutral-icon-foreground;"),
         "top-header Source Engine rows should consume the shared HubMenuRow primitive while preserving active/inactive popup row chrome"
     );
+    assert!(
+        shell_header_popup_components
+            .contains("component HeaderEngineOptionsList inherits HubMenuListViewport")
+            && shell_header_popup_components.contains("for engine in root.engines: HeaderEngineOption")
+            && shell_header_popup_components.contains("if root.engine-count == 0: EmptyStateBlock")
+            && shell_header_popup_components.contains("height: root.empty-height;"),
+        "top-header Source Engine popup list should route rows and empty-state content through a typed HubMenuListViewport-backed wrapper"
+    );
     let engine_option = shell_header_popup_components
         .split("export component HeaderEngineOption")
         .nth(1)
-        .and_then(|source| source.split("export component HeaderEngineSelector").next())
+        .and_then(|source| source.split("component HeaderEngineOptionsList").next())
         .expect("shell_header_popup_components.slint must declare HeaderEngineOption before HeaderEngineSelector");
     assert!(
         !engine_option.contains("ListTile {")
@@ -411,8 +461,10 @@ fn app_window_routes_shell_chrome_through_components() {
         "HeaderEngineOption should not keep a local Material row shell after moving to HubMenuRow"
     );
     assert!(
-        shell_header_popup_components
-            .contains("import { HubMenuRow, PanelListViewport } from \"data_display.slint\";")
+        shell_header_popup_components.contains("import { HubMenuRow } from \"data_display.slint\";")
+            && shell_header_popup_components.contains(
+                "import { HubMenuListViewport } from \"list_container_components.slint\";"
+            )
             && shell_header_popup_components
                 .contains("component HeaderUserMenuAction inherits HubMenuRow")
             && shell_header_popup_components.contains("dense: true;")
@@ -439,39 +491,66 @@ fn app_window_routes_shell_chrome_through_components() {
         .split("export component HubTopHeader")
         .nth(1)
         .expect("shell_header_components.slint must export HubTopHeader");
+    let header_brand_title_stack = shell_header_components
+        .split("component HeaderBrandTitleStack")
+        .nth(1)
+        .and_then(|source| source.split("export component HubTopHeader").next())
+        .expect(
+            "shell_header_components.slint must declare HeaderBrandTitleStack before HubTopHeader",
+        );
     for snippet in [
         "in property <ProjectDetailData> project;",
         "in property <bool> tight: false;",
         "in property <bool> minimal: false;",
         "alignment: start;",
+        "private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;",
+        "HeaderBrandTitleStack {",
+        "subtitle-text: root.brand-subtitle;",
+    ] {
+        assert!(
+            top_header.contains(snippet),
+            "HubTopHeader brand chrome should forward brand context through HeaderBrandTitleStack; missing {snippet}"
+        );
+    }
+    for snippet in [
         "MaterialText {",
-        "text: \"ZIRCON HUB\";",
+        "text: root.title-text;",
         "style: MaterialTypography.title_medium;",
         "color: HubVisualSpec.brand-title-foreground;",
-        "private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;",
-        "text: root.brand-subtitle;",
+        "text: root.subtitle-text;",
         "color: HubVisualSpec.brand-subtitle-foreground;",
         "style: MaterialTypography.body_medium;",
+    ] {
+        assert!(
+            header_brand_title_stack.contains(snippet),
+            "HeaderBrandTitleStack should own MaterialText typography for top-header brand chrome; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubTopbarIconButton inherits HubIconButton",
         "idle-foreground: HubVisualSpec.topbar-icon-foreground;",
         "state-layer-color: HubVisualSpec.topbar-icon-foreground;",
     ] {
         assert!(
-            top_header.contains(snippet),
-            "HubTopHeader brand chrome should use MaterialText typography; missing {snippet}"
+            icon_button_components.contains(snippet),
+            "HubTopHeader transparent tool buttons should inherit topbar icon colors from HubTopbarIconButton; missing {snippet}"
         );
     }
     for snippet in [
-        "text: root.ui-text.local-user-initials;",
+        "component HubUserMenuAvatarMark inherits Rectangle",
         "background: HubVisualSpec.user-avatar-background;",
         "color: HubVisualSpec.user-avatar-foreground;",
         "style: MaterialTypography.label_medium_prominent;",
-        "text: root.ui-text.local-user;",
+        "text: root.value;",
+        "value: root.avatar-text;",
+        "component HubUserMenuNameText inherits MaterialText",
+        "value: root.user-name;",
         "color: HubVisualSpec.user-name-foreground;",
         "style: MaterialTypography.label_medium;",
     ] {
         assert!(
-            top_header.contains(snippet) || shell_header_popup_components.contains(snippet),
-            "HubTopHeader user chrome or its popup helper should use MaterialText typography; missing {snippet}"
+            button_components.contains(snippet),
+            "HubUserMenuTriggerButton should own user trigger typography/chrome tokens in the button family; missing {snippet}"
         );
     }
     assert!(
@@ -484,6 +563,7 @@ fn app_window_routes_shell_chrome_through_components() {
         shell_header_components.contains("export component HubTopHeader")
             && shell_header_components.contains("component HeaderControlSlot")
             && shell_header_components.contains("component WindowDragRegion")
+            && shell_header_components.contains("component HeaderBrandTitleStack")
             && shell_header_components.contains(
                 "tone: pill.icon == \">\" ? \"running\" : (pill.state == \"ok\" ? \"success\" : (pill.state == \"warn\" ? \"warning\" : pill.state));"
             ),
@@ -507,22 +587,17 @@ fn app_window_routes_shell_chrome_through_components() {
         "padding-right: HubTokens.space-3;",
         "padding-top: HubTokens.space-6;",
         "padding-bottom: HubTokens.space-4 + MaterialStyleMetrics.size_2;",
-        "MaterialText {",
-        "text: root.ui-text.engine-status;",
-        "color: MaterialPalette.on_surface_variant;",
-        "style: MaterialTypography.label_medium;",
-        "text: root.source-engine.status;",
-        "color: root.task-running ? HubVisualSpec.warning-stroke : HubVisualSpec.success-stroke;",
+        "NavStatusSummaryStack {",
+        "task-running: root.task-running;",
+        "source-engine: root.source-engine;",
+        "ui-text: root.ui-text;",
         "private property <string> project-context: root.ui-text.current-project + \": \" + root.project.title;",
         "if root.project.selected: Badge",
         "text: root.project-context;",
         "tone: \"accent\";",
         "badge-width: root.nav-width - HubTokens.space-6;",
-        "variant: \"interactive\";",
-        "source-image: @image-url(\"../assets/icons/ui/refresh.svg\");",
-        "text: root.ui-text.check-for-updates;",
-        "color: MaterialPalette.on_surface_variant.with_alpha(0.88);",
-        "style: MaterialTypography.label_medium;",
+        "NavStatusUpdateAction {",
+        "action-text: root.ui-text.check-for-updates;",
     ] {
         assert!(
             nav_status_panel.contains(snippet),
@@ -532,6 +607,7 @@ fn app_window_routes_shell_chrome_through_components() {
     let nav_sidebar = shell_sidebar_components
         .split("export component HubNavSidebar")
         .nth(1)
+        .and_then(|source| source.split("export component HubNavigationDrawer").next())
         .expect("shell_sidebar_components.slint must export HubNavSidebar");
     for snippet in [
         "in property <ProjectDetailData> project;",
@@ -567,11 +643,120 @@ fn app_window_routes_shell_chrome_through_components() {
             && !nav_sidebar.contains("private property <string> project-title"),
         "HubNavSidebar should not keep project/source-engine status-card layout internals after NavStatusPanel extraction"
     );
+    let sidebar_collapse_control = shell_sidebar_components
+        .split("component HubSidebarCollapseControl")
+        .nth(1)
+        .and_then(|source| source.split("export component HubNavSidebar").next())
+        .expect("shell_sidebar_components.slint must declare HubSidebarCollapseControl before HubNavSidebar");
+    assert!(
+        shell_sidebar_components.contains("component HubSidebarCollapseControl inherits Rectangle"),
+        "shell_sidebar_components.slint must declare HubSidebarCollapseControl as the drawer collapse primitive"
+    );
+    assert!(
+        button_components.contains("export component HubSidebarCollapseButton inherits Rectangle")
+            && components.contains("HubSidebarCollapseButton"),
+        "button_components.slint and components.slint must expose the shared sidebar collapse button chrome"
+    );
+    for snippet in [
+        "in property <bool> collapsed: false;",
+        "in property <string> collapse-label: \"\";",
+        "in property <length> control-height: HubTokens.control-md;",
+        "height: root.control-height;",
+        "HubSidebarCollapseButton {",
+        "button-height: root.control-height;",
+        "button-radius: HubVisualSpec.panel-radius;",
+        "collapsed: root.collapsed;",
+        "text: root.collapse-label;",
+        "foreground: MaterialPalette.on_surface_variant;",
+        "state-layer-color: MaterialPalette.on_surface;",
+        "root.clicked();",
+    ] {
+        assert!(
+            sidebar_collapse_control.contains(snippet),
+            "HubSidebarCollapseControl must delegate the shared drawer collapse affordance to HubSidebarCollapseButton; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "StateLayerArea {",
+        "TouchArea",
+        "source-image: root.collapsed",
+    ] {
+        assert!(
+            !sidebar_collapse_control.contains(forbidden),
+            "HubSidebarCollapseControl should not keep local collapse-button internals after HubSidebarCollapseButton extraction: {forbidden}"
+        );
+    }
+    for snippet in [
+        "HubSidebarCollapseControl {",
+        "control-height: max(HubTokens.control-md, min(HubTokens.control-lg, root.row-height * 3 / 4));",
+        "collapsed: root.collapsed;",
+        "collapse-label: root.ui-text.collapse;",
+        "clicked =>",
+        "root.toggle-collapse();",
+    ] {
+        assert!(
+            nav_sidebar.contains(snippet),
+            "HubNavSidebar must compose the sidebar collapse primitive instead of declaring local hit testing; missing {snippet}"
+        );
+    }
+    assert!(
+        !nav_sidebar.contains("collapse-state := StateLayerArea")
+            && !nav_sidebar.contains("source-image: root.collapsed ? @image-url(\"../assets/icons/ui/chevron-right.svg\")"),
+        "HubNavSidebar should not keep local collapse-control internals after HubSidebarCollapseControl extraction"
+    );
+    let navigation_drawer = shell_sidebar_components
+        .split("export component HubNavigationDrawer")
+        .nth(1)
+        .expect("shell_sidebar_components.slint must export HubNavigationDrawer");
+    for snippet in [
+        "width: root.nav-width;",
+        "background: HubVisualSpec.chrome-background;",
+        "border-width: HubTokens.border-width;",
+        "border-color: HubVisualSpec.chrome-outline-muted;",
+        "clip: true;",
+        "HubNavSidebar {",
+        "nav-width: root.nav-width;",
+        "nav-items: root.nav-items;",
+        "material-nav-items: root.material-nav-items;",
+        "selected-nav-index <=> root.selected-nav-index;",
+        "project: root.project;",
+        "source-engine: root.source-engine;",
+        "ui-text: root.ui-text;",
+        "clicked(id) =>",
+        "root.clicked(id);",
+        "toggle-collapse =>",
+        "root.toggle-collapse();",
+    ] {
+        assert!(
+            navigation_drawer.contains(snippet),
+            "HubNavigationDrawer must own persistent drawer chrome while delegating nav content to HubNavSidebar; missing {snippet}"
+        );
+    }
+    assert!(
+        !navigation_drawer.contains("preferred-width: root.nav-width;")
+            && !navigation_drawer.contains("min-width: root.nav-width;")
+            && !navigation_drawer.contains("preferred-width:")
+            && !navigation_drawer.contains("min-width:"),
+        "HubNavigationDrawer must not feed responsive nav-width back into Slint preferred-size calculation"
+    );
+    for snippet in [
+        "background: transparent;",
+        "border-width: 0px;",
+        "border-color: transparent;",
+    ] {
+        assert!(
+            nav_sidebar.contains(snippet),
+            "HubNavSidebar should stay a drawer-content component after HubNavigationDrawer owns shell chrome; missing {snippet}"
+        );
+    }
     assert!(
         shell_sidebar_components.contains("component NavStatusPanel inherits HubPanel")
+            && shell_sidebar_components.contains("component HubSidebarCollapseControl")
+            && shell_sidebar_components.contains("HubSidebarCollapseButton {")
+            && shell_sidebar_components.contains("export component HubNavigationDrawer")
             && shell_sidebar_components.contains("export component HubNavSidebar")
             && shell_page_components.contains("root.ui-text.current-project"),
-        "sidebar components belong directly in shell_sidebar_components.slint"
+        "sidebar drawer and content components belong directly in shell_sidebar_components.slint"
     );
     assert!(
         shell_page_components.contains("export component HubPageHeader")
@@ -583,6 +768,7 @@ fn app_window_routes_shell_chrome_through_components() {
         ("HeaderEngineSelector", engine_selector),
         ("HubTopHeader", top_header),
         ("NavStatusPanel", nav_status_panel),
+        ("HubNavigationDrawer", navigation_drawer),
         ("HubNavSidebar", nav_sidebar),
     ] {
         assert!(
@@ -603,7 +789,7 @@ fn app_window_routes_shell_chrome_through_components() {
 
     for component in [
         "HubTopHeader",
-        "HubNavSidebar",
+        "HubNavigationDrawer",
         "HubPageHeader",
         "HubStatusBar",
     ] {
@@ -626,6 +812,8 @@ fn app_window_routes_shell_chrome_through_components() {
         "WindowDragRegion",
         "HeaderControlSlot",
         "NavStatusPanel",
+        "HubSidebarCollapseControl",
+        "HubNavigationDrawer",
         "HubNavSidebar",
         "HubPageHeader",
         "HubStatusBar",
@@ -641,7 +829,7 @@ fn app_window_routes_shell_chrome_through_components() {
     let header_engine_option = shell_header_popup_components
         .split("export component HeaderEngineOption")
         .nth(1)
-        .and_then(|source| source.split("export component HeaderEngineSelector").next())
+        .and_then(|source| source.split("component HeaderEngineOptionsList").next())
         .expect("shell_header_popup_components.slint must export HeaderEngineOption before HeaderEngineSelector");
     for snippet in [
         "inherits HubMenuRow {",
@@ -672,27 +860,108 @@ fn app_window_routes_shell_chrome_through_components() {
     let header_engine_selector = shell_header_popup_components
         .split("export component HeaderEngineSelector")
         .nth(1)
+        .and_then(|source| source.split("export component HeaderUserMenu").next())
         .expect("shell_header_popup_components.slint must export HeaderEngineSelector");
     for snippet in [
-        "engine-list := PanelListViewport {",
+        "HubSelectTrigger {",
+        "trigger-width: parent.width;",
+        "trigger-height: parent.height;",
+        "text: root.current-engine.title;",
+        "dense-label: true;",
+        "menu-ready: true;",
+        "activated => { popup.show(); }",
+        "engine-list := HeaderEngineOptionsList {",
         "height: root.popup-list-height;",
         "scroll-y <=> root.engine-popup-scroll-y;",
-        "row-count: root.engine-count;",
-        "row-height: HubTokens.list-row-md;",
-        "empty-height: HubTokens.list-row-lg;",
+        "engines: root.engines;",
+        "engine-count: root.engine-count;",
+        "ui-text: root.ui-text;",
+        "picked(id) =>",
+    ] {
+        assert!(
+            header_engine_selector.contains(snippet),
+            "HeaderEngineSelector should delegate source-engine popup rows to HeaderEngineOptionsList while preserving popup sizing and callback forwarding; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "StateLayerArea {",
+        "MaterialText {",
+        "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
+        "PanelListViewport {",
         "if root.engine-count == 0: EmptyStateBlock",
-        "height: HubTokens.list-row-lg;",
+        "for engine in root.engines: HeaderEngineOption",
+    ] {
+        assert!(
+            !header_engine_selector.contains(forbidden),
+            "HeaderEngineSelector should not own source-engine menu-list internals after HeaderEngineOptionsList extraction: {forbidden}"
+        );
+    }
+
+    let header_engine_options_list = shell_header_popup_components
+        .split("component HeaderEngineOptionsList")
+        .nth(1)
+        .and_then(|source| source.split("export component HeaderEngineSelector").next())
+        .expect("shell_header_popup_components.slint must declare HeaderEngineOptionsList before HeaderEngineSelector");
+    for snippet in [
+        "inherits HubMenuListViewport",
+        "in property <[SourceEngineRowData]> engines;",
+        "in property <int> engine-count;",
+        "in property <UiTextData> ui-text;",
+        "row-count: root.engine-count;",
+        "for engine in root.engines: HeaderEngineOption",
+        "if root.engine-count == 0: EmptyStateBlock",
+        "height: root.empty-height;",
         "title: root.ui-text.no-source-engines;",
         "body-padding: HubTokens.space-3;",
         "center-content: true;",
     ] {
         assert!(
-            header_engine_selector.contains(snippet),
-            "HeaderEngineSelector should use the shared empty-state block for empty source-engine popup content; missing {snippet}"
+            header_engine_options_list.contains(snippet),
+            "HeaderEngineOptionsList should own source-engine row repetition and shared empty-state content; missing {snippet}"
         );
     }
     assert!(
         !header_engine_selector.contains("if root.engine-count == 0: MutedText"),
         "HeaderEngineSelector should not render empty source-engine popup content as a loose MutedText row"
     );
+
+    let header_user_menu = shell_header_popup_components
+        .split("export component HeaderUserMenu")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("user-menu-popup := HubAnchoredPopupPanel")
+                .next()
+        })
+        .expect("shell_header_popup_components.slint must export HeaderUserMenu");
+    for snippet in [
+        "HubUserMenuTriggerButton {",
+        "button-width: parent.width;",
+        "button-height: parent.height;",
+        "avatar-text: root.ui-text.local-user-initials;",
+        "user-name: root.ui-text.local-user;",
+        "tight: root.tight;",
+        "user-menu-popup.show();",
+    ] {
+        assert!(
+            header_user_menu.contains(snippet),
+            "HeaderUserMenu should delegate trigger chrome to HubUserMenuTriggerButton while preserving popup content/callbacks; missing {snippet}"
+        );
+    }
+    assert!(
+        shell_header_popup_components.contains("HubPopupProfileHeader {")
+            && shell_header_popup_components.contains("HeaderUserMenuAction {"),
+        "HeaderUserMenu should preserve its popup profile header and menu action composition"
+    );
+    for forbidden in [
+        "StateLayerArea {",
+        "style: MaterialTypography.label_medium_prominent;",
+        "style: MaterialTypography.label_medium;",
+        "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
+    ] {
+        assert!(
+            !header_user_menu.contains(forbidden),
+            "HeaderUserMenu should not retain local user trigger paint after delegating to HubUserMenuTriggerButton: {forbidden}"
+        );
+    }
 }

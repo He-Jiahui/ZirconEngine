@@ -24,9 +24,11 @@ pub fn scene_hook_registration() -> SceneRuntimeHookRegistration {
 impl SceneRuntimeHook for PhysicsSceneRuntimeHook {
     fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), CoreError> {
         let Ok(physics) = resolve_physics_manager(context.core) else {
-            context
-                .level
-                .record_physics_step(PhysicsWorldStepPlan::default(), Vec::new());
+            context.level.record_physics_step(
+                PhysicsWorldStepPlan::default(),
+                Vec::new(),
+                Vec::new(),
+            );
             return Ok(());
         };
 
@@ -35,7 +37,7 @@ impl SceneRuntimeHook for PhysicsSceneRuntimeHook {
         });
         context
             .level
-            .record_physics_step(result.step_plan, result.contacts);
+            .record_physics_step(result.step_plan, result.contacts, result.triggers);
         Ok(())
     }
 }

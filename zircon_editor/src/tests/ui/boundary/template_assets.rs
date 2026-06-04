@@ -584,7 +584,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
 
     let view_projection = source("src/ui/layouts/views/view_projection.rs");
     for required in [
-        "LegacyAssetPath",
+        "NonV2AssetPath",
         "UiV2PrototypeStoreFileCache",
         "UiV2SurfaceBuilder",
     ] {

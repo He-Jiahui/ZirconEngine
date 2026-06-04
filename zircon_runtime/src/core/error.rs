@@ -15,6 +15,8 @@ pub enum ZirconError {
 pub enum CoreError {
     #[error("invalid registry name: {0}")]
     InvalidRegistryName(String),
+    #[error("invalid module name: {0}")]
+    InvalidModuleName(String),
     #[error("module already registered: {0}")]
     DuplicateModule(String),
     #[error("module not found: {0}")]
@@ -23,11 +25,26 @@ pub enum CoreError {
     DuplicateService(String),
     #[error("service not found: {0}")]
     MissingService(String),
+    #[error("service owner mismatch for {name}: expected module {expected}, found {actual}")]
+    ServiceOwnerMismatch {
+        name: String,
+        expected: String,
+        actual: String,
+    },
     #[error("service kind mismatch for {name}: expected {expected:?}, found {actual:?}")]
     ServiceKindMismatch {
         name: String,
         expected: ServiceKind,
         actual: ServiceKind,
+    },
+    #[error(
+        "invalid service dependency for {service}: {service_kind:?} cannot depend on {dependency} ({dependency_kind:?})"
+    )]
+    InvalidServiceDependencyKind {
+        service: String,
+        service_kind: ServiceKind,
+        dependency: String,
+        dependency_kind: ServiceKind,
     },
     #[error("cyclic dependency detected while resolving {0}")]
     DependencyCycle(String),

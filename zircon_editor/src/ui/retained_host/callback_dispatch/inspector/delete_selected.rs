@@ -15,7 +15,7 @@ pub(crate) fn dispatch_inspector_delete_selected(
             "InspectorView",
             "DeleteSelected",
             crate::ui::binding::EditorUiEventKind::Click,
-            EditorUiBindingPayload::menu_action("DeleteSelected"),
+            EditorUiBindingPayload::menu_action("workbench.selection.delete_selected"),
         ),
     )
 }

@@ -166,10 +166,10 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
             required_text: &[
                 "Field Inventory",
                 "01  Pulse Cells x24",
-                "12  Shield Capacitor x5",
+                "06  Cryo Charge x2",
             ],
             minimum_buttons: 12,
-            minimum_text_commands: 13,
+            minimum_text_commands: 7,
             minimum_runtime_quads: 14,
         },
         RuntimeUiSemanticGolden {

@@ -360,12 +360,12 @@ mod tests {
         assert_eq!(
             action_ids,
             vec![
-                "Plugin.Disable.physics",
-                "Plugin.Feature.Enable.physics.physics.raycast_queries",
-                "Plugin.Packaging.Next.physics",
-                "Plugin.TargetModes.Next.physics",
-                "Plugin.Unload.physics",
-                "Plugin.HotReload.physics",
+                "workbench.plugin.disable.physics",
+                "workbench.plugin.feature.enable.physics.physics.raycast_queries",
+                "workbench.plugin.packaging.next.physics",
+                "workbench.plugin.target_modes.next.physics",
+                "workbench.plugin.unload.physics",
+                "workbench.plugin.hot_reload.physics",
             ]
         );
 
@@ -402,11 +402,11 @@ mod tests {
         assert_eq!(
             action_ids,
             vec![
-                "Plugin.Disable.physics",
-                "Plugin.Packaging.Next.physics",
-                "Plugin.TargetModes.Next.physics",
-                "Plugin.Unload.physics",
-                "Plugin.HotReload.physics",
+                "workbench.plugin.disable.physics",
+                "workbench.plugin.packaging.next.physics",
+                "workbench.plugin.target_modes.next.physics",
+                "workbench.plugin.unload.physics",
+                "workbench.plugin.hot_reload.physics",
             ]
         );
 
@@ -468,18 +468,19 @@ mod tests {
             editor_capabilities: "inspector".into(),
             optional_features: "Ray Cast Queries [ready]".into(),
             feature_action_label: "Enable Feature".into(),
-            feature_action_id: "Plugin.Feature.Enable.physics.physics.raycast_queries".into(),
+            feature_action_id: "workbench.plugin.feature.enable.physics.physics.raycast_queries"
+                .into(),
             diagnostics: "".into(),
             primary_action_label: "Disable".into(),
-            primary_action_id: "Plugin.Disable.physics".into(),
+            primary_action_id: "workbench.plugin.disable.physics".into(),
             packaging_action_label: "Cycle linked".into(),
-            packaging_action_id: "Plugin.Packaging.Next.physics".into(),
+            packaging_action_id: "workbench.plugin.packaging.next.physics".into(),
             target_modes_action_label: "Cycle targets".into(),
-            target_modes_action_id: "Plugin.TargetModes.Next.physics".into(),
+            target_modes_action_id: "workbench.plugin.target_modes.next.physics".into(),
             unload_action_label: "Unload".into(),
-            unload_action_id: "Plugin.Unload.physics".into(),
+            unload_action_id: "workbench.plugin.unload.physics".into(),
             hot_reload_action_label: "Hot Reload".into(),
-            hot_reload_action_id: "Plugin.HotReload.physics".into(),
+            hot_reload_action_id: "workbench.plugin.hot_reload.physics".into(),
         }
     }
 }

@@ -723,7 +723,7 @@ fn accessibility_dismiss_hides_active_runtime_tooltip() {
     let mut surface = root_surface();
     insert_runtime_tooltip(&mut surface);
     surface.rebuild();
-    surface.input.show_tooltip("status.hint".to_string());
+    surface.input.show_tooltip("status.hint".to_string(), None);
 
     let snapshot_node = surface
         .accessibility_snapshot()

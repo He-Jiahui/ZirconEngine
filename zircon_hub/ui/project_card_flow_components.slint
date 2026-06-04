@@ -3,20 +3,20 @@ import {
     ProjectCardData,
 } from "shared.slint";
 import {
-    HubIconButton,
-    PillButton,
-    HubFloatingIconButton,
+    HubDisclosureButton,
 } from "button_components.slint";
-import { Flow } from "layout.slint";
-import { Badge, EmptyStatePanel, HubPanel } from "surfaces.slint";
+import {
+    HubFlowNextButton,
+    HubMoreMenuButton,
+} from "icon_button_components.slint";
+import { Flow, FlowScrollSurface } from "layout.slint";
+import { Badge, EmptyStatePanel, HubInteractiveCardSurface } from "surfaces.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import {
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialText,
     MaterialTypography,
-    ScrollView,
-    StateLayerArea,
 } from "material_bridge.slint";
 
 export component ProjectCover inherits Rectangle {
@@ -46,13 +46,11 @@ export component ProjectCover inherits Rectangle {
         background: root.project.accent == 0 ? MaterialPalette.primary : (root.project.accent == 1 ? MaterialPalette.secondary : (root.project.accent == 2 ? MaterialPalette.tertiary : MaterialPalette.surface_container_highest));
     }
 
-    HubFloatingIconButton {
+    HubMoreMenuButton {
         x: parent.width - root.menu-width - MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_1;
         y: MaterialStyleMetrics.spacing_8 - MaterialStyleMetrics.size_1;
         button-width: root.menu-width;
         button-height: root.menu-height;
-        icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
-        has-icon-image: true;
         clicked => {
             root.menu-clicked();
         }
@@ -79,72 +77,30 @@ export component ProjectCover inherits Rectangle {
     }
 }
 
-component ProjectFlowNextButton inherits HubIconButton {
-    button-width: MaterialStyleMetrics.size_48;
-    button-height: root.button-width;
-    button-radius: root.button-width / 2;
-    icon-size: HubTokens.icon-sm;
-    icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
-    has-icon-image: true;
-    active: false;
-    idle-background: HubVisualSpec.panel-background;
-    idle-border: HubVisualSpec.outline-muted;
-    idle-foreground: MaterialPalette.on_surface;
-    state-layer-color: MaterialPalette.on_surface;
-}
-
-export component ProjectCard inherits HubPanel {
+component ProjectCardIdentityStack inherits Rectangle {
     in property <ProjectCardData> project;
-    in property <length> card-height: HubVisualSpec.visual-card-height;
-    in property <length> cover-height: HubVisualSpec.card-cover-height;
-    in property <length> card-width-basis: HubTokens.panel-min-sm;
-    callback select(string);
-    callback open(string);
+    in property <string> modified-label;
+    in property <length> title-row-height: HubTokens.control-sm;
+    in property <length> stack-spacing: HubTokens.space-1 + MaterialStyleMetrics.size_2;
+    in property <length> status-badge-width: HubTokens.control-md * 3;
+    in property <length> status-badge-height: MaterialStyleMetrics.size_24;
 
-    private property <length> status-badge-width: max(root.status-badge-height * 3, min(root.status-badge-height * 9 / 2, root.card-width-basis / 4));
-    private property <length> status-badge-height: max(MaterialStyleMetrics.size_20, min(MaterialStyleMetrics.size_24, root.card-height / 9));
-    private property <bool> compact-footer: root.card-width-basis < HubTokens.panel-min-sm * 3 / 4;
-    private property <length> footer-version-width: root.status-badge-height * 2 - MaterialStyleMetrics.size_2;
-    private property <length> footer-platform-width: root.status-badge-height * 3 - MaterialStyleMetrics.size_4;
-    private property <string> visible-modified-label: root.project.modified-label == "Modified 1d ago" ? "Modified yesterday" : root.project.modified-label;
-    private property <string> visible-platform: root.project.title == "Sands of Time" ? "Linux" : root.project.platform;
+    private property <length> detail-line-height: MaterialStyleMetrics.size_18;
 
-    variant: root.project.selected ? "selected" : "interactive";
-    height: root.card-height;
-    min-width: root.card-width-basis;
-    preferred-width: root.card-width-basis;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.title-row-height + root.detail-line-height * 2 + root.stack-spacing * 2;
+    background: transparent;
     clip: true;
-
-    card-state := StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: MaterialPalette.on_surface;
-        border_radius: HubVisualSpec.panel-radius;
-        clicked => {
-            root.select(root.project.open-path);
-        }
-    }
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: HubTokens.space-3 + MaterialStyleMetrics.size_2;
-        padding-right: HubTokens.space-3;
-        padding-top: HubTokens.space-3 + MaterialStyleMetrics.size_2;
-        padding-bottom: HubTokens.space-3;
-        spacing: HubTokens.space-1 + MaterialStyleMetrics.size_2;
-        alignment: start;
-
-        ProjectCover {
-            project: root.project;
-            cover-height: root.cover-height;
-            menu-clicked => {
-                root.open(root.project.open-path);
-            }
-        }
+        spacing: root.stack-spacing;
 
         HorizontalLayout {
-            height: max(MaterialTypography.title_large.font_size, root.status-badge-height);
+            height: root.title-row-height;
             spacing: MaterialStyleMetrics.spacing_6;
             alignment: stretch;
 
@@ -173,9 +129,73 @@ export component ProjectCard inherits HubPanel {
             }
         }
 
-        MutedText { text: root.project.project-path; overflow: elide; }
+        MutedText {
+            height: root.detail-line-height;
+            text: root.project.project-path;
+            overflow: elide;
+        }
 
-        MutedText { text: root.visible-modified-label; overflow: elide; }
+        MutedText {
+            height: root.detail-line-height;
+            text: root.modified-label;
+            overflow: elide;
+        }
+    }
+}
+
+export component ProjectCard inherits HubInteractiveCardSurface {
+    in property <ProjectCardData> project;
+    in property <length> card-height: HubVisualSpec.visual-card-height;
+    in property <length> cover-height: HubVisualSpec.card-cover-height;
+    in property <length> card-width-basis: HubTokens.panel-min-sm;
+    callback select(string);
+    callback open(string);
+
+    private property <length> status-badge-width: max(root.status-badge-height * 3, min(root.status-badge-height * 9 / 2, root.card-width-basis / 4));
+    private property <length> status-badge-height: max(MaterialStyleMetrics.size_20, min(MaterialStyleMetrics.size_24, root.card-height / 9));
+    private property <bool> compact-footer: root.card-width-basis < HubTokens.panel-min-sm * 3 / 4;
+    private property <length> footer-version-width: root.status-badge-height * 2 - MaterialStyleMetrics.size_2;
+    private property <length> footer-platform-width: root.status-badge-height * 3 - MaterialStyleMetrics.size_4;
+    private property <string> visible-modified-label: root.project.modified-label == "Modified 1d ago" ? "Modified yesterday" : root.project.modified-label;
+    private property <string> visible-platform: root.project.title == "Sands of Time" ? "Linux" : root.project.platform;
+
+    selected: root.project.selected;
+    height: root.card-height;
+    min-width: root.card-width-basis;
+    preferred-width: root.card-width-basis;
+    clip: true;
+    interaction-foreground: MaterialPalette.on_surface;
+
+    clicked => {
+        root.select(root.project.open-path);
+    }
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: HubTokens.space-3 + MaterialStyleMetrics.size_2;
+        padding-right: HubTokens.space-3;
+        padding-top: HubTokens.space-3 + MaterialStyleMetrics.size_2;
+        padding-bottom: HubTokens.space-3;
+        spacing: HubTokens.space-1 + MaterialStyleMetrics.size_2;
+        alignment: start;
+
+        ProjectCover {
+            project: root.project;
+            cover-height: root.cover-height;
+            menu-clicked => {
+                root.open(root.project.open-path);
+            }
+        }
+
+        ProjectCardIdentityStack {
+            project: root.project;
+            modified-label: root.visible-modified-label;
+            title-row-height: max(MaterialTypography.title_large.font_size, root.status-badge-height);
+            stack-spacing: HubTokens.space-1 + MaterialStyleMetrics.size_2;
+            status-badge-width: root.status-badge-width;
+            status-badge-height: root.status-badge-height;
+        }
 
         Rectangle { height: MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_2 + MaterialStyleMetrics.size_1; }
 
@@ -231,40 +251,32 @@ export component ProjectFlow inherits Rectangle {
     clip: true;
     background: transparent;
 
-    if root.project-card-count > 0: card-scroll := ScrollView {
+    if root.project-card-count > 0: card-scroll := FlowScrollSurface {
         width: parent.width;
         height: parent.height;
-        viewport_y <=> root.card-scroll-y;
-        viewport_width: card-scroll.visible_width;
-        viewport_height: root.expanded ? root.flow-content-height : root.flow-visible-height;
-        vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
-        horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
+        scroll-y <=> root.card-scroll-y;
+        content-width: card-scroll.visible_width;
+        content-height: root.expanded ? root.flow-content-height : root.flow-visible-height;
 
-        Rectangle {
-            width: card-scroll.visible_width;
-            height: card-scroll.viewport_height;
-            background: transparent;
+        Flow {
+            width: parent.width;
+            height: parent.height;
+            gap-x: root.card-gap-x;
+            gap-y: root.card-gap-y;
 
-            Flow {
-                width: parent.width;
-                height: parent.height;
-                gap-x: root.card-gap-x;
-                gap-y: root.card-gap-y;
-
-                for card in root.project-cards: ProjectCard {
-                    min-width: max(HubTokens.panel-min-sm * 2 / 3, min(HubTokens.panel-min-sm, root.card-basis));
-                    card-height: root.card-height;
-                    cover-height: HubVisualSpec.card-cover-height;
-                    card-width-basis: root.card-basis;
-                    project: card;
-                    select(path) => { root.select(path); }
-                    open(path) => { root.open(path); }
-                }
+            for card in root.project-cards: ProjectCard {
+                min-width: max(HubTokens.panel-min-sm * 2 / 3, min(HubTokens.panel-min-sm, root.card-basis));
+                card-height: root.card-height;
+                cover-height: HubVisualSpec.card-cover-height;
+                card-width-basis: root.card-basis;
+                project: card;
+                select(path) => { root.select(path); }
+                open(path) => { root.open(path); }
             }
         }
     }
 
-    if root.project-card-count > root.card-column-count && !root.expanded: ProjectFlowNextButton {
+    if root.project-card-count > root.card-column-count && !root.expanded: HubFlowNextButton {
         x: parent.width - self.width - MaterialStyleMetrics.size_2;
         y: root.card-height * 2 / 5;
         clicked => {
@@ -309,12 +321,11 @@ export component DashboardProjectCardsSection inherits VerticalLayout {
         open(path) => { root.open(path); }
     }
 
-    if root.project-card-count > 4 && root.show-more-height > 0px: PillButton {
-        horizontal-stretch: 1;
-        height: root.show-more-height;
-        text: root.expanded ? root.collapse-label : root.show-more-label;
-        icon-image: root.expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
-        has-icon-image: true;
-        clicked => { root.expanded = !root.expanded; }
+    if root.project-card-count > 4 && root.show-more-height > 0px: HubDisclosureButton {
+        button-height: root.show-more-height;
+        expanded: root.expanded;
+        expanded-label: root.collapse-label;
+        collapsed-label: root.show-more-label;
+        toggled(expanded) => { root.expanded = expanded; }
     }
 }

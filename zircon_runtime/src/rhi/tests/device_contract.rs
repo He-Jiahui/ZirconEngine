@@ -1,10 +1,12 @@
 use crate::rhi::{
-    BufferDesc, BufferHandle, BufferUsage, CommandList, FenceValue, PipelineDesc, PipelineHandle,
-    PipelineKind, RenderDevice, RenderQueueClass, SamplerDesc, SamplerHandle, ShaderModuleDesc,
-    ShaderModuleHandle, ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle,
-    TextureUsage,
+    BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupHandle,
+    BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindGroupLayoutHandle, BindingResourceType,
+    BufferDesc, BufferHandle, BufferUsage, CommandList, CompareFunction, FenceValue, PipelineDesc,
+    PipelineHandle, PipelineKind, PipelineLayoutDesc, PipelineLayoutHandle, RenderDevice,
+    RenderQueueClass, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle,
+    ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle, TextureUsage,
 };
-use crate::rhi_wgpu::{WgpuCommandList, WgpuRenderDevice};
+use crate::rhi_wgpu::WgpuRenderDevice;
 use std::path::Path;
 
 #[test]
@@ -12,8 +14,35 @@ fn rhi_handles_are_stable_raw_identifiers() {
     assert_eq!(BufferHandle::new(11).raw(), 11);
     assert_eq!(TextureHandle::new(12).raw(), 12);
     assert_eq!(SamplerHandle::new(13).raw(), 13);
-    assert_eq!(ShaderModuleHandle::new(14).raw(), 14);
-    assert_eq!(PipelineHandle::new(15).raw(), 15);
+    assert_eq!(BindGroupLayoutHandle::new(14).raw(), 14);
+    assert_eq!(BindGroupHandle::new(15).raw(), 15);
+    assert_eq!(ShaderModuleHandle::new(16).raw(), 16);
+    assert_eq!(PipelineLayoutHandle::new(17).raw(), 17);
+    assert_eq!(PipelineHandle::new(18).raw(), 18);
+}
+
+fn test_bind_group_layout_desc(label: &str) -> BindGroupLayoutDesc {
+    BindGroupLayoutDesc::new(
+        label,
+        vec![BindGroupLayoutEntryDesc::new(
+            0,
+            BindingResourceType::UniformBuffer,
+            vec![
+                ShaderStage::Vertex,
+                ShaderStage::Fragment,
+                ShaderStage::Compute,
+            ],
+        )],
+    )
+}
+
+fn create_test_pipeline_layout(device: &WgpuRenderDevice, label: &str) -> PipelineLayoutHandle {
+    let bind_group_layout = device
+        .create_bind_group_layout(&test_bind_group_layout_desc(&format!("{label}-bind-group")))
+        .unwrap();
+    device
+        .create_pipeline_layout(&PipelineLayoutDesc::new(label, vec![bind_group_layout]))
+        .unwrap()
 }
 
 #[test]
@@ -56,15 +85,20 @@ fn wgpu_rhi_device_allocates_stable_resource_handles_and_fences() {
         .create_sampler(&SamplerDesc::linear("scene-linear"))
         .unwrap();
     let shader = device
-        .create_shader_module(&ShaderModuleDesc {
-            label: Some("fullscreen".to_string()),
-            source: "@compute @workgroup_size(1) fn main() {}".to_string(),
-            stage: ShaderStage::Compute,
-            entry_point: "main".to_string(),
-        })
+        .create_shader_module(&ShaderModuleDesc::new(
+            "fullscreen",
+            ShaderStage::Compute,
+            "main",
+            "@compute @workgroup_size(1) fn main() {}",
+        ))
         .unwrap();
+    let pipeline_layout = create_test_pipeline_layout(&device, "compute-layout");
     let pipeline = device
-        .create_pipeline(&PipelineDesc::new("compute", PipelineKind::Compute))
+        .create_pipeline(
+            &PipelineDesc::new("compute", PipelineKind::Compute)
+                .with_layout(pipeline_layout)
+                .with_compute_shader(shader),
+        )
         .unwrap();
 
     assert_ne!(buffer.raw(), texture.raw());
@@ -170,18 +204,21 @@ fn wgpu_rhi_device_roundtrips_resource_descriptors_by_handle() {
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
     );
     let sampler_desc = SamplerDesc::linear("scene-linear");
-    let shader_desc = ShaderModuleDesc {
-        label: Some("fullscreen".to_string()),
-        source: "@compute @workgroup_size(1) fn main() {}".to_string(),
-        stage: ShaderStage::Compute,
-        entry_point: "main".to_string(),
-    };
-    let pipeline_desc = PipelineDesc::new("compute", PipelineKind::Compute);
+    let shader_desc = ShaderModuleDesc::new(
+        "fullscreen",
+        ShaderStage::Compute,
+        "main",
+        "@compute @workgroup_size(1) fn main() {}",
+    );
 
     let buffer = device.create_buffer(&buffer_desc).unwrap();
     let texture = device.create_texture(&texture_desc).unwrap();
     let sampler = device.create_sampler(&sampler_desc).unwrap();
     let shader = device.create_shader_module(&shader_desc).unwrap();
+    let pipeline_layout = create_test_pipeline_layout(&device, "compute-layout");
+    let pipeline_desc = PipelineDesc::new("compute", PipelineKind::Compute)
+        .with_layout(pipeline_layout)
+        .with_compute_shader(shader);
     let pipeline = device.create_pipeline(&pipeline_desc).unwrap();
 
     assert_eq!(device.buffer_desc(buffer).unwrap(), buffer_desc);
@@ -194,6 +231,330 @@ fn wgpu_rhi_device_roundtrips_resource_descriptors_by_handle() {
     assert_eq!(
         device.buffer_desc(buffer).unwrap_err(),
         crate::rhi::RhiError::UnknownBuffer(buffer.raw())
+    );
+}
+
+#[test]
+fn wgpu_rhi_roundtrips_shadow_and_trilinear_sampler_descriptors() {
+    let device = WgpuRenderDevice::new_headless();
+    let trilinear = SamplerDesc::linear_mipmap_linear("material-trilinear")
+        .with_lod_clamp(0.0, 12.0)
+        .with_anisotropy_clamp(16);
+    let shadow = SamplerDesc::nearest("shadow-map")
+        .with_compare(CompareFunction::LessEqual)
+        .with_lod_clamp(0.0, 0.0);
+
+    let trilinear_handle = device.create_sampler(&trilinear).unwrap();
+    let shadow_handle = device.create_sampler(&shadow).unwrap();
+
+    assert_eq!(device.sampler_desc(trilinear_handle).unwrap(), trilinear);
+    assert_eq!(device.sampler_desc(shadow_handle).unwrap(), shadow);
+}
+
+#[test]
+fn wgpu_rhi_roundtrips_bind_group_layouts_and_bind_groups() {
+    let device = WgpuRenderDevice::new_headless();
+    let layout_desc = BindGroupLayoutDesc::new(
+        "material-layout",
+        vec![
+            BindGroupLayoutEntryDesc::new(
+                0,
+                BindingResourceType::UniformBuffer,
+                vec![ShaderStage::Vertex, ShaderStage::Fragment],
+            ),
+            BindGroupLayoutEntryDesc::new(
+                1,
+                BindingResourceType::Texture,
+                vec![ShaderStage::Fragment],
+            ),
+            BindGroupLayoutEntryDesc::new(
+                2,
+                BindingResourceType::Sampler,
+                vec![ShaderStage::Fragment],
+            ),
+        ],
+    );
+    let uniform = device
+        .create_buffer(&BufferDesc::new(
+            "material-uniform",
+            64,
+            BufferUsage::UNIFORM,
+        ))
+        .unwrap();
+    let texture = device
+        .create_texture(&TextureDesc::new(
+            "albedo",
+            4,
+            4,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::SAMPLED,
+        ))
+        .unwrap();
+    let sampler = device
+        .create_sampler(&SamplerDesc::linear_mipmap_linear("albedo-sampler"))
+        .unwrap();
+    let layout = device.create_bind_group_layout(&layout_desc).unwrap();
+    let bind_group_desc = BindGroupDesc::new(
+        "material-bind-group",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(texture)),
+            BindGroupEntryDesc::new(2, BindGroupEntryResource::Sampler(sampler)),
+        ],
+    );
+
+    let bind_group = device.create_bind_group(&bind_group_desc).unwrap();
+
+    assert_eq!(device.bind_group_layout_desc(layout).unwrap(), layout_desc);
+    assert_eq!(device.bind_group_desc(bind_group).unwrap(), bind_group_desc);
+
+    device.destroy_bind_group(bind_group).unwrap();
+    assert_eq!(
+        device.bind_group_desc(bind_group).unwrap_err(),
+        crate::rhi::RhiError::UnknownBindGroup(bind_group.raw())
+    );
+    device.destroy_bind_group_layout(layout).unwrap();
+    assert_eq!(
+        device.bind_group_layout_desc(layout).unwrap_err(),
+        crate::rhi::RhiError::UnknownBindGroupLayout(layout.raw())
+    );
+}
+
+#[test]
+fn wgpu_rhi_rejects_invalid_bind_group_layout_descriptors() {
+    let device = WgpuRenderDevice::new_headless();
+
+    assert_eq!(
+        device
+            .create_bind_group_layout(&BindGroupLayoutDesc::new("empty-layout", Vec::new()))
+            .unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupLayoutDescriptor {
+            label: Some("empty-layout".to_string()),
+            reason: "entries must not be empty".to_string(),
+        }
+    );
+
+    let duplicate_binding = BindGroupLayoutDesc::new(
+        "duplicate-binding-layout",
+        vec![
+            BindGroupLayoutEntryDesc::new(
+                0,
+                BindingResourceType::UniformBuffer,
+                vec![ShaderStage::Vertex],
+            ),
+            BindGroupLayoutEntryDesc::new(
+                0,
+                BindingResourceType::Sampler,
+                vec![ShaderStage::Fragment],
+            ),
+        ],
+    );
+    assert_eq!(
+        device
+            .create_bind_group_layout(&duplicate_binding)
+            .unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupLayoutDescriptor {
+            label: Some("duplicate-binding-layout".to_string()),
+            reason: "binding 0 is duplicated".to_string(),
+        }
+    );
+
+    let no_visibility = BindGroupLayoutDesc::new(
+        "no-visibility-layout",
+        vec![BindGroupLayoutEntryDesc::new(
+            2,
+            BindingResourceType::Texture,
+            Vec::new(),
+        )],
+    );
+    assert_eq!(
+        device.create_bind_group_layout(&no_visibility).unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupLayoutDescriptor {
+            label: Some("no-visibility-layout".to_string()),
+            reason: "binding 2 has no shader-stage visibility".to_string(),
+        }
+    );
+
+    let repeated_visibility = BindGroupLayoutDesc::new(
+        "repeated-visibility-layout",
+        vec![BindGroupLayoutEntryDesc::new(
+            3,
+            BindingResourceType::StorageBuffer,
+            vec![ShaderStage::Compute, ShaderStage::Compute],
+        )],
+    );
+    assert_eq!(
+        device
+            .create_bind_group_layout(&repeated_visibility)
+            .unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupLayoutDescriptor {
+            label: Some("repeated-visibility-layout".to_string()),
+            reason: "binding 3 repeats shader-stage visibility".to_string(),
+        }
+    );
+}
+
+#[test]
+fn wgpu_rhi_bind_group_validation_checks_layout_resource_types_and_usage() {
+    let device = WgpuRenderDevice::new_headless();
+    let layout = device
+        .create_bind_group_layout(&BindGroupLayoutDesc::new(
+            "material-layout",
+            vec![
+                BindGroupLayoutEntryDesc::new(
+                    0,
+                    BindingResourceType::UniformBuffer,
+                    vec![ShaderStage::Vertex, ShaderStage::Fragment],
+                ),
+                BindGroupLayoutEntryDesc::new(
+                    1,
+                    BindingResourceType::Texture,
+                    vec![ShaderStage::Fragment],
+                ),
+                BindGroupLayoutEntryDesc::new(
+                    2,
+                    BindingResourceType::Sampler,
+                    vec![ShaderStage::Fragment],
+                ),
+            ],
+        ))
+        .unwrap();
+    let uniform = device
+        .create_buffer(&BufferDesc::new("uniform", 64, BufferUsage::UNIFORM))
+        .unwrap();
+    let storage_only = device
+        .create_buffer(&BufferDesc::new("storage-only", 64, BufferUsage::STORAGE))
+        .unwrap();
+    let sampled_texture = device
+        .create_texture(&TextureDesc::new(
+            "sampled",
+            2,
+            2,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::SAMPLED,
+        ))
+        .unwrap();
+    let storage_texture = device
+        .create_texture(&TextureDesc::new(
+            "storage",
+            2,
+            2,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::STORAGE,
+        ))
+        .unwrap();
+    let sampler = device
+        .create_sampler(&SamplerDesc::linear("sampled-linear"))
+        .unwrap();
+
+    let missing_binding = BindGroupDesc::new(
+        "missing-binding",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(sampled_texture)),
+        ],
+    );
+    assert_eq!(
+        device.create_bind_group(&missing_binding).unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupDescriptor {
+            label: Some("missing-binding".to_string()),
+            reason: "entry count 2 does not match layout entry count 3".to_string(),
+        }
+    );
+
+    let duplicate_binding = BindGroupDesc::new(
+        "duplicate-binding",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(2, BindGroupEntryResource::Sampler(sampler)),
+        ],
+    );
+    assert_eq!(
+        device.create_bind_group(&duplicate_binding).unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupDescriptor {
+            label: Some("duplicate-binding".to_string()),
+            reason: "binding 0 is duplicated".to_string(),
+        }
+    );
+
+    let wrong_resource_type = BindGroupDesc::new(
+        "wrong-resource-type",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Sampler(sampler)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(sampled_texture)),
+            BindGroupEntryDesc::new(2, BindGroupEntryResource::Sampler(sampler)),
+        ],
+    );
+    assert_eq!(
+        device.create_bind_group(&wrong_resource_type).unwrap_err(),
+        crate::rhi::RhiError::InvalidBindGroupDescriptor {
+            label: Some("wrong-resource-type".to_string()),
+            reason: format!(
+                "binding 0 expects {:?}, got {:?}",
+                BindingResourceType::UniformBuffer,
+                BindGroupEntryResource::Sampler(sampler)
+            ),
+        }
+    );
+
+    let invalid_buffer_usage = BindGroupDesc::new(
+        "invalid-buffer-usage",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(storage_only)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(sampled_texture)),
+            BindGroupEntryDesc::new(2, BindGroupEntryResource::Sampler(sampler)),
+        ],
+    );
+    assert_eq!(
+        device.create_bind_group(&invalid_buffer_usage).unwrap_err(),
+        crate::rhi::RhiError::InvalidBufferUsage {
+            buffer: storage_only.raw(),
+            required: BufferUsage::UNIFORM,
+            actual: BufferUsage::STORAGE,
+        }
+    );
+
+    let invalid_texture_usage = BindGroupDesc::new(
+        "invalid-texture-usage",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(storage_texture)),
+            BindGroupEntryDesc::new(2, BindGroupEntryResource::Sampler(sampler)),
+        ],
+    );
+    assert_eq!(
+        device
+            .create_bind_group(&invalid_texture_usage)
+            .unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureUsage {
+            texture: storage_texture.raw(),
+            required: TextureUsage::SAMPLED,
+            actual: TextureUsage::STORAGE,
+        }
+    );
+
+    let unknown_sampler = BindGroupDesc::new(
+        "unknown-sampler",
+        layout,
+        vec![
+            BindGroupEntryDesc::new(0, BindGroupEntryResource::Buffer(uniform)),
+            BindGroupEntryDesc::new(1, BindGroupEntryResource::Texture(sampled_texture)),
+            BindGroupEntryDesc::new(
+                2,
+                BindGroupEntryResource::Sampler(SamplerHandle::new(9_999)),
+            ),
+        ],
+    );
+    assert_eq!(
+        device.create_bind_group(&unknown_sampler).unwrap_err(),
+        crate::rhi::RhiError::UnknownSampler(9_999)
     );
 }
 
@@ -300,6 +661,89 @@ fn wgpu_rhi_rejects_invalid_resource_descriptors() {
         }
     );
 
+    let invalid_cube_extent = TextureDesc::new(
+        "invalid-cube-extent",
+        4,
+        2,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::Cube)
+    .with_array_layers(6);
+    assert_eq!(
+        device.create_texture(&invalid_cube_extent).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-cube-extent".to_string()),
+            reason: "cube textures must be square".to_string(),
+        }
+    );
+
+    let invalid_d1_extent = TextureDesc::new(
+        "invalid-d1-extent",
+        4,
+        2,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::D1);
+    assert_eq!(
+        device.create_texture(&invalid_d1_extent).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-d1-extent".to_string()),
+            reason: "1D textures must declare height and depth as 1".to_string(),
+        }
+    );
+
+    let invalid_d2_depth = TextureDesc::new(
+        "invalid-d2-depth",
+        4,
+        4,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_depth(2);
+    assert_eq!(
+        device.create_texture(&invalid_d2_depth).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-d2-depth".to_string()),
+            reason: "2D textures must declare depth as 1".to_string(),
+        }
+    );
+
+    let invalid_mip_count = TextureDesc::new(
+        "invalid-mip-count",
+        4,
+        2,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_mip_levels(4);
+    assert_eq!(
+        device.create_texture(&invalid_mip_count).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-mip-count".to_string()),
+            reason: "mip_levels exceeds the texture extent chain".to_string(),
+        }
+    );
+
+    let invalid_msaa_array = TextureDesc::new(
+        "invalid-msaa-array",
+        4,
+        4,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::D2Array)
+    .with_array_layers(2)
+    .with_sample_count(4);
+    assert_eq!(
+        device.create_texture(&invalid_msaa_array).unwrap_err(),
+        crate::rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-msaa-array".to_string()),
+            reason: "multisampling is only valid for 2D textures".to_string(),
+        }
+    );
+
     let mut overflowing_storage = TextureDesc::new(
         "overflowing-texture",
         u32::MAX,
@@ -307,12 +751,43 @@ fn wgpu_rhi_rejects_invalid_resource_descriptors() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::COPY_SRC,
     );
-    overflowing_storage.depth = u32::MAX;
+    overflowing_storage.depth = 1;
     assert_eq!(
         device.create_texture(&overflowing_storage).unwrap_err(),
         crate::rhi::RhiError::InvalidTextureDescriptor {
             label: Some("overflowing-texture".to_string()),
             reason: "storage size overflows u64".to_string(),
+        }
+    );
+
+    let invalid_lod_order = SamplerDesc::linear("invalid-lod").with_lod_clamp(4.0, 2.0);
+    assert_eq!(
+        device.create_sampler(&invalid_lod_order).unwrap_err(),
+        crate::rhi::RhiError::InvalidSamplerDescriptor {
+            label: Some("invalid-lod".to_string()),
+            reason: "lod_min_clamp must be less than or equal to lod_max_clamp".to_string(),
+        }
+    );
+
+    let invalid_lod_value = SamplerDesc {
+        lod_min_clamp: f32::NAN,
+        ..SamplerDesc::nearest("invalid-lod-value")
+    };
+    assert_eq!(
+        device.create_sampler(&invalid_lod_value).unwrap_err(),
+        crate::rhi::RhiError::InvalidSamplerDescriptor {
+            label: Some("invalid-lod-value".to_string()),
+            reason: "lod clamps must be finite".to_string(),
+        }
+    );
+
+    let invalid_anisotropy =
+        SamplerDesc::linear_mipmap_linear("invalid-anisotropy").with_anisotropy_clamp(17);
+    assert_eq!(
+        device.create_sampler(&invalid_anisotropy).unwrap_err(),
+        crate::rhi::RhiError::InvalidSamplerDescriptor {
+            label: Some("invalid-anisotropy".to_string()),
+            reason: "anisotropy_clamp must be in the range 1..=16".to_string(),
         }
     );
 }
@@ -340,201 +815,6 @@ fn wgpu_rhi_fence_queries_reject_unissued_fence_values() {
             .is_fence_complete(FenceValue(fence.0 + 1))
             .unwrap_err(),
         crate::rhi::RhiError::UnknownFence(fence.0 + 1)
-    );
-}
-
-#[test]
-fn command_list_keeps_queue_class_and_label() {
-    let command_list = WgpuCommandList::new(RenderQueueClass::Graphics, "main");
-    assert_eq!(command_list.queue_class(), RenderQueueClass::Graphics);
-    assert_eq!(command_list.label(), Some("main"));
-}
-
-#[test]
-fn command_list_records_buffer_copy_commands_and_submit_validates_resources() {
-    let device = WgpuRenderDevice::new_headless();
-    let source = device
-        .create_buffer(&BufferDesc::new("copy-source", 32, BufferUsage::COPY_SRC))
-        .unwrap();
-    let destination = device
-        .create_buffer(&BufferDesc::new(
-            "copy-destination",
-            16,
-            BufferUsage::COPY_DST,
-        ))
-        .unwrap();
-
-    let mut command_list = device
-        .create_command_list(RenderQueueClass::Copy, "copy-valid")
-        .unwrap();
-    command_list.push_debug_marker("upload source");
-    command_list.copy_buffer_to_buffer(source, destination, 4, 8, 8);
-
-    assert_eq!(command_list.recorded_command_count(), 2);
-    let fence = device.submit(command_list).unwrap();
-    assert!(device.is_fence_complete(fence).unwrap());
-
-    let mut unknown_destination = device
-        .create_command_list(RenderQueueClass::Copy, "copy-unknown-destination")
-        .unwrap();
-    unknown_destination.copy_buffer_to_buffer(source, BufferHandle::new(9_999), 0, 0, 4);
-
-    assert_eq!(
-        device.submit(unknown_destination).unwrap_err(),
-        crate::rhi::RhiError::UnknownBuffer(9_999)
-    );
-
-    let mut out_of_range = device
-        .create_command_list(RenderQueueClass::Copy, "copy-out-of-range")
-        .unwrap();
-    out_of_range.copy_buffer_to_buffer(source, destination, 0, 12, 8);
-
-    assert_eq!(
-        device.submit(out_of_range).unwrap_err(),
-        crate::rhi::RhiError::BufferCopyOutOfRange {
-            source_buffer: source.raw(),
-            destination_buffer: destination.raw(),
-            source_offset: 0,
-            destination_offset: 12,
-            size: 8,
-        }
-    );
-}
-
-#[test]
-fn command_list_records_compute_dispatch_and_submit_validates_pipeline() {
-    let device = WgpuRenderDevice::new_headless();
-    let shader = device
-        .create_shader_module(&ShaderModuleDesc {
-            label: Some("compute-fill".to_string()),
-            source: "@compute @workgroup_size(1) fn main() {}".to_string(),
-            stage: ShaderStage::Compute,
-            entry_point: "main".to_string(),
-        })
-        .unwrap();
-    let compute_pipeline = device
-        .create_pipeline(&PipelineDesc::new("compute-fill", PipelineKind::Compute))
-        .unwrap();
-    let raster_pipeline = device
-        .create_pipeline(&PipelineDesc::new("forward-opaque", PipelineKind::Raster))
-        .unwrap();
-
-    let mut compute = device
-        .create_command_list(RenderQueueClass::Compute, "compute-dispatch")
-        .unwrap();
-    compute.set_pipeline(compute_pipeline);
-    compute.dispatch_compute(4, 2, 1);
-
-    assert_eq!(
-        compute.recorded_commands(),
-        &[
-            crate::rhi::CommandListCommand::SetPipeline {
-                pipeline: compute_pipeline,
-            },
-            crate::rhi::CommandListCommand::DispatchCompute { x: 4, y: 2, z: 1 },
-        ]
-    );
-    assert!(device
-        .is_fence_complete(device.submit(compute).unwrap())
-        .unwrap());
-
-    let mut wrong_pipeline = device
-        .create_command_list(RenderQueueClass::Compute, "compute-with-raster-pipeline")
-        .unwrap();
-    wrong_pipeline.set_pipeline(raster_pipeline);
-    wrong_pipeline.dispatch_compute(1, 1, 1);
-    assert_eq!(
-        device.submit(wrong_pipeline).unwrap_err(),
-        crate::rhi::RhiError::InvalidPipelineUsage {
-            pipeline: raster_pipeline.raw(),
-            required: PipelineKind::Compute,
-            actual: PipelineKind::Raster,
-        }
-    );
-
-    let mut missing_pipeline = device
-        .create_command_list(RenderQueueClass::Compute, "compute-without-pipeline")
-        .unwrap();
-    missing_pipeline.dispatch_compute(1, 1, 1);
-    assert_eq!(
-        device.submit(missing_pipeline).unwrap_err(),
-        crate::rhi::RhiError::InvalidComputeDispatch {
-            reason: "compute dispatch requires a bound compute pipeline".to_string(),
-        }
-    );
-
-    let mut copy_queue_dispatch = device
-        .create_command_list(RenderQueueClass::Copy, "copy-queue-compute-dispatch")
-        .unwrap();
-    copy_queue_dispatch.set_pipeline(compute_pipeline);
-    copy_queue_dispatch.dispatch_compute(1, 1, 1);
-    assert_eq!(
-        device.submit(copy_queue_dispatch).unwrap_err(),
-        crate::rhi::RhiError::InvalidCommandQueue {
-            queue: RenderQueueClass::Copy,
-            command: "dispatch_compute".to_string(),
-        }
-    );
-
-    device.destroy_pipeline(compute_pipeline).unwrap();
-    device.destroy_pipeline(raster_pipeline).unwrap();
-    device.destroy_shader_module(shader).unwrap();
-}
-
-#[test]
-fn command_list_buffer_copy_submit_validates_usage_flags() {
-    let device = WgpuRenderDevice::new_headless();
-    let invalid_source = device
-        .create_buffer(&BufferDesc::new(
-            "not-copy-source",
-            16,
-            BufferUsage::UNIFORM,
-        ))
-        .unwrap();
-    let valid_destination = device
-        .create_buffer(&BufferDesc::new(
-            "copy-destination",
-            16,
-            BufferUsage::COPY_DST,
-        ))
-        .unwrap();
-
-    let mut source_command_list = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-source-copy")
-        .unwrap();
-    source_command_list.copy_buffer_to_buffer(invalid_source, valid_destination, 0, 0, 4);
-
-    assert_eq!(
-        device.submit(source_command_list).unwrap_err(),
-        crate::rhi::RhiError::InvalidBufferUsage {
-            buffer: invalid_source.raw(),
-            required: BufferUsage::COPY_SRC,
-            actual: BufferUsage::UNIFORM,
-        }
-    );
-
-    let valid_source = device
-        .create_buffer(&BufferDesc::new("copy-source", 16, BufferUsage::COPY_SRC))
-        .unwrap();
-    let invalid_destination = device
-        .create_buffer(&BufferDesc::new(
-            "not-copy-destination",
-            16,
-            BufferUsage::STORAGE,
-        ))
-        .unwrap();
-    let mut destination_command_list = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-destination-copy")
-        .unwrap();
-    destination_command_list.copy_buffer_to_buffer(valid_source, invalid_destination, 0, 0, 4);
-
-    assert_eq!(
-        device.submit(destination_command_list).unwrap_err(),
-        crate::rhi::RhiError::InvalidBufferUsage {
-            buffer: invalid_destination.raw(),
-            required: BufferUsage::COPY_DST,
-            actual: BufferUsage::STORAGE,
-        }
     );
 }
 
@@ -570,258 +850,6 @@ fn wgpu_rhi_write_copy_and_read_buffer_preserves_bytes() {
     assert_eq!(
         device.read_buffer(gpu_buffer, 0, 10).unwrap(),
         vec![0, 0, 10, 20, 30, 40, 50, 60, 0, 0]
-    );
-}
-
-#[test]
-fn wgpu_rhi_copy_buffer_to_texture_preserves_bytes() {
-    let device = WgpuRenderDevice::new_headless();
-    let upload = device
-        .create_buffer(&BufferDesc::new(
-            "texture-upload",
-            16,
-            BufferUsage::STAGING_WRITE | BufferUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let texture = device
-        .create_texture(&TextureDesc::new(
-            "albedo",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::COPY_DST | TextureUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let pixels = vec![1, 2, 3, 4, 10, 20, 30, 40, 5, 6, 7, 8, 50, 60, 70, 80];
-
-    device.write_buffer(upload, 0, &pixels).unwrap();
-
-    let mut command_list = device
-        .create_command_list(RenderQueueClass::Copy, "texture-upload")
-        .unwrap();
-    command_list.copy_buffer_to_texture(upload, texture, 0, 8, 2, 2);
-    let fence = device.submit(command_list).unwrap();
-    assert!(device.is_fence_complete(fence).unwrap());
-
-    assert_eq!(device.read_texture(texture).unwrap(), pixels);
-}
-
-#[test]
-fn wgpu_rhi_copy_texture_to_buffer_preserves_bytes() {
-    let device = WgpuRenderDevice::new_headless();
-    let upload = device
-        .create_buffer(&BufferDesc::new(
-            "texture-upload",
-            16,
-            BufferUsage::STAGING_WRITE | BufferUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let texture = device
-        .create_texture(&TextureDesc::new(
-            "albedo",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::COPY_DST | TextureUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let readback = device
-        .create_buffer(&BufferDesc::new(
-            "texture-readback",
-            24,
-            BufferUsage::COPY_DST | BufferUsage::STAGING_READ,
-        ))
-        .unwrap();
-    let pixels = vec![1, 2, 3, 4, 10, 20, 30, 40, 5, 6, 7, 8, 50, 60, 70, 80];
-
-    device.write_buffer(upload, 0, &pixels).unwrap();
-
-    let mut command_list = device
-        .create_command_list(RenderQueueClass::Copy, "texture-roundtrip")
-        .unwrap();
-    command_list.copy_buffer_to_texture(upload, texture, 0, 8, 2, 2);
-    command_list.copy_texture_to_buffer(texture, readback, 4, 8, 2, 2);
-    let fence = device.submit(command_list).unwrap();
-    assert!(device.is_fence_complete(fence).unwrap());
-
-    assert_eq!(
-        device.read_buffer(readback, 0, 24).unwrap(),
-        vec![0, 0, 0, 0, 1, 2, 3, 4, 10, 20, 30, 40, 5, 6, 7, 8, 50, 60, 70, 80, 0, 0, 0, 0]
-    );
-}
-
-#[test]
-fn wgpu_rhi_copy_buffer_to_texture_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
-    let invalid_source = device
-        .create_buffer(&BufferDesc::new(
-            "not-copy-source",
-            16,
-            BufferUsage::UNIFORM,
-        ))
-        .unwrap();
-    let valid_texture = device
-        .create_texture(&TextureDesc::new(
-            "copy-destination",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::COPY_DST | TextureUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let mut invalid_source_commands = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-texture-source")
-        .unwrap();
-    invalid_source_commands.copy_buffer_to_texture(invalid_source, valid_texture, 0, 8, 2, 2);
-
-    assert_eq!(
-        device.submit(invalid_source_commands).unwrap_err(),
-        crate::rhi::RhiError::InvalidBufferUsage {
-            buffer: invalid_source.raw(),
-            required: BufferUsage::COPY_SRC,
-            actual: BufferUsage::UNIFORM,
-        }
-    );
-
-    let valid_source = device
-        .create_buffer(&BufferDesc::new("copy-source", 16, BufferUsage::COPY_SRC))
-        .unwrap();
-    let invalid_texture = device
-        .create_texture(&TextureDesc::new(
-            "not-copy-destination",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::SAMPLED,
-        ))
-        .unwrap();
-    let mut invalid_texture_commands = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-texture-destination")
-        .unwrap();
-    invalid_texture_commands.copy_buffer_to_texture(valid_source, invalid_texture, 0, 8, 2, 2);
-
-    assert_eq!(
-        device.submit(invalid_texture_commands).unwrap_err(),
-        crate::rhi::RhiError::InvalidTextureUsage {
-            texture: invalid_texture.raw(),
-            required: TextureUsage::COPY_DST,
-            actual: TextureUsage::SAMPLED,
-        }
-    );
-
-    let small_source = device
-        .create_buffer(&BufferDesc::new("small-source", 8, BufferUsage::COPY_SRC))
-        .unwrap();
-    let mut out_of_range_commands = device
-        .create_command_list(RenderQueueClass::Copy, "texture-copy-out-of-range")
-        .unwrap();
-    out_of_range_commands.copy_buffer_to_texture(small_source, valid_texture, 0, 8, 2, 2);
-
-    assert_eq!(
-        device.submit(out_of_range_commands).unwrap_err(),
-        crate::rhi::RhiError::BufferToTextureCopyOutOfRange {
-            source_buffer: small_source.raw(),
-            destination_texture: valid_texture.raw(),
-            source_offset: 0,
-            bytes_per_row: 8,
-            width: 2,
-            height: 2,
-        }
-    );
-}
-
-#[test]
-fn wgpu_rhi_copy_texture_to_buffer_validates_usage_and_range() {
-    let device = WgpuRenderDevice::new_headless();
-    let invalid_source = device
-        .create_texture(&TextureDesc::new(
-            "not-copy-source",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::COPY_DST,
-        ))
-        .unwrap();
-    let valid_destination = device
-        .create_buffer(&BufferDesc::new(
-            "copy-destination",
-            16,
-            BufferUsage::COPY_DST | BufferUsage::STAGING_READ,
-        ))
-        .unwrap();
-    let mut invalid_source_commands = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-texture-source")
-        .unwrap();
-    invalid_source_commands.copy_texture_to_buffer(invalid_source, valid_destination, 0, 8, 2, 2);
-
-    assert_eq!(
-        device.submit(invalid_source_commands).unwrap_err(),
-        crate::rhi::RhiError::InvalidTextureUsage {
-            texture: invalid_source.raw(),
-            required: TextureUsage::COPY_SRC,
-            actual: TextureUsage::COPY_DST,
-        }
-    );
-
-    let valid_source = device
-        .create_texture(&TextureDesc::new(
-            "copy-source",
-            2,
-            2,
-            TextureFormat::Rgba8UnormSrgb,
-            TextureUsage::COPY_SRC,
-        ))
-        .unwrap();
-    let invalid_destination = device
-        .create_buffer(&BufferDesc::new(
-            "not-copy-destination",
-            16,
-            BufferUsage::STAGING_READ,
-        ))
-        .unwrap();
-    let mut invalid_destination_commands = device
-        .create_command_list(RenderQueueClass::Copy, "invalid-buffer-destination")
-        .unwrap();
-    invalid_destination_commands.copy_texture_to_buffer(
-        valid_source,
-        invalid_destination,
-        0,
-        8,
-        2,
-        2,
-    );
-
-    assert_eq!(
-        device.submit(invalid_destination_commands).unwrap_err(),
-        crate::rhi::RhiError::InvalidBufferUsage {
-            buffer: invalid_destination.raw(),
-            required: BufferUsage::COPY_DST,
-            actual: BufferUsage::STAGING_READ,
-        }
-    );
-
-    let small_destination = device
-        .create_buffer(&BufferDesc::new(
-            "small-destination",
-            8,
-            BufferUsage::COPY_DST,
-        ))
-        .unwrap();
-    let mut out_of_range_commands = device
-        .create_command_list(RenderQueueClass::Copy, "texture-copy-out-of-range")
-        .unwrap();
-    out_of_range_commands.copy_texture_to_buffer(valid_source, small_destination, 0, 8, 2, 2);
-
-    assert_eq!(
-        device.submit(out_of_range_commands).unwrap_err(),
-        crate::rhi::RhiError::TextureToBufferCopyOutOfRange {
-            source_texture: valid_source.raw(),
-            destination_buffer: small_destination.raw(),
-            destination_offset: 0,
-            bytes_per_row: 8,
-            width: 2,
-            height: 2,
-        }
     );
 }
 

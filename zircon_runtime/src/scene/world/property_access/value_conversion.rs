@@ -282,6 +282,9 @@ pub(super) fn parse_joint_kind(value: &str) -> Result<JointKind, String> {
         "fixed" => Ok(JointKind::Fixed),
         "distance" => Ok(JointKind::Distance),
         "hinge" => Ok(JointKind::Hinge),
+        "slider" => Ok(JointKind::Slider),
+        "conetwist" => Ok(JointKind::ConeTwist),
+        "generic6dof" | "d6" | "sixdof" => Ok(JointKind::Generic6Dof),
         _ => Err(format!("unsupported joint kind `{value}`")),
     }
 }

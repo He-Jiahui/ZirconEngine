@@ -203,8 +203,8 @@ mod tests {
             popup_open: true,
             dispatch_kind: "asset".into(),
             binding_id: "AssetSurface/SearchEdited".into(),
-            edit_action_id: "AssetSurface/SearchEdited".into(),
-            commit_action_id: "AssetSurface/SearchCommitted".into(),
+            edit_action_id: "workbench.asset.search.edit".into(),
+            commit_action_id: "workbench.asset.search.commit".into(),
             ..ViewTemplateNodeData::default()
         };
 
@@ -228,10 +228,10 @@ mod tests {
         assert!(node.popup_open);
         assert_eq!(node.dispatch_kind.as_str(), "asset");
         assert_eq!(node.binding_id.as_str(), "AssetSurface/SearchEdited");
-        assert_eq!(node.edit_action_id.as_str(), "AssetSurface/SearchEdited");
+        assert_eq!(node.edit_action_id.as_str(), "workbench.asset.search.edit");
         assert_eq!(
             node.commit_action_id.as_str(),
-            "AssetSurface/SearchCommitted"
+            "workbench.asset.search.commit"
         );
     }
 }

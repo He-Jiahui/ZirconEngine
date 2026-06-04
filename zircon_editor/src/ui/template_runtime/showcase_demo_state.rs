@@ -996,6 +996,22 @@ fn context_action_menu_option_id(encoded: &str) -> Option<String> {
     if encoded == "---" {
         return None;
     }
+    if let Some(action_segment) = encoded.strip_prefix("menu.item.") {
+        return Some(
+            action_segment
+                .split('_')
+                .filter(|segment| !segment.is_empty())
+                .map(|segment| {
+                    let mut chars = segment.chars();
+                    let Some(first) = chars.next() else {
+                        return String::new();
+                    };
+                    format!("{}{}", first.to_ascii_uppercase(), chars.as_str())
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+    }
     let mut parts = encoded.split('|');
     let label = parts.next()?.trim();
     let flags = parts.next().unwrap_or_default();

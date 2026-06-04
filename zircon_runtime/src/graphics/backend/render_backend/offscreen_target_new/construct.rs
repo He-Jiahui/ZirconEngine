@@ -2,12 +2,14 @@ use crate::core::math::UVec2;
 
 use crate::graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
-    GBUFFER_ALBEDO_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
 };
 
 use super::super::offscreen_target::OffscreenTarget;
 use super::create_cluster_buffer::create_cluster_buffer;
 use super::create_texture_bundle::create_texture_bundle;
+
+const DEPTH_OF_FIELD_COC_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
 impl OffscreenTarget {
     pub(crate) fn new(device: &wgpu::Device, size: UVec2) -> Self {
@@ -47,11 +49,36 @@ impl OffscreenTarget {
                 | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_SRC,
         );
+        let depth_of_field_coc = create_texture_bundle(
+            device,
+            "zircon-offscreen-depth-of-field-coc",
+            size,
+            DEPTH_OF_FIELD_COC_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
+        );
+        let depth_of_field_bokeh = create_texture_bundle(
+            device,
+            "zircon-offscreen-depth-of-field-bokeh",
+            size,
+            OFFSCREEN_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
+        );
         let gbuffer_albedo = create_texture_bundle(
             device,
             "zircon-offscreen-gbuffer-albedo",
             size,
             GBUFFER_ALBEDO_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        );
+        let gbuffer_material = create_texture_bundle(
+            device,
+            "zircon-offscreen-gbuffer-material",
+            size,
+            GBUFFER_MATERIAL_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
         let normal = create_texture_bundle(
@@ -87,8 +114,14 @@ impl OffscreenTarget {
             scene_color_view: scene_color.view,
             bloom: bloom.texture,
             bloom_view: bloom.view,
+            depth_of_field_coc: depth_of_field_coc.texture,
+            depth_of_field_coc_view: depth_of_field_coc.view,
+            depth_of_field_bokeh: depth_of_field_bokeh.texture,
+            depth_of_field_bokeh_view: depth_of_field_bokeh.view,
             gbuffer_albedo: gbuffer_albedo.texture,
             gbuffer_albedo_view: gbuffer_albedo.view,
+            gbuffer_material: gbuffer_material.texture,
+            gbuffer_material_view: gbuffer_material.view,
             normal: normal.texture,
             normal_view: normal.view,
             ambient_occlusion: ambient_occlusion.texture,

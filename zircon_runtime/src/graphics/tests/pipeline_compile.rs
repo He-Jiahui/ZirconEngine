@@ -32,22 +32,35 @@ const ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(
     RenderFeatureCapabilityRequirement::SparseTexture,
 )];
 
-const ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(BuiltinRenderFeature, &str)] = &[
-    (BuiltinRenderFeature::Terrain, "terrain"),
-    (BuiltinRenderFeature::Tree, "tree"),
-    (BuiltinRenderFeature::Projector, "projector"),
-    (BuiltinRenderFeature::Halo, "halo"),
-    (BuiltinRenderFeature::LensFlare, "lens_flare"),
-    (BuiltinRenderFeature::Trail, "trail"),
-    (BuiltinRenderFeature::Billboard, "billboard"),
-    (BuiltinRenderFeature::Tilemap, "tilemap"),
-    (BuiltinRenderFeature::TextShaping, "text_shaping"),
-    (BuiltinRenderFeature::Skybox, "skybox"),
-    (BuiltinRenderFeature::Cubemap, "cubemap"),
-    (BuiltinRenderFeature::Texture2dArray, "texture_2d_array"),
-    (BuiltinRenderFeature::NormalMap, "normal_map"),
-    (BuiltinRenderFeature::Mipmap, "mipmap"),
-    (BuiltinRenderFeature::ColorSpace, "color_space"),
+const ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(BuiltinRenderFeature, &str, &str)] = &[
+    (BuiltinRenderFeature::Particle, "particle", "particles"),
+    (BuiltinRenderFeature::Terrain, "terrain", "terrain"),
+    (BuiltinRenderFeature::Tree, "tree", "tree"),
+    (BuiltinRenderFeature::Projector, "projector", "projector"),
+    (BuiltinRenderFeature::Halo, "halo", "halo"),
+    (BuiltinRenderFeature::LensFlare, "lens_flare", "lens_flare"),
+    (BuiltinRenderFeature::Trail, "trail", "trail"),
+    (BuiltinRenderFeature::Billboard, "billboard", "billboard"),
+    (BuiltinRenderFeature::Tilemap, "tilemap", "tilemap"),
+    (
+        BuiltinRenderFeature::TextShaping,
+        "text_shaping",
+        "text_shaping",
+    ),
+    (BuiltinRenderFeature::Skybox, "skybox", "skybox"),
+    (BuiltinRenderFeature::Cubemap, "cubemap", "cubemap"),
+    (
+        BuiltinRenderFeature::Texture2dArray,
+        "texture_2d_array",
+        "texture_2d_array",
+    ),
+    (BuiltinRenderFeature::NormalMap, "normal_map", "normal_map"),
+    (BuiltinRenderFeature::Mipmap, "mipmap", "mipmap"),
+    (
+        BuiltinRenderFeature::ColorSpace,
+        "color_space",
+        "color_space",
+    ),
 ];
 
 #[test]
@@ -88,6 +101,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
+            "depth-of-field-prepare",
             "post-process",
             "bloom-extract",
             "color-grade",
@@ -107,6 +121,32 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         "depth-prepass",
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         RenderGraphResourceAccessKind::Write,
+    );
+    pass_resource_access(
+        &compiled,
+        "depth-of-field-prepare",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "depth-of-field-prepare",
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "depth-of-field-prepare",
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
     );
     assert_eq!(
         compiled.required_extract_sections,
@@ -161,6 +201,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
+            "depth-of-field-prepare",
             "post-process",
             "bloom-extract",
             "color-grade",
@@ -189,6 +230,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
+        "gbuffer-mesh",
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        RenderGraphResourceAccessKind::Write,
+    );
+    pass_resource_access(
+        &compiled,
         "deferred-lighting",
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         RenderGraphResourceAccessKind::Read,
@@ -202,17 +249,23 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     pass_resource_access(
         &compiled,
         "deferred-lighting",
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "deferred-lighting",
         PostProcessGraphResourceNames::FINAL_COLOR,
         RenderGraphResourceAccessKind::Read,
     );
     assert!(
-        !compiled
+        compiled
             .graph
             .passes()
             .iter()
             .flat_map(|pass| pass.resources.iter())
-            .any(|resource| resource.name == "gbuffer-material"),
-        "default deferred graph must not declare an unbacked material G-buffer"
+            .any(|resource| resource.name == PostProcessGraphResourceNames::GBUFFER_MATERIAL),
+        "default deferred graph should declare its backed material G-buffer"
     );
     assert_eq!(
         compiled.required_extract_sections,
@@ -227,6 +280,47 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
         ]
     );
     assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
+}
+
+#[test]
+fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
+    let geometry_shader =
+        include_str!("../scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl");
+    let lighting_shader =
+        include_str!("../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl");
+    for (name, shader) in [
+        ("deferred_geometry.wgsl", geometry_shader),
+        ("deferred_lighting.wgsl", lighting_shader),
+    ] {
+        let module = naga::front::wgsl::parse_str(shader)
+            .unwrap_or_else(|error| panic!("{name}: {}", error.emit_to_string(shader)));
+        let mut validator = naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        );
+        validator
+            .validate(&module)
+            .unwrap_or_else(|error| panic!("{name}: {error}"));
+    }
+
+    assert!(
+        geometry_shader.contains("@location(1) material: vec4<f32>"),
+        "deferred geometry should emit a second material G-buffer target"
+    );
+    assert!(
+        geometry_shader.contains("material_properties.data0.x")
+            && geometry_shader.contains("material_properties.data0.y"),
+        "deferred geometry should encode metallic and roughness from material uniform channels"
+    );
+    assert!(
+        lighting_shader.contains("var gbuffer_material_tex: texture_2d<f32>")
+            && lighting_shader.contains("textureLoad(gbuffer_material_tex"),
+        "deferred lighting should read the material G-buffer"
+    );
+    assert!(
+        lighting_shader.contains("let roughness =") && lighting_shader.contains("let metallic ="),
+        "deferred lighting should decode material G-buffer channels"
+    );
 }
 
 #[test]
@@ -297,6 +391,10 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("opaque-sprite", Some("sprite.opaque")),
             ("alpha-mask-sprite", Some("sprite.alpha-mask")),
             ("transparent-sprite", Some("sprite.transparent")),
+            (
+                "depth-of-field-prepare",
+                Some("post.depth-of-field-prepare"),
+            ),
             ("post-process", Some("post.stack")),
             ("runtime-ui", Some("ui.screen-space")),
             ("overlay-gizmo", Some("overlay.gizmo")),
@@ -390,7 +488,7 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
             "{} should receive neural compute work from plugin descriptors",
             pipeline.name
         );
-        for (feature, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+        for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
             assert!(
                 !pipeline
                     .renderer
@@ -430,6 +528,7 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
+            "depth-of-field-prepare",
             "post-process",
             "color-grade",
             "fxaa",
@@ -470,6 +569,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
+            "depth-of-field-prepare",
             "post-process",
             "color-grade",
             "fxaa",
@@ -881,9 +981,9 @@ fn advanced_followup_feature_slots_reserve_extract_sections_without_runtime_pass
         );
     }
 
-    for (feature, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for (feature, descriptor_name, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
         let descriptor = feature.descriptor();
-        assert_eq!(descriptor.name, *extract_section);
+        assert_eq!(descriptor.name, *descriptor_name);
         assert_eq!(
             descriptor.required_extract_sections,
             vec![extract_section.to_string()]
@@ -945,7 +1045,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
             .features
             .push(RendererFeatureAsset::builtin(*feature));
     }
-    for (feature, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
         pipeline
             .renderer
             .features
@@ -976,7 +1076,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
             "{feature:?} should not require backend capability until explicitly opted in"
         );
     }
-    for (feature, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
         assert!(
             !default_compiled
                 .enabled_features
@@ -998,7 +1098,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
             .with_feature_enabled(*feature)
             .with_capability_enabled(*requirement);
     }
-    for (feature, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
         options = options.with_feature_enabled(*feature);
     }
     let enabled_compiled = pipeline
@@ -1028,7 +1128,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
             "{feature:?} should declare its backend capability requirement"
         );
     }
-    for (feature, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
         assert!(
             enabled_compiled
                 .enabled_features
@@ -1760,19 +1860,36 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
         "post_process",
         vec!["view".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "post-process",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("post.stack")
-        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
-        .read_external(PostProcessGraphResourceNames::BLOOM)
-        .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-        .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
-        .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "depth-of-field-prepare",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.depth-of-field-prepare")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_external_with_ops(
+                PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+                RenderGraphAttachmentOps::clear_store(),
+            )
+            .write_external_with_ops(
+                PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "post-process",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.stack")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .read_external(PostProcessGraphResourceNames::BLOOM)
+            .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
+            .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
+            .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+        ],
     )
 }
 
@@ -1872,6 +1989,10 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
     assert!(
         !pass_names.contains(&"post-process"),
         "post-process pass should be removed when the feature is disabled"
+    );
+    assert!(
+        !pass_names.contains(&"depth-of-field-prepare"),
+        "DoF scratch preparation should be removed with the post-process feature"
     );
     assert!(
         pass_names.contains(&"overlay-gizmo"),

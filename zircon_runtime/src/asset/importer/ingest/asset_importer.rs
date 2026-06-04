@@ -393,7 +393,7 @@ impl AssetImporter {
                 import_ui_v2_asset::import_ui_v2_asset,
             ),
             FunctionAssetImporter::new(
-                // Legacy schema import stays test-only for migration coverage after v2 cutover.
+                // Source-template import stays test-only for v1-to-v2 coverage after .zui cutover.
                 plugin_fixture_descriptor(
                     "ui_document_importer.typed_toml",
                     "ui_document_importer",

@@ -1,7 +1,7 @@
 use crate::core::manager::{
-    ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_MANAGER_NAME,
-    LEVEL_MANAGER_NAME, PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
-    RESOURCE_MANAGER_NAME,
+    AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME, PHYSICS_MANAGER_NAME,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
 };
 
 #[test]
@@ -22,11 +22,14 @@ fn manager_service_names_cover_runtime_owned_modules() {
         "GraphicsModule.Manager.RenderFramework"
     );
     assert_eq!(LEVEL_MANAGER_NAME, "SceneModule.Manager.LevelManager");
+    assert_eq!(AI_MANAGER_NAME, "AiModule.Manager.AiManager");
+    assert_eq!(NET_MANAGER_NAME, "NetModule.Manager.NetManager");
     assert_eq!(PHYSICS_MANAGER_NAME, "PhysicsModule.Manager.PhysicsManager");
     assert_eq!(
         ANIMATION_MANAGER_NAME,
         "AnimationModule.Manager.AnimationManager"
     );
+    assert_eq!(SOUND_MANAGER_NAME, "SoundModule.Manager.SoundManager");
 }
 
 #[test]

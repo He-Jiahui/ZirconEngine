@@ -1,7 +1,7 @@
 use crate::ui::retained_host as host_contract;
 use crate::ui::template_runtime::RetainedUiHostBindingProjection;
 
-pub(super) fn showcase_binding_id_for_suffix(
+pub(super) fn showcase_action_id_for_suffix(
     bindings: &[RetainedUiHostBindingProjection],
     suffix: &str,
 ) -> String {
@@ -11,8 +11,42 @@ pub(super) fn showcase_binding_id_for_suffix(
             binding.binding_id.starts_with("UiComponentShowcase/")
                 && binding.binding_id.ends_with(suffix)
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
         .unwrap_or_default()
+}
+
+fn showcase_action_id_for_binding_id(binding_id: &str) -> String {
+    let Some(suffix) = binding_id.strip_prefix("UiComponentShowcase/") else {
+        return binding_path_action_id(binding_id);
+    };
+    format!("ui_component_showcase.{}", camel_to_snake(suffix))
+}
+
+fn binding_path_action_id(binding_id: &str) -> String {
+    binding_id
+        .split(['/', '.', ':'])
+        .filter(|segment| !segment.is_empty())
+        .map(camel_to_snake)
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn camel_to_snake(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 pub(super) fn preferred_showcase_action_id(
@@ -80,7 +114,7 @@ pub(super) fn preferred_showcase_action_id(
                 .iter()
                 .find(|binding| binding.binding_id.starts_with("UiComponentShowcase/"))
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
 }
 
 pub(super) fn preferred_showcase_drag_action_id(
@@ -98,7 +132,7 @@ pub(super) fn preferred_showcase_drag_action_id(
             binding.binding_id.starts_with("UiComponentShowcase/")
                 && binding.binding_id.ends_with(suffix)
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
 }
 
 pub(super) fn preferred_showcase_pointer_drag_action_id(
@@ -117,7 +151,7 @@ pub(super) fn preferred_showcase_pointer_drag_action_id(
             binding.binding_id.starts_with("UiComponentShowcase/")
                 && binding.binding_id.ends_with(suffix)
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
 }
 
 pub(super) fn preferred_showcase_edit_action_id(
@@ -138,7 +172,7 @@ pub(super) fn preferred_showcase_edit_action_id(
             binding.binding_id.starts_with("UiComponentShowcase/")
                 && binding.binding_id.ends_with(suffix)
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
 }
 
 pub(super) fn preferred_showcase_commit_action_id(
@@ -158,7 +192,7 @@ pub(super) fn preferred_showcase_commit_action_id(
             binding.binding_id.starts_with("UiComponentShowcase/")
                 && binding.binding_id.ends_with(suffix)
         })
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| showcase_action_id_for_binding_id(&binding.binding_id))
 }
 
 pub(super) fn preferred_showcase_action_buttons(
@@ -205,7 +239,7 @@ pub(super) fn preferred_showcase_action_buttons(
                 })
                 .map(|binding| host_contract::TemplatePaneActionData {
                     label: (*label).into(),
-                    action_id: binding.binding_id.clone().into(),
+                    action_id: showcase_action_id_for_binding_id(&binding.binding_id).into(),
                 })
         })
         .collect()

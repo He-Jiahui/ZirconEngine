@@ -27,7 +27,7 @@ fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings(
                 "WorkbenchMenuBar",
                 "OpenProject",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("OpenProject"),
+                EditorUiBindingPayload::menu_action("workbench.project.open"),
             ),
         )
         .unwrap();
@@ -38,7 +38,7 @@ fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings(
                 "WorkbenchMenuBar",
                 "SaveProject",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("SaveProject"),
+                EditorUiBindingPayload::menu_action("workbench.project.save"),
             ),
         )
         .unwrap();

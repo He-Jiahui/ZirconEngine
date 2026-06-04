@@ -202,9 +202,18 @@ function validateRuntimeDependencies() {
     "data-component=\"data-table\"",
     "data-component=\"catalog-column-row\"",
     "data-component=\"source-engine-row\"",
+    "data-component=\"tree-row\"",
+    "data-component=\"tree-view\"",
+    "treeRow",
+    "treeView",
     "data-component=\"setting-summary-row\"",
     "data-component=\"project-status-strip\"",
     "data-component=\"project-detail-actions-section\"",
+    "data-component=\"project-detail-main-panel\"",
+    "mediaContentPanel",
+    "projectDetailMainPanel",
+    "media-content-panel",
+    "data-component=\"form-panel\"",
     "data-component=\"input-box\"",
     "data-component=\"combo-box\"",
     "data-component=\"checkbox\"",
@@ -212,6 +221,7 @@ function validateRuntimeDependencies() {
     "data-component=\"action-command-button\"",
     "data-component=\"project-table\"",
     "data-component=\"quick-actions\"",
+    "data-component=\"tabbed-list-panel\"",
     "data-component=\"menu\"",
     "anchored-popover",
     "select-menu",
@@ -259,13 +269,20 @@ function validateRuntimeDependencies() {
     ".data-table",
     ".catalog-column-row",
     ".source-engine-row",
+    ".tree-row",
+    ".tree-view",
     ".setting-summary-row",
     ".project-status-strip",
     ".project-detail-actions-section",
+    ".media-content-panel",
+    ".media-panel-media",
+    ".project-detail-main-panel",
+    ".form-panel",
     ".action-command-button",
     ".field-control",
     ".choice-row",
     ".project-card",
+    ".tabbed-list-panel",
     ".browser-table",
     ".row-surface",
     ".table-row-surface",
@@ -351,6 +368,9 @@ function responsiveAuditExpression(width, height) {
     if (document.querySelector(".tab-strip")) {
       requiredComponents.push("tab-strip");
     }
+    if (document.querySelector(".tabbed-list-panel")) {
+      requiredComponents.push("tabbed-list-panel", "tab-strip", "row-leading-icon-slot", "row-main-slot", "row-trailing-slot");
+    }
     if (document.querySelector('[data-component="metric-grid"]')) {
       requiredComponents.push("metric-grid", "metric-card");
     }
@@ -364,13 +384,38 @@ function responsiveAuditExpression(width, height) {
       requiredComponents.push("row-leading-icon-slot", "row-main-slot", "row-trailing-slot");
     }
     if (document.querySelector(".source-engine-row")) {
-      requiredComponents.push("source-engine-row", "row-leading-icon-slot", "row-main-slot", "row-trailing-slot", "icon-button");
+      requiredComponents.push("source-engine-row", "row-leading-icon-slot", "row-main-slot", "row-trailing-slot");
+      if (document.querySelector(".source-engine-row .row-action")) {
+        requiredComponents.push("icon-button");
+      }
+    }
+    if (document.querySelector(".tree-row")) {
+      requiredComponents.push("tree-row", "row-leading-icon-slot", "row-main-slot");
+      if (document.querySelector(".tree-row .row-trailing-slot")) {
+        requiredComponents.push("row-trailing-slot");
+      }
+      if (document.querySelector(".tree-row .tree-disclosure.row-action")) {
+        requiredComponents.push("icon-button");
+      }
+    }
+    if (document.querySelector(".tree-view")) {
+      requiredComponents.push("tree-view");
     }
     if (document.querySelector(".setting-summary-row")) {
       requiredComponents.push("setting-summary-row", "row-meta-slot", "row-main-slot", "row-trailing-slot");
     }
     if (document.querySelector(".project-status-strip")) {
       requiredComponents.push("project-status-strip", "row-meta-slot", "row-trailing-slot");
+    }
+    if (document.querySelector(".project-detail-main-panel")) {
+      requiredComponents.push(
+        "project-detail-main-panel",
+        "project-status-strip",
+        "setting-summary-row",
+        "row-meta-slot",
+        "row-main-slot",
+        "row-trailing-slot",
+      );
     }
     if (document.querySelector(".project-detail-actions-section")) {
       requiredComponents.push("project-detail-actions-section", "action-command-button");
@@ -389,6 +434,9 @@ function responsiveAuditExpression(width, height) {
     }
     if (document.querySelector(".path-field-row")) {
       requiredComponents.push("path-field-row", "input-box", "button");
+    }
+    if (document.querySelector(".form-panel")) {
+      requiredComponents.push("form-panel");
     }
     if (document.querySelector(".combo-box")) {
       requiredComponents.push("combo-box");

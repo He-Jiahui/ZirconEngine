@@ -4,6 +4,8 @@ use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassExecutionContext;
 
+const SHADOW_MAP_RESOURCE: &str = "shadow-map";
+
 pub(super) fn sprite_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     let stage = sprite_stage_for_executor(context.executor_id.as_str())?;
     let attachment_ops = context
@@ -84,13 +86,18 @@ pub(super) fn deferred_gbuffer_executor(
     let attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let material_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_deferred_gbuffer_to_resources(
         &pass_name,
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         attachment_ops,
+        material_attachment_ops,
     )
 }
 
@@ -106,10 +113,22 @@ pub(super) fn deferred_lighting_executor(
         &pass_name,
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
         attachment_ops,
     )
+}
+
+pub(super) fn shadow_map_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(SHADOW_MAP_RESOURCE)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_shadow_map_to_resource(&pass_name, SHADOW_MAP_RESOURCE, attachment_ops)
 }
 
 pub(super) fn screen_space_ui_executor(

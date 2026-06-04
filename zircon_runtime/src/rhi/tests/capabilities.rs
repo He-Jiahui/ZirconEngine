@@ -1,4 +1,7 @@
-use crate::rhi::{AccelerationStructureCaps, RenderBackendCaps, RenderQueueClass};
+use crate::rhi::{
+    AccelerationStructureCaps, RenderBackendCaps, RenderDebugInstrumentationStatus,
+    RenderQueueClass,
+};
 
 #[test]
 fn backend_caps_report_queue_classes_and_rt_support_independently() {
@@ -12,6 +15,9 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
         .with_buffer_readback(true)
         .with_neural_compute(true)
         .with_sparse_texture(true)
+        .with_debug_markers(true)
+        .with_debug_groups(true)
+        .with_graphics_debugger_capture(true)
         .with_acceleration_structures(AccelerationStructureCaps::disabled());
 
     assert!(caps.supports_queue(RenderQueueClass::Graphics));
@@ -24,5 +30,37 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
     assert!(caps.supports_buffer_readback);
     assert!(caps.supports_neural_compute);
     assert!(caps.supports_sparse_texture);
+    assert!(caps.supports_debug_markers);
+    assert!(caps.supports_debug_groups);
+    assert!(caps.supports_graphics_debugger_capture);
     assert!(!caps.acceleration_structures.supported);
+}
+
+#[test]
+fn backend_debug_instrumentation_status_is_derived_from_caps() {
+    let caps = RenderBackendCaps::new("instrumented-test")
+        .with_debug_markers(true)
+        .with_debug_groups(true)
+        .with_graphics_debugger_capture(true);
+
+    let status = RenderDebugInstrumentationStatus::from_caps(&caps);
+
+    assert_eq!(status.backend_name, "instrumented-test");
+    assert!(status.debug_markers_supported);
+    assert!(status.debug_groups_supported);
+    assert!(status.graphics_debugger_capture_supported);
+    assert!(!status.active_graphics_debugger_capture);
+    assert_eq!(status.last_error, None);
+
+    assert_eq!(
+        RenderDebugInstrumentationStatus::unavailable("offline"),
+        RenderDebugInstrumentationStatus {
+            backend_name: "offline".to_string(),
+            debug_markers_supported: false,
+            debug_groups_supported: false,
+            graphics_debugger_capture_supported: false,
+            active_graphics_debugger_capture: false,
+            last_error: None,
+        }
+    );
 }

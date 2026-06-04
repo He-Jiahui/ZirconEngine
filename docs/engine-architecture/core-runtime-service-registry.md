@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/mod.rs
+  - zircon_runtime/src/core/error.rs
+  - zircon_runtime/src/core/lifecycle.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/weak.rs
@@ -29,6 +31,8 @@ related_code:
   - zircon_runtime/src/core/runtime/tests.rs
   - zircon_runtime/src/engine_module/service_factory.rs
 implementation_files:
+  - zircon_runtime/src/core/error.rs
+  - zircon_runtime/src/core/lifecycle.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/weak.rs
@@ -58,9 +62,13 @@ implementation_files:
   - zircon_runtime/src/engine_module/service_factory.rs
 plan_sources:
   - user: 2026-04-16 全部积极拆分并按模块边界持续重构所有脚本
+  - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/全系统重构方案.md
+  - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/收敛缺口修复 Spec 与 Implementation Plan.md
 tests:
+  - rustfmt --edition 2021 --check zircon_runtime\src\core\error.rs zircon_runtime\src\core\lifecycle.rs zircon_runtime\src\core\runtime\descriptors\registry_name.rs zircon_runtime\src\core\runtime\state\runtime_inner.rs zircon_runtime\src\core\runtime\handle\registration.rs zircon_runtime\src\core\runtime\handle\activation.rs zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests.rs
+  - registry name static source guard for exact three-segment validation, canonical ServiceKind segment validation, preallocated from_parts construction, canonical module name validation, registration-time descriptor owner/kind consistency, driver dependency direction rejection, transactional service entry commit, typed RegistryName service table keys, typed activation/deactivation service lists, typed resolution recursion stack, dependency-name collection, and borrowed string lookup
   - cargo test -p zircon_runtime core::runtime --locked --target-dir F:\cargo-targets\zircon-codex-a -- --nocapture
   - cargo test -p zircon_runtime script::vm --locked --target-dir F:\cargo-targets\zircon-codex-a -- --nocapture
   - cargo build --workspace --locked --verbose --target-dir F:\cargo-targets\zircon-codex-a
@@ -93,6 +101,22 @@ doc_type: module-detail
 - `ServiceFactory`
 
 也就是说，调用方不需要知道内部子模块是怎么拆的；`runtime/mod.rs` 仍然只是导出层，而不是行为实现层。
+
+## Registry Name Contract
+
+`ModuleDescriptor::name` 是 module registry 的 canonical key。`CoreRuntime::register_module(...)` 在拿到 module lock 之前先拒绝空 module name 和首尾包含空白的 module name；这类输入返回 `CoreError::InvalidModuleName`，不会进入 module table，也不会继续注册服务。插件扩展 registry 可以继续用空名 fixture 测自己的无效输入报告，但 runtime 主链不再把空 module name 当成可注册实体。
+
+`RegistryName` 是 runtime service table 的 canonical key，形状固定为 `Module.Kind.Service`，并且每一段都必须非空。`Module` 和 `Service` 段不能带首尾空白；`Kind` 段必须是 `ServiceKind::{Driver, Manager, Plugin}` 对应的 canonical 字符串，不能写成临时的 `Service`、小写别名或旧式分类名。`RegistryName::new(...)` 拒绝少于三段、多于三段、包含空段、包含 module/service 首尾空白或包含未知 kind 段的名字，避免旧式分层名字被悄悄注册进同一张服务表。`RegistryName::from_parts(...)` 现在先按已知长度预分配字符串，再回到同一条 `new(...)` 校验路径；这让 descriptor 构造保持单一 canonical 入口，同时避免 `format!` 在模块装配路径上做额外格式化工作。`module_name()`、`service_kind()`、`service_name()` 是读取三段 registry key 的唯一 owner API；注册、依赖校验和后续性能切片应通过这些 accessor 工作，不再散落手写 `split('.')` 逻辑。
+
+runtime 内部 service table 直接使用 `HashMap<RegistryName, ServiceEntry>`，不再把 canonical key 降级成裸 `String`。`RegistryName` 实现 `Borrow<str>`，所以 `resolve_driver(...)`、`resolve_manager(...)`、`resolve_plugin(...)` 仍然可以用调用方传入的 `&str` 做查找，不需要在每次解析前构造新的 `RegistryName`；注册路径的 pending duplicate set 也使用 `RegistryName`，保证已有服务、同一 descriptor 内的待提交服务、最终写入表三者使用同一种 key 语义。module activation/deactivation 也保持 typed service list 和 typed unloading set，只有对外错误载荷需要 service 名称文本时才转成 `String`。service resolution 的 recursion stack 同样使用 `RegistryName`，依赖遍历只收集 dependency registry keys，而不是直接 clone 整个 `DependencySpec` 列表。这是 M5 performance pass 的基础约束：内部状态保持 typed canonical key，对外入口保持字符串访问兼容，热路径不额外分配 key。
+
+这个契约和 `DependencySpec`、`qualified_name(...)` 共享：依赖声明只存储 canonical `RegistryName`，不再接受带额外层级的兼容格式。模块、driver、manager、plugin 仍然可以用业务命名表达层级，但那一层级必须进入 service 名称本身之前先收敛成一个合法的三段 registry key。
+
+注册期也会重新检查 descriptor 所在集合和 registry key 的 module/kind 段是否一致。服务 key 的 module 段必须等于所属 `ModuleDescriptor::name`；`drivers` 集合里的 descriptor 必须使用 `*.Driver.*`，`managers` 必须使用 `*.Manager.*`，`plugins` 必须使用 `*.Plugin.*`。module 不一致时直接返回 `CoreError::ServiceOwnerMismatch`，kind 不一致时返回 `CoreError::ServiceKindMismatch`，而不是把一个语义矛盾的 entry 插入 runtime service table。
+
+Driver 依赖方向也在注册期执行。`DriverDescriptor` 只能依赖 `*.Driver.*` 服务；如果依赖 `*.Manager.*` 或 `*.Plugin.*`，在 service entry 插入前直接返回 `CoreError::InvalidServiceDependencyKind`。这让底层 IDriver 规则成为 core runtime 的显式契约，而不是依赖后续递归 resolve 路径才暴露问题。Manager 到 Plugin 的依赖清理仍然归 M4 plugin lifecycle 收束，因为当前 `ScriptModule.Manager.VmPluginManager` facade 有意共享 VM plugin runtime 实例；这条 facade 应在插件生命周期切片中反转或替换，而不是在插件活跃会话期间顺手改写。
+
+`register_module(...)` 的 service table 写入是事务式的：先把 driver、manager、plugin descriptor 全部验证并准备成 pending entries，同时检查已有 service 和同一 descriptor 内的重复 service key；只有所有 pending entries 都通过后，才一次性写入 service table。任何一个 descriptor 失败时，前面已经准备好的 service 不会留在 runtime 内部状态里，避免出现 module table 没有 owner、service table 却能 resolve 的孤儿服务。
 
 ## Folder Boundary
 

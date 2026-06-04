@@ -2,12 +2,13 @@ use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
-fn builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch() {
+fn builtin_pane_surface_trigger_action_matches_dotted_menu_action_dispatch() {
     let _guard = env_lock().lock().unwrap();
 
     let legacy_harness =
         EventRuntimeHarness::new("zircon_retained_parity_pane_surface_action_legacy");
-    let legacy_effects = dispatch_menu_action(&legacy_harness.runtime, "CreateScene").unwrap();
+    let legacy_effects =
+        dispatch_menu_action(&legacy_harness.runtime, "workbench.scene.create").unwrap();
     let legacy_record = legacy_harness
         .runtime
         .journal()
@@ -24,7 +25,7 @@ fn builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch() {
         &bridge,
         "TriggerAction",
         UiEventKind::Click,
-        vec![UiBindingValue::string("CreateScene")],
+        vec![UiBindingValue::string("workbench.scene.create")],
     )
     .expect("templated pane surface action should resolve")
     .unwrap();

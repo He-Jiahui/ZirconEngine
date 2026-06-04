@@ -6,10 +6,10 @@ use zircon_runtime_interface::ui::{
         UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequest,
         UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDragDropEffectKind,
         UiDragDropInputEvent, UiDragDropInputEventKind, UiImeInputEvent, UiImeInputEventKind,
-        UiInputDispatchResult, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
-        UiNavigationInputEvent, UiPointerId, UiPopupEffectKind, UiPopupInputEvent,
-        UiPopupInputEventKind, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
-        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiInputDispatchResult, UiInputEvent, UiInputRoutePolicy, UiKeyboardInputEvent,
+        UiKeyboardInputState, UiNavigationInputEvent, UiPointerId, UiPopupEffectKind,
+        UiPopupInputEvent, UiPopupInputEventKind, UiTextByteRange, UiTextInputEvent,
+        UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
     },
     event_ui::{UiNodeId, UiReflectedPropertySource},
     focus::UiFocusedInputKind,
@@ -27,7 +27,11 @@ use crate::ui::tree::UiRuntimeTreeRoutingExt;
 use super::super::surface::UiSurface;
 use super::{
     apply_dispatch_reply, is_valid_input_owner,
-    route_policy::annotate_route_policy,
+    keyboard_navigation::keyboard_navigation_kind,
+    route_policy::{
+        annotate_navigation_route_trace, annotate_pointer_route_trace, annotate_route_policy,
+    },
+    route_steps::annotate_result_route_steps,
     text_constraints::{text_input_constraints_for_node, TextInputConstraints},
     text_keyboard::{
         keyboard_clipboard_action, keyboard_requests_newline, keyboard_text_edit_actions,
@@ -47,8 +51,13 @@ pub(crate) fn dispatch_input_event(
         UiInputEvent::Pointer(pointer) => {
             let metadata = pointer.metadata.clone();
             let pointer_for_text = pointer.clone();
-            let legacy =
-                surface.dispatch_pointer_event(pointer_dispatcher, pointer.event.clone())?;
+            let legacy = dispatch_pointer_event_for_metadata(
+                surface,
+                pointer_dispatcher,
+                &metadata,
+                pointer.event.clone(),
+            )?;
+            surface.apply_pointer_dispatch_dirty(&legacy)?;
             let event = UiInputEvent::Pointer(pointer);
             if legacy.captured_by.is_some() {
                 surface.input.captured_pointer_id = metadata.pointer_id;
@@ -60,6 +69,7 @@ pub(crate) fn dispatch_input_event(
                     surface.input.clear_pointer_capture();
                 }
             }
+            let component_handler = pointer_component_handler(&legacy);
             let reply = pointer_reply(&legacy, metadata.pointer_id.unwrap_or_default());
             let mut applied_effects = Vec::new();
             for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
@@ -72,11 +82,12 @@ pub(crate) fn dispatch_input_event(
             result.diagnostics.routed = legacy.diagnostics.pointer_routed;
             result.diagnostics.route_target = legacy.route.target;
             result.diagnostics.blocked_by = legacy.blocked_by;
-            result.diagnostics.handled_phase = if legacy.handled_by.is_some() {
-                Some("pointer".to_string())
-            } else {
-                None
-            };
+            result.diagnostics.handled_phase =
+                if legacy.handled_by.is_some() || component_handler.is_some() {
+                    Some("pointer".to_string())
+                } else {
+                    None
+                };
             if legacy.route.kind == UiPointerEventKind::Scroll {
                 result
                     .diagnostics
@@ -105,11 +116,14 @@ pub(crate) fn dispatch_input_event(
             {
                 merge_pointer_text_result(&mut result, text_result);
             }
-            Ok(with_route_policy(surface, result))
+            let event = result.event.clone();
+            annotate_pointer_route_trace(surface, &legacy.route, &event, &mut result);
+            annotate_result_route_steps(&mut result);
+            Ok(result)
         }
         UiInputEvent::Navigation(navigation) => {
             let result = dispatch_navigation_input(surface, navigation_dispatcher, navigation)?;
-            Ok(with_route_policy(surface, result))
+            Ok(result)
         }
         UiInputEvent::Keyboard(keyboard) => {
             let target = surface.focus.focused;
@@ -143,10 +157,35 @@ pub(crate) fn dispatch_input_event(
                         .insert(0, format!("focused_route_len={}", route.len()));
                     return Ok(with_route_policy(surface, text_result));
                 }
+                if let Some(kind) = keyboard_navigation_kind(&keyboard) {
+                    let focused_route_len = route.len();
+                    let mut navigation_result = dispatch_navigation_input(
+                        surface,
+                        navigation_dispatcher,
+                        UiNavigationInputEvent {
+                            metadata: keyboard.metadata.clone(),
+                            kind,
+                        },
+                    )?;
+                    navigation_result.event = UiInputEvent::Keyboard(keyboard);
+                    if navigation_result.reply.disposition != UiDispatchDisposition::Unhandled {
+                        navigation_result.diagnostics.handled_phase =
+                            Some("keyboard.navigation".to_string());
+                    }
+                    navigation_result
+                        .diagnostics
+                        .notes
+                        .insert(0, format!("focused_route_len={focused_route_len}"));
+                    navigation_result
+                        .diagnostics
+                        .notes
+                        .push(format!("keyboard_navigation={kind:?}"));
+                    return Ok(navigation_result);
+                }
                 if keyboard_requests_popup_dismissal(&keyboard) {
                     let report = surface.apply_default_popup_dismissal_action(target)?;
                     if report.handled {
-                        result.reply = UiDispatchReply::handled();
+                        result.reply = UiDispatchReply::handled().from_handler(target);
                         result.diagnostics.handled_phase =
                             Some("keyboard.popup_dismiss".to_string());
                         result.component_events = report.component_events;
@@ -156,7 +195,7 @@ pub(crate) fn dispatch_input_event(
                 if keyboard_requests_default_activation(&keyboard) {
                     let report = surface.apply_default_keyboard_component_action(target)?;
                     if report.handled {
-                        result.reply = UiDispatchReply::handled();
+                        result.reply = UiDispatchReply::handled().from_handler(target);
                         result.diagnostics.handled_phase = Some("keyboard.widget".to_string());
                         result.component_events = report.component_events;
                         result.binding_reports = report.binding_reports;
@@ -202,8 +241,18 @@ pub(crate) fn dispatch_input_event(
             Ok(with_route_policy(surface, result))
         }
         UiInputEvent::DragDrop(drag_drop) => {
+            let capture_target_before_dispatch = surface
+                .input
+                .drag_drop
+                .as_ref()
+                .map(|drag| drag.source)
+                .or(surface.focus.captured);
             let result = dispatch_drag_drop_input(surface, drag_drop);
-            Ok(with_route_policy(surface, result))
+            Ok(with_drag_drop_route_policy(
+                surface,
+                result,
+                capture_target_before_dispatch,
+            ))
         }
         UiInputEvent::Popup(popup) => {
             let result = dispatch_popup_input(surface, popup);
@@ -221,12 +270,83 @@ pub(crate) fn dispatch_input_event(
     }
 }
 
+fn dispatch_pointer_event_for_metadata(
+    surface: &mut UiSurface,
+    pointer_dispatcher: &UiPointerDispatcher,
+    metadata: &zircon_runtime_interface::ui::dispatch::UiInputEventMetadata,
+    event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
+) -> Result<zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult, UiTreeError> {
+    let mismatched_capture = surface
+        .input
+        .captured_pointer_id
+        .zip(metadata.pointer_id)
+        .filter(|(captured, incoming)| captured != incoming);
+    let bypass_captor = matches!(
+        event.kind,
+        UiPointerEventKind::Move | UiPointerEventKind::Up | UiPointerEventKind::Cancel
+    ) && mismatched_capture.is_some();
+    let previous_capture = bypass_captor.then_some(surface.focus.captured).flatten();
+    let previous_pressed = bypass_captor.then_some(surface.focus.pressed).flatten();
+    let previous_pointer_id = bypass_captor
+        .then_some(surface.input.captured_pointer_id)
+        .flatten();
+    if bypass_captor {
+        surface.focus.captured = None;
+        surface.focus.pressed = None;
+    }
+    let result = surface.dispatch_pointer_event(pointer_dispatcher, event);
+    let captured_by_incoming_pointer = result
+        .as_ref()
+        .ok()
+        .and_then(|result| result.captured_by)
+        .is_some();
+    if !captured_by_incoming_pointer {
+        if let Some(previous_capture) =
+            previous_capture.filter(|_| surface.focus.captured.is_none())
+        {
+            surface.focus.captured = Some(previous_capture);
+        }
+        if let Some(previous_pointer_id) =
+            previous_pointer_id.filter(|_| surface.input.captured_pointer_id.is_none())
+        {
+            surface.input.captured_pointer_id = Some(previous_pointer_id);
+        }
+    }
+    if let Some(previous_pressed) = previous_pressed.filter(|_| surface.focus.pressed.is_none()) {
+        surface.focus.pressed = Some(previous_pressed);
+    }
+    result
+}
+
 fn with_route_policy(
     surface: &UiSurface,
     mut result: UiInputDispatchResult,
 ) -> UiInputDispatchResult {
     let event = result.event.clone();
-    annotate_route_policy(&surface.input, &event, &mut result);
+    annotate_route_policy(surface, &event, &mut result);
+    annotate_result_route_steps(&mut result);
+    result
+}
+
+fn with_drag_drop_route_policy(
+    surface: &UiSurface,
+    mut result: UiInputDispatchResult,
+    capture_target_before_dispatch: Option<UiNodeId>,
+) -> UiInputDispatchResult {
+    let event = result.event.clone();
+    annotate_route_policy(surface, &event, &mut result);
+    if let UiInputEvent::DragDrop(drag_drop) = event {
+        if matches!(drag_drop.kind, UiDragDropInputEventKind::End) {
+            if let Some(capture_target) = capture_target_before_dispatch {
+                result.diagnostics.route_trace.capture_target = Some(capture_target);
+                if result.diagnostics.route_policy == UiInputRoutePolicy::PointerCapture {
+                    result.diagnostics.route_trace.direct_target = Some(capture_target);
+                }
+                result.diagnostics.route_steps.clear();
+            }
+        }
+    }
+    annotate_result_route_steps(&mut result);
     result
 }
 
@@ -459,6 +579,9 @@ fn dispatch_navigation_input(
         });
     }
     result.binding_reports = legacy.binding_reports;
+    let event = result.event.clone();
+    annotate_navigation_route_trace(surface, &legacy.route, &event, &mut result);
+    annotate_result_route_steps(&mut result);
     Ok(result)
 }
 
@@ -466,29 +589,114 @@ fn pointer_reply(
     legacy: &zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult,
     pointer_id: UiPointerId,
 ) -> UiDispatchReply {
+    let effects = pointer_reply_effects(legacy, pointer_id);
+    let component_handler = pointer_component_handler(legacy);
+    // A delivered component event is the unified input equivalent of a handled widget reply.
     let disposition = if legacy.blocked_by.is_some() {
         UiDispatchDisposition::Blocked
-    } else if legacy.handled_by.is_some() {
+    } else if legacy.handled_by.is_some() || component_handler.is_some() || !effects.is_empty() {
         UiDispatchDisposition::Handled
     } else if !legacy.passthrough.is_empty() {
         UiDispatchDisposition::Passthrough
     } else {
         UiDispatchDisposition::Unhandled
     };
-    let mut reply = UiDispatchReply {
+    UiDispatchReply {
         disposition,
-        handler: legacy.handled_by.or(legacy.blocked_by),
+        handler: legacy
+            .handled_by
+            .or(legacy.blocked_by)
+            .or(component_handler),
         phase: Some(zircon_runtime_interface::ui::dispatch::UiDispatchPhase::Bubble),
-        effects: Vec::new(),
-    };
+        effects,
+    }
+}
+
+fn pointer_component_handler(
+    legacy: &zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult,
+) -> Option<UiNodeId> {
+    legacy.component_events.last().map(|event| event.node_id)
+}
+
+fn pointer_reply_effects(
+    legacy: &zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult,
+    pointer_id: UiPointerId,
+) -> Vec<UiDispatchEffect> {
+    let mut effects = Vec::new();
     if let Some(target) = legacy.captured_by {
-        reply.effects.push(UiDispatchEffect::CapturePointer {
+        effects.push(UiDispatchEffect::CapturePointer {
             target,
             pointer_id,
             reason: zircon_runtime_interface::ui::dispatch::UiPointerCaptureReason::Press,
         });
     }
-    reply
+    if let Some(target) = pointer_release_target(legacy) {
+        effects.push(UiDispatchEffect::ReleasePointerCapture {
+            target,
+            pointer_id,
+            reason: zircon_runtime_interface::ui::dispatch::UiPointerCaptureReason::Cancel,
+        });
+    }
+    if let Some(target) = legacy.focus_changed_to {
+        effects.push(UiDispatchEffect::SetFocus {
+            target,
+            reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input,
+        });
+    }
+    if legacy.focus_cleared {
+        if let Some(target) = legacy.route.focused {
+            effects.push(UiDispatchEffect::ClearFocus {
+                target,
+                reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input,
+            });
+        }
+    }
+    for invocation in &legacy.invocations {
+        if let zircon_runtime_interface::ui::dispatch::UiPointerDispatchEffect::RequestDirty(
+            dirty,
+        ) = invocation.effect
+        {
+            if dirty.any() {
+                effects.push(UiDispatchEffect::DirtyRedraw {
+                    target: invocation.node_id,
+                    dirty,
+                    reason: zircon_runtime_interface::ui::dispatch::UiRedrawRequestReason::Input,
+                });
+            }
+        }
+    }
+    if legacy.requested_dirty.any()
+        && !effects
+            .iter()
+            .any(|effect| matches!(effect, UiDispatchEffect::DirtyRedraw { .. }))
+    {
+        if let Some(target) = legacy.route.target {
+            effects.push(UiDispatchEffect::DirtyRedraw {
+                target,
+                dirty: legacy.requested_dirty,
+                reason: zircon_runtime_interface::ui::dispatch::UiRedrawRequestReason::Input,
+            });
+        } else {
+            effects.extend(legacy.route.root_targets.iter().copied().map(|target| {
+                UiDispatchEffect::DirtyRedraw {
+                    target,
+                    dirty: legacy.requested_dirty,
+                    reason: zircon_runtime_interface::ui::dispatch::UiRedrawRequestReason::Input,
+                }
+            }));
+        }
+    }
+    effects
+}
+
+fn pointer_release_target(
+    legacy: &zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult,
+) -> Option<UiNodeId> {
+    legacy.released_capture.or_else(|| {
+        (legacy.diagnostics.capture_released && legacy.captured_by.is_none())
+            .then_some(legacy.route.captured)
+            .flatten()
+    })
 }
 
 fn merge_pointer_text_result(

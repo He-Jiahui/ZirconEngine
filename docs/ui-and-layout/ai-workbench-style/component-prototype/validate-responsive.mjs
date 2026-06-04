@@ -20,6 +20,7 @@ const port = Number.parseInt(process.env.ZIRCON_WORKBENCH_RESPONSIVE_CDP_PORT ??
 const profile = resolve(tmpdir(), `zircon-workbench-responsive-cdp-${process.pid}-${Date.now()}`);
 const expectedExtensionCards = extensionModules.length;
 const expectedTopLevelModuleTabs = webModuleTabs.length;
+const responsiveInteractionTimeoutMs = Number.parseInt(process.env.ZIRCON_WORKBENCH_RESPONSIVE_INTERACTION_TIMEOUT_MS ?? "480000", 10);
 mkdirSync(profile, { recursive: true });
 const browser = spawn(
   edge,
@@ -143,7 +144,19 @@ function validateSourcePolicy() {
   if (/https?:\/\//i.test(html)) {
     throw new Error("index.html must not load external resources.");
   }
-  const sources = ["app.js", "atoms.js", "collections.js", "surfaces.js", "modules.js", "routes.js", "icons.js"].map((file) => readFileSync(resolve(here, file), "utf8")).join("\n");
+  const sources = [
+    "app.js",
+    "atoms.js",
+    "collections.js",
+    "surfaces.js",
+    "modules.js",
+    "module-components.js",
+    "extension-modules.js",
+    "extension-handoff.js",
+    "extension-blueprints.js",
+    "routes.js",
+    "icons.js",
+  ].map((file) => readFileSync(resolve(here, file), "utf8")).join("\n");
   if (sources.includes("workbench.png")) {
     throw new Error("Component prototype must not embed the full workbench reference screenshot.");
   }
@@ -289,6 +302,8 @@ function interactionAuditExpression() {
   return `(async () => {
     const failures = [];
     const settle = () => Promise.resolve();
+    const auditDeadlineAt = performance.now() + ${responsiveInteractionTimeoutMs};
+    const auditedGroups = [];
     const capturedHistoryStates = [];
     const originalPushState = history.pushState.bind(history);
     const originalReplaceState = history.replaceState.bind(history);
@@ -299,6 +314,19 @@ function interactionAuditExpression() {
     history.replaceState = (state, title, url) => captureHistory(state, title, url, "replace");
     const responseCount = () => Number.parseInt(document.documentElement.dataset.zrResponseCount || "0", 10);
     const activeModule = () => document.querySelector(".zr-module-main")?.dataset.moduleActive || "";
+    const activePanel = () => {
+      const panelTarget = new URLSearchParams(location.hash.replace(/^#/, "")).get("panel") || "";
+      if (!panelTarget) return "";
+      return document.querySelector('.zr-panel-view.is-active[data-panel-view="' + attrEscape(panelTarget) + '"]')
+        ? panelTarget
+        : "";
+    };
+    const attrEscape = (value) => String(value).replace(/["\\\\]/g, "\\\\$&");
+    const checkDeadline = (context) => {
+      if (performance.now() <= auditDeadlineAt) return;
+      const recentGroups = auditedGroups.slice(-8).map((group) => group.context + ":" + group.count).join(", ");
+      throw new Error("responsive interaction audit deadline exceeded at " + context + "; recent groups: " + recentGroups);
+    };
     const visible = (node) => {
       if (!node || node.disabled) return false;
       if (node.closest(".zr-panel-view:not(.is-active)")) return false;
@@ -342,11 +370,18 @@ function interactionAuditExpression() {
       }
       return after > before;
     };
-    const exerciseControl = async (node, context) => (
-      isEditableControl(node)
-        ? editAndExpectResponse(node, context)
-        : clickAndExpectResponse(node, context)
-    );
+    const exerciseControl = async (node, context) => {
+      checkDeadline(context);
+      const beforeModule = activeModule();
+      const beforePanel = activePanel();
+      const responded = isEditableControl(node)
+        ? await editAndExpectResponse(node, context)
+        : await clickAndExpectResponse(node, context);
+      return {
+        responded,
+        needsRestore: beforeModule !== activeModule() || beforePanel !== activePanel() || !document.contains(node)
+      };
+    };
     const activateModule = async (id, context = "module tab") => {
       const button = document.querySelector('.zr-module-tab[data-module="' + id + '"]');
       if (!button) {
@@ -366,6 +401,9 @@ function interactionAuditExpression() {
       }
       await clickAndExpectResponse(card, context + " " + id);
       if (activeModule() !== id) failures.push("extension editor did not activate: " + id);
+      if (!document.querySelector('.zr-module-main[data-module-active="' + id + '"] .zr-module-editor-grid[data-extension-blueprint="reference"]')) {
+        failures.push("extension editor did not render reference blueprint: " + id);
+      }
       const activeMoreTab = document.querySelector('.zr-module-tab[data-module="editor-library"]');
       if (!activeMoreTab?.classList.contains("is-active")) failures.push("more tab not active for extension editor: " + id);
       return activeModule() === id;
@@ -389,16 +427,28 @@ function interactionAuditExpression() {
         failures.push("no controls found for " + context);
         return 0;
       }
+      let needsRestore = false;
       for (let index = 0; index < total; index += 1) {
-        await restore();
-        const list = controls(selector);
-        const node = list[index];
+        checkDeadline(context + " #" + (index + 1) + "/" + available);
+        if (needsRestore) {
+          await restore();
+          needsRestore = false;
+        }
+        let list = controls(selector);
+        let node = list[index];
+        if (!node) {
+          await restore();
+          list = controls(selector);
+          node = list[index];
+        }
         if (!node) {
           failures.push("control disappeared for " + context + " #" + (index + 1));
           continue;
         }
-        await exerciseControl(node, context + " #" + (index + 1) + "/" + available);
+        const result = await exerciseControl(node, context + " #" + (index + 1) + "/" + available);
+        needsRestore = result.needsRestore;
       }
+      auditedGroups.push({ context, count: total });
       return total;
     };
 
@@ -536,6 +586,8 @@ function interactionAuditExpression() {
           await clickAndExpectResponse(menuRows[index], "popup menu row " + (index + 1));
         }
       }
+    } catch (error) {
+      failures.push(error?.message ?? String(error));
     } finally {
       history.pushState = originalPushState;
       history.replaceState = originalReplaceState;
@@ -543,7 +595,7 @@ function interactionAuditExpression() {
 
     const interactionRouteWrites = capturedHistoryStates.length;
     if (interactionRouteWrites === 0) failures.push("interaction audit captured no route-state writes");
-    return JSON.stringify({ ok: failures.length === 0, failures, interactionRouteWrites });
+    return JSON.stringify({ ok: failures.length === 0, failures, interactionRouteWrites, auditedGroups });
   })()`;
 }
 
@@ -636,15 +688,16 @@ async function assertExtensionCommandRoutes(cdp) {
   await cdp.send("Page.navigate", { url: referenceUrl });
   await waitForWorkbench(cdp);
   await clickExtensionModuleAndWait(cdp, "shader-editor");
-  await clickActiveModuleActionAndWait(cdp, "compile-shader-editor", "shader-editor", "module-bottom-shader-editor:validation", "compile-shader-editor");
-  await clickActiveModuleActionAndWait(cdp, "save-shader-editor", "shader-editor", "module-bottom-shader-editor:references", "save-shader-editor");
-  await clickActiveModuleActionAndWait(cdp, "preview-shader-editor", "shader-editor", "module-bottom-shader-editor:output", "preview-shader-editor");
+  await clickActiveModuleActionAndWait(cdp, "native-handoff", "shader-editor", "module-bottom-shader-editor:handoff", "native-handoff");
+  await clickActiveModuleActionAndWait(cdp, "compile-shader", "shader-editor", "module-bottom-shader-editor:validation", "compile-shader");
+  await clickActiveModuleActionAndWait(cdp, "save-shader", "shader-editor", "module-bottom-shader-editor:references", "save-shader");
+  await clickActiveModuleActionAndWait(cdp, "preview-shader", "shader-editor", "module-bottom-shader-editor:output", "preview-shader");
   await clickExtensionModuleAndWait(cdp, "source-control");
   await clickActiveModuleActionAndWait(cdp, "review-source-control", "source-control", "module-bottom-source-control:references", "review-source-control");
   await clickActiveModuleActionAndWait(cdp, "run-source-control", "source-control", "module-bottom-source-control:output", "run-source-control");
   await clickExtensionModuleAndWait(cdp, "weather-editor");
-  await clickActiveModuleActionAndWait(cdp, "build-weather-editor", "weather-editor", "module-bottom-weather-editor:validation", "build-weather-editor");
-  await clickActiveModuleActionAndWait(cdp, "preview-weather-editor", "weather-editor", "module-bottom-weather-editor:output", "preview-weather-editor");
+  await clickActiveModuleActionAndWait(cdp, "build-weather", "weather-editor", "module-bottom-weather-editor:validation", "build-weather");
+  await clickActiveModuleActionAndWait(cdp, "preview-weather", "weather-editor", "module-bottom-weather-editor:output", "preview-weather");
 }
 
 async function assertAllTopLevelToolbarCommandRoutes(cdp) {
@@ -768,6 +821,10 @@ function allExtensionToolbarCommandRoutesExpression() {
     const extensionPanelKeyForToolbarCommand = (command) => {
       const tokens = command.split("-").filter(Boolean);
       const verb = tokens[0] ?? "";
+      if (["native", "handoff", "promote", "promotion", "matrix", "gate", "zui", "retained"].includes(verb)
+        || tokens.some((token) => ["native", "handoff", "promotion", "matrix", "gate", "zui", "retained"].includes(token))) {
+        return "handoff";
+      }
       if (["validate", "compile", "build", "check", "audit", "open"].includes(verb)
         || tokens.some((token) => ["issue", "issues", "warning", "warnings", "error", "errors"].includes(token))) {
         return "validation";
@@ -806,6 +863,9 @@ function allExtensionToolbarCommandRoutesExpression() {
       if (!await click('.zr-module-tab[data-module="editor-library"]', "More Editors tab before " + id)) return false;
       if (!await click('[data-module-source="extension-library"][data-module="' + escapeCss(id) + '"]', "extension card " + id)) return false;
       if (activeModule() !== id) failures.push("extension editor did not activate: " + id);
+      if (!document.querySelector('.zr-module-main[data-module-active="' + escapeCss(id) + '"] .zr-module-editor-grid[data-extension-blueprint="reference"]')) {
+        failures.push("extension editor did not render reference blueprint: " + id);
+      }
       return activeModule() === id;
     };
     const assertRoute = (id, action, expectedModule, expectedPanel) => {

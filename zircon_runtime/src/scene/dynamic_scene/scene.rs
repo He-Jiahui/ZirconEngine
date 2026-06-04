@@ -291,6 +291,11 @@ fn remap_record_entity_references(record: &mut NodeRecord, remap: &EntityRemap) 
         if let Some(entity) = joint.connected_entity {
             joint.connected_entity = Some(remap.get(entity).unwrap_or(entity));
         }
+        if let Some(binding) = &mut joint.skeleton_binding {
+            binding.skeleton_entity = remap
+                .get(binding.skeleton_entity)
+                .unwrap_or(binding.skeleton_entity);
+        }
     }
 }
 

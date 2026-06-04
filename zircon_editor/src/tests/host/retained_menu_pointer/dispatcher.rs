@@ -35,7 +35,7 @@ fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher(
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 3,
-            action_id: "ResetLayout".to_string(),
+            action_id: "workbench.layout.reset".to_string(),
         })
     );
     let effects = dispatched
@@ -56,8 +56,11 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
 
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_load_preset");
     for index in 0..20 {
-        dispatch_menu_action(&harness.runtime, &format!("SavePreset.alpha-{index:02}"))
-            .expect("preset save setup should succeed");
+        dispatch_menu_action(
+            &harness.runtime,
+            &format!("workbench.layout.preset.save.alpha-{index:02}"),
+        )
+        .expect("preset save setup should succeed");
     }
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
@@ -94,7 +97,7 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 5,
             item_index,
-            action_id: "LoadPreset.alpha-15".to_string(),
+            action_id: "workbench.layout.preset.load.alpha-15".to_string(),
         })
     );
     let effects = dispatched

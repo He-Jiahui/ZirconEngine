@@ -18,5 +18,6 @@ pub enum ViewContentKind {
     PerformanceTimeline,
     ModulePlugins,
     BuildExport,
+    GeneratedBottom,
     Placeholder,
 }

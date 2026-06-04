@@ -1,29 +1,20 @@
-import {
-    MutedText,
-    ProjectDetailData,
-    SourceBuildHistoryRowData,
-    SourceEngineData,
-    UiTextData,
-    WorkspaceActionReadinessData,
-} from "shared.slint";
+import { ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData, WorkspaceActionReadinessData } from "shared.slint";
 import {
     ActionRow,
     Badge,
     BuildHistoryRow,
     Divider,
     EmptyStateBlock,
+    HubContentPanelSlot,
     HubListPanelSlot,
     HubSection,
+    HubSectionSummary,
     HubTokens,
     HubVisualSpec,
     InfoRow,
     MaterialPalette,
     MaterialStyleMetrics,
-    MaterialText,
-    MaterialTypography,
-    PanelHeader,
     PanelListViewport,
-    PanelSlot,
 } from "components.slint";
 
 export component BuildControlAction inherits ActionRow {
@@ -88,7 +79,7 @@ export component BuildSourceSummaryRow inherits InfoRow {
     collapse-trailing-label: root.collapse-label;
 }
 
-export component BuildSourceSummaryPanel inherits PanelSlot {
+export component BuildSourceSummaryPanel inherits HubContentPanelSlot {
     in property <WorkspaceActionReadinessData> readiness;
     in property <ProjectDetailData> project;
     in property <SourceEngineData> source-engine;
@@ -97,19 +88,15 @@ export component BuildSourceSummaryPanel inherits PanelSlot {
     in property <length> row-height: HubTokens.list-row-sm;
     in property <bool> collapse-label: false;
 
+    title: root.ui-text.source-build;
+    subtitle: root.readiness.selected-project-title + " / " + root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
+    show-badge: true;
+    badge-text: root.status-label;
+    badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
+    action-text: root.ui-text.build-now;
+    show-divider: true;
     body-spacing: HubTokens.space-3;
-
-    PanelHeader {
-        title: root.ui-text.source-build;
-        subtitle: root.readiness.selected-project-title + " / " + root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
-        show-badge: true;
-        badge-text: root.status-label;
-        badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
-        show-action: false;
-        action-text: root.ui-text.build-now;
-    }
-
-    Divider {}
+    content-spacing: HubTokens.space-3;
 
     BuildSourceSummaryRow {
         row-height: root.row-height;
@@ -283,7 +270,7 @@ export component BuildPipelinePanel inherits HubListPanelSlot {
     }
 }
 
-export component BuildTaskHistoryPanel inherits PanelSlot {
+export component BuildTaskHistoryPanel inherits HubContentPanelSlot {
     in property <WorkspaceActionReadinessData> readiness;
     in property <string> status-label;
     in property <string> status-detail;
@@ -302,7 +289,9 @@ export component BuildTaskHistoryPanel inherits PanelSlot {
     private property <length> history-list-height: root.source-build-history-count == 0 ? root.history-list-empty-height : root.history-panel-rows * root.row-height + (root.history-panel-rows - 1) * HubTokens.space-2;
     private property <length> history-section-height: HubTokens.control-md + HubTokens.panel-gap + root.history-list-height;
 
-    body-spacing: HubTokens.toolbar-gap;
+    body-spacing: 0px;
+    content-spacing: HubTokens.toolbar-gap;
+    show-header: false;
 
     HubSection {
         section-height: root.current-task-section-height;
@@ -312,16 +301,11 @@ export component BuildTaskHistoryPanel inherits PanelSlot {
         badge-text: root.status-label;
         badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
 
-        MaterialText {
-            text: root.status-label;
-            overflow: elide;
-            color: HubVisualSpec.accent-stroke;
-            style: MaterialTypography.headline_small;
-        }
-
-        MutedText {
-            text: root.readiness.operation-summary;
-            overflow: elide;
+        HubSectionSummary {
+            title: root.status-label;
+            detail: root.readiness.operation-summary;
+            title-foreground: HubVisualSpec.accent-stroke;
+            prominent: true;
         }
 
         Rectangle {

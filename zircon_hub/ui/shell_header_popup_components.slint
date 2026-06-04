@@ -6,9 +6,12 @@ import {
 } from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { EmptyStateBlock } from "surfaces.slint";
-import { HubAnchoredPopupPanel } from "overlays.slint";
-import { HubMenuRow, PanelListViewport } from "data_display.slint";
-import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, StateLayerArea } from "material_bridge.slint";
+import { HubSelectTrigger } from "inputs.slint";
+import { HubAnchoredPopupPanel, HubPopupDivider, HubPopupProfileHeader, HubPopupSectionHeader } from "overlays.slint";
+import { HubMenuRow } from "data_display.slint";
+import { HubMenuListViewport } from "list_container_components.slint";
+import { HubUserMenuTriggerButton } from "button_components.slint";
+import { MaterialStyleMetrics } from "material_bridge.slint";
 
 component HeaderUserMenuAction inherits HubMenuRow {
     in property <string> action-id;
@@ -39,6 +42,29 @@ export component HeaderEngineOption inherits HubMenuRow {
     }
 }
 
+component HeaderEngineOptionsList inherits HubMenuListViewport {
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <UiTextData> ui-text;
+    callback picked(string);
+
+    row-count: root.engine-count;
+
+    for engine in root.engines: HeaderEngineOption {
+        engine: engine;
+        picked(id) => {
+            root.picked(id);
+        }
+    }
+
+    if root.engine-count == 0: EmptyStateBlock {
+        height: root.empty-height;
+        title: root.ui-text.no-source-engines;
+        body-padding: HubTokens.space-3;
+        center-content: true;
+    }
+}
+
 export component HeaderEngineSelector inherits Rectangle {
     in property <SourceEngineData> current-engine;
     in property <[SourceEngineRowData]> engines;
@@ -56,47 +82,16 @@ export component HeaderEngineSelector inherits Rectangle {
     width: root.selector-width;
     height: root.selector-height;
 
-    Rectangle {
-        width: parent.width;
-        height: parent.height;
-        border-radius: HubVisualSpec.compact-radius;
-        border-width: HubTokens.border-width;
-        border-color: HubVisualSpec.outline-muted;
-        background: HubVisualSpec.panel-background;
-        clip: true;
-
-        StateLayerArea {
-            width: parent.width;
-            height: parent.height;
-            color: MaterialPalette.on_surface_variant;
-            border_radius: HubVisualSpec.compact-radius;
-            clicked => { popup.show(); }
-        }
-
-        HorizontalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding-left: HubTokens.space-3;
-            padding-right: HubTokens.space-3;
-            spacing: HubTokens.space-2;
-            alignment: center;
-
-            MaterialText {
-                horizontal-stretch: 1;
-                text: root.current-engine.title;
-                color: MaterialPalette.on_surface_variant;
-                style: MaterialTypography.label_medium;
-                overflow: elide;
-                vertical_alignment: center;
-            }
-
-            Image {
-                width: HubTokens.icon-xs;
-                height: HubTokens.icon-xs;
-                source: @image-url("../assets/icons/ui/chevron-down.svg");
-                colorize: MaterialPalette.on_surface_variant;
-            }
-        }
+    HubSelectTrigger {
+        trigger-width: parent.width;
+        trigger-height: parent.height;
+        text: root.current-engine.title;
+        icon-image: @image-url("../assets/brand/zircon-mark.svg");
+        has-icon-image: false;
+        dense-label: true;
+        menu-ready: true;
+        idle-foreground: HubVisualSpec.toolbar-select-foreground;
+        activated => { popup.show(); }
     }
 
     popup := HubAnchoredPopupPanel {
@@ -105,47 +100,21 @@ export component HeaderEngineSelector inherits Rectangle {
         popup-width: max(root.selector-width * 2, HubTokens.panel-min-sm);
         popup-height: root.popup-height;
 
-        HorizontalLayout {
-            height: HubTokens.icon-lg;
-            spacing: HubTokens.space-2;
-
-            MaterialText {
-                text: root.ui-text.source-engines;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.label_large;
-            }
-
-            Rectangle { horizontal-stretch: 1; }
-
-            MaterialText {
-                text: root.ui-text.registered;
-                color: MaterialPalette.on_surface_variant;
-                style: MaterialTypography.label_medium;
-            }
+        HubPopupSectionHeader {
+            section-height: root.popup-header-height;
+            title: root.ui-text.source-engines;
+            meta: root.ui-text.registered;
         }
 
-        engine-list := PanelListViewport {
+        engine-list := HeaderEngineOptionsList {
             height: root.popup-list-height;
             scroll-y <=> root.engine-popup-scroll-y;
-            row-count: root.engine-count;
-            row-height: HubTokens.list-row-md;
-            row-spacing: HubTokens.space-2;
-            vertical-padding: 0px;
-            empty-height: HubTokens.list-row-lg;
-
-            for engine in root.engines: HeaderEngineOption {
-                engine: engine;
-                picked(id) => {
-                    popup.close();
-                    root.selected(id);
-                }
-            }
-
-            if root.engine-count == 0: EmptyStateBlock {
-                height: HubTokens.list-row-lg;
-                title: root.ui-text.no-source-engines;
-                body-padding: HubTokens.space-3;
-                center-content: true;
+            engines: root.engines;
+            engine-count: root.engine-count;
+            ui-text: root.ui-text;
+            picked(id) => {
+                popup.close();
+                root.selected(id);
             }
         }
     }
@@ -167,62 +136,14 @@ export component HeaderUserMenu inherits Rectangle {
     height: root.menu-height;
     clip: false;
 
-    Rectangle {
-        width: parent.width;
-        height: parent.height;
-        border-radius: HubVisualSpec.compact-radius;
-        background: transparent;
-        clip: true;
-
-        StateLayerArea {
-            width: parent.width;
-            height: parent.height;
-            color: HubVisualSpec.accent-stroke;
-            border_radius: HubVisualSpec.compact-radius;
-            clicked => {
-                user-menu-popup.show();
-            }
-        }
-
-        HorizontalLayout {
-            width: parent.width;
-            height: parent.height;
-            spacing: HubTokens.space-2;
-            alignment: center;
-
-            Rectangle {
-                width: HubTokens.icon-xl;
-                height: HubTokens.icon-xl;
-                border-radius: HubTokens.icon-xl / 2;
-                background: HubVisualSpec.user-avatar-background;
-
-                MaterialText {
-                    width: parent.width;
-                    height: parent.height;
-                    text: root.ui-text.local-user-initials;
-                    color: HubVisualSpec.user-avatar-foreground;
-                    style: MaterialTypography.label_medium_prominent;
-                    horizontal_alignment: center;
-                    vertical_alignment: center;
-                }
-            }
-
-            if !root.tight: MaterialText {
-                text: root.ui-text.local-user;
-                color: HubVisualSpec.user-name-foreground;
-                style: MaterialTypography.label_medium;
-                vertical_alignment: center;
-                horizontal-stretch: 1;
-                overflow: elide;
-            }
-
-            if !root.tight: Image {
-                width: MaterialStyleMetrics.size_14;
-                height: MaterialStyleMetrics.size_14;
-                source: @image-url("../assets/icons/ui/chevron-down.svg");
-                image-fit: contain;
-                colorize: MaterialPalette.on_surface_variant;
-            }
+    HubUserMenuTriggerButton {
+        button-width: parent.width;
+        button-height: parent.height;
+        avatar-text: root.ui-text.local-user-initials;
+        user-name: root.ui-text.local-user;
+        tight: root.tight;
+        clicked => {
+            user-menu-popup.show();
         }
     }
 
@@ -232,58 +153,13 @@ export component HeaderUserMenu inherits Rectangle {
         popup-width: root.popup-width;
         popup-height: root.popup-height;
 
-        HorizontalLayout {
-            height: HubTokens.list-row-lg;
-            spacing: HubTokens.space-3;
-            alignment: center;
-
-            Rectangle {
-                width: HubTokens.icon-xl + HubTokens.space-2;
-                height: HubTokens.icon-xl + HubTokens.space-2;
-                border-radius: (HubTokens.icon-xl + HubTokens.space-2) / 2;
-                border-width: HubTokens.border-width;
-                border-color: HubVisualSpec.accent-stroke;
-                background: MaterialPalette.secondary_container;
-
-                MaterialText {
-                    width: parent.width;
-                    height: parent.height;
-                    text: root.ui-text.local-user-initials;
-                    color: MaterialPalette.on_secondary_container;
-                    style: MaterialTypography.title_small;
-                    horizontal_alignment: center;
-                    vertical_alignment: center;
-                }
-            }
-
-            VerticalLayout {
-                horizontal-stretch: 1;
-                min-width: 1px;
-                height: parent.height;
-                spacing: HubTokens.space-0;
-
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
-                MaterialText {
-                    text: root.ui-text.local-user;
-                    color: MaterialPalette.on_surface;
-                    style: MaterialTypography.label_large;
-                    overflow: elide;
-                }
-                MaterialText {
-                    text: root.project-label;
-                    color: MaterialPalette.on_surface_variant;
-                    style: MaterialTypography.body_small;
-                    overflow: elide;
-                }
-                Rectangle { vertical-stretch: 1; min-height: 0px; }
-            }
+        HubPopupProfileHeader {
+            avatar-text: root.ui-text.local-user-initials;
+            title: root.ui-text.local-user;
+            subtitle: root.project-label;
         }
 
-        Rectangle {
-            height: HubTokens.border-width;
-            horizontal-stretch: 1;
-            background: HubVisualSpec.outline-muted;
-        }
+        HubPopupDivider {}
 
         HeaderUserMenuAction {
             title: root.ui-text.project-detail-title;

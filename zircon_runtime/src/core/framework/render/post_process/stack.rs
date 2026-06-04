@@ -14,6 +14,7 @@ impl PostProcessGraphResourceNames {
     pub const SCENE_DEPTH: &'static str = "scene-depth";
     pub const GBUFFER_ALBEDO: &'static str = "gbuffer-albedo";
     pub const GBUFFER_NORMAL: &'static str = "gbuffer-normal";
+    pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
     pub const LIGHT_LIST: &'static str = "light-list";
@@ -24,6 +25,8 @@ impl PostProcessGraphResourceNames {
     pub const BLOOM: &'static str = "bloom-texture";
     pub const COLOR_GRADED: &'static str = "postprocess.color-graded";
     pub const EFFECT_STACKED: &'static str = "postprocess.effect-stacked";
+    pub const DEPTH_OF_FIELD_COC: &'static str = "postprocess.depth-of-field.coc";
+    pub const DEPTH_OF_FIELD_BOKEH: &'static str = "postprocess.depth-of-field.bokeh";
     pub const FINAL_COMPOSITED: &'static str = "postprocess.final-composited";
     pub const FINAL_COLOR: &'static str = "final-color";
     pub const VIEWPORT_OUTPUT: &'static str = "viewport-output";
@@ -102,6 +105,7 @@ impl PostProcessStackDescriptor {
         }
         if effect_stack.screen_space_reflection.is_enabled() {
             initial_resources.push(PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string());
+            initial_resources.push(PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string());
         }
 
         let mut final_inputs = vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()];
@@ -133,6 +137,13 @@ impl PostProcessStackDescriptor {
                 .any(|resource| resource.as_str() == PostProcessGraphResourceNames::GBUFFER_NORMAL)
         {
             effect_stack_inputs.push(PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string());
+        }
+        if effect_stack.screen_space_reflection.is_enabled()
+            && !effect_stack_inputs.iter().any(|resource| {
+                resource.as_str() == PostProcessGraphResourceNames::GBUFFER_MATERIAL
+            })
+        {
+            effect_stack_inputs.push(PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string());
         }
         let effect_stack_after = final_after.clone();
         if effect_stack_enabled {
@@ -180,7 +191,7 @@ impl PostProcessStackDescriptor {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::EffectStack)
                     .with_required_inputs(effect_stack_inputs)
-                    .with_produced_outputs([PostProcessGraphResourceNames::EFFECT_STACKED])
+                    .with_produced_outputs(effect_stack_outputs(effect_stack))
                     .with_after(effect_stack_after),
             );
         }
@@ -244,16 +255,26 @@ fn effect_stack_requires_scene_depth(effect_stack: &RenderPostProcessEffectStack
         || effect_stack.fog.density > 0.0
 }
 
+fn effect_stack_outputs(effect_stack: &RenderPostProcessEffectStackSettings) -> Vec<&'static str> {
+    let mut outputs = vec![PostProcessGraphResourceNames::EFFECT_STACKED];
+    if effect_stack.depth_of_field.is_enabled() {
+        outputs.push(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC);
+        outputs.push(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH);
+    }
+    outputs
+}
+
 #[cfg(test)]
 mod tests {
     use super::{PostProcessGraphResourceNames, PostProcessStackDescriptor};
     use crate::core::framework::render::{
-        AntiAliasSettings, PostProcessEffectKind, RenderPostProcessEffectStackSettings,
-        RenderScreenSpaceReflectionSettings,
+        AntiAliasSettings, PostProcessEffectKind, RenderDepthOfFieldSettings,
+        RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
+        RenderVignetteSettings,
     };
 
     #[test]
-    fn effect_stack_ssr_declares_depth_and_normal_inputs() {
+    fn effect_stack_ssr_declares_depth_normal_and_material_inputs() {
         let stack =
             PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
                 &Default::default(),
@@ -283,5 +304,95 @@ mod tests {
         assert!(effect_stack
             .required_inputs
             .contains(&PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()));
+        assert!(effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string()));
+    }
+
+    #[test]
+    fn effect_stack_depth_of_field_declares_depth_and_intermediate_outputs() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    depth_of_field: RenderDepthOfFieldSettings {
+                        aperture: 0.75,
+                        max_blur_radius: 4.0,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+
+        let effect_stack = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .expect("DoF should enable the effect stack node");
+
+        assert!(effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert_eq!(
+            effect_stack.produced_outputs,
+            [
+                PostProcessGraphResourceNames::EFFECT_STACKED,
+                PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+                PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>()
+        );
+
+        let graph = stack.validated_graph();
+        let graph_effect_stack = graph
+            .nodes
+            .iter()
+            .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+            .expect("validated graph should keep the DoF effect-stack node");
+        assert!(graph_effect_stack
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC.to_string()));
+        assert!(graph_effect_stack
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH.to_string()));
+    }
+
+    #[test]
+    fn effect_stack_omits_depth_of_field_intermediate_outputs_when_dof_is_disabled() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    vignette: RenderVignetteSettings {
+                        intensity: 0.25,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+
+        let effect_stack = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .expect("vignette should enable the effect stack node");
+
+        assert_eq!(
+            effect_stack.produced_outputs,
+            [PostProcessGraphResourceNames::EFFECT_STACKED]
+                .into_iter()
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        );
     }
 }

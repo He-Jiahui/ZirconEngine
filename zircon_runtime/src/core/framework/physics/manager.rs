@@ -4,8 +4,9 @@ use crate::scene::World;
 
 use super::{
     PhysicsBackendStatus, PhysicsContactEvent, PhysicsMaterialMetadata, PhysicsRayCastHit,
-    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsWorldStepPlan,
-    PhysicsWorldSyncState,
+    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsShapeCastHit,
+    PhysicsShapeCastQuery, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsTriggerEvent,
+    PhysicsWorldStepPlan, PhysicsWorldSyncState,
 };
 
 pub trait PhysicsManager: Send + Sync {
@@ -17,7 +18,16 @@ pub trait PhysicsManager: Send + Sync {
     fn sync_world(&self, sync: PhysicsWorldSyncState);
     fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState>;
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit>;
+    fn shape_overlap(&self, _query: &PhysicsShapeOverlapQuery) -> Vec<PhysicsShapeOverlapHit> {
+        Vec::new()
+    }
+    fn shape_cast(&self, _query: &PhysicsShapeCastQuery) -> Option<PhysicsShapeCastHit> {
+        None
+    }
     fn drain_contacts(&self, world: WorldHandle) -> Vec<PhysicsContactEvent>;
+    fn drain_triggers(&self, _world: WorldHandle) -> Vec<PhysicsTriggerEvent> {
+        Vec::new()
+    }
     fn tick_scene_world(
         &self,
         world_handle: WorldHandle,
@@ -28,6 +38,7 @@ pub trait PhysicsManager: Send + Sync {
         PhysicsSceneStepResult {
             step_plan,
             contacts: self.drain_contacts(world_handle),
+            triggers: self.drain_triggers(world_handle),
         }
     }
 }

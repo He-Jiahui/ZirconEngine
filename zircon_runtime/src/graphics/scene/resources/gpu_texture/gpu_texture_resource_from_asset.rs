@@ -51,35 +51,49 @@ impl GpuTextureResource {
         plan: TextureUploadPlan,
     ) -> Self {
         let descriptor = payload.render_image_descriptor();
+        let mip_level_count = descriptor.mip_count.max(1);
+        let layer_count = descriptor.depth_or_array_layers.max(1);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-texture"),
             size: wgpu::Extent3d {
                 width: payload.width,
                 height: payload.height,
-                depth_or_array_layers: 1,
+                depth_or_array_layers: layer_count,
             },
-            mip_level_count: 1,
+            mip_level_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: rgba8_wgpu_format(&plan.format),
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        queue.write_texture(
-            texture.as_image_copy(),
-            &payload.rgba,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * payload.width),
-                rows_per_image: Some(payload.height),
-            },
-            wgpu::Extent3d {
-                width: payload.width,
-                height: payload.height,
-                depth_or_array_layers: 1,
-            },
-        );
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        for upload in rgba8_mip_uploads(payload.width, payload.height, mip_level_count, layer_count)
+        {
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level: upload.level,
+                    origin: wgpu::Origin3d {
+                        x: 0,
+                        y: 0,
+                        z: upload.layer,
+                    },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &payload.rgba,
+                wgpu::TexelCopyBufferLayout {
+                    offset: upload.offset,
+                    bytes_per_row: Some(4 * upload.width),
+                    rows_per_image: Some(upload.height),
+                },
+                wgpu::Extent3d {
+                    width: upload.width,
+                    height: upload.height,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
+        let view = texture.create_view(&rgba8_material_texture_view_descriptor());
         let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-texture-bind-group"),
@@ -491,6 +505,69 @@ fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor.max(1)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Rgba8MipUpload {
+    level: u32,
+    layer: u32,
+    width: u32,
+    height: u32,
+    offset: u64,
+}
+
+fn rgba8_mip_uploads(
+    width: u32,
+    height: u32,
+    mip_level_count: u32,
+    layer_count: u32,
+) -> Vec<Rgba8MipUpload> {
+    let mut offset = 0_u64;
+    let mut uploads = Vec::new();
+    for level in 0..mip_level_count {
+        let level_width = mip_extent(width, level);
+        let level_height = mip_extent(height, level);
+        let level_size = rgba8_level_size_bytes(level_width, level_height);
+        for layer in 0..layer_count {
+            uploads.push(Rgba8MipUpload {
+                level,
+                layer,
+                width: level_width,
+                height: level_height,
+                offset,
+            });
+            offset = offset.saturating_add(level_size);
+        }
+    }
+    uploads
+}
+
+fn rgba8_material_texture_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
+    wgpu::TextureViewDescriptor {
+        dimension: Some(wgpu::TextureViewDimension::D2),
+        base_array_layer: 0,
+        array_layer_count: Some(1),
+        ..Default::default()
+    }
+}
+
+fn rgba8_level_size_bytes(width: u32, height: u32) -> u64 {
+    u64::from(width)
+        .saturating_mul(u64::from(height))
+        .saturating_mul(4)
+}
+
+const fn mip_extent(value: u32, level: u32) -> u32 {
+    let shifted = if level >= u32::BITS {
+        0
+    } else {
+        value >> level
+    };
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -512,6 +589,89 @@ mod tests {
             rgba8_wgpu_format("rgba16float"),
             wgpu::TextureFormat::Rgba8UnormSrgb
         );
+    }
+
+    #[test]
+    fn rgba8_mip_uploads_pack_levels_and_layers_in_payload_order() {
+        assert_eq!(
+            rgba8_mip_uploads(4, 2, 4, 1),
+            vec![
+                Rgba8MipUpload {
+                    level: 0,
+                    layer: 0,
+                    width: 4,
+                    height: 2,
+                    offset: 0
+                },
+                Rgba8MipUpload {
+                    level: 1,
+                    layer: 0,
+                    width: 2,
+                    height: 1,
+                    offset: 32
+                },
+                Rgba8MipUpload {
+                    level: 2,
+                    layer: 0,
+                    width: 1,
+                    height: 1,
+                    offset: 40
+                },
+                Rgba8MipUpload {
+                    level: 3,
+                    layer: 0,
+                    width: 1,
+                    height: 1,
+                    offset: 44
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn rgba8_mip_uploads_pack_layers_inside_each_mip_level() {
+        assert_eq!(
+            rgba8_mip_uploads(4, 2, 2, 2),
+            vec![
+                Rgba8MipUpload {
+                    level: 0,
+                    layer: 0,
+                    width: 4,
+                    height: 2,
+                    offset: 0
+                },
+                Rgba8MipUpload {
+                    level: 0,
+                    layer: 1,
+                    width: 4,
+                    height: 2,
+                    offset: 32
+                },
+                Rgba8MipUpload {
+                    level: 1,
+                    layer: 0,
+                    width: 2,
+                    height: 1,
+                    offset: 64
+                },
+                Rgba8MipUpload {
+                    level: 1,
+                    layer: 1,
+                    width: 2,
+                    height: 1,
+                    offset: 72
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn rgba8_material_texture_view_keeps_current_d2_binding_contract() {
+        let view = rgba8_material_texture_view_descriptor();
+
+        assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2));
+        assert_eq!(view.base_array_layer, 0);
+        assert_eq!(view.array_layer_count, Some(1));
     }
 
     #[test]

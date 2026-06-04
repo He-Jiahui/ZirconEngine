@@ -12,6 +12,8 @@ related_code:
   - zircon_plugins/sound/editor/audio_listener.drawer.v2.ui.toml
   - zircon_plugins/sound/editor/audio_volume.drawer.v2.ui.toml
   - zircon_runtime/src/core/framework/sound/manager.rs
+  - zircon_runtime/src/core/framework/sound/manager/backend.rs
+  - zircon_runtime/src/core/framework/sound/manager/output_device.rs
   - zircon_runtime/src/core/framework/sound/output.rs
   - zircon_plugins/sound/runtime/src/service_types.rs
 implementation_files:
@@ -48,17 +50,17 @@ doc_type: module-detail
 
 `zircon_plugins/sound/editor` owns the authoring side of the sound plugin. It contributes Sound Mixer and Acoustic Debug views, component drawers for `AudioSource`, `AudioListener`, and `AudioVolume`, operation descriptors for mixer/source/listener/volume workflows, and the editor-facing live output model for output-device picker/status controls.
 
-The editor plugin does not own audio runtime state. It consumes `zircon_runtime::core::framework::sound::SoundManager` through neutral DTOs, while concrete mixing, DSP, device startup, and CPAL behavior remain in `zircon_plugins/sound/runtime`.
+The editor plugin does not own audio runtime state. It consumes neutral Sound framework DTOs and the narrow output-control capability traits from `zircon_runtime::core::framework::sound`, while concrete mixing, DSP, device startup, and CPAL behavior remain in `zircon_plugins/sound/runtime`.
 
 ## Live Output Boundary
 
 The live output path is isolated under `src/live_output/`:
 
 - `model.rs` defines serializable editor DTOs: device picker rows, status projection, output actions, snapshots, and action reports.
-- `controller.rs` defines `SoundEditorLiveOutputController`, a thin controller over `Arc<dyn SoundManager>`.
+- `controller.rs` defines `SoundEditorLiveOutputController`, a thin controller over `Arc<dyn SoundEditorLiveOutputManager>`. That local trait is intentionally only `SoundBackendManager + SoundOutputDeviceManager`, so live-output UI does not depend on playback, mixer graph, source, automation, event, acoustics, or direct render capabilities.
 - `mod.rs` re-exports the public boundary and contains no behavior.
 
-The controller uses only neutral manager methods: `available_output_devices`, `output_device_status`, `backend_status`, `configure_output_device`, `start_output_device`, and `stop_output_device`. It marks a picker row as selected when the row descriptor matches the current status descriptor by `(id, backend)`. It copies latency, callback counters, last callback sequence, backend state, backend detail, and diagnostics into editor-facing snapshots.
+The controller uses only neutral output/backend methods: `available_output_devices`, `output_device_status`, `backend_status`, `configure_output_device`, `start_output_device`, and `stop_output_device`. It marks a picker row as selected when the row descriptor matches the current status descriptor by `(id, backend)`. It copies latency, callback counters, last callback sequence, backend state, backend detail, and diagnostics into editor-facing snapshots.
 
 Action reports are best-effort. If configure/start/stop fails, the report stores `success = false`, records the error string, and attaches the freshest snapshot that can still be read. This keeps no-device or CPAL-unavailable environments visible in the UI instead of turning live output into a panic path.
 
@@ -89,6 +91,6 @@ This keeps the mixer toolbar buttons and future drawer/acoustic debug controls f
 
 ## Test Coverage
 
-The live-output unit tests use a fake `SoundManager` to cover selected-row projection, latency/status/backend-state projection, configure/start/stop action calls, and best-effort failure reports. Existing sound editor registration tests continue to cover mixer views, operation descriptors, payload schema IDs, menu items, and component drawer bindings. The authoring template contract tests read the static TOML templates with `include_str!`, verify template asset ids, and reject any routed UI event whose operation path is not registered by the Sound editor plugin.
+The live-output unit tests use a fake output/backend manager to cover selected-row projection, latency/status/backend-state projection, configure/start/stop action calls, and best-effort failure reports without stubbing unrelated playback, mixer graph, source, automation, event, acoustics, or render methods. Existing sound editor registration tests continue to cover mixer views, operation descriptors, payload schema IDs, menu items, and component drawer bindings. The authoring template contract tests read the static TOML templates with `include_str!`, verify template asset ids, and reject any routed UI event whose operation path is not registered by the Sound editor plugin.
 
 Current validation evidence: `cargo fmt --check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sound_editor`, `cargo metadata --manifest-path zircon_plugins\sound\editor\Cargo.toml --locked --offline --no-deps --format-version 1`, focused `cargo test --manifest-path zircon_plugins\sound\editor\Cargo.toml live_output --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-sound-editor-live-output --message-format short --color never`, focused `cargo test --manifest-path zircon_plugins\sound\editor\Cargo.toml sound_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sound-editor-template-routes --message-format short --color never`, `cargo check --manifest-path zircon_plugins\sound\editor\Cargo.toml --tests --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-sound-editor-template-routes --message-format short --color never`, and scoped `git diff --check` passed. The earlier live-output focused test needed a warmed retry after a dependency-compilation timeout; the template-route focused test passed 3 registration/template tests, and the remaining output was limited to existing `zircon_runtime`, `zircon_editor`, and non-CPAL sound runtime warnings.

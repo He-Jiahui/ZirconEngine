@@ -1,8 +1,9 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
-use super::style_selector::select_workbench_toast_style;
+use super::style_selector::{
+    select_workbench_alert_style, select_workbench_toast_style, WorkbenchAlertTone as AlertTone,
+};
 use super::template_node_labels::template_node_label;
-use super::theme::PALETTE;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const ALERT_FONT_SIZE: f32 = 12.0;
@@ -25,15 +26,6 @@ const TOAST_TRAILING_INSET: f32 = 10.0;
 const TOAST_CLOSE_SIZE: f32 = 14.0;
 const TOAST_ACTION_WIDTH: f32 = 44.0;
 const TOAST_ACTION_TEXT: &str = "UNDO";
-
-const INFO_SURFACE: [u8; 4] = [18, 46, 72, 255];
-const INFO_BORDER: [u8; 4] = [41, 101, 150, 255];
-const SUCCESS_SURFACE: [u8; 4] = [22, 57, 39, 255];
-const SUCCESS_BORDER: [u8; 4] = [53, 115, 72, 255];
-const WARNING_SURFACE: [u8; 4] = [69, 50, 20, 255];
-const WARNING_BORDER: [u8; 4] = [132, 94, 35, 255];
-const ERROR_SURFACE: [u8; 4] = [72, 32, 36, 255];
-const ERROR_BORDER: [u8; 4] = [133, 61, 58, 255];
 
 pub(super) fn push_alert_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -66,22 +58,6 @@ pub(super) fn push_alert_commands(
 enum WorkbenchAlertKind {
     Inline(AlertTone),
     Toast,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum AlertTone {
-    Info,
-    Success,
-    Warning,
-    Error,
-}
-
-#[derive(Clone, Copy)]
-struct AlertStyle {
-    surface: [u8; 4],
-    border: [u8; 4],
-    mark: [u8; 4],
-    text: [u8; 4],
 }
 
 fn workbench_alert_kind(node: &TemplatePaneNodeData) -> Option<WorkbenchAlertKind> {
@@ -143,7 +119,7 @@ fn push_inline_alert(
     tone: AlertTone,
     opacity: f32,
 ) {
-    let style = alert_style(node, tone);
+    let style = select_workbench_alert_style(node, tone);
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
@@ -415,87 +391,6 @@ fn push_close_mark(
     );
 }
 
-fn alert_style(node: &TemplatePaneNodeData, tone: AlertTone) -> AlertStyle {
-    let disabled = node.disabled;
-    let mark = if disabled {
-        PALETTE.text_disabled
-    } else {
-        alert_mark_color(tone)
-    };
-    let text = if disabled {
-        PALETTE.text_disabled
-    } else {
-        mark
-    };
-    match tone {
-        AlertTone::Info => AlertStyle {
-            surface: if disabled {
-                PALETTE.surface_disabled
-            } else {
-                INFO_SURFACE
-            },
-            border: if disabled {
-                PALETTE.border_disabled
-            } else {
-                INFO_BORDER
-            },
-            mark,
-            text,
-        },
-        AlertTone::Success => AlertStyle {
-            surface: if disabled {
-                PALETTE.surface_disabled
-            } else {
-                SUCCESS_SURFACE
-            },
-            border: if disabled {
-                PALETTE.border_disabled
-            } else {
-                SUCCESS_BORDER
-            },
-            mark,
-            text,
-        },
-        AlertTone::Warning => AlertStyle {
-            surface: if disabled {
-                PALETTE.surface_disabled
-            } else {
-                WARNING_SURFACE
-            },
-            border: if disabled {
-                PALETTE.border_disabled
-            } else {
-                WARNING_BORDER
-            },
-            mark,
-            text,
-        },
-        AlertTone::Error => AlertStyle {
-            surface: if disabled {
-                PALETTE.surface_disabled
-            } else {
-                ERROR_SURFACE
-            },
-            border: if disabled {
-                PALETTE.border_disabled
-            } else {
-                ERROR_BORDER
-            },
-            mark,
-            text,
-        },
-    }
-}
-
-fn alert_mark_color(tone: AlertTone) -> [u8; 4] {
-    match tone {
-        AlertTone::Info => PALETTE.info,
-        AlertTone::Success => PALETTE.success,
-        AlertTone::Warning => PALETTE.warning,
-        AlertTone::Error => PALETTE.error,
-    }
-}
-
 fn toast_close_rect(rect: &FrameRect) -> FrameRect {
     FrameRect {
         x: rect.x + rect.width - TOAST_TRAILING_INSET - TOAST_CLOSE_SIZE,
@@ -552,9 +447,11 @@ fn pixel_aligned_rect(rect: &FrameRect) -> FrameRect {
 mod tests {
     use super::super::super::data::TemplateNodeFrameData;
     use super::super::style_selector::{
-        WORKBENCH_TOAST_ACTION, WORKBENCH_TOAST_BORDER, WORKBENCH_TOAST_SURFACE,
+        WORKBENCH_ALERT_INFO_SURFACE, WORKBENCH_ALERT_WARNING_SURFACE, WORKBENCH_TOAST_ACTION,
+        WORKBENCH_TOAST_BORDER, WORKBENCH_TOAST_SURFACE,
     };
     use super::super::template_nodes::paint_template_nodes_for_test;
+    use super::super::theme::PALETTE;
     use super::*;
     use crate::ui::layouts::common::model_rc;
     use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -599,7 +496,7 @@ mod tests {
             )]),
         );
 
-        assert_eq!(pixel_at(&bytes, 192, 80, 24), INFO_SURFACE);
+        assert_eq!(pixel_at(&bytes, 192, 80, 24), WORKBENCH_ALERT_INFO_SURFACE);
         assert_eq!(pixel_at(&bytes, 192, 25, 24), PALETTE.info);
         assert!(changed_pixel_count(&bytes, 192, 38, 16, 62, 18) > 0);
         assert_eq!(pixel_at(&bytes, 192, 176, 24), [0, 0, 0, 255]);
@@ -621,7 +518,10 @@ mod tests {
             )]),
         );
 
-        assert_eq!(pixel_at(&bytes, 192, 150, 24), WARNING_SURFACE);
+        assert_eq!(
+            pixel_at(&bytes, 192, 150, 24),
+            WORKBENCH_ALERT_WARNING_SURFACE
+        );
         assert_eq!(pixel_at(&bytes, 192, 27, 18), PALETTE.warning);
         assert!(changed_pixel_count(&bytes, 192, 38, 16, 84, 18) > 0);
     }
@@ -708,6 +608,38 @@ mod tests {
         node.pressed = false;
         let focused = select_workbench_toast_style(&node);
         assert_eq!(focused.state, UiPainterResolvedState::Focused);
+    }
+
+    #[test]
+    fn workbench_alert_style_uses_shared_state_priority() {
+        let mut node = positioned_alert_node(
+            "WorkbenchWarningAlert",
+            "Warning Alert",
+            "warning",
+            8.0,
+            8.0,
+            160.0,
+            32.0,
+        );
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+        node.disabled = true;
+
+        let disabled = select_workbench_alert_style(&node, AlertTone::Warning);
+        assert_eq!(disabled.state, UiPainterResolvedState::Disabled);
+        assert_eq!(disabled.text, PALETTE.text_disabled);
+        assert_eq!(disabled.surface, PALETTE.surface_disabled);
+
+        node.disabled = false;
+        let pressed = select_workbench_alert_style(&node, AlertTone::Warning);
+        assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+        assert_eq!(pressed.border, PALETTE.focus_ring);
+
+        node.pressed = false;
+        let focused = select_workbench_alert_style(&node, AlertTone::Warning);
+        assert_eq!(focused.state, UiPainterResolvedState::Focused);
+        assert_eq!(focused.border, PALETTE.focus_ring);
     }
 
     fn alert_node(control_id: &str, text: &str, tone: &str) -> TemplatePaneNodeData {

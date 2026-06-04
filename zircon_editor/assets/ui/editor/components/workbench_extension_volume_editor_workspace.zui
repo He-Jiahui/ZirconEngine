@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_volume_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Volume Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionVolumeEditorWorkspace]
+root = "volume_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.volume_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionVolumeEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_rail_gap" }, { node = "volume_editor_left" }, { node = "volume_editor_center" }, { node = "volume_editor_right" }]
+
+[nodes.volume_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionVolumeEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.volume_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionVolumeEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_title" }, { node = "volume_editor_bounds_tab" }, { node = "volume_editor_overlaps_tab" }, { node = "volume_editor_events_tab" }, { node = "volume_editor_damage_zone_row" }, { node = "volume_editor_profile_default_row" }, { node = "volume_editor_overlap_player_row" }]
+
+[nodes.volume_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionVolumeEditorTitle"
+props = { text = "Volume Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.volume_editor_bounds_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionVolumeEditorBoundsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Bounds", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorBoundsTab", event = "Click", route = "WorkbenchExtension.VolumeEditor.Bounds" }]
+
+[nodes.volume_editor_overlaps_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionVolumeEditorOverlapsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Overlaps", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorOverlapsTab", event = "Click", route = "WorkbenchExtension.VolumeEditor.Overlaps" }]
+
+[nodes.volume_editor_events_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionVolumeEditorEventsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Events", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorEventsTab", event = "Click", route = "WorkbenchExtension.VolumeEditor.EventsTab" }]
+
+[nodes.volume_editor_damage_zone_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionVolumeEditorDamageZoneRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "VOL_DamageZone", icon = "cube", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorDamageZoneRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Volume.DamageZone" }]
+
+[nodes.volume_editor_profile_default_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionVolumeEditorProfileDefaultRow"
+classes = ["workbench-list-row"]
+props = { text = "Profile_Default", icon = "grid", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorProfileDefaultRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Profile.Default" }]
+
+[nodes.volume_editor_overlap_player_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionVolumeEditorOverlapPlayerRow"
+classes = ["workbench-list-row"]
+props = { text = "Overlap_Player", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorOverlapPlayerRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Overlap.Player" }]
+
+[nodes.volume_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionVolumeEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_center_header" }, { node = "volume_editor_overlap_table" }, { node = "volume_editor_output" }]
+
+[nodes.volume_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionVolumeEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "volume_editor_center_title" }, { node = "volume_editor_header_fill" }, { node = "volume_editor_inspect_button" }, { node = "volume_editor_validate_button" }]
+
+[nodes.volume_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionVolumeEditorCenterTitle"
+props = { text = "Volume Overlap Workspace" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.volume_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionVolumeEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.volume_editor_inspect_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionVolumeEditorInspectButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Inspect", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorInspect", event = "Click", route = "WorkbenchExtension.VolumeEditor.Inspect" }]
+
+[nodes.volume_editor_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionVolumeEditorValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorValidate", event = "Click", route = "WorkbenchExtension.VolumeEditor.Validate" }]
+
+[nodes.volume_editor_overlap_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionVolumeEditorOverlapTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_bounds_table_row" }, { node = "volume_editor_player_overlap_table_row" }, { node = "volume_editor_damage_rule_table_row" }, { node = "volume_editor_on_enter_event_table_row" }]
+
+[nodes.volume_editor_bounds_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionVolumeEditorBoundsTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Volume", value_text = "Bounds   12 x 8 x 6   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorBoundsTableRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Graph.Bounds" }]
+
+[nodes.volume_editor_player_overlap_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionVolumeEditorPlayerOverlapTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Player", value_text = "Overlap   Pawn capsule   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorPlayerOverlapTableRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Graph.PlayerOverlap" }]
+
+[nodes.volume_editor_damage_rule_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionVolumeEditorDamageRuleTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Damage Rule", value_text = "Effect   25 DPS   Priority 10" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorDamageRuleTableRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Graph.DamageRule" }]
+
+[nodes.volume_editor_on_enter_event_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionVolumeEditorOnEnterEventTableRow"
+classes = ["workbench-table-row"]
+props = { text = "OnEnter", value_text = "Event   Generate overlap   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorOnEnterEventTableRow", event = "Click", route = "WorkbenchExtension.VolumeEditor.Graph.OnEnter" }]
+
+[nodes.volume_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionVolumeEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Volume Log", value_text = "24 volumes   12 overlaps   1 warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/VolumeEditorOutput", event = "Click", route = "WorkbenchExtension.VolumeEditor.Output" }]
+
+[nodes.volume_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionVolumeEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_details_title" }, { node = "volume_editor_volume_dropdown" }, { node = "volume_editor_profile_dropdown" }, { node = "volume_editor_priority_field" }]
+
+[nodes.volume_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionVolumeEditorDetailsTitle"
+props = { text = "Volume Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.volume_editor_volume_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionVolumeEditorVolumeDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "VOL_DamageZone", value = "VOL_DamageZone", options = ["VOL_DamageZone", "VOL_AudioReverb", "VOL_Checkpoint", "VOL_StreamingGate"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/VolumeEditorVolumeEdit", event = "Change", route = "WorkbenchExtension.VolumeEditor.Volume.Edit" },
+  { id = "WorkbenchExtension/VolumeEditorVolumeCommit", event = "Submit", route = "WorkbenchExtension.VolumeEditor.Volume.Commit" },
+]
+
+[nodes.volume_editor_profile_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionVolumeEditorProfileDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Damage", value = "Damage", options = ["Damage", "Reverb", "Checkpoint", "Streaming"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/VolumeEditorProfileEdit", event = "Change", route = "WorkbenchExtension.VolumeEditor.Profile.Edit" },
+  { id = "WorkbenchExtension/VolumeEditorProfileCommit", event = "Submit", route = "WorkbenchExtension.VolumeEditor.Profile.Commit" },
+]
+
+[nodes.volume_editor_priority_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionVolumeEditorPriorityField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Priority: 10" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/VolumeEditorPriorityEdit", event = "Change", route = "WorkbenchExtension.VolumeEditor.Priority.Edit" },
+  { id = "WorkbenchExtension/VolumeEditorPriorityCommit", event = "Submit", route = "WorkbenchExtension.VolumeEditor.Priority.Commit" },
+]

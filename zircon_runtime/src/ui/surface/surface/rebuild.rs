@@ -349,6 +349,7 @@ impl UiSurface {
             render_elapsed_micros,
             ..self.rebuild_counts()
         };
+        self.seed_popup_stack_from_tree_metadata();
         self.reset_pending_pool_report();
     }
 

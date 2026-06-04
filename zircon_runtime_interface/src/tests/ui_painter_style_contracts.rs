@@ -33,6 +33,10 @@ fn ui_painter_state_resolves_family_specific_priority() {
         state.resolved_state_for_family(UiPainterFamily::Dropdown),
         UiPainterResolvedState::Focused
     );
+    assert_eq!(
+        state.resolved_state_for_family(UiPainterFamily::Alert),
+        UiPainterResolvedState::Focused
+    );
 }
 
 #[test]
@@ -72,4 +76,3 @@ fn ui_painter_state_keeps_disabled_and_loading_priorities_explicit() {
         UiPainterResolvedState::Pressed
     );
 }
-

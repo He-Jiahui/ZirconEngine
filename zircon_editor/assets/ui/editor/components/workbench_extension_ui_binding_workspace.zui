@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_ui_binding_workspace.zui"
+version = 2
+display_name = "Workbench Extension UI Binding Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionUiBindingWorkspace]
+root = "ui_binding_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.ui_binding_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionUiBindingWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_rail_gap" }, { node = "ui_binding_left" }, { node = "ui_binding_center" }, { node = "ui_binding_right" }]
+
+[nodes.ui_binding_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionUiBindingRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_binding_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiBindingLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_title" }, { node = "ui_binding_bindings_tab" }, { node = "ui_binding_expressions_tab" }, { node = "ui_binding_validation_tab" }, { node = "ui_binding_view_model_row" }, { node = "ui_binding_health_row" }, { node = "ui_binding_ammo_row" }]
+
+[nodes.ui_binding_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiBindingTitle"
+props = { text = "UI Binding" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.ui_binding_bindings_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiBindingBindingsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Bindings", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingBindingsTab", event = "Click", route = "WorkbenchExtension.UiBinding.Bindings" }]
+
+[nodes.ui_binding_expressions_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiBindingExpressionsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Expressions", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingExpressionsTab", event = "Click", route = "WorkbenchExtension.UiBinding.Expressions" }]
+
+[nodes.ui_binding_validation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiBindingValidationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingValidationTab", event = "Click", route = "WorkbenchExtension.UiBinding.Validation" }]
+
+[nodes.ui_binding_view_model_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiBindingViewModelRow"
+classes = ["workbench-list-row"]
+props = { text = "VM_PlayerHUD", icon = "database", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingViewModelRow", event = "Click", route = "WorkbenchExtension.UiBinding.Asset.ViewModel" }]
+
+[nodes.ui_binding_health_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiBindingHealthRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Health.Value", icon = "link", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingHealthRow", event = "Click", route = "WorkbenchExtension.UiBinding.Asset.Health" }]
+
+[nodes.ui_binding_ammo_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiBindingAmmoRow"
+classes = ["workbench-list-row"]
+props = { text = "Ammo.Count", icon = "link", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingAmmoRow", event = "Click", route = "WorkbenchExtension.UiBinding.Asset.Ammo" }]
+
+[nodes.ui_binding_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiBindingCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_center_header" }, { node = "ui_binding_table" }, { node = "ui_binding_output" }]
+
+[nodes.ui_binding_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionUiBindingCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "ui_binding_center_title" }, { node = "ui_binding_header_fill" }, { node = "ui_binding_preview_button" }, { node = "ui_binding_validate_button" }]
+
+[nodes.ui_binding_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiBindingCenterTitle"
+props = { text = "UI Binding Graph" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_binding_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionUiBindingHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_binding_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionUiBindingPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingPreview", event = "Click", route = "WorkbenchExtension.UiBinding.Preview" }]
+
+[nodes.ui_binding_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionUiBindingValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingValidate", event = "Click", route = "WorkbenchExtension.UiBinding.Validate" }]
+
+[nodes.ui_binding_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiBindingTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_view_model_table_row" }, { node = "ui_binding_health_table_row" }, { node = "ui_binding_converter_table_row" }, { node = "ui_binding_validation_table_row" }]
+
+[nodes.ui_binding_view_model_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiBindingViewModelTableRow"
+classes = ["workbench-table-row"]
+props = { text = "View Model", value_text = "VM_PlayerHUD   source   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingViewModelTableRow", event = "Click", route = "WorkbenchExtension.UiBinding.Row.ViewModel" }]
+
+[nodes.ui_binding_health_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiBindingHealthTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Health.Value", value_text = "Field   selected   valid" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingHealthTableRow", event = "Click", route = "WorkbenchExtension.UiBinding.Row.Health" }]
+
+[nodes.ui_binding_converter_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiBindingConverterTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Percent Converter", value_text = "Converter   one way   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingConverterTableRow", event = "Click", route = "WorkbenchExtension.UiBinding.Row.Converter" }]
+
+[nodes.ui_binding_validation_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiBindingValidationTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Validation", value_text = "2 invalid   warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingValidationTableRow", event = "Click", route = "WorkbenchExtension.UiBinding.Row.Validation" }]
+
+[nodes.ui_binding_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiBindingOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "UI Binding", value_text = "Health.Value   Percent   2 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingOutput", event = "Click", route = "WorkbenchExtension.UiBinding.Output" }]
+
+[nodes.ui_binding_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiBindingRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_details_title" }, { node = "ui_binding_field_dropdown" }, { node = "ui_binding_widget_dropdown" }, { node = "ui_binding_converter_field" }]
+
+[nodes.ui_binding_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiBindingDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.ui_binding_field_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionUiBindingFieldDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Health.Value", value = "Health.Value", options = ["Health.Value", "Ammo.Count", "Shield.Value"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiBindingFieldEdit", event = "Change", route = "WorkbenchExtension.UiBinding.Field.Edit" },
+  { id = "WorkbenchExtension/UiBindingFieldCommit", event = "Submit", route = "WorkbenchExtension.UiBinding.Field.Commit" },
+]
+
+[nodes.ui_binding_widget_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionUiBindingWidgetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "WBP_HealthBar", value = "WBP_HealthBar", options = ["WBP_HealthBar", "WBP_AmmoPanel", "WBP_Status"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiBindingWidgetEdit", event = "Change", route = "WorkbenchExtension.UiBinding.Widget.Edit" },
+  { id = "WorkbenchExtension/UiBindingWidgetCommit", event = "Submit", route = "WorkbenchExtension.UiBinding.Widget.Commit" },
+]
+
+[nodes.ui_binding_converter_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionUiBindingConverterField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Percent" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiBindingConverterEdit", event = "Change", route = "WorkbenchExtension.UiBinding.Converter.Edit" },
+  { id = "WorkbenchExtension/UiBindingConverterCommit", event = "Submit", route = "WorkbenchExtension.UiBinding.Converter.Commit" },
+]

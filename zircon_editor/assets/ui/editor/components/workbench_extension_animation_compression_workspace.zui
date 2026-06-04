@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_animation_compression_workspace.zui"
+version = 2
+display_name = "Workbench Extension Animation Compression Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionAnimationCompressionWorkspace]
+root = "animation_compression_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.animation_compression_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_rail_gap" }, { node = "animation_compression_left" }, { node = "animation_compression_center" }, { node = "animation_compression_right" }]
+
+[nodes.animation_compression_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionAnimationCompressionRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.animation_compression_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_title" }, { node = "animation_compression_clips_tab" }, { node = "animation_compression_codecs_tab" }, { node = "animation_compression_errors_tab" }, { node = "animation_compression_locomotion_row" }, { node = "animation_compression_combat_row" }, { node = "animation_compression_cinematic_row" }]
+
+[nodes.animation_compression_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionAnimationCompressionTitle"
+props = { text = "Animation Compression" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.animation_compression_clips_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionAnimationCompressionClipsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Clips", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionClipsTab", event = "Click", route = "WorkbenchExtension.AnimationCompression.Clips" }]
+
+[nodes.animation_compression_codecs_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionAnimationCompressionCodecsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Codecs", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionCodecsTab", event = "Click", route = "WorkbenchExtension.AnimationCompression.Codecs" }]
+
+[nodes.animation_compression_errors_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionAnimationCompressionErrorsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Errors", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionErrorsTab", event = "Click", route = "WorkbenchExtension.AnimationCompression.Errors" }]
+
+[nodes.animation_compression_locomotion_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionAnimationCompressionLocomotionRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "AC_Locomotion", icon = "play", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionLocomotionRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Profile.Locomotion" }]
+
+[nodes.animation_compression_combat_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionAnimationCompressionCombatRow"
+classes = ["workbench-list-row"]
+props = { text = "AC_Combat", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionCombatRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Profile.Combat" }]
+
+[nodes.animation_compression_cinematic_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionAnimationCompressionCinematicRow"
+classes = ["workbench-list-row"]
+props = { text = "AC_Cinematic", icon = "component", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionCinematicRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Profile.Cinematic" }]
+
+[nodes.animation_compression_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_center_header" }, { node = "animation_compression_clip_table" }, { node = "animation_compression_output" }]
+
+[nodes.animation_compression_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "animation_compression_center_title" }, { node = "animation_compression_header_fill" }, { node = "animation_compression_preview_button" }, { node = "animation_compression_compress_button" }]
+
+[nodes.animation_compression_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionAnimationCompressionCenterTitle"
+props = { text = "Clip Budget" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.animation_compression_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionAnimationCompressionHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.animation_compression_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionAnimationCompressionPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionPreview", event = "Click", route = "WorkbenchExtension.AnimationCompression.Preview" }]
+
+[nodes.animation_compression_compress_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionAnimationCompressionCompressButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Compress", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionCompress", event = "Click", route = "WorkbenchExtension.AnimationCompression.Compress" }]
+
+[nodes.animation_compression_clip_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionClipTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_run_clip_table_row" }, { node = "animation_compression_attack_clip_table_row" }, { node = "animation_compression_facial_clip_table_row" }, { node = "animation_compression_error_clip_table_row" }]
+
+[nodes.animation_compression_run_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionAnimationCompressionRunClipTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Run_Fwd", value_text = "ratio 8.2:1   max err 0.18 cm   selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionRunClipTableRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Clip.Run" }]
+
+[nodes.animation_compression_attack_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionAnimationCompressionAttackClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Attack_Light", value_text = "ratio 6.4:1   additive curves   Clean" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionAttackClipTableRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Clip.Attack" }]
+
+[nodes.animation_compression_facial_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionAnimationCompressionFacialClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Face_Talk_A", value_text = "ratio 4.1:1   curve rich   Review" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionFacialClipTableRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Clip.Facial" }]
+
+[nodes.animation_compression_error_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionAnimationCompressionErrorClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Turn_180", value_text = "ratio 10.5:1   max err 1.8 cm   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionErrorClipTableRow", event = "Click", route = "WorkbenchExtension.AnimationCompression.Clip.Error" }]
+
+[nodes.animation_compression_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionAnimationCompressionOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Animation Compression", value_text = "AC_Locomotion   312 clips   3 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AnimationCompressionOutput", event = "Click", route = "WorkbenchExtension.AnimationCompression.Output" }]
+
+[nodes.animation_compression_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionAnimationCompressionRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_details_title" }, { node = "animation_compression_codec_dropdown" }, { node = "animation_compression_tolerance_field" }, { node = "animation_compression_rate_field" }]
+
+[nodes.animation_compression_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionAnimationCompressionDetailsTitle"
+props = { text = "Compression Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.animation_compression_codec_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionAnimationCompressionCodecDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "ACL Uniform", value = "ACL Uniform", options = ["ACL Uniform", "ACL Variable", "Per Track"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/AnimationCompressionCodecEdit", event = "Change", route = "WorkbenchExtension.AnimationCompression.Codec.Edit" },
+  { id = "WorkbenchExtension/AnimationCompressionCodecCommit", event = "Submit", route = "WorkbenchExtension.AnimationCompression.Codec.Commit" },
+]
+
+[nodes.animation_compression_tolerance_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionAnimationCompressionToleranceField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Tolerance: 0.5 cm" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/AnimationCompressionToleranceEdit", event = "Change", route = "WorkbenchExtension.AnimationCompression.Tolerance.Edit" },
+  { id = "WorkbenchExtension/AnimationCompressionToleranceCommit", event = "Submit", route = "WorkbenchExtension.AnimationCompression.Tolerance.Commit" },
+]
+
+[nodes.animation_compression_rate_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionAnimationCompressionRateField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Sample Rate: 30 Hz" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/AnimationCompressionRateEdit", event = "Change", route = "WorkbenchExtension.AnimationCompression.Rate.Edit" },
+  { id = "WorkbenchExtension/AnimationCompressionRateCommit", event = "Submit", route = "WorkbenchExtension.AnimationCompression.Rate.Commit" },
+]

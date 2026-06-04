@@ -24,7 +24,7 @@ fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
     let surfaces = read_ui_file("surfaces.slint");
     let shell_layout = read_ui_file("shell_layout_components.slint");
     let shell_sources = format!("{app}\n{shell_layout}");
-    let overlays = read_ui_file("overlays.slint");
+    let drawer_window = read_ui_file("drawer_window_components.slint");
     for snippet in [
         "HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack,",
         "HubWindowView,",
@@ -45,7 +45,7 @@ fn app_shell_uses_preferred_window_size_and_remaining_content_width() {
         "background: HubVisualSpec.page-background;",
     ] {
         assert!(
-            overlays.contains(snippet),
+            drawer_window.contains(snippet),
             "HubWindowView must own the shared Material window constraints; missing {snippet}"
         );
     }

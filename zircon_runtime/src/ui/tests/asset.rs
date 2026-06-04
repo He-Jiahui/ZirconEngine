@@ -1070,18 +1070,18 @@ fn ui_asset_loader_materializes_recursive_tree_authority_in_memory() {
 }
 
 #[test]
-fn ui_legacy_template_fixture_conversion_converts_template_documents_into_asset_documents() {
-    let asset_document = UiAssetSchemaMigrator::migrate_legacy_template_str(
-        "legacy.workbench",
-        "Legacy Workbench",
+fn ui_source_template_fixture_conversion_converts_template_documents_into_asset_documents() {
+    let asset_document = UiAssetSchemaMigrator::migrate_source_template_fixture_str(
+        "source.workbench",
+        "Source Workbench",
         LEGACY_TEMPLATE_TOML,
     )
     .unwrap()
     .document;
 
     assert_eq!(asset_document.asset.kind, UiAssetKind::Layout);
-    assert_eq!(asset_document.asset.id, "legacy.workbench");
-    assert_eq!(asset_document.asset.display_name, "Legacy Workbench");
+    assert_eq!(asset_document.asset.id, "source.workbench");
+    assert_eq!(asset_document.asset.display_name, "Source Workbench");
     assert_eq!(asset_document.root.as_ref().unwrap().node_id, "root");
     assert_eq!(asset_document.root.as_ref().unwrap().children.len(), 1);
     assert_eq!(
@@ -1114,11 +1114,11 @@ fn ui_legacy_template_fixture_conversion_converts_template_documents_into_asset_
 }
 
 #[test]
-fn ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips() {
+fn ui_source_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips() {
     let source = toml::to_string_pretty(
-        &UiAssetSchemaMigrator::migrate_legacy_template_str(
-            "legacy.workbench",
-            "Legacy Workbench",
+        &UiAssetSchemaMigrator::migrate_source_template_fixture_str(
+            "source.workbench",
+            "Source Workbench",
             LEGACY_TEMPLATE_TOML,
         )
         .unwrap()
@@ -1129,7 +1129,7 @@ fn ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_round
     let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
     let instance = compiled.into_template_instance();
 
-    assert_eq!(document.asset.id, "legacy.workbench");
+    assert_eq!(document.asset.id, "source.workbench");
     assert_eq!(instance.root.component.as_deref(), Some("VerticalBox"));
     assert_eq!(
         instance.root.children[0].control_id.as_deref(),

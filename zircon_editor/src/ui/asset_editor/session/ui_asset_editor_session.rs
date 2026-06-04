@@ -137,7 +137,7 @@ pub struct UiAssetEditorSession {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum UiAssetSourceSchema {
-    Legacy,
+    LayoutDocument,
     V2,
 }
 

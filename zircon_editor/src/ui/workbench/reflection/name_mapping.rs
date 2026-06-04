@@ -16,6 +16,7 @@ pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
         "editor.performance_timeline" => "PerformanceTimelineView".to_string(),
         "editor.debug_observatory" => "DebugObservatoryWindow".to_string(),
         "editor.build_export_desktop" => "BuildExportView".to_string(),
+        "editor.generated_bottom" => "GeneratedBottomView".to_string(),
         "editor.prefab" => "PrefabEditorWindow".to_string(),
         "editor.asset_browser" => "AssetBrowserWindow".to_string(),
         _ => activity.instance_id.clone(),
@@ -58,6 +59,7 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PerformanceTimeline => "performance_timeline",
         ViewContentKind::ModulePlugins => "module_plugins",
         ViewContentKind::BuildExport => "build_export",
+        ViewContentKind::GeneratedBottom => "generated_bottom",
         ViewContentKind::Placeholder => "placeholder",
     }
 }

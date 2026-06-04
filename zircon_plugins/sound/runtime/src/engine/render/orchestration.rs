@@ -93,6 +93,7 @@ impl SoundEngineState {
         let mut mix = SoundMixBlock {
             sample_rate_hz: config.sample_rate_hz,
             channel_count: config.channel_count.max(1),
+            channel_layout: config.channel_layout.clone(),
             samples: track_buffers
                 .remove(&SoundTrackId::master())
                 .unwrap_or_else(|| vec![0.0; samples_len]),

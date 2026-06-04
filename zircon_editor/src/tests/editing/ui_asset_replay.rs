@@ -223,7 +223,7 @@ kind = "native"
 type = "Button"
 control_id = "SaveButton"
 props = { text = "Save" }
-bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject" }]
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.workbench.project.save" }]
 "##;
 
 #[test]
@@ -1739,7 +1739,7 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
             bindings: vec![UiBindingRef {
                 id: "SaveButton/onClick".to_string(),
                 event: UiEventKind::Click,
-                route: Some("MenuAction.SaveProject".to_string()),
+            route: Some("MenuAction.workbench.project.save".to_string()),
                 action: None,
                 targets: Vec::new(),
             }],
@@ -1754,9 +1754,9 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
             bindings: vec![UiBindingRef {
                 id: "SaveButton/onClick".to_string(),
                 event: UiEventKind::Click,
-                route: Some("MenuAction.SaveProject".to_string()),
+            route: Some("MenuAction.workbench.project.save".to_string()),
                 action: Some(UiActionRef {
-                    route: Some("MenuAction.SaveProject".to_string()),
+        route: Some("MenuAction.workbench.project.save".to_string()),
                     action: None,
                     payload: [(
                         "status_text".to_string(),

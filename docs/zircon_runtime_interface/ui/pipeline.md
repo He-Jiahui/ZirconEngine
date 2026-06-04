@@ -29,6 +29,8 @@ tests:
   - 2026-05-08: cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (passed)
   - 2026-05-08: rustfmt --edition 2021 --check touched M2 pipeline files (passed)
   - 2026-05-08: git diff --check -- touched M2 pipeline files and docs (passed with CRLF conversion warnings only)
+  - 2026-06-04: rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\pipeline\stage.rs zircon_runtime_interface\src\tests\pipeline_contracts.rs (passed)
+  - 2026-06-04: cargo test -p zircon_runtime_interface pipeline_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-stage-policy-0604 --message-format short --color never -- --test-threads=1 --nocapture (3 passed; 0 failed; 130 filtered out)
 doc_type: module-detail
 ---
 
@@ -47,15 +49,19 @@ Fyrox is the Rust-native editor/runtime cross-check. `dev/Fyrox/editor/src/lib.r
 `UiPipelineStage::ORDER` is the M2 schedule contract:
 
 - `InputCollect`: gather window and shared input events into the frame.
-- `FocusInteraction`: update hover, focus, capture, interaction, and focus-visible state.
-- `ContentMeasure`: measure text, image, viewport, or other content requirements before layout.
+- `Focus`: update focus, capture, interaction, and focus-visible state.
+- `WidgetBehavior`: run widget-level behavior that can affect text, style, layout, or input domains.
+- `TextMeasure`: measure text, image, viewport, or other content requirements before layout.
 - `Layout`: compute layout geometry through the current or future layout engine.
-- `PostLayoutStack`: update paint order, z stack, clipping, scroll-dependent text state, and other post-layout data.
-- `HitGrid`: rebuild or reuse hit-test grid records.
+- `PostLayout`: update paint order, z stack, clipping, scroll-dependent text state, and other post-layout data.
+- `Picking`: rebuild or reuse hit-test grid records.
+- `A11yExtract`: extract accessibility-facing state.
 - `RenderExtract`: extract render or paint commands from arranged UI state.
 - `BatchPrepare`: group extracted paint/render work into backend-ready batches.
-- `PaintSubmit`: submit or project prepared paint work to the active host/backend.
-- `Diagnostics`: capture debug records, timing, warnings, and acceptance counters.
+
+## Archived Diagnostic Stage Names
+
+`UiPipelineStage::ARCHIVED_DIAGNOSTIC_FORMAT_VERSION` is the explicit version marker for stored diagnostic payloads that predate the current M2 schedule. `FocusInteraction`, `ContentMeasure`, `PostLayoutStack`, `HitGrid`, `PaintSubmit`, and `Diagnostics` remain deserializable so archived reports can still be read, but `UiPipelineStage::is_runtime_schedule_stage()` returns `false` for them and `UiPipelineStage::ORDER` excludes them. New runtime and editor scheduling code must use the current 10-stage order above.
 
 ## Reports
 
@@ -67,6 +73,6 @@ Fyrox is the Rust-native editor/runtime cross-check. `dev/Fyrox/editor/src/lib.r
 
 ## Acceptance Boundary
 
-The focused tests in `zircon_runtime_interface/src/tests/pipeline_contracts.rs` prove the DTOs can express the M2 acceptance contract: the exact named stage order, per-stage timing and dirty-reason reporting, layout/hit/render/batch counters, and the 100 pointer-move fast path with zero template reloads and zero full-layout work. The 2026-05-08 scoped interface gate passed for the focused contract tests and crate check.
+The focused tests in `zircon_runtime_interface/src/tests/pipeline_contracts.rs` prove the DTOs can express the M2 acceptance contract: the exact named stage order, the archived diagnostic stage policy, per-stage timing and dirty-reason reporting, layout/hit/render/batch counters, and the 100 pointer-move fast path with zero template reloads and zero full-layout work. The 2026-05-08 scoped interface gate passed for the focused contract tests and crate check.
 
 This module does not prove that runtime or editor code already populates these reports. Later M2 runtime/editor slices must connect `UiSurface`, editor hosts, and render submission to this contract after the active layout/render/input lanes settle.

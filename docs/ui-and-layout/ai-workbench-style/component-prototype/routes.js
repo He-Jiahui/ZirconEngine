@@ -135,6 +135,10 @@ function extensionRouteForCommand(command, activeModuleId) {
 function extensionPanelKeyForCommand(command) {
   const tokens = command.split("-").filter(Boolean);
   const verb = tokens[0] ?? "";
+  if (["native", "handoff", "promote", "promotion", "matrix", "gate", "zui", "retained"].includes(verb)
+    || tokens.some((token) => ["native", "handoff", "promotion", "matrix", "gate", "zui", "retained"].includes(token))) {
+    return "handoff";
+  }
   if (["validate", "compile", "build", "check", "audit", "open"].includes(verb)
     || tokens.some((token) => ["issue", "issues", "warning", "warnings", "error", "errors"].includes(token))) {
     return "validation";

@@ -77,7 +77,7 @@ fn workbench_toolbar_window_menu_item_selection_closes_trigger_and_menu() {
 
     assert_eq!(
         bridge
-            .select_popup_menu_item("WorkbenchRunModeMenu", "Simulate")
+            .select_popup_menu_item("WorkbenchRunModeMenu", "menu.item.simulate")
             .expect("run mode menu item should select"),
         Some(true)
     );

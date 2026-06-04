@@ -8,7 +8,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use super::editor_state_play_mode::EditorPlaySession;
 use super::editor_world_slot::EditorWorldSlot;
 
-/// Editor shell state shared between the UI host and the scene server.
+/// Editor shell state shared between the UI host and runtime scene inspection.
 #[derive(Debug)]
 pub struct EditorState {
     pub(crate) world: EditorWorldSlot,

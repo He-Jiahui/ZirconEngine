@@ -17,8 +17,8 @@ pub(super) fn register_docking_route(
 ) -> Option<UiRouteId> {
     let view_id = binding_view_id(activity);
     let control_id = match action_id {
-        "focus_view" => "FocusViewButton",
-        "detach_to_window" => "DetachViewButton",
+        "workbench.view.focus" => "FocusViewButton",
+        "workbench.view.detach_to_window" => "DetachViewButton",
         _ => return None,
     };
     let path = UiEventPath::new(view_id, control_id, event_kind);
@@ -37,10 +37,10 @@ fn default_dock_command(
     action_id: &str,
 ) -> Option<DockCommand> {
     match action_id {
-        "focus_view" => Some(DockCommand::FocusView {
+        "workbench.view.focus" => Some(DockCommand::FocusView {
             instance_id: activity.instance_id.clone(),
         }),
-        "detach_to_window" => Some(DockCommand::DetachViewToWindow {
+        "workbench.view.detach_to_window" => Some(DockCommand::DetachViewToWindow {
             instance_id: activity.instance_id.clone(),
             window_id: format!("window:{}", activity.instance_id),
         }),

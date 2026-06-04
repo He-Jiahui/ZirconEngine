@@ -117,6 +117,10 @@ impl RenderFramework for FakeRenderFramework {
             last_graph_transient_texture_slot_count: 3,
             last_graph_sparse_texture_slot_count: 1,
             last_graph_transient_buffer_slot_count: 2,
+            last_graph_transient_texture_bytes_reserved: 4_194_304,
+            last_graph_transient_buffer_bytes_reserved: 65_536,
+            last_graph_transient_dense_bytes_reserved: 4_259_840,
+            last_graph_sparse_texture_virtual_bytes: 16_777_216,
             last_graph_executed_pass_count: 14,
             last_graph_executed_debug_markers: (0..14)
                 .map(|index| format!("zircon::RenderGraphPass::diagnostics-pass-{index}"))
@@ -197,6 +201,7 @@ impl RenderFramework for FakeRenderFramework {
             last_virtual_geometry_graph_executed_pass_count: 2,
             last_hybrid_gi_graph_executed_pass_count: 3,
             last_particle_graph_executed_pass_count: 1,
+            last_shadow_graph_executed_pass_count: 1,
             last_transparent_graph_executed_pass_count: 4,
             last_async_compute_pass_count: 2,
             last_particle_gpu_alive_count: 31,
@@ -414,6 +419,25 @@ pub(super) fn assert_render_count_series(
         .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
     assert_eq!(series.current, Some(expected));
     assert_eq!(series.unit.as_deref(), Some("count"));
+    assert!(series.subsystem_tags.contains(&"render".to_string()));
+    for expected_tag in expected_tags {
+        assert!(series.subsystem_tags.contains(&expected_tag.to_string()));
+    }
+}
+
+pub(super) fn assert_render_byte_series(
+    store: &crate::core::diagnostics::DiagnosticStoreSnapshot,
+    path: &str,
+    expected: f64,
+    expected_tags: &[&str],
+) {
+    let series = store
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+        .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
+    assert_eq!(series.current, Some(expected));
+    assert_eq!(series.unit.as_deref(), Some("bytes"));
     assert!(series.subsystem_tags.contains(&"render".to_string()));
     for expected_tag in expected_tags {
         assert!(series.subsystem_tags.contains(&expected_tag.to_string()));

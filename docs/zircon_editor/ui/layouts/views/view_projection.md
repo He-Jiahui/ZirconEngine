@@ -48,7 +48,7 @@ tests:
   - cargo test -p zircon_editor template_assets -- --nocapture (2026-05-11: passed, 9 passed)
   - cargo test -p zircon_editor bootstrap_assets -- --nocapture (2026-05-11: passed, 24 passed)
   - cargo test -p zircon_editor boundary -- --nocapture (2026-05-11: passed, 72 passed)
-  - cargo test -p zircon_editor --lib view_template_projection_rejects_legacy_asset_paths -- --nocapture --test-threads=1 (2026-05-12)
+  - cargo test -p zircon_editor --lib view_template_projection_rejects_non_v2_asset_paths -- --nocapture --test-threads=1 (2026-06-05: pending rerun while editor Cargo lanes are active)
   - cargo test -p zircon_editor --lib critical_editor_shells_are_hard_cut_to_v2_assets -- --nocapture --test-threads=1 (2026-05-12)
   - cargo test -p zircon_editor --lib editor_v2_replacement_assets_do_not_keep_same_name_v1_sources --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 1 test)
   - cargo test -p zircon_editor --lib global_material_surface_assets_follow_responsive_contracts --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 1 test)
@@ -59,7 +59,7 @@ doc_type: module-detail
 
 # View Projection
 
-`view_projection` is the editor bridge that turns retained runtime UI surfaces into Slint-facing `ViewTemplateNodeData`. It now routes editor pane assets exclusively through `.v2.ui.toml` and `zircon_runtime::ui::v2`. Non-v2 asset paths return `ViewTemplateProjectionError::LegacyAssetPath` instead of falling back to `UiPrototypeStoreFileCache`, `UiDocumentCompiler`, or `UiTemplateSurfaceBuilder`.
+`view_projection` is the editor bridge that turns retained runtime UI surfaces into Slint-facing `ViewTemplateNodeData`. It now routes editor pane assets exclusively through `.v2.ui.toml` and `zircon_runtime::ui::v2`. Non-v2 asset paths return `ViewTemplateProjectionError::NonV2AssetPath` instead of falling back to `UiPrototypeStoreFileCache`, `UiDocumentCompiler`, or `UiTemplateSurfaceBuilder`.
 
 ## v2 Path
 

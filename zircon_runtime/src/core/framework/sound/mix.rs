@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use super::SoundChannelLayout;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundMixBlock {
     pub sample_rate_hz: u32,
     pub channel_count: u16,
+    pub channel_layout: SoundChannelLayout,
     pub samples: Vec<f32>,
 }
 
@@ -12,6 +15,7 @@ impl SoundMixBlock {
         Self {
             sample_rate_hz,
             channel_count,
+            channel_layout: SoundChannelLayout::for_channel_count(channel_count),
             samples: vec![0.0; frames.saturating_mul(channel_count as usize)],
         }
     }

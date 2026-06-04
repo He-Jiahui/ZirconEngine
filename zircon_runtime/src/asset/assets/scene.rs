@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::PhysicsMaterialMetadata;
+use crate::core::framework::physics::{
+    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
+};
 use crate::core::framework::render::{
     ProjectionMode, RenderCameraClearColor, DEFAULT_CAMERA_EXPOSURE_EV100,
     DEFAULT_CAMERA_MSAA_SAMPLES,
@@ -312,6 +314,9 @@ pub enum SceneJointKindAsset {
     Fixed,
     Distance,
     Hinge,
+    Slider,
+    ConeTwist,
+    Generic6Dof,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -328,6 +333,10 @@ pub struct SceneJointAsset {
     pub limits: Option<[Real; 2]>,
     #[serde(default)]
     pub collide_connected: bool,
+    #[serde(default)]
+    pub constraint: PhysicsJointConstraintMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skeleton_binding: Option<PhysicsSkeletonJointBinding>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

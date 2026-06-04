@@ -1,7 +1,8 @@
 import { MutedText } from "shared.slint";
-import { ResponsiveSlot } from "layout.slint";
+import { Divider, ResponsiveSlot } from "layout.slint";
+import { HubPanelHeaderActionButton } from "button_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
-import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
+import { ElevatedCard, OutlinedCard, MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography, StateLayerArea } from "material_bridge.slint";
 
 export component HubPanel inherits Rectangle {
     in property <string> variant: "default";
@@ -39,6 +40,26 @@ export component HubPanel inherits Rectangle {
 
 export component HubCard inherits HubPanel {
     variant: "interactive";
+}
+
+export component HubInteractiveCardSurface inherits HubPanel {
+    in property <bool> selected: false;
+    in property <color> interaction-foreground: MaterialPalette.on_surface;
+    callback clicked;
+
+    variant: root.selected ? "selected" : "interactive";
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.interaction-foreground;
+        border_radius: HubVisualSpec.panel-radius;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    @children
 }
 
 export component PanelSlot inherits ResponsiveSlot {
@@ -162,15 +183,144 @@ export component PanelHeader inherits Rectangle {
             badge-width: root.badge-width;
         }
 
-        if root.show-action: OutlineButton {
-            width: root.action-width;
-            height: HubVisualSpec.toolbar-density-height;
+        if root.show-action: HubPanelHeaderActionButton {
+            button-width: root.action-width;
+            button-height: HubVisualSpec.toolbar-density-height;
             text: root.action-text;
-            icon: @image-url("../assets/icons/ui/chevron-right.svg");
             clicked => {
                 root.action-clicked();
             }
         }
+    }
+}
+
+export component HubFormPanelSlot inherits PanelSlot {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-header: true;
+    in property <bool> show-badge: root.badge-text != "";
+    in property <length> badge-width: HubTokens.control-md * 3;
+    in property <length> header-height: root.subtitle == "" ? HubTokens.control-md : HubTokens.list-row-sm;
+    in property <length> form-spacing: HubTokens.space-2;
+    in property <bool> form-stretch: true;
+
+    if root.show-header: PanelHeader {
+        height: root.header-height;
+        title: root.title;
+        subtitle: root.subtitle;
+        show-badge: root.show-badge;
+        badge-text: root.badge-text;
+        badge-tone: root.badge-tone;
+        badge-width: root.badge-width;
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: root.form-stretch ? 1 : 0;
+        spacing: root.form-spacing;
+
+        @children
+    }
+}
+
+export component HubContentPanelSlot inherits PanelSlot {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-header: true;
+    in property <bool> show-badge: root.badge-text != "";
+    in property <length> badge-width: HubTokens.control-md * 3;
+    in property <length> header-height: root.subtitle == "" ? HubTokens.control-md : HubTokens.list-row-sm;
+    in property <bool> show-divider: false;
+    in property <string> action-text;
+    in property <bool> show-action: false;
+    in property <length> action-width: HubTokens.panel-min-sm / 2;
+    in property <length> content-spacing: HubTokens.space-2;
+    in property <bool> content-stretch: true;
+    callback action-clicked;
+
+    if root.show-header: PanelHeader {
+        height: root.header-height;
+        title: root.title;
+        subtitle: root.subtitle;
+        show-badge: root.show-badge;
+        badge-text: root.badge-text;
+        badge-tone: root.badge-tone;
+        badge-width: root.badge-width;
+        show-action: root.show-action;
+        action-text: root.action-text;
+        action-width: root.action-width;
+        action-clicked => {
+            root.action-clicked();
+        }
+    }
+
+    if root.show-divider: Divider {}
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: root.content-stretch ? 1 : 0;
+        spacing: root.content-spacing;
+
+        @children
+    }
+}
+
+export component HubMediaContentPanelSlot inherits PanelSlot {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-header: true;
+    in property <bool> show-badge: root.badge-text != "";
+    in property <length> badge-width: HubTokens.control-md * 3;
+    in property <length> header-height: root.subtitle == "" ? HubTokens.control-md : HubTokens.list-row-sm;
+    in property <bool> show-divider: false;
+    in property <bool> show-media: true;
+    in property <length> media-height: HubTokens.list-row-lg;
+    in property <length> media-radius: HubVisualSpec.panel-radius;
+    in property <color> media-background: MaterialPalette.primary_container;
+    in property <image> media-source;
+    in property <bool> has-media-source: false;
+    in property <length> content-spacing: HubTokens.space-2;
+    in property <bool> content-stretch: true;
+
+    if root.show-media: Rectangle {
+        horizontal-stretch: 1;
+        height: root.media-height;
+        border-radius: root.media-radius;
+        background: root.media-background;
+        clip: true;
+
+        if root.has-media-source: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.media-source;
+            image-fit: cover;
+        }
+    }
+
+    if root.show-header: PanelHeader {
+        height: root.header-height;
+        title: root.title;
+        subtitle: root.subtitle;
+        show-badge: root.show-badge;
+        badge-text: root.badge-text;
+        badge-tone: root.badge-tone;
+        badge-width: root.badge-width;
+    }
+
+    if root.show-divider: Divider {}
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        vertical-stretch: root.content-stretch ? 1 : 0;
+        spacing: root.content-spacing;
+
+        @children
     }
 }
 
@@ -308,6 +458,45 @@ export component StatusBanner inherits HubPanel {
         if root.detail != "": MutedText {
             text: root.detail;
             overflow: elide;
+        }
+    }
+}
+
+export component HubSectionSummary inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    in property <length> summary-height: HubTokens.control-sm + HubTokens.space-4;
+    in property <length> summary-spacing: HubTokens.panel-gap;
+    in property <color> title-foreground: HubTokens.text-primary;
+    in property <bool> prominent: false;
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.summary-height;
+    vertical-stretch: 0;
+    background: transparent;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.summary-spacing;
+
+        MaterialText {
+            text: root.title;
+            overflow: elide;
+            color: root.title-foreground;
+            style: root.prominent ? MaterialTypography.headline_small : MaterialTypography.title_small;
+            horizontal-stretch: 1;
+            min-width: 1px;
+        }
+
+        if root.detail != "": MutedText {
+            text: root.detail;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 1px;
         }
     }
 }

@@ -120,6 +120,46 @@ fn controller_routes_world_space_ui_pointer_hit_with_capture() {
         .is_none());
 }
 
+#[test]
+fn controller_routes_world_space_ui_pointer_cancel_to_capture_and_releases_it() {
+    let framework = Arc::new(FakeRenderFramework::default());
+    let controller = RetainedViewportController::new_with_framework(framework);
+
+    controller.submit_world_space_ui_surfaces(vec![WorldSpaceUiSurfaceSubmission {
+        surface_id: "viewport-main".to_string(),
+        node_id: "world-panel".to_string(),
+        control_id: "WorldPanel".to_string(),
+        viewport_x: 10.0,
+        viewport_y: 20.0,
+        viewport_width: 200.0,
+        viewport_height: 80.0,
+        world_position: [1.0, 2.0, 3.0],
+        world_rotation: [0.0, 0.0, 0.0],
+        world_scale: [1.0, 1.0, 1.0],
+        world_width: 2.0,
+        world_height: 0.8,
+        pixels_per_meter: 100.0,
+        billboard: true,
+        depth_test: true,
+        render_order: 5,
+        camera_target: "viewport-main".to_string(),
+    }]);
+
+    let down = controller
+        .route_world_space_ui_pointer_event(UiPointerEventKind::Down, 16.0, 24.0)
+        .expect("down should hit world-space UI");
+    assert_eq!(down.control_id, "WorldPanel");
+
+    let canceled = controller
+        .route_world_space_ui_pointer_event(UiPointerEventKind::Cancel, 400.0, 400.0)
+        .expect("cancel should route to captured world-space UI");
+    assert_eq!(canceled.control_id, "WorldPanel");
+
+    assert!(controller
+        .route_world_space_ui_pointer_event(UiPointerEventKind::Move, 400.0, 400.0)
+        .is_none());
+}
+
 fn test_ui_extract(text: &str) -> UiRenderExtract {
     UiRenderExtract {
         tree_id: UiTreeId::new("editor.viewport.test"),

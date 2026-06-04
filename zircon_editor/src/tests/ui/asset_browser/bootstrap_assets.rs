@@ -386,7 +386,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(thumb_mode.selected);
     assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
     assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset:browser");
-    assert_eq!(thumb_mode.action_id.to_string(), "SetViewMode");
+    assert_eq!(
+        thumb_mode.action_id.to_string(),
+        "workbench.asset.view_mode.set"
+    );
     assert_eq!(
         thumb_mode.binding_id.to_string(),
         "AssetSurface/SetViewMode"
@@ -395,7 +398,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(metadata_tab.selected);
     assert_eq!(metadata_tab.surface_variant.to_string(), "inset");
     assert_eq!(metadata_tab.dispatch_kind.to_string(), "asset:browser");
-    assert_eq!(metadata_tab.action_id.to_string(), "SetUtilityTab");
+    assert_eq!(
+        metadata_tab.action_id.to_string(),
+        "workbench.asset.utility_tab.set"
+    );
     assert_eq!(
         metadata_tab.binding_id.to_string(),
         "AssetSurface/SetUtilityTab"
@@ -410,7 +416,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(plugins_panel.focused == false || !plugins_panel.selected);
     assert_eq!(material_chip.surface_variant.to_string(), "inset");
     assert_eq!(material_chip.dispatch_kind.to_string(), "asset:browser");
-    assert_eq!(material_chip.action_id.to_string(), "SetKindFilter");
+    assert_eq!(
+        material_chip.action_id.to_string(),
+        "workbench.asset.kind_filter.set"
+    );
     assert_eq!(
         material_chip.binding_id.to_string(),
         "AssetSurface/SetKindFilter"

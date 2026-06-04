@@ -36,19 +36,22 @@ fn components_exports_locked_input_and_navigation_api() {
 
     for snippet in [
         "SelectOptionData,",
-        "HubCheckBox,",
-        "HubCheckBoxRow,",
-        "HubComboBox,",
-        "HubSwitch,",
-        "HubTextField,",
-        "HubPathFieldRow,",
-        "HubToggleRow,",
-        "SearchBox,",
+        "HubSelectTrigger,",
         "ToolbarSelect,",
         "DropDownButton,",
         "SegmentButton,",
         "} from \"inputs.slint\";",
-        "export { HubTabs, NavRail } from \"navigation.slint\";",
+        "HubTextField,",
+        "HubPathFieldRow,",
+        "SearchBox,",
+        "} from \"text_input_components.slint\";",
+        "HubCheckBox,",
+        "HubCheckBoxRow,",
+        "HubComboBox,",
+        "HubSwitch,",
+        "HubToggleRow,",
+        "} from \"input_state_components.slint\";",
+        "export { HubTabs, NavButton, NavRail } from \"navigation.slint\";",
         "export { NavItemData } from \"shared.slint\";",
         "NavigationItem,",
         "MenuItem,",
@@ -67,6 +70,7 @@ fn components_exports_locked_input_and_navigation_api() {
 #[test]
 fn input_primitives_keep_public_state_and_callback_contracts() {
     let inputs = read_ui_file("inputs.slint");
+    let text_inputs = read_ui_file("text_input_components.slint");
 
     let cases = [
         (
@@ -103,7 +107,7 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
         ),
         (
             "HubPathFieldRow",
-            "ToolbarSelect",
+            "",
             &[
                 "in property <string> label;",
                 "in property <string> placeholder;",
@@ -168,7 +172,12 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
     ];
 
     for (component, next_component, required) in cases {
-        let component_source = inputs
+        let owner = if matches!(component, "SearchBox" | "HubTextField" | "HubPathFieldRow") {
+            &text_inputs
+        } else {
+            &inputs
+        };
+        let component_source = owner
             .split(&format!("export component {component}"))
             .nth(1)
             .and_then(|source| {
@@ -180,7 +189,7 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
                         .next()
                 }
             })
-            .unwrap_or_else(|| panic!("inputs.slint must declare {component}"));
+            .unwrap_or_else(|| panic!("input primitive owner must declare {component}"));
 
         for snippet in required {
             assert!(
@@ -193,11 +202,11 @@ fn input_primitives_keep_public_state_and_callback_contracts() {
 
 #[test]
 fn hub_combobox_keeps_public_menu_adapter_contract() {
-    let inputs = read_ui_file("inputs.slint");
-    let component_source = inputs
+    let input_state_components = read_ui_file("input_state_components.slint");
+    let component_source = input_state_components
         .split("export component HubComboBox")
         .nth(1)
-        .unwrap_or_else(|| panic!("inputs.slint must declare HubComboBox"));
+        .unwrap_or_else(|| panic!("input_state_components.slint must declare HubComboBox"));
 
     for snippet in [
         "in property <string> label;",
@@ -208,10 +217,10 @@ fn hub_combobox_keeps_public_menu_adapter_contract() {
         "in property <length> combo-width: HubTokens.input-width;",
         "in property <length> combo-height: HubTokens.input-field;",
         "callback selected(int);",
-        "HubDropDownSurface {",
-        "dropdown-width: parent.width;",
-        "dropdown-height: parent.height;",
-        "dropdown-items: root.items;",
+        "HubSelectDropDownSurface {",
+        "select-width: parent.width;",
+        "select-height: parent.height;",
+        "select-items: root.items;",
         "current_index <=> root.current-index;",
         "selected(index) =>",
     ] {

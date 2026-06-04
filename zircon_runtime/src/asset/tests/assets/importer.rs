@@ -143,25 +143,25 @@ fn importer_default_routes_zmaterial_and_rejects_legacy_material_toml() {
 }
 
 #[test]
-fn importer_default_rejects_legacy_v2_ui_toml_without_migration_fixture_backend() {
+fn importer_default_rejects_v2_ui_toml_without_source_fixture_backend() {
     let error = AssetImporter::default()
         .registry()
-        .descriptor_for_source(Path::new("legacy.v2.ui.toml"))
+        .descriptor_for_source(Path::new("source.v2.ui.toml"))
         .unwrap_err();
 
     assert!(
         error
             .to_string()
-            .contains("legacy UI v2 suffix `.v2.ui.toml` has no registered importer"),
+            .contains("UI v2 source-template suffix `.v2.ui.toml` has no registered importer"),
         "unexpected error: {error}"
     );
 }
 
 #[test]
-fn importer_default_rejects_legacy_ui_toml_without_migration_fixture_backend() {
+fn importer_default_rejects_ui_toml_without_source_fixture_backend() {
     let error = AssetImporter::default()
         .registry()
-        .descriptor_for_source(Path::new("legacy.ui.toml"))
+        .descriptor_for_source(Path::new("source.ui.toml"))
         .unwrap_err();
 
     assert!(
@@ -173,30 +173,30 @@ fn importer_default_rejects_legacy_ui_toml_without_migration_fixture_backend() {
 }
 
 #[test]
-fn importer_registry_rejects_non_fixture_legacy_ui_toml_importer_registration() {
+fn importer_registry_rejects_non_fixture_ui_toml_source_importer_registration() {
     let mut registry = AssetImporterRegistry::default();
 
     let error = registry
         .register(FunctionAssetImporter::new(
             AssetImporterDescriptor::new(
-                "third_party.legacy_ui",
+                "third_party.ui_source",
                 "third_party",
                 crate::asset::AssetKind::UiLayout,
                 1,
             )
             .with_full_suffixes([".ui.toml"]),
-            |context| test_data_outcome(context, "legacy"),
+            |context| test_data_outcome(context, "source-template"),
         ))
         .unwrap_err();
 
     assert_eq!(
         error,
-        AssetImporterRegistryError::LegacyUiTomlImporter("third_party.legacy_ui".to_string())
+        AssetImporterRegistryError::UiTomlSourceImporter("third_party.ui_source".to_string())
     );
 }
 
 #[test]
-fn importer_registry_rejects_non_fixture_legacy_v2_ui_toml_importer_registration() {
+fn importer_registry_rejects_non_fixture_v2_ui_toml_source_importer_registration() {
     let mut registry = AssetImporterRegistry::default();
 
     let error = registry
@@ -208,13 +208,13 @@ fn importer_registry_rejects_non_fixture_legacy_v2_ui_toml_importer_registration
                 2,
             )
             .with_full_suffixes([".v2.ui.toml"]),
-            |context| test_data_outcome(context, "legacy-v2"),
+            |context| test_data_outcome(context, "source-template-v2"),
         ))
         .unwrap_err();
 
     assert_eq!(
         error,
-        AssetImporterRegistryError::LegacyV2UiTomlImporter("third_party.v2_ui".to_string())
+        AssetImporterRegistryError::V2UiTomlSourceImporter("third_party.v2_ui".to_string())
     );
 }
 
@@ -300,13 +300,13 @@ fn importer_capability_report_marks_diagnostic_only_backends() {
 fn importer_reports_ui_toml_schema_migration() {
     let root = unique_temp_project_root("ui_toml_migration");
     fs::create_dir_all(&root).unwrap();
-    let path = root.join("legacy.ui.toml");
+    let path = root.join("source_fixture.ui.toml");
     fs::write(&path, version_one_ui_layout_toml()).unwrap();
 
     let outcome = importer_with_first_wave_plugin_fixtures()
         .import_with_settings(
             &path,
-            &AssetUri::parse("res://ui/legacy.ui.toml").unwrap(),
+            &AssetUri::parse("res://ui/source_fixture.ui.toml").unwrap(),
             Default::default(),
         )
         .unwrap();
@@ -1189,15 +1189,15 @@ fn version_one_ui_layout_toml() -> &'static str {
     r#"
 [asset]
 kind = "layout"
-id = "legacy.layout"
+id = "source_fixture.layout"
 version = 1
-display_name = "Legacy Layout"
+display_name = "Source Fixture Layout"
 
 [root]
-node_id = "legacy_root"
+node_id = "source_fixture_root"
 kind = "native"
 type = "VerticalBox"
-control_id = "LegacyRoot"
+control_id = "SourceFixtureRoot"
 "#
 }
 

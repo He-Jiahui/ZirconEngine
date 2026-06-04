@@ -1,5 +1,5 @@
-import { HubIconButton } from "button_components.slint";
-import { HubCheckBox } from "inputs.slint";
+import { HubRowActionButton } from "icon_button_components.slint";
+import { HubCheckBox } from "input_state_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { StatusBadge } from "surfaces.slint";
 import {
@@ -8,7 +8,6 @@ import {
     MaterialStyleMetrics,
     MaterialText,
     MaterialTypography,
-    StateLayerArea,
 } from "material_bridge.slint";
 
 export component HubRowLeadingIconSlot inherits Rectangle {
@@ -28,25 +27,53 @@ export component HubRowLeadingIconSlot inherits Rectangle {
     height: root.row-height;
     background: transparent;
 
-    Rectangle {
-        width: root.shell-size;
-        height: root.shell-size;
-        x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2;
-        border-radius: root.shell-radius;
-        border-width: root.shell-border-width;
-        border-color: root.shell-border;
-        background: root.shell-background;
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 0px;
 
-        if root.has-icon-image: Image {
-            width: root.icon-size;
-            height: root.icon-size;
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            source: root.icon-image;
-            colorize: root.icon-foreground;
-            image-fit: contain;
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+        HorizontalLayout {
+            width: parent.width;
+            height: root.shell-size;
+            alignment: center;
+
+            Rectangle {
+                width: root.shell-size;
+                height: root.shell-size;
+                border-radius: root.shell-radius;
+                border-width: root.shell-border-width;
+                border-color: root.shell-border;
+                background: root.shell-background;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: 0px;
+
+                    Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+                    HorizontalLayout {
+                        width: parent.width;
+                        height: root.icon-size;
+                        alignment: center;
+
+                        if root.has-icon-image: Image {
+                            width: root.icon-size;
+                            height: root.icon-size;
+                            source: root.icon-image;
+                            colorize: root.icon-foreground;
+                            image-fit: contain;
+                        }
+                    }
+
+                    Rectangle { vertical-stretch: 1; min-height: 0px; }
+                }
+            }
         }
+
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
     }
 }
 
@@ -65,17 +92,31 @@ export component HubRowSelectionSlot inherits Rectangle {
     height: root.row-height;
     background: transparent;
 
-    HubCheckBox {
-        width: root.control-size;
-        height: root.control-size;
-        x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2;
-        check-state: root.check-state;
-        tristate: root.tristate;
-        has-error: root.has-error;
-        enabled: root.enabled;
-        focused: root.focused;
-        changed(state) => { root.changed(state); }
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 0px;
+
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+        HorizontalLayout {
+            width: parent.width;
+            height: root.control-size;
+            alignment: center;
+
+            HubCheckBox {
+                width: root.control-size;
+                height: root.control-size;
+                check-state: root.check-state;
+                tristate: root.tristate;
+                has-error: root.has-error;
+                enabled: root.enabled;
+                focused: root.focused;
+                changed(state) => { root.changed(state); }
+            }
+        }
+
+        Rectangle { vertical-stretch: 1; min-height: 0px; }
     }
 }
 
@@ -194,45 +235,15 @@ export component HubRowTrailingSlot inherits Rectangle {
             badge-width: root.badge-width;
         }
 
-        if root.action-visible && root.action-framed: HubIconButton {
-            width: root.action-size;
-            height: root.action-size;
-            button-width: root.action-size;
-            button-height: root.action-size;
+        if root.action-visible: HubRowActionButton {
+            button-size: root.action-size;
             button-radius: root.action-radius;
             icon-image: root.action-icon-image;
-            has-icon-image: true;
             icon-size: root.action-icon-size;
             idle-foreground: root.action-foreground;
             state-layer-color: root.action-state-layer-color;
-            active: false;
+            framed: root.action-framed;
             clicked => { root.clicked(); }
-        }
-
-        if root.action-visible && !root.action-framed: Rectangle {
-            width: root.action-size;
-            height: root.action-size;
-            border-radius: root.action-radius;
-            background: transparent;
-            clip: true;
-
-            StateLayerArea {
-                width: parent.width;
-                height: parent.height;
-                color: root.action-state-layer-color;
-                border_radius: root.action-radius;
-                clicked => { root.clicked(); }
-            }
-
-            Image {
-                width: root.action-icon-size;
-                height: root.action-icon-size;
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
-                source: root.action-icon-image;
-                colorize: root.action-foreground;
-                image-fit: contain;
-            }
         }
     }
 }

@@ -214,22 +214,18 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
         .unwrap();
 
     let native_steps = world.scheduled_native_system_steps_for_stage(SystemStage::Update);
-    let step_labels = ScheduledSceneStep::sorted_for_stage(
-        SystemStage::Update,
-        Vec::new(),
-        native_steps,
-        Vec::new(),
-    )
-    .into_iter()
-    .map(|step| match step {
-        ScheduledSceneStep::Native { id, .. } => format!("native:{id}"),
-        ScheduledSceneStep::ApplyDeferred {
-            after_system_id, ..
-        } => format!("apply_deferred:{after_system_id}"),
-        ScheduledSceneStep::Internal(_) => "internal".to_string(),
-        ScheduledSceneStep::Hook(_) => "hook".to_string(),
-    })
-    .collect::<Vec<_>>();
+    let step_labels =
+        ScheduledSceneStep::sorted_for_stage(SystemStage::Update, &[], native_steps, &[])
+            .into_iter()
+            .map(|step| match step {
+                ScheduledSceneStep::Native { id, .. } => format!("native:{id}"),
+                ScheduledSceneStep::ApplyDeferred {
+                    after_system_id, ..
+                } => format!("apply_deferred:{after_system_id}"),
+                ScheduledSceneStep::Internal(_) => "internal".to_string(),
+                ScheduledSceneStep::Hook(_) => "hook".to_string(),
+            })
+            .collect::<Vec<_>>();
 
     assert_eq!(
         step_labels,
@@ -240,6 +236,25 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
             "native:gameplay.after-commands",
         ]
     );
+}
+
+#[test]
+fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
+    let driver_source = include_str!("../module/world_driver.rs");
+    assert!(driver_source.contains("let hooks = core.scene_runtime_hooks_snapshot();"));
+    assert!(driver_source.contains("&systems, &hooks"));
+    assert!(!driver_source.contains("systems_for_stage(&systems"));
+    assert!(!driver_source.contains("scene_runtime_hooks_for_stage(stage)"));
+
+    let runner_source = include_str!("../ecs/schedule_runner.rs");
+    assert!(runner_source.contains("internal_systems: &[SceneSystemDescriptor]"));
+    assert!(runner_source.contains("hooks: &[SceneRuntimeHookRegistration]"));
+
+    let step_source = include_str!("../ecs/system/native/scheduled_scene_step.rs");
+    assert!(step_source.contains("internal_systems: &[SceneSystemDescriptor]"));
+    assert!(step_source.contains("hooks: &[SceneRuntimeHookRegistration]"));
+    assert!(!step_source.contains("internal_systems: Vec<SceneSystemDescriptor>"));
+    assert!(!step_source.contains("hooks: Vec<SceneRuntimeHookRegistration>"));
 }
 
 #[test]

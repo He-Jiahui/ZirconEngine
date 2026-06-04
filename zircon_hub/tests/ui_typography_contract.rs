@@ -61,22 +61,46 @@ fn shared_typography_wrappers_use_material_text() {
 fn builds_current_task_status_uses_material_text() {
     let builds = read_ui_file("builds.slint");
     let builds_components = read_ui_file("builds_page_components.slint");
+    let surfaces = read_ui_file("surfaces.slint");
+    let section_summary = surfaces
+        .split("export component HubSectionSummary")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("export component HubSection inherits Rectangle")
+                .next()
+        })
+        .expect("surfaces.slint must declare HubSectionSummary before HubSection");
 
     for snippet in [
         "HubSection,",
+        "HubSectionSummary,",
         "HubSection {",
         "section-height: root.current-task-section-height;",
         "section-height: root.history-section-height;",
         "title: root.current-task-title;",
         "title: root.build-history-title;",
-        "MaterialText,",
-        "MaterialText {",
-        "text: root.status-label;",
-        "style: MaterialTypography.headline_small;",
+        "HubSectionSummary {",
+        "title: root.status-label;",
+        "detail: root.readiness.operation-summary;",
+        "title-foreground: HubVisualSpec.accent-stroke;",
+        "prominent: true;",
     ] {
         assert!(
             builds_components.contains(snippet),
-            "BuildTaskHistoryPanel current task status should delegate typography to MaterialText; missing {snippet}"
+            "BuildTaskHistoryPanel current task status should delegate summary text to HubSectionSummary; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "MaterialText,",
+        "MaterialText {",
+        "text: root.title;",
+        "style: root.prominent ? MaterialTypography.headline_small : MaterialTypography.title_small;",
+        "if root.detail != \"\": MutedText",
+    ] {
+        assert!(
+            surfaces.contains(snippet) || section_summary.contains(snippet),
+            "HubSectionSummary should own MaterialText-backed section summary typography; missing {snippet}"
         );
     }
     assert!(
@@ -85,6 +109,17 @@ fn builds_current_task_status_uses_material_text() {
             && !builds.contains("MutedText {"),
         "BuildsPage should compose BuildTaskHistoryPanel instead of owning current-task text nodes"
     );
+    let current_task_section = builds_components
+        .split("title: root.current-task-title;")
+        .nth(1)
+        .and_then(|source| source.split("Divider {}").next())
+        .expect("BuildTaskHistoryPanel must declare current task section before the divider");
+    for forbidden in ["MaterialText {", "MutedText {"] {
+        assert!(
+            !current_task_section.contains(forbidden),
+            "BuildTaskHistoryPanel current task section should not hand-build summary text after adopting HubSectionSummary: {forbidden}"
+        );
+    }
     assert!(
         !builds_components
             .lines()
@@ -177,35 +212,83 @@ fn cloud_and_team_workspace_typography_uses_material_text() {
     let team_components = read_ui_file("team_page_components.slint");
     let team_surface = format!("{team}\n{team_components}");
 
+    let metric_text_stack = data_display
+        .split("component MetricCardTextStack")
+        .nth(1)
+        .and_then(|source| source.split("export component MetricCard").next())
+        .expect("data_display.slint must declare MetricCardTextStack before MetricCard");
     let metric_card = data_display
         .split("export component MetricCard")
         .nth(1)
-        .and_then(|source| source.split("export component BuildHistoryRow").next())
-        .expect("data_display.slint must declare MetricCard before BuildHistoryRow");
+        .and_then(|source| source.split("export component HubMetricSlot").next())
+        .expect("data_display.slint must declare MetricCard before HubMetricSlot");
     for snippet in [
         "MaterialText {",
         "text: root.primary;",
         "style: MaterialTypography.title_small;",
     ] {
         assert!(
-            metric_card.contains(snippet),
-            "MetricCard should delegate primary metric typography to MaterialText; missing {snippet}"
+            metric_text_stack.contains(snippet),
+            "MetricCardTextStack should delegate primary metric typography to MaterialText; missing {snippet}"
         );
     }
     assert!(
-        !metric_card.lines().any(|line| line.trim() == "Text {"),
-        "MetricCard should not return to raw Text nodes"
+        metric_card.contains("MetricCardTextStack {")
+            && metric_card.contains("label: root.label;")
+            && metric_card.contains("primary: root.primary;")
+            && metric_card.contains("secondary: root.secondary;")
+            && metric_card.contains("compact: root.compact;"),
+        "MetricCard should forward metric text into MetricCardTextStack instead of owning typography inline"
+    );
+    assert!(
+        !metric_text_stack
+            .lines()
+            .any(|line| line.trim() == "Text {")
+            && !metric_card.lines().any(|line| line.trim() == "Text {"),
+        "MetricCardTextStack and MetricCard should not return to raw Text nodes"
     );
     for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
         assert!(
-            !metric_card.contains(forbidden),
-            "MetricCard should not return to raw Text font bindings: {forbidden}"
+            !metric_text_stack.contains(forbidden) && !metric_card.contains(forbidden),
+            "MetricCardTextStack and MetricCard should not return to raw Text font bindings: {forbidden}"
         );
     }
+    let metric_slot = data_display
+        .split("export component HubMetricSlot")
+        .nth(1)
+        .and_then(|source| source.split("export component BuildHistoryRow").next())
+        .expect("data_display.slint must declare HubMetricSlot before BuildHistoryRow");
+    assert!(
+        data_display.contains("export component HubMetricSlot inherits ResponsiveSlot"),
+        "data_display.slint must expose HubMetricSlot as the responsive metric-card wrapper"
+    );
+    for snippet in [
+        "in property <string> label;",
+        "in property <string> primary;",
+        "in property <string> secondary;",
+        "in property <bool> compact-card: false;",
+        "MetricCard {",
+        "label: root.label;",
+        "primary: root.primary;",
+        "secondary: root.secondary;",
+        "compact: root.compact-card;",
+    ] {
+        assert!(
+            metric_slot.contains(snippet),
+            "HubMetricSlot should centralize responsive metric-card composition; missing {snippet}"
+        );
+    }
+    for forbidden in ["MaterialText {", "Text {"] {
+        assert!(
+            !metric_slot.contains(forbidden),
+            "HubMetricSlot should delegate text rendering to MetricCard instead of owning typography: {forbidden}"
+        );
+    }
+
     for (page_name, source) in [("CloudPage", &cloud_surface), ("TeamPage", &team_surface)] {
         assert!(
-            source.contains("MetricCard {"),
-            "{page_name} should reuse the shared data-display MetricCard for summary metrics"
+            source.contains("inherits HubMetricSlot"),
+            "{page_name} should reuse the shared data-display HubMetricSlot for summary metrics"
         );
         assert!(
             source.contains("HubListPanelSlot,"),
@@ -295,24 +378,97 @@ fn dashboard_project_card_and_empty_titles_use_material_text() {
         .nth(1)
         .and_then(|source| source.split("export component ProjectFlow").next())
         .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
+    let project_card_identity = project_card_flow_components
+        .split("component ProjectCardIdentityStack")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectCard").next())
+        .expect(
+            "project_card_flow_components.slint must declare ProjectCardIdentityStack before ProjectCard",
+        );
+    let button_states_title = dashboard_components
+        .split("component DashboardButtonStatesTitle")
+        .nth(1)
+        .and_then(|source| source.split("component DashboardButtonStatesSectionLabel").next())
+        .expect(
+            "project_dashboard_components.slint must declare DashboardButtonStatesTitle before DashboardButtonStatesSectionLabel",
+        );
+    let button_states_section_label = dashboard_components
+        .split("component DashboardButtonStatesSectionLabel")
+        .nth(1)
+        .and_then(|source| source.split("export component DashboardButtonStatesStrip").next())
+        .expect(
+            "project_dashboard_components.slint must declare DashboardButtonStatesSectionLabel before DashboardButtonStatesStrip",
+        );
+    let button_states_strip = dashboard_components
+        .split("export component DashboardButtonStatesStrip")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .expect("project_dashboard_components.slint must export DashboardButtonStatesStrip");
     for snippet in [
         "MaterialText,",
+        "component ProjectCardIdentityStack inherits Rectangle",
         "MaterialText {",
         "text: root.project.title;",
         "style: MaterialTypography.title_small;",
         "vertical_alignment: center;",
+        "MutedText {",
+        "text: root.project.project-path;",
+        "text: root.modified-label;",
     ] {
         assert!(
-            dashboard_surface.contains(snippet) || project_card.contains(snippet),
-            "ProjectCard title should delegate typography to MaterialText; missing {snippet}"
+            dashboard_surface.contains(snippet) || project_card_identity.contains(snippet),
+            "ProjectCardIdentityStack should own MaterialText-backed card identity typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "ProjectCardIdentityStack {",
+        "project: root.project;",
+        "modified-label: root.visible-modified-label;",
+        "title-row-height: max(MaterialTypography.title_large.font_size, root.status-badge-height);",
+        "status-badge-width: root.status-badge-width;",
+        "status-badge-height: root.status-badge-height;",
+    ] {
+        assert!(
+            project_card.contains(snippet),
+            "ProjectCard should delegate title/path/modified text to ProjectCardIdentityStack; missing {snippet}"
+        );
+    }
+    for forbidden in ["MaterialText {", "MutedText {", "text: root.project.title;"] {
+        assert!(
+            !project_card.contains(forbidden),
+            "ProjectCard should not recreate identity typography after adopting ProjectCardIdentityStack: {forbidden}"
         );
     }
     for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
         assert!(
-            !project_card.contains(forbidden),
-            "ProjectCard title should not return to raw Text font bindings: {forbidden}"
+            !project_card.contains(forbidden) && !project_card_identity.contains(forbidden),
+            "ProjectCard identity typography should not return to raw Text font bindings: {forbidden}"
         );
     }
+    for snippet in [
+        "inherits MaterialText",
+        "text: root.title;",
+        "style: MaterialTypography.title_medium;",
+        "color: MaterialPalette.on_surface;",
+    ] {
+        assert!(
+            button_states_title.contains(snippet),
+            "DashboardButtonStatesTitle should own the MaterialText title typography; missing {snippet}"
+        );
+    }
+    for snippet in ["inherits MutedText", "text: root.label;"] {
+        assert!(
+            button_states_section_label.contains(snippet),
+            "DashboardButtonStatesSectionLabel should own muted section-label typography; missing {snippet}"
+        );
+    }
+    assert!(
+        button_states_strip.contains("DashboardButtonStatesTitle {")
+            && button_states_strip.contains("DashboardButtonStatesSectionLabel {")
+            && !button_states_strip.contains("MaterialText {")
+            && !button_states_strip.contains("MutedText {"),
+        "DashboardButtonStatesStrip should delegate visible labels to MaterialText-backed label helpers"
+    );
 
     let project_flow = project_card_flow_components
         .split("export component ProjectFlow")
@@ -385,9 +541,24 @@ fn project_workflow_typography_uses_material_text() {
     let detail_page = read_ui_file("project_detail_page.slint");
     let project_pages = read_ui_file("project_pages.slint");
     let surfaces = read_ui_file("surfaces.slint");
+    let table_view = read_ui_file("table_view_components.slint");
     let project_text_surface = format!(
-        "{components}\n{browser_components}\n{detail_components}\n{new_page}\n{browser_page}\n{detail_page}"
+        "{components}\n{browser_components}\n{detail_components}\n{new_page}\n{browser_page}\n{detail_page}\n{table_view}"
     );
+    let project_detail_action_note = detail_components
+        .split("component ProjectDetailActionNote")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailActionStack").next())
+        .expect(
+            "project_detail_components.slint must declare ProjectDetailActionNote before ProjectDetailActionStack",
+        );
+    let project_create_section_label = components
+        .split("component ProjectCreateSectionLabel")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectCreateSettingsPanel").next())
+        .expect(
+            "project_page_components.slint must declare ProjectCreateSectionLabel before ProjectCreateSettingsPanel",
+        );
 
     for snippet in [
         "MaterialText,",
@@ -415,6 +586,7 @@ fn project_workflow_typography_uses_material_text() {
         "ProjectDetailPinToggleRow",
         "ProjectDetailInfoSection",
         "ProjectDetailEngineSection",
+        "ProjectDetailMainPanel",
         "ProjectBrowserRow",
     ] {
         let component_source = if component_name == "ProjectBrowserRow" {
@@ -453,6 +625,10 @@ fn project_workflow_typography_uses_material_text() {
                         .split("export component ProjectDetailEngineSection")
                         .next()
                 } else if component_name == "ProjectDetailInfoSection" {
+                    source
+                        .split("export component ProjectDetailMainPanel")
+                        .next()
+                } else if component_name == "ProjectDetailMainPanel" {
                     source.split("export component ").next()
                 } else {
                     source.split("export component ").next()
@@ -464,13 +640,45 @@ fn project_workflow_typography_uses_material_text() {
                 component.contains("ProjectCreateSummary {"),
                 "{component_name} should delegate visible text to MaterialText-backed project summary components"
             );
+        } else if component_name == "PageHeader" {
+            assert!(
+                component.contains("PageHeaderTitleStack {")
+                    && component.contains("title: root.title;")
+                    && component.contains("subtitle: root.subtitle;"),
+                "{component_name} should delegate title/subtitle text to the focused PageHeaderTitleStack"
+            );
+        } else if component_name == "ProjectBrowserRow" {
+            assert!(
+                component.contains("ProjectBrowserNameCell {")
+                    && component.contains("TableCellText {")
+                    && !component.contains("MaterialText {")
+                    && !component.contains("MutedText {"),
+                "{component_name} should delegate custom and ordinary Browser row text to focused MaterialText-backed cells"
+            );
         } else if component_name == "ProjectCreateSettingsPanel" {
             assert!(
-                component.contains("PanelHeader {")
-                    && (component.contains("ProjectSettingSummaryRow {")
-                        || component.contains("ProjectEngineChoiceList {")),
-                "{component_name} should delegate visible text to MaterialText-backed project workflow components"
+                component.contains("inherits HubContentPanelSlot")
+                    && component.contains("ProjectCreateSectionLabel {")
+                    && component.contains("label-height: root.section-label-height;")
+                    && component.contains("label-text: root.ui-text.source-engine;")
+                    && component.contains("ProjectEngineChoiceList {")
+                    && component.contains("ProjectCreateSummary {")
+                    && !component.contains("MaterialText {"),
+                "{component_name} should delegate section labels and visible form text to focused MaterialText-backed project workflow components"
             );
+            for snippet in [
+                "inherits MaterialText",
+                "height: root.label-height;",
+                "text: root.label-text;",
+                "color: MaterialPalette.on_surface_variant;",
+                "style: MaterialTypography.body_small;",
+                "vertical_alignment: center;",
+            ] {
+                assert!(
+                    project_create_section_label.contains(snippet),
+                    "ProjectCreateSectionLabel should own source-engine section label typography; missing {snippet}"
+                );
+            }
         } else if component_name == "ProjectDetailInfoSection"
             || component_name == "ProjectDetailEngineSection"
         {
@@ -482,8 +690,7 @@ fn project_workflow_typography_uses_material_text() {
             );
         } else if component_name == "ProjectDetailActionsSection" {
             assert!(
-                component.contains("inherits PanelSlot")
-                    && component.contains("PanelHeader {")
+                component.contains("inherits HubContentPanelSlot")
                     && component.contains("ProjectDetailActionStack {")
                     && component.contains("ProjectDetailDeleteActionStack {")
                     && component.contains("ProjectDetailEngineSection {")
@@ -496,9 +703,21 @@ fn project_workflow_typography_uses_material_text() {
                 component.contains("inherits HubActionStack")
                     && component.contains("HubActionCommandButton {")
                     && component.contains("ProjectDetailPinToggleRow {")
-                    && component.contains("MutedText {"),
-                "{component_name} should delegate visible command text through HubActionCommandButton, HubToggleRow, and MutedText primitives"
+                    && component.contains("ProjectDetailActionNote {")
+                    && !component.contains("MutedText {"),
+                "{component_name} should delegate visible command text through HubActionCommandButton, HubToggleRow, and ProjectDetailActionNote primitives"
             );
+            for snippet in [
+                "inherits MutedText",
+                "text: root.note-text;",
+                "height: root.note-height;",
+                "overflow: elide;",
+            ] {
+                assert!(
+                    project_detail_action_note.contains(snippet),
+                    "ProjectDetailActionNote should own muted action-note typography; missing {snippet}"
+                );
+            }
         } else if component_name == "ProjectDetailDeleteActionStack" {
             assert!(
                 component.contains("inherits HubActionStack")
@@ -524,6 +743,13 @@ fn project_workflow_typography_uses_material_text() {
                 component.contains("inherits HubBadgeMetaStrip")
                     && component.contains("meta-text: root.copy.modified-prefix"),
                 "{component_name} should delegate visible text to the MaterialText-backed HubBadgeMetaStrip primitive"
+            );
+        } else if component_name == "ProjectDetailMainPanel" {
+            assert!(
+                component.contains("inherits HubMediaContentPanelSlot")
+                    && component.contains("ProjectDetailStatusStrip {")
+                    && component.contains("ProjectDetailInfoSection {"),
+                "{component_name} should delegate visible text to the shared media/content panel plus typed status and info sections"
             );
         } else {
             assert!(

@@ -3,8 +3,8 @@ mod support;
 use crate::core::CoreRuntime;
 
 use support::{
-    assert_light_family_series, assert_render_bool_series, assert_render_count_series,
-    assert_series_current, fake_render_module, DIAGNOSTICS_TEST_MODULE,
+    assert_light_family_series, assert_render_bool_series, assert_render_byte_series,
+    assert_render_count_series, assert_series_current, fake_render_module, DIAGNOSTICS_TEST_MODULE,
 };
 
 #[test]
@@ -275,6 +275,30 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         2.0,
         &["graph", "transient", "buffer"],
     );
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.graph.transient_texture_bytes_reserved",
+        4_194_304.0,
+        &["graph", "transient", "texture"],
+    );
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.graph.transient_buffer_bytes_reserved",
+        65_536.0,
+        &["graph", "transient", "buffer"],
+    );
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.graph.transient_dense_bytes_reserved",
+        4_259_840.0,
+        &["graph", "transient"],
+    );
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.graph.sparse_texture_virtual_bytes",
+        16_777_216.0,
+        &["graph", "transient", "texture", "sparse_texture"],
+    );
     assert_render_count_series(
         &snapshot.store,
         "render.graph.executed_pass_count",
@@ -370,6 +394,12 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.graph.executed_particle_pass_count",
         1.0,
         &["graph", "particle"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.executed_shadow_pass_count",
+        1.0,
+        &["graph", "shadow"],
     );
     assert_render_count_series(
         &snapshot.store,

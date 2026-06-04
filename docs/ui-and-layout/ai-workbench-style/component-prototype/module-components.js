@@ -29,9 +29,13 @@ export function moduleRight(module) {
 }
 
 export function bottomOutput(id, tabLabels, body) {
+  const panelId = `module-bottom-${id}`;
   return `<section class="zr-panel zr-module-bottom" data-surface="drawer" data-module-panel="bottom" data-panel-host="module-bottom-${esc(id)}">
-    ${panelTabs(tabLabels, 0, `module-bottom-${id}`)}
-    <div class="zr-module-bottom-body">${panelView(`module-bottom-${id}`, tabKey(tabLabels[0]), true, body)}${tabLabels.slice(1).map((label) => panelView(`module-bottom-${id}`, tabKey(label), false, placeholderOutput(label))).join("")}</div>
+    ${panelGroup(panelId, tabLabels.map((label, index) => ({
+      label,
+      active: index === 0,
+      content: index === 0 ? body : generatedBottomPanel(id, label, index)
+    })), { className: "is-module-bottom" })}
   </section>`;
 }
 
@@ -51,6 +55,18 @@ export function panelTabs(items, active, panel) {
 
 export function panelView(panel, key, active, content) {
   return `<div class="zr-panel-view ${active ? "is-active" : ""}" data-surface="panel-view" data-panel-view="${esc(panel)}:${esc(key)}">${content}</div>`;
+}
+
+export function panelGroup(panel, items, options = {}) {
+  const active = Math.max(0, items.findIndex((item) => item.active));
+  const activeIndex = active >= 0 ? active : Number(options.active ?? 0);
+  const host = options.host ?? panel;
+  const classes = ["zr-panel-group"];
+  if (options.className) classes.push(options.className);
+  return `<div class="${classes.join(" ")}" data-panel-group="${esc(panel)}" data-panel-host="${esc(host)}">
+    ${panelTabs(items.map((item) => item.label), activeIndex, panel)}
+    <div class="zr-panel-group-body">${items.map((item, index) => panelView(panel, tabKey(item.key ?? item.label), index === activeIndex, item.content)).join("")}</div>
+  </div>`;
 }
 
 export function tabKey(value) {
@@ -164,6 +180,52 @@ export function progress(value) {
   return `<span class="zr-module-progress" style="--progress:${Number(value) || 0}%"><span></span><small>${esc(value)}%</small></span>`;
 }
 
-function placeholderOutput(label) {
-  return `<div class="zr-module-placeholder"><strong>${esc(label)}</strong><span>No live data is connected in this HTML/CSS prototype.</span>${actionButton("Acknowledge", "check")}</div>`;
+function generatedBottomPanel(id, label, index) {
+  const key = tabKey(label);
+  const route = `module-bottom-${id}:${key}`;
+  return `<div class="zr-module-output-grid is-generated-bottom" data-generated-bottom-panel="${esc(route)}">
+    ${moduleTable(["Channel", "Scope", "State"], generatedBottomRows(id, label, key, index), "1.2fr 1fr 0.95fr")}
+    ${settingsRows([
+      ["Panel", tag(label, "cyan")],
+      ["Module", tag(titleCase(id), id === "editor-library" ? "orange" : "green")],
+      ["Route", tag(route, "blue")],
+      ["Mode", select(bottomPanelMode(label))],
+      ["Live Filter", select("Active selection")]
+    ])}
+    <div class="zr-module-log"><p>${esc(titleCase(id))} / ${esc(label)} is composed from the shared bottom drawer panel generator.</p><p class="is-success">Panel tabs, rows, fields, and buttons all route through the same prototype response path.</p><p class="is-warning">${esc(bottomPanelWarning(id, label))}</p>${actionButton(`Open ${label}`, "target")}${actionButton(`Pin ${label}`, "check")}</div>
+  </div>`;
+}
+
+function generatedBottomRows(id, label, key, index) {
+  const title = titleCase(id);
+  return [
+    { cells: [`${label} Feed`, title, tag("Routed", "green")], selected: true },
+    { cells: ["Selected Context", `${title} shared drawer`, tag(bottomPanelMode(label), "cyan")] },
+    { cells: ["Progress", key, progress(Math.min(100, 42 + index * 12))] },
+    { cells: ["Native Target", id === "editor-library" ? "Prototype library route" : "Retained/Taffy bottom panel", tag(id === "editor-library" ? "Web" : "Core", id === "editor-library" ? "orange" : "green")] }
+  ];
+}
+
+function bottomPanelMode(label) {
+  const normalized = tabKey(label);
+  if (/compile|shader|cook|package|build|error|warning/.test(normalized)) return "Build";
+  if (/validation|issue|binding|migration/.test(normalized)) return "Validation";
+  if (/timeline|trace|event|simulation|perception|debug|console/.test(normalized)) return "Runtime";
+  if (/preview|variant|reference|resource|selection|queue/.test(normalized)) return "Review";
+  return "Output";
+}
+
+function bottomPanelWarning(id, label) {
+  if (id === "editor-library") {
+    return `${label} stays in the browser prototype and links back to the extension catalog.`;
+  }
+  return `${label} is a route-responsive web panel ready for native retained-host promotion.`;
+}
+
+function titleCase(value) {
+  return String(value)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }

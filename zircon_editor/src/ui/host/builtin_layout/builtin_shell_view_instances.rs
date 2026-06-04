@@ -73,6 +73,14 @@ pub(super) fn builtin_shell_view_instances(
             host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
         },
         ViewInstance {
+            instance_id: ViewInstanceId::new("editor.generated_bottom#1"),
+            descriptor_id: ViewDescriptorId::new("editor.generated_bottom"),
+            title: "Generated Output".to_string(),
+            serializable_payload: serde_json::Value::Null,
+            dirty: false,
+            host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
+        },
+        ViewInstance {
             instance_id: ViewInstanceId::new("editor.game#1"),
             descriptor_id: ViewDescriptorId::new("editor.game"),
             title: "Game".to_string(),

@@ -100,6 +100,7 @@ pub(crate) struct PaneNativeBodyData {
     pub performance_timeline: PerformanceTimelinePaneViewData,
     pub module_plugins: ModulePluginsPaneViewData,
     pub build_export: BuildExportPaneViewData,
+    pub generated_bottom: GeneratedBottomPaneViewData,
     pub ui_asset: UiAssetEditorPanePresentation,
     pub animation: AnimationEditorPaneViewData,
 }
@@ -272,6 +273,12 @@ pub(crate) struct BuildExportTargetViewData {
 pub(crate) struct BuildExportPaneViewData {
     pub targets: ModelRc<BuildExportTargetViewData>,
     pub diagnostics: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct GeneratedBottomPaneViewData {
+    pub nodes: ModelRc<ViewTemplateNodeData>,
+    pub status: SharedString,
 }
 
 #[derive(Clone, Default)]

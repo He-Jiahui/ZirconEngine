@@ -2,7 +2,8 @@ import { OperationTimelineRowData, SettingStatusData, UiTextData } from "shared.
 import {
     HubTokens,
     HubVisualSpec,
-    HubCompactTabStrip,
+    HubWorkspaceSplitState,
+    HubWorkspaceTabStrip,
     OperationTimelinePanel,
     PageScrollSurface,
     WorkspacePanelSection,
@@ -31,9 +32,7 @@ export component SettingsPage inherits PageScrollSurface {
     in property <[OperationTimelineRowData]> operation-timeline;
     in property <int> operation-timeline-count;
     in property <UiTextData> ui-text;
-    private property <bool> compact: root.content-width < HubTokens.panel-min-lg + HubTokens.control-lg + HubTokens.panel-min-md + HubTokens.panel-gap;
-    private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
-    private property <bool> health-compact-labels: root.compact-labels || root.content-width < HubTokens.breakpoint-wide;
+    private property <bool> health-compact-labels: workspace-split.compact-labels || root.content-width < HubTokens.breakpoint-wide;
     private property <length> save-button-width: min(root.content-width, HubTokens.panel-min-sm);
     private property <int> settings-status-count: root.settings-statuses.length;
     private property <length> health-empty-height: HubTokens.list-row-lg + HubTokens.space-4;
@@ -48,17 +47,25 @@ export component SettingsPage inherits PageScrollSurface {
     background: HubVisualSpec.page-background;
     clip: true;
 
-    HubCompactTabStrip {
+    workspace-split := HubWorkspaceSplitState {
+        content-width: root.content-width;
+        main-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
+        side-basis: HubTokens.panel-min-md;
+        compact-label-breakpoint: HubTokens.breakpoint-medium;
+        main-grow: 2;
+        side-grow: 1;
+    }
+
+    HubWorkspaceTabStrip {
         current-index: 0;
         first-label: "General";
         second-label: root.ui-text.build-defaults;
         third-label: root.ui-text.default-paths;
         fourth-label: root.ui-text.configuration-health;
-        tab-width: HubTokens.control-md * 4;
     }
 
     WorkspacePanelSection {
-        compact: root.compact;
+        compact: workspace-split.compact;
         row-height: root.settings-primary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
@@ -66,11 +73,11 @@ export component SettingsPage inherits PageScrollSurface {
         SettingsConfigurationOverviewPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
             flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
-            grow: 1;
-            flex-grow: 1;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.settings-primary-row-height;
             panel-title: "Configuration Overview";
             ui-text: root.ui-text;
@@ -83,11 +90,11 @@ export component SettingsPage inherits PageScrollSurface {
         SettingsToolchainPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
             flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
-            grow: 1;
-            flex-grow: 1;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.settings-primary-row-height;
             panel-title: root.ui-text.toolchain;
             ui-text: root.ui-text;
@@ -98,19 +105,19 @@ export component SettingsPage inherits PageScrollSurface {
     }
 
     WorkspacePanelSection {
-        compact: root.compact;
+        compact: workspace-split.compact;
         row-height: root.settings-secondary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
         SettingsDefaultPathsPanel {
-            basis: HubTokens.panel-min-lg + HubTokens.control-lg;
-            flex-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
-            grow: 2;
-            flex-grow: 2;
+            basis: workspace-split.main-basis;
+            flex-basis: workspace-split.main-basis;
+            grow: workspace-split.main-grow;
+            flex-grow: workspace-split.main-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
+            min-width: workspace-split.main-min-width;
             height: root.settings-secondary-row-height;
             panel-title: root.ui-text.default-paths;
             ui-text: root.ui-text;
@@ -125,13 +132,13 @@ export component SettingsPage inherits PageScrollSurface {
         }
 
         SettingsConfigurationHealthPanel {
-            basis: HubTokens.panel-min-md;
-            flex-basis: HubTokens.panel-min-md;
-            grow: 1;
-            flex-grow: 1;
+            basis: workspace-split.side-basis;
+            flex-basis: workspace-split.side-basis;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-md;
+            min-width: workspace-split.side-min-width;
             height: root.settings-secondary-row-height;
             panel-title: root.ui-text.configuration-health;
             ui-text: root.ui-text;
@@ -157,7 +164,7 @@ export component SettingsPage inherits PageScrollSurface {
     }
 
     WorkspacePanelSection {
-        compact: root.compact;
+        compact: workspace-split.compact;
         row-height: root.settings-primary-row-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
@@ -165,11 +172,11 @@ export component SettingsPage inherits PageScrollSurface {
         SettingsBuildDefaultsPanel {
             basis: HubTokens.panel-min-md + HubTokens.control-sm;
             flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
-            grow: 1;
-            flex-grow: 1;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.settings-primary-row-height;
             panel-title: root.ui-text.build-defaults;
             ui-text: root.ui-text;
@@ -181,11 +188,11 @@ export component SettingsPage inherits PageScrollSurface {
         OperationTimelinePanel {
             basis: HubTokens.panel-min-lg;
             flex-basis: HubTokens.panel-min-lg;
-            grow: 1;
-            flex-grow: 1;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-lg;
             height: root.settings-primary-row-height;
             timeline-title: root.ui-text.operation-timeline;
             empty-title: root.ui-text.no-operation-timeline;
@@ -194,7 +201,7 @@ export component SettingsPage inherits PageScrollSurface {
             operation-timeline-count: root.operation-timeline-count;
             row-height: HubTokens.list-row-md;
             timeline-scroll-y <=> root.operation-timeline-scroll-y;
-            collapse-label: root.compact-labels;
+            collapse-label: workspace-split.compact-labels;
         }
     }
 

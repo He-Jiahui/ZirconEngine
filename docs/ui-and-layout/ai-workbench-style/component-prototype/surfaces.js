@@ -1,6 +1,7 @@
 import { icon } from "./icons.js";
 import { cluster, grid, stack } from "./layout.js";
 import { defaultModuleId, moduleRail, moduleTabs, moduleToolbar } from "./modules.js";
+import { panelGroup } from "./module-components.js";
 import { button, checkbox, iconButton, input, numberField, radio, rangeSlider, searchInput, select, slider, tabs, toggle } from "./atoms.js";
 import { alerts, listView, menu, tableView, toast, tooltip, treeView } from "./collections.js";
 import { alerts as alertData, inspectorSections, listItems, menuItems, sceneTree, tableRows } from "./data.js";
@@ -11,10 +12,6 @@ export function workbenchWindow(children) {
 
 function drawerSurface({ tag = "aside", className, host, kind = "drawer", children }) {
   return `<${tag} class="zr-panel ${className}" data-surface="${kind}" data-panel-host="${host}">${children.join("")}</${tag}>`;
-}
-
-function panelView(panel, key, active, content) {
-  return `<div class="zr-panel-view ${active ? "is-active" : ""}" data-surface="panel-view" data-panel-view="${panel}:${key}">${content}</div>`;
 }
 
 export function topbar(activeModuleId = defaultModuleId) {
@@ -42,18 +39,12 @@ export function scenePanel() {
     className: "zr-scene-panel",
     host: "scene",
     children: [
-      panelTabs(["Scene", "Layers"], 0, "scene"),
-      panelView("scene", "scene", true, `${grid({ className: "zr-panel-toolbar", children: [searchInput("Search..."), sceneActions] })}${treeView(sceneTree)}`),
-      panelView("scene", "layers", false, layersView())
+      panelGroup("scene", [
+        { label: "Scene", active: true, content: `${grid({ className: "zr-panel-toolbar", children: [searchInput("Search..."), sceneActions] })}${treeView(sceneTree)}` },
+        { label: "Layers", content: layersView() }
+      ])
     ]
   });
-}
-
-function panelTabs(items, active, panel) {
-  return `<div class="zr-panel-tabs">${items.map((item, index) => {
-    const key = item.toLowerCase().replace(/\s+/g, "-");
-    return `<button class="zr-panel-tab ${index === active ? "is-active" : ""}" type="button" role="tab" aria-selected="${index === active ? "true" : "false"}" data-panel-tab="${panel}:${key}">${item}</button>`;
-  }).join("")}</div>`;
 }
 
 export function viewport() {
@@ -103,9 +94,10 @@ export function inspector() {
     host: "inspector",
     kind: "window",
     children: [
-      panelTabs(["Inspector", "History"], 0, "inspector"),
-      panelView("inspector", "inspector", true, `<div class="zr-inspector-body"><div class="zr-object-header">${icon("cube")}<span>Props</span>${checkbox("Static", false)}${icon("more")}</div><div class="zr-form-row"><span>Tag</span>${select("Untagged")}<span>Layer</span>${select("Default")}</div>${inspectorSections.map(section).join("")}${button("Add Component", { icon: "plus" })}</div>`),
-      panelView("inspector", "history", false, historyView())
+      panelGroup("inspector", [
+        { label: "Inspector", active: true, content: `<div class="zr-inspector-body"><div class="zr-object-header">${icon("cube")}<span>Props</span>${checkbox("Static", false)}${icon("more")}</div><div class="zr-form-row"><span>Tag</span>${select("Untagged")}<span>Layer</span>${select("Default")}</div>${inspectorSections.map(section).join("")}${button("Add Component", { icon: "plus" })}</div>` },
+        { label: "History", content: historyView() }
+      ])
     ]
   });
 }
@@ -161,9 +153,10 @@ export function showcase() {
     className: "zr-showcase",
     host: "showcase",
     children: [
-      panelTabs(["UI Components", "Console"], 0, "showcase"),
-      panelView("showcase", "ui-components", true, componentsView),
-      panelView("showcase", "console", false, consoleView())
+      panelGroup("showcase", [
+        { label: "UI Components", active: true, content: componentsView },
+        { label: "Console", content: consoleView() }
+      ])
     ]
   });
 }

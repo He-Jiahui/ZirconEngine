@@ -6,7 +6,7 @@ category = "runtime"
 description = "Optional runtime physics world, query, and editor physics authoring package."
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
-capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast"]
+capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast", "runtime.capability.physics.overlap", "runtime.capability.physics.shape_cast", "runtime.capability.physics.trigger_events", "runtime.capability.physics.constraints", "runtime.capability.physics.skeletal_joints"]
 maturity = "experimental"
 asset_roots = []
 content_roots = []
@@ -20,12 +20,32 @@ status = "partial"
 capability = "runtime.capability.physics.raycast"
 status = "partial"
 
+[[capability_statuses]]
+capability = "runtime.capability.physics.overlap"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.capability.physics.shape_cast"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.capability.physics.trigger_events"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.capability.physics.constraints"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.capability.physics.skeletal_joints"
+status = "partial"
+
 [[modules]]
 name = "physics.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_physics_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
-capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast"]
+capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast", "runtime.capability.physics.overlap", "runtime.capability.physics.shape_cast", "runtime.capability.physics.trigger_events", "runtime.capability.physics.constraints", "runtime.capability.physics.skeletal_joints"]
 
 [[modules]]
 name = "physics.editor"

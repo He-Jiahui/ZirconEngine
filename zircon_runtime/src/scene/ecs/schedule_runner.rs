@@ -14,8 +14,8 @@ impl SceneScheduleRunner {
         level: &LevelSystem,
         stage: SystemStage,
         delta_seconds: Real,
-        internal_systems: Vec<SceneSystemDescriptor>,
-        hooks: Vec<SceneRuntimeHookRegistration>,
+        internal_systems: &[SceneSystemDescriptor],
+        hooks: &[SceneRuntimeHookRegistration],
     ) -> Result<(), CoreError> {
         level.with_world_mut(|world| world.set_scene_system_flush_deferred(true));
         let native_steps =

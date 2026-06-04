@@ -5,15 +5,28 @@ mod descriptors;
 mod device;
 mod ui_surface;
 
-pub use capabilities::{AccelerationStructureCaps, RenderBackendCaps, RenderQueueClass};
+pub use capabilities::{
+    AccelerationStructureCaps, RenderBackendCaps, RenderDebugInstrumentationStatus,
+    RenderQueueClass,
+};
 pub use descriptors::{
-    AddressMode, BufferDesc, BufferUsage, PipelineDesc, PipelineKind, PresentMode, SamplerDesc,
-    ShaderModuleDesc, ShaderStage, SwapchainDesc, TextureDesc, TextureDimension, TextureFormat,
-    TextureResidency, TextureUsage,
+    AddressMode, BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindingResourceType,
+    BlendComponentDesc, BlendFactor, BlendOperation, BlendStateDesc, BufferDesc, BufferUsage,
+    ColorTargetDesc, ColorWriteMask, CompareFunction, CullMode, DepthStencilStateDesc, FilterMode,
+    FrontFace, MipmapFilterMode, PipelineDesc, PipelineKind, PipelineLayoutDesc, PresentMode,
+    PrimitiveStateDesc, PrimitiveTopology, RasterPipelineStateDesc, SamplerDesc, ShaderModuleDesc,
+    ShaderStage, SwapchainDesc, TextureDesc, TextureDimension, TextureFormat, TextureResidency,
+    TextureUsage, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
+    VertexStepMode,
 };
 pub use device::{
-    BufferHandle, CommandList, CommandListCommand, FenceValue, PipelineHandle, RenderDevice,
-    RhiError, SamplerHandle, ShaderModuleHandle, TextureHandle, TransientAllocatorStats,
+    BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupHandle,
+    BindGroupLayoutHandle, BufferHandle, CommandList, CommandListCommand, FenceValue, IndexFormat,
+    PipelineHandle, PipelineLayoutHandle, RenderClearColor, RenderDevice,
+    RenderPassColorAttachmentDesc, RenderPassColorLoadOp, RenderPassDepthLoadOp,
+    RenderPassDepthStencilAttachmentDesc, RenderPassStencilLoadOp, RenderPassStoreOp,
+    RenderPassTextureViewDesc, RenderScissorRect, RenderViewportDesc, RhiError, SamplerHandle,
+    ShaderModuleHandle, TextureCopyRegion, TextureHandle, TransientAllocatorStats,
 };
 pub use ui_surface::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,

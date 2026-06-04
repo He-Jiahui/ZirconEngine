@@ -36,6 +36,7 @@ pub use builtin::{
     manifest_with_mode_baseline, runtime_core_modules, runtime_modules_for_runtime_profile,
     runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
     runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
+    runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports,
     runtime_modules_for_runtime_profile_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
@@ -45,7 +46,7 @@ pub use builtin::{
 #[allow(unused_imports)]
 pub(crate) use graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
-    GBUFFER_ALBEDO_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
 };
 #[allow(unused_imports)]
 pub(crate) use graphics::{

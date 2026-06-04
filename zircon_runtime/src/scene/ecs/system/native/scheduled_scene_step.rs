@@ -39,13 +39,14 @@ impl ScheduledSceneStep {
 
     pub(crate) fn sorted_for_stage(
         stage: SystemStage,
-        internal_systems: Vec<SceneSystemDescriptor>,
+        internal_systems: &[SceneSystemDescriptor],
         native_steps: Vec<Self>,
-        hooks: Vec<SceneRuntimeHookRegistration>,
+        hooks: &[SceneRuntimeHookRegistration],
     ) -> Vec<Self> {
         let mut steps = internal_systems
-            .into_iter()
+            .iter()
             .filter(|system| system.stage == stage)
+            .cloned()
             .map(Self::Internal)
             .chain(
                 native_steps
@@ -54,8 +55,9 @@ impl ScheduledSceneStep {
             )
             .chain(
                 hooks
-                    .into_iter()
+                    .iter()
                     .filter(|hook| hook.descriptor().stage == stage)
+                    .cloned()
                     .map(Self::Hook),
             )
             .collect::<Vec<_>>();

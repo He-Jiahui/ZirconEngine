@@ -36,7 +36,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "asset_refresh_runtime_project"
             );
-            self.editor_asset_server
+            self.editor_asset_manager
                 .refresh_from_runtime_project()
                 .map_err(|error| error.to_string())?;
         }
@@ -68,7 +68,7 @@ impl RetainedEditorHost {
             .asset_activity
             .selected_asset_uuid;
         let default_scene_uri = self
-            .asset_server
+            .asset_manager
             .current_project()
             .map(|project| project.default_scene_uri);
         let plan = plan_asset_backend_refresh(
@@ -138,7 +138,7 @@ impl RetainedEditorHost {
 
     pub(super) fn reload_default_scene(&mut self) -> Result<(), String> {
         let project_info = self
-            .asset_server
+            .asset_manager
             .current_project()
             .ok_or_else(|| "no directory project is currently open".to_string())?;
         let mut project =
@@ -161,7 +161,7 @@ impl RetainedEditorHost {
     pub(super) fn import_model_into_project(&mut self) -> Result<(), String> {
         let chrome = self.build_chrome();
         let project = self
-            .asset_server
+            .asset_manager
             .current_project()
             .ok_or_else(|| "Open a project before importing models".to_string())?;
         EditorProjectDocument::ensure_runtime_assets(&project.root_path)
@@ -172,21 +172,21 @@ impl RetainedEditorHost {
             ProjectPaths::from_root(&project.root_path).map_err(|error| error.to_string())?;
         let (model_uri, display_path) = stage_model_source(&paths, &source)?;
 
-        self.asset_server
+        self.asset_manager
             .import_asset(&model_uri.to_string())
             .map_err(|error| error.to_string())?;
         for derived_uri in derive_animation_assets_from_model_source(
             paths.assets_root(),
             std::path::Path::new(&display_path),
         )? {
-            self.asset_server
+            self.asset_manager
                 .import_asset(&derived_uri.to_string())
                 .map_err(|error| error.to_string())?;
         }
         let material_id = self.default_project_material_id()?;
         self.sync_asset_workspace();
         let model_id =
-            resolve_ready_handle::<ModelMarker>(self.resource_server.as_ref(), &model_uri)?;
+            resolve_ready_handle::<ModelMarker>(self.resource_manager.as_ref(), &model_uri)?;
         if self
             .runtime
             .import_mesh_asset(model_id, material_id, display_path)?
@@ -203,14 +203,14 @@ impl RetainedEditorHost {
     ) -> Result<ResourceHandle<MaterialMarker>, String> {
         let material_uri = ResourceLocator::parse("res://materials/default.zmaterial")
             .map_err(|error| error.to_string())?;
-        self.asset_server
+        self.asset_manager
             .import_asset(&material_uri.to_string())
             .map_err(|error| error.to_string())?;
-        resolve_ready_handle::<MaterialMarker>(self.resource_server.as_ref(), &material_uri)
+        resolve_ready_handle::<MaterialMarker>(self.resource_manager.as_ref(), &material_uri)
     }
 
     pub(super) fn sync_asset_workspace(&mut self) {
-        let _ = self.editor_asset_server.refresh_from_runtime_project();
+        let _ = self.editor_asset_manager.refresh_from_runtime_project();
         self.sync_asset_catalog();
         self.sync_asset_resources();
         self.refresh_selected_asset_details();
@@ -264,7 +264,7 @@ impl RetainedEditorHost {
 
     fn sync_asset_catalog_snapshot(&mut self) {
         self.runtime
-            .sync_asset_catalog(self.editor_asset_server.catalog_snapshot());
+            .sync_asset_catalog(self.editor_asset_manager.catalog_snapshot());
     }
 
     pub(super) fn sync_asset_resources(&mut self) {
@@ -274,7 +274,7 @@ impl RetainedEditorHost {
 
     fn sync_asset_resources_snapshot(&mut self) {
         self.runtime
-            .sync_asset_resources(self.resource_server.list_resources());
+            .sync_asset_resources(self.resource_manager.list_resources());
     }
 
     pub(super) fn refresh_selected_asset_details(&mut self) {
@@ -286,12 +286,12 @@ impl RetainedEditorHost {
         self.runtime.sync_asset_details(
             selected_uuid
                 .as_deref()
-                .and_then(|uuid| self.editor_asset_server.asset_details(uuid)),
+                .and_then(|uuid| self.editor_asset_manager.asset_details(uuid)),
         );
     }
 
     pub(super) fn refresh_visible_asset_previews(&mut self) {
-        if self.asset_server.current_project().is_none() {
+        if self.asset_manager.current_project().is_none() {
             return;
         }
 
@@ -326,7 +326,7 @@ impl RetainedEditorHost {
 
         for uuid in visible {
             let _ = self
-                .editor_asset_server
+                .editor_asset_manager
                 .request_preview_refresh(&uuid, true);
         }
     }
@@ -342,7 +342,11 @@ impl RetainedEditorHost {
         control_id: &str,
         value: &str,
     ) {
-        let arguments = match control_id {
+        let Some(binding_control_id) = asset_surface_binding_control_id(control_id) else {
+            self.set_status_line(format!("Unknown asset change control {control_id}"));
+            return;
+        };
+        let arguments = match binding_control_id {
             "SearchEdited" | "SetKindFilter" => vec![UiBindingValue::string(value)],
             "SetViewMode" | "SetUtilityTab" => vec![
                 UiBindingValue::string(source),
@@ -353,13 +357,21 @@ impl RetainedEditorHost {
                 return;
             }
         };
-        self.dispatch_asset_surface_control(control_id, UiEventKind::Change, arguments);
+        self.dispatch_asset_surface_control(binding_control_id, UiEventKind::Change, arguments);
     }
 
     pub(super) fn dispatch_asset_control_clicked(&mut self, _source: &str, control_id: &str) {
-        match control_id {
+        let Some(binding_control_id) = asset_surface_binding_control_id(control_id) else {
+            self.set_status_line(format!("Unknown asset click control {control_id}"));
+            return;
+        };
+        match binding_control_id {
             "OpenAssetBrowser" | "LocateSelectedAsset" | "ImportModel" => {
-                self.dispatch_asset_surface_control(control_id, UiEventKind::Click, Vec::new());
+                self.dispatch_asset_surface_control(
+                    binding_control_id,
+                    UiEventKind::Click,
+                    Vec::new(),
+                );
             }
             _ => {
                 self.set_status_line(format!("Unknown asset click control {control_id}"));
@@ -392,6 +404,19 @@ impl RetainedEditorHost {
             return;
         };
         self.apply_dispatch_result(result);
+    }
+}
+
+fn asset_surface_binding_control_id(action_id: &str) -> Option<&'static str> {
+    match action_id {
+        "SearchEdited" | "workbench.asset.search.edit" => Some("SearchEdited"),
+        "SetKindFilter" | "workbench.asset.kind_filter.set" => Some("SetKindFilter"),
+        "SetViewMode" | "workbench.asset.view_mode.set" => Some("SetViewMode"),
+        "SetUtilityTab" | "workbench.asset.utility_tab.set" => Some("SetUtilityTab"),
+        "OpenAssetBrowser" | "workbench.asset_browser.open" => Some("OpenAssetBrowser"),
+        "LocateSelectedAsset" | "workbench.asset.locate_selected" => Some("LocateSelectedAsset"),
+        "ImportModel" | "workbench.asset.model.import" => Some("ImportModel"),
+        _ => None,
     }
 }
 

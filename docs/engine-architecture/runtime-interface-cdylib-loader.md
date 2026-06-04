@@ -31,6 +31,12 @@ related_code:
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/constants.rs
+  - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/requests.rs
+  - zircon_runtime_interface/src/runtime_api/viewport.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/plugin_events.rs
   - zircon_runtime_interface/src/manifest.rs
@@ -40,6 +46,7 @@ related_code:
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime_interface/src/tests/mod.rs
+  - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_editor/src
 implementation_files:
@@ -73,6 +80,12 @@ implementation_files:
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/constants.rs
+  - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/requests.rs
+  - zircon_runtime_interface/src/runtime_api/viewport.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/plugin_events.rs
   - zircon_runtime_interface/src/manifest.rs
@@ -81,6 +94,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_editor/src
 plan_sources:
   - user: 2026-05-01 request runtime/editor/plugin compile isolation through interface crate plus runtime cdylib
@@ -89,8 +103,9 @@ plan_sources:
   - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
   - docs/superpowers/plans/2026-05-04-sound-dynamic-event-execution.md
 tests:
+  - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/runtime_library/tests.rs
@@ -134,7 +149,7 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 - `handles.rs` defines zero-invalid opaque runtime, viewport, and plugin handles.
 - `status.rs` defines raw status codes and diagnostic byte payload attachment.
 - `buffer.rs` defines borrowed byte slices and plugin/runtime-owned byte buffers with explicit free callbacks.
-- `runtime_api.rs` defines the runtime dynamic library symbol, the v1 runtime function table shape, fixed event records, viewport sizing records, native surface binding requests, frame requests, and typed captured-frame results.
+- `runtime_api.rs` is now a structural facade over `runtime_api/{api_table,constants,events,host_requests,requests,viewport}.rs`. The folder defines the runtime dynamic library symbol, v1 runtime function table shape, fixed event records, viewport sizing records, native surface binding requests, runtime-to-host request DTOs, frame/accessibility capture requests, and typed captured-frame results.
 - `plugin_api.rs` defines the plugin entry symbol, v1 plugin entry report shape, and optional plugin-side callback slots.
 - `plugin_events.rs` defines the generic v1 plugin event callback ABI. Subsystems such as sound project their own neutral event DTOs into namespace-tagged byte-slice requests instead of passing Rust trait objects or subsystem-owned runtime state across dynamic-library boundaries.
 - `manifest.rs` defines target mode, module kind, and module descriptor DTO seeds for later runtime/plugin adapters.

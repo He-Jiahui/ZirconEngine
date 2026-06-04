@@ -1,12 +1,10 @@
-import { HubRowSurface, PanelListViewport } from "data_display.slint";
+import { HubRowActionButton } from "icon_button_components.slint";
+import { HubInteractiveRowSurface } from "data_display.slint";
+import { PanelListViewport } from "list_container_components.slint";
+import { HubRowLeadingIconSlot, HubRowMainSlot, HubRowTrailingSlot } from "row_slot_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
-import { HubPanel, PanelHeader, StatusBadge } from "surfaces.slint";
-import {
-    Icon,
-    ListTile,
-    MaterialPalette,
-    StateLayerArea,
-} from "material_bridge.slint";
+import { HubPanel, PanelHeader } from "surfaces.slint";
+import { MaterialPalette } from "material_bridge.slint";
 
 export struct TreeItemData {
     id: string,
@@ -23,7 +21,7 @@ export struct TreeItemData {
     trailing-tone: string,
 }
 
-export component HubTreeRow inherits HubRowSurface {
+export component HubTreeRow inherits HubInteractiveRowSurface {
     in property <TreeItemData> item;
     in property <length> row-spacing: HubTokens.space-2;
     callback activated(string);
@@ -31,22 +29,20 @@ export component HubTreeRow inherits HubRowSurface {
 
     private property <length> depth-indent: root.item.depth * HubTokens.space-4;
     private property <string> supporting-text: root.item.detail;
+    private property <image> visible-icon-image: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/brand/zircon-mark.svg");
 
     selected: root.item.selected;
     enabled: !root.item.disabled;
     idle-background: HubVisualSpec.panel-background;
     selected-background: MaterialPalette.secondary_container;
     selected-border-width: HubTokens.border-width;
+    row-radius: HubVisualSpec.compact-radius;
+    interaction-enabled: root.enabled;
+    interaction-foreground: root.content-foreground;
 
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.content-foreground;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            if root.enabled {
-                root.activated(root.item.id);
-            }
+    clicked => {
+        if root.enabled {
+            root.activated(root.item.id);
         }
     }
 
@@ -56,7 +52,7 @@ export component HubTreeRow inherits HubRowSurface {
         padding-left: HubTokens.space-3;
         padding-right: HubTokens.space-3;
         spacing: root.row-spacing;
-        alignment: center;
+        alignment: stretch;
 
         Rectangle {
             width: root.depth-indent;
@@ -71,48 +67,48 @@ export component HubTreeRow inherits HubRowSurface {
             background: transparent;
             clip: true;
 
-            if root.item.has-children: StateLayerArea {
-                width: parent.width;
-                height: parent.height;
-                color: MaterialPalette.on_surface_variant;
-                border_radius: HubVisualSpec.compact-radius;
+            if root.item.has-children: HubRowActionButton {
+                button-size: HubTokens.control-sm;
+                button-radius: HubVisualSpec.compact-radius;
+                icon-size: HubTokens.icon-sm;
+                icon-image: root.item.expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
+                idle-foreground: MaterialPalette.on_surface_variant;
+                state-layer-color: MaterialPalette.on_surface_variant;
+                framed: false;
                 clicked => {
                     if root.enabled {
                         root.toggle-expanded(root.item.id);
                     }
                 }
             }
-
-            if root.item.has-children: Icon {
-                width: HubTokens.icon-sm;
-                height: HubTokens.icon-sm;
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
-                source: root.item.expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
-                colorize: MaterialPalette.on_surface_variant;
-            }
         }
 
-        ListTile {
+        HubRowLeadingIconSlot {
+            row-height: root.row-height;
+            icon-image: root.visible-icon-image;
+            has-icon-image: true;
+            shell-background: HubVisualSpec.neutral-icon-background;
+            shell-border: HubVisualSpec.neutral-icon-stroke;
+            icon-foreground: HubVisualSpec.neutral-icon-foreground;
+        }
+
+        HubRowMainSlot {
             horizontal-stretch: 1;
             min-width: 1px;
-            height: parent.height;
-            text: root.item.title;
-            supporting_text: root.supporting-text;
-            avatar_icon: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/brand/zircon-mark.svg");
-            avatar_background: HubVisualSpec.neutral-icon-background;
-            avatar_foreground: HubVisualSpec.neutral-icon-foreground;
-            enabled: root.enabled;
-            clicked => {
-                if root.enabled {
-                    root.activated(root.item.id);
-                }
-            }
+            preferred-width: 0px;
+            row-height: root.row-height;
+            title: root.item.title;
+            detail: root.supporting-text;
+            title-foreground: root.content-foreground;
+            detail-foreground: MaterialPalette.on_surface_variant;
+        }
 
-            if root.item.trailing-text != "": StatusBadge {
-                text: root.item.trailing-text;
-                tone: root.item.trailing-tone;
-            }
+        if root.item.trailing-text != "": HubRowTrailingSlot {
+            row-height: root.row-height;
+            badge-text: root.item.trailing-text;
+            badge-tone: root.item.trailing-tone;
+            show-badge: true;
+            show-action: false;
         }
     }
 }

@@ -30,19 +30,6 @@ fn read_crate_file(name: &str) -> String {
     )
 }
 
-fn slint_files() -> Vec<PathBuf> {
-    let mut files = fs::read_dir(ui_dir())
-        .expect("failed to read Hub UI directory")
-        .map(|entry| entry.expect("failed to read Hub UI entry").path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "slint")
-        })
-        .collect::<Vec<_>>();
-    files.sort();
-    files
-}
-
 fn count_component_declarations(source: &str) -> usize {
     source
         .lines()
@@ -64,22 +51,30 @@ fn components_entrypoint_stays_thin_and_reexports_new_modules() {
 
     for module in [
         "tokens.slint",
+        "compact_page_components.slint",
         "layout.slint",
         "surfaces.slint",
+        "text_input_components.slint",
         "inputs.slint",
+        "input_state_components.slint",
         "shell_header_components.slint",
         "shell_layout_components.slint",
         "shell_sidebar_components.slint",
         "shell_page_components.slint",
         "button_components.slint",
+        "icon_button_components.slint",
+        "button_state_sample_components.slint",
         "row_slot_components.slint",
         "navigation.slint",
         "data_display.slint",
+        "list_container_components.slint",
         "table_view_components.slint",
         "tree_view_components.slint",
         "operation_timeline_components.slint",
         "project_card_flow_components.slint",
         "overlays.slint",
+        "dropdown_components.slint",
+        "drawer_window_components.slint",
         "material_bridge.slint",
     ] {
         assert!(
@@ -179,18 +174,26 @@ fn app_and_page_entrypoints_stay_structural() {
 fn focused_component_modules_own_page_helpers() {
     for (file, required_components) in [
         (
+            "compact_page_components.slint",
+            &[
+                ComponentExport::Public("HubCompactTabStrip"),
+                ComponentExport::Public("HubWorkspaceTabStrip"),
+            ][..],
+        ),
+        (
             "project_card_flow_components.slint",
             &[
                 ComponentExport::Public("ProjectCover"),
                 ComponentExport::Public("ProjectCard"),
                 ComponentExport::Public("ProjectFlow"),
                 ComponentExport::Public("DashboardProjectCardsSection"),
-                ComponentExport::Private("ProjectFlowNextButton"),
             ][..],
         ),
         (
             "project_dashboard_components.slint",
             &[
+                ComponentExport::Private("DashboardButtonStatesTitle"),
+                ComponentExport::Private("DashboardButtonStatesSectionLabel"),
                 ComponentExport::Public("DashboardToolbar"),
                 ComponentExport::Public("DashboardRecentProjectsPanel"),
                 ComponentExport::Public("DashboardQuickActionsPanel"),
@@ -199,11 +202,13 @@ fn focused_component_modules_own_page_helpers() {
         (
             "project_page_components.slint",
             &[
+                ComponentExport::Private("PageHeaderTitleStack"),
                 ComponentExport::Public("PageHeader"),
-                ComponentExport::Public("ProjectCreateSettingsPanel"),
                 ComponentExport::Public("ProjectCreateField"),
                 ComponentExport::Public("ProjectCreateActionRow"),
                 ComponentExport::Public("ProjectEngineChoiceList"),
+                ComponentExport::Private("ProjectCreateSectionLabel"),
+                ComponentExport::Public("ProjectCreateSettingsPanel"),
                 ComponentExport::Public("ProjectSettingSummaryRow"),
                 ComponentExport::Public("ProjectTemplateRailPanel"),
             ][..],
@@ -214,6 +219,7 @@ fn focused_component_modules_own_page_helpers() {
                 ComponentExport::Public("ProjectFilterSelect"),
                 ComponentExport::Public("ProjectSortSelect"),
                 ComponentExport::Public("ProjectBrowserTableHeader"),
+                ComponentExport::Private("ProjectBrowserNameCell"),
                 ComponentExport::Public("ProjectBrowserRow"),
                 ComponentExport::Public("ProjectBrowserResultsPanel"),
             ][..],
@@ -222,10 +228,12 @@ fn focused_component_modules_own_page_helpers() {
             "project_detail_components.slint",
             &[
                 ComponentExport::Public("ProjectDetailPinToggleRow"),
+                ComponentExport::Private("ProjectDetailActionNote"),
                 ComponentExport::Public("ProjectDetailActionsSection"),
                 ComponentExport::Public("ProjectDetailStatusStrip"),
                 ComponentExport::Public("ProjectDetailInfoSection"),
                 ComponentExport::Public("ProjectDetailEngineSection"),
+                ComponentExport::Public("ProjectDetailMainPanel"),
             ][..],
         ),
         (
@@ -279,9 +287,12 @@ fn focused_component_modules_own_page_helpers() {
         (
             "catalog_page_components.slint",
             &[
+                ComponentExport::Private("CatalogColumnRow"),
                 ComponentExport::Public("AssetRow"),
                 ComponentExport::Public("PluginRow"),
                 ComponentExport::Public("LearnRow"),
+                ComponentExport::Public("CatalogListPanel"),
+                ComponentExport::Public("CatalogPage"),
             ][..],
         ),
         (
@@ -306,9 +317,122 @@ fn focused_component_modules_own_page_helpers() {
             ][..],
         ),
         (
+            "button_components.slint",
+            &[
+                ComponentExport::Public("PillButton"),
+                ComponentExport::Private("HubCommandButtonLabel"),
+                ComponentExport::Public("HubCommandButton"),
+                ComponentExport::Public("HubHeaderCommandGroup"),
+                ComponentExport::Public("HubPanelNavigationCommand"),
+                ComponentExport::Public("HubActionCommandButton"),
+                ComponentExport::Public("HubActionStack"),
+                ComponentExport::Public("HubFormActionRow"),
+                ComponentExport::Public("HubDisclosureButton"),
+                ComponentExport::Public("HubPanelHeaderActionButton"),
+                ComponentExport::Private("HubUserMenuAvatarMark"),
+                ComponentExport::Private("HubUserMenuNameText"),
+                ComponentExport::Public("HubUserMenuTriggerButton"),
+                ComponentExport::Private("HubSidebarCollapseButtonLabel"),
+                ComponentExport::Public("HubSidebarCollapseButton"),
+                ComponentExport::Public("WindowButton"),
+            ][..],
+        ),
+        (
+            "icon_button_components.slint",
+            &[
+                ComponentExport::Public("IconButton"),
+                ComponentExport::Public("HubIconButton"),
+                ComponentExport::Public("HubTopbarIconButton"),
+                ComponentExport::Public("HubBackButton"),
+                ComponentExport::Public("HubFlowNextButton"),
+                ComponentExport::Public("HubRowActionButton"),
+                ComponentExport::Public("HubViewToggleButton"),
+                ComponentExport::Public("HubViewToggleGroup"),
+                ComponentExport::Public("HubFloatingIconButton"),
+                ComponentExport::Public("HubMoreMenuButton"),
+            ][..],
+        ),
+        (
+            "button_state_sample_components.slint",
+            &[
+                ComponentExport::Private("HubButtonStateTextSampleLabel"),
+                ComponentExport::Public("HubButtonStateTextSample"),
+                ComponentExport::Public("HubButtonStateIconSample"),
+            ][..],
+        ),
+        (
+            "navigation.slint",
+            &[
+                ComponentExport::Private("NavButtonLabel"),
+                ComponentExport::Public("NavButton"),
+                ComponentExport::Public("NavRail"),
+                ComponentExport::Public("HubTabs"),
+            ][..],
+        ),
+        (
+            "inputs.slint",
+            &[
+                ComponentExport::Private("HubSelectTriggerLabel"),
+                ComponentExport::Public("HubSelectTrigger"),
+                ComponentExport::Public("ToolbarSelect"),
+                ComponentExport::Public("DropDownButton"),
+                ComponentExport::Public("SegmentButton"),
+            ][..],
+        ),
+        (
+            "text_input_components.slint",
+            &[
+                ComponentExport::Private("SearchBoxPlaceholderText"),
+                ComponentExport::Public("SearchBox"),
+                ComponentExport::Public("HubTextField"),
+                ComponentExport::Public("HubPathFieldRow"),
+            ][..],
+        ),
+        (
+            "input_state_components.slint",
+            &[
+                ComponentExport::Public("HubCheckBox"),
+                ComponentExport::Public("HubCheckBoxRow"),
+                ComponentExport::Public("HubSwitch"),
+                ComponentExport::Private("HubToggleRowTextStack"),
+                ComponentExport::Public("HubToggleRow"),
+                ComponentExport::Public("HubComboBox"),
+            ][..],
+        ),
+        (
+            "data_display.slint",
+            &[
+                ComponentExport::Public("HubRowSurface"),
+                ComponentExport::Public("HubInteractiveRowSurface"),
+                ComponentExport::Private("HubMenuRowTrailingText"),
+                ComponentExport::Public("HubMenuRow"),
+                ComponentExport::Public("InfoRow"),
+                ComponentExport::Public("HubKeyValueRow"),
+                ComponentExport::Public("HubBadgeMetaStrip"),
+                ComponentExport::Public("ActionRow"),
+                ComponentExport::Private("MetricCardTextStack"),
+                ComponentExport::Public("MetricCard"),
+                ComponentExport::Public("HubMetricSlot"),
+                ComponentExport::Public("HubMetricSectionState"),
+                ComponentExport::Public("BuildHistoryRow"),
+            ][..],
+        ),
+        (
+            "list_container_components.slint",
+            &[
+                ComponentExport::Public("PanelListViewport"),
+                ComponentExport::Public("HubMenuListViewport"),
+                ComponentExport::Public("HubListView"),
+                ComponentExport::Public("HubListPanelSlot"),
+                ComponentExport::Public("HubTabbedListPanelSlot"),
+            ][..],
+        ),
+        (
             "table_view_components.slint",
             &[
                 ComponentExport::Public("TableColumnHeader"),
+                ComponentExport::Public("TableCellText"),
+                ComponentExport::Private("ProjectTableNameCell"),
                 ComponentExport::Public("ProjectTableRow"),
                 ComponentExport::Public("HubTableBody"),
                 ComponentExport::Public("DataTable"),
@@ -335,6 +459,7 @@ fn focused_component_modules_own_page_helpers() {
                 ComponentExport::Public("HubTopHeader"),
                 ComponentExport::Private("WindowDragRegion"),
                 ComponentExport::Private("HeaderControlSlot"),
+                ComponentExport::Private("HeaderBrandTitleStack"),
             ][..],
         ),
         (
@@ -342,6 +467,7 @@ fn focused_component_modules_own_page_helpers() {
             &[
                 ComponentExport::Public("HeaderEngineSelector"),
                 ComponentExport::Private("HeaderEngineOption"),
+                ComponentExport::Private("HeaderEngineOptionsList"),
             ][..],
         ),
         (
@@ -357,13 +483,19 @@ fn focused_component_modules_own_page_helpers() {
         (
             "shell_sidebar_components.slint",
             &[
+                ComponentExport::Public("HubNavigationDrawer"),
                 ComponentExport::Public("HubNavSidebar"),
+                ComponentExport::Private("NavStatusSummaryStack"),
+                ComponentExport::Private("NavStatusUpdateAction"),
                 ComponentExport::Public("NavStatusPanel"),
+                ComponentExport::Private("HubSidebarCollapseControl"),
             ][..],
         ),
         (
             "shell_page_components.slint",
             &[
+                ComponentExport::Private("HubPageHeaderTitleStack"),
+                ComponentExport::Private("HubStatusDetailText"),
                 ComponentExport::Public("HubPageHeader"),
                 ComponentExport::Public("HubStatusBar"),
             ][..],
@@ -390,123 +522,80 @@ enum ComponentExport {
 }
 
 #[test]
-fn hub_directly_registers_and_reexports_material_template() {
-    let material_template = crate_dir()
+fn hub_directly_declares_react_material_ui_theme_source() {
+    let material_ui_package = crate_dir()
         .parent()
         .expect("zircon_hub lives below the repository root")
-        .join("dev/material-rust-template/material-1.0/material.slint");
+        .join("dev/material-ui/package.json");
     assert!(
-        material_template.is_file(),
-        "Hub must import the local Slint Material template directly from {}",
-        material_template.display()
+        material_ui_package.is_file(),
+        "Hub must keep the checked-in Material UI reference tree available at {}",
+        material_ui_package.display()
     );
 
-    let build = read_crate_file("build.rs");
+    let package_json = read_crate_file("package.json");
     for snippet in [
-        "config.library_paths.insert(",
-        "\"material\".to_string()",
-        "dev/material-rust-template/material-1.0/material.slint",
+        "\"@mui/material\": \"9.0.1\"",
+        "\"@mui/icons-material\": \"9.0.1\"",
+        "\"@emotion/react\": \"latest\"",
+        "\"@emotion/styled\": \"latest\"",
+        "\"react\": \"19.2.7\"",
     ] {
         assert!(
-            build.contains(snippet),
-            "build.rs must register the local Material template with Slint as @material; missing {snippet}"
+            package_json.contains(snippet),
+            "Zircon Hub React frontend must depend on real Material UI packages; missing {snippet}"
         );
     }
 
-    let material_bridge = read_ui_file("material_bridge.slint");
-    assert!(
-        material_bridge.contains("} from \"@material\";"),
-        "material_bridge.slint must directly re-export the local @material template library"
-    );
-    assert!(
-        material_bridge.lines().count() <= 120,
-        "material_bridge.slint should stay a direct export bridge, not an implementation file"
-    );
-
-    let components = read_ui_file("components.slint");
-    assert!(
-        components.contains("material_bridge.slint"),
-        "components.slint must expose Material template components through material_bridge.slint"
-    );
-    for component in [
-        "AppBar",
-        "CheckBox",
-        "ActionChip",
-        "Dialog",
-        "Drawer",
-        "DropDownMenu",
-        "HorizontalDivider",
-        "Vertical",
-        "VerticalDivider",
-        "Horizontal",
-        "Grid",
-        "ScrollView",
-        "ElevatedCard",
-        "FilledCard",
-        "OutlinedCard",
-        "FilledButton",
-        "IconButton",
-        "ListView",
-        "MaterialWindow",
-        "MaterialWindowAdapter",
-        "NavigationRail",
-        "CircularProgressIndicator",
-        "SearchBar",
-        "StateLayerArea",
-        "SegmentedButton",
-        "Switch",
-        "TabBar",
-        "TextButton",
-        "TextField",
-        "ToolTip",
-        "MaterialStyleMetrics",
-        "MaterialPalette",
-        "MaterialTypography",
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let tokens = read_crate_file("web/src/theme/tokens.ts");
+    for snippet in [
+        "createTheme",
+        "MuiButton",
+        "MuiCard",
+        "MuiIconButton",
+        "MuiOutlinedInput",
+        "hubTokens.colors.accent",
+        "hubTokens.colors.panel",
     ] {
         assert!(
-            material_bridge.contains(component) && components.contains(component),
-            "Hub must expose Material template component {component}"
+            theme.contains(snippet),
+            "React Material UI theme must own shared component styling instead of page-local paint; missing {snippet}"
         );
     }
-    assert!(
-        !material_bridge.contains("\n    Badge,"),
-        "material_bridge.slint omits Material Badge so components.slint can keep Hub Badge as the public Badge name"
-    );
-    for path in slint_files() {
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("<unknown>");
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        if file_name == "material_bridge.slint" {
-            continue;
-        }
+    for snippet in [
+        "topBarHeight: 73",
+        "sidebarWidth: 222",
+        "pagePaddingX: 30",
+        "accent: \"#21d5cf\"",
+        "panel: \"#202020\"",
+    ] {
         assert!(
-            !normalize_newlines(source).contains("from \"@material\""),
-            "{file_name} must import Slint Material through material_bridge.slint, leaving @material as a single compiler bridge"
+            tokens.contains(snippet),
+            "React Material UI tokens must preserve the Hub screenshot density and palette basis; missing {snippet}"
         );
     }
 
-    let layout = read_ui_file("layout.slint");
-    assert!(
-        layout.contains(
-            "import { HorizontalDivider, ScrollView, VerticalDivider } from \"material_bridge.slint\";"
-        ) && layout.contains("page-scroll := ScrollView"),
-        "Page must use the ScrollView component through the Hub Material bridge"
-    );
-    assert!(
-        layout.contains("if root.vertical: VerticalDivider {")
-            && layout.contains("if !root.vertical: HorizontalDivider {")
-            && !layout.contains("background: root.tone;"),
-        "Divider must use the direct Material HorizontalDivider/VerticalDivider primitives instead of a hand-drawn line"
-    );
+    for source_path in [
+        "web/src/components/inputs/HubButton.tsx",
+        "web/src/components/inputs/HubSearchField.tsx",
+        "web/src/components/data/ProjectCard.tsx",
+        "web/src/components/data/ProjectTable.tsx",
+        "web/src/components/shell/NavigationDrawer.tsx",
+        "web/src/components/shell/TopBar.tsx",
+    ] {
+        let source = read_crate_file(source_path);
+        assert!(
+            source.contains("@mui/material") || source.contains("@mui/icons-material"),
+            "{source_path} must compose real Material UI packages, not a local clone"
+        );
+    }
 }
 
 #[test]
 fn hub_applies_zircon_material_theme_to_material_palette() {
     let app = read_ui_file("app.slint");
-    let overlays = read_ui_file("overlays.slint");
+    let drawer_window = read_ui_file("drawer_window_components.slint");
     for snippet in [
         "import { ZirconMaterialTheme } from \"theme.slint\";",
         "HubWindowView,",
@@ -525,7 +614,7 @@ fn hub_applies_zircon_material_theme_to_material_palette() {
         "export component HubWindowView inherits MaterialWindow",
     ] {
         assert!(
-            overlays.contains(snippet),
+            drawer_window.contains(snippet),
             "HubWindowView must own the imported Slint Material window after window-shell extraction; missing {snippet}"
         );
     }
@@ -549,23 +638,26 @@ fn hub_applies_zircon_material_theme_to_material_palette() {
 }
 
 #[test]
-fn hub_stays_standalone_slint_launcher_boundary() {
+fn hub_stays_standalone_tauri_launcher_boundary() {
     let cargo_toml = read_crate_file("Cargo.toml");
     let build = read_crate_file("build.rs");
     let lib = read_crate_file("src/lib.rs");
     let main = read_crate_file("src/main.rs");
+    let tauri_app = read_crate_file("src/tauri_app.rs");
+    let tauri_config = read_crate_file("tauri.conf.json");
     let runtime = read_crate_file("src/app/runtime.rs");
     let editor_launch = read_crate_file("src/process/editor_launch.rs");
 
     for snippet in [
         "name = \"zircon_hub\"",
         "Standalone desktop launcher and install hub for ZirconEngine.",
-        "slint = \"1.16.1\"",
+        "tauri = { version = \"2.11.2\" }",
+        "tauri-build = \"2.6.2\"",
         "autobins = false",
     ] {
         assert!(
             cargo_toml.contains(snippet),
-            "zircon_hub Cargo manifest must keep the standalone Slint desktop launcher identity; missing {snippet}"
+            "zircon_hub Cargo manifest must keep the standalone Tauri desktop launcher identity; missing {snippet}"
         );
     }
 
@@ -579,42 +671,73 @@ fn hub_stays_standalone_slint_launcher_boundary() {
         "zircon_editor",
         "zircon_app",
         "libloading",
-        "webview",
-        "wry",
-        "tao",
+        "webview =",
+        "wry =",
+        "tao =",
     ] {
         assert!(
             !dependencies.contains(forbidden),
-            "zircon_hub runtime dependencies must not pull editor/runtime lifecycle or WebView/browser stacks into the Hub: {forbidden}"
+            "zircon_hub runtime dependencies must not pull editor/runtime lifecycle or direct WebView stacks outside Tauri: {forbidden}"
         );
     }
 
-    for snippet in [
-        "let input = manifest_dir.join(\"ui/app.slint\");",
-        "config.enable_experimental = true;",
-        "dev/material-rust-template/material-1.0/material.slint",
-    ] {
+    for snippet in ["tauri_build::build()", "fn main()"] {
         assert!(
             build.contains(snippet),
-            "build.rs must compile Hub-owned Slint UI directly with the local Material template; missing {snippet}"
+            "build.rs must delegate desktop resource generation to Tauri; missing {snippet}"
         );
     }
     for forbidden in [
         "zircon_editor/ui",
         "zircon_runtime/ui",
-        "webview",
-        "html",
-        "css",
+        "i_slint_compiler",
+        "SLINT_INCLUDE_GENERATED",
+        "ui/app.slint",
     ] {
         assert!(
             !build.to_ascii_lowercase().contains(forbidden),
-            "build.rs must not route Hub UI through editor/runtime/WebView/HTML/CSS paths: {forbidden}"
+            "build.rs must not keep the old Slint compiler path or route through editor/runtime UI paths: {forbidden}"
         );
     }
 
     assert!(
-        main.contains("zircon_hub::app::run()") && !main.contains("zircon_editor"),
-        "main.rs should remain a thin Hub launcher entrypoint without editor-owned UI startup"
+        main.contains("zircon_hub::tauri_app::run()") && !main.contains("zircon_editor"),
+        "main.rs should remain a thin Tauri Hub launcher entrypoint without editor-owned UI startup"
+    );
+    assert!(
+        lib.contains("pub mod tauri_app;") && !lib.contains("pub mod app;"),
+        "lib.rs must expose the Tauri launcher boundary and stop compiling the old Slint app module"
+    );
+    for snippet in [
+        "#[tauri::command]",
+        "fn hub_state() -> HubShellState",
+        "fn hub_action(request: HubActionRequest) -> HubShellState",
+        "tauri::generate_handler![hub_state, hub_action]",
+        "tauri::generate_context!()",
+    ] {
+        assert!(
+            tauri_app.contains(snippet),
+            "tauri_app.rs must expose the initial Tauri command boundary for the React shell; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "\"devUrl\": \"http://localhost:1420\"",
+        "\"frontendDist\": \"web/dist\"",
+        "\"beforeDevCommand\": \"npm run dev\"",
+        "\"beforeBuildCommand\": \"npm run build\"",
+        "\"width\": 1568",
+        "\"height\": 1003",
+        "\"decorations\": false",
+        "\"icon\": [\"icons/icon.ico\"]",
+    ] {
+        assert!(
+            tauri_config.contains(snippet),
+            "tauri.conf.json must lock the Hub webview shell contract; missing {snippet}"
+        );
+    }
+    assert!(
+        !tauri_config.contains("slint") && !tauri_app.contains("slint"),
+        "Tauri config and launcher must not keep Slint runtime references"
     );
     for forbidden in ["zircon_runtime", "libloading"] {
         assert!(
@@ -657,6 +780,7 @@ fn layout_primitives_and_tokens_are_declared() {
         "Row",
         "Column",
         "Flow",
+        "FlowScrollSurface",
         "Page",
         "PanelGrid",
         "WorkspacePanelSection",
@@ -860,13 +984,14 @@ fn layout_primitives_and_tokens_are_declared() {
 
 #[test]
 fn hub_surfaces_are_backed_by_material_cards() {
+    let components = read_ui_file("components.slint");
     let surfaces = read_ui_file("surfaces.slint");
     for snippet in [
         "MaterialPalette",
         "MaterialStyleMetrics",
         "MaterialText",
         "MaterialTypography",
-        "OutlineButton",
+        "HubPanelHeaderActionButton",
         "if root.variant == \"elevated\": ElevatedCard",
         "if root.variant != \"elevated\": OutlinedCard",
         "border-radius: HubVisualSpec.panel-radius",
@@ -922,37 +1047,75 @@ fn hub_surfaces_are_backed_by_material_cards() {
         "HubPanel must not place a panel-level TouchArea above @children; it blocks nested controls"
     );
 
+    let interactive_card = surfaces
+        .split("export component HubInteractiveCardSurface")
+        .nth(1)
+        .and_then(|source| source.split("export component PanelSlot").next())
+        .expect("surfaces.slint must declare HubInteractiveCardSurface before PanelSlot");
+    for snippet in [
+        "export component HubInteractiveCardSurface inherits HubPanel",
+        "in property <bool> selected: false;",
+        "in property <color> interaction-foreground: MaterialPalette.on_surface;",
+        "callback clicked;",
+        "variant: root.selected ? \"selected\" : \"interactive\";",
+        "StateLayerArea {",
+        "color: root.interaction-foreground;",
+        "border_radius: HubVisualSpec.panel-radius;",
+        "root.clicked();",
+        "@children",
+    ] {
+        assert!(
+            surfaces.contains(snippet) || interactive_card.contains(snippet),
+            "HubInteractiveCardSurface must centralize reusable Material card action state; missing {snippet}"
+        );
+    }
+    assert!(
+        components.contains("HubInteractiveCardSurface,"),
+        "components.slint must re-export HubInteractiveCardSurface for typed card components"
+    );
+    for forbidden in ["TouchArea", "MaterialText {", "Image {"] {
+        assert!(
+            !interactive_card.contains(forbidden),
+            "HubInteractiveCardSurface should own only card chrome/interaction and leave content to typed cards: {forbidden}"
+        );
+    }
+
     let panel_header = surfaces
         .split("export component PanelHeader")
         .nth(1)
         .and_then(|source| source.split("export component StatusBanner").next())
         .expect("surfaces.slint must declare PanelHeader before StatusBanner");
     for snippet in [
-        "if root.show-action: OutlineButton",
-        "height: HubVisualSpec.toolbar-density-height;",
+        "if root.show-action: HubPanelHeaderActionButton",
+        "button-width: root.action-width;",
+        "button-height: HubVisualSpec.toolbar-density-height;",
         "text: root.action-text;",
-        "icon: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
         "root.action-clicked();",
         "MaterialText {",
         "style: MaterialTypography.title_medium;",
     ] {
         assert!(
             panel_header.contains(snippet),
-            "PanelHeader action should be a Material OutlineButton; missing {snippet}"
+            "PanelHeader action should delegate to the shared button-family wrapper; missing {snippet}"
         );
     }
-    for forbidden in ["panel-action-area", "TouchArea", "CenteredIcon"] {
+    for forbidden in [
+        "panel-action-area",
+        "OutlineButton",
+        "TouchArea",
+        "CenteredIcon",
+    ] {
         assert!(
             !panel_header.contains(forbidden),
-            "PanelHeader action should not return to a custom painted click layer: {forbidden}"
+            "PanelHeader action should not keep local button internals after delegating to HubPanelHeaderActionButton: {forbidden}"
         );
     }
 
     let status_banner = surfaces
         .split("export component StatusBanner")
         .nth(1)
-        .and_then(|source| source.split("export component HubSection").next())
-        .expect("surfaces.slint must declare StatusBanner");
+        .and_then(|source| source.split("export component HubSectionSummary").next())
+        .expect("surfaces.slint must declare StatusBanner before HubSectionSummary");
     for snippet in [
         "MaterialText {",
         "style: MaterialTypography.title_small;",
@@ -964,17 +1127,51 @@ fn hub_surfaces_are_backed_by_material_cards() {
             "StatusBanner title should use MaterialText typography; missing {snippet}"
         );
     }
+    let hub_section_summary = surfaces
+        .split("export component HubSectionSummary")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("export component HubSection inherits Rectangle")
+                .next()
+        })
+        .expect("surfaces.slint must declare HubSectionSummary before HubSection");
+    assert!(
+        components.contains("HubSectionSummary,"),
+        "components.slint must re-export HubSectionSummary for section-local summary content"
+    );
+    assert!(
+        surfaces.contains("export component HubSectionSummary inherits Rectangle"),
+        "surfaces.slint must expose HubSectionSummary as a lightweight Rectangle section-summary primitive"
+    );
+    for snippet in [
+        "in property <string> title;",
+        "in property <string> detail;",
+        "in property <bool> prominent: false;",
+        "MaterialText {",
+        "text: root.title;",
+        "style: root.prominent ? MaterialTypography.headline_small : MaterialTypography.title_small;",
+        "if root.detail != \"\": MutedText",
+    ] {
+        assert!(
+            hub_section_summary.contains(snippet),
+            "HubSectionSummary should centralize in-section title/detail typography without adding panel chrome; missing {snippet}"
+        );
+    }
     let hub_section = surfaces
-        .split("export component HubSection")
+        .split("export component HubSection inherits Rectangle")
         .nth(1)
         .expect("surfaces.slint must declare HubSection");
     assert!(
         surfaces.contains("export component HubSection inherits Rectangle"),
         "surfaces.slint must expose HubSection as a lightweight Rectangle section primitive"
     );
+    assert!(
+        surfaces.contains("in property <length> section-height: HubTokens.list-row-lg;")
+            && surfaces.contains("in property <length> section-spacing: HubTokens.toolbar-gap;"),
+        "HubSection must keep its default section height and spacing declarations"
+    );
     for snippet in [
-        "section-height: HubTokens.list-row-lg;",
-        "section-spacing: HubTokens.toolbar-gap;",
         "in property <bool> stretch: false;",
         "vertical-stretch: root.stretch ? 1 : 0;",
         "PanelHeader {",
@@ -996,6 +1193,7 @@ fn hub_surfaces_are_backed_by_material_cards() {
     for (name, source) in [
         ("PanelHeader", panel_header),
         ("StatusBanner", status_banner),
+        ("HubSectionSummary", hub_section_summary),
         ("HubSection", hub_section),
     ] {
         assert!(

@@ -21,6 +21,26 @@ pub(super) fn classify_runtime_service_descriptor(
             .with_capability_status(capability_status(
                 "runtime.capability.physics.raycast",
                 CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.overlap",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.shape_cast",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.trigger_events",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.constraints",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.skeletal_joints",
+                CapabilityStatus::Partial,
             )),
         "sound" => descriptor
             .with_maturity(PluginMaturity::Beta)

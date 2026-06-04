@@ -30,7 +30,13 @@ related_code:
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/mod.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/importers.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/support.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
@@ -69,7 +75,13 @@ implementation_files:
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/mod.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/importers.rs
+  - zircon_plugins/asset_importers/model/runtime/src/tests/support.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
@@ -149,6 +161,7 @@ tests:
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --check (passed)
   - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
+  - 2026-06-04: Model Asset Importer runtime root/test split static checks: rustfmt check, diff hygiene, trailing-whitespace scan, and conflict-marker scan over `model/runtime/src/{lib.rs,registration.rs,mesh_importer.rs,cad.rs,tests/*}` plus this doc/session note passed; focused Cargo validation is pending while other Cargo/rustc lanes are active.
   - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
   - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the UI binary document backend dependency)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)
@@ -312,9 +325,11 @@ optional model containers such as FBX, DAE, 3DS, and USD-family extensions. STL 
 `stl_io`, PLY is parsed through `ply-rs-bw`, and DXF is parsed through the `dxf` crate. The DXF path
 imports `3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces into `ModelAsset`
 primitives with generated virtual-geometry metadata; linework, curves, blocks, and solid-kernel BREP
-payloads remain outside this backend and produce no mesh output. DXF conversion lives in
-`asset_importers/model/runtime/src/cad.rs` so the package root stays focused on plugin descriptors,
-manifest helpers, and registration wiring.
+payloads remain outside this backend and produce no mesh output. The package root is a structural
+facade: `registration.rs` owns plugin descriptors, manifests, runtime selection, and registry wiring;
+`mesh_importer.rs` owns STL/PLY import plus shared model/mesh subasset packaging and virtual-geometry
+cooking; `cad.rs` owns DXF conversion and reuses the shared model mesh helpers; crate tests live under
+`tests/{registration,importers,support}.rs`.
 
 `texture` declares standard image inputs, real container/compressed texture declarations for DDS,
 KTX/KTX2, ASTC, and PSD, plus optional NativeDynamic declarations for cubemap and DXGI-style

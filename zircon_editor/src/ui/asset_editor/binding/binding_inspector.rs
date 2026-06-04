@@ -825,7 +825,8 @@ fn binding_schema_items(binding: &UiBindingRef) -> Vec<String> {
 fn binding_schema_payload_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
     if binding_action_kind(binding) == UiBindingActionKind::Action {
         let action_target = binding_action_specific_target(binding);
-        if action_target.contains("SaveProject") {
+        let action_target = action_target.to_ascii_lowercase();
+        if action_target.contains("project.save") {
             return vec![
                 ("confirm".to_string(), Value::Boolean(true)),
                 (
@@ -892,7 +893,8 @@ fn binding_target_payload_suggestions(binding: &UiBindingRef) -> Option<Vec<(Str
         }
         UiBindingActionKind::Action => {
             let action_target = binding_action_specific_target(binding);
-            if action_target.contains("ToggleVisibility") {
+            let action_target = action_target.to_ascii_lowercase();
+            if action_target.contains("visibility.toggle") {
                 return Some(vec![
                     ("checked".to_string(), Value::Boolean(true)),
                     (
@@ -944,12 +946,12 @@ fn binding_route_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) ->
     let mut suggestions = Vec::new();
     let keywords = binding_keywords(node);
     if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
-        suggestions.push("MenuAction.SaveProject".to_string());
+        suggestions.push("MenuAction.workbench.project.save".to_string());
     }
     match binding.event {
         UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
-            suggestions.push("MenuAction.OpenProject".to_string());
-            suggestions.push("MenuAction.SaveLayout".to_string());
+            suggestions.push("MenuAction.workbench.project.open".to_string());
+            suggestions.push("MenuAction.workbench.layout.save".to_string());
             suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
         }
         UiEventKind::Change => {
@@ -975,29 +977,29 @@ fn binding_action_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) -
     let mut suggestions = Vec::new();
     let keywords = binding_keywords(node);
     if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
-        suggestions.push("EditorAction.SaveProject".to_string());
+        suggestions.push("EditorAction.workbench.project.save".to_string());
     }
     match binding.event {
         UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
-            suggestions.push("EditorAction.OpenAssetBrowser".to_string());
-            suggestions.push("EditorAction.FocusSelection".to_string());
+            suggestions.push("EditorAction.workbench.asset_browser.open".to_string());
+            suggestions.push("EditorAction.workbench.selection.focus".to_string());
         }
         UiEventKind::Change => {
-            suggestions.push("EditorAction.RefreshPreview".to_string());
-            suggestions.push("EditorAction.ApplyInspector".to_string());
+            suggestions.push("EditorAction.workbench.preview.refresh".to_string());
+            suggestions.push("EditorAction.workbench.inspector.apply".to_string());
         }
         UiEventKind::Toggle => {
-            suggestions.push("EditorAction.ToggleVisibility".to_string());
-            suggestions.push("EditorAction.ToggleSelectionState".to_string());
+            suggestions.push("EditorAction.workbench.visibility.toggle".to_string());
+            suggestions.push("EditorAction.workbench.selection_state.toggle".to_string());
         }
         UiEventKind::Drop => {
-            suggestions.push("EditorAction.AcceptAssetDrop".to_string());
-            suggestions.push("EditorAction.AssignReference".to_string());
+            suggestions.push("EditorAction.workbench.asset_drop.accept".to_string());
+            suggestions.push("EditorAction.workbench.reference.assign".to_string());
         }
         _ => {
             suggestions.push(format!(
-                "EditorAction.{}",
-                binding_route_slug(node, binding)
+                "EditorAction.workbench.custom.{}",
+                binding_action_path_slug(node, binding)
             ));
         }
     }
@@ -1038,6 +1040,19 @@ fn binding_route_slug(node: &UiNodeDefinition, binding: &UiBindingRef) -> String
     )
 }
 
+fn binding_action_path_slug(node: &UiNodeDefinition, binding: &UiBindingRef) -> String {
+    let base = node
+        .control_id
+        .as_deref()
+        .or_else(|| node.component.as_deref())
+        .unwrap_or("binding");
+    format!(
+        "{}.{}",
+        sanitize_path_segment(base),
+        sanitize_path_segment(binding.event.native_name())
+    )
+}
+
 fn sanitize_identifier(value: &str) -> String {
     let mut normalized = String::new();
     let mut capitalize_next = true;
@@ -1057,6 +1072,29 @@ fn sanitize_identifier(value: &str) -> String {
         "Binding".to_string()
     } else {
         normalized
+    }
+}
+
+fn sanitize_path_segment(value: &str) -> String {
+    let mut normalized = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !normalized.is_empty() {
+                normalized.push('_');
+            }
+            normalized.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !normalized.ends_with('_') && !normalized.is_empty() {
+            normalized.push('_');
+            previous_was_separator = true;
+        }
+    }
+    let normalized = normalized.trim_matches('_');
+    if normalized.is_empty() {
+        "binding".to_string()
+    } else {
+        normalized.to_string()
     }
 }
 

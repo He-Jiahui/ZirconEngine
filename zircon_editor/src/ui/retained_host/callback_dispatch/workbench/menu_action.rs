@@ -52,7 +52,7 @@ pub(crate) fn dispatch_host_menu_action_with_template_fallback(
 }
 
 pub(crate) fn retained_menu_action(action_id: &str) -> Result<EditorEventEnvelope, String> {
-    if let Some(name) = action_id.strip_prefix("SavePreset.") {
+    if let Some(name) = action_id.strip_prefix("workbench.layout.preset.save.") {
         let name = if name.is_empty() { "current" } else { name };
         return Ok(EditorEventEnvelope::new(
             EditorEventSource::RetainedHost,
@@ -62,7 +62,7 @@ pub(crate) fn retained_menu_action(action_id: &str) -> Result<EditorEventEnvelop
         ));
     }
 
-    if let Some(name) = action_id.strip_prefix("LoadPreset.") {
+    if let Some(name) = action_id.strip_prefix("workbench.layout.preset.load.") {
         let name = if name.is_empty() { "current" } else { name };
         return Ok(EditorEventEnvelope::new(
             EditorEventSource::RetainedHost,

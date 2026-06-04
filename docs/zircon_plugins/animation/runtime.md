@@ -4,14 +4,37 @@ related_code:
   - zircon_plugins/animation/runtime/src/clip_event.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/manager/graph.rs
+  - zircon_plugins/animation/runtime/src/manager/parameters.rs
+  - zircon_plugins/animation/runtime/src/manager/pose.rs
+  - zircon_plugins/animation/runtime/src/manager/sampling.rs
+  - zircon_plugins/animation/runtime/src/manager/state_machine.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/sequence/conversion.rs
+  - zircon_plugins/animation/runtime/src/sequence/interpolation.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
+  - zircon_plugins/animation/runtime/src/sequence/tests.rs
+  - zircon_plugins/animation/runtime/src/sequence/time.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/events.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/graph.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/pending.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/pose.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/scan.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/sequences.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/state_machine.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/tick.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
+  - zircon_runtime/src/core/framework/animation/runtime_status.rs
   - zircon_runtime/src/core/framework/animation/sequence_apply_report.rs
+  - zircon_runtime/src/core/framework/animation/tick.rs
+  - zircon_runtime/src/core/framework/animation/timeline.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/plugin/scene_hook/mod.rs
@@ -22,14 +45,37 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/clip_event.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/manager/graph.rs
+  - zircon_plugins/animation/runtime/src/manager/parameters.rs
+  - zircon_plugins/animation/runtime/src/manager/pose.rs
+  - zircon_plugins/animation/runtime/src/manager/sampling.rs
+  - zircon_plugins/animation/runtime/src/manager/state_machine.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/sequence/conversion.rs
+  - zircon_plugins/animation/runtime/src/sequence/interpolation.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
+  - zircon_plugins/animation/runtime/src/sequence/tests.rs
+  - zircon_plugins/animation/runtime/src/sequence/time.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/events.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/graph.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/pending.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/pose.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/scan.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/sequences.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/state_machine.rs
+  - zircon_plugins/animation/runtime/src/scene_hook/tick.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
+  - zircon_runtime/src/core/framework/animation/runtime_status.rs
   - zircon_runtime/src/core/framework/animation/sequence_apply_report.rs
+  - zircon_runtime/src/core/framework/animation/tick.rs
+  - zircon_runtime/src/core/framework/animation/timeline.rs
   - zircon_runtime/src/scene/level_system.rs
 plan_sources:
   - user: 2026-05-03 继续补独立插件缺口
@@ -72,7 +118,10 @@ doc_type: module-detail
 - `runtime_plugin_descriptor()` is the linked package-manifest source for the Animation runtime crate. It mirrors the static `zircon_plugins/animation/plugin.toml` and built-in catalog metadata: category `runtime`, maturity `beta`, `runtime.plugin.animation` status `partial` with Bevy `bevy_animation` source traceability, and `runtime.feature.animation.timeline_event_track` status `partial`.
 - `AnimationSceneRuntimeHook` resolves `AnimationManagerHandle`, advances scene player clocks, loads animation assets through `ProjectAssetManager`, blends graph/state-machine pose output, and records pose/playback runtime state on `LevelSystem`.
 - `AnimationSceneRuntimeHook` publishes `AnimationClipEvent` values when direct clip players, graph players, state-machine active graphs, or state-machine transition graphs advance across `AnimationClipAsset.event_tracks`, matching Bevy's clip-event precedent for timeline-authored gameplay hooks.
+- The scene hook root is now structural. `scene_hook/tick.rs` owns tick orchestration, `scan.rs` walks scene animation players into pending sample requests, `pending.rs` carries those request DTOs, `sequences.rs` applies property-track sequences, `pose.rs` samples direct clip poses, `graph.rs` owns graph clip-event sampling and additive/masked graph blending, `state_machine.rs` owns state-machine transition pose/event resolution, and `events.rs` publishes typed clip events into the scene world.
 - `DefaultAnimationManager` owns playback settings persistence, graph evaluation, state-machine evaluation, clip pose sampling, and sequence-to-world application.
+- `manager.rs` is now the structural `DefaultAnimationManager` facade. `manager/parameters.rs` owns parameter default/value mutation and numeric scalar helpers, `graph.rs` owns graph clip collection plus additive/masked graph evaluation, `state_machine.rs` owns transition condition evaluation and active-state resolution, `pose.rs` owns skeleton bind validation plus clip bone-track sampling, and `sampling.rs` owns finite-value, sample-time, and channel-sample conversion helpers.
+- `sequence.rs` is now a structural sequence facade. `sequence/apply.rs` owns sequence binding iteration and scene property writeback, `target.rs` resolves stable target ids and legacy entity paths, `time.rs` owns loop/clamp sample-time normalization, `channel_sample.rs` owns channel key selection, `interpolation.rs` owns Hermite and quaternion interpolation, `conversion.rs` owns channel-to-scene-property validation/conversion, and `tests.rs` keeps private sequence coverage out of the facade.
 - `DefaultAnimationManager::evaluate_graph(...)` preserves additive clip roles and mask target ids in neutral framework DTOs, while `AnimationSceneRuntimeHook` consumes those roles during graph pose blending.
 - `DefaultAnimationManager::sample_clip_pose(...)` resolves `AnimationClipBoneTrackAsset.target_id` before the legacy `bone_name` fallback. Target ids can match a bone name or the slash-joined skeleton path, for example `Root/Hand`.
 - `apply_sequence_to_world(...)` resolves `AnimationSequenceBindingAsset.target_id` before the legacy `entity_path` fallback. Current runtime target ids accept a stable numeric `EntityId` string or the same canonical `EntityPath` text used by old bindings.
@@ -87,6 +136,8 @@ Runtime framework contracts are intentionally concrete-free:
 - `AnimationGraphBlendMode`, `AnimationGraphClipInstance::target_ids`, and `AnimationGraphEvaluation::mask_target_ids` describe additive/masked graph output without moving concrete graph runtime back into `zircon_runtime`.
 - `AnimationClipBoneTrackAsset.target_id`, `AnimationSequenceBindingAsset.target_id`, and `AnimationClipAsset.event_tracks` add stable target/event metadata to the asset contract while keeping old `bone_name` and `entity_path` fallbacks available.
 - `AnimationSequenceApplyReport` reports applied and missing tracks without exposing plugin-owned sequence implementation details.
+- `AnimationTimelineDescriptor`, `AnimationTimelineTrackDescriptor`, and `AnimationTimelineClipDescriptor` summarize sequence property tracks, clip bone tracks, event tracks, mask filtering, and clip spans for editor/runtime/VM callers without exposing plugin-owned sampler state.
+- `AnimationPlayerRuntimeStatus`, `AnimationRigRuntimeStatus`, and `AnimationRuntimeStatus` expose player state, rig pose coverage, missing targets, GPU-skinning readiness, last tick work, and diagnostics as copied data.
 - `ANIMATION_MANAGER_NAME` remains the stable service name consumed by runtime/editor callers.
 
 The plugin can evolve graph blending, state-machine semantics, and importer-driven animation assets without reintroducing `zircon_runtime::animation`.
@@ -116,6 +167,9 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 
 ## Validation Evidence
 
+- The 2026-06-04 scene hook boundary split reduced `zircon_plugins/animation/runtime/src/scene_hook.rs` from a mixed 867-line file to a structural 32-line entry plus `scene_hook/{tick,scan,pending,events,sequences,pose,graph,state_machine}.rs`. `rustfmt --edition 2021 --check --config skip_children=true` passed over the split files. A focused `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-animation-scene-hook-split-0604 --message-format short --color never` attempt timed out after two minutes while other workspace/Hub/editor Cargo lanes were active and did not return Rust diagnostics; compile acceptance for this structural split remains pending.
+- The 2026-06-04 manager boundary split reduced `zircon_plugins/animation/runtime/src/manager.rs` from a 599-line mixed evaluator/sampler into a 128-line facade plus `manager/{parameters,graph,state_machine,pose,sampling}.rs`. The split preserves `DefaultAnimationManager` and `AnimationManager` behavior while aligning graph, state-machine, clip-pose, parameter, and finite-sampling responsibilities with engine-scale animation runtime boundaries.
+- The 2026-06-04 sequence boundary split reduced `zircon_plugins/animation/runtime/src/sequence.rs` from a 379-line mixed sequence implementation into an 11-line facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. The split follows Theatre's sequence/keyframe separation and Unreal's sequence/track/section runtime separation while preserving current property-track writeback, target-id fallback, sample-time handling, channel sampling, Hermite/quaternion interpolation, and private coverage. `rustfmt --edition 2021 --check` passed over the sequence facade and all child files. `git diff --check -- zircon_plugins/animation/runtime/src/sequence.rs zircon_plugins/animation/runtime/src/sequence docs/zircon_plugins/animation/runtime.md docs/zircon_runtime/core/framework/animation.md .codex/sessions/20260603-2304-plugin-ecosystem-continuation.md` passed with only expected LF-to-CRLF warnings on tracked files; trailing-whitespace and conflict-marker scans over the same files returned empty. Focused Cargo validation remains pending while active workspace Cargo/rustc lanes are running.
 - The 2026-05-31 linked metadata parity slice first proved the gap with `cargo test --manifest-path zircon_plugins\animation\runtime\Cargo.toml animation_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet`: the linked package manifest still reported `Experimental` while the static TOML and built-in catalog reported `Beta`.
 - After updating `runtime_plugin_descriptor()`, the same focused command passed with 1 Animation runtime test and 0 failures, validating category, maturity, and both partial capability-status rows for the linked runtime package manifest. Existing output was limited to unrelated `zircon_runtime` warnings.
 - `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib animation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet` passed with 1 runtime static-manifest/catalog test and 0 failures, validating `zircon_plugins/animation/plugin.toml` and the built-in catalog still agree on beta/partial Animation metadata.

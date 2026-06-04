@@ -224,6 +224,7 @@ pub(super) fn pane_from_tab(
             performance_timeline: performance_timeline_pane_data(&pane_presentation),
             module_plugins: module_plugins.clone(),
             build_export: build_export.clone(),
+            generated_bottom: generated_bottom_pane_data(&pane_presentation),
             ui_asset: ui_asset_pane,
             animation: animation_pane_data(animation_pane),
         },
@@ -325,6 +326,7 @@ pub(super) fn blank_pane() -> PaneData {
             performance_timeline: PerformanceTimelinePaneViewData::default(),
             module_plugins: ModulePluginsPaneViewData::default(),
             build_export: BuildExportPaneViewData::default(),
+            generated_bottom: GeneratedBottomPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
             animation: animation_pane_data(
                 crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
@@ -475,6 +477,11 @@ fn pane_metadata(
             "Windows, Linux, and macOS export plans".to_string(),
             false,
         ),
+        ViewContentKind::GeneratedBottom => (
+            "Generated Output".to_string(),
+            "Componentized generated editor feedback panels".to_string(),
+            false,
+        ),
         ViewContentKind::PrefabEditor => (
             payload_path(snapshot).unwrap_or_else(|| "Prefab Workspace".to_string()),
             "Prefab editor host slot is ready. Asset-specific tooling is still placeholder.".into(),
@@ -598,6 +605,22 @@ fn console_pane_data(chrome: &EditorChromeSnapshot) -> ConsolePaneViewData {
     }
 }
 
+fn generated_bottom_pane_data(
+    pane_presentation: &Option<PanePresentation>,
+) -> GeneratedBottomPaneViewData {
+    let Some(PanePayload::GeneratedBottomV1(payload)) = pane_presentation
+        .as_ref()
+        .map(|presentation| &presentation.body.payload)
+    else {
+        return GeneratedBottomPaneViewData::default();
+    };
+
+    GeneratedBottomPaneViewData {
+        nodes: Default::default(),
+        status: payload.status.clone().into(),
+    }
+}
+
 fn performance_timeline_pane_data(
     pane_presentation: &Option<PanePresentation>,
 ) -> PerformanceTimelinePaneViewData {
@@ -711,6 +734,7 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::PerformanceTimeline => "PerformanceTimeline",
         ViewContentKind::ModulePlugins => "ModulePlugins",
         ViewContentKind::BuildExport => "BuildExport",
+        ViewContentKind::GeneratedBottom => "GeneratedBottom",
         ViewContentKind::Placeholder => "Placeholder",
     }
 }

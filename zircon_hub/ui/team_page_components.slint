@@ -4,17 +4,13 @@ import {
     CheckState,
     EmptyStateBlock,
     HubCheckBoxRow,
-    HubCompactTabStrip,
     HubListPanelSlot,
+    HubTabbedListPanelSlot,
     HubToggleRow,
+    HubMetricSlot,
     HubTokens,
     InfoRow,
     MaterialStyleMetrics,
-    MetricCard,
-    PanelHeader,
-    PanelListViewport,
-    PanelSlot,
-    ResponsiveSlot,
 } from "components.slint";
 
 export component TeamActionRow inherits ActionRow {
@@ -76,23 +72,9 @@ export component TeamMemberRow inherits InfoRow {
     row-height: HubTokens.list-row-lg;
 }
 
-export component TeamSummarySlot inherits ResponsiveSlot {
-    in property <string> label;
-    in property <string> primary;
-    in property <string> secondary;
-    in property <bool> compact-card: false;
+export component TeamSummarySlot inherits HubMetricSlot {}
 
-    MetricCard {
-        width: parent.width;
-        height: parent.height;
-        label: root.label;
-        primary: root.primary;
-        secondary: root.secondary;
-        compact: root.compact-card;
-    }
-}
-
-export component TeamMembersPanel inherits PanelSlot {
+export component TeamMembersPanel inherits HubTabbedListPanelSlot {
     in property <TeamData> summary;
     in property <[TeamMemberData]> members;
     in property <int> member-count;
@@ -106,54 +88,44 @@ export component TeamMembersPanel inherits PanelSlot {
 
     body-padding: MaterialStyleMetrics.padding_16;
     body-spacing: HubTokens.toolbar-gap;
+    title: "Team Overview";
+    subtitle: "Identity, reviewers, and local collaboration status";
+    show-badge: true;
+    badge-text: root.member-count + " active";
+    badge-tone: "neutral";
+    first-tab-label: "Identity";
+    second-tab-label: "Review";
+    third-tab-label: "Access";
+    show-fourth-tab: false;
+    tab-width: HubTokens.control-md * 3;
+    scroll-y <=> root.member-scroll-y;
+    row-count: root.overview-row-count;
+    row-height: root.member-row-height;
+    row-spacing: HubTokens.space-2;
+    vertical-padding: HubTokens.space-1;
+    empty-height: HubTokens.list-row-lg + HubTokens.space-4;
 
-    PanelHeader {
-        title: "Team Overview";
-        subtitle: "Identity, reviewers, and local collaboration status";
-        show-badge: true;
-        badge-text: root.member-count + " active";
-        badge-tone: "neutral";
-    }
-
-    HubCompactTabStrip {
-        current-index: 0;
-        first-label: "Identity";
-        second-label: "Review";
-        third-label: "Access";
-        show-fourth: false;
-        tab-width: HubTokens.control-md * 3;
-    }
-
-    PanelListViewport {
-        scroll-y <=> root.member-scroll-y;
-        row-count: root.overview-row-count;
+    TeamIdentityRow {
         row-height: root.member-row-height;
-        row-spacing: HubTokens.space-2;
-        vertical-padding: HubTokens.space-1;
-        empty-height: HubTokens.list-row-lg + HubTokens.space-4;
+        summary: root.summary;
+        ui-text: root.ui-text;
+        collapse-label: root.collapse-label;
+    }
 
-        TeamIdentityRow {
-            row-height: root.member-row-height;
-            summary: root.summary;
-            ui-text: root.ui-text;
-            collapse-label: root.collapse-label;
-        }
+    if root.member-count == 0: EmptyStateBlock {
+        height: HubTokens.list-row-lg + HubTokens.space-4;
+        title: root.ui-text.no-team-members-found;
+        detail: root.members-empty-detail;
+        extra-detail: root.repository-path;
+        body-padding: MaterialStyleMetrics.padding_16;
+        center-content: true;
+    }
 
-        if root.member-count == 0: EmptyStateBlock {
-            height: HubTokens.list-row-lg + HubTokens.space-4;
-            title: root.ui-text.no-team-members-found;
-            detail: root.members-empty-detail;
-            extra-detail: root.repository-path;
-            body-padding: MaterialStyleMetrics.padding_16;
-            center-content: true;
-        }
-
-        for member in root.members: TeamMemberRow {
-            row-height: root.member-row-height;
-            member: member;
-            ui-text: root.ui-text;
-            collapse-label: root.collapse-label;
-        }
+    for member in root.members: TeamMemberRow {
+        row-height: root.member-row-height;
+        member: member;
+        ui-text: root.ui-text;
+        collapse-label: root.collapse-label;
     }
 }
 

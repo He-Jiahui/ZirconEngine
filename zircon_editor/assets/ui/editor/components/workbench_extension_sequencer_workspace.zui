@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_sequencer_workspace.zui"
+version = 2
+display_name = "Workbench Extension Sequencer Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionSequencerWorkspace]
+root = "sequencer_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.sequencer_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionSequencerWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_rail_gap" }, { node = "sequencer_left" }, { node = "sequencer_center" }, { node = "sequencer_right" }]
+
+[nodes.sequencer_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionSequencerRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sequencer_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSequencerLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_title" }, { node = "sequencer_tracks_tab" }, { node = "sequencer_curves_tab" }, { node = "sequencer_validation_tab" }, { node = "sequencer_sequence_row" }, { node = "sequencer_camera_row" }, { node = "sequencer_event_row" }]
+
+[nodes.sequencer_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSequencerTitle"
+props = { text = "Sequencer" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.sequencer_tracks_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSequencerTracksTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Tracks", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerTracksTab", event = "Click", route = "WorkbenchExtension.Sequencer.Tracks" }]
+
+[nodes.sequencer_curves_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSequencerCurvesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Curves", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerCurvesTab", event = "Click", route = "WorkbenchExtension.Sequencer.Curves" }]
+
+[nodes.sequencer_validation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSequencerValidationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerValidationTab", event = "Click", route = "WorkbenchExtension.Sequencer.Validation" }]
+
+[nodes.sequencer_sequence_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSequencerSequenceRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "SEQ_Intro", icon = "play", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerSequenceRow", event = "Click", route = "WorkbenchExtension.Sequencer.Sequence.Intro" }]
+
+[nodes.sequencer_camera_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSequencerCameraRow"
+classes = ["workbench-list-row"]
+props = { text = "Camera_A", icon = "camera", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerCameraRow", event = "Click", route = "WorkbenchExtension.Sequencer.Track.Camera" }]
+
+[nodes.sequencer_event_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSequencerEventRow"
+classes = ["workbench-list-row"]
+props = { text = "Event Cues", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerEventRow", event = "Click", route = "WorkbenchExtension.Sequencer.Track.Event" }]
+
+[nodes.sequencer_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSequencerCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_center_header" }, { node = "sequencer_timeline_table" }, { node = "sequencer_output" }]
+
+[nodes.sequencer_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionSequencerCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "sequencer_center_title" }, { node = "sequencer_header_fill" }, { node = "sequencer_preview_button" }, { node = "sequencer_validate_button" }]
+
+[nodes.sequencer_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSequencerCenterTitle"
+props = { text = "Timeline" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sequencer_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionSequencerHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sequencer_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionSequencerPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerPreview", event = "Click", route = "WorkbenchExtension.Sequencer.Preview" }]
+
+[nodes.sequencer_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionSequencerValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 84.0, preferred = 84.0, max = 94.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerValidate", event = "Click", route = "WorkbenchExtension.Sequencer.Validate" }]
+
+[nodes.sequencer_timeline_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSequencerTimelineTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_camera_cut_table_row" }, { node = "sequencer_hero_transform_table_row" }, { node = "sequencer_audio_table_row" }, { node = "sequencer_event_cue_table_row" }]
+
+[nodes.sequencer_camera_cut_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSequencerCameraCutTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Camera Cut", value_text = "0000-0180   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerCameraCutTableRow", event = "Click", route = "WorkbenchExtension.Sequencer.Timeline.CameraCut" }]
+
+[nodes.sequencer_hero_transform_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSequencerHeroTransformTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Hero Transform", value_text = "0180-0620   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerHeroTransformTableRow", event = "Click", route = "WorkbenchExtension.Sequencer.Timeline.HeroTransform" }]
+
+[nodes.sequencer_audio_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSequencerAudioTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Audio Theme", value_text = "0000-1460   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerAudioTableRow", event = "Click", route = "WorkbenchExtension.Sequencer.Timeline.Audio" }]
+
+[nodes.sequencer_event_cue_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSequencerEventCueTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Event Cues", value_text = "0520-0860   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerEventCueTableRow", event = "Click", route = "WorkbenchExtension.Sequencer.Timeline.EventCue" }]
+
+[nodes.sequencer_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSequencerOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Sequencer", value_text = "SEQ_Intro   12 shots   428 keys" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SequencerOutput", event = "Click", route = "WorkbenchExtension.Sequencer.Output" }]
+
+[nodes.sequencer_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSequencerRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_details_title" }, { node = "sequencer_sequence_dropdown" }, { node = "sequencer_frame_rate_dropdown" }, { node = "sequencer_work_range_field" }]
+
+[nodes.sequencer_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSequencerDetailsTitle"
+props = { text = "Sequence Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.sequencer_sequence_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionSequencerSequenceDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "SEQ_Intro", value = "SEQ_Intro", options = ["SEQ_Intro", "SEQ_BossReveal", "SEQ_Outro"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SequencerSequenceEdit", event = "Change", route = "WorkbenchExtension.Sequencer.Sequence.Edit" },
+  { id = "WorkbenchExtension/SequencerSequenceCommit", event = "Submit", route = "WorkbenchExtension.Sequencer.Sequence.Commit" },
+]
+
+[nodes.sequencer_frame_rate_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionSequencerFrameRateDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "24 fps", value = "24 fps", options = ["24 fps", "30 fps", "60 fps"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SequencerFrameRateEdit", event = "Change", route = "WorkbenchExtension.Sequencer.FrameRate.Edit" },
+  { id = "WorkbenchExtension/SequencerFrameRateCommit", event = "Submit", route = "WorkbenchExtension.Sequencer.FrameRate.Commit" },
+]
+
+[nodes.sequencer_work_range_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionSequencerWorkRangeField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Work Range: 0100-1460" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SequencerWorkRangeEdit", event = "Change", route = "WorkbenchExtension.Sequencer.WorkRange.Edit" },
+  { id = "WorkbenchExtension/SequencerWorkRangeCommit", event = "Submit", route = "WorkbenchExtension.Sequencer.WorkRange.Commit" },
+]

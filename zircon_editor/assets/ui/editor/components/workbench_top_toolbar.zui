@@ -44,7 +44,7 @@ control_id = "WorkbenchToolbarMenu"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/toolbar/menu.svg", label = "Menu" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "MenuAction/OpenMainMenu", event = "Click", route = "MenuAction.OpenMainMenu" }]
+events = [{ id = "MenuAction/OpenMainMenu", event = "Click", route = "MenuAction.workbench.menu.main.open" }]
 
 [nodes.toolbar_new]
 component = "WorkbenchIconButton"
@@ -52,7 +52,7 @@ control_id = "WorkbenchToolbarNew"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/toolbar/file-new.svg", label = "New" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "MenuAction/NewAsset", event = "Click", route = "MenuAction.NewAsset" }]
+events = [{ id = "MenuAction/NewAsset", event = "Click", route = "MenuAction.workbench.asset.create" }]
 
 [nodes.toolbar_open]
 component = "WorkbenchIconButton"
@@ -60,7 +60,7 @@ control_id = "WorkbenchToolbarOpen"
 classes = ["workbench-icon-button"]
 props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "MenuAction/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
+events = [{ id = "MenuAction/OpenProject", event = "Click", route = "MenuAction.workbench.project.open" }]
 
 [nodes.toolbar_save]
 component = "WorkbenchIconButton"
@@ -68,7 +68,7 @@ control_id = "WorkbenchToolbarSave"
 classes = ["workbench-icon-button"]
 props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "MenuAction/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
+events = [{ id = "MenuAction/SaveProject", event = "Click", route = "MenuAction.workbench.project.save" }]
 
 [nodes.toolbar_spacer_left]
 component = "Container"

@@ -241,11 +241,11 @@ fn module_command_feedback(
     active_module: WorkbenchFeedbackModule,
 ) -> Option<ModuleCommandFeedback> {
     let feedback = match action_id {
-        "InvokeWorkbenchModuleSave" => module_feedback(
+        "workbench.module.save.invoke" => module_feedback(
             active_module.save_status(),
             active_module.output(active_module.save_output()),
         ),
-        "InvokeWorkbenchModuleBrowse" => ModuleCommandFeedback {
+        "workbench.module.browse.invoke" => ModuleCommandFeedback {
             status_text: "Asset browser focused",
             message_count: "1 Message",
             output: Some(output(
@@ -254,19 +254,19 @@ fn module_command_feedback(
                 "Browse: focused Content/Environment/Forest",
             )),
         },
-        "InvokeWorkbenchModuleCompile" => module_feedback(
+        "workbench.module.compile.invoke" => module_feedback(
             active_module.compile_status(),
             active_module.output(active_module.compile_output()),
         ),
-        "InvokeWorkbenchModuleDiff" => module_feedback(
+        "workbench.module.diff.invoke" => module_feedback(
             active_module.diff_status(),
             active_module.output(active_module.diff_output()),
         ),
-        "InvokeWorkbenchModuleSimulate" => module_feedback(
+        "workbench.module.simulate.invoke" => module_feedback(
             active_module.simulate_status(),
             active_module.output(active_module.simulate_output()),
         ),
-        "InvokeWorkbenchEffectApply" => ModuleCommandFeedback {
+        "workbench.module.effect.apply.invoke" => ModuleCommandFeedback {
             status_text: "Gameplay effect applied",
             message_count: "1 Message",
             output: Some(output(
@@ -275,7 +275,7 @@ fn module_command_feedback(
                 "Simulation Output: applied +50 health preview",
             )),
         },
-        "InvokeWorkbenchMaterialCompile" => ModuleCommandFeedback {
+        "workbench.module.material.compile.invoke" => ModuleCommandFeedback {
             status_text: "Material compiled",
             message_count: "1 Message",
             output: Some(output(
@@ -284,7 +284,7 @@ fn module_command_feedback(
                 "Shader Output: compile complete, 2 warnings",
             )),
         },
-        "InvokeWorkbenchBehaviorValidate" => ModuleCommandFeedback {
+        "workbench.module.behavior.validate.invoke" => ModuleCommandFeedback {
             status_text: "Behavior tree validated",
             message_count: "1 Message",
             output: Some(output(
@@ -293,7 +293,7 @@ fn module_command_feedback(
                 "Validation: selector branch is reachable",
             )),
         },
-        "InvokeWorkbenchAssetsImport" => ModuleCommandFeedback {
+        "workbench.module.assets.import.invoke" => ModuleCommandFeedback {
             status_text: "Asset import queued",
             message_count: "1 Message",
             output: Some(output(
@@ -302,7 +302,7 @@ fn module_command_feedback(
                 "Import: queued SM_Tree_Oak_01 and dependencies",
             )),
         },
-        "InvokeWorkbenchVfxSimulate" => ModuleCommandFeedback {
+        "workbench.module.vfx.simulate.invoke" => ModuleCommandFeedback {
             status_text: "VFX simulation running",
             message_count: "1 Message",
             output: Some(output(
@@ -311,7 +311,7 @@ fn module_command_feedback(
                 "Compile Output: simulation running, no errors",
             )),
         },
-        "InvokeWorkbenchAbilityPlaytest" => ModuleCommandFeedback {
+        "workbench.module.ability.playtest.invoke" => ModuleCommandFeedback {
             status_text: "Ability playtest queued",
             message_count: "1 Message",
             output: Some(output(
@@ -320,7 +320,7 @@ fn module_command_feedback(
                 "Playtest queued   predicted activation   GA_DashAttack",
             )),
         },
-        "InvokeWorkbenchTagsAdd" => ModuleCommandFeedback {
+        "workbench.module.tags.add.invoke" => ModuleCommandFeedback {
             status_text: "Tag add dialog prepared",
             message_count: "1 Message",
             output: Some(output(
@@ -329,7 +329,7 @@ fn module_command_feedback(
                 "Add Tag   pending registry update",
             )),
         },
-        "InvokeWorkbenchTagsRename" => ModuleCommandFeedback {
+        "workbench.module.tags.rename.invoke" => ModuleCommandFeedback {
             status_text: "Tag rename prepared",
             message_count: "1 Message",
             output: Some(output(
@@ -338,7 +338,7 @@ fn module_command_feedback(
                 "Rename Tag   pending redirect update",
             )),
         },
-        "InvokeWorkbenchPerceptionSimulate" => ModuleCommandFeedback {
+        "workbench.module.perception.simulate.invoke" => ModuleCommandFeedback {
             status_text: "Perception simulation running",
             message_count: "1 Message",
             output: Some(output(
@@ -347,7 +347,7 @@ fn module_command_feedback(
                 "AI_Guard_01   simulation tick   00:12.4",
             )),
         },
-        "InvokeWorkbenchRenderCompile" => ModuleCommandFeedback {
+        "workbench.module.render.compile.invoke" => ModuleCommandFeedback {
             status_text: "Render graph compiled",
             message_count: "1 Message",
             output: Some(output(
@@ -356,7 +356,7 @@ fn module_command_feedback(
                 "Windows DX12   30 fps   GPU 6.24 ms   compiled",
             )),
         },
-        "InvokeWorkbenchHudPreview" => ModuleCommandFeedback {
+        "workbench.module.hud.preview.invoke" => ModuleCommandFeedback {
             status_text: "HUD preview refreshed",
             message_count: "1 Message",
             output: Some(output(

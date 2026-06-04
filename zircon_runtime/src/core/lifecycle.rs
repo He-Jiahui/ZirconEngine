@@ -25,6 +25,15 @@ pub enum ServiceKind {
 }
 
 impl ServiceKind {
+    pub fn from_registry_segment(value: &str) -> Option<Self> {
+        match value {
+            "Driver" => Some(Self::Driver),
+            "Manager" => Some(Self::Manager),
+            "Plugin" => Some(Self::Plugin),
+            _ => None,
+        }
+    }
+
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Driver => "Driver",

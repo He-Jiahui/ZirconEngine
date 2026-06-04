@@ -1,5 +1,5 @@
 import { OperationTimelineRowData, ProjectDetailData, SourceBuildHistoryRowData, SourceEngineData, UiTextData, WorkspaceActionReadinessData } from "shared.slint";
-import { HubCompactTabStrip, HubTokens, HubVisualSpec, OperationTimelinePanel, PageScrollSurface, WorkspacePanelSection } from "components.slint";
+import { HubTokens, HubVisualSpec, HubWorkspaceSplitState, HubWorkspaceTabStrip, OperationTimelinePanel, PageScrollSurface, WorkspacePanelSection } from "components.slint";
 import {
     BuildControlsPanel,
     BuildPipelinePanel,
@@ -23,9 +23,6 @@ export component BuildsPage inherits PageScrollSurface {
     callback launch-editor();
     callback package-project();
     callback install-device();
-    private property <length> side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;
-    private property <length> overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
-    private property <bool> compact: root.content-width < root.overview-min-width + root.side-panel-min-width + HubTokens.panel-gap;
     private property <length> build-history-scroll-y: 0px;
     private property <length> operation-timeline-scroll-y: 0px;
     private property <length> build-row-height: HubTokens.list-row-sm - HubTokens.space-2;
@@ -33,58 +30,61 @@ export component BuildsPage inherits PageScrollSurface {
     private property <length> build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.control-md + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
     private property <length> build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;
     private property <length> build-detail-height: HubTokens.control-md + root.build-row-height * 4 + HubTokens.toolbar-gap * 4 + HubTokens.space-4 * 2;
-    private property <bool> controls-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
-    private property <bool> compact-labels: root.content-width < HubTokens.breakpoint-medium;
+    private property <bool> controls-first: workspace-split.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;
 
     background: HubVisualSpec.page-background;
     clip: true;
 
-    HubCompactTabStrip {
+    workspace-split := HubWorkspaceSplitState {
+        content-width: root.content-width;
+        compact-label-breakpoint: HubTokens.breakpoint-medium;
+    }
+
+    HubWorkspaceTabStrip {
         current-index: 0;
         first-label: "Overview";
         second-label: "Pipeline";
         third-label: "History";
         fourth-label: "Timeline";
-        tab-width: HubTokens.control-md * 4;
     }
 
     WorkspacePanelSection {
-        compact: root.compact;
+        compact: workspace-split.compact;
         row-height: root.build-summary-height;
         compact-height-override: root.build-summary-section-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
         BuildSourceSummaryPanel {
-            basis: root.overview-min-width;
-            flex-basis: root.overview-min-width;
-            grow: 2;
-            flex-grow: 2;
+            basis: workspace-split.main-basis;
+            flex-basis: workspace-split.main-basis;
+            grow: workspace-split.main-grow;
+            flex-grow: workspace-split.main-grow;
             shrink: 1;
             flex-shrink: 1;
             order: root.controls-first ? 1 : 0;
             flex-order: root.controls-first ? 1 : 0;
-            min-width: root.compact ? root.content-width : root.overview-min-width;
-            height: root.compact ? root.build-source-summary-height : root.build-summary-height;
+            min-width: workspace-split.main-min-width;
+            height: workspace-split.compact ? root.build-source-summary-height : root.build-summary-height;
             readiness: root.readiness;
             project: root.project;
             source-engine: root.source-engine;
             status-label: root.status-label;
             ui-text: root.ui-text;
             row-height: root.build-row-height;
-            collapse-label: root.compact-labels;
+            collapse-label: workspace-split.compact-labels;
         }
 
         BuildControlsPanel {
-            basis: root.side-panel-min-width;
-            flex-basis: root.side-panel-min-width;
-            grow: 1;
-            flex-grow: 1;
+            basis: workspace-split.side-basis;
+            flex-basis: workspace-split.side-basis;
+            grow: workspace-split.side-grow;
+            flex-grow: workspace-split.side-grow;
             shrink: 1;
             flex-shrink: 1;
             order: root.controls-first ? 0 : 1;
             flex-order: root.controls-first ? 0 : 1;
-            min-width: root.compact ? root.content-width : root.side-panel-min-width;
+            min-width: workspace-split.side-min-width;
             height: root.build-summary-height;
             readiness: root.readiness;
             project: root.project;
@@ -100,20 +100,20 @@ export component BuildsPage inherits PageScrollSurface {
     }
 
     WorkspacePanelSection {
-        compact: root.compact;
+        compact: workspace-split.compact;
         compact-rows: 3;
         row-height: root.build-detail-height;
         spacing-horizontal: HubTokens.panel-gap;
         spacing-vertical: HubTokens.panel-gap;
 
         BuildPipelinePanel {
-            basis: root.overview-min-width - HubTokens.control-lg * 3;
-            flex-basis: root.overview-min-width - HubTokens.control-lg * 3;
-            grow: 2;
-            flex-grow: 2;
+            basis: workspace-split.main-basis - HubTokens.control-lg * 3;
+            flex-basis: workspace-split.main-basis - HubTokens.control-lg * 3;
+            grow: workspace-split.main-grow;
+            flex-grow: workspace-split.main-grow;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : root.overview-min-width - HubTokens.control-lg * 3;
+            min-width: workspace-split.compact ? root.content-width : workspace-split.main-basis - HubTokens.control-lg * 3;
             height: root.build-detail-height;
             readiness: root.readiness;
             project: root.project;
@@ -121,7 +121,7 @@ export component BuildsPage inherits PageScrollSurface {
             status-label: root.status-label;
             ui-text: root.ui-text;
             row-height: root.build-row-height;
-            collapse-label: root.compact-labels;
+            collapse-label: workspace-split.compact-labels;
         }
 
         BuildTaskHistoryPanel {
@@ -131,7 +131,7 @@ export component BuildsPage inherits PageScrollSurface {
             flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.build-detail-height;
             readiness: root.readiness;
             status-label: root.status-label;
@@ -143,7 +143,7 @@ export component BuildsPage inherits PageScrollSurface {
             source-build-history-count: root.source-build-history-count;
             row-height: root.build-row-height;
             history-scroll-y <=> root.build-history-scroll-y;
-            collapse-label: root.compact-labels;
+            collapse-label: workspace-split.compact-labels;
         }
 
         OperationTimelinePanel {
@@ -153,7 +153,7 @@ export component BuildsPage inherits PageScrollSurface {
             flex-grow: 1;
             shrink: 1;
             flex-shrink: 1;
-            min-width: root.compact ? root.content-width : HubTokens.panel-min-sm;
+            min-width: workspace-split.compact ? root.content-width : HubTokens.panel-min-sm;
             height: root.build-detail-height;
             timeline-title: root.ui-text.operation-timeline;
             empty-title: root.ui-text.no-operation-timeline;
@@ -162,7 +162,7 @@ export component BuildsPage inherits PageScrollSurface {
             operation-timeline-count: root.operation-timeline-count;
             row-height: root.build-row-height;
             timeline-scroll-y <=> root.operation-timeline-scroll-y;
-            collapse-label: root.compact-labels;
+            collapse-label: workspace-split.compact-labels;
         }
     }
 

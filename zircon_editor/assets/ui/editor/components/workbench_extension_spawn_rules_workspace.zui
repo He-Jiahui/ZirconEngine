@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_spawn_rules_workspace.zui"
+version = 2
+display_name = "Workbench Extension Spawn Rules Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionSpawnRulesWorkspace]
+root = "spawn_rules_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.spawn_rules_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionSpawnRulesWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_rail_gap" }, { node = "spawn_rules_left" }, { node = "spawn_rules_center" }, { node = "spawn_rules_right" }]
+
+[nodes.spawn_rules_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionSpawnRulesRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.spawn_rules_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_title" }, { node = "spawn_rules_rules_tab" }, { node = "spawn_rules_state_tab" }, { node = "spawn_rules_validation_tab" }, { node = "spawn_rules_enemy_row" }, { node = "spawn_rules_zone_a_row" }, { node = "spawn_rules_condition_night_row" }]
+
+[nodes.spawn_rules_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSpawnRulesTitle"
+props = { text = "Spawn Rules" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.spawn_rules_rules_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSpawnRulesRulesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Rules", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesRulesTab", event = "Click", route = "WorkbenchExtension.SpawnRules.Rules" }]
+
+[nodes.spawn_rules_state_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSpawnRulesStateTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "State", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesStateTab", event = "Click", route = "WorkbenchExtension.SpawnRules.State" }]
+
+[nodes.spawn_rules_validation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionSpawnRulesValidationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesValidationTab", event = "Click", route = "WorkbenchExtension.SpawnRules.Validation" }]
+
+[nodes.spawn_rules_enemy_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSpawnRulesEnemyRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "SpawnRules_Enemy", icon = "target", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesEnemyRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Rules.Enemy" }]
+
+[nodes.spawn_rules_zone_a_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSpawnRulesZoneARow"
+classes = ["workbench-list-row"]
+props = { text = "Zone_A", icon = "globe", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesZoneARow", event = "Click", route = "WorkbenchExtension.SpawnRules.Zone.A" }]
+
+[nodes.spawn_rules_condition_night_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionSpawnRulesConditionNightRow"
+classes = ["workbench-list-row"]
+props = { text = "Condition_Night", icon = "file", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesConditionNightRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Condition.Night" }]
+
+[nodes.spawn_rules_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_center_header" }, { node = "spawn_rules_stack_table" }, { node = "spawn_rules_output" }]
+
+[nodes.spawn_rules_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionSpawnRulesCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "spawn_rules_center_title" }, { node = "spawn_rules_header_fill" }, { node = "spawn_rules_simulate_button" }, { node = "spawn_rules_validate_button" }]
+
+[nodes.spawn_rules_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSpawnRulesCenterTitle"
+props = { text = "Spawn Rule Stack" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.spawn_rules_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionSpawnRulesHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.spawn_rules_simulate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionSpawnRulesSimulateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Simulate", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesSimulate", event = "Click", route = "WorkbenchExtension.SpawnRules.Simulate" }]
+
+[nodes.spawn_rules_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionSpawnRulesValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesValidate", event = "Click", route = "WorkbenchExtension.SpawnRules.Validate" }]
+
+[nodes.spawn_rules_stack_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesStackTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_zone_a_table_row" }, { node = "spawn_rules_condition_night_table_row" }, { node = "spawn_rules_tag_combat_table_row" }, { node = "spawn_rules_conflict_table_row" }]
+
+[nodes.spawn_rules_zone_a_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSpawnRulesZoneATableRow"
+classes = ["workbench-table-row"]
+props = { text = "Zone_A", value_text = "Volume   12 probes" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesZoneATableRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Stack.ZoneA" }]
+
+[nodes.spawn_rules_condition_night_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSpawnRulesConditionNightTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Condition_Night", value_text = "Condition   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesConditionNightTableRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Stack.ConditionNight" }]
+
+[nodes.spawn_rules_tag_combat_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSpawnRulesTagCombatTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Tag_Combat", value_text = "Filter   strict tags" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesTagCombatTableRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Stack.TagCombat" }]
+
+[nodes.spawn_rules_conflict_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSpawnRulesConflictTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Conflict", value_text = "Validation   1 warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesConflictTableRow", event = "Click", route = "WorkbenchExtension.SpawnRules.Stack.Conflict" }]
+
+[nodes.spawn_rules_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionSpawnRulesOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Spawn Log", value_text = "18 rules   12 zones   1 conflict" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/SpawnRulesOutput", event = "Click", route = "WorkbenchExtension.SpawnRules.Output" }]
+
+[nodes.spawn_rules_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_details_title" }, { node = "spawn_rules_rule_set_dropdown" }, { node = "spawn_rules_authority_dropdown" }, { node = "spawn_rules_seed_field" }]
+
+[nodes.spawn_rules_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionSpawnRulesDetailsTitle"
+props = { text = "Spawn Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.spawn_rules_rule_set_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionSpawnRulesRuleSetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Enemy Spawn", value = "Enemy Spawn", options = ["Enemy Spawn", "Ambient Spawn", "Boss Spawn", "Debug Spawn"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SpawnRulesRuleSetEdit", event = "Change", route = "WorkbenchExtension.SpawnRules.RuleSet.Edit" },
+  { id = "WorkbenchExtension/SpawnRulesRuleSetCommit", event = "Submit", route = "WorkbenchExtension.SpawnRules.RuleSet.Commit" },
+]
+
+[nodes.spawn_rules_authority_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionSpawnRulesAuthorityDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Server", value = "Server", options = ["Server", "Client Preview", "Offline"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SpawnRulesAuthorityEdit", event = "Change", route = "WorkbenchExtension.SpawnRules.Authority.Edit" },
+  { id = "WorkbenchExtension/SpawnRulesAuthorityCommit", event = "Submit", route = "WorkbenchExtension.SpawnRules.Authority.Commit" },
+]
+
+[nodes.spawn_rules_seed_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionSpawnRulesSeedField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Seed: 2026" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/SpawnRulesSeedEdit", event = "Change", route = "WorkbenchExtension.SpawnRules.Seed.Edit" },
+  { id = "WorkbenchExtension/SpawnRulesSeedCommit", event = "Submit", route = "WorkbenchExtension.SpawnRules.Seed.Commit" },
+]

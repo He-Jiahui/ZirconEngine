@@ -160,8 +160,10 @@ fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
             origin: [0.0, 0.0, -5.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
-            collision_mask: None,
-            include_sensors: true,
+            filter: PhysicsQueryFilter {
+                include_sensors: true,
+                ..PhysicsQueryFilter::default()
+            },
         })
         .is_none());
 }
@@ -216,8 +218,10 @@ fn builtin_query_only_syncs_queries_without_fixed_step_writeback() {
             origin: [0.0, 0.0, -5.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
-            collision_mask: None,
-            include_sensors: true,
+            filter: PhysicsQueryFilter {
+                include_sensors: true,
+                ..PhysicsQueryFilter::default()
+            },
         })
         .expect("query-only builtin backend should still expose synced ray queries");
     assert_eq!(hit.entity, body);

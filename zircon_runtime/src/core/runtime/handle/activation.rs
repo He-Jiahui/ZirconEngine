@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::core::error::CoreError;
 use crate::core::lifecycle::{LifecycleState, ServiceKind, StartupMode};
 
+use super::super::descriptors::RegistryName;
 use super::CoreHandle;
 
 impl CoreHandle {
@@ -19,7 +20,7 @@ impl CoreHandle {
             entry.lifecycle = LifecycleState::Initializing;
         }
 
-        let immediate_services = {
+        let immediate_services: Vec<RegistryName> = {
             let services = self.inner.services.lock().unwrap();
             let mut names: Vec<_> = services
                 .values()
@@ -27,7 +28,7 @@ impl CoreHandle {
                     entry.owner_module == module_name
                         && entry.startup_mode == StartupMode::Immediate
                 })
-                .map(|entry| (entry.kind, entry.name.to_string()))
+                .map(|entry| (entry.kind, entry.name.clone()))
                 .collect();
             names.sort_by_key(|(kind, _)| match kind {
                 ServiceKind::Driver => 0,
@@ -38,7 +39,7 @@ impl CoreHandle {
         };
 
         for service in immediate_services {
-            self.resolve_named_service(&service, None)?;
+            self.resolve_named_service(service.as_str(), None)?;
         }
 
         let mut modules = self.inner.modules.lock().unwrap();
@@ -59,12 +60,12 @@ impl CoreHandle {
             entry.lifecycle = LifecycleState::Stopping;
         }
 
-        let unload_order = {
+        let unload_order: Vec<RegistryName> = {
             let services = self.inner.services.lock().unwrap();
             let mut names: Vec<_> = services
                 .values()
                 .filter(|entry| entry.owner_module == module_name)
-                .map(|entry| (entry.kind, entry.name.to_string()))
+                .map(|entry| (entry.kind, entry.name.clone()))
                 .collect();
             names.sort_by_key(|(kind, _)| match kind {
                 ServiceKind::Plugin => 0,
@@ -73,14 +74,23 @@ impl CoreHandle {
             });
             names.into_iter().map(|(_, name)| name).collect::<Vec<_>>()
         };
-        let unloading: HashSet<_> = unload_order.iter().cloned().collect();
+        let unloading: HashSet<RegistryName> = unload_order.iter().cloned().collect();
 
         for service_name in unload_order {
             let dependents = self.running_dependents(&service_name, &unloading);
             if !dependents.is_empty() {
-                return Err(CoreError::UnloadBlocked(service_name, dependents));
+                return Err(CoreError::UnloadBlocked(
+                    service_name.to_string(),
+                    dependents,
+                ));
             }
-            if let Some(entry) = self.inner.services.lock().unwrap().get_mut(&service_name) {
+            if let Some(entry) = self
+                .inner
+                .services
+                .lock()
+                .unwrap()
+                .get_mut(service_name.as_str())
+            {
                 entry.instance = None;
                 entry.lifecycle = LifecycleState::Unloaded;
             }
@@ -94,7 +104,12 @@ impl CoreHandle {
         Ok(())
     }
 
-    fn running_dependents(&self, service_name: &str, unloading: &HashSet<String>) -> Vec<String> {
+    fn running_dependents(
+        &self,
+        service_name: &RegistryName,
+        unloading: &HashSet<RegistryName>,
+    ) -> Vec<String> {
+        let service_name = service_name.as_str();
         self.inner
             .services
             .lock()
@@ -109,7 +124,7 @@ impl CoreHandle {
                         .iter()
                         .any(|dependency| dependency.name.as_str() == service_name)
             })
-            .map(|entry| entry.name.to_string())
+            .map(|entry| entry.name.as_str().to_owned())
             .collect()
     }
 }

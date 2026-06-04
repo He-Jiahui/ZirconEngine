@@ -1722,6 +1722,13 @@ fn draw_pane_template_nodes(
             clip,
             text_input_focus,
         ),
+        "GeneratedBottom" => draw_if_present(
+            frame,
+            &pane.generated_bottom.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
         "UiAssetEditor" => {
             draw_if_present(frame, &pane.ui_asset.nodes, body, clip, text_input_focus)
         }

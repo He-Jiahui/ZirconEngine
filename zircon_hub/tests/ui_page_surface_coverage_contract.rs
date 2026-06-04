@@ -27,13 +27,20 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
 
     let components = read_ui_file("components.slint");
     let data_display = read_ui_file("data_display.slint");
+    let list_container = read_ui_file("list_container_components.slint");
     let table_view = read_ui_file("table_view_components.slint");
     let tree_view = read_ui_file("tree_view_components.slint");
-    let data_surface = format!("{data_display}\n{table_view}\n{tree_view}");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
+    let data_surface = format!(
+        "{data_display}\n{list_container}\n{table_view}\n{tree_view}\n{catalog_components}"
+    );
     let layout = read_ui_file("layout.slint");
     let inputs = read_ui_file("inputs.slint");
+    let text_inputs = read_ui_file("text_input_components.slint");
+    let input_state_components = read_ui_file("input_state_components.slint");
     let surfaces = read_ui_file("surfaces.slint");
     let button_components = read_ui_file("button_components.slint");
+    let icon_button_components = read_ui_file("icon_button_components.slint");
     let material_bridge = read_ui_file("material_bridge.slint");
     let dashboard = read_ui_file("project_dashboard.slint");
     let dashboard_components = read_ui_file("project_dashboard_components.slint");
@@ -65,7 +72,6 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     let team = read_ui_file("team.slint");
     let team_components = read_ui_file("team_page_components.slint");
     let team_surface = format!("{team}\n{team_components}");
-    let catalog_components = read_ui_file("catalog_page_components.slint");
     let catalog_detail_components = read_ui_file("catalog_detail_components.slint");
     let row_slot_components = read_ui_file("row_slot_components.slint");
     let assets = read_ui_file("assets.slint");
@@ -78,6 +84,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     for (name, source) in [
         ("components.slint", &components),
         ("data_display.slint", &data_display),
+        ("list_container_components.slint", &list_container),
         ("table_view_components.slint", &table_view),
         ("tree_view_components.slint", &tree_view),
     ] {
@@ -104,6 +111,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
 
     for snippet in [
         "export component Flow",
+        "export component FlowScrollSurface",
         "export component PanelGrid",
         "export component WorkspacePanelSection",
         "export component ResponsiveSlot",
@@ -118,10 +126,19 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     for snippet in [
         "export component SegmentButton",
         "material-segment := SegmentedButton",
-        "export component ToolbarSelect",
+        "export component HubSelectTrigger",
         "trigger := OutlineButton",
+        "export component ToolbarSelect",
+        "HubSelectTrigger {",
         "menu := HubSelectMenu",
-        "material-combo := HubSelectDropDownSurface",
+    ] {
+        assert!(
+            inputs.contains(snippet),
+            "inputs.slint must keep the Hub select/button wrapper backed by the Material primitive: {snippet}"
+        );
+    }
+
+    for snippet in [
         "export component HubTextField",
         "material-field := TextField",
         "export component SearchBox",
@@ -132,14 +149,32 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "border-color: root.state-border;",
     ] {
         assert!(
-            inputs.contains(snippet),
-            "inputs.slint must keep the Hub wrapper backed by the Material primitive: {snippet}"
+            text_inputs.contains(snippet),
+            "text_input_components.slint must keep the Hub text-input wrapper backed by the Material primitive: {snippet}"
+        );
+    }
+
+    for snippet in [
+        "export component HubCheckBox",
+        "material-check := MaterialCheckBox",
+        "export component HubCheckBoxRow",
+        "material-row := MaterialCheckBoxTile",
+        "export component HubSwitch",
+        "material-switch := MaterialSwitch",
+        "export component HubToggleRow",
+        "HubSwitch {",
+        "export component HubComboBox",
+        "material-combo := HubSelectDropDownSurface",
+    ] {
+        assert!(
+            input_state_components.contains(snippet),
+            "input_state_components.slint must keep the Hub state wrapper backed by the Material primitive: {snippet}"
         );
     }
 
     for snippet in [
         "root.variant == \"selected\" ? HubVisualSpec.panel-hover-background : HubVisualSpec.panel-background",
-        "if root.show-action: OutlineButton",
+        "if root.show-action: HubPanelHeaderActionButton",
         "export component OverviewPanel inherits HubPanel",
         "export component EmptyStateBlock inherits Rectangle",
         "export component EmptyStatePanel inherits HubPanel",
@@ -147,22 +182,44 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
     ] {
         assert!(
             surfaces.contains(snippet),
-            "surfaces.slint must keep cards/actions/text on Material primitives: {snippet}"
+            "surfaces.slint must keep cards/text on Material primitives and actions on shared Hub button wrappers: {snippet}"
         );
     }
 
     for snippet in [
         "FilledButton,",
-        "FilledIconButton,",
-        "OutlineIconButton,",
+        "OutlineButton,",
         "TonalButton,",
         "if root.primary &&",
-        "export component IconButton",
+        "export component HubFormActionRow",
+        "export component HubDisclosureButton",
+        "export component HubHeaderCommandGroup",
+        "export component HubPanelNavigationCommand",
+        "export component HubPanelHeaderActionButton",
+        "export component HubUserMenuTriggerButton",
+        "export component HubSidebarCollapseButton",
         "StateLayerArea {",
     ] {
         assert!(
             button_components.contains(snippet),
             "button_components.slint must keep public Hub button APIs wired to Material buttons: {snippet}"
+        );
+    }
+    for snippet in [
+        "FilledIconButton,",
+        "OutlineIconButton,",
+        "export component IconButton",
+        "export component HubTopbarIconButton",
+        "export component HubBackButton",
+        "export component HubFlowNextButton",
+        "export component HubRowActionButton",
+        "export component HubFloatingIconButton",
+        "export component HubMoreMenuButton",
+        "StateLayerArea {",
+    ] {
+        assert!(
+            icon_button_components.contains(snippet),
+            "icon_button_components.slint must keep public Hub icon-button APIs wired to Material icon buttons: {snippet}"
         );
     }
 
@@ -187,6 +244,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         "InfoRow",
         "ActionRow",
         "MetricCard",
+        "HubMetricSlot",
         "BuildHistoryRow",
         "HubTableView",
         "HubTableBody",
@@ -270,6 +328,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &[
                 "PageScrollSurface",
                 "PanelSlot",
+                "ProjectDetailMainPanel",
                 "ProjectDetailStatusStrip",
                 "ProjectDetailInfoSection",
                 "ProjectDetailActionsSection",
@@ -290,8 +349,8 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "InfoRow",
                 "ActionRow",
                 "export component EditorActionsPanel inherits HubListPanelSlot",
-                "export component EditorSourceSummaryPanel inherits PanelSlot",
-                "export component EditorSourceSettingsPanel inherits PanelSlot",
+                "export component EditorSourceSummaryPanel inherits HubContentPanelSlot",
+                "export component EditorSourceSettingsPanel inherits HubFormPanelSlot",
                 "EmptyStateBlock",
             ][..],
         ),
@@ -331,9 +390,9 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
                 "OverviewPanel",
                 "PanelSlot",
                 "ResponsiveSlot",
-                "MetricCard",
+                "HubMetricSlot",
                 "HubListPanelSlot",
-                "export component CloudMetricSlot inherits ResponsiveSlot",
+                "export component CloudMetricSlot inherits HubMetricSlot",
                 "export component CloudPackageActionRow inherits ActionRow",
                 "export component CloudPackageActionsPanel inherits HubListPanelSlot",
                 "export component CloudServiceRow inherits InfoRow",
@@ -348,14 +407,14 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             &[
                 "WorkspacePanelSection",
                 "PanelSlot",
-                "ResponsiveSlot",
-                "MetricCard",
+                "HubMetricSlot",
                 "HubListPanelSlot",
-                "export component TeamSummarySlot inherits ResponsiveSlot",
+                "export component TeamSummarySlot inherits HubMetricSlot",
                 "export component TeamActionRow inherits ActionRow",
                 "export component TeamIdentityRow inherits InfoRow",
                 "export component TeamMemberRow inherits InfoRow",
-                "export component TeamMembersPanel inherits PanelSlot",
+                "HubTabbedListPanelSlot",
+                "export component TeamMembersPanel inherits HubTabbedListPanelSlot",
                 "export component TeamActionsPanel inherits HubListPanelSlot",
                 "collapse-label: label-collapse.collapsed;",
                 "EmptyStateBlock",
@@ -412,9 +471,10 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
         }
 
         for snippet in [
-            "export component CatalogDetailPanel inherits PanelSlot",
+            "export component CatalogDetailPanel inherits HubContentPanelSlot",
             "body-padding: MaterialStyleMetrics.padding_16;",
             "body-spacing: HubTokens.toolbar-gap;",
+            "content-spacing: HubTokens.toolbar-gap;",
             "component CatalogDetailPreviewBand inherits Rectangle",
             "component CatalogDetailStatGrid inherits Rectangle",
             "component CatalogDetailCheckList inherits Rectangle",
@@ -423,6 +483,7 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             "CatalogDetailStatGrid {",
             "CatalogDetailCheckList {",
             "HubRowLeadingIconSlot",
+            "HubRowMainSlot",
             "HubRowTrailingSlot",
         ] {
             assert!(
@@ -441,6 +502,33 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             );
         }
 
+        let check_row = catalog_detail_components
+            .split("component CatalogDetailCheckRow")
+            .nth(1)
+            .and_then(|source| source.split("component CatalogDetailPreviewBand").next())
+            .expect(
+                "catalog_detail_components.slint must declare CatalogDetailCheckRow before CatalogDetailPreviewBand",
+            );
+        for snippet in [
+            "HubRowLeadingIconSlot {",
+            "HubRowMainSlot {",
+            "title: root.title;",
+            "detail: root.detail;",
+            "title-foreground: HubTokens.text-primary;",
+            "HubRowTrailingSlot {",
+        ] {
+            assert!(
+                check_row.contains(snippet),
+                "CatalogDetailCheckRow must compose check-row content through the shared row slot family: {snippet}"
+            );
+        }
+        for forbidden in ["MaterialText {", "MutedText {", "VerticalLayout {"] {
+            assert!(
+                !check_row.contains(forbidden),
+                "CatalogDetailCheckRow should not return to local text-stack layout after adopting HubRowMainSlot: {forbidden}"
+            );
+        }
+
         for snippet in [
             "export component HubRowLeadingIconSlot inherits Rectangle",
             "shell-border: HubVisualSpec.neutral-icon-stroke;",
@@ -454,14 +542,29 @@ fn material_and_taffy_coverage_uses_real_hub_surfaces() {
             "check-state: root.check-state;",
             "export component HubRowTrailingSlot inherits Rectangle",
             "StatusBadge",
-            "HubIconButton",
+            "HubRowActionButton",
             "in property <bool> show-action: false;",
             "private property <bool> action-visible: root.show-action || root.show-chevron;",
+            "button-size: root.action-size;",
+            "button-radius: root.action-radius;",
+            "framed: root.action-framed;",
+            "state-layer-color: root.action-state-layer-color;",
             "width: root.slot-width;",
         ] {
             assert!(
                 row_slot_components.contains(snippet),
                 "row_slot_components.slint must own shared neutral leading and trailing row slots: {snippet}"
+            );
+        }
+        for forbidden in [
+            "import { HubIconButton } from \"button_components.slint\";",
+            "HubIconButton {",
+            "StateLayerArea {",
+            "if root.action-visible && !root.action-framed: Rectangle",
+        ] {
+            assert!(
+                !row_slot_components.contains(forbidden),
+                "HubRowTrailingSlot should consume HubRowActionButton instead of owning local action-button internals: {forbidden}"
             );
         }
     }

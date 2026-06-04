@@ -28,7 +28,7 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         BuiltinRenderFeature::PostProcess => post_process::descriptor(),
         BuiltinRenderFeature::Ui => ui::descriptor(),
         BuiltinRenderFeature::DebugOverlay => debug_overlay::descriptor(),
-        BuiltinRenderFeature::Particle => externalized_optional_plugin_descriptor("particle"),
+        BuiltinRenderFeature::Particle => advanced_slot::descriptor("particle", "particles"),
         BuiltinRenderFeature::GlobalIllumination => {
             externalized_advanced_plugin_descriptor("global_illumination")
         }
@@ -73,8 +73,4 @@ fn externalized_advanced_plugin_descriptor(name: &str) -> RenderFeatureDescripto
         ),
         _ => descriptor,
     }
-}
-
-fn externalized_optional_plugin_descriptor(name: &str) -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(name, Vec::new(), Vec::new(), Vec::new())
 }

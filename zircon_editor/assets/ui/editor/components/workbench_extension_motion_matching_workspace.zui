@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_motion_matching_workspace.zui"
+version = 2
+display_name = "Workbench Extension Motion Matching Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionMotionMatchingWorkspace]
+root = "motion_matching_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.motion_matching_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMotionMatchingWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_rail_gap" }, { node = "motion_matching_left" }, { node = "motion_matching_center" }, { node = "motion_matching_right" }]
+
+[nodes.motion_matching_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionMotionMatchingRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.motion_matching_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_title" }, { node = "motion_matching_database_tab" }, { node = "motion_matching_trajectory_tab" }, { node = "motion_matching_debug_tab" }, { node = "motion_matching_locomotion_row" }, { node = "motion_matching_combat_row" }, { node = "motion_matching_traversal_row" }]
+
+[nodes.motion_matching_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMotionMatchingTitle"
+props = { text = "Motion Matching" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.motion_matching_database_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMotionMatchingDatabaseTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Database", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingDatabaseTab", event = "Click", route = "WorkbenchExtension.MotionMatching.Database" }]
+
+[nodes.motion_matching_trajectory_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMotionMatchingTrajectoryTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Trajectory", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingTrajectoryTab", event = "Click", route = "WorkbenchExtension.MotionMatching.Trajectory" }]
+
+[nodes.motion_matching_debug_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMotionMatchingDebugTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Debug", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingDebugTab", event = "Click", route = "WorkbenchExtension.MotionMatching.Debug" }]
+
+[nodes.motion_matching_locomotion_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMotionMatchingLocomotionRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "MM_Locomotion", icon = "play", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingLocomotionRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Database.Locomotion" }]
+
+[nodes.motion_matching_combat_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMotionMatchingCombatRow"
+classes = ["workbench-list-row"]
+props = { text = "MM_Combat", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingCombatRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Database.Combat" }]
+
+[nodes.motion_matching_traversal_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMotionMatchingTraversalRow"
+classes = ["workbench-list-row"]
+props = { text = "MM_Traversal", icon = "component", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingTraversalRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Database.Traversal" }]
+
+[nodes.motion_matching_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_center_header" }, { node = "motion_matching_pose_table" }, { node = "motion_matching_output" }]
+
+[nodes.motion_matching_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMotionMatchingCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "motion_matching_center_title" }, { node = "motion_matching_header_fill" }, { node = "motion_matching_preview_button" }, { node = "motion_matching_rebuild_button" }]
+
+[nodes.motion_matching_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMotionMatchingCenterTitle"
+props = { text = "Pose Search" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.motion_matching_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionMotionMatchingHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.motion_matching_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMotionMatchingPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingPreview", event = "Click", route = "WorkbenchExtension.MotionMatching.Preview" }]
+
+[nodes.motion_matching_rebuild_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMotionMatchingRebuildButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Rebuild", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 78.0, preferred = 78.0, max = 90.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingRebuild", event = "Click", route = "WorkbenchExtension.MotionMatching.Rebuild" }]
+
+[nodes.motion_matching_pose_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingPoseTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_idle_clip_table_row" }, { node = "motion_matching_start_clip_table_row" }, { node = "motion_matching_pivot_clip_table_row" }, { node = "motion_matching_stop_clip_table_row" }]
+
+[nodes.motion_matching_idle_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMotionMatchingIdleClipTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Idle_Breath", value_text = "cost 0.04   stance relaxed   selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingIdleClipTableRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Pose.Idle" }]
+
+[nodes.motion_matching_start_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMotionMatchingStartClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Start_Forward", value_text = "cost 0.18   trajectory match   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingStartClipTableRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Pose.Start" }]
+
+[nodes.motion_matching_pivot_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMotionMatchingPivotClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Pivot_Left_90", value_text = "cost 0.31   turn bias   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingPivotClipTableRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Pose.Pivot" }]
+
+[nodes.motion_matching_stop_clip_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMotionMatchingStopClipTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Stop_RightFoot", value_text = "cost 0.22   foot lock   Clean" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingStopClipTableRow", event = "Click", route = "WorkbenchExtension.MotionMatching.Pose.Stop" }]
+
+[nodes.motion_matching_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMotionMatchingOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Motion Matching", value_text = "MM_Locomotion   184 clips   1 warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MotionMatchingOutput", event = "Click", route = "WorkbenchExtension.MotionMatching.Output" }]
+
+[nodes.motion_matching_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_details_title" }, { node = "motion_matching_database_dropdown" }, { node = "motion_matching_trajectory_dropdown" }, { node = "motion_matching_cost_field" }]
+
+[nodes.motion_matching_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMotionMatchingDetailsTitle"
+props = { text = "Search Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.motion_matching_database_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMotionMatchingDatabaseDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "MM_Locomotion", value = "MM_Locomotion", options = ["MM_Locomotion", "MM_Combat", "MM_Traversal"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MotionMatchingDatabaseEdit", event = "Change", route = "WorkbenchExtension.MotionMatching.Database.Edit" },
+  { id = "WorkbenchExtension/MotionMatchingDatabaseCommit", event = "Submit", route = "WorkbenchExtension.MotionMatching.Database.Commit" },
+]
+
+[nodes.motion_matching_trajectory_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMotionMatchingTrajectoryDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Forward 0.8s", value = "Forward 0.8s", options = ["Forward 0.8s", "Strafe 0.6s", "Pivot 0.4s"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MotionMatchingTrajectoryEdit", event = "Change", route = "WorkbenchExtension.MotionMatching.Trajectory.Edit" },
+  { id = "WorkbenchExtension/MotionMatchingTrajectoryCommit", event = "Submit", route = "WorkbenchExtension.MotionMatching.Trajectory.Commit" },
+]
+
+[nodes.motion_matching_cost_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionMotionMatchingCostField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Cost Bias: 0.42" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MotionMatchingCostEdit", event = "Change", route = "WorkbenchExtension.MotionMatching.Cost.Edit" },
+  { id = "WorkbenchExtension/MotionMatchingCostCommit", event = "Submit", route = "WorkbenchExtension.MotionMatching.Cost.Commit" },
+]

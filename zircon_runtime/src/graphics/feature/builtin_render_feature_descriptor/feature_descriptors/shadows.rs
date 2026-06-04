@@ -1,4 +1,4 @@
-use crate::render_graph::QueueLane;
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
 use crate::graphics::pipeline::RenderPassStage;
 
@@ -22,6 +22,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             QueueLane::Graphics,
         )
         .with_executor_id("shadow.map")
-        .write_texture("shadow-map")],
+        .with_side_effects()
+        .write_texture_with_ops("shadow-map", RenderGraphAttachmentOps::clear_store())],
     )
 }

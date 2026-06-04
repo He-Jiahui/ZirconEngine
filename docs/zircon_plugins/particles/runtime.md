@@ -22,6 +22,16 @@ related_code:
   - zircon_plugins/particles/runtime/src/render/gpu/backend.rs
   - zircon_plugins/particles/runtime/src/interop/animation.rs
   - zircon_plugins/particles/runtime/src/interop/physics.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
+  - zircon_plugins/particles/runtime/src/tests/cpu_simulation.rs
+  - zircon_plugins/particles/runtime/src/tests/extract.rs
+  - zircon_plugins/particles/runtime/src/tests/gpu.rs
+  - zircon_plugins/particles/runtime/src/tests/graph.rs
+  - zircon_plugins/particles/runtime/src/tests/manager_resolution.rs
+  - zircon_plugins/particles/runtime/src/tests/optional_features.rs
+  - zircon_plugins/particles/runtime/src/tests/registration.rs
+  - zircon_plugins/particles/runtime/src/tests/support.rs
+  - zircon_plugins/particles/runtime/src/tests/validation.rs
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
   - zircon_plugins/particles/editor/src/tests.rs
@@ -118,7 +128,16 @@ plan_sources:
   - docs/superpowers/specs/2026-05-03-particles-full-render-graph-refactor-design.md
   - docs/superpowers/plans/2026-05-03-particles-full-render-graph-refactor.md
 tests:
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
+  - zircon_plugins/particles/runtime/src/tests/cpu_simulation.rs
+  - zircon_plugins/particles/runtime/src/tests/extract.rs
+  - zircon_plugins/particles/runtime/src/tests/gpu.rs
+  - zircon_plugins/particles/runtime/src/tests/graph.rs
+  - zircon_plugins/particles/runtime/src/tests/manager_resolution.rs
+  - zircon_plugins/particles/runtime/src/tests/optional_features.rs
+  - zircon_plugins/particles/runtime/src/tests/registration.rs
+  - zircon_plugins/particles/runtime/src/tests/support.rs
+  - zircon_plugins/particles/runtime/src/tests/validation.rs
   - zircon_plugins/particles/editor/src/tests.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
@@ -226,7 +245,7 @@ The feedback continuation keeps the same ownership split. `zircon_runtime` does 
 
 ## Test Coverage
 
-`zircon_plugins/particles/runtime/src/tests.rs` covers plugin registration, component/options/event contributions, CPU spawn rate, deterministic seed behavior, lifetime death, free-list reuse, pause/stop/preview rewind, extract sorting, material/texture/rotation extraction, bounds and sort metadata, non-finite asset rejection including burst times and animation binding progress, capability-gated physics diagnostics, late physics capability propagation, external force application, capability-gated animation diagnostics and event control, GPU layout/fallback, GPU pass order, WGSL parse coverage, GPU frame spawn planning, neutral GPU frame extract projection, particle graph executor resource-contract validation, capacity clamp diagnostics, and optional physics/animation helper behavior.
+`zircon_plugins/particles/runtime/src/tests/mod.rs` is a structural test entry point. Its child modules cover plugin registration, manager resolution, CPU spawn rate, deterministic seed behavior, lifetime death, free-list reuse, pause/stop/preview rewind, extract sorting, material/texture/rotation extraction, bounds and sort metadata, non-finite asset rejection including burst times and animation binding progress, capability-gated physics diagnostics, late physics capability propagation, external force application, capability-gated animation diagnostics and event control, GPU layout/fallback, GPU pass order, WGSL parse coverage, GPU frame spawn planning, neutral GPU frame extract projection, particle graph executor resource-contract validation, capacity clamp diagnostics, neutral GPU feedback recording, and optional physics/animation helper behavior. Shared test helpers live in `tests/support.rs`, while the root test module stays navigational only.
 
 `zircon_plugins/particles/editor/src/tests.rs` covers editor views, templates, asset editor registration, CPU sprite asset creation template registration, disabled descriptor-level authoring operations, preview operations, capability gating, the particle system component drawer, compile-time include guards for the starter particle asset template, and compile-time include guards for the concrete authoring, preview, and component drawer `.ui.toml` documents.
 

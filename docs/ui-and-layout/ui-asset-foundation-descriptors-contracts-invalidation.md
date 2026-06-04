@@ -70,7 +70,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/legacy_template.rs
+  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/asset_component_contract.rs
   - zircon_runtime/src/ui/tests/asset_invalidation.rs
@@ -172,7 +172,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/legacy_template.rs
+  - zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - zircon_editor/src/ui/asset_editor/palette/entry.rs
   - zircon_editor/src/ui/asset_editor/palette/build.rs
   - zircon_editor/src/ui/asset_editor/palette/instantiate.rs
@@ -224,7 +224,7 @@ tests:
   - cargo test -p zircon_editor --lib palette_descriptor_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-m12-m13 --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-m12-m13 --message-format short --color never
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-m12-m13 --message-format short --color never
-  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/descriptor/default_node_template.rs zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs zircon_runtime/src/ui/template/asset/schema/legacy_template.rs zircon_editor/src/ui/asset_editor/tree/tree_editing.rs zircon_editor/src/ui/asset_editor/palette/instantiate.rs zircon_editor/src/tests/ui/ui_asset_editor/palette_descriptor_registry.rs zircon_editor/src/tests/support.rs zircon_editor/src/ui/asset_editor/document_diff.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/descriptor/default_node_template.rs zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs zircon_editor/src/ui/asset_editor/tree/tree_editing.rs zircon_editor/src/ui/asset_editor/palette/instantiate.rs zircon_editor/src/tests/ui/ui_asset_editor/palette_descriptor_registry.rs zircon_editor/src/tests/support.rs zircon_editor/src/ui/asset_editor/document_diff.rs
   - cargo test -p zircon_runtime --lib runtime_component_catalog_contains_showcase_v1_controls --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
   - cargo test -p zircon_editor --lib palette_descriptor_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
@@ -232,7 +232,7 @@ tests:
   - cargo test -p zircon_editor --lib runtime_report_productization --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M21 host enforcement presentation: 1 passed)
   - cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M21 host enforcement presentation: 221 passed)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never (2026-05-07 M21 host enforcement presentation: passed with existing warnings)
-  - rustfmt --edition 2021 --check zircon_runtime/src/ui/template/asset/mod.rs zircon_runtime/src/ui/template/mod.rs zircon_runtime/src/ui/template/asset/document.rs zircon_runtime/src/ui/template/asset/style.rs zircon_runtime/src/ui/template/asset/compiler/compile.rs zircon_runtime/src/ui/template/asset/component_contract/api_version.rs zircon_runtime/src/ui/template/asset/component_contract/binding_contract.rs zircon_runtime/src/ui/template/asset/component_contract/focus_contract.rs zircon_runtime/src/ui/template/asset/component_contract/mod.rs zircon_runtime/src/ui/template/asset/component_contract/public_contract.rs zircon_runtime/src/ui/template/asset/component_contract/public_part.rs zircon_runtime/src/ui/template/asset/component_contract/root_class_policy.rs zircon_runtime/src/ui/template/asset/component_contract/validation.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/asset_component_contract.rs zircon_runtime/src/ui/component/descriptor/default_node_template.rs zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs zircon_runtime/src/ui/template/asset/schema/legacy_template.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/template/asset/mod.rs zircon_runtime/src/ui/template/mod.rs zircon_runtime/src/ui/template/asset/document.rs zircon_runtime/src/ui/template/asset/style.rs zircon_runtime/src/ui/template/asset/compiler/compile.rs zircon_runtime/src/ui/template/asset/component_contract/api_version.rs zircon_runtime/src/ui/template/asset/component_contract/binding_contract.rs zircon_runtime/src/ui/template/asset/component_contract/focus_contract.rs zircon_runtime/src/ui/template/asset/component_contract/mod.rs zircon_runtime/src/ui/template/asset/component_contract/public_contract.rs zircon_runtime/src/ui/template/asset/component_contract/public_part.rs zircon_runtime/src/ui/template/asset/component_contract/root_class_policy.rs zircon_runtime/src/ui/template/asset/component_contract/validation.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/asset_component_contract.rs zircon_runtime/src/ui/component/descriptor/default_node_template.rs zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs zircon_runtime/src/ui/template/asset/schema/source_template_fixture.rs
   - cargo test -p zircon_runtime --lib asset_component_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-contract-fresh --message-format short --color never (12 passed)
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-contract-fresh --message-format short --color never -- --nocapture (60 passed)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-foundation-m10-contract-fresh --message-format short --color never (passed with unrelated graphics/plugin warnings)

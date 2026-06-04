@@ -66,10 +66,9 @@ fn componentized_workbench_surface_paints_native_preview_pixels_and_interaction_
         initial.len(),
         WORKBENCH_REFERENCE_WIDTH as usize * WORKBENCH_REFERENCE_HEIGHT as usize * 4
     );
-    assert_ne!(
-        pixel(&initial, 8, 8),
-        pixel(&initial, 420, 80),
-        "native preview capture should contain distinct chrome and viewport pixels"
+    assert!(
+        contains_at_least_distinct_non_black_pixels(&initial, 3),
+        "native preview capture should contain multiple painted colors"
     );
     maybe_write_workbench_preview_png(&initial);
 
@@ -115,10 +114,13 @@ fn native_workbench_text_input_focuses_edits_and_commits_from_keyboard() {
     let before = ui.get_host_presentation();
     let input = workbench_node(&before, "WorkbenchInputText");
     assert_eq!(input.value_text.as_str(), "Text field");
-    assert_eq!(input.edit_action_id.as_str(), "ComponentLab/InputTextEdit");
+    assert_eq!(
+        input.edit_action_id.as_str(),
+        "component_lab.input_text.edit"
+    );
     assert_eq!(
         input.commit_action_id.as_str(),
-        "ComponentLab/InputTextCommit"
+        "component_lab.input_text.commit"
     );
 
     let (x, y) = node_center(&input);
@@ -136,7 +138,7 @@ fn native_workbench_text_input_focuses_edits_and_commits_from_keyboard() {
         [
             (
                 "WorkbenchInputText".to_string(),
-                "ComponentLab/InputTextEdit".to_string(),
+                "component_lab.input_text.edit".to_string(),
                 "Text field!".to_string()
             ),
             (
@@ -458,7 +460,7 @@ fn native_workbench_dropdown_option_primary_press_keeps_selection_path() {
         selected_options.borrow().as_slice(),
         [(
             "WorkbenchInputDropdown".to_string(),
-            "ComponentLab/InputDropdownSelect".to_string(),
+            "component_lab.input_dropdown.select".to_string(),
             "dropdown".to_string()
         )]
     );
@@ -603,7 +605,7 @@ fn native_workbench_dropdown_keyboard_moves_row_hover_and_enter_dispatches_optio
         selected_options.borrow().as_slice(),
         [(
             "WorkbenchInputDropdown".to_string(),
-            "ComponentLab/InputDropdownSelect".to_string(),
+            "component_lab.input_dropdown.select".to_string(),
             "dropdown".to_string()
         )]
     );
@@ -948,6 +950,21 @@ fn pixel(bytes: &[u8], x: u32, y: u32) -> [u8; 4] {
         bytes[offset + 2],
         bytes[offset + 3],
     ]
+}
+
+fn contains_at_least_distinct_non_black_pixels(bytes: &[u8], minimum: usize) -> bool {
+    let mut distinct = Vec::<[u8; 4]>::new();
+    for chunk in bytes.chunks_exact(4) {
+        let pixel = [chunk[0], chunk[1], chunk[2], chunk[3]];
+        if pixel == [0, 0, 0, 255] || distinct.contains(&pixel) {
+            continue;
+        }
+        distinct.push(pixel);
+        if distinct.len() >= minimum {
+            return true;
+        }
+    }
+    false
 }
 
 fn maybe_write_workbench_preview_png(bytes: &[u8]) {

@@ -6,13 +6,13 @@ use zircon_runtime_interface::ui::{
 pub(super) fn asset_actions() -> Vec<UiActionDescriptor> {
     vec![
         UiActionDescriptor::new(
-            "set_mesh_import_path",
+            "workbench.asset.mesh_import.path.set",
             UiEventKind::Change,
             "DraftCommand.SetMeshImportPath",
         )
         .with_parameter(UiParameterDescriptor::new("value", UiValueType::String)),
         UiActionDescriptor::new(
-            "import_model",
+            "workbench.asset.model.import",
             UiEventKind::Click,
             "AssetCommand.ImportModel",
         ),

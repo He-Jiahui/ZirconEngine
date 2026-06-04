@@ -84,6 +84,7 @@ fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>
         "PerformanceTimeline" => Some(&pane.performance_timeline.nodes),
         "ModulePlugins" => Some(&pane.module_plugins.nodes),
         "BuildExport" => Some(&pane.build_export.nodes),
+        "GeneratedBottom" => Some(&pane.generated_bottom.nodes),
         "UiAssetEditor" => Some(&pane.ui_asset.nodes),
         "AnimationSequenceEditor" | "AnimationGraphEditor" => Some(&pane.animation.nodes),
         _ => None,
@@ -381,7 +382,7 @@ mod tests {
                 control_id: "WorkbenchInputDropdown".into(),
                 role: "Dropdown".into(),
                 component_role: "dropdown".into(),
-                edit_action_id: "ComponentLab/InputDropdownSelect".into(),
+                edit_action_id: "component_lab.input_dropdown.select".into(),
                 popup_open: true,
                 frame: TemplateNodeFrameData {
                     x: 10.0,
@@ -404,7 +405,10 @@ mod tests {
 
         assert_eq!(hit.control_id.as_str(), "WorkbenchInputDropdown");
         assert_eq!(hit.dispatch_kind.as_str(), "workbench_option");
-        assert_eq!(hit.action_id.as_str(), "ComponentLab/InputDropdownSelect");
+        assert_eq!(
+            hit.action_id.as_str(),
+            "component_lab.input_dropdown.select"
+        );
         assert_eq!(hit.value_text.as_str(), "option_a");
         assert_eq!(hit.frame.y, 88.0);
     }
@@ -435,7 +439,7 @@ mod tests {
             hit.dispatch_kind,
             hit.component_role
         );
-        assert_eq!(hit.edit_action_id.as_str(), "ComponentLab/InputTextEdit");
+        assert_eq!(hit.edit_action_id.as_str(), "component_lab.input_text.edit");
     }
 
     #[test]
@@ -518,7 +522,7 @@ mod tests {
                     control_id: "WorkbenchInputDropdown".into(),
                     role: "Dropdown".into(),
                     component_role: "dropdown".into(),
-                    edit_action_id: "ComponentLab/InputDropdownSelect".into(),
+                    edit_action_id: "component_lab.input_dropdown.select".into(),
                     popup_open: true,
                     frame: TemplateNodeFrameData {
                         x: 20.0,
@@ -578,7 +582,7 @@ mod tests {
 
         assert_eq!(hit.control_id.as_str(), "WorkbenchPopupMenu");
         assert_eq!(hit.dispatch_kind.as_str(), "workbench_menu_item");
-        assert_eq!(hit.action_id.as_str(), "Delete");
+        assert_eq!(hit.action_id.as_str(), "menu.item.delete");
         assert_eq!(hit.value_text.as_str(), "Delete");
         assert_eq!(hit.frame.y, 116.0);
     }
@@ -591,7 +595,7 @@ mod tests {
                 control_id: "WorkbenchPopupMenu".into(),
                 role: "Menu".into(),
                 component_role: "menu".into(),
-                action_id: "OpenComponentMenu".into(),
+                action_id: "workbench.component.menu.open".into(),
                 popup_open: true,
                 frame: TemplateNodeFrameData {
                     x: 10.0,

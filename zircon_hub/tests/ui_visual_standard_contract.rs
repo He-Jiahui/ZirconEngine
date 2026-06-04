@@ -286,8 +286,25 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "inputs.slint",
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "box-height: HubVisualSpec.toolbar-density-height;",
                 "select-height: HubVisualSpec.toolbar-density-height;",
+            ],
+        ),
+        (
+            "text_input_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "box-height: HubVisualSpec.toolbar-density-height;",
+                "height: HubTokens.input-field;",
+                "row-spacing: HubTokens.toolbar-gap;",
+            ],
+        ),
+        (
+            "input_state_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
+                "border-color: root.focused ? HubVisualSpec.focus-ring-color",
+                "background: HubVisualSpec.panel-background;",
             ],
         ),
         (
@@ -295,8 +312,10 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
                 "row-radius: HubVisualSpec.panel-radius;",
-                "border-radius: HubVisualSpec.compact-radius;",
-                "background: !root.enabled ? HubVisualSpec.panel-background",
+                "in property <length> row-radius: HubVisualSpec.compact-radius;",
+                "border-radius: root.row-radius;",
+                "disabled-background: HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);",
+                "background: !root.enabled ? root.disabled-background",
             ],
         ),
         (
@@ -304,7 +323,7 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
                 "row-height: HubVisualSpec.visual-table-row-height;",
-                "export component ProjectTableRow inherits HubRowSurface",
+                "export component ProjectTableRow inherits HubInteractiveRowSurface",
                 "selected-background: HubVisualSpec.accent-fill;",
             ],
         ),
@@ -312,9 +331,12 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "tree_view_components.slint",
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "export component HubTreeRow inherits HubRowSurface",
-                "border_radius: HubVisualSpec.compact-radius;",
-                "avatar_background: HubVisualSpec.neutral-icon-background;",
+                "export component HubTreeRow inherits HubInteractiveRowSurface",
+                "row-radius: HubVisualSpec.compact-radius;",
+                "HubRowLeadingIconSlot {",
+                "shell-background: HubVisualSpec.neutral-icon-background;",
+                "shell-border: HubVisualSpec.neutral-icon-stroke;",
+                "icon-foreground: HubVisualSpec.neutral-icon-foreground;",
             ],
         ),
         (
@@ -343,19 +365,44 @@ fn hub_shared_components_consume_visual_spec_tokens() {
         (
             "project_card_flow_components.slint",
             &[
-                "HubVisualSpec,",
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
                 "cover-height: HubVisualSpec.card-cover-height;",
                 "card-height: HubVisualSpec.visual-card-height;",
-                "border_radius: HubVisualSpec.panel-radius;",
+                "export component ProjectCard inherits HubInteractiveCardSurface",
+                "interaction-foreground: MaterialPalette.on_surface;",
+            ],
+        ),
+        (
+            "button_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "export component HubPanelHeaderActionButton inherits Rectangle",
+                "export component HubSidebarCollapseButton inherits Rectangle",
+            ],
+        ),
+        (
+            "icon_button_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "export component HubRowActionButton inherits HubIconButton",
+                "export component HubViewToggleGroup inherits HorizontalLayout",
+                "export component HubMoreMenuButton inherits HubFloatingIconButton",
+            ],
+        ),
+        (
+            "button_state_sample_components.slint",
+            &[
+                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
+                "import { HubIconButton } from \"icon_button_components.slint\";",
+                "HubVisualSpec.button-state-primary-default-background",
+                "HubVisualSpec.button-state-icon-primary-hover-background",
+                "root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background",
             ],
         ),
         (
             "project_dashboard_components.slint",
             &[
                 "HubVisualSpec,",
-                "HubVisualSpec.button-state-primary-default-background",
-                "HubVisualSpec.button-state-icon-primary-hover-background",
-                "root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background",
                 "background: HubVisualSpec.button-state-strip-background;",
             ],
         ),
@@ -365,7 +412,9 @@ fn hub_shared_components_consume_visual_spec_tokens() {
                 "HubVisualSpec,",
                 "select-height: HubVisualSpec.toolbar-density-height;",
                 "border-radius: HubVisualSpec.panel-radius;",
-                "export component ProjectBrowserRow inherits HubRowSurface",
+                "export component ProjectBrowserRow inherits HubInteractiveRowSurface",
+                "row-radius: HubVisualSpec.compact-radius;",
+                "interaction-foreground: root.content-foreground;",
                 "selected-background: MaterialPalette.secondary_container;",
             ],
         ),
@@ -373,8 +422,11 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "editor_page_components.slint",
             &[
                 "HubVisualSpec,",
-                "border-radius: HubVisualSpec.panel-radius;",
-                "border-color: root.engine.active ? HubVisualSpec.accent-stroke : HubVisualSpec.outline-muted;",
+                "export component SourceEngineRow inherits HubInteractiveRowSurface",
+                "row-radius: HubVisualSpec.panel-radius;",
+                "interaction-foreground: root.content-foreground;",
+                "selected-border: HubVisualSpec.accent-stroke;",
+                "idle-border: HubVisualSpec.outline-muted;",
             ],
         ),
         (
@@ -391,10 +443,17 @@ fn hub_shared_components_consume_visual_spec_tokens() {
             "shell_header_popup_components.slint",
             &[
                 "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "import { HubAnchoredPopupPanel } from \"overlays.slint\";",
-                "import { HubMenuRow, PanelListViewport } from \"data_display.slint\";",
+                "import { HubUserMenuTriggerButton } from \"button_components.slint\";",
+                "HubAnchoredPopupPanel",
+                "HubPopupProfileHeader",
+                "HubPopupSectionHeader",
+                "HubUserMenuTriggerButton {",
+                "import { HubMenuRow } from \"data_display.slint\";",
+                "import { HubMenuListViewport } from \"list_container_components.slint\";",
                 "export component HeaderEngineOption inherits HubMenuRow",
-                "border-color: HubVisualSpec.accent-stroke;",
+                "selected-border-width: HubTokens.border-width;",
+                "enabled-avatar-background: HubVisualSpec.neutral-icon-background;",
+                "enabled-avatar-foreground: HubVisualSpec.neutral-icon-foreground;",
             ],
         ),
         (
@@ -404,6 +463,18 @@ fn hub_shared_components_consume_visual_spec_tokens() {
                 "border-radius: HubVisualSpec.compact-radius;",
                 "border-radius: HubVisualSpec.panel-radius;",
                 "background: HubVisualSpec.panel-background;",
+            ],
+        ),
+        (
+            "navigation.slint",
+            &[
+                "import { NavItemData } from \"shared.slint\";",
+                "export component NavButton inherits Rectangle",
+                "StateLayerArea {",
+                "border_radius: HubVisualSpec.compact-radius;",
+                "MaterialText {",
+                "style: MaterialTypography.label_large;",
+                "export component NavRail inherits Rectangle",
             ],
         ),
     ] {
@@ -514,8 +585,7 @@ fn hub_root_pages_remain_shared_component_compositions() {
             "export component ProjectDetailPage inherits PageScrollSurface",
             &[
                 "background: HubVisualSpec.page-background;",
-                "ProjectDetailStatusStrip {",
-                "ProjectDetailInfoSection {",
+                "ProjectDetailMainPanel {",
                 "ProjectDetailActionsSection {",
             ][..],
         ),

@@ -425,6 +425,9 @@ impl World {
                     JointKind::Fixed => "fixed".to_string(),
                     JointKind::Distance => "distance".to_string(),
                     JointKind::Hinge => "hinge".to_string(),
+                    JointKind::Slider => "slider".to_string(),
+                    JointKind::ConeTwist => "cone_twist".to_string(),
+                    JointKind::Generic6Dof => "generic_6dof".to_string(),
                 }),
                 false,
             );

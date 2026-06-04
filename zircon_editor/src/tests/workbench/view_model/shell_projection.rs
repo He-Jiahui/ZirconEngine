@@ -91,7 +91,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .expect("save project binding");
     assert_eq!(
         save_project_binding,
-        r#"WorkbenchMenuBar/SaveProject:onClick(MenuAction("SaveProject"))"#
+        r#"WorkbenchMenuBar/SaveProject:onClick(MenuAction("workbench.project.save"))"#
     );
     let selection_menu = model
         .menu_bar
@@ -238,7 +238,7 @@ fn workbench_window_menu_exposes_unreal_style_functional_windows() {
         assert_eq!(
             item.binding.native_binding(),
             format!(
-                r#"WorkbenchMenuBar/OpenView.{descriptor_id}:onClick(MenuAction("OpenView.{descriptor_id}"))"#
+                r#"WorkbenchMenuBar/OpenView.{descriptor_id}:onClick(MenuAction("workbench.view.open.{descriptor_id}"))"#
             )
         );
     }

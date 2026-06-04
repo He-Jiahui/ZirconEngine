@@ -344,6 +344,7 @@ pub(super) fn host_template_node(
         .unwrap_or_default();
     let action_id = component_descriptor
         .and_then(|_| preferred_showcase_action_id(&control_id, popup_open, &node.bindings))
+        .or_else(|| primary_click_action_id(&node.bindings))
         .unwrap_or_default();
     let binding_id = primary_click_binding_id(&node.bindings).unwrap_or_default();
     let drag_action_id = component_descriptor
@@ -361,11 +362,11 @@ pub(super) fn host_template_node(
         .unwrap_or_default();
     let edit_action_id = component_descriptor
         .and_then(|_| preferred_showcase_edit_action_id(&control_id, &node.bindings))
-        .or_else(|| primary_change_binding_id(&node.bindings))
+        .or_else(|| primary_change_action_id(&node.bindings))
         .unwrap_or_default();
     let commit_action_id = component_descriptor
         .and_then(|_| preferred_showcase_commit_action_id(&control_id, &node.bindings))
-        .or_else(|| primary_submit_binding_id(&node.bindings))
+        .or_else(|| primary_submit_action_id(&node.bindings))
         .unwrap_or_default();
     let actions = if component_descriptor.is_some() {
         preferred_showcase_action_buttons(&control_id, &node.bindings)
@@ -880,22 +881,64 @@ fn primary_click_binding_id(
         .map(|binding| binding.binding_id.clone())
 }
 
-fn primary_change_binding_id(
+fn primary_click_action_id(
+    bindings: &[crate::ui::template_runtime::RetainedUiHostBindingProjection],
+) -> Option<String> {
+    bindings
+        .iter()
+        .find(|binding| binding.event_kind == UiEventKind::Click)
+        .map(|binding| {
+            if binding.action_id.is_empty() {
+                binding_path_action_id(&binding.binding_id)
+            } else {
+                binding.action_id.clone()
+            }
+        })
+}
+
+fn primary_change_action_id(
     bindings: &[crate::ui::template_runtime::RetainedUiHostBindingProjection],
 ) -> Option<String> {
     bindings
         .iter()
         .find(|binding| binding.event_kind == UiEventKind::Change)
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| binding_path_action_id(&binding.binding_id))
 }
 
-fn primary_submit_binding_id(
+fn primary_submit_action_id(
     bindings: &[crate::ui::template_runtime::RetainedUiHostBindingProjection],
 ) -> Option<String> {
     bindings
         .iter()
         .find(|binding| binding.event_kind == UiEventKind::Submit)
-        .map(|binding| binding.binding_id.clone())
+        .map(|binding| binding_path_action_id(&binding.binding_id))
+}
+
+fn binding_path_action_id(binding_id: &str) -> String {
+    binding_id
+        .split(['/', '.', ':'])
+        .filter(|segment| !segment.is_empty())
+        .map(camel_to_snake_segment)
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn camel_to_snake_segment(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 fn projected_value_color(

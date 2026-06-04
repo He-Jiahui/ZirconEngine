@@ -698,6 +698,7 @@ fn apply_template_hover_to_pane(
         "PerformanceTimeline" => &mut pane.performance_timeline.nodes,
         "ModulePlugins" => &mut pane.module_plugins.nodes,
         "BuildExport" => &mut pane.build_export.nodes,
+        "GeneratedBottom" => &mut pane.generated_bottom.nodes,
         "UiAssetEditor" => &mut pane.ui_asset.nodes,
         "AnimationSequenceEditor" | "AnimationGraphEditor" => &mut pane.animation.nodes,
         _ => return false,

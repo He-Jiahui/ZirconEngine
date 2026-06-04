@@ -428,11 +428,11 @@ fn source_template_links_rendering_default_owner_features() {
         "zircon_plugin_rendering_shader_graph_runtime",
         "zircon_plugin_rendering_vfx_graph_runtime",
     ] {
-        assert!(!plan.linked_runtime_crates.contains(&opt_in_crate.to_string()));
+        assert!(!plan
+            .linked_runtime_crates
+            .contains(&opt_in_crate.to_string()));
         assert!(!cargo_manifest.contains(opt_in_crate));
-        assert!(!plugin_source.contains(&format!(
-            "{opt_in_crate}::plugin_feature_registration()"
-        )));
+        assert!(!plugin_source.contains(&format!("{opt_in_crate}::plugin_feature_registration()")));
     }
     assert!(availability_contains(
         &plan.runtime_plugin_availability.linked,

@@ -32,6 +32,7 @@ pub(crate) const PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID: &str =
     "pane.performance.timeline.body";
 pub(crate) const PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID: &str = "pane.module_plugins.body";
 pub(crate) const PANE_BUILD_EXPORT_BODY_DOCUMENT_ID: &str = "pane.build_export_desktop.body";
+pub(crate) const PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID: &str = "pane.generated_bottom.body";
 const BUILTIN_HOST_TEMPLATE_ROOT: &str = "/assets/ui/editor/host/";
 const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
 const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
@@ -56,7 +57,7 @@ fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 25] {
     let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
@@ -153,6 +154,10 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
         (
             PANE_BUILD_EXPORT_BODY_DOCUMENT_ID,
             builtin_host_template_path("build_export_desktop_body.v2.ui.toml"),
+        ),
+        (
+            PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID,
+            builtin_host_template_path("generated_bottom_body.v2.ui.toml"),
         ),
     ];
 

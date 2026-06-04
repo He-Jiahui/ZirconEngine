@@ -4,7 +4,7 @@ use super::super::super::super::RuntimePluginDescriptor;
 use super::super::super::capability_status::capability_status;
 
 pub(super) fn is_runtime_system_descriptor(package_id: &str) -> bool {
-    matches!(package_id, "navigation" | "particles" | "animation")
+    matches!(package_id, "ai" | "navigation" | "particles" | "animation")
 }
 
 pub(super) fn classify_runtime_system_descriptor(
@@ -12,6 +12,25 @@ pub(super) fn classify_runtime_system_descriptor(
     descriptor: RuntimePluginDescriptor,
 ) -> RuntimePluginDescriptor {
     match package_id {
+        "ai" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability_status(
+                capability_status("runtime.plugin.ai", CapabilityStatus::Partial).with_note(
+                    "Foundational AI runtime package; behavior-tree execution is intentionally staged behind manager contracts.",
+                ),
+            )
+            .with_capability_status(capability_status(
+                "runtime.feature.ai.behavior_tree",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.feature.ai.blackboard",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.feature.ai.perception",
+                CapabilityStatus::Partial,
+            )),
         "navigation" => descriptor
             .with_maturity(PluginMaturity::Beta)
             .with_capability_status(

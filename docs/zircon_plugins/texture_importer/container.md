@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/astc.rs
   - zircon_plugins/texture_importer/runtime/src/container/dds.rs
@@ -20,10 +22,17 @@ related_code:
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx2.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx2_metadata.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/settings.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/mod.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/image.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/psd.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/support.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
 implementation_files:
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/astc.rs
   - zircon_plugins/texture_importer/runtime/src/container/dds.rs
@@ -43,6 +52,11 @@ implementation_files:
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx2.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx2_metadata.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/settings.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/mod.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/image.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/psd.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/support.rs
 plan_sources:
   - .codex/plans/Asset Importer 插件化补齐计划.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md

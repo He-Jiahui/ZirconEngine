@@ -75,11 +75,11 @@ impl RetainedEditorHost {
         let _ = &runtime_client;
 
         let resolver = ManagerResolver::new(core.clone());
-        let asset_server = {
+        let asset_manager = {
             zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_asset_manager");
             resolve_asset_manager(resolver.core())?
         };
-        let editor_asset_server = {
+        let editor_asset_manager = {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
@@ -87,7 +87,7 @@ impl RetainedEditorHost {
             );
             resolve_editor_asset_manager(resolver.core())?
         };
-        let resource_server = {
+        let resource_manager = {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
@@ -105,7 +105,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "new_subscribe_asset_changes"
             );
-            asset_server.subscribe_asset_changes()
+            asset_manager.subscribe_asset_changes()
         };
         let editor_asset_change_events = {
             zircon_runtime::profile_scope!(
@@ -113,7 +113,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "new_subscribe_editor_asset_changes"
             );
-            editor_asset_server.subscribe_editor_asset_changes()
+            editor_asset_manager.subscribe_editor_asset_changes()
         };
         let resource_change_events = {
             zircon_runtime::profile_scope!(
@@ -121,7 +121,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "new_subscribe_resource_changes"
             );
-            resource_server.subscribe_resource_changes()
+            resource_manager.subscribe_resource_changes()
         };
 
         let viewport_size = UVec2::new(1280, 720);
@@ -245,9 +245,9 @@ impl RetainedEditorHost {
                 desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
                 desktop_export_output_overrides: BTreeMap::new(),
                 viewport,
-                asset_server,
-                editor_asset_server,
-                resource_server,
+                asset_manager,
+                editor_asset_manager,
+                resource_manager,
                 asset_change_events,
                 editor_asset_change_events,
                 resource_change_events,
@@ -952,14 +952,20 @@ impl RetainedEditorHost {
                         );
                         let packaging_action_label =
                             format!("Cycle {}", packaging_label(plugin.packaging));
-                        let packaging_action_id =
-                            module_plugin_action_id("Plugin.Packaging.Next", &plugin.plugin_id);
-                        let target_modes_action_id =
-                            module_plugin_action_id("Plugin.TargetModes.Next", &plugin.plugin_id);
+                        let packaging_action_id = module_plugin_action_id(
+                            "workbench.plugin.packaging.next",
+                            &plugin.plugin_id,
+                        );
+                        let target_modes_action_id = module_plugin_action_id(
+                            "workbench.plugin.target_modes.next",
+                            &plugin.plugin_id,
+                        );
                         let unload_action_id =
-                            module_plugin_action_id("Plugin.Unload", &plugin.plugin_id);
-                        let hot_reload_action_id =
-                            module_plugin_action_id("Plugin.HotReload", &plugin.plugin_id);
+                            module_plugin_action_id("workbench.plugin.unload", &plugin.plugin_id);
+                        let hot_reload_action_id = module_plugin_action_id(
+                            "workbench.plugin.hot_reload",
+                            &plugin.plugin_id,
+                        );
                         let feature_action =
                             module_plugin_feature_action(&plugin.optional_features);
                         ModulePluginStatusViewData {
@@ -1692,7 +1698,7 @@ fn module_plugin_feature_action(
         return (
             "Enable Deps".to_string(),
             module_plugin_feature_action_id(
-                "Plugin.Feature.EnableDependencies",
+                "workbench.plugin.feature.enable_dependencies",
                 &feature.owner_plugin_id,
                 &feature.id,
             ),
@@ -1705,7 +1711,7 @@ fn module_plugin_feature_action(
         return (
             "Enable Feature".to_string(),
             module_plugin_feature_action_id(
-                "Plugin.Feature.Enable",
+                "workbench.plugin.feature.enable",
                 &feature.owner_plugin_id,
                 &feature.id,
             ),
@@ -1718,7 +1724,7 @@ fn module_plugin_feature_action(
         return (
             "Disable Feature".to_string(),
             module_plugin_feature_action_id(
-                "Plugin.Feature.Disable",
+                "workbench.plugin.feature.disable",
                 &feature.owner_plugin_id,
                 &feature.id,
             ),
@@ -1743,12 +1749,12 @@ fn module_plugin_primary_action(
     if enabled {
         (
             "Disable".to_string(),
-            module_plugin_action_id("Plugin.Disable", plugin_id),
+            module_plugin_action_id("workbench.plugin.disable", plugin_id),
         )
     } else {
         (
             "Enable".to_string(),
-            module_plugin_action_id("Plugin.Enable", plugin_id),
+            module_plugin_action_id("workbench.plugin.enable", plugin_id),
         )
     }
 }
@@ -1765,11 +1771,17 @@ mod module_plugin_action_projection_tests {
     fn module_plugin_primary_action_respects_required_and_enabled_state() {
         assert_eq!(
             module_plugin_primary_action("physics", true, false),
-            ("Disable".to_string(), "Plugin.Disable.physics".to_string())
+            (
+                "Disable".to_string(),
+                "workbench.plugin.disable.physics".to_string()
+            )
         );
         assert_eq!(
             module_plugin_primary_action("physics", false, false),
-            ("Enable".to_string(), "Plugin.Enable.physics".to_string())
+            (
+                "Enable".to_string(),
+                "workbench.plugin.enable.physics".to_string()
+            )
         );
         assert_eq!(
             module_plugin_primary_action("core", true, true),
@@ -1840,7 +1852,7 @@ mod module_plugin_action_projection_tests {
             module_plugin_feature_action(&[blocked.clone()]),
             (
                 "Enable Deps".to_string(),
-                "Plugin.Feature.EnableDependencies.sound.sound.timeline_animation_track"
+                "workbench.plugin.feature.enable_dependencies.sound.sound.timeline_animation_track"
                     .to_string()
             )
         );
@@ -1853,7 +1865,7 @@ mod module_plugin_action_projection_tests {
             module_plugin_feature_action(&[ready]),
             (
                 "Enable Feature".to_string(),
-                "Plugin.Feature.Enable.sound.sound.timeline_animation_track".to_string()
+                "workbench.plugin.feature.enable.sound.sound.timeline_animation_track".to_string()
             )
         );
     }

@@ -47,6 +47,15 @@ pub(crate) fn validate_output_device_descriptor(
             "output channel count must be non-zero".to_string(),
         ));
     }
+    if !descriptor
+        .channel_layout
+        .matches_channel_count(descriptor.channel_count)
+    {
+        return Err(SoundError::InvalidParameter(format!(
+            "output channel layout `{}` does not match channel count {}",
+            descriptor.channel_layout.name, descriptor.channel_count
+        )));
+    }
     if descriptor.block_size_frames == 0 {
         return Err(SoundError::InvalidParameter(
             "output block size must be non-zero".to_string(),

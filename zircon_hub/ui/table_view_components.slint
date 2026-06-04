@@ -1,14 +1,14 @@
 import { RecentProjectRowData } from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { EmptyStateBlock, HubPanel, PanelHeader } from "surfaces.slint";
-import { HubRowSurface, PanelListViewport } from "data_display.slint";
+import { HubInteractiveRowSurface } from "data_display.slint";
+import { PanelListViewport } from "list_container_components.slint";
 import { HubRowTrailingSlot } from "row_slot_components.slint";
 import {
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialText,
     MaterialTypography,
-    StateLayerArea,
 } from "material_bridge.slint";
 
 export component TableColumnHeader inherits Rectangle {
@@ -25,11 +25,88 @@ export component TableColumnHeader inherits Rectangle {
         overflow: elide;
         color: MaterialPalette.on_surface_variant;
         style: MaterialTypography.label_medium;
+        horizontal_alignment: left;
         vertical_alignment: center;
     }
 }
 
-export component ProjectTableRow inherits HubRowSurface {
+export component TableCellText inherits Rectangle {
+    in property <string> text;
+    in property <length> row-height: HubVisualSpec.visual-table-row-height;
+    in property <color> foreground: MaterialPalette.on_surface_variant;
+
+    height: root.row-height;
+    background: transparent;
+
+    MaterialText {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        overflow: elide;
+        color: root.foreground;
+        style: MaterialTypography.body_small;
+        horizontal_alignment: left;
+        vertical_alignment: center;
+    }
+}
+
+component ProjectTableNameCell inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    in property <length> row-height: HubVisualSpec.visual-table-row-height;
+    in property <length> content-gap: HubTokens.space-2;
+    in property <length> thumbnail-size: max(root.row-height * 6 / 7, root.row-height);
+    in property <length> thumbnail-radius: HubVisualSpec.compact-radius;
+    in property <length> name-min-width: HubTokens.panel-min-sm * 2 / 5;
+    in property <bool> show-thumbnail-accent: true;
+    in property <color> title-foreground: MaterialPalette.on_surface;
+
+    private property <color> thumbnail-outline: root.show-thumbnail-accent ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface.with_alpha(0.08);
+
+    horizontal-stretch: 2;
+    min-width: root.name-min-width;
+    height: root.row-height;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.content-gap;
+        alignment: start;
+
+        Rectangle {
+            width: root.thumbnail-size;
+            height: root.thumbnail-size;
+            border-radius: root.thumbnail-radius;
+            border-width: HubTokens.border-width;
+            border-color: root.thumbnail-outline;
+            background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
+            clip: true;
+            if root.project.has-cover: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.project.cover-image;
+                image-fit: cover;
+            }
+            if !root.project.has-cover: Image {
+                width: parent.width;
+                height: parent.height;
+                source: @image-url("../assets/brand/zircon-mark.svg");
+                image-fit: contain;
+            }
+        }
+
+        MaterialText {
+            text: root.project.title;
+            overflow: elide;
+            color: root.title-foreground;
+            style: MaterialTypography.label_large;
+            vertical_alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+}
+
+export component ProjectTableRow inherits HubInteractiveRowSurface {
     in property <RecentProjectRowData> project;
     in property <string> action-tooltip: "";
     in property <bool> show-selection: true;
@@ -49,7 +126,6 @@ export component ProjectTableRow inherits HubRowSurface {
     callback open(string);
 
     private property <bool> selection-visible: root.show-selection && root.project.selected;
-    private property <color> thumbnail-outline: root.show-thumbnail-accent ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface.with_alpha(0.08);
     private property <string> visible-modified: root.project.modified == "1d ago" ? "Yesterday" : root.project.modified;
 
     row-height: HubVisualSpec.visual-table-row-height;
@@ -58,15 +134,11 @@ export component ProjectTableRow inherits HubRowSurface {
     selected-background: HubVisualSpec.accent-fill;
     selected-foreground: MaterialPalette.on_primary_container;
     selected-border-width: HubTokens.border-width;
+    row-radius: HubVisualSpec.compact-radius;
+    interaction-foreground: root.content-foreground;
 
-    row-state := StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.content-foreground;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            root.select(root.project.open-path);
-        }
+    clicked => {
+        root.select(root.project.open-path);
     }
 
     HorizontalLayout {
@@ -75,77 +147,34 @@ export component ProjectTableRow inherits HubRowSurface {
         spacing: root.row-gap;
         alignment: stretch;
 
-        Rectangle {
-            horizontal-stretch: 2;
-            min-width: root.name-min-width;
-            height: parent.height;
-            clip: true;
-
-            HorizontalLayout {
-                width: parent.width;
-                height: parent.height;
-                spacing: root.content-gap;
-                alignment: start;
-
-                Rectangle {
-                    width: root.thumbnail-size;
-                    height: root.thumbnail-size;
-                    border-radius: root.thumbnail-radius;
-                    border-width: HubTokens.border-width;
-                    border-color: root.thumbnail-outline;
-                    background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
-                    clip: true;
-                    if root.project.has-cover: Image {
-                        width: parent.width;
-                        height: parent.height;
-                        source: root.project.cover-image;
-                        image-fit: cover;
-                    }
-                    if !root.project.has-cover: Image {
-                        width: parent.width;
-                        height: parent.height;
-                        source: @image-url("../assets/brand/zircon-mark.svg");
-                        image-fit: contain;
-                    }
-                }
-
-                MaterialText {
-                    text: root.project.title;
-                    overflow: elide;
-                    color: root.selection-visible ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
-                    style: MaterialTypography.label_large;
-                    vertical_alignment: center;
-                    horizontal-stretch: 1;
-                }
-            }
+        ProjectTableNameCell {
+            project: root.project;
+            row-height: root.row-height;
+            content-gap: root.content-gap;
+            thumbnail-size: root.thumbnail-size;
+            thumbnail-radius: root.thumbnail-radius;
+            name-min-width: root.name-min-width;
+            show-thumbnail-accent: root.show-thumbnail-accent;
+            title-foreground: root.selection-visible ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
         }
 
-        MaterialText {
+        TableCellText {
             text: root.project.version;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.body_small;
-            vertical_alignment: center;
+            row-height: root.row-height;
             preferred-width: root.version-width;
             min-width: root.version-min-width;
         }
 
-        MaterialText {
+        TableCellText {
             text: root.visible-modified;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.body_small;
-            vertical_alignment: center;
+            row-height: root.row-height;
             preferred-width: root.modified-width;
             min-width: root.modified-min-width;
         }
 
-        MaterialText {
+        TableCellText {
             text: root.project.project-path;
-            overflow: elide;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.body_small;
-            vertical_alignment: center;
+            row-height: root.row-height;
             horizontal-stretch: 3;
             min-width: root.location-min-width;
         }

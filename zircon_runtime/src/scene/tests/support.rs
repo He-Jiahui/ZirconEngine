@@ -403,6 +403,8 @@ fn write_default_scene(path: PathBuf) {
                     axis: [0.0, 1.0, 0.0],
                     limits: None,
                     collide_connected: false,
+                    constraint: Default::default(),
+                    skeleton_binding: None,
                 }),
                 animation_skeleton: Some(SceneAnimationSkeletonAsset {
                     skeleton: asset_reference("res://animation/hero.skeleton.zranim"),

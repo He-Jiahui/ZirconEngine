@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_weather_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Weather Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionWeatherEditorWorkspace]
+root = "weather_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.weather_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionWeatherEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_rail_gap" }, { node = "weather_editor_left" }, { node = "weather_editor_center" }, { node = "weather_editor_right" }]
+
+[nodes.weather_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionWeatherEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.weather_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionWeatherEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_title" }, { node = "weather_editor_layers_tab" }, { node = "weather_editor_curves_tab" }, { node = "weather_editor_timeline_tab" }, { node = "weather_editor_storm_row" }, { node = "weather_editor_mountains_region_row" }, { node = "weather_editor_cloud_layer_row" }]
+
+[nodes.weather_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionWeatherEditorTitle"
+props = { text = "Weather Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.weather_editor_layers_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionWeatherEditorLayersTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Layers", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorLayersTab", event = "Click", route = "WorkbenchExtension.WeatherEditor.Layers" }]
+
+[nodes.weather_editor_curves_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionWeatherEditorCurvesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Curves", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorCurvesTab", event = "Click", route = "WorkbenchExtension.WeatherEditor.Curves" }]
+
+[nodes.weather_editor_timeline_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionWeatherEditorTimelineTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Timeline", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorTimelineTab", event = "Click", route = "WorkbenchExtension.WeatherEditor.Timeline" }]
+
+[nodes.weather_editor_storm_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionWeatherEditorStormRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Weather_Storm", icon = "sun", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorStormRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Weather.Storm" }]
+
+[nodes.weather_editor_mountains_region_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionWeatherEditorMountainsRegionRow"
+classes = ["workbench-list-row"]
+props = { text = "Region_Mountains", icon = "globe", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorMountainsRegionRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Region.Mountains" }]
+
+[nodes.weather_editor_cloud_layer_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionWeatherEditorCloudLayerRow"
+classes = ["workbench-list-row"]
+props = { text = "Layer_Clouds", icon = "file", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorCloudLayerRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Layer.Clouds" }]
+
+[nodes.weather_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionWeatherEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_center_header" }, { node = "weather_editor_timeline_table" }, { node = "weather_editor_output" }]
+
+[nodes.weather_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionWeatherEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "weather_editor_center_title" }, { node = "weather_editor_header_fill" }, { node = "weather_editor_preview_button" }, { node = "weather_editor_build_button" }]
+
+[nodes.weather_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionWeatherEditorCenterTitle"
+props = { text = "Weather Timeline" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.weather_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionWeatherEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.weather_editor_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionWeatherEditorPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorPreview", event = "Click", route = "WorkbenchExtension.WeatherEditor.Preview" }]
+
+[nodes.weather_editor_build_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionWeatherEditorBuildButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Build", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorBuild", event = "Click", route = "WorkbenchExtension.WeatherEditor.Build" }]
+
+[nodes.weather_editor_timeline_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionWeatherEditorTimelineTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_cloud_build_timeline_row" }, { node = "weather_editor_rain_burst_timeline_row" }, { node = "weather_editor_wind_gust_timeline_row" }, { node = "weather_editor_lightning_timeline_row" }]
+
+[nodes.weather_editor_cloud_build_timeline_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionWeatherEditorCloudBuildTimelineRow"
+classes = ["workbench-table-row"]
+props = { text = "Cloud Build", value_text = "00:00-02:00   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorCloudBuildTimelineRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Timeline.CloudBuild" }]
+
+[nodes.weather_editor_rain_burst_timeline_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionWeatherEditorRainBurstTimelineRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Rain Burst", value_text = "02:00-04:00   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorRainBurstTimelineRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Timeline.RainBurst" }]
+
+[nodes.weather_editor_wind_gust_timeline_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionWeatherEditorWindGustTimelineRow"
+classes = ["workbench-table-row"]
+props = { text = "Wind Gust", value_text = "03:20-05:00   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorWindGustTimelineRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Timeline.WindGust" }]
+
+[nodes.weather_editor_lightning_timeline_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionWeatherEditorLightningTimelineRow"
+classes = ["workbench-table-row"]
+props = { text = "Lightning", value_text = "04:00-04:30   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorLightningTimelineRow", event = "Click", route = "WorkbenchExtension.WeatherEditor.Timeline.Lightning" }]
+
+[nodes.weather_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionWeatherEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Weather Log", value_text = "8 layers   5 regions   2 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/WeatherEditorOutput", event = "Click", route = "WorkbenchExtension.WeatherEditor.Output" }]
+
+[nodes.weather_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionWeatherEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_details_title" }, { node = "weather_editor_preset_dropdown" }, { node = "weather_editor_region_dropdown" }, { node = "weather_editor_blend_time_field" }]
+
+[nodes.weather_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionWeatherEditorDetailsTitle"
+props = { text = "Weather Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.weather_editor_preset_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionWeatherEditorPresetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Storm", value = "Storm", options = ["Storm", "Clear", "Fog", "Snow"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/WeatherEditorPresetEdit", event = "Change", route = "WorkbenchExtension.WeatherEditor.Preset.Edit" },
+  { id = "WorkbenchExtension/WeatherEditorPresetCommit", event = "Submit", route = "WorkbenchExtension.WeatherEditor.Preset.Commit" },
+]
+
+[nodes.weather_editor_region_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionWeatherEditorRegionDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Mountains", value = "Mountains", options = ["Mountains", "Coast", "City", "Interior"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/WeatherEditorRegionEdit", event = "Change", route = "WorkbenchExtension.WeatherEditor.Region.Edit" },
+  { id = "WorkbenchExtension/WeatherEditorRegionCommit", event = "Submit", route = "WorkbenchExtension.WeatherEditor.Region.Commit" },
+]
+
+[nodes.weather_editor_blend_time_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionWeatherEditorBlendTimeField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Blend Time: 12.0" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/WeatherEditorBlendTimeEdit", event = "Change", route = "WorkbenchExtension.WeatherEditor.BlendTime.Edit" },
+  { id = "WorkbenchExtension/WeatherEditorBlendTimeCommit", event = "Submit", route = "WorkbenchExtension.WeatherEditor.BlendTime.Commit" },
+]

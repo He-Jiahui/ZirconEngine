@@ -11,6 +11,7 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId, template::UiTemplateNode, v2::UiV2NodeHandle,
 };
 
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::template_runtime::{
     RetainedUiBindingProjection, RetainedUiHostBindingProjection, RetainedUiHostModel,
     RetainedUiHostNodeProjection, RetainedUiNodeProjection, RetainedUiProjection,
@@ -442,6 +443,7 @@ fn node_bindings_from_ids(
                 .get(binding_id)
                 .map(|binding| RetainedUiHostBindingProjection {
                     binding_id: binding.binding_id.clone(),
+                    action_id: retained_action_id_for_binding(&binding.binding),
                     event_kind: binding.binding.path().event_kind,
                     route_id: binding.route_id,
                 })
@@ -450,4 +452,11 @@ fn node_bindings_from_ids(
                 })
         })
         .collect()
+}
+
+fn retained_action_id_for_binding(binding: &EditorUiBinding) -> String {
+    match &binding.payload {
+        EditorUiBindingPayload::MenuAction { action_id } => action_id.clone(),
+        _ => String::new(),
+    }
 }

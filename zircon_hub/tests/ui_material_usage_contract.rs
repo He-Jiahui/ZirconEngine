@@ -46,90 +46,89 @@ fn read_repo_file(name: &str) -> String {
 }
 
 #[test]
-fn material_template_is_directly_imported_through_bridge() {
-    let build_rs = read_crate_file("build.rs");
+fn react_material_ui_packages_are_directly_composed_through_theme_and_components() {
+    let package_json = read_crate_file("package.json");
     for snippet in [
-        "config.enable_experimental = true;",
-        "config.library_paths.insert(",
-        "\"material\".to_string(),",
-        ".join(\"dev/material-rust-template/material-1.0/material.slint\"),",
+        "\"@mui/material\": \"9.0.1\"",
+        "\"@mui/icons-material\": \"9.0.1\"",
+        "\"@emotion/react\": \"latest\"",
+        "\"@emotion/styled\": \"latest\"",
+        "\"@vitejs/plugin-react\": \"6.0.2\"",
     ] {
         assert!(
-            build_rs.contains(snippet),
-            "Hub must keep @material mapped directly to the checked-in Slint Material template; missing {snippet}"
+            package_json.contains(snippet),
+            "Hub React frontend must depend on real Material UI and Vite React packages; missing {snippet}"
         );
     }
 
-    let bridge = read_ui_file("material_bridge.slint");
+    let material_ui_package = read_repo_file("dev/material-ui/package.json");
     for snippet in [
-        "} from \"@material\";",
-        "FilledButton,",
-        "OutlineButton,",
-        "TonalButton,",
-        "IconButton,",
-        "ListTile,",
-        "MaterialWindow,",
-        "MaterialWindowAdapter,",
-        "NavigationRail,",
-        "SearchBar,",
-        "ScrollView,",
-        "SegmentedButton,",
-        "TextField,",
-        "MaterialPalette,",
-        "MaterialStyleMetrics,",
-        "MaterialTypography,",
+        "\"name\": \"@mui/monorepo\"",
+        "\"version\": \"9.0.1\"",
+        "\"private\": true",
     ] {
         assert!(
-            bridge.contains(snippet),
-            "material_bridge.slint must re-export the imported Material template surface instead of local clones; missing {snippet}"
-        );
-    }
-
-    let material_entry = read_repo_file("dev/material-rust-template/material-1.0/material.slint");
-    for snippet in [
-        "export { FilledButton }",
-        "export { OutlineButton }",
-        "export { IconButton }",
-        "export { NavigationRail }",
-        "export { SearchBar }",
-        "export { ScrollView }",
-        "export { SegmentedButton }",
-        "export { TextField }",
-        "export { MaterialStyleMetrics }",
-        "export { MaterialPalette }",
-        "export { MaterialTypography }",
-    ] {
-        assert!(
-            material_entry.contains(snippet),
-            "the vendored Slint Material template must remain the source for Hub Material components; missing {snippet}"
-        );
-    }
-
-    let inputs = read_ui_file("inputs.slint");
-    for snippet in [
-        "TextInput",
-        "StateLayerArea,",
-        "TextField,",
-        "OutlineButton,",
-        "SegmentedButton,",
-        "HubCommandButton",
-        "} from \"material_bridge.slint\";",
-        "import { HubSelectDropDownSurface, HubSelectMenu } from \"overlays.slint\";",
-        "menu := HubSelectMenu",
-        "material-combo := HubSelectDropDownSurface",
-        "export component HubPathFieldRow",
-        "HubTextField {",
-        "HubCommandButton {",
-    ] {
-        assert!(
-            inputs.contains(snippet),
-            "input wrappers must compose the imported template through material_bridge.slint; missing {snippet}"
+            material_ui_package.contains(snippet),
+            "the repository-local Material UI reference tree must remain available for Hub styling review; missing {snippet}"
         );
     }
     assert!(
-        !inputs.contains("DropDownMenu,") && !inputs.contains("DropDownMenu {"),
-        "inputs.slint should route combo/dropdown popups through overlay wrappers instead of importing Material DropDownMenu directly"
+        repo_dir()
+            .join("dev/material-ui/packages/mui-material/src")
+            .is_dir(),
+        "the repository-local Material UI reference tree must expose packages/mui-material/src"
     );
+
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let tokens = read_crate_file("web/src/theme/tokens.ts");
+    for snippet in [
+        "createTheme",
+        "MuiButton",
+        "MuiCard",
+        "MuiIconButton",
+        "MuiMenu",
+        "MuiOutlinedInput",
+    ] {
+        assert!(
+            theme.contains(snippet),
+            "Hub Material UI theme must centralize shared control styling; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "topBarHeight: 73",
+        "sidebarWidth: 222",
+        "radius",
+        "colors",
+        "shadows",
+    ] {
+        assert!(
+            tokens.contains(snippet),
+            "Hub React tokens must own shared density, palette, and elevation values; missing {snippet}"
+        );
+    }
+
+    for source_path in [
+        "web/src/components/inputs/HubButton.tsx",
+        "web/src/components/inputs/HubIconButton.tsx",
+        "web/src/components/inputs/HubSearchField.tsx",
+        "web/src/components/inputs/HubSelect.tsx",
+        "web/src/components/inputs/HubToggle.tsx",
+    ] {
+        let source = read_crate_file(source_path);
+        assert!(
+            source.contains("@mui/material") || source.contains("@mui/icons-material"),
+            "{source_path} must compose Material UI primitives directly"
+        );
+    }
+
+    let app = read_crate_file("web/src/App.tsx");
+    let main = read_crate_file("web/src/main.tsx");
+    for snippet in ["ThemeProvider", "hubTheme", "CssBaseline", "<App />"] {
+        assert!(
+            app.contains(snippet) || main.contains(snippet),
+            "React app root must install the shared Material UI theme before rendering Hub components; missing {snippet}"
+        );
+    }
 }
 
 #[test]
@@ -208,10 +207,11 @@ fn editor_source_engine_row_uses_row_surface_slots() {
     );
 
     for snippet in [
-        "inherits HubRowSurface",
+        "inherits HubInteractiveRowSurface",
         "callback engine-selected(string);",
         "selected: root.engine.active;",
-        "row-state := StateLayerArea {",
+        "interaction-foreground: root.content-foreground;",
+        "clicked =>",
         "root.engine-selected(root.engine.id);",
         "alignment: stretch;",
         "HubRowLeadingIconSlot {",
@@ -241,6 +241,7 @@ fn editor_source_engine_row_uses_row_surface_slots() {
         "callback selected(string);",
         "border-color: area.has-hover",
         "background: area.has-hover",
+        "row-state := StateLayerArea {",
         "border-color: root.engine.active ?",
         "background: root.engine.active ?",
         "root.height - MaterialStyleMetrics.spacing_16",
@@ -427,12 +428,14 @@ fn project_detail_status_strip_uses_badge_meta_strip_slots() {
             "ProjectDetailStatusStrip should not return to local badge/text strip layout after HubBadgeMetaStrip extraction: {forbidden}"
         );
     }
+    let main_panel = project_detail_components
+        .split("export component ProjectDetailMainPanel")
+        .nth(1)
+        .expect("project_detail_components.slint must declare ProjectDetailMainPanel");
     assert!(
-        project_detail_page
-            .matches("ProjectDetailStatusStrip {")
-            .count()
-            == 1,
-        "ProjectDetailPage should keep one typed status-strip wrapper call"
+        project_detail_page.contains("ProjectDetailMainPanel {")
+            && main_panel.matches("ProjectDetailStatusStrip {").count() == 1,
+        "ProjectDetailPage should route the main detail column through ProjectDetailMainPanel, which owns one status-strip wrapper call"
     );
 
     for snippet in [
@@ -454,8 +457,11 @@ fn project_detail_status_strip_uses_badge_meta_strip_slots() {
         );
     }
     assert!(
-        web_app.contains("projectStatusStrip(selected.version, \"Not pinned\", selected.modified)"),
-        "Project Detail web reference should render status badges and modified metadata through projectStatusStrip"
+        web_app.contains("projectDetailMainPanel(selected)")
+            && material_components.contains(
+                "projectStatusStrip(project.version, \"Not pinned\", project.modified)"
+            ),
+        "Project Detail web reference should render status badges and modified metadata through projectDetailMainPanel/projectStatusStrip"
     );
 }
 
@@ -473,28 +479,37 @@ fn project_pages_use_material_scroll_view() {
     let project_browser_page = read_ui_file("project_browser_page.slint");
     let project_detail_page = read_ui_file("project_detail_page.slint");
     let project_browser_components = read_ui_file("project_browser_components.slint");
+    let layout = read_ui_file("layout.slint");
     let project_surface = format!(
         "{project_pages}\n{project_new_page}\n{project_browser_page}\n{project_detail_page}\n{project_components}\n{project_browser_components}\n{project_detail_components}"
     );
 
     for snippet in [
-        "ScrollView,",
+        "FlowScrollSurface",
         "HubTableView,",
         "HubListPanelSlot,",
         "export component DashboardRecentProjectsPanel inherits HubTableView",
         "export component DashboardQuickActionsPanel inherits HubListPanelSlot",
+    ] {
+        assert!(
+            dashboard_surface.contains(snippet),
+            "ProjectDashboardPage must route page/list scrolling through shared Material-backed scroll wrappers; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "ScrollView,",
+        "export component FlowScrollSurface inherits ScrollView",
         "vertical_scrollbar_policy: ScrollBarPolicy.as-needed;",
         "horizontal_scrollbar_policy: ScrollBarPolicy.always-off;",
     ] {
         assert!(
-            dashboard_surface.contains(snippet),
-            "ProjectDashboardPage must route page/list scrolling through the Material ScrollView API; missing {snippet}"
+            layout.contains(snippet),
+            "layout.slint must own the Material ScrollView API used by Dashboard flow scrolling; missing {snippet}"
         );
     }
     for snippet in [
-        "PanelListViewport,",
-        "export component ProjectCreateSettingsPanel inherits PanelSlot",
-        "export component ProjectCreateCompactSummaryPanel inherits PanelSlot",
+        "export component ProjectCreateSettingsPanel inherits HubContentPanelSlot",
+        "export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot",
         "export component ProjectTemplateRailPanel inherits HubListPanelSlot",
         "HubListPanelSlot,",
         "ProjectCreateSettingsPanel {",
@@ -508,7 +523,7 @@ fn project_pages_use_material_scroll_view() {
         "scroll-y <=> root.list-scroll-y;",
         "row-count: root.engine-count;",
         "ProjectEngineChoiceList {",
-        "export component ProjectCreateActionRow inherits Rectangle",
+        "export component ProjectCreateActionRow inherits HubFormActionRow",
         "ProjectCreateActionRow {",
     ] {
         assert!(
@@ -623,8 +638,9 @@ fn project_pages_use_material_scroll_view() {
     }
 
     for snippet in [
-        "card-scroll := ScrollView {",
-        "viewport_y <=> root.card-scroll-y;",
+        "card-scroll := FlowScrollSurface {",
+        "scroll-y <=> root.card-scroll-y;",
+        "content-height: root.expanded ? root.flow-content-height : root.flow-visible-height;",
         "export component DashboardRecentProjectsPanel inherits HubTableView",
         "show-header: true;",
         "show-divider: false;",
@@ -637,9 +653,14 @@ fn project_pages_use_material_scroll_view() {
     ] {
         assert!(
             dashboard_surface.contains(snippet),
-            "ProjectDashboardPage must keep project cards on Material ScrollView and quick actions on the shared list viewport; missing {snippet}"
+            "ProjectDashboardPage must keep project cards on the shared Material-backed flow viewport and quick actions on the shared list viewport; missing {snippet}"
         );
     }
+    assert!(
+        !project_card_flow_components.contains("card-scroll := ScrollView")
+            && !project_card_flow_components.contains("ScrollView,"),
+        "ProjectFlow should consume FlowScrollSurface instead of importing Material ScrollView directly"
+    );
 
     for snippet in [
         "browser-list := HubTableBody {",
@@ -782,20 +803,27 @@ fn dashboard_project_selectors_use_material_state_layers() {
         .and_then(|source| source.split("export component ProjectFlow").next())
         .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
     for snippet in [
-        "StateLayerArea,",
-        "card-state := StateLayerArea {",
-        "border_radius: HubVisualSpec.panel-radius;",
+        "HubInteractiveCardSurface",
+        "export component ProjectCard inherits HubInteractiveCardSurface",
+        "selected: root.project.selected;",
+        "interaction-foreground: MaterialPalette.on_surface;",
+        "clicked =>",
         "root.select(root.project.open-path);",
     ] {
         assert!(
             dashboard_surface.contains(snippet) || project_card.contains(snippet),
-            "ProjectCard must delegate whole-card select feedback to Material StateLayerArea; missing {snippet}"
+            "ProjectCard must delegate whole-card select feedback to the shared interactive card surface; missing {snippet}"
         );
     }
-    for forbidden in ["area := TouchArea", "area.has-hover"] {
+    for forbidden in [
+        "area := TouchArea",
+        "area.has-hover",
+        "card-state := StateLayerArea {",
+        "border_radius: HubVisualSpec.panel-radius;",
+    ] {
         assert!(
             !project_card.contains(forbidden),
-            "ProjectCard should not return to a custom full-card TouchArea: {forbidden}"
+            "ProjectCard should not return to custom full-card TouchArea or local StateLayerArea handling: {forbidden}"
         );
     }
 
@@ -806,35 +834,41 @@ fn dashboard_project_selectors_use_material_state_layers() {
         .and_then(|source| source.split("export component DataTable").next())
         .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
     for snippet in [
-        "StateLayerArea,",
-        "row-state := StateLayerArea {",
-        "border_radius: HubVisualSpec.compact-radius;",
+        "import { HubInteractiveRowSurface } from \"data_display.slint\";",
+        "import { PanelListViewport } from \"list_container_components.slint\";",
+        "export component ProjectTableRow inherits HubInteractiveRowSurface",
+        "row-radius: HubVisualSpec.compact-radius;",
+        "interaction-foreground: root.content-foreground;",
         "root.select(root.project.open-path);",
     ] {
         assert!(
             table_view.contains(snippet) || table_row.contains(snippet),
-            "ProjectTableRow must delegate whole-row select feedback to Material StateLayerArea; missing {snippet}"
+            "ProjectTableRow must delegate whole-row select feedback to the shared interactive row surface; missing {snippet}"
         );
     }
-    for forbidden in ["area := TouchArea", "area.has-hover"] {
+    for forbidden in [
+        "area := TouchArea",
+        "area.has-hover",
+        "row-state := StateLayerArea {",
+    ] {
         assert!(
             !table_row.contains(forbidden),
-            "ProjectTableRow should not return to custom full-row TouchArea hover/select handling: {forbidden}"
+            "ProjectTableRow should not return to custom full-row TouchArea or local StateLayerArea handling: {forbidden}"
         );
     }
 }
 
 #[test]
-fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
+fn project_choice_rows_use_shared_material_row_slots_and_checkbox_selection() {
     let components = read_ui_file("project_page_components.slint");
     let data_display = read_ui_file("data_display.slint");
     let shared = read_ui_file("shared.slint");
     assert!(
-        data_display.contains("export component InfoRow inherits HubRowSurface")
+        data_display.contains("export component InfoRow inherits HubInteractiveRowSurface")
             && data_display.contains("HubRowLeadingIconSlot {")
             && data_display.contains("HubRowMainSlot {")
             && data_display.contains("HubRowTrailingSlot {"),
-        "InfoRow must remain the shared Material row-surface and row-slot-backed choice-row body"
+        "InfoRow must remain available as a shared interactive row-surface and row-slot-backed body for page rows"
     );
     let engine_choice_row = components
         .split("export component EngineChoiceRow")
@@ -843,20 +877,31 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         .expect(
             "project_page_components.slint must declare EngineChoiceRow before TemplateChoiceRow",
         );
-    assert!(
-        engine_choice_row.contains("InfoRow {"),
-        "EngineChoiceRow must delegate row layout and interaction to the shared Material row-slot-backed InfoRow"
-    );
     for snippet in [
+        "inherits HubInteractiveRowSurface",
         "in property <bool> collapse-label: false;",
+        "callback engine-selected(string);",
         "effective-row-height: max(root.row-height, HubTokens.list-row-md);",
+        "supporting-text: root.engine.version == \"\" ? root.engine.source-path : (root.engine.source-path == \"\" ? root.engine.version : root.engine.version + \" / \" + root.engine.source-path);",
+        "trailing-label: root.engine.active ? root.selected-label : root.registered-label;",
         "height: root.effective-row-height;",
         "row-height: root.effective-row-height;",
-        "collapse-trailing-label: root.collapse-label;",
+        "selected: root.engine.active;",
+        "interaction-foreground: root.content-foreground;",
+        "clicked =>",
+        "root.engine-selected(root.engine.id);",
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "detail: root.supporting-text;",
+        "slot-width: root.collapse-label ? 0px : root.trailing-badge-width;",
+        "badge-text: root.trailing-label;",
+        "badge-tone: root.engine.active ? \"accent\" : \"neutral\";",
+        "collapse-badge: root.collapse-label;",
     ] {
         assert!(
             engine_choice_row.contains(snippet),
-            "EngineChoiceRow must keep text and trailing badges aligned by respecting Material ListTile's minimum row height; missing {snippet}"
+            "EngineChoiceRow must compose the shared row-surface and row-slot primitives while preserving engine text, selection, and compact badge behavior; missing {snippet}"
         );
     }
     let template_choice_row = components
@@ -865,9 +910,11 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         .and_then(|source| source.split("export component ").next())
         .expect("project_page_components.slint must declare TemplateChoiceRow");
     for snippet in [
-        "inherits HubRowSurface",
+        "inherits HubInteractiveRowSurface",
         "private property <CheckState> selection-state: root.template.selected ? CheckState.checked : CheckState.unchecked;",
-        "StateLayerArea {",
+        "interaction-enabled: root.template.enabled;",
+        "interaction-foreground: root.template.selected ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;",
+        "clicked =>",
         "HubRowSelectionSlot {",
         "HubRowMainSlot {",
         "HubRowTrailingSlot {",
@@ -885,21 +932,14 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
     for forbidden in [
         "CenteredIcon",
         "area := TouchArea",
+        "InfoRow {",
         "HubCheckBox {",
         "StatusBadge {",
+        "StateLayerArea {",
     ] {
         assert!(
             !engine_choice_row.contains(forbidden) && !template_choice_row.contains(forbidden),
             "Project choice rows should not return to page-local icon, click, checkbox, or badge rows: {forbidden}"
-        );
-    }
-    for snippet in [
-        "detail: root.engine.version;",
-        "meta: root.engine.source-path;",
-    ] {
-        assert!(
-            engine_choice_row.contains(snippet),
-            "EngineChoiceRow must surface both engine version and source path in the Material ListTile supporting text; missing {snippet}"
         );
     }
 
@@ -938,7 +978,7 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
     }
     assert!(
         project_detail_page.contains("detail-choice-row-height: max(HubTokens.list-row-md"),
-        "ProjectDetailPage engine choices must respect Material ListTile's minimum row height"
+        "ProjectDetailPage engine choices must respect the shared Material row minimum height"
     );
     assert!(
         project_detail_page.contains("collapse-engine-label: root.narrow-flow;")
@@ -957,10 +997,11 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "title: root.copy.confirm-delete;",
         "detail: root.copy.recycle-bin-delete-detail;",
         "tone: \"error\";",
-        "export component ProjectDetailActionsSection inherits PanelSlot",
+        "export component ProjectDetailActionsSection inherits HubContentPanelSlot",
         "body-padding: root.panel-padding;",
         "body-spacing: root.panel-spacing;",
-        "PanelHeader { title: root.copy.project-actions-title; }",
+        "content-spacing: root.panel-spacing;",
+        "title: root.copy.project-actions-title;",
         "project: root.project;",
         "copy: root.ui-text;",
         "engine-scroll-y <=> root.detail-engine-scroll-y;",
@@ -976,7 +1017,13 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "second-badge-text: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
         "second-badge-tone: root.detail.pinned ? \"accent\" : \"neutral\";",
         "meta-text: root.copy.modified-prefix + root.detail.modified;",
+        "export component ProjectDetailMainPanel inherits HubMediaContentPanelSlot",
+        "media-height: root.cover-height;",
+        "media-source: root.project.cover-image;",
+        "has-media-source: root.project.has-cover;",
+        "content-spacing: root.content-stack-spacing;",
         "ProjectDetailStatusStrip {",
+        "ProjectDetailInfoSection {",
         "export component ProjectDetailPinToggleRow inherits HubToggleRow",
         "checked: root.detail.pinned;",
         "label: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
@@ -1031,11 +1078,11 @@ fn project_choice_rows_use_material_list_tiles_and_checkbox_selection() {
         "ProjectDetailPage should render the whole actions column through one ProjectDetailActionsSection"
     );
     assert_eq!(
-        project_detail_page
+        project_detail_components
             .matches("ProjectDetailStatusStrip {")
             .count(),
         1,
-        "ProjectDetailPage should render version, pin state, and modified time through one status-strip wrapper"
+        "ProjectDetailMainPanel should render version, pin state, and modified time through one status-strip wrapper"
     );
     assert_eq!(
         actions_section

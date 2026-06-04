@@ -111,6 +111,8 @@ related_code:
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/event/editor_operation_binding.rs
   - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
+  - zircon_editor/src/ui/workbench/event/menu_action_from_id.rs
+  - zircon_editor/src/ui/workbench/event/node_kind_from_id.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event_error.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
@@ -218,6 +220,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/event/editor_operation_binding.rs
   - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
+  - zircon_editor/src/ui/workbench/event/menu_action_from_id.rs
+  - zircon_editor/src/ui/workbench/event/node_kind_from_id.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event.rs
   - zircon_editor/src/ui/workbench/event/editor_host_event_error.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
@@ -288,6 +292,7 @@ plan_sources:
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - user: 2026-04-21 继续执行 zircon_editor UI 回迁 + 树形 TOML cutover，清理 core 中残余 UI owner
   - user: 2026-05-12 继续 ZirconEngine UI v2 硬切，要求 builtin editor 资产走 prototype heap cache
+  - user: 2026-06-04 继续完成模型 材质 网格 实体 shader流和资产管理
 tests:
   - cargo test -p zircon_runtime --lib ui_v2_file_cache_resolves_builtin_asset_id_widget_imports
   - cargo test -p zircon_editor --lib builtin_v2_template_file_cache_is_reused_across_runtime_instances
@@ -413,6 +418,10 @@ tests:
   - zircon_editor/tests/workbench_drag_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
+  - zircon_editor/src/tests/editor_event/runtime.rs
+  - .codex/tmp/editor_menu_action_normalization_focus_binary_20260604.log
+  - .codex/tmp/editor_preset_menu_action_normalization_focus_binary_20260604.log
+  - .codex/tmp/editor_ui_asset_binding_suggestions_focus_binary_20260604.log
   - zircon_editor/src/tests/workbench/reflection/model_projection.rs
   - zircon_editor/src/tests/workbench/reflection/remote_routes.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
@@ -856,6 +865,18 @@ Workbench 菜单模型现在也带 operation metadata：
 - payload: `MenuAction`
 - dispatch entry: `dispatch_editor_host_binding`
 - result: `EditorHostEvent::Menu`
+
+The stable route for new workbench menu payloads is the dotted `workbench.*`
+action id emitted by `menu_action_binding(...)`, for example
+`workbench.scene.node.create.cube` and `workbench.view.open.editor.scene`.
+`dispatch_editor_host_binding(...)` also accepts the UI asset authoring prefix
+`MenuAction.` and retained/reflection-era control ids such as `CreateNode.Cube`,
+`OpenView.editor.scene`, and `SaveProject`; those ids are compatibility inputs
+only and are normalized before the runtime journal records the typed
+`MenuAction`. Dynamic layout preset callbacks follow the same retained-host
+entry point: both `workbench.layout.preset.save.*` / `load.*` and legacy
+`SavePreset.*` / `LoadPreset.*` become canonical `LayoutCommand` events before
+host effects are consumed.
 
 menu 继续承载：
 

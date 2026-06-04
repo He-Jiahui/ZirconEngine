@@ -5,8 +5,8 @@ fn scene_menu_actions_dispatch_placeholder_status_through_callback_runtime_path(
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_scene_menu_actions");
-    let open_effects = dispatch_menu_action(&harness.runtime, "OpenScene").unwrap();
-    let create_effects = dispatch_menu_action(&harness.runtime, "CreateScene").unwrap();
+    let open_effects = dispatch_menu_action(&harness.runtime, "workbench.scene.open").unwrap();
+    let create_effects = dispatch_menu_action(&harness.runtime, "workbench.scene.create").unwrap();
 
     let journal = harness.runtime.journal();
     let events: Vec<_> = journal

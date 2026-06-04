@@ -36,7 +36,10 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
         .set_ui_asset_editor_selected_binding_event(&instance_id, "onHover")
         .expect("set selected binding event");
     manager
-        .set_ui_asset_editor_selected_binding_route(&instance_id, "MenuAction.HighlightSave")
+        .set_ui_asset_editor_selected_binding_route(
+            &instance_id,
+            "MenuAction.workbench.highlight_save",
+        )
         .expect("set selected binding route");
 
     let pane = manager
@@ -45,7 +48,10 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     assert_eq!(pane.inspector_binding_selected_index, 0);
     assert_eq!(pane.inspector_binding_id, "SaveButton/onHover");
     assert_eq!(pane.inspector_binding_event, "onHover");
-    assert_eq!(pane.inspector_binding_route, "MenuAction.HighlightSave");
+    assert_eq!(
+        pane.inspector_binding_route,
+        "MenuAction.workbench.highlight_save"
+    );
     assert!(pane.source_dirty);
 
     let saved = manager
@@ -59,7 +65,7 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     assert_eq!(button.bindings[0].event.to_string(), "onHover");
     assert_eq!(
         button.bindings[0].route.as_deref(),
-        Some("MenuAction.HighlightSave")
+        Some("MenuAction.workbench.highlight_save")
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -94,7 +100,10 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
         .select_ui_asset_editor_binding_action_kind(&instance_id, 2)
         .expect("select action kind");
     manager
-        .set_ui_asset_editor_selected_binding_route(&instance_id, "EditorActions.SaveProject")
+        .set_ui_asset_editor_selected_binding_route(
+            &instance_id,
+            "EditorAction.workbench.project.save",
+        )
         .expect("set action target");
     manager
         .select_ui_asset_editor_binding_payload(&instance_id, 1)
@@ -144,7 +153,10 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
         ]
     );
     assert_eq!(pane.inspector_binding_action_kind_selected_index, 2);
-    assert_eq!(pane.inspector_binding_route, "EditorActions.SaveProject");
+    assert_eq!(
+        pane.inspector_binding_route,
+        "EditorAction.workbench.project.save"
+    );
     assert_eq!(
         pane.inspector_binding_payload_items,
         vec![
@@ -166,7 +178,10 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     assert_eq!(button.bindings[0].event.to_string(), "onDoubleClick");
     assert!(button.bindings[0].route.is_none());
     let action = button.bindings[0].action.as_ref().expect("binding action");
-    assert_eq!(action.action.as_deref(), Some("EditorActions.SaveProject"));
+    assert_eq!(
+        action.action.as_deref(),
+        Some("EditorAction.workbench.project.save")
+    );
     assert_eq!(
         action.payload.get("mode").and_then(toml::Value::as_str),
         Some("compact")

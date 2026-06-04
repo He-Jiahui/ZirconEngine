@@ -860,7 +860,7 @@ fn native_host_asset_template_buttons_route_browser_change_callback() {
         content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
         pane: assets_pane_with_nodes(vec![TemplatePaneNodeData {
             dispatch_kind: "asset:browser".into(),
-            action_id: "SetViewMode".into(),
+            action_id: "workbench.asset.view_mode.set".into(),
             binding_id: "AssetSurface/SetViewMode".into(),
             value_text: "thumbnail".into(),
             ..template_node(
@@ -2397,13 +2397,13 @@ fn rust_owned_host_painter_draws_open_menu_popup_above_pane_surfaces() {
             items: model_rc(vec![
                 HostMenuChromeItemData {
                     label: "Open".into(),
-                    action_id: "OpenProject".into(),
+                    action_id: "workbench.project.open".into(),
                     enabled: true,
                     ..HostMenuChromeItemData::default()
                 },
                 HostMenuChromeItemData {
                     label: "Reset Layout".into(),
-                    action_id: "ResetLayout".into(),
+                    action_id: "workbench.layout.reset".into(),
                     enabled: true,
                     ..HostMenuChromeItemData::default()
                 },
@@ -2758,6 +2758,7 @@ fn component_showcase_pane_with_runtime_projection(
             performance_timeline: host_window::PerformanceTimelinePaneViewData::default(),
             module_plugins: host_window::ModulePluginsPaneViewData::default(),
             build_export: host_window::BuildExportPaneViewData::default(),
+            generated_bottom: host_window::GeneratedBottomPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
             animation: host_window::AnimationEditorPaneViewData::default(),
         },

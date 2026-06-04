@@ -1,17 +1,17 @@
 import { SettingStatusData, UiTextData } from "shared.slint";
-import { PillButton } from "button_components.slint";
+import { HubFormActionRow } from "button_components.slint";
 import {
     EmptyStateBlock,
+    HubContentPanelSlot,
     HubComboBox,
+    HubFormPanelSlot,
     HubListPanelSlot,
+    HubMetricSlot,
     HubPathFieldRow,
     HubTextField,
     HubTokens,
     InfoRow,
     MenuItem,
-    MetricCard,
-    PanelHeader,
-    PanelSlot,
 } from "components.slint";
 
 export component PathSettingRow inherits Rectangle {
@@ -119,36 +119,15 @@ export component SettingsComboChoice inherits Rectangle {
     }
 }
 
-export component SettingsSaveActionRow inherits Rectangle {
+export component SettingsSaveActionRow inherits HubFormActionRow {
     in property <length> button-width;
-    in property <string> action-label;
-    callback action-clicked();
 
-    horizontal-stretch: 1;
-    height: HubTokens.control-lg;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        spacing: HubTokens.toolbar-gap;
-
-        Rectangle { horizontal-stretch: 1; }
-
-        PillButton {
-            width: root.button-width;
-            height: HubTokens.control-md;
-            text: root.action-label;
-            icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
-            has-icon-image: true;
-            primary: true;
-            clicked => {
-                root.action-clicked();
-            }
-        }
-    }
+    action-width: root.button-width;
+    action-height: HubTokens.control-md;
+    action-icon: @image-url("../assets/icons/ui/chevron-right.svg");
 }
 
-export component SettingsConfigurationOverviewPanel inherits PanelSlot {
+export component SettingsConfigurationOverviewPanel inherits HubContentPanelSlot {
     in property <string> panel-title;
     in property <UiTextData> ui-text;
     in property <int> settings-status-count;
@@ -156,13 +135,12 @@ export component SettingsConfigurationOverviewPanel inherits PanelSlot {
     in property <string> language;
     in property <string> project-location;
 
-    PanelHeader {
-        title: root.panel-title;
-        show-badge: true;
-        badge-text: root.settings-status-count + " " + root.ui-text.configuration-health;
-        badge-tone: root.settings-status-count == 0 ? "warning" : "ok";
-        badge-width: HubTokens.control-lg * 5;
-    }
+    title: root.panel-title;
+    show-badge: true;
+    badge-text: root.settings-status-count + " " + root.ui-text.configuration-health;
+    badge-tone: root.settings-status-count == 0 ? "warning" : "ok";
+    badge-width: HubTokens.control-lg * 5;
+    content-spacing: HubTokens.space-2;
 
     VerticalLayout {
         horizontal-stretch: 1;
@@ -174,22 +152,22 @@ export component SettingsConfigurationOverviewPanel inherits PanelSlot {
             height: HubTokens.list-row-md;
             spacing: HubTokens.space-2;
 
-            MetricCard {
+            HubMetricSlot {
                 horizontal-stretch: 1;
                 height: parent.height;
                 label: root.ui-text.build-profile;
                 primary: root.build-profile;
                 secondary: root.ui-text.build-defaults;
-                compact: true;
+                compact-card: true;
             }
 
-            MetricCard {
+            HubMetricSlot {
                 horizontal-stretch: 1;
                 height: parent.height;
                 label: root.ui-text.language;
                 primary: root.language;
                 secondary: root.ui-text.toolchain;
-                compact: true;
+                compact-card: true;
             }
         }
 
@@ -198,93 +176,83 @@ export component SettingsConfigurationOverviewPanel inherits PanelSlot {
             height: HubTokens.list-row-md;
             spacing: HubTokens.space-2;
 
-            MetricCard {
+            HubMetricSlot {
                 horizontal-stretch: 1;
                 height: parent.height;
                 label: root.ui-text.default-project-directory;
                 primary: root.project-location == "" ? root.ui-text.location : root.project-location;
                 secondary: root.ui-text.default-paths;
-                compact: true;
+                compact-card: true;
             }
 
-            MetricCard {
+            HubMetricSlot {
                 horizontal-stretch: 1;
                 height: parent.height;
                 label: root.ui-text.configuration-health;
                 primary: root.settings-status-count + "";
                 secondary: root.ui-text.no-configuration-checks;
-                compact: true;
+                compact-card: true;
             }
         }
     }
 }
 
-export component SettingsToolchainPanel inherits PanelSlot {
+export component SettingsToolchainPanel inherits HubFormPanelSlot {
     in property <string> panel-title;
     in property <UiTextData> ui-text;
     in-out property <string> python-path;
     in-out property <string> cargo-path;
     in-out property <string> rustup-path;
 
-    PanelHeader { title: root.panel-title; }
+    title: root.panel-title;
+    form-spacing: HubTokens.space-2;
 
-    VerticalLayout {
-        horizontal-stretch: 1;
-        vertical-stretch: 1;
-        spacing: HubTokens.space-2;
-
-        SettingsToolchainField {
-            field-label: root.ui-text.python-executable;
-            field-value <=> root.python-path;
-        }
-        SettingsToolchainField {
-            field-label: root.ui-text.cargo-executable;
-            field-value <=> root.cargo-path;
-        }
-        SettingsToolchainField {
-            field-label: root.ui-text.rustup-executable;
-            field-value <=> root.rustup-path;
-        }
+    SettingsToolchainField {
+        field-label: root.ui-text.python-executable;
+        field-value <=> root.python-path;
+    }
+    SettingsToolchainField {
+        field-label: root.ui-text.cargo-executable;
+        field-value <=> root.cargo-path;
+    }
+    SettingsToolchainField {
+        field-label: root.ui-text.rustup-executable;
+        field-value <=> root.rustup-path;
     }
 }
 
-export component SettingsBuildDefaultsPanel inherits PanelSlot {
+export component SettingsBuildDefaultsPanel inherits HubFormPanelSlot {
     in property <string> panel-title;
     in property <UiTextData> ui-text;
     in-out property <string> build-jobs;
     in-out property <string> build-profile;
     in-out property <string> language;
 
-    PanelHeader { title: root.panel-title; }
+    title: root.panel-title;
+    form-spacing: HubTokens.space-2;
 
-    VerticalLayout {
-        horizontal-stretch: 1;
-        vertical-stretch: 1;
-        spacing: HubTokens.space-2;
+    SettingsComboChoice {
+        label: root.ui-text.build-profile;
+        first-label: root.ui-text.debug;
+        first-value: "debug";
+        second-label: root.ui-text.release;
+        second-value: "release";
+        selected-value <=> root.build-profile;
+    }
 
-        SettingsComboChoice {
-            label: root.ui-text.build-profile;
-            first-label: root.ui-text.debug;
-            first-value: "debug";
-            second-label: root.ui-text.release;
-            second-value: "release";
-            selected-value <=> root.build-profile;
-        }
+    HubTextField {
+        label: root.ui-text.build-jobs;
+        placeholder: root.ui-text.build-jobs;
+        text <=> root.build-jobs;
+    }
 
-        HubTextField {
-            label: root.ui-text.build-jobs;
-            placeholder: root.ui-text.build-jobs;
-            text <=> root.build-jobs;
-        }
-
-        SettingsComboChoice {
-            label: root.ui-text.language;
-            first-label: root.ui-text.english;
-            first-value: "English";
-            second-label: root.ui-text.chinese;
-            second-value: "Chinese";
-            selected-value <=> root.language;
-        }
+    SettingsComboChoice {
+        label: root.ui-text.language;
+        first-label: root.ui-text.english;
+        first-value: "English";
+        second-label: root.ui-text.chinese;
+        second-value: "Chinese";
+        selected-value <=> root.language;
     }
 }
 

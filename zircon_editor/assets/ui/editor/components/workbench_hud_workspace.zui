@@ -1,0 +1,285 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_hud_workspace.zui"
+version = 2
+display_name = "Workbench HUD Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+[components.WorkbenchHudWorkspace]
+root = "hud_workspace"
+default_classes = ["workbench-module-body"]
+
+[nodes.hud_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchModuleHudWorkspace"
+classes = ["workbench-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_rail_gap" }, { node = "hud_left" }, { node = "hud_center" }, { node = "hud_right" }]
+
+[nodes.hud_rail_gap]
+component = "Container"
+control_id = "WorkbenchHudRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.hud_left]
+component = "VerticalGroup"
+control_id = "WorkbenchHudLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_title" }, { node = "hud_canvas_tab" }, { node = "hud_bindings_tab" }, { node = "hud_validation_tab" }, { node = "hud_widget_text_row" }, { node = "hud_widget_button_row" }]
+
+[nodes.hud_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchHudTitle"
+props = { text = "HUD Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.hud_canvas_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchHudCanvasTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Canvas", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudCanvasTab", event = "Click", route = "WorkbenchModule.Hud.Canvas" }]
+
+[nodes.hud_bindings_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchHudBindingsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Bindings", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudBindingsTab", event = "Click", route = "WorkbenchModule.Hud.Bindings" }]
+
+[nodes.hud_validation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchHudValidationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudValidationTab", event = "Click", route = "WorkbenchModule.Hud.Validation" }]
+
+[nodes.hud_widget_text_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchHudWidgetTextRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "MatchTimer", icon = "image", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudWidgetText", event = "Click", route = "WorkbenchModule.Hud.Widget.Text" }]
+
+[nodes.hud_widget_button_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchHudWidgetButtonRow"
+classes = ["workbench-list-row"]
+props = { text = "WeaponPanel", icon = "image", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudWidgetButton", event = "Click", route = "WorkbenchModule.Hud.Widget.Button" }]
+
+[nodes.hud_center]
+component = "VerticalGroup"
+control_id = "WorkbenchHudCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_center_header" }, { node = "hud_canvas" }, { node = "hud_validation_row" }]
+
+[nodes.hud_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchHudCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "hud_center_title" }, { node = "hud_header_fill" }, { node = "hud_console_diagnostics_button" }, { node = "hud_runtime_diagnostics_button" }, { node = "hud_telemetry_dashboard_button" }, { node = "hud_performance_button" }, { node = "hud_font_atlas_button" }, { node = "hud_menu_flow_button" }, { node = "hud_accessibility_audit_button" }, { node = "hud_icon_library_button" }, { node = "hud_ui_binding_button" }, { node = "hud_ui_asset_editor_button" }, { node = "hud_preview_button" }]
+
+[nodes.hud_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchHudCenterTitle"
+props = { text = "Gameplay HUD Canvas" }
+layout = { width = { min = 190.0, preferred = 190.0, max = 210.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.hud_header_fill]
+component = "Container"
+control_id = "WorkbenchHudHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.hud_console_diagnostics_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudConsoleDiagnosticsButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Console", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 82.0, preferred = 82.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsOpen", event = "Click", route = "WorkbenchExtension.ConsoleDiagnostics.Open" }]
+
+[nodes.hud_runtime_diagnostics_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudRuntimeDiagnosticsButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Runtime", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/RuntimeDiagnosticsOpen", event = "Click", route = "WorkbenchExtension.RuntimeDiagnostics.Open" }]
+
+[nodes.hud_telemetry_dashboard_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudTelemetryDashboardButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Telemetry", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardOpen", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Open" }]
+
+[nodes.hud_performance_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudPerformanceButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Perf", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 70.0, preferred = 70.0, max = 80.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceOpen", event = "Click", route = "WorkbenchExtension.Performance.Open" }]
+
+[nodes.hud_font_atlas_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudFontAtlasButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Font Atlas", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/FontAtlasOpen", event = "Click", route = "WorkbenchExtension.FontAtlas.Open" }]
+
+[nodes.hud_menu_flow_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudMenuFlowButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Menu Flow", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 94.0, preferred = 94.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowOpen", event = "Click", route = "WorkbenchExtension.MenuFlow.Open" }]
+
+[nodes.hud_accessibility_audit_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudAccessibilityAuditButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "A11y Audit", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 102.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/AccessibilityAuditOpen", event = "Click", route = "WorkbenchExtension.AccessibilityAudit.Open" }]
+
+[nodes.hud_icon_library_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudIconLibraryButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Icon Library", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 104.0, preferred = 104.0, max = 114.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryOpen", event = "Click", route = "WorkbenchExtension.IconLibrary.Open" }]
+
+[nodes.hud_ui_binding_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudUiBindingButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "UI Binding", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 98.0, preferred = 98.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiBindingOpen", event = "Click", route = "WorkbenchExtension.UiBinding.Open" }]
+
+[nodes.hud_ui_asset_editor_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudUiAssetEditorButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "UI Asset Editor", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 122.0, preferred = 122.0, max = 132.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorOpen", event = "Click", route = "WorkbenchExtension.UiAssetEditor.Open" }]
+
+[nodes.hud_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchHudPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+layout = { width = { min = 76.0, preferred = 76.0, max = 86.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudPreview", event = "Click", route = "WorkbenchModule.Hud.Preview" }]
+
+[nodes.hud_canvas]
+component = "VerticalGroup"
+control_id = "WorkbenchHudCanvas"
+classes = ["workbench-panel", "workbench-module-graph"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_canvas_row_01" }, { node = "hud_canvas_row_02" }, { node = "hud_binding_row" }]
+
+[nodes.hud_canvas_row_01]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchHudMinimapRow"
+classes = ["workbench-property-row", "workbench-row-selected"]
+props = { text = "Minimap", value_text = "Anchor Top Right   240 x 180", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudMinimap", event = "Click", route = "WorkbenchModule.Hud.Minimap" }]
+
+[nodes.hud_canvas_row_02]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchHudAmmoPanelRow"
+classes = ["workbench-property-row"]
+props = { text = "AmmoPanel", value_text = "Anchor Bottom Right   bound" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudAmmoPanel", event = "Click", route = "WorkbenchModule.Hud.AmmoPanel" }]
+
+[nodes.hud_binding_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchHudBindingRow"
+classes = ["workbench-table-row"]
+props = { text = "Ammo_Clip", value_text = "GetCurrentAmmo   OK" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudBindingAmmo", event = "Click", route = "WorkbenchModule.Hud.Binding.Ammo" }]
+
+[nodes.hud_validation_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchHudValidationRow"
+classes = ["workbench-table-row"]
+props = { text = "Warning", value_text = "Text MatchTimer is not localized" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/HudValidationRow", event = "Click", route = "WorkbenchModule.Hud.Validation.Row" }]
+
+[nodes.hud_right]
+component = "VerticalGroup"
+control_id = "WorkbenchHudRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_details_title" }, { node = "hud_screen_dropdown" }, { node = "hud_dpi_field" }, { node = "hud_locale_field" }]
+
+[nodes.hud_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchHudDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.hud_screen_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchHudScreenDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Gameplay_HUD", value = "Gameplay_HUD" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/HudScreenEdit", event = "Change", route = "WorkbenchModule.Hud.Screen.Edit" },
+  { id = "WorkbenchModule/HudScreenCommit", event = "Submit", route = "WorkbenchModule.Hud.Screen.Commit" },
+]
+
+[nodes.hud_dpi_field]
+component = "WorkbenchField"
+control_id = "WorkbenchHudDpiField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "DPI Scale: 1.00" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/HudDpiEdit", event = "Change", route = "WorkbenchModule.Hud.Dpi.Edit" },
+  { id = "WorkbenchModule/HudDpiCommit", event = "Submit", route = "WorkbenchModule.Hud.Dpi.Commit" },
+]
+
+[nodes.hud_locale_field]
+component = "WorkbenchField"
+control_id = "WorkbenchHudLocaleField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Locale: en-US" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/HudLocaleEdit", event = "Change", route = "WorkbenchModule.Hud.Locale.Edit" },
+  { id = "WorkbenchModule/HudLocaleCommit", event = "Submit", route = "WorkbenchModule.Hud.Locale.Commit" },
+]

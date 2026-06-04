@@ -11,9 +11,14 @@ related_code:
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
+  - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
+  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/retained_host/app/viewport.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
   - zircon_editor/src/ui/retained_host/viewport/retained_viewport_controller.rs
   - zircon_editor/src/ui/retained_host/viewport/poll_image.rs
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
@@ -46,9 +51,14 @@ implementation_files:
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
+  - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
+  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/retained_host/app/viewport.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
   - zircon_editor/src/ui/retained_host/viewport/retained_viewport_controller.rs
   - zircon_editor/src/ui/retained_host/viewport/poll_image.rs
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
@@ -81,8 +91,10 @@ plan_sources:
   - user: 2026-04-21 M1 主链收口与文本底座计划，runtime 只负责中性 DTO，editor 成为作者态 overlay 唯一入口
 tests:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
+  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_app/src/entry/tests.rs
@@ -153,6 +165,15 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
 
 这样 editor 现在至少有一条真实 authoring overlay 走进 runtime 文本底座，满足 M1 对“runtime UI 与 editor viewport/runtime-style overlay 共用同一套文本 backend”的完成线，同时不绕过当前 retained workbench 主 UI。
 
+## Retained Viewport Pointer Cancel
+
+2026-06-04 的 M6 根验证补齐了 retained viewport 对 shared `UiPointerEventKind::Cancel` 的完整消费：
+
+- `zircon_editor/src/ui/retained_host/app/viewport.rs` 把 host viewport pointer kind `4` 映射为 `UiPointerEventKind::Cancel`，并允许 world-space UI 在有捕获目标时报告取消状态。
+- `zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs` 在 shared viewport pointer dispatcher 中注册 cancel。cancel 只进入 shared UI surface routing，让 runtime surface 负责清 pressed 和释放 pointer capture；它不会合成 `EditorViewportEvent`，因此不会被误当作 camera move、scroll 或 button release。
+- `zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs` 在 cancel 时只回传并释放已捕获的 world-space UI target，不会对取消点做新的 hit-test 抢目标。
+- `zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs` 把同一个 cancel 事件映射为 runtime `PointerAction::Cancel`，让 viewport overlay picking 和 runtime picking 的取消语义保持一致。
+
 ## Runtime Preview
 
 - `zircon_app` 不再复用 editor viewport controller，而是在 `entry/runtime_entry_app/camera_controller/` 下持有 crate-private `RuntimeCameraController`。
@@ -177,6 +198,8 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-viewport-lock-gap --message-format short --color never` 通过。
   - 作为 2026-05-03 生产路径 panic/unwrap 缺口修补的轻量类型检查证据，覆盖 `RetainedViewportController::lock_shared()` 与 viewport shared-state 调用点。
 - `cargo check --workspace --locked` 通过。
+- `cargo test -p zircon_editor --lib pointer_cancel --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-m6-root-0604-fresh`
+  - 覆盖 viewport pointer cancel 到 runtime picking、shared viewport pointer bridge、world-space UI pointer capture 的取消释放路径。
 - `cargo test -p zircon_editor --lib controller_submits_shared_ui_overlay_through_render_framework --locked` 通过。
   - 证明 editor viewport 已经能把 scene extract 和 shared `UiRenderExtract` 一起交给 render framework
 - `cargo test -p zircon_editor --lib render_frame_submission_carries_editor_owned_viewport_text_overlay --locked` 通过。

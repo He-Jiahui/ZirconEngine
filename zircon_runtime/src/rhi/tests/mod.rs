@@ -1,3 +1,15 @@
+mod boundary;
 mod capabilities;
+mod command_list;
+mod debug_markers;
+mod debug_status;
 mod descriptors;
 mod device_contract;
+mod pipeline;
+mod render_pass_clear_values;
+mod render_pass_command_list;
+mod render_pass_resolve;
+mod render_pass_state;
+mod render_pass_views;
+mod resource_lifecycle;
+mod texture_copy;

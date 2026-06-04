@@ -85,6 +85,26 @@ export component Flow inherits Stack {
     wrap: true;
 }
 
+export component FlowScrollSurface inherits ScrollView {
+    in-out property <length> scroll-y: 0px;
+    in property <length> content-width: root.visible_width;
+    in property <length> content-height: root.visible_height;
+
+    viewport_y <=> root.scroll-y;
+    viewport_width: root.visible_width;
+    viewport_height: root.content-height;
+    vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
+    horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
+
+    Rectangle {
+        width: root.content-width;
+        height: root.content-height;
+        background: transparent;
+
+        @children
+    }
+}
+
 export component ResponsiveSlot inherits Rectangle {
     in property <length> basis: HubTokens.panel-min-md;
     in property <float> grow: 1;
@@ -94,6 +114,24 @@ export component ResponsiveSlot inherits Rectangle {
     background: transparent;
 
     @children
+}
+
+export component HubWorkspaceSplitState inherits Rectangle {
+    in property <length> content-width;
+    in property <length> main-basis: HubTokens.panel-min-lg + HubTokens.control-lg * 2;
+    in property <length> side-basis: HubTokens.panel-min-md + HubTokens.control-lg * 2;
+    in property <length> gap: HubTokens.panel-gap;
+    in property <length> compact-label-breakpoint: HubTokens.breakpoint-medium;
+    in property <float> main-grow: 2;
+    in property <float> side-grow: 1;
+    out property <bool> compact: root.content-width < root.main-basis + root.side-basis + root.gap;
+    out property <bool> compact-labels: root.content-width < root.compact-label-breakpoint;
+    out property <length> main-min-width: root.compact ? root.content-width : root.main-basis;
+    out property <length> side-min-width: root.compact ? root.content-width : root.side-basis;
+
+    width: 0px;
+    height: 0px;
+    background: transparent;
 }
 
 export component ResponsiveState inherits Rectangle {

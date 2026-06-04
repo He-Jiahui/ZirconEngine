@@ -19,7 +19,7 @@ pub(super) fn register_draft_route(
 ) -> Option<UiRouteId> {
     let view_id = binding_view_id(activity);
     let (control_id, payload) = match action_id {
-        "edit_field" => (
+        "inspector.field.edit" => (
             inspector_field_control_id("name").unwrap_or("NameField"),
             EditorUiBindingPayload::draft_command(DraftCommand::SetInspectorField {
                 subject_path: "entity://selected".to_string(),
@@ -27,7 +27,7 @@ pub(super) fn register_draft_route(
                 value: UiBindingValue::string(String::new()),
             }),
         ),
-        "set_mesh_import_path" => (
+        "workbench.asset.mesh_import.path.set" => (
             "MeshImportPathEdited",
             EditorUiBindingPayload::draft_command(DraftCommand::SetMeshImportPath {
                 value: String::new(),

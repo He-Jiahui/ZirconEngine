@@ -449,7 +449,7 @@ fn linear_slot_sizing_for_taffy(
     parent_container: UiContainerKind,
     slot: Option<&UiSlot>,
 ) -> Option<UiLinearSlotSizing> {
-    // WrapBox uses Flow slots; legacy wrap only uses those slots for order/padding/alignment.
+    // WrapBox uses Flow slots for order, padding, and alignment only.
     // Keep Taffy native wrap on that same contract instead of treating Flow as flex growth.
     match parent_container {
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {

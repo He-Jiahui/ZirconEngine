@@ -21,13 +21,18 @@ fn read_ui_file(name: &str) -> String {
 #[test]
 fn data_display_lists_use_material_scroll_view() {
     let data_display = read_ui_file("data_display.slint");
+    let list_container = read_ui_file("list_container_components.slint");
     let table_view = read_ui_file("table_view_components.slint");
-    let data_surface = format!("{data_display}\n{table_view}");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
+    let data_surface = format!("{list_container}\n{table_view}\n{catalog_components}");
 
     for snippet in [
-        "ScrollView,",
+        "import { ScrollView } from \"material_bridge.slint\";",
         "table-scroll := HubTableBody {",
         "export component PanelListViewport inherits ScrollView",
+        "export component HubMenuListViewport inherits PanelListViewport",
+        "row-height: HubTokens.list-row-md;",
+        "empty-height: HubTokens.list-row-lg;",
         "export component HubTableBody inherits PanelListViewport",
         "export component CatalogPage inherits PageScrollSurface",
         "min-height: root.row-height * 4;",
@@ -89,6 +94,7 @@ fn data_display_lists_use_material_scroll_view() {
 
     for table_component in [
         "TableColumnHeader",
+        "TableCellText",
         "ProjectTableRow",
         "HubTableBody",
         "DataTable",
@@ -99,113 +105,74 @@ fn data_display_lists_use_material_scroll_view() {
             "data_display.slint should not regain table-view ownership after the table module split: {table_component}"
         );
     }
-}
-
-#[test]
-fn data_display_table_text_uses_material_text() {
-    let table_view = read_ui_file("table_view_components.slint");
-    let table_header = table_view
-        .split("export component TableColumnHeader")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectTableRow").next())
-        .expect(
-            "table_view_components.slint must declare TableColumnHeader before ProjectTableRow",
-        );
-    let table_row = table_view
-        .split("export component ProjectTableRow")
-        .nth(1)
-        .and_then(|source| source.split("export component DataTable").next())
-        .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
-    let data_table = table_view
-        .split("export component DataTable")
-        .nth(1)
-        .and_then(|source| source.split("export component HubTableView").next())
-        .expect("table_view_components.slint must declare DataTable before HubTableView");
-
-    for snippet in [
-        "MaterialText,",
-        "style: MaterialTypography.label_medium;",
-        "style: MaterialTypography.label_large;",
-        "style: MaterialTypography.body_small;",
-        "vertical_alignment: center;",
-    ] {
+    for catalog_component in ["CatalogListPanel", "CatalogPage"] {
         assert!(
-            table_view.contains(snippet),
-            "DataTable and ProjectTableRow typography should delegate metrics to MaterialText; missing {snippet}"
+            !data_display.contains(&format!("export component {catalog_component}")),
+            "data_display.slint should not regain catalog-page ownership after the catalog module split: {catalog_component}"
         );
     }
-
-    for (name, source) in [
-        ("TableColumnHeader", table_header),
-        ("ProjectTableRow", table_row),
+    for list_component in [
+        "PanelListViewport",
+        "HubMenuListViewport",
+        "HubListView",
+        "HubListPanelSlot",
+        "HubTabbedListPanelSlot",
     ] {
         assert!(
-            !source.lines().any(|line| line.trim() == "Text {"),
-            "{name} should not return to raw Text nodes for table typography"
-        );
-        for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-            assert!(
-                !source.contains(forbidden),
-                "{name} should not return to raw Text font bindings: {forbidden}"
-            );
-        }
-    }
-
-    for snippet in [
-        "if root.row-count == 0: EmptyStateBlock",
-        "title: root.empty-text;",
-        "center-content: true;",
-    ] {
-        assert!(
-            data_table.contains(snippet),
-            "DataTable empty state should reuse EmptyStateBlock instead of page-local muted text: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "visible-modified: root.project.modified == \"1d ago\" ? \"Yesterday\" : root.project.modified;",
-        "text: root.visible-modified;",
-    ] {
-        assert!(
-            table_row.contains(snippet),
-            "ProjectTableRow should normalize reference fixture labels at the presentation edge: {snippet}"
+            !data_display.contains(&format!("export component {list_component}")),
+            "data_display.slint should not retain list-container ownership after the focused list module split: {list_component}"
         );
     }
 }
 
 #[test]
-fn data_table_rows_use_shared_trailing_action_slot() {
-    let table_view = read_ui_file("table_view_components.slint");
-    let table_row = table_view
-        .split("export component ProjectTableRow")
+fn row_trailing_slot_delegates_action_chrome_to_button_family() {
+    let icon_button_components = read_ui_file("icon_button_components.slint");
+    let components = read_ui_file("components.slint");
+    let row_slots = read_ui_file("row_slot_components.slint");
+    let trailing_slot = row_slots
+        .split("export component HubRowTrailingSlot")
         .nth(1)
-        .and_then(|source| source.split("export component DataTable").next())
-        .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
+        .expect("row_slot_components.slint must declare HubRowTrailingSlot");
+
+    assert!(
+        icon_button_components.contains("export component HubRowActionButton inherits HubIconButton"),
+        "icon_button_components.slint must own row trailing action chrome through HubRowActionButton"
+    );
+    assert!(
+        components.contains("HubRowActionButton,"),
+        "components.slint must re-export HubRowActionButton for shared row action consumers"
+    );
 
     for snippet in [
-        "import { HubRowTrailingSlot } from \"row_slot_components.slint\";",
-        "HubRowTrailingSlot {",
-        "slot-width: root.action-size;",
-        "show-badge: false;",
-        "show-action: true;",
-        "action-framed: false;",
-        "action-size: root.action-size;",
-        "action-icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
-        "clicked => {\n                root.open(root.project.open-path);",
+        "import { HubRowActionButton } from \"icon_button_components.slint\";",
+        "HubRowActionButton {",
+        "button-size: root.action-size;",
+        "button-radius: root.action-radius;",
+        "icon-image: root.action-icon-image;",
+        "icon-size: root.action-icon-size;",
+        "idle-foreground: root.action-foreground;",
+        "state-layer-color: root.action-state-layer-color;",
+        "framed: root.action-framed;",
+        "clicked => { root.clicked(); }",
     ] {
         assert!(
-            table_view.contains(snippet) || table_row.contains(snippet),
-            "ProjectTableRow must express its trailing action with the shared row slot: {snippet}"
+            row_slots.contains(snippet) || trailing_slot.contains(snippet),
+            "HubRowTrailingSlot must route its action affordance through HubRowActionButton; missing {snippet}"
         );
     }
 
     for forbidden in [
-        "source: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
-        "StateLayerArea {\n                width: parent.width;",
+        "import { HubIconButton } from \"button_components.slint\";",
+        "import { HubIconButton } from \"icon_button_components.slint\";",
+        "HubIconButton {",
+        "StateLayerArea {",
+        "if root.action-visible && !root.action-framed: Rectangle",
+        "source: root.action-icon-image;",
     ] {
         assert!(
-            !table_row.contains(forbidden),
-            "ProjectTableRow should not recreate a local trailing action implementation after adopting HubRowTrailingSlot: {forbidden}"
+            !trailing_slot.contains(forbidden) && !row_slots.contains(forbidden),
+            "HubRowTrailingSlot should not own local action-button internals after the button-family extraction: {forbidden}"
         );
     }
 }
@@ -213,12 +180,13 @@ fn data_table_rows_use_shared_trailing_action_slot() {
 #[test]
 fn data_display_catalog_empty_state_uses_material_text() {
     let data_display = read_ui_file("data_display.slint");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
     let surfaces = read_ui_file("surfaces.slint");
-    let catalog_panel = data_display
+    let catalog_panel = catalog_components
         .split("export component CatalogListPanel")
         .nth(1)
         .and_then(|source| source.split("export component CatalogPage").next())
-        .expect("data_display.slint must declare CatalogListPanel before CatalogPage");
+        .expect("catalog_page_components.slint must declare CatalogListPanel before CatalogPage");
 
     for snippet in [
         "if root.row-count == 0: EmptyStateBlock",
@@ -261,6 +229,10 @@ fn data_display_catalog_empty_state_uses_material_text() {
             "CatalogListPanel empty state should not return to raw Text font bindings: {forbidden}"
         );
     }
+    assert!(
+        !data_display.contains("CatalogListPanel") && !data_display.contains("CatalogPage"),
+        "data_display.slint should not regain catalog-page/list ownership after the focused catalog module split"
+    );
 }
 
 #[test]
@@ -269,8 +241,12 @@ fn row_surface_owns_shared_selected_disabled_focus_state() {
     let row_surface = data_display
         .split("export component HubRowSurface")
         .nth(1)
-        .and_then(|source| source.split("export component HubMenuRow").next())
-        .expect("data_display.slint must declare HubRowSurface before HubMenuRow");
+        .and_then(|source| {
+            source
+                .split("export component HubInteractiveRowSurface")
+                .next()
+        })
+        .expect("data_display.slint must declare HubRowSurface before HubInteractiveRowSurface");
 
     for snippet in [
         "in property <bool> selected: false;",
@@ -305,8 +281,76 @@ fn row_surface_owns_shared_selected_disabled_focus_state() {
 }
 
 #[test]
+fn interactive_row_surface_owns_shared_state_layer() {
+    let components = read_ui_file("components.slint");
+    let data_display = read_ui_file("data_display.slint");
+    let interactive_surface = data_display
+        .split("export component HubInteractiveRowSurface")
+        .nth(1)
+        .and_then(|source| source.split("component HubMenuRowTrailingText").next())
+        .expect(
+            "data_display.slint must declare HubInteractiveRowSurface before HubMenuRowTrailingText",
+        );
+
+    assert!(
+        components.contains("HubInteractiveRowSurface,"),
+        "components.slint must re-export HubInteractiveRowSurface for shared clickable row wrappers"
+    );
+    assert!(
+        data_display.contains("export component HubInteractiveRowSurface inherits HubRowSurface"),
+        "data_display.slint must declare HubInteractiveRowSurface as the shared clickable row wrapper"
+    );
+
+    for snippet in [
+        "callback clicked;",
+        "in property <bool> interaction-enabled: root.enabled;",
+        "in property <color> interaction-foreground: root.content-foreground;",
+        "row-state := StateLayerArea {",
+        "color: root.interaction-foreground;",
+        "border_radius: root.row-radius;",
+        "if (root.interaction-enabled) {",
+        "root.clicked();",
+        "@children",
+    ] {
+        assert!(
+            interactive_surface.contains(snippet),
+            "HubInteractiveRowSurface must centralize reusable Material row interaction state; missing {snippet}"
+        );
+    }
+
+    for forbidden in ["ListTile {", "MaterialText {", "IconButton {", "TouchArea"] {
+        assert!(
+            !interactive_surface.contains(forbidden),
+            "HubInteractiveRowSurface should add only the shared state layer and leave row content to typed rows: {forbidden}"
+        );
+    }
+}
+
+#[test]
 fn menu_row_uses_material_list_tile_state_contract() {
     let data_display = read_ui_file("data_display.slint");
+    let trailing_text = data_display
+        .split("component HubMenuRowTrailingText")
+        .nth(1)
+        .and_then(|source| source.split("export component HubMenuRow").next())
+        .expect("data_display.slint must declare HubMenuRowTrailingText before HubMenuRow");
+    for snippet in [
+        "inherits MaterialText",
+        "in property <string> value;",
+        "in property <color> foreground;",
+        "text: root.value;",
+        "color: root.foreground;",
+        "style: MaterialTypography.label_medium;",
+        "horizontal_alignment: right;",
+        "vertical_alignment: center;",
+        "overflow: elide;",
+    ] {
+        assert!(
+            trailing_text.contains(snippet),
+            "HubMenuRowTrailingText must own menu-row trailing text typography; missing {snippet}"
+        );
+    }
+
     let menu_row = data_display
         .split("export component HubMenuRow")
         .nth(1)
@@ -333,7 +377,9 @@ fn menu_row_uses_material_list_tile_state_contract() {
         "selected-background: MaterialPalette.secondary_container;",
         "enabled: root.enabled;",
         "clicked =>",
-        "if root.show-trailing-text: MaterialText",
+        "if root.show-trailing-text: HubMenuRowTrailingText",
+        "value: root.trailing-text;",
+        "foreground: root.content-foreground;",
         "if root.show-trailing-icon: Icon",
     ] {
         assert!(
@@ -346,6 +392,7 @@ fn menu_row_uses_material_list_tile_state_contract() {
         "area := TouchArea",
         "area.has-hover",
         "avatar-foreground: root.selected ? HubVisualSpec.accent-stroke",
+        "MaterialText {",
         "component InfoRow",
         "component ActionRow",
         "border-radius: HubVisualSpec.panel-radius;",
@@ -370,7 +417,6 @@ fn info_row_uses_shared_row_surface_and_slots() {
         "HubRowLeadingIconSlot {",
         "HubRowMainSlot {",
         "HubRowTrailingSlot {",
-        "row-state := StateLayerArea {",
         "alignment: stretch;",
         "preferred-width: 0px;",
         "title: root.title;",
@@ -405,13 +451,14 @@ fn info_row_uses_shared_row_surface_and_slots() {
         );
     }
     assert!(
-        data_display.contains("export component InfoRow inherits HubRowSurface"),
-        "InfoRow must inherit HubRowSurface instead of owning its own root surface"
+        data_display.contains("export component InfoRow inherits HubInteractiveRowSurface"),
+        "InfoRow must inherit HubInteractiveRowSurface instead of owning its own interaction layer"
     );
 
     for forbidden in [
         "ListTile {",
         "IconButton {",
+        "row-state := StateLayerArea {",
         "area := TouchArea",
         "border-color: area.has-hover",
         "background: area.has-hover",
@@ -511,10 +558,21 @@ fn info_row_uses_shared_row_surface_and_slots() {
     let action_row = data_display
         .split("export component ActionRow")
         .nth(1)
-        .and_then(|source| source.split("export component MetricCard").next())
-        .expect("data_display.slint must declare ActionRow before MetricCard");
+        .and_then(|source| source.split("component MetricCardTextStack").next())
+        .expect("data_display.slint must declare ActionRow before MetricCardTextStack");
     for snippet in [
-        "row-state := StateLayerArea {",
+        "interaction-enabled: root.enabled && root.action.enabled;",
+        "interaction-foreground: root.action.enabled ? root.content-foreground : MaterialPalette.on_surface_variant;",
+        "in property <string> title-override;",
+        "in property <string> detail-override;",
+        "in property <length> leading-shell-size-override: 0px;",
+        "in property <length> leading-icon-size-override: 0px;",
+        "private property <string> visible-title: root.title-override == \"\" ? root.action.title : root.title-override;",
+        "private property <string> visible-detail: root.detail-override == \"\" ? root.action.detail : root.detail-override;",
+        "private property <length> leading-shell-size:",
+        "root.leading-shell-size-override > 0px ? root.leading-shell-size-override",
+        "private property <length> leading-icon-size:",
+        "root.leading-icon-size-override > 0px ? root.leading-icon-size-override",
         "HubRowLeadingIconSlot {",
         "HubRowMainSlot {",
         "HubRowTrailingSlot {",
@@ -522,6 +580,8 @@ fn info_row_uses_shared_row_surface_and_slots() {
         "preferred-width: 0px;",
         "idle-border-width: HubTokens.border-width;",
         "idle-border: HubVisualSpec.outline-muted;",
+        "title: root.visible-title;",
+        "detail: root.visible-detail;",
     ] {
         assert!(
             action_row.contains(snippet),
@@ -529,8 +589,8 @@ fn info_row_uses_shared_row_surface_and_slots() {
         );
     }
     assert!(
-        data_display.contains("export component ActionRow inherits HubRowSurface"),
-        "ActionRow must inherit HubRowSurface instead of owning its own root surface"
+        data_display.contains("export component ActionRow inherits HubInteractiveRowSurface"),
+        "ActionRow must inherit HubInteractiveRowSurface instead of owning its own interaction layer"
     );
 }
 
@@ -551,6 +611,7 @@ fn catalog_rows_opt_into_compact_trailing_labels() {
             "content-width: root.content-width;",
             "collapse-at: HubTokens.breakpoint-medium;",
             "collapse-label: label-collapse.collapsed;",
+            "content-width: root.content-width;",
         ] {
             assert!(
                 surface.contains(snippet),
@@ -560,6 +621,13 @@ fn catalog_rows_opt_into_compact_trailing_labels() {
         assert!(
             catalog_components.contains(&format!("export component {row_component}")),
             "catalog_page_components.slint should export {row_component}"
+        );
+        assert!(
+            catalog_components
+                .contains("in property <length> content-width: HubTokens.panel-min-lg;")
+                && catalog_components.contains("root.content-width / 4")
+                && !catalog_components.contains("root.width /"),
+            "CatalogColumnRow should derive trailing/meta widths from page content-width instead of local root.width arithmetic"
         );
         assert!(
             !source.contains(&format!("component {row_component}")),
@@ -581,8 +649,8 @@ fn action_row_uses_shared_row_surface_and_slots() {
     let action_row = data_display
         .split("export component ActionRow")
         .nth(1)
-        .and_then(|source| source.split("export component MetricCard").next())
-        .expect("data_display.slint must declare ActionRow before MetricCard");
+        .and_then(|source| source.split("component MetricCardTextStack").next())
+        .expect("data_display.slint must declare ActionRow before MetricCardTextStack");
 
     for snippet in [
         "in property <bool> plain-avatar: false;",
@@ -598,14 +666,16 @@ fn action_row_uses_shared_row_surface_and_slots() {
         "row-radius: root.row-corner-radius;",
         "idle-border: HubVisualSpec.outline-muted;",
         "idle-background: root.action.enabled ? HubVisualSpec.panel-background : HubVisualSpec.panel-background.with_alpha(root.disabled-shell-opacity);",
-        "row-state := StateLayerArea {",
+        "interaction-enabled: root.enabled && root.action.enabled;",
+        "interaction-foreground: root.action.enabled ? root.content-foreground : MaterialPalette.on_surface_variant;",
+        "clicked =>",
         "HubRowLeadingIconSlot {",
         "HubRowMainSlot {",
         "HubRowTrailingSlot {",
         "alignment: stretch;",
         "preferred-width: 0px;",
-        "title: root.action.title;",
-        "detail: root.action.detail;",
+        "title: root.visible-title;",
+        "detail: root.visible-detail;",
         "shell-background: root.action-avatar-background;",
         "icon-foreground: root.action-avatar-foreground;",
         "clicked =>",
@@ -620,14 +690,15 @@ fn action_row_uses_shared_row_surface_and_slots() {
         );
     }
     assert!(
-        data_display.contains("export component ActionRow inherits HubRowSurface"),
-        "ActionRow must inherit HubRowSurface instead of owning its own root surface"
+        data_display.contains("export component ActionRow inherits HubInteractiveRowSurface"),
+        "ActionRow must inherit HubInteractiveRowSurface instead of owning its own interaction layer"
     );
 
     for forbidden in [
         "CenteredIcon",
         "ListTile {",
         "IconButton {",
+        "row-state := StateLayerArea {",
         "avatar_icon:",
         "area := TouchArea",
         "border-color: area.has-hover",
@@ -678,7 +749,7 @@ fn build_history_rows_are_shared_between_editor_and_builds() {
         "in property <int> source-build-history-count;",
         "PanelListViewport {",
         "for record in root.source-build-history: BuildHistoryRow",
-        "collapse-label: root.compact-labels;",
+        "collapse-label: workspace-split.compact-labels;",
         "if root.source-build-history-count == 0: EmptyStateBlock",
         "no-build-history-title: root.ui-text.no-build-history-short;",
         "title: root.no-build-history-title;",

@@ -124,7 +124,29 @@ fn project_roundtrip_preserves_imported_meshes() {
     let loaded = World::load_project_from_path(&path).unwrap();
     let _ = fs::remove_file(&path);
 
-    assert!(!saved.contains("selected"));
+    for forbidden in [
+        "selected",
+        "selection",
+        "selection_anchors",
+        "scene_gizmos",
+        "gizmo",
+        "overlay",
+        "active_camera_override",
+        "camera_override",
+        "preview_lighting",
+        "preview_skybox",
+        "display_mode",
+        "grid_mode",
+        "view_orientation",
+        "transform_space",
+        "SceneViewportSettings",
+        "SceneViewportTool",
+    ] {
+        assert!(
+            !saved.contains(forbidden),
+            "world project serialization must not contain editor authoring token {forbidden}"
+        );
+    }
     let imported_node = loaded.find_node(imported).unwrap();
     assert!(matches!(imported_node.kind, NodeKind::Mesh));
     assert_eq!(

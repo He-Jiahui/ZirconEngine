@@ -4,77 +4,46 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use zircon_runtime_interface::{
-    ui::{
-        accessibility::{
-            UiA11yRole, UiAccessibilityActionRequest, UiAccessibilityDiagnostic,
-            UiAccessibilityDiagnosticCode, UiAccessibilityDiagnosticSeverity, UiAccessibilityNode,
-            UiAccessibilityTreeSnapshot,
-        },
-        event_ui::{UiNodeId, UiTreeId},
-    },
+    ui::accessibility::{UiAccessibilityActionRequest, UiAccessibilityTreeSnapshot},
     ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeHostRequestBatchV1,
-    ZrRuntimeHostRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestV1,
-    ZrRuntimeImeSurroundingTextV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
-    ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1, ZR_RUNTIME_EVENT_KIND_IME_V1,
-    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-    ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
-    ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_C_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1, ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1, ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1, ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_START_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
-    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
-    ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_DISABLED_V1,
-    ZR_RUNTIME_IME_STATE_ENABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
-    ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
-    ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_TEXT_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
-    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
-    ZR_RUNTIME_WINDOW_BOOL_FALSE_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
-    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
+    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
+    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+    ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
+    ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
-    ZR_RUNTIME_WINDOW_THEME_DARK_V1, ZR_RUNTIME_WINDOW_THEME_LIGHT_V1,
 };
 
 use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::framework::input::{
-    FileDragDropEvent, GamepadAxis, GamepadButton, GamepadConnectionInfo, GamepadId,
-    GamepadRumbleRequest, ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent,
-    ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton, InputEvent, InputManager,
-    MouseScrollUnit, MouseWheelEvent, TouchPhase, WindowStatusEvent, WindowTheme,
+    FileDragDropEvent, GamepadConnectionInfo, GamepadId, ImeDeleteSurrounding, ImeEvent,
+    ImeHostRequest, ImePreedit, InputEvent, InputManager, MouseWheelEvent, WindowStatusEvent,
 };
-use crate::core::framework::render::{
-    CapturedFrame, RenderFrameExtract, RenderViewportSurfaceDescriptor,
-};
+use crate::core::framework::render::{RenderFrameExtract, RenderViewportSurfaceDescriptor};
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
@@ -91,6 +60,20 @@ use super::frame::{
 };
 use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
 use super::surface::render_surface_descriptor;
+
+mod host_requests;
+mod input_events;
+mod preview;
+mod status;
+
+pub(super) use host_requests::{runtime_gamepad_rumble_request, runtime_ime_host_request};
+use input_events::{
+    gamepad_axis, gamepad_button, ime_cursor, ime_cursor_area, ime_surrounding_text, input_button,
+    keyboard_logical_key, mouse_scroll_unit, nonzero_u16, touch_phase, window_bool,
+    window_scale_factor, window_theme,
+};
+use preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
+use status::{error_status, invalid_argument, not_found, unsupported_version};
 
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
 const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
@@ -961,252 +944,4 @@ fn with_session(
     };
     let mut session = session.lock().unwrap();
     action(&mut session)
-}
-
-pub(super) fn runtime_ime_host_request(request: ImeHostRequest) -> ZrRuntimeImeHostRequestV1 {
-    match request {
-        ImeHostRequest::Enable => ZrRuntimeImeHostRequestV1::enable(),
-        ImeHostRequest::Disable => ZrRuntimeImeHostRequestV1::disable(),
-        ImeHostRequest::SetCursorArea(area) => ZrRuntimeImeHostRequestV1::set_cursor_area(
-            ZrRuntimeImeCursorAreaV1::new(area.x, area.y, area.width, area.height),
-        ),
-        ImeHostRequest::SetSurroundingText(text) => {
-            ZrRuntimeImeHostRequestV1::set_surrounding_text(ZrRuntimeImeSurroundingTextV1::new(
-                text.value,
-                text.cursor,
-                text.anchor,
-            ))
-        }
-    }
-}
-
-pub(super) fn runtime_gamepad_rumble_request(
-    request: GamepadRumbleRequest,
-) -> ZrRuntimeGamepadRumbleRequestV1 {
-    match request {
-        GamepadRumbleRequest::Add {
-            gamepad,
-            intensity,
-            duration_millis,
-        } => {
-            let intensity = intensity.clamped();
-            ZrRuntimeGamepadRumbleRequestV1::add(
-                gamepad.0,
-                intensity.strong_motor,
-                intensity.weak_motor,
-                duration_millis,
-            )
-        }
-        GamepadRumbleRequest::Stop { gamepad } => ZrRuntimeGamepadRumbleRequestV1::stop(gamepad.0),
-    }
-}
-
-fn input_button(button: u32) -> Option<InputButton> {
-    match button {
-        ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => Some(InputButton::MouseLeft),
-        ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1 => Some(InputButton::MouseRight),
-        ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1 => Some(InputButton::MouseMiddle),
-        _ => None,
-    }
-}
-
-fn mouse_scroll_unit(unit: u32) -> Result<Option<MouseScrollUnit>, ZrStatus> {
-    match unit {
-        0 => Ok(None),
-        ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1 => Ok(Some(MouseScrollUnit::Line)),
-        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1 => Ok(Some(MouseScrollUnit::Pixel)),
-        _ => Err(invalid_argument(b"unknown runtime mouse wheel unit")),
-    }
-}
-
-fn touch_phase(phase: u32) -> Option<TouchPhase> {
-    match phase {
-        ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => Some(TouchPhase::Started),
-        ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => Some(TouchPhase::Moved),
-        ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 => Some(TouchPhase::Ended),
-        ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => Some(TouchPhase::Cancelled),
-        _ => None,
-    }
-}
-
-fn keyboard_logical_key(key_code: u32, _text: Option<&str>) -> Option<String> {
-    keyboard_button_name(key_code).map(str::to_string)
-}
-
-fn keyboard_button_name(key_code: u32) -> Option<&'static str> {
-    match key_code {
-        16 => Some("Shift"),
-        17 => Some("Control"),
-        18 => Some("Alt"),
-        _ => None,
-    }
-}
-
-fn ime_cursor(event: ZrRuntimeEventV1) -> Option<ImeCursorRange> {
-    if event.key_code == ZR_RUNTIME_IME_CURSOR_HIDDEN_V1
-        || event.scan_code == ZR_RUNTIME_IME_CURSOR_HIDDEN_V1
-    {
-        None
-    } else {
-        Some(ImeCursorRange::new(
-            event.key_code as usize,
-            event.scan_code as usize,
-        ))
-    }
-}
-
-fn ime_cursor_area(event: ZrRuntimeEventV1) -> Option<ImeCursorArea> {
-    if event.x.is_finite() && event.y.is_finite() && event.size.width > 0 && event.size.height > 0 {
-        Some(ImeCursorArea::new(
-            event.x,
-            event.y,
-            event.size.width as f32,
-            event.size.height as f32,
-        ))
-    } else {
-        None
-    }
-}
-
-fn ime_surrounding_text(
-    event: ZrRuntimeEventV1,
-    payload: &[u8],
-) -> Result<ImeSurroundingText, ZrStatus> {
-    let value = match String::from_utf8(payload.to_vec()) {
-        Ok(value) => value,
-        Err(_) => return Err(invalid_argument(b"invalid runtime ime payload")),
-    };
-    let cursor = event.key_code as usize;
-    let anchor = event.scan_code as usize;
-    if cursor > value.len()
-        || anchor > value.len()
-        || !value.is_char_boundary(cursor)
-        || !value.is_char_boundary(anchor)
-    {
-        return Err(invalid_argument(b"invalid runtime ime surrounding text"));
-    }
-    Ok(ImeSurroundingText::new(value, cursor, anchor))
-}
-
-fn window_bool(value: u32) -> Option<bool> {
-    match value {
-        ZR_RUNTIME_WINDOW_BOOL_FALSE_V1 => Some(false),
-        ZR_RUNTIME_WINDOW_BOOL_TRUE_V1 => Some(true),
-        _ => None,
-    }
-}
-
-fn window_theme(theme: u32) -> WindowTheme {
-    match theme {
-        ZR_RUNTIME_WINDOW_THEME_LIGHT_V1 => WindowTheme::Light,
-        ZR_RUNTIME_WINDOW_THEME_DARK_V1 => WindowTheme::Dark,
-        _ => WindowTheme::Unknown,
-    }
-}
-
-fn window_scale_factor(value: f32) -> Option<f32> {
-    if value.is_finite() && value > 0.0 {
-        Some(value)
-    } else {
-        None
-    }
-}
-
-fn gamepad_button(button: u32) -> GamepadButton {
-    match button {
-        ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1 => GamepadButton::South,
-        ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1 => GamepadButton::East,
-        ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1 => GamepadButton::North,
-        ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1 => GamepadButton::West,
-        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1 => GamepadButton::LeftTrigger,
-        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1 => GamepadButton::LeftTrigger2,
-        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1 => GamepadButton::RightTrigger,
-        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1 => GamepadButton::RightTrigger2,
-        ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1 => GamepadButton::Select,
-        ZR_RUNTIME_GAMEPAD_BUTTON_START_V1 => GamepadButton::Start,
-        ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1 => GamepadButton::Mode,
-        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1 => GamepadButton::LeftThumb,
-        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1 => GamepadButton::RightThumb,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1 => GamepadButton::DPadUp,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1 => GamepadButton::DPadDown,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1 => GamepadButton::DPadLeft,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1 => GamepadButton::DPadRight,
-        ZR_RUNTIME_GAMEPAD_BUTTON_C_V1
-        | ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1
-        | ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1 => GamepadButton::Other(button as u16),
-        _ => GamepadButton::Other(button as u16),
-    }
-}
-
-fn gamepad_axis(axis: u32) -> GamepadAxis {
-    match axis {
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1 => GamepadAxis::LeftStickX,
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1 => GamepadAxis::LeftStickY,
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1 => GamepadAxis::LeftZ,
-        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1 => GamepadAxis::RightStickX,
-        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1 => GamepadAxis::RightStickY,
-        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1 => GamepadAxis::RightZ,
-        ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1 => GamepadAxis::DPadX,
-        ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1 => GamepadAxis::DPadY,
-        ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1 => GamepadAxis::Other(axis as u16),
-        _ => GamepadAxis::Other(axis as u16),
-    }
-}
-
-fn nonzero_u16(value: u32) -> Option<u16> {
-    u16::try_from(value).ok().filter(|value| *value != 0)
-}
-
-fn empty_captured_frame(size: UVec2) -> CapturedFrame {
-    let width = size.x.max(1);
-    let height = size.y.max(1);
-    let rgba = vec![0; width as usize * height as usize * 4];
-    CapturedFrame::new(width, height, rgba, 0)
-}
-
-fn dynamic_preview_accessibility_snapshot() -> UiAccessibilityTreeSnapshot {
-    let root = UiNodeId::new(1);
-    UiAccessibilityTreeSnapshot {
-        tree_id: UiTreeId::new("zircon-runtime-dynamic-preview"),
-        roots: vec![root],
-        nodes: vec![UiAccessibilityNode {
-            node_id: root,
-            role: UiA11yRole::Panel,
-            name: Some("Zircon Runtime Preview".to_string()),
-            ..UiAccessibilityNode::default()
-        }],
-        focused: None,
-        diagnostics: vec![UiAccessibilityDiagnostic {
-            severity: UiAccessibilityDiagnosticSeverity::Info,
-            code: UiAccessibilityDiagnosticCode::MissingBounds,
-            node_id: Some(root),
-            message: "runtime UI surface accessibility extraction unavailable in dynamic preview"
-                .to_string(),
-        }],
-    }
-}
-
-fn unsupported_version() -> ZrStatus {
-    ZrStatus::new(
-        ZrStatusCode::UnsupportedVersion,
-        ZrByteSlice::from_static(b"unsupported runtime ABI version"),
-    )
-}
-
-fn invalid_argument(message: &'static [u8]) -> ZrStatus {
-    ZrStatus::new(
-        ZrStatusCode::InvalidArgument,
-        ZrByteSlice::from_static(message),
-    )
-}
-
-fn not_found(message: &'static [u8]) -> ZrStatus {
-    ZrStatus::new(ZrStatusCode::NotFound, ZrByteSlice::from_static(message))
-}
-
-fn error_status(_message: impl Into<String>) -> ZrStatus {
-    ZrStatus::new(
-        ZrStatusCode::Error,
-        ZrByteSlice::from_static(b"runtime dynamic API error"),
-    )
 }

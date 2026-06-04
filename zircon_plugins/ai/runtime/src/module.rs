@@ -1,0 +1,70 @@
+use std::sync::Arc;
+
+use zircon_runtime::core::manager::AiManagerHandle;
+use zircon_runtime::core::{
+    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
+};
+use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+
+use crate::DefaultAiManager;
+
+pub const AI_MODULE_NAME: &str = "AiModule";
+pub const AI_DRIVER_NAME: &str = "AiModule.Driver.AiDriver";
+pub(crate) const DEFAULT_AI_MANAGER_NAME: &str = "AiModule.Manager.DefaultAiManager";
+pub const AI_MANAGER_NAME: &str = zircon_runtime::core::manager::AI_MANAGER_NAME;
+
+#[derive(Clone, Debug, Default)]
+pub struct AiDriver;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct AiModule;
+
+pub fn module_descriptor() -> ModuleDescriptor {
+    ModuleDescriptor::new(
+        AI_MODULE_NAME,
+        "Behavior tree, blackboard, perception, and agent tick runtime contracts",
+    )
+    .with_driver(DriverDescriptor::new(
+        qualified_name(AI_MODULE_NAME, ServiceKind::Driver, "AiDriver"),
+        StartupMode::Immediate,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(AiDriver) as ServiceObject)),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(AI_MODULE_NAME, ServiceKind::Manager, "DefaultAiManager"),
+        StartupMode::Lazy,
+        vec![dependency_on(
+            AI_MODULE_NAME,
+            ServiceKind::Driver,
+            "AiDriver",
+        )],
+        factory(|_| Ok(Arc::new(DefaultAiManager::default()) as ServiceObject)),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(AI_MODULE_NAME, ServiceKind::Manager, "AiManager"),
+        StartupMode::Lazy,
+        vec![dependency_on(
+            AI_MODULE_NAME,
+            ServiceKind::Manager,
+            "DefaultAiManager",
+        )],
+        factory(|core| {
+            let manager = core.resolve_manager::<DefaultAiManager>(DEFAULT_AI_MANAGER_NAME)?;
+            Ok(Arc::new(AiManagerHandle::new(manager)) as ServiceObject)
+        }),
+    ))
+}
+
+impl EngineModule for AiModule {
+    fn module_name(&self) -> &'static str {
+        AI_MODULE_NAME
+    }
+
+    fn module_description(&self) -> &'static str {
+        "Behavior tree, blackboard, perception, and agent tick runtime contracts"
+    }
+
+    fn descriptor(&self) -> ModuleDescriptor {
+        module_descriptor()
+    }
+}

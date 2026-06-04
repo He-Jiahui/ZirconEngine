@@ -10,8 +10,10 @@ use zircon_runtime::{
 use zircon_runtime_interface::{
     math::Vec2,
     ui::{
+        dispatch::UiPointerEvent,
         event_ui::{UiNodeId, UiNodePath, UiTreeId},
         layout::{UiFrame, UiPoint},
+        surface::UiPointerEventKind,
         tree::{UiInputPolicy, UiTreeNode},
     },
 };
@@ -25,7 +27,7 @@ use super::{
     },
     overlay_router::ViewportOverlayPointerRouter,
     precision::{PrecisionCandidate, PrecisionShape, SharedResolutionState},
-    runtime_picking_adapter::resolve_runtime_route,
+    runtime_picking_adapter::{resolve_runtime_route, runtime_pointer_input_for_event},
     viewport_pointer_route::ViewportPointerRoute,
 };
 
@@ -164,6 +166,15 @@ fn overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input
             unit: PointerScrollUnit::Pixel,
             delta: Vec2::new(0.0, -8.0),
         }
+    );
+}
+
+#[test]
+fn runtime_pointer_adapter_maps_cancel_to_runtime_pointer_action() {
+    let cancel_event = UiPointerEvent::new(UiPointerEventKind::Cancel, UiPoint::new(50.0, 50.0));
+    assert_eq!(
+        runtime_pointer_input_for_event(&cancel_event).action,
+        PointerAction::Cancel
     );
 }
 

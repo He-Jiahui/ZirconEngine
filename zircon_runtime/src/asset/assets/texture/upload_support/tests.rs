@@ -31,7 +31,7 @@ fn ktx2_upload_plan_rejects_level_payload_inside_level_index() {
 }
 
 #[test]
-fn rgba8_upload_readiness_rejects_layered_shapes_before_byte_length_check() {
+fn rgba8_upload_readiness_accepts_layered_shapes_with_complete_payloads() {
     let mut array_descriptor = TextureAssetDescriptor::rgba8_srgb();
     array_descriptor.depth_or_array_layers = 2;
     array_descriptor.array_layer_count = 2;
@@ -41,12 +41,26 @@ fn rgba8_upload_readiness_rejects_layered_shapes_before_byte_length_check() {
         2,
         vec![0_u8; 2 * 2 * 2 * 4],
     )
-    .with_descriptor(array_descriptor);
+    .with_descriptor(array_descriptor.clone());
     assert_eq!(
         array_texture
             .upload_readiness(TextureUploadSupport::uncompressed_only())
+            .is_ready(),
+        true
+    );
+
+    let truncated_array = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/truncated-array.png").unwrap(),
+        2,
+        2,
+        vec![0_u8; 2 * 2 * 4],
+    )
+    .with_descriptor(array_descriptor);
+    assert_eq!(
+        truncated_array
+            .upload_readiness(TextureUploadSupport::uncompressed_only())
             .unsupported_reason(),
-        Some("rgba8 texture array/cubemap upload is not implemented")
+        Some("rgba8 texture payload length 16 does not match expected 32")
     );
 
     let mut volume_descriptor = TextureAssetDescriptor::rgba8_srgb();
@@ -66,21 +80,77 @@ fn rgba8_upload_readiness_rejects_layered_shapes_before_byte_length_check() {
             .unsupported_reason(),
         Some("rgba8 texture 3d upload is not implemented")
     );
+}
 
-    let mut mip_descriptor = TextureAssetDescriptor::rgba8_srgb();
-    mip_descriptor.mip_count = 2;
-    let mip_texture = TextureAsset::new_rgba8(
+#[test]
+fn rgba8_upload_readiness_accepts_complete_mip_chain_payloads() {
+    let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
+    descriptor.mip_count = 3;
+    let texture = TextureAsset::new_rgba8(
         AssetUri::parse("res://textures/mips.png").unwrap(),
-        2,
-        2,
-        vec![0_u8; 2 * 2 * 4],
+        4,
+        4,
+        vec![0_u8; (4 * 4 + 2 * 2 + 1) * 4],
     )
-    .with_descriptor(mip_descriptor);
+    .with_descriptor(descriptor);
+
+    let super::TextureUploadReadiness::Ready { plan } =
+        texture.upload_readiness(TextureUploadSupport::uncompressed_only())
+    else {
+        panic!("complete rgba8 mip-chain should be upload-ready");
+    };
+
+    assert_eq!(plan.format, RGBA8_UNORM_SRGB_FORMAT);
+    assert_eq!(plan.data_offset, 0);
+    assert_eq!(plan.data_length, Some((4 * 4 + 2 * 2 + 1) * 4));
+    assert_eq!(plan.block_width, 1);
+    assert_eq!(plan.block_height, 1);
+}
+
+#[test]
+fn rgba8_upload_readiness_accepts_complete_layered_mip_chain_payloads() {
+    let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
+    descriptor.mip_count = 2;
+    descriptor.depth_or_array_layers = 2;
+    descriptor.array_layer_count = 2;
+    let texture = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/array-mips.png").unwrap(),
+        4,
+        4,
+        vec![0_u8; ((4 * 4 * 2) + (2 * 2 * 2)) * 4],
+    )
+    .with_descriptor(descriptor);
+
+    let super::TextureUploadReadiness::Ready { plan } =
+        texture.upload_readiness(TextureUploadSupport::uncompressed_only())
+    else {
+        panic!("complete rgba8 layered mip-chain should be upload-ready");
+    };
+
+    assert_eq!(plan.format, RGBA8_UNORM_SRGB_FORMAT);
+    assert_eq!(plan.data_offset, 0);
+    assert_eq!(plan.data_length, Some(((4 * 4 * 2) + (2 * 2 * 2)) * 4));
+    assert_eq!(plan.block_width, 1);
+    assert_eq!(plan.block_height, 1);
+}
+
+#[test]
+fn rgba8_upload_readiness_rejects_incomplete_mip_chain_payloads() {
+    let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
+    descriptor.mip_count = 3;
+    let texture = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/truncated-mips.png").unwrap(),
+        4,
+        4,
+        vec![0_u8; 4 * 4 * 4],
+    )
+    .with_descriptor(descriptor);
+
     assert_eq!(
-        mip_texture
+        texture
             .upload_readiness(TextureUploadSupport::uncompressed_only())
             .unsupported_reason(),
-        Some("rgba8 texture mip-chain upload is not implemented")
+        Some("rgba8 texture payload length 64 does not match expected 84")
     );
 }
 

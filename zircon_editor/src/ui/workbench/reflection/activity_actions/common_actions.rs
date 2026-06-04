@@ -5,13 +5,17 @@ use zircon_runtime_interface::ui::{
 
 pub(super) fn common_tab_actions() -> Vec<UiActionDescriptor> {
     vec![
-        UiActionDescriptor::new("focus_view", UiEventKind::Click, "DockCommand.FocusView")
-            .with_parameter(UiParameterDescriptor::new(
-                "instance_id",
-                UiValueType::String,
-            )),
         UiActionDescriptor::new(
-            "detach_to_window",
+            "workbench.view.focus",
+            UiEventKind::Click,
+            "DockCommand.FocusView",
+        )
+        .with_parameter(UiParameterDescriptor::new(
+            "instance_id",
+            UiValueType::String,
+        )),
+        UiActionDescriptor::new(
+            "workbench.view.detach_to_window",
             UiEventKind::Click,
             "DockCommand.DetachViewToWindow",
         )

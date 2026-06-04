@@ -114,6 +114,7 @@ fn inspector_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
             performance_timeline: Default::default(),
             module_plugins: Default::default(),
             build_export: Default::default(),
+            generated_bottom: Default::default(),
             ui_asset: Default::default(),
             animation: Default::default(),
         },

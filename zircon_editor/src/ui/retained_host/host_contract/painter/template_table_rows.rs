@@ -3,7 +3,7 @@ use super::super::template_component_family::{
     is_any_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
 use super::render_commands::HostPaintCommand;
-use super::template_style::resolved_style_color;
+use super::style_selector::{select_workbench_table_row_style, WorkbenchTableRowStyle};
 use super::theme::PALETTE;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -13,14 +13,6 @@ const TABLE_CELL_INSET_Y: f32 = 4.0;
 const TABLE_ACTION_WIDTH: f32 = 24.0;
 const TABLE_ROW_RADIUS: f32 = 3.0;
 const TABLE_COLUMN_RATIOS: [f32; 4] = [0.36, 0.27, 0.19, 0.18];
-const TABLE_ROW_BG: [u8; 4] = [13, 17, 20, 255];
-const TABLE_HEADER_BG: [u8; 4] = [12, 16, 19, 255];
-const TABLE_TAIL_BG: [u8; 4] = [14, 18, 21, 255];
-const TABLE_SELECTED_BG: [u8; 4] = [13, 65, 73, 255];
-const TABLE_HOVER_BG: [u8; 4] = [24, 44, 50, 255];
-const TABLE_SEPARATOR: [u8; 4] = [28, 36, 41, 255];
-const TABLE_ACTION_MUTED: [u8; 4] = [116, 130, 137, 255];
-const TABLE_HEADER_TEXT: [u8; 4] = [170, 181, 186, 255];
 
 pub(super) fn push_table_row_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -80,8 +72,8 @@ fn push_table_row_surface(
         Some(clip.clone()),
         order,
         Some(table_row_background(node)),
-        None,
-        0.0,
+        table_row_border(node),
+        table_row_border_width(node),
         TABLE_ROW_RADIUS,
         opacity,
     ));
@@ -95,25 +87,12 @@ fn push_table_row_surface(
         },
         Some(clip.clone()),
         order + 1,
-        Some(TABLE_SEPARATOR),
+        Some(table_row_style(node).separator),
         None,
         0.0,
         0.0,
         opacity,
     ));
-
-    if node.focused || node.pressed {
-        commands.push(HostPaintCommand::quad(
-            rect.clone(),
-            Some(clip.clone()),
-            order + 2,
-            None,
-            Some(PALETTE.focus_ring),
-            1.0,
-            TABLE_ROW_RADIUS,
-            opacity,
-        ));
-    }
 }
 
 fn table_paint_rect(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRect {
@@ -165,10 +144,11 @@ fn push_table_action(
         width: 14.0,
         height: 14.0,
     };
+    let action_color = table_row_style(node).action;
     if is_table_header(node) {
-        push_table_gear(commands, &action_rect, clip, order, opacity);
+        push_table_gear(commands, &action_rect, clip, order, action_color, opacity);
     } else {
-        push_table_kebab(commands, &action_rect, clip, order, opacity);
+        push_table_kebab(commands, &action_rect, clip, order, action_color, opacity);
     }
 }
 
@@ -264,60 +244,23 @@ fn table_cell_offset_x(node: &TemplatePaneNodeData, index: usize) -> f32 {
 }
 
 fn table_cell_color(node: &TemplatePaneNodeData, index: usize) -> [u8; 4] {
-    if node.disabled {
-        return PALETTE.text_disabled;
-    }
-    if is_table_header(node) {
-        return TABLE_HEADER_TEXT;
-    }
-    if is_table_tail(node) && index == 3 {
-        return declared_value_color(node).unwrap_or([170, 181, 186, 255]);
-    }
-    if index >= 2 {
-        return PALETTE.text_muted;
-    }
-    PALETTE.text
-}
-
-fn declared_value_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    if node.value_color.a == 0 {
-        return None;
-    }
-    Some([
-        node.value_color.r,
-        node.value_color.g,
-        node.value_color.b,
-        node.value_color.a,
-    ])
+    table_row_style(node).text_for_cell(index)
 }
 
 fn table_row_background(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        return PALETTE.surface_disabled;
-    }
-    if node.selected || node.checked {
-        return declared_background_color(node).unwrap_or(TABLE_SELECTED_BG);
-    }
-    if node.pressed {
-        return PALETTE.surface_pressed;
-    }
-    if node.hovered || node.focused {
-        return TABLE_HOVER_BG;
-    }
-    if is_table_header(node) {
-        return TABLE_HEADER_BG;
-    }
-    resolved_style_color(node.button_style.element.background_color.as_ref()).unwrap_or_else(|| {
-        if is_table_tail(node) {
-            TABLE_TAIL_BG
-        } else {
-            TABLE_ROW_BG
-        }
-    })
+    table_row_style(node).background
 }
 
-fn declared_background_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    resolved_style_color(node.button_style.element.background_color.as_ref())
+fn table_row_border(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+    table_row_style(node).border
+}
+
+fn table_row_border_width(node: &TemplatePaneNodeData) -> f32 {
+    table_row_style(node).border_width
+}
+
+fn table_row_style(node: &TemplatePaneNodeData) -> WorkbenchTableRowStyle {
+    select_workbench_table_row_style(node)
 }
 
 fn is_table_header(node: &TemplatePaneNodeData) -> bool {
@@ -358,6 +301,7 @@ fn push_table_kebab(
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
+    color: [u8; 4],
     opacity: f32,
 ) {
     for y in [3.0, 6.0, 9.0] {
@@ -370,7 +314,7 @@ fn push_table_kebab(
             },
             Some(clip.clone()),
             order,
-            Some(TABLE_ACTION_MUTED),
+            Some(color),
             None,
             0.0,
             1.0,
@@ -384,9 +328,9 @@ fn push_table_gear(
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
+    color: [u8; 4],
     opacity: f32,
 ) {
-    let color = TABLE_ACTION_MUTED;
     for segment in [
         FrameRect {
             x: rect.x + 4.0,
@@ -434,9 +378,17 @@ fn push_table_gear(
 
 #[cfg(test)]
 mod tests {
+    use super::super::style_selector::{
+        WORKBENCH_TABLE_HEADER_BG as TABLE_HEADER_BG,
+        WORKBENCH_TABLE_HEADER_TEXT as TABLE_HEADER_TEXT,
+        WORKBENCH_TABLE_HOVER_BG as TABLE_HOVER_BG, WORKBENCH_TABLE_ROW_BG as TABLE_ROW_BG,
+        WORKBENCH_TABLE_SELECTED_BG as TABLE_SELECTED_BG,
+        WORKBENCH_TABLE_SEPARATOR as TABLE_SEPARATOR, WORKBENCH_TABLE_TAIL_BG as TABLE_TAIL_BG,
+    };
     use super::*;
     use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::primitives::SharedString;
+    use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
     #[test]
     fn table_cells_prefer_declared_options_over_legacy_text() {
@@ -532,6 +484,33 @@ mod tests {
         assert_eq!(cell_rect.y, 11.0);
         assert_eq!(node.frame.x, 4.0);
         assert_eq!(node.frame.y, 4.0);
+    }
+
+    #[test]
+    fn workbench_table_row_style_uses_shared_state_priority() {
+        let mut node = table_node("WorkbenchTableRowRoot", false);
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+
+        let pressed = table_row_style(&node);
+        assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+        assert_eq!(pressed.background, PALETTE.surface_pressed);
+        assert_eq!(pressed.border, Some(PALETTE.focus_ring));
+        assert_eq!(pressed.text_for_cell(0), PALETTE.text);
+
+        node.pressed = false;
+        let focused = table_row_style(&node);
+        assert_eq!(focused.state, UiPainterResolvedState::Focused);
+        assert_eq!(focused.background, TABLE_HOVER_BG);
+        assert_eq!(focused.border, Some(PALETTE.focus_ring));
+
+        node.disabled = true;
+        let disabled = table_row_style(&node);
+        assert_eq!(disabled.state, UiPainterResolvedState::Disabled);
+        assert_eq!(disabled.background, PALETTE.surface_disabled);
+        assert_eq!(disabled.border, None);
+        assert_eq!(disabled.text_for_cell(0), PALETTE.text_disabled);
     }
 
     #[test]

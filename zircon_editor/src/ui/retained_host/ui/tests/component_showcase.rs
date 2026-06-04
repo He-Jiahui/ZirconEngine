@@ -23,6 +23,31 @@ fn component_showcase_contract_source() -> String {
     .join("\n")
 }
 
+fn expected_showcase_action_id(suffix: &str, action_suffix: &str) -> String {
+    format!(
+        "ui_component_showcase.{}",
+        camel_to_snake(&format!("{suffix}{action_suffix}"))
+    )
+}
+
+fn camel_to_snake(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
+}
+
 fn default_component_showcase_nodes_for_size(
     width: f32,
     height: f32,
@@ -127,8 +152,8 @@ fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
         "RangeFieldDemo",
         "ColorFieldDemo",
         "Vector3FieldDemo",
-        "UiComponentShowcase/NumberFieldDragUpdate",
-        "UiComponentShowcase/InputFieldChanged",
+        "ui_component_showcase.number_field_drag_update",
+        "ui_component_showcase.input_field_changed",
     ] {
         assert!(
             showcase_asset.contains(required),
@@ -218,27 +243,27 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(number.dispatch_kind.as_str(), "showcase");
     assert_eq!(
         number.action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragUpdate"
+        "ui_component_showcase.number_field_drag_update"
     );
     assert_eq!(
         number.drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragUpdate"
+        "ui_component_showcase.number_field_drag_update"
     );
     assert_eq!(
         number.begin_drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragBegin"
+        "ui_component_showcase.number_field_drag_begin"
     );
     assert_eq!(
         number.end_drag_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldDragEnd"
+        "ui_component_showcase.number_field_drag_end"
     );
     assert_eq!(
         number.edit_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldChanged"
+        "ui_component_showcase.number_field_changed"
     );
     assert_eq!(
         number.commit_action_id.as_str(),
-        "UiComponentShowcase/NumberFieldCommitted"
+        "ui_component_showcase.number_field_committed"
     );
 
     let input = nodes
@@ -247,11 +272,11 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .expect("component showcase pane should expose InputFieldDemo");
     assert_eq!(
         input.edit_action_id.as_str(),
-        "UiComponentShowcase/InputFieldChanged"
+        "ui_component_showcase.input_field_changed"
     );
     assert_eq!(
         input.commit_action_id.as_str(),
-        "UiComponentShowcase/InputFieldCommitted"
+        "ui_component_showcase.input_field_committed"
     );
 
     let text = nodes
@@ -260,7 +285,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .expect("component showcase pane should expose TextFieldDemo");
     assert_eq!(
         text.commit_action_id.as_str(),
-        "UiComponentShowcase/TextFieldCommitted"
+        "ui_component_showcase.text_field_committed"
     );
 
     let range = nodes
@@ -271,15 +296,15 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(range.value_percent, 0.68);
     assert_eq!(
         range.drag_action_id.as_str(),
-        "UiComponentShowcase/RangeFieldDragUpdate"
+        "ui_component_showcase.range_field_drag_update"
     );
     assert_eq!(
         range.edit_action_id.as_str(),
-        "UiComponentShowcase/RangeFieldChanged"
+        "ui_component_showcase.range_field_changed"
     );
     assert_eq!(
         range.commit_action_id.as_str(),
-        "UiComponentShowcase/RangeFieldCommitted"
+        "ui_component_showcase.range_field_committed"
     );
 
     let dropdown = nodes
@@ -328,7 +353,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert!(!combo_box.popup_open);
     assert_eq!(
         combo_box.action_id.as_str(),
-        "UiComponentShowcase/ComboBoxOpenPopup"
+        "ui_component_showcase.combo_box_open_popup"
     );
     assert_eq!(combo_box.options_text.as_str(), "material, fluent, native");
     assert_eq!(combo_box.options.row_count(), 3);
@@ -341,7 +366,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(search_select.search_query.as_str(), "number");
     assert_eq!(
         search_select.edit_action_id.as_str(),
-        "UiComponentShowcase/SearchSelectQueryChanged"
+        "ui_component_showcase.search_select_query_changed"
     );
     assert_eq!(search_select.options.row_count(), 3);
     assert_eq!(search_select.structured_options.row_count(), 3);
@@ -404,7 +429,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     );
     assert_eq!(
         color.action_id.as_str(),
-        "UiComponentShowcase/ColorFieldChanged"
+        "ui_component_showcase.color_field_changed"
     );
 
     let image = nodes
@@ -451,7 +476,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(vector2.vector_components.row_data(1), Some(24.0));
     assert_eq!(
         vector2.action_id.as_str(),
-        "UiComponentShowcase/Vector2FieldChanged"
+        "ui_component_showcase.vector2_field_changed"
     );
 
     let vector3 = nodes
@@ -464,7 +489,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(vector3.vector_components.row_data(2), Some(0.0));
     assert_eq!(
         vector3.action_id.as_str(),
-        "UiComponentShowcase/Vector3FieldChanged"
+        "ui_component_showcase.vector3_field_changed"
     );
 
     let vector4 = nodes
@@ -475,7 +500,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(vector4.vector_components.row_data(3), Some(1.0));
     assert_eq!(
         vector4.action_id.as_str(),
-        "UiComponentShowcase/Vector4FieldChanged"
+        "ui_component_showcase.vector4_field_changed"
     );
 
     let inspector_section = nodes
@@ -489,7 +514,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert!(inspector_section.expanded);
     assert_eq!(
         inspector_section.action_id.as_str(),
-        "UiComponentShowcase/InspectorSectionToggled"
+        "ui_component_showcase.inspector_section_toggled"
     );
 
     let asset = nodes
@@ -529,7 +554,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
                 .actions
                 .row_data(index)
                 .unwrap_or_else(|| panic!("{control_id} should expose action {label}"));
-            let expected_action_id = format!("UiComponentShowcase/{suffix}{action_suffix}");
+            let expected_action_id = expected_showcase_action_id(suffix, action_suffix);
             assert_eq!(action.label.as_str(), label);
             assert_eq!(action.action_id.as_str(), expected_action_id.as_str());
         }
@@ -554,16 +579,16 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(array_item.validation_message.as_str(), "");
     assert_eq!(
         array_item.edit_action_id.as_str(),
-        "UiComponentShowcase/ArrayFieldSetElement"
+        "ui_component_showcase.array_field_set_element"
     );
     assert_eq!(
         array_item.remove_action_id.as_str(),
-        "UiComponentShowcase/ArrayFieldRemoveElement"
+        "ui_component_showcase.array_field_remove_element"
     );
     assert_eq!(array_item.move_up_action_id.as_str(), "");
     assert_eq!(
         array_item.move_down_action_id.as_str(),
-        "UiComponentShowcase/ArrayFieldMoveElement"
+        "ui_component_showcase.array_field_move_element"
     );
     assert_eq!(array_item.move_down_payload.as_str(), "array-0=1");
     assert!(!array_item.empty);
@@ -588,15 +613,15 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     assert_eq!(map_item.validation_message.as_str(), "");
     assert_eq!(
         map_item.edit_action_id.as_str(),
-        "UiComponentShowcase/MapFieldSetEntry"
+        "ui_component_showcase.map_field_set_entry"
     );
     assert_eq!(
         map_item.key_edit_action_id.as_str(),
-        "UiComponentShowcase/MapFieldSetEntry"
+        "ui_component_showcase.map_field_set_entry"
     );
     assert_eq!(
         map_item.remove_action_id.as_str(),
-        "UiComponentShowcase/MapFieldRemoveEntry"
+        "ui_component_showcase.map_field_remove_entry"
     );
     assert_eq!(map_item.move_up_action_id.as_str(), "");
     assert_eq!(map_item.move_down_action_id.as_str(), "");
@@ -638,7 +663,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .structured_menu_items
         .row_data(0)
         .expect("ContextActionMenu should expose checked menu row");
-    assert_eq!(checked_item.action_id.as_str(), "Inspect");
+    assert_eq!(checked_item.action_id.as_str(), "menu.item.inspect");
     assert_eq!(checked_item.label.as_str(), "Inspect");
     assert_eq!(checked_item.shortcut.as_str(), "Ctrl+I");
     assert!(checked_item.checked);
@@ -656,7 +681,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .structured_menu_items
         .row_data(2)
         .expect("ContextActionMenu should expose pressed menu row");
-    assert_eq!(pressed_item.action_id.as_str(), "Duplicate");
+    assert_eq!(pressed_item.action_id.as_str(), "menu.item.duplicate");
     assert_eq!(pressed_item.label.as_str(), "Duplicate");
     assert!(pressed_item.hovered);
     assert!(pressed_item.pressed);
@@ -665,7 +690,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .structured_menu_items
         .row_data(3)
         .expect("ContextActionMenu should expose disabled menu row");
-    assert_eq!(disabled_item.action_id.as_str(), "Delete");
+    assert_eq!(disabled_item.action_id.as_str(), "menu.item.delete");
     assert_eq!(disabled_item.label.as_str(), "Delete");
     assert_eq!(disabled_item.shortcut.as_str(), "Del");
     assert!(disabled_item.disabled);
@@ -816,7 +841,7 @@ fn component_showcase_pane_uses_supplied_runtime_demo_state() {
     assert!(combo_box.popup_open);
     assert_eq!(
         combo_box.action_id.as_str(),
-        "UiComponentShowcase/ComboBoxChanged"
+        "ui_component_showcase.combo_box_changed"
     );
 
     let asset = nodes

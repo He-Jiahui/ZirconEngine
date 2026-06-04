@@ -107,10 +107,15 @@ fn rgba8_upload_readiness(texture: &TextureAsset) -> TextureUploadReadiness {
     if let Some(reason) = unsupported_rgba8_shape_reason(texture) {
         return unsupported(reason);
     }
-    let Some(expected_len) = rgba8_len(texture.width, texture.height) else {
+    let descriptor = texture.render_image_descriptor();
+    let Some(expected_len) = rgba8_mip_chain_len(
+        texture.width,
+        texture.height,
+        descriptor.mip_count.max(1),
+        texture_descriptor_layer_count(texture),
+    ) else {
         return unsupported("rgba8 texture extent is too large to upload");
     };
-    let descriptor = texture.render_image_descriptor();
     let Some(format) = rgba8_upload_format(&descriptor.format) else {
         return unsupported(format!(
             "rgba8 texture descriptor format {} requires conversion before upload",
@@ -153,14 +158,6 @@ fn unsupported_rgba8_shape_reason(texture: &TextureAsset) -> Option<String> {
     }
     if descriptor.dimension == RenderImageDimension::D3 {
         return Some("rgba8 texture 3d upload is not implemented".to_string());
-    }
-    if descriptor.mip_count > 1 {
-        return Some("rgba8 texture mip-chain upload is not implemented".to_string());
-    }
-    if descriptor.dimension == RenderImageDimension::D2
-        && (descriptor.array_layer_count > 1 || descriptor.depth_or_array_layers > 1)
-    {
-        return Some("rgba8 texture array/cubemap upload is not implemented".to_string());
     }
     None
 }
@@ -223,6 +220,28 @@ fn rgba8_len(width: u32, height: u32) -> Option<usize> {
         .checked_mul(height)?
         .checked_mul(4)
         .and_then(|bytes| usize::try_from(bytes).ok())
+}
+
+fn rgba8_mip_chain_len(width: u32, height: u32, mip_count: u32, layer_count: u32) -> Option<usize> {
+    let mut total = 0_usize;
+    for level in 0..mip_count {
+        let level_len = rgba8_len(mip_extent(width, level), mip_extent(height, level))?;
+        total = total.checked_add(level_len.checked_mul(layer_count as usize)?)?;
+    }
+    Some(total)
+}
+
+const fn mip_extent(value: u32, level: u32) -> u32 {
+    let shifted = if level >= u32::BITS {
+        0
+    } else {
+        value >> level
+    };
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 fn ready(plan: TextureUploadPlan) -> TextureUploadReadiness {

@@ -4,8 +4,16 @@ import {
     RecentProjectRowData,
     UiTextData,
 } from "shared.slint";
-import { HubIconButton } from "button_components.slint";
 import {
+    HubPanelNavigationCommand,
+} from "button_components.slint";
+import { HubViewToggleGroup } from "icon_button_components.slint";
+import {
+    HubButtonStateIconSample,
+    HubButtonStateTextSample,
+} from "button_state_sample_components.slint";
+import {
+    ActionRow,
     DataTable,
     EmptyStateBlock,
     Flow,
@@ -20,124 +28,29 @@ import {
     MaterialTypography,
     ResponsiveSlot,
     SearchBox,
-    StateLayerArea,
 } from "components.slint";
 import {
     ProjectFilterSelect,
     ProjectSortSelect,
 } from "project_page_components.slint";
 
-export component DashboardQuickActionRow inherits Rectangle {
+export component DashboardQuickActionRow inherits ActionRow {
     in property <QuickActionData> quick-action-data;
-    in property <length> row-height: HubTokens.list-row-sm - MaterialStyleMetrics.size_4;
     callback triggered(string);
 
     private property <string> visual-detail: root.quick-action-data.id == "build-project" ? "Build your project for development or release" : (root.quick-action-data.id == "install-device" ? "Deploy your project to a connected device" : (root.quick-action-data.id == "package-project" ? "Create a distributable package" : (root.quick-action-data.id == "open-editor" ? "Launch the editor with a project" : root.quick-action-data.detail)));
-    private property <length> icon-size: MaterialStyleMetrics.size_24;
-    private property <length> trailing-size: HubTokens.icon-lg;
 
-    horizontal-stretch: 1;
-    height: root.row-height;
-    min-width: 1px;
-    preferred-width: 0px;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: HubTokens.border-width;
-    border-color: HubVisualSpec.outline-muted;
-    background: root.quick-action-data.enabled ? HubVisualSpec.panel-background : HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);
-    opacity: root.quick-action-data.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
+    action: root.quick-action-data;
+    detail-override: root.visual-detail;
+    compact-shell: true;
+    plain-avatar: true;
+    plain-trailing: true;
+    leading-shell-size-override: MaterialStyleMetrics.size_24;
+    leading-icon-size-override: MaterialStyleMetrics.size_24;
 
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: MaterialPalette.on_surface;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            if (root.quick-action-data.enabled) {
-                root.triggered(root.quick-action-data.id);
-            }
-        }
+    activate(id) => {
+        root.triggered(id);
     }
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: HubTokens.space-4;
-        padding-right: HubTokens.space-3;
-        spacing: HubTokens.space-3;
-        alignment: start;
-
-        Rectangle {
-            width: root.icon-size;
-            height: parent.height;
-
-            Image {
-                width: root.icon-size;
-                height: root.icon-size;
-                y: (parent.height - self.height) / 2;
-                source: root.quick-action-data.has-icon-image ? root.quick-action-data.icon-image : @image-url("../assets/icons/ui/alert.svg");
-                colorize: MaterialPalette.on_surface;
-            }
-        }
-
-        VerticalLayout {
-            horizontal-stretch: 1;
-            min-width: 1px;
-            height: parent.height;
-            padding-top: MaterialStyleMetrics.spacing_6;
-            padding-bottom: MaterialStyleMetrics.spacing_6;
-            spacing: 0px;
-
-            MaterialText {
-                horizontal-stretch: 1;
-                height: MaterialStyleMetrics.size_20;
-                text: root.quick-action-data.title;
-                overflow: elide;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.label_large;
-                vertical_alignment: center;
-            }
-
-            MaterialText {
-                horizontal-stretch: 1;
-                height: MaterialStyleMetrics.size_20;
-                text: root.visual-detail;
-                overflow: elide;
-                color: MaterialPalette.on_surface_variant;
-                style: MaterialTypography.body_small;
-                vertical_alignment: center;
-            }
-        }
-
-        Rectangle {
-            width: root.trailing-size;
-            height: parent.height;
-
-            Image {
-                width: HubTokens.icon-xs;
-                height: HubTokens.icon-xs;
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
-                source: @image-url("../assets/icons/ui/chevron-right.svg");
-                colorize: MaterialPalette.on_surface;
-            }
-        }
-    }
-}
-
-component DashboardViewToggleButton inherits HubIconButton {
-    button-width: MaterialStyleMetrics.size_48;
-    button-height: HubTokens.control-lg;
-    button-radius: HubVisualSpec.compact-radius;
-    icon-size: HubTokens.icon-sm;
-    has-icon-image: true;
-    active-background: HubVisualSpec.view-toggle-active-fill;
-    idle-background: HubVisualSpec.panel-background;
-    active-border: HubVisualSpec.view-toggle-active-stroke;
-    idle-border: HubVisualSpec.outline-muted;
-    active-foreground: HubVisualSpec.view-toggle-active-foreground;
-    idle-foreground: HubVisualSpec.view-toggle-idle-foreground;
-    state-layer-color: root.active ? HubVisualSpec.view-toggle-active-stroke : MaterialPalette.on_surface;
 }
 
 export component DashboardToolbar inherits Flow {
@@ -245,37 +158,27 @@ export component DashboardToolbar inherits Flow {
     }
 
     Rectangle {
-        width: root.view-toggle-width;
+        width: root.view-toggle-width * 2 + root.toolbar-gap;
         height: root.toolbar-height;
         background: transparent;
 
-        DashboardViewToggleButton {
+        HubViewToggleGroup {
             width: parent.width;
             height: root.compact-control-height;
             y: (parent.height - self.height) / 2;
-            icon-image: @image-url("../assets/icons/ui/grid.svg");
-            active: root.project-view-mode == "grid";
-            clicked => {
-                root.set-project-view-mode("grid");
-                root.show-project-subpage("dashboard");
-            }
-        }
-    }
-
-    Rectangle {
-        width: root.view-toggle-width;
-        height: root.toolbar-height;
-        background: transparent;
-
-        DashboardViewToggleButton {
-            width: parent.width;
-            height: root.compact-control-height;
-            y: (parent.height - self.height) / 2;
-            icon-image: @image-url("../assets/icons/ui/list.svg");
-            active: root.project-view-mode == "list";
-            clicked => {
-                root.set-project-view-mode("list");
-                root.show-project-subpage("project-browser");
+            group-height: root.compact-control-height;
+            button-width: root.view-toggle-width;
+            group-spacing: root.toolbar-gap;
+            selected-mode: root.project-view-mode;
+            selected(mode) => {
+                if mode == "grid" {
+                    root.set-project-view-mode("grid");
+                    root.show-project-subpage("dashboard");
+                }
+                if mode == "list" {
+                    root.set-project-view-mode("list");
+                    root.show-project-subpage("project-browser");
+                }
             }
         }
     }
@@ -341,54 +244,10 @@ export component DashboardRecentProjectsPanel inherits HubTableView {
         open(path) => { root.open(path); }
     }
 
-    Rectangle {
-        width: HubTokens.control-md * 5;
-        height: HubTokens.control-md;
-        border-radius: HubVisualSpec.compact-radius;
-        border-width: HubTokens.border-width;
-        border-color: HubVisualSpec.outline-muted;
-        background: HubVisualSpec.panel-background;
-        clip: true;
-
-        StateLayerArea {
-            width: parent.width;
-            height: parent.height;
-            color: MaterialPalette.on_surface;
-            border_radius: HubVisualSpec.compact-radius;
-            clicked => { root.view-all(); }
-        }
-
-        HorizontalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding-left: HubTokens.space-3;
-            padding-right: HubTokens.space-3;
-            spacing: HubTokens.space-2;
-            alignment: center;
-
-            Image {
-                width: HubTokens.icon-sm;
-                height: HubTokens.icon-sm;
-                source: @image-url("../assets/icons/nav/projects.svg");
-                colorize: MaterialPalette.on_surface;
-            }
-
-            MaterialText {
-                horizontal-stretch: 1;
-                text: root.action-text;
-                overflow: elide;
-                style: MaterialTypography.label_medium;
-                color: MaterialPalette.on_surface;
-                vertical_alignment: center;
-            }
-
-            Image {
-                width: HubTokens.icon-xs;
-                height: HubTokens.icon-xs;
-                source: @image-url("../assets/icons/ui/chevron-right.svg");
-                colorize: MaterialPalette.on_surface;
-            }
-        }
+    HubPanelNavigationCommand {
+        text: root.action-text;
+        source-image: @image-url("../assets/icons/nav/projects.svg");
+        clicked => { root.view-all(); }
     }
 }
 
@@ -429,93 +288,21 @@ export component DashboardQuickActionsPanel inherits HubListPanelSlot {
     }
 }
 
-component DashboardStateButton inherits Rectangle {
-    in property <string> text;
-    in property <bool> primary: false;
-    in property <bool> active: false;
-    in property <bool> pressed: false;
-    in property <bool> enabled: true;
+component DashboardButtonStatesTitle inherits MaterialText {
+    in property <string> title: "Button States";
 
-    width: root.text == "Pressed" || root.text == "Disabled" ? HubTokens.control-lg * 2 + HubTokens.space-3 : HubTokens.control-lg * 2;
-    height: HubTokens.control-lg;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.primary ? 0px : HubTokens.border-width;
-    border-color: root.enabled ? HubVisualSpec.outline-muted : MaterialPalette.outline_variant;
-    background: root.primary ? (
-        !root.enabled ? HubVisualSpec.button-state-primary-disabled-background : (
-            root.pressed ? HubVisualSpec.button-state-primary-pressed-background : (
-                root.active ? HubVisualSpec.button-state-primary-hover-background : HubVisualSpec.button-state-primary-default-background
-            )
-        )
-    ) : (
-        !root.enabled ? HubVisualSpec.button-state-secondary-disabled-background : (
-            root.pressed ? HubVisualSpec.button-state-secondary-pressed-background : (
-                root.active ? HubVisualSpec.button-state-secondary-hover-background : HubVisualSpec.button-state-secondary-default-background
-            )
-        )
-    );
-    opacity: root.enabled ? 1.0 : 0.54;
-    clip: true;
-
-    MaterialText {
-        width: parent.width;
-        height: parent.height;
-        text: root.text;
-        overflow: elide;
-        horizontal_alignment: center;
-        vertical_alignment: center;
-        style: MaterialTypography.label_medium;
-        color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
-    }
+    height: HubTokens.control-md / 2;
+    horizontal-stretch: 1;
+    text: root.title;
+    overflow: elide;
+    style: MaterialTypography.title_medium;
+    color: MaterialPalette.on_surface;
 }
 
-component DashboardTertiaryState inherits Rectangle {
-    in property <string> text;
-    in property <bool> active: false;
-    in property <bool> enabled: true;
+component DashboardButtonStatesSectionLabel inherits MutedText {
+    in property <string> label;
 
-    width: HubTokens.control-lg * 3 / 2;
-    height: HubTokens.control-lg;
-    opacity: root.enabled ? 1.0 : 0.45;
-
-    MaterialText {
-        width: parent.width;
-        height: parent.height;
-        text: root.text;
-        overflow: elide;
-        horizontal_alignment: center;
-        vertical_alignment: center;
-        style: MaterialTypography.label_medium;
-        color: root.enabled ? (root.active ? HubVisualSpec.accent-stroke : MaterialPalette.primary) : MaterialPalette.on_surface_variant;
-    }
-}
-
-component DashboardStateIcon inherits Rectangle {
-    in property <bool> primary: false;
-    in property <bool> active: false;
-    in property <bool> enabled: true;
-
-    width: HubTokens.control-lg + HubTokens.border-width * 2;
-    height: HubTokens.control-lg;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.primary ? 0px : HubTokens.border-width;
-    border-color: root.enabled ? HubVisualSpec.outline-muted : MaterialPalette.outline_variant;
-    background: !root.enabled ? HubVisualSpec.button-state-icon-disabled-background : (
-        root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background : (
-            root.primary ? HubVisualSpec.button-state-icon-primary-background : (
-            root.active ? HubVisualSpec.button-state-icon-hover-background : HubVisualSpec.panel-background
-            )
-        )
-    );
-    opacity: root.enabled ? 1.0 : 0.54;
-    clip: true;
-
-    Image {
-        width: HubTokens.icon-sm;
-        height: HubTokens.icon-sm;
-        source: @image-url("../assets/icons/ui/plus.svg");
-        colorize: root.primary || root.active ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
-    }
+    text: root.label;
 }
 
 export component DashboardButtonStatesStrip inherits HubPanel {
@@ -540,14 +327,7 @@ export component DashboardButtonStatesStrip inherits HubPanel {
         padding-bottom: HubTokens.space-3;
         spacing: HubTokens.space-1;
 
-        MaterialText {
-            height: HubTokens.control-md / 2;
-            horizontal-stretch: 1;
-            text: "Button States";
-            overflow: elide;
-            style: MaterialTypography.title_medium;
-            color: MaterialPalette.on_surface;
-        }
+        DashboardButtonStatesTitle { title: "Button States"; }
 
         HorizontalLayout {
             horizontal-stretch: 1;
@@ -559,15 +339,15 @@ export component DashboardButtonStatesStrip inherits HubPanel {
                 min-width: root.text-button-section-width;
                 spacing: HubTokens.space-2;
 
-                MutedText { text: "Primary"; }
+                DashboardButtonStatesSectionLabel { label: "Primary"; }
 
                 HorizontalLayout {
                     height: HubTokens.control-lg;
                     spacing: root.text-button-gap;
-                    DashboardStateButton { text: "Default"; primary: true; }
-                    DashboardStateButton { text: "Hover"; primary: true; active: true; }
-                    DashboardStateButton { text: "Pressed"; primary: true; pressed: true; }
-                    DashboardStateButton { text: "Disabled"; primary: true; enabled: false; }
+                    HubButtonStateTextSample { text: "Default"; variant: "primary"; }
+                    HubButtonStateTextSample { text: "Hover"; variant: "primary"; active: true; }
+                    HubButtonStateTextSample { text: "Pressed"; variant: "primary"; pressed: true; }
+                    HubButtonStateTextSample { text: "Disabled"; variant: "primary"; enabled: false; }
                 }
             }
 
@@ -581,15 +361,15 @@ export component DashboardButtonStatesStrip inherits HubPanel {
                 min-width: root.secondary-section-width;
                 spacing: HubTokens.space-2;
 
-                MutedText { text: "Secondary"; }
+                DashboardButtonStatesSectionLabel { label: "Secondary"; }
 
                 HorizontalLayout {
                     height: HubTokens.control-lg;
                     spacing: root.text-button-gap;
-                    DashboardStateButton { text: "Default"; }
-                    DashboardStateButton { text: "Hover"; active: true; }
-                    DashboardStateButton { text: "Pressed"; pressed: true; }
-                    DashboardStateButton { text: "Disabled"; enabled: false; }
+                    HubButtonStateTextSample { text: "Default"; variant: "secondary"; }
+                    HubButtonStateTextSample { text: "Hover"; variant: "secondary"; active: true; }
+                    HubButtonStateTextSample { text: "Pressed"; variant: "secondary"; pressed: true; }
+                    HubButtonStateTextSample { text: "Disabled"; variant: "secondary"; enabled: false; }
                 }
             }
 
@@ -603,15 +383,15 @@ export component DashboardButtonStatesStrip inherits HubPanel {
                 min-width: root.tertiary-section-width;
                 spacing: HubTokens.space-2;
 
-                MutedText { text: "Tertiary"; }
+                DashboardButtonStatesSectionLabel { label: "Tertiary"; }
 
                 HorizontalLayout {
                     height: HubTokens.control-lg;
                     spacing: HubTokens.space-3;
-                    DashboardTertiaryState { text: "Default"; }
-                    DashboardTertiaryState { text: "Hover"; active: true; }
-                    DashboardTertiaryState { text: "Pressed"; active: true; }
-                    DashboardTertiaryState { text: "Disabled"; enabled: false; }
+                    HubButtonStateTextSample { text: "Default"; variant: "tertiary"; }
+                    HubButtonStateTextSample { text: "Hover"; variant: "tertiary"; active: true; }
+                    HubButtonStateTextSample { text: "Pressed"; variant: "tertiary"; active: true; }
+                    HubButtonStateTextSample { text: "Disabled"; variant: "tertiary"; enabled: false; }
                 }
             }
 
@@ -625,15 +405,15 @@ export component DashboardButtonStatesStrip inherits HubPanel {
                 min-width: root.icon-section-width;
                 spacing: HubTokens.space-2;
 
-                MutedText { text: "Icon"; }
+                DashboardButtonStatesSectionLabel { label: "Icon"; }
 
                 HorizontalLayout {
                     height: HubTokens.control-lg;
                     spacing: HubTokens.space-3;
-                    DashboardStateIcon { primary: true; }
-                    DashboardStateIcon { primary: true; active: true; }
-                    DashboardStateIcon { active: true; }
-                    DashboardStateIcon { enabled: false; }
+                    HubButtonStateIconSample { primary: true; }
+                    HubButtonStateIconSample { primary: true; active: true; }
+                    HubButtonStateIconSample { active: true; }
+                    HubButtonStateIconSample { enabled: false; }
                 }
             }
         }

@@ -13,6 +13,8 @@ members = [
     "asset_importers/audio/runtime",
     "asset_importers/shader/runtime",
     "asset_importers/data/runtime",
+    "first_party_runtime_catalog",
+    "ai/runtime",
     "physics/runtime",
     "physics/editor",
     "sound/runtime",

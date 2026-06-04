@@ -11,6 +11,7 @@ impl DeferredSceneResources {
         scene_bind_group: &wgpu::BindGroup,
         gbuffer_albedo_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
+        gbuffer_material_view: &wgpu::TextureView,
         background_view: &wgpu::TextureView,
         scene_color_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
@@ -30,6 +31,10 @@ impl DeferredSceneResources {
                 wgpu::BindGroupEntry {
                     binding: 2,
                     resource: wgpu::BindingResource::TextureView(background_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(gbuffer_material_view),
                 },
             ],
         });

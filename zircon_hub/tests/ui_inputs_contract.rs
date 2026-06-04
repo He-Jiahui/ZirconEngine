@@ -22,24 +22,29 @@ fn read_ui_file(name: &str) -> String {
 fn shared_hub_buttons_are_backed_by_material_button_primitives() {
     let shared = read_ui_file("shared.slint");
     let button_components = read_ui_file("button_components.slint");
+    let icon_button_components = read_ui_file("icon_button_components.slint");
+    let button_state_samples = read_ui_file("button_state_sample_components.slint");
     let components = read_ui_file("components.slint");
+    let project_dashboard = read_ui_file("project_dashboard_components.slint");
     for snippet in [
         "FilledButton,",
-        "FilledIconButton,",
         "IconButton as MaterialIconButton,",
-        "OutlineIconButton,",
+        "OutlineButton,",
         "TonalButton,",
         "StateLayerArea,",
         "export component PillButton",
         "FilledButton {",
         "TonalButton {",
         "export component HubCommandButton",
+        "export component HubHeaderCommandGroup",
+        "export component HubPanelNavigationCommand",
         "export component HubActionCommandButton",
         "export component HubActionStack",
-        "export component IconButton",
-        "FilledIconButton {",
-        "OutlineIconButton {",
-        "export component HubIconButton",
+        "export component HubFormActionRow",
+        "export component HubDisclosureButton",
+        "export component HubPanelHeaderActionButton",
+        "export component HubUserMenuTriggerButton",
+        "export component HubSidebarCollapseButton",
         "if root.focused: Rectangle",
         "export component WindowButton",
         "MaterialIconButton {",
@@ -49,48 +54,246 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
             "button_components.slint must keep Hub button APIs backed by Material button primitives; missing {snippet}"
         );
     }
+    for snippet in [
+        "FilledIconButton,",
+        "OutlineIconButton,",
+        "StateLayerArea,",
+        "export component IconButton",
+        "FilledIconButton {",
+        "OutlineIconButton {",
+        "export component HubIconButton",
+        "export component HubTopbarIconButton",
+        "export component HubBackButton",
+        "export component HubFlowNextButton",
+        "export component HubRowActionButton",
+        "export component HubViewToggleButton",
+        "export component HubViewToggleGroup",
+        "export component HubFloatingIconButton",
+        "export component HubMoreMenuButton",
+    ] {
+        assert!(
+            icon_button_components.contains(snippet),
+            "icon_button_components.slint must own Hub icon-button APIs backed by Material icon-button primitives; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "import { HubIconButton } from \"icon_button_components.slint\";",
+        "export component HubButtonStateTextSample",
+        "export component HubButtonStateIconSample",
+        "HubButtonStateTextSampleLabel",
+    ] {
+        assert!(
+            button_state_samples.contains(snippet),
+            "button_state_sample_components.slint must own reference button-state samples after the button module split; missing {snippet}"
+        );
+    }
     for removed_snippet in [
         "export component PillButton",
         "export component HubCommandButton",
+        "export component HubHeaderCommandGroup",
+        "export component HubPanelNavigationCommand",
         "export component HubActionCommandButton",
         "export component HubActionStack",
+        "export component HubFormActionRow",
+        "export component HubDisclosureButton",
         "export component IconButton",
         "export component HubIconButton",
+        "export component HubTopbarIconButton",
+        "export component HubBackButton",
+        "export component HubFlowNextButton",
+        "export component HubRowActionButton",
+        "export component HubPanelHeaderActionButton",
+        "export component HubUserMenuTriggerButton",
+        "export component HubSidebarCollapseButton",
+        "export component HubViewToggleButton",
+        "export component HubViewToggleGroup",
+        "export component HubButtonStateTextSample",
+        "export component HubButtonStateIconSample",
         "export component WindowButton",
+        "export component HubMoreMenuButton",
     ] {
         assert!(
             !shared.contains(removed_snippet),
-            "shared.slint should not retain button-family component ownership after extraction to button_components.slint: {removed_snippet}"
+            "shared.slint should not retain button-family component ownership after extraction to focused button modules: {removed_snippet}"
+        );
+    }
+    for removed_snippet in [
+        "component HubButtonStateTextSampleLabel",
+        "export component HubButtonStateTextSample",
+        "export component HubButtonStateIconSample",
+    ] {
+        assert!(
+            !button_components.contains(removed_snippet),
+            "button_components.slint should not retain reference button-state sample ownership after extraction to button_state_sample_components.slint: {removed_snippet}"
+        );
+    }
+    for removed_snippet in [
+        "export component IconButton",
+        "export component HubIconButton",
+        "export component HubTopbarIconButton",
+        "export component HubBackButton",
+        "export component HubFlowNextButton",
+        "export component HubRowActionButton",
+        "export component HubViewToggleButton",
+        "export component HubViewToggleGroup",
+        "export component HubFloatingIconButton",
+        "export component HubMoreMenuButton",
+    ] {
+        assert!(
+            !button_components.contains(removed_snippet),
+            "button_components.slint should not retain icon-button ownership after extraction to icon_button_components.slint: {removed_snippet}"
         );
     }
 
     let pill_start = button_components
         .find("export component PillButton")
         .expect("button_components.slint must declare PillButton");
-    let icon_start = button_components
+    let icon_start = icon_button_components
         .find("export component IconButton")
-        .expect("button_components.slint must declare IconButton");
+        .expect("icon_button_components.slint must declare IconButton");
     let command_start = button_components
         .find("export component HubCommandButton")
-        .expect("button_components.slint must declare HubCommandButton before IconButton");
+        .expect("button_components.slint must declare HubCommandButton");
+    let command_label_start = button_components
+        .find("component HubCommandButtonLabel")
+        .expect(
+            "button_components.slint must declare HubCommandButtonLabel before HubCommandButton",
+        );
     let action_start = button_components
         .find("export component HubActionCommandButton")
         .expect("button_components.slint must declare HubActionCommandButton before IconButton");
+    let header_group_start = button_components
+        .find("export component HubHeaderCommandGroup")
+        .expect("button_components.slint must declare HubHeaderCommandGroup before HubActionCommandButton");
+    let panel_navigation_start = button_components
+        .find("export component HubPanelNavigationCommand")
+        .expect("button_components.slint must declare HubPanelNavigationCommand before HubActionCommandButton");
     let stack_start = button_components
         .find("export component HubActionStack")
         .expect("button_components.slint must declare HubActionStack before IconButton");
-    let hub_icon_start = button_components
+    let form_action_start = button_components
+        .find("export component HubFormActionRow")
+        .expect("button_components.slint must declare HubFormActionRow before IconButton");
+    let disclosure_start = button_components
+        .find("export component HubDisclosureButton")
+        .expect("button_components.slint must declare HubDisclosureButton");
+    let hub_icon_start = icon_button_components
         .find("export component HubIconButton")
-        .expect("button_components.slint must declare HubIconButton after IconButton");
+        .expect("icon_button_components.slint must declare HubIconButton after IconButton");
+    let topbar_icon_start = icon_button_components
+        .find("export component HubTopbarIconButton")
+        .expect(
+            "icon_button_components.slint must declare HubTopbarIconButton after HubIconButton",
+        );
+    let view_toggle_start = icon_button_components
+        .find("export component HubViewToggleButton")
+        .expect(
+            "icon_button_components.slint must declare HubViewToggleButton after HubIconButton",
+        );
+    let back_button_start = icon_button_components
+        .find("export component HubBackButton")
+        .expect(
+            "icon_button_components.slint must declare HubBackButton before HubViewToggleButton",
+        );
+    let flow_next_start = icon_button_components
+        .find("export component HubFlowNextButton")
+        .expect(
+            "icon_button_components.slint must declare HubFlowNextButton before HubViewToggleButton",
+        );
+    let row_action_start = icon_button_components
+        .find("export component HubRowActionButton")
+        .expect(
+            "icon_button_components.slint must declare HubRowActionButton before HubViewToggleButton",
+        );
+    let sidebar_collapse_start = button_components
+        .find("export component HubSidebarCollapseButton")
+        .expect(
+            "button_components.slint must declare HubSidebarCollapseButton before HubViewToggleButton",
+        );
+    let sidebar_collapse_label_start = button_components
+        .find("component HubSidebarCollapseButtonLabel")
+        .expect(
+            "button_components.slint must declare HubSidebarCollapseButtonLabel before HubSidebarCollapseButton",
+        );
+    let panel_header_action_start = button_components
+        .find("export component HubPanelHeaderActionButton")
+        .expect(
+            "button_components.slint must declare HubPanelHeaderActionButton before HubSidebarCollapseButton",
+        );
+    let user_menu_trigger_start = button_components
+        .find("export component HubUserMenuTriggerButton")
+        .expect(
+            "button_components.slint must declare HubUserMenuTriggerButton before HubSidebarCollapseButton",
+        );
+    let user_menu_avatar_start = button_components
+        .find("component HubUserMenuAvatarMark")
+        .expect(
+            "button_components.slint must declare HubUserMenuAvatarMark before HubUserMenuTriggerButton",
+        );
+    let user_menu_name_start = button_components
+        .find("component HubUserMenuNameText")
+        .expect(
+        "button_components.slint must declare HubUserMenuNameText before HubUserMenuTriggerButton",
+    );
+    let view_toggle_group_start = icon_button_components
+        .find("export component HubViewToggleGroup")
+        .expect(
+            "icon_button_components.slint must declare HubViewToggleGroup after HubViewToggleButton",
+        );
+    let floating_icon_start = icon_button_components
+        .find("export component HubFloatingIconButton")
+        .expect(
+            "icon_button_components.slint must declare HubFloatingIconButton after HubViewToggleGroup",
+        );
+    let more_menu_start = icon_button_components
+        .find("export component HubMoreMenuButton")
+        .expect(
+            "icon_button_components.slint must declare HubMoreMenuButton after HubFloatingIconButton",
+        );
+    let button_state_text_start = button_state_samples
+        .find("export component HubButtonStateTextSample")
+        .expect("button_state_sample_components.slint must declare HubButtonStateTextSample");
+    let button_state_text_label_start = button_state_samples
+        .find("component HubButtonStateTextSampleLabel")
+        .expect(
+            "button_state_sample_components.slint must declare HubButtonStateTextSampleLabel before HubButtonStateTextSample",
+        );
+    let button_state_icon_start = button_state_samples
+        .find("export component HubButtonStateIconSample")
+        .expect("button_state_sample_components.slint must declare HubButtonStateIconSample after HubButtonStateTextSample");
     let window_start = button_components
         .find("export component WindowButton")
         .expect("button_components.slint must declare WindowButton");
-    let pill_button = &button_components[pill_start..command_start];
-    let command_button = &button_components[command_start..action_start];
+    let pill_button = &button_components[pill_start..command_label_start];
+    let command_button_label = &button_components[command_label_start..command_start];
+    let command_button = &button_components[command_start..header_group_start];
+    let header_command_group = &button_components[header_group_start..panel_navigation_start];
+    let panel_navigation_command = &button_components[panel_navigation_start..action_start];
     let action_button = &button_components[action_start..stack_start];
-    let action_stack = &button_components[stack_start..icon_start];
-    let icon_button = &button_components[icon_start..hub_icon_start];
-    let hub_icon_button = &button_components[hub_icon_start..window_start];
+    let action_stack = &button_components[stack_start..form_action_start];
+    let form_action_row = &button_components[form_action_start..disclosure_start];
+    let disclosure_button = &button_components[disclosure_start..panel_header_action_start];
+    let icon_button = &icon_button_components[icon_start..hub_icon_start];
+    let hub_icon_button = &icon_button_components[hub_icon_start..topbar_icon_start];
+    let topbar_icon_button = &icon_button_components[topbar_icon_start..back_button_start];
+    let back_button = &icon_button_components[back_button_start..flow_next_start];
+    let flow_next_button = &icon_button_components[flow_next_start..row_action_start];
+    let row_action_button = &icon_button_components[row_action_start..view_toggle_start];
+    let panel_header_action_button =
+        &button_components[panel_header_action_start..user_menu_avatar_start];
+    let user_menu_avatar_mark = &button_components[user_menu_avatar_start..user_menu_name_start];
+    let user_menu_name_text = &button_components[user_menu_name_start..user_menu_trigger_start];
+    let user_menu_trigger_button =
+        &button_components[user_menu_trigger_start..sidebar_collapse_label_start];
+    let sidebar_collapse_label =
+        &button_components[sidebar_collapse_label_start..sidebar_collapse_start];
+    let sidebar_collapse_button = &button_components[sidebar_collapse_start..window_start];
+    let view_toggle_button = &icon_button_components[view_toggle_start..view_toggle_group_start];
+    let view_toggle_group = &icon_button_components[view_toggle_group_start..floating_icon_start];
+    let button_state_text_label =
+        &button_state_samples[button_state_text_label_start..button_state_text_start];
+    let button_state_text = &button_state_samples[button_state_text_start..button_state_icon_start];
+    let button_state_icon = &button_state_samples[button_state_icon_start..];
     for snippet in [
         "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
         "height: MaterialStyleMetrics.size_40;",
@@ -141,26 +344,49 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "PillButton and IconButton should delegate pointer behavior to Material buttons instead of hand-rolled TouchArea layers"
     );
     for snippet in [
+        "component HubCommandButtonLabel inherits MaterialText",
+        "in property <string> value;",
+        "in property <bool> primary: false;",
+        "horizontal-stretch: root.primary ? 0 : 1;",
+        "text: root.value;",
+        "color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;",
+        "style: MaterialTypography.label_medium;",
+        "overflow: elide;",
+        "vertical_alignment: center;",
+    ] {
+        assert!(
+            command_button_label.contains(snippet),
+            "HubCommandButtonLabel must own command-button label typography; missing {snippet}"
+        );
+    }
+    for snippet in [
         "export component HubCommandButton inherits Rectangle",
         "in property <length> button-width: root.primary ? HubTokens.control-lg * 4 + HubTokens.space-7 + HubTokens.space-1 : HubTokens.control-lg * 4 + HubTokens.space-1;",
         "in property <length> button-height: HubTokens.control-lg;",
+        "in property <image> trailing-icon-image: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "in property <bool> show-trailing-icon: false;",
         "private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;",
         "private property <color> primary-command-stroke: HubVisualSpec.command-primary-stroke;",
+        "private property <bool> reserve-trailing-lane: root.with-menu || root.show-trailing-icon;",
         "border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;",
         "border-color: root.focused ? HubVisualSpec.focus-ring-color : (root.primary ? root.primary-command-stroke : HubVisualSpec.outline-muted);",
         "background: root.primary ? root.primary-command-fill : HubVisualSpec.panel-background;",
         "StateLayerArea {",
         "color: root.primary ? root.primary-command-stroke : MaterialPalette.on_surface;",
         "HorizontalLayout {",
-        "width: root.with-menu ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;",
+        "width: root.reserve-trailing-lane ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;",
         "padding-left: root.primary ? HubTokens.space-6 + MaterialStyleMetrics.size_4 : HubTokens.space-4;",
         "CenteredIcon {",
         "source-image: root.source-image;",
-        "MaterialText {",
+        "HubCommandButtonLabel {",
+        "value: root.text;",
+        "primary: root.primary;",
         "if root.with-menu: Rectangle",
         "background: root.primary-command-stroke.with_alpha(0.22);",
         "if root.with-menu: Image",
         "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
+        "if root.show-trailing-icon && !root.with-menu: Image",
+        "source: root.trailing-icon-image;",
     ] {
         assert!(
             command_button.contains(snippet),
@@ -171,9 +397,86 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         !command_button.contains("TouchArea"),
         "HubCommandButton should use Material StateLayerArea instead of direct TouchArea handling"
     );
+    for forbidden in [
+        "MaterialText {",
+        "text: root.text;",
+        "style: MaterialTypography.label_medium;",
+        "color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;",
+    ] {
+        assert!(
+            !command_button.contains(forbidden),
+            "HubCommandButton should not own direct visible label text after helper extraction: {forbidden}"
+        );
+    }
+    for snippet in [
+        "export component HubHeaderCommandGroup inherits HorizontalLayout",
+        "in property <string> secondary-text;",
+        "in property <image> secondary-image: @image-url(\"../assets/icons/ui/plus.svg\");",
+        "in property <string> primary-text;",
+        "in property <image> primary-image: @image-url(\"../assets/icons/ui/plus.svg\");",
+        "in property <bool> primary-with-menu: false;",
+        "in property <length> action-height: HubTokens.control-lg;",
+        "in property <length> action-gap: HubTokens.toolbar-gap;",
+        "callback secondary-clicked();",
+        "callback primary-clicked();",
+        "height: root.action-height;",
+        "spacing: root.action-gap;",
+        "alignment: center;",
+        "HubCommandButton {",
+        "height: root.action-height;",
+        "button-height: root.action-height;",
+        "text: root.secondary-text;",
+        "source-image: root.secondary-image;",
+        "clicked => { root.secondary-clicked(); }",
+        "text: root.primary-text;",
+        "source-image: root.primary-image;",
+        "primary: true;",
+        "with-menu: root.primary-with-menu;",
+        "clicked => { root.primary-clicked(); }",
+    ] {
+        assert!(
+            header_command_group.contains(snippet),
+            "HubHeaderCommandGroup must centralize two-button page-header command composition over HubCommandButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !header_command_group.contains("TouchArea")
+            && !header_command_group.contains("StateLayerArea {"),
+        "HubHeaderCommandGroup should delegate pointer behavior through HubCommandButton"
+    );
+    for snippet in [
+        "export component HubPanelNavigationCommand inherits Rectangle",
+        "in property <string> text;",
+        "in property <image> source-image: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "in property <length> button-width: HubTokens.control-md * 5;",
+        "in property <length> button-height: HubTokens.control-md;",
+        "in property <bool> enabled: true;",
+        "callback clicked();",
+        "height: root.button-height;",
+        "vertical-stretch: 0;",
+        "HubCommandButton {",
+        "button-width: root.button-width;",
+        "button-height: root.button-height;",
+        "text: root.text;",
+        "source-image: root.source-image;",
+        "has-source-image: true;",
+        "show-trailing-icon: true;",
+        "enabled: root.enabled;",
+        "clicked => { root.clicked(); }",
+    ] {
+        assert!(
+            panel_navigation_command.contains(snippet),
+            "HubPanelNavigationCommand must centralize compact panel navigation command buttons over HubCommandButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !panel_navigation_command.contains("TouchArea")
+            && !panel_navigation_command.contains("StateLayerArea {"),
+        "HubPanelNavigationCommand should delegate pointer behavior through HubCommandButton"
+    );
     for snippet in [
         "export component HubActionCommandButton inherits Rectangle",
-        "in property <length> action-height: HubTokens.control-md;",
+        "in property <length> action-height: MaterialStyleMetrics.size_40;",
         "horizontal-stretch: 1;",
         "min-width: 1px;",
         "preferred-width: 0px;",
@@ -215,6 +518,68 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "HubActionStack should own only stack layout and leave row interaction to child actions"
     );
     for snippet in [
+        "export component HubFormActionRow inherits Rectangle",
+        "in property <length> row-height: HubTokens.control-lg;",
+        "in property <length> row-spacing: HubTokens.toolbar-gap;",
+        "in property <length> action-width: MaterialStyleMetrics.size_40 * 4;",
+        "in property <length> action-height: MaterialStyleMetrics.size_40;",
+        "in property <string> action-label;",
+        "in property <image> action-icon: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "in property <bool> action-enabled: true;",
+        "callback action-clicked();",
+        "horizontal-stretch: 1;",
+        "preferred-width: 0px;",
+        "height: root.row-height;",
+        "HorizontalLayout {",
+        "alignment: center;",
+        "spacing: root.row-spacing;",
+        "Rectangle { horizontal-stretch: 1; }",
+        "PillButton {",
+        "width: root.action-width;",
+        "height: root.action-height;",
+        "text: root.action-label;",
+        "icon-image: root.action-icon;",
+        "enabled: root.action-enabled;",
+        "clicked => { root.action-clicked(); }",
+    ] {
+        assert!(
+            form_action_row.contains(snippet),
+            "HubFormActionRow must centralize right-aligned primary form actions over PillButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !form_action_row.contains("TouchArea") && !form_action_row.contains("StateLayerArea {"),
+        "HubFormActionRow should delegate pointer behavior through PillButton"
+    );
+    for snippet in [
+        "export component HubDisclosureButton inherits Rectangle",
+        "in property <bool> expanded: false;",
+        "in property <string> expanded-label;",
+        "in property <string> collapsed-label;",
+        "in property <length> button-height: HubTokens.control-md;",
+        "in property <bool> enabled: true;",
+        "callback toggled(bool);",
+        "horizontal-stretch: 1;",
+        "preferred-width: 0px;",
+        "height: root.button-height;",
+        "PillButton {",
+        "width: parent.width;",
+        "height: parent.height;",
+        "text: root.expanded ? root.expanded-label : root.collapsed-label;",
+        "icon-image: root.expanded ? @image-url(\"../assets/icons/ui/chevron-down.svg\") : @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "enabled: root.enabled;",
+        "clicked => { root.toggled(!root.expanded); }",
+    ] {
+        assert!(
+            disclosure_button.contains(snippet),
+            "HubDisclosureButton must centralize Material-backed expand/collapse text button behavior over PillButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !disclosure_button.contains("TouchArea") && !disclosure_button.contains("StateLayerArea {"),
+        "HubDisclosureButton should delegate pointer behavior through PillButton"
+    );
+    for snippet in [
         "export component HubIconButton inherits Rectangle",
         "in property <length> button-width: MaterialStyleMetrics.size_40;",
         "in property <length> button-height: root.button-width;",
@@ -246,7 +611,383 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "HubIconButton should use Material StateLayerArea instead of direct TouchArea handling"
     );
     for snippet in [
-        "export { PillButton, HubCommandButton, HubActionCommandButton, HubActionStack, IconButton, HubIconButton, WindowButton, HubFloatingIconButton } from \"button_components.slint\";",
+        "export component HubTopbarIconButton inherits HubIconButton",
+        "in property <length> button-size: HubTokens.control-md;",
+        "button-width: root.button-size;",
+        "button-height: root.button-size;",
+        "button-border-width: 0px;",
+        "idle-background: transparent;",
+        "idle-border: transparent;",
+        "idle-foreground: HubVisualSpec.topbar-icon-foreground;",
+        "state-layer-color: HubVisualSpec.topbar-icon-foreground;",
+        "disabled-opacity: 0.58;",
+        "icon-size: HubTokens.icon-md;",
+        "has-icon-image: true;",
+    ] {
+        assert!(
+            topbar_icon_button.contains(snippet),
+            "HubTopbarIconButton must centralize transparent topbar icon-button chrome over HubIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !topbar_icon_button.contains("TouchArea") && !topbar_icon_button.contains("StateLayerArea {"),
+        "HubTopbarIconButton should inherit HubIconButton interaction instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "export component HubBackButton inherits HubIconButton",
+        "in property <length> button-size: MaterialStyleMetrics.size_40;",
+        "button-width: root.button-size;",
+        "button-height: root.button-size;",
+        "icon-image: @image-url(\"../assets/icons/ui/chevron-left.svg\");",
+        "has-icon-image: true;",
+    ] {
+        assert!(
+            back_button.contains(snippet),
+            "HubBackButton must centralize secondary-page back icon-button chrome over HubIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !back_button.contains("TouchArea") && !back_button.contains("StateLayerArea {"),
+        "HubBackButton should inherit HubIconButton interaction instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "export component HubFlowNextButton inherits HubIconButton",
+        "in property <length> button-size: MaterialStyleMetrics.size_48;",
+        "button-width: root.button-size;",
+        "button-height: root.button-size;",
+        "button-radius: root.button-size / 2;",
+        "icon-size: HubTokens.icon-sm;",
+        "icon-image: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "has-icon-image: true;",
+        "active: false;",
+        "idle-background: HubVisualSpec.panel-background;",
+        "idle-border: HubVisualSpec.outline-muted;",
+        "idle-foreground: MaterialPalette.on_surface;",
+        "state-layer-color: MaterialPalette.on_surface;",
+    ] {
+        assert!(
+            flow_next_button.contains(snippet),
+            "HubFlowNextButton must centralize collapsed project-flow next icon-button chrome over HubIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !flow_next_button.contains("TouchArea") && !flow_next_button.contains("StateLayerArea {"),
+        "HubFlowNextButton should inherit HubIconButton interaction instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "export component HubRowActionButton inherits HubIconButton",
+        "in property <length> button-size: HubTokens.control-md;",
+        "in property <bool> framed: true;",
+        "button-width: root.button-size;",
+        "button-height: root.button-size;",
+        "button-radius: root.button-size / 2;",
+        "button-border-width: root.framed ? HubTokens.border-width : 0px;",
+        "icon-size: HubTokens.icon-md;",
+        "icon-image: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "has-icon-image: true;",
+        "active: false;",
+        "idle-background: root.framed ? HubVisualSpec.panel-background : transparent;",
+        "idle-border: root.framed ? HubVisualSpec.outline-muted : transparent;",
+        "idle-foreground: MaterialPalette.on_surface_variant;",
+        "state-layer-color: root.idle-foreground;",
+    ] {
+        assert!(
+            row_action_button.contains(snippet),
+            "HubRowActionButton must centralize list/table row trailing action chrome over HubIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !row_action_button.contains("TouchArea")
+            && !row_action_button.contains("StateLayerArea {"),
+        "HubRowActionButton should inherit HubIconButton interaction instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "export component HubPanelHeaderActionButton inherits Rectangle",
+        "in property <string> text;",
+        "in property <bool> enabled: true;",
+        "in property <length> button-width: HubTokens.panel-min-sm / 2;",
+        "in property <length> button-height: HubVisualSpec.toolbar-density-height;",
+        "in property <image> icon-image: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+        "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
+        "OutlineButton {",
+        "text: root.text;",
+        "icon: root.icon-image;",
+        "enabled: root.enabled;",
+        "if (root.enabled) {",
+    ] {
+        assert!(
+            panel_header_action_button.contains(snippet),
+            "HubPanelHeaderActionButton must centralize panel-header right-action chrome over Material OutlineButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !panel_header_action_button.contains("TouchArea")
+            && !panel_header_action_button.contains("StateLayerArea {"),
+        "HubPanelHeaderActionButton should delegate pointer behavior to Material OutlineButton instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "component HubUserMenuAvatarMark inherits Rectangle",
+        "in property <string> value;",
+        "width: HubTokens.icon-xl;",
+        "height: HubTokens.icon-xl;",
+        "border-radius: HubTokens.icon-xl / 2;",
+        "background: HubVisualSpec.user-avatar-background;",
+        "MaterialText {",
+        "text: root.value;",
+        "color: HubVisualSpec.user-avatar-foreground;",
+        "style: MaterialTypography.label_medium_prominent;",
+        "horizontal_alignment: center;",
+        "vertical_alignment: center;",
+    ] {
+        assert!(
+            user_menu_avatar_mark.contains(snippet),
+            "HubUserMenuAvatarMark must own user-menu avatar text typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "component HubUserMenuNameText inherits MaterialText",
+        "in property <string> value;",
+        "text: root.value;",
+        "color: HubVisualSpec.user-name-foreground;",
+        "style: MaterialTypography.label_medium;",
+        "vertical_alignment: center;",
+        "horizontal-stretch: 1;",
+        "overflow: elide;",
+    ] {
+        assert!(
+            user_menu_name_text.contains(snippet),
+            "HubUserMenuNameText must own user-menu name typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubUserMenuTriggerButton inherits Rectangle",
+        "in property <string> avatar-text;",
+        "in property <string> user-name;",
+        "in property <bool> tight: false;",
+        "in property <length> button-width: HubTokens.user-menu-min-width;",
+        "in property <length> button-height: HubTokens.control-lg;",
+        "in property <color> state-layer-color: HubVisualSpec.accent-stroke;",
+        "StateLayerArea {",
+        "border_radius: HubVisualSpec.compact-radius;",
+        "color: root.state-layer-color;",
+        "root.clicked();",
+        "HubUserMenuAvatarMark {",
+        "value: root.avatar-text;",
+        "if !root.tight: HubUserMenuNameText",
+        "value: root.user-name;",
+        "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
+        "colorize: MaterialPalette.on_surface_variant;",
+    ] {
+        assert!(
+            user_menu_trigger_button.contains(snippet),
+            "HubUserMenuTriggerButton must centralize the topbar user-menu trigger chrome and state layer in the button family; missing {snippet}"
+        );
+    }
+    assert!(
+        !user_menu_trigger_button.contains("TouchArea"),
+        "HubUserMenuTriggerButton should use Material StateLayerArea instead of direct TouchArea handling"
+    );
+    for forbidden in [
+        "MaterialText {",
+        "text: root.avatar-text;",
+        "text: root.user-name;",
+        "style: MaterialTypography.label_medium_prominent;",
+        "color: HubVisualSpec.user-name-foreground;",
+    ] {
+        assert!(
+            !user_menu_trigger_button.contains(forbidden),
+            "HubUserMenuTriggerButton should not own direct user identity text after helper extraction: {forbidden}"
+        );
+    }
+    for snippet in [
+        "component HubSidebarCollapseButtonLabel inherits MaterialText",
+        "in property <string> value;",
+        "in property <color> foreground: MaterialPalette.on_surface_variant;",
+        "text: root.value;",
+        "color: root.foreground;",
+        "style: MaterialTypography.body_small;",
+        "vertical_alignment: center;",
+        "overflow: elide;",
+    ] {
+        assert!(
+            sidebar_collapse_label.contains(snippet),
+            "HubSidebarCollapseButtonLabel must own sidebar collapse label typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubSidebarCollapseButton inherits Rectangle",
+        "in property <bool> collapsed: false;",
+        "in property <string> text: \"\";",
+        "in property <length> button-height: HubTokens.control-md;",
+        "in property <length> button-radius: HubVisualSpec.panel-radius;",
+        "in property <color> foreground: MaterialPalette.on_surface_variant;",
+        "in property <color> state-layer-color: MaterialPalette.on_surface;",
+        "height: root.button-height;",
+        "border-radius: root.button-radius;",
+        "StateLayerArea {",
+        "border_radius: root.button-radius;",
+        "color: root.state-layer-color;",
+        "root.clicked();",
+        "padding-left: root.collapsed ? 0px : HubTokens.space-2;",
+        "source-image: root.collapsed ? @image-url(\"../assets/icons/ui/chevron-right.svg\") : @image-url(\"../assets/icons/ui/collapse.svg\");",
+        "if !root.collapsed: HubSidebarCollapseButtonLabel",
+        "value: root.text;",
+        "foreground: root.foreground;",
+    ] {
+        assert!(
+            sidebar_collapse_button.contains(snippet),
+            "HubSidebarCollapseButton must centralize sidebar collapse chrome and state-layer behavior in the button family; missing {snippet}"
+        );
+    }
+    assert!(
+        !sidebar_collapse_button.contains("TouchArea"),
+        "HubSidebarCollapseButton should use Material StateLayerArea instead of direct TouchArea handling"
+    );
+    for forbidden in [
+        "MaterialText {",
+        "text: root.text;",
+        "color: root.foreground;",
+        "style: MaterialTypography.body_small;",
+    ] {
+        assert!(
+            !sidebar_collapse_button.contains(forbidden),
+            "HubSidebarCollapseButton should not own direct collapse label text after helper extraction: {forbidden}"
+        );
+    }
+    for snippet in [
+        "export component HubViewToggleButton inherits HubIconButton",
+        "button-width: MaterialStyleMetrics.size_48;",
+        "button-height: HubTokens.control-lg;",
+        "button-radius: HubVisualSpec.compact-radius;",
+        "icon-size: HubTokens.icon-sm;",
+        "active-background: HubVisualSpec.view-toggle-active-fill;",
+        "idle-background: HubVisualSpec.panel-background;",
+        "active-border: HubVisualSpec.view-toggle-active-stroke;",
+        "idle-border: HubVisualSpec.outline-muted;",
+        "active-foreground: HubVisualSpec.view-toggle-active-foreground;",
+        "idle-foreground: HubVisualSpec.view-toggle-idle-foreground;",
+        "state-layer-color: root.active ? HubVisualSpec.view-toggle-active-stroke : MaterialPalette.on_surface;",
+    ] {
+        assert!(
+            view_toggle_button.contains(snippet),
+            "HubViewToggleButton must centralize compact grid/list view-toggle icon-button chrome; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubViewToggleGroup inherits HorizontalLayout",
+        "in property <string> selected-mode;",
+        "in property <length> group-height: HubTokens.control-lg;",
+        "in property <length> button-width: root.group-height + MaterialStyleMetrics.size_6;",
+        "in property <length> group-spacing: HubTokens.panel-gap;",
+        "callback selected(string);",
+        "width: root.button-width * 2 + root.group-spacing;",
+        "height: root.group-height;",
+        "spacing: root.group-spacing;",
+        "HubViewToggleButton {",
+        "button-width: root.button-width;",
+        "button-height: root.group-height;",
+        "icon-image: @image-url(\"../assets/icons/ui/grid.svg\");",
+        "active: root.selected-mode == \"grid\";",
+        "root.selected(\"grid\");",
+        "icon-image: @image-url(\"../assets/icons/ui/list.svg\");",
+        "active: root.selected-mode == \"list\";",
+        "root.selected(\"list\");",
+    ] {
+        assert!(
+            view_toggle_group.contains(snippet),
+            "HubViewToggleGroup must own the compact grid/list toggle pair over shared HubViewToggleButton chrome; missing {snippet}"
+        );
+    }
+    assert!(
+        !view_toggle_button.contains("TouchArea") && !view_toggle_group.contains("TouchArea"),
+        "Hub view toggles should inherit HubIconButton interaction instead of declaring local pointer layers"
+    );
+    for snippet in [
+        "component HubButtonStateTextSampleLabel inherits MaterialText",
+        "in property <string> value;",
+        "in property <bool> primary: false;",
+        "in property <bool> tertiary: false;",
+        "in property <bool> active: false;",
+        "in property <bool> enabled: true;",
+        "text: root.value;",
+        "overflow: elide;",
+        "horizontal_alignment: center;",
+        "vertical_alignment: center;",
+        "style: MaterialTypography.label_medium;",
+        "color: root.tertiary ?",
+        "root.enabled ? (root.active ? HubVisualSpec.accent-stroke : MaterialPalette.primary) : MaterialPalette.on_surface_variant",
+        "root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface",
+    ] {
+        assert!(
+            button_state_text_label.contains(snippet),
+            "HubButtonStateTextSampleLabel must own reference button-state sample label typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubButtonStateTextSample inherits Rectangle",
+        "in property <string> text;",
+        "in property <string> variant: \"secondary\";",
+        "private property <bool> primary: root.variant == \"primary\";",
+        "private property <bool> tertiary: root.variant == \"tertiary\";",
+        "width: root.tertiary ? HubTokens.control-lg * 3 / 2 :",
+        "border-width: root.tertiary || root.primary ? 0px : HubTokens.border-width;",
+        "background: root.tertiary ? transparent : (root.primary ?",
+        "HubVisualSpec.button-state-primary-default-background",
+        "HubVisualSpec.button-state-secondary-default-background",
+        "opacity: root.enabled ? 1.0 : (root.tertiary ? 0.45 : 0.54);",
+        "HubButtonStateTextSampleLabel {",
+        "width: parent.width;",
+        "height: parent.height;",
+        "value: root.text;",
+        "primary: root.primary;",
+        "tertiary: root.tertiary;",
+        "active: root.active;",
+        "enabled: root.enabled;",
+    ] {
+        assert!(
+            button_state_text.contains(snippet),
+            "HubButtonStateTextSample must centralize reference button-state text examples in the button family; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "export component HubButtonStateIconSample inherits HubIconButton",
+        "in property <bool> primary: false;",
+        "button-width: HubTokens.control-lg + HubTokens.border-width * 2;",
+        "button-height: HubTokens.control-lg;",
+        "button-border-width: root.primary ? 0px : HubTokens.border-width;",
+        "icon-image: @image-url(\"../assets/icons/ui/plus.svg\");",
+        "has-icon-image: true;",
+        "active-background: !root.enabled ? HubVisualSpec.button-state-icon-disabled-background : (root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background : HubVisualSpec.button-state-icon-hover-background);",
+        "idle-background: !root.enabled ? HubVisualSpec.button-state-icon-disabled-background : (root.primary ? HubVisualSpec.button-state-icon-primary-background : HubVisualSpec.panel-background);",
+        "idle-foreground: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;",
+        "disabled-opacity: 0.54;",
+    ] {
+        assert!(
+            button_state_icon.contains(snippet),
+            "HubButtonStateIconSample must centralize reference button-state icon examples over HubIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !button_state_text.contains("TouchArea")
+            && !button_state_icon.contains("TouchArea")
+            && !button_state_icon.contains("StateLayerArea {"),
+        "Hub button-state samples should avoid new local pointer layers and let HubIconButton own icon interaction"
+    );
+    for forbidden in [
+        "MaterialText {",
+        "text: root.text;",
+        "style: MaterialTypography.label_medium;",
+        "color: root.tertiary ?",
+    ] {
+        assert!(
+            !button_state_text.contains(forbidden),
+            "HubButtonStateTextSample should not own direct sample label text after helper extraction: {forbidden}"
+        );
+    }
+    for snippet in [
+        "export { PillButton, HubCommandButton, HubHeaderCommandGroup, HubPanelNavigationCommand, HubActionCommandButton, HubActionStack, HubFormActionRow, HubDisclosureButton, HubPanelHeaderActionButton, HubUserMenuTriggerButton, HubSidebarCollapseButton, WindowButton } from \"button_components.slint\";",
+        "export { IconButton, HubIconButton, HubTopbarIconButton, HubBackButton, HubFlowNextButton, HubRowActionButton, HubViewToggleButton, HubViewToggleGroup, HubFloatingIconButton, HubMoreMenuButton } from \"icon_button_components.slint\";",
+        "export { HubButtonStateTextSample, HubButtonStateIconSample } from \"button_state_sample_components.slint\";",
         "export component HubFloatingIconButton inherits HubIconButton",
         "button-width: MaterialStyleMetrics.padding_28;",
         "button-height: MaterialStyleMetrics.size_32 - MaterialStyleMetrics.size_1;",
@@ -259,17 +1000,33 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
         "state-layer-color: MaterialPalette.on_surface;",
     ] {
         assert!(
-            components.contains(snippet) || button_components.contains(snippet),
+            components.contains(snippet) || icon_button_components.contains(snippet),
             "HubFloatingIconButton must centralize reference card-overlay icon button chrome; missing {snippet}"
         );
     }
-    let floating_button = button_components
-        .split("export component HubFloatingIconButton")
-        .nth(1)
-        .expect("button_components.slint must declare HubFloatingIconButton");
+    let floating_button = &icon_button_components[floating_icon_start..more_menu_start];
     assert!(
         !floating_button.contains("TouchArea") && !floating_button.contains("StateLayerArea {"),
         "HubFloatingIconButton should inherit HubIconButton interaction instead of declaring another local pointer layer"
+    );
+    let more_menu_button = &icon_button_components[more_menu_start..];
+    assert!(
+        icon_button_components
+            .contains("export component HubMoreMenuButton inherits HubFloatingIconButton"),
+        "HubMoreMenuButton must inherit HubFloatingIconButton"
+    );
+    for snippet in [
+        "icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
+        "has-icon-image: true;",
+    ] {
+        assert!(
+            more_menu_button.contains(snippet),
+            "HubMoreMenuButton must centralize the repeated more-menu icon binding over HubFloatingIconButton; missing {snippet}"
+        );
+    }
+    assert!(
+        !more_menu_button.contains("TouchArea") && !more_menu_button.contains("StateLayerArea {"),
+        "HubMoreMenuButton should inherit HubFloatingIconButton interaction instead of declaring local pointer layers"
     );
 
     let window_button = &button_components[window_start..];
@@ -299,6 +1056,16 @@ fn shared_hub_buttons_are_backed_by_material_button_primitives() {
             "WindowButton should not return to custom painted title-bar icon behavior: {forbidden}"
         );
     }
+    assert!(
+        project_dashboard.contains(
+            "HubButtonStateIconSample,\n    HubButtonStateTextSample,\n} from \"button_state_sample_components.slint\";"
+        ),
+        "project_dashboard_components.slint must import reference button-state samples from the focused sample module"
+    );
+    assert!(
+        !project_dashboard.contains("HubButtonStateTextSample,\n    HubPanelNavigationCommand"),
+        "project_dashboard_components.slint should not continue importing reference button-state samples from button_components.slint"
+    );
 }
 
 #[test]
@@ -309,7 +1076,7 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "components.slint must re-export the Hub Material-backed text field and path-field row wrappers"
     );
 
-    let inputs = read_ui_file("inputs.slint");
+    let text_inputs = read_ui_file("text_input_components.slint");
     for snippet in [
         "TextField",
         "MaterialStyleMetrics",
@@ -331,8 +1098,8 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "accepted(value) =>",
     ] {
         assert!(
-            inputs.contains(snippet),
-            "inputs.slint must keep HubTextField backed by Material TextField with explicit Hub enabled/focused state; missing {snippet}"
+            text_inputs.contains(snippet),
+            "text_input_components.slint must keep HubTextField backed by Material TextField with explicit Hub enabled/focused state; missing {snippet}"
         );
     }
 
@@ -402,15 +1169,11 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "settings.slint should compose SettingsToolchainPanel instead of repeating toolchain field rows"
     );
     for snippet in [
-        "export component SettingsSaveActionRow inherits Rectangle",
+        "export component SettingsSaveActionRow inherits HubFormActionRow",
         "in property <length> button-width;",
-        "in property <string> action-label;",
-        "callback action-clicked();",
-        "PillButton {",
-        "width: root.button-width;",
-        "text: root.action-label;",
-        "primary: true;",
-        "root.action-clicked();",
+        "action-width: root.button-width;",
+        "action-height: HubTokens.control-md;",
+        "action-icon: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
         "SettingsSaveActionRow {",
         "button-width: root.save-button-width;",
         "action-label: root.ui-text.save-settings;",
@@ -422,10 +1185,21 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         );
     }
     assert!(
-        settings_components.contains("export component SettingsSaveActionRow inherits Rectangle")
+        settings_components.contains("export component SettingsSaveActionRow inherits HubFormActionRow")
             && !settings.contains("PillButton {"),
-        "settings.slint should import SettingsSaveActionRow instead of constructing the footer PillButton inline"
+        "settings.slint should import SettingsSaveActionRow and the wrapper should inherit HubFormActionRow instead of constructing the footer PillButton inline"
     );
+    let settings_save_action = settings_components
+        .split("export component SettingsSaveActionRow")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .expect("settings_page_components.slint must declare SettingsSaveActionRow");
+    for forbidden in ["HorizontalLayout {", "PillButton {"] {
+        assert!(
+            !settings_save_action.contains(forbidden),
+            "SettingsSaveActionRow should inherit HubFormActionRow instead of retaining local footer button layout: {forbidden}"
+        );
+    }
 
     let editor = read_ui_file("editor.slint");
     let editor_components = read_ui_file("editor_page_components.slint");
@@ -469,7 +1243,7 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
     assert!(
         editor.contains("EditorSourceSettingsPanel {")
             && editor_components
-                .contains("export component EditorSourceSettingsPanel inherits PanelSlot"),
+                .contains("export component EditorSourceSettingsPanel inherits HubFormPanelSlot"),
         "editor.slint should compose EditorSourceSettingsPanel while editor_page_components.slint owns the source settings fields"
     );
     assert!(
@@ -500,8 +1274,8 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "show-action: root.show-browse;",
         "action-label: root.browse-label;",
         "root.browse-clicked();",
-        "export component ProjectCreateSettingsPanel inherits PanelSlot",
-        "export component ProjectCreateCompactSummaryPanel inherits PanelSlot",
+        "export component ProjectCreateSettingsPanel inherits HubContentPanelSlot",
+        "export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot",
         "ProjectCreateSettingsPanel {",
         "ProjectCreateCompactSummaryPanel {",
         "project-name <=> root.project-name;",
@@ -515,15 +1289,8 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         "field-text <=> root.project-location;",
         "show-browse: true;",
         "root.browse-folder(\"new-project-location\");",
-        "component ProjectCreateActionRow inherits Rectangle",
-        "in property <string> action-label;",
-        "in property <bool> action-enabled;",
-        "callback action-clicked();",
-        "PillButton {",
-        "text: root.action-label;",
-        "icon-image: @image-url(\"../assets/icons/ui/plus.svg\");",
-        "enabled: root.action-enabled;",
-        "clicked => { root.action-clicked(); }",
+        "export component ProjectCreateActionRow inherits HubFormActionRow",
+        "action-icon: @image-url(\"../assets/icons/ui/plus.svg\");",
         "ProjectCreateActionRow {",
         "row-height: root.create-action-row-height;",
         "row-spacing: root.page-gap;",
@@ -588,6 +1355,17 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
         1,
         "ProjectCreateSettingsPanel should render the create action through ProjectCreateActionRow"
     );
+    let project_create_action = project_components
+        .split("export component ProjectCreateActionRow")
+        .nth(1)
+        .and_then(|source| source.split("export component ").next())
+        .expect("project_page_components.slint must declare ProjectCreateActionRow");
+    for forbidden in ["HorizontalLayout {", "PillButton {"] {
+        assert!(
+            !project_create_action.contains(forbidden),
+            "ProjectCreateActionRow should inherit HubFormActionRow instead of retaining local footer button layout: {forbidden}"
+        );
+    }
     assert!(
         project_new_page.contains(
             "summary-row-height: max(HubTokens.control-sm, min(root.field-height, root.content-height / 18));"
@@ -677,12 +1455,13 @@ fn hub_form_text_inputs_use_material_text_field_wrapper() {
 #[test]
 fn input_primitives_expose_shared_enabled_and_focus_state_api() {
     let inputs = read_ui_file("inputs.slint");
+    let text_inputs = read_ui_file("text_input_components.slint");
 
-    let search_box = inputs
+    let search_box = text_inputs
         .split("export component SearchBox")
         .nth(1)
         .and_then(|source| source.split("export component HubTextField").next())
-        .expect("inputs.slint must declare SearchBox before HubTextField");
+        .expect("text_input_components.slint must declare SearchBox before HubTextField");
     for snippet in [
         "in property <bool> enabled: true;",
         "out property <bool> focused: search-field.has-focus;",
@@ -720,7 +1499,7 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
         ),
         (
             "HubPathFieldRow",
-            "ToolbarSelect",
+            "",
             &[
                 "in property <bool> enabled: true;",
                 "in property <bool> show-action: true;",
@@ -734,13 +1513,36 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
                 "enabled: root.action-enabled && root.enabled;",
             ][..],
         ),
+    ] {
+        let component_source = text_inputs
+            .split(&format!("export component {component}"))
+            .nth(1)
+            .and_then(|source| {
+                if next_component.is_empty() {
+                    Some(source)
+                } else {
+                    source
+                        .split(&format!("export component {next_component}"))
+                        .next()
+                }
+            })
+            .unwrap_or_else(|| panic!("text_input_components.slint must declare {component}"));
+        for snippet in required {
+            assert!(
+                component_source.contains(snippet),
+                "{component} must expose shared enabled/focus primitive state; missing {snippet}"
+            );
+        }
+    }
+
+    for (component, next_component, required) in [
         (
-            "ToolbarSelect",
+            "HubSelectTrigger",
             "DropDownButton",
             &[
                 "in property <bool> enabled: true;",
                 "in property <bool> focused: false;",
-                "private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;",
+                "in property <bool> menu-ready: true;",
                 "private property <color> select-background:",
                 "private property <color> select-border:",
                 "private property <color> select-foreground:",
@@ -748,6 +1550,19 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
                 "border-color: root.select-border;",
                 "background: root.select-background;",
                 "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
+            ][..],
+        ),
+        (
+            "ToolbarSelect",
+            "DropDownButton",
+            &[
+                "in property <bool> enabled: true;",
+                "in property <bool> focused: false;",
+                "private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;",
+                "HubSelectTrigger {",
+                "enabled: root.enabled;",
+                "focused: root.focused;",
+                "menu-ready: root.menu-ready;",
             ][..],
         ),
         (
@@ -808,19 +1623,20 @@ fn input_primitives_expose_shared_enabled_and_focus_state_api() {
 
 #[test]
 fn hub_search_box_uses_reference_outlined_text_input() {
-    let inputs = read_ui_file("inputs.slint");
-    let search_box = inputs
+    let text_inputs = read_ui_file("text_input_components.slint");
+    let search_box = text_inputs
         .split("export component SearchBox")
         .nth(1)
         .and_then(|source| source.split("export component HubTextField").next())
-        .expect("inputs.slint must declare SearchBox before HubTextField");
+        .expect("text_input_components.slint must declare SearchBox before HubTextField");
 
     for snippet in [
         "in property <length> box-height: HubVisualSpec.toolbar-density-height;",
         "border-radius: HubVisualSpec.compact-radius;",
         "border-color: root.state-border;",
         "background: root.state-background;",
-        "color: root.placeholder-color;",
+        "SearchBoxPlaceholderText {",
+        "foreground: root.placeholder-color;",
         "root.focused ? HubVisualSpec.focus-ring-color : (root.prominent ? HubVisualSpec.search-prominent-stroke",
         "root.focused ? MaterialPalette.on_surface_variant : (root.prominent ? HubVisualSpec.search-prominent-placeholder",
         "source: @image-url(\"../assets/icons/ui/search.svg\");",
@@ -923,36 +1739,45 @@ fn hub_toolbar_select_uses_material_menu_primitives() {
         .nth(1)
         .and_then(|source| source.split("export component DropDownButton").next())
         .expect("inputs.slint must declare ToolbarSelect before DropDownButton");
+    let select_trigger = inputs
+        .split("export component HubSelectTrigger")
+        .nth(1)
+        .and_then(|source| source.split("export component ToolbarSelect").next())
+        .expect("inputs.slint must declare HubSelectTrigger before ToolbarSelect");
     for snippet in [
         "MenuItem",
         "OutlineButton",
         "HubSelectMenu",
-        "import { HubSelectDropDownSurface, HubSelectMenu } from \"overlays.slint\";",
-        "in property <length> select-height: HubVisualSpec.toolbar-density-height;",
-        "in property <[MenuItem]> menu-items: [];",
-        "private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));",
-        "private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);",
-        "private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;",
+        "import { HubSelectMenu } from \"dropdown_components.slint\";",
+        "export component HubSelectTrigger",
+        "in property <length> trigger-height: HubVisualSpec.toolbar-density-height;",
+        "in property <length> chevron-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.trigger-height * 2 / 5));",
+        "in property <length> content-inset: max(MaterialStyleMetrics.padding_12, root.trigger-height / 4);",
         "private property <color> select-background:",
-        "private property <color> select-border:",
         "private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;",
         "private property <color> select-foreground:",
-        "private property <color> select-foreground: root.focused ? MaterialPalette.on_surface_variant : HubVisualSpec.toolbar-select-foreground;",
-        "clip: false;",
         "trigger := OutlineButton",
         "opacity: 0%;",
         "select-visual := Rectangle",
         "border-radius: HubVisualSpec.compact-radius;",
         "border-color: root.select-border;",
         "background: root.select-background;",
-        "color: root.select-foreground;",
         "StateLayerArea {",
         "if (root.menu-ready) {",
         "trailing-chevron := Icon",
-        "x: parent.width - root.trailing-icon-inset - self.width;",
+        "x: parent.width - root.content-inset - self.width;",
         "y: (parent.height - self.height) / 2;",
         "source: @image-url(\"../assets/icons/ui/chevron-down.svg\");",
         "colorize: root.select-foreground;",
+        "in property <length> select-height: HubVisualSpec.toolbar-density-height;",
+        "in property <[MenuItem]> menu-items: [];",
+        "private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;",
+        "clip: false;",
+        "HubSelectTrigger {",
+        "trigger-width: parent.width;",
+        "trigger-height: parent.height;",
+        "menu-ready: root.menu-ready;",
+        "activated =>",
         "menu := HubSelectMenu",
         "anchor-width: root.select-width;",
         "anchor-height: root.height;",
@@ -963,6 +1788,17 @@ fn hub_toolbar_select_uses_material_menu_primitives() {
         assert!(
             inputs.contains(snippet),
             "ToolbarSelect must stay backed by imported Material menu/button primitives; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "trigger := OutlineButton",
+        "select-visual := Rectangle",
+        "trailing-chevron := Icon",
+        "StateLayerArea {",
+    ] {
+        assert!(
+            !toolbar_select.contains(forbidden),
+            "ToolbarSelect should delegate trigger painting to HubSelectTrigger: {forbidden}"
         );
     }
     for forbidden in [
@@ -977,6 +1813,11 @@ fn hub_toolbar_select_uses_material_menu_primitives() {
             "ToolbarSelect should stay menu-only instead of acting as a direct-toggle button: {forbidden}"
         );
     }
+    assert!(
+        select_trigger.contains("callback activated();")
+            && select_trigger.contains("root.activated();"),
+        "HubSelectTrigger must expose one activation callback for menu anchors"
+    );
     for snippet in [
         "ProjectFilterSelect,",
         "ProjectSortSelect,",

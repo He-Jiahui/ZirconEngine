@@ -102,14 +102,16 @@ pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) 
         "RangeField" | "Slider" | "RangeSlider" => UiPainterFamily::Slider,
         "Dropdown" | "ComboBox" | "Select" => UiPainterFamily::Dropdown,
         "PopupRow" | "MenuItem" => UiPainterFamily::PopupRow,
+        "Alert" | "AlertTitle" => UiPainterFamily::Alert,
         "Tooltip" => UiPainterFamily::Tooltip,
         "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" => {
             UiPainterFamily::TextField
         }
         "ListRow" => UiPainterFamily::ListRow,
         "TreeRow" => UiPainterFamily::TreeRow,
+        "Table" | "TableRow" => UiPainterFamily::TableRow,
         "Tab" => UiPainterFamily::Tab,
-        "Toast" => UiPainterFamily::Toast,
+        "Toast" | "Snackbar" | "SnackbarContent" => UiPainterFamily::Toast,
         _ => UiPainterFamily::Generic,
     }
 }

@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use zircon_runtime::core::framework::render::{RenderProductFeature, RenderProfileBundle};
 use zircon_runtime::plugin::{
     ProjectPluginManifest, ProjectPluginSelection, RuntimePluginRegistrationReport,
@@ -33,45 +31,35 @@ pub fn first_party_runtime_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
 ) -> Vec<RuntimePluginRegistrationReport> {
-    let mut seen = HashSet::new();
-    manifest
-        .enabled_for_target(target_mode)
-        .filter_map(|selection| selection.runtime_id())
-        .filter(|runtime_id| seen.insert(*runtime_id))
-        .filter_map(first_party_registration_for_runtime_plugin)
-        .collect()
+    first_party_runtime_plugin_registrations_for_manifest_impl(target_mode, manifest)
 }
 
-fn first_party_registration_for_runtime_plugin(
-    id: RuntimePluginId,
-) -> Option<RuntimePluginRegistrationReport> {
-    match id {
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Sound => Some(zircon_plugin_sound_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Texture => Some(zircon_plugin_texture_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Net => Some(zircon_plugin_net_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-navigation-runtime-plugin")]
-        RuntimePluginId::Navigation => {
-            Some(zircon_plugin_navigation_runtime::plugin_registration())
-        }
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Particles => Some(zircon_plugin_particles_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Animation => Some(zircon_plugin_animation_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-runtime-plugins")]
-        RuntimePluginId::Rendering => Some(zircon_plugin_rendering_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-        RuntimePluginId::VirtualGeometry => {
-            Some(zircon_plugin_virtual_geometry_runtime::plugin_registration())
-        }
-        #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-        RuntimePluginId::HybridGi => Some(zircon_plugin_hybrid_gi_runtime::plugin_registration()),
-        #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-        RuntimePluginId::Solari => Some(zircon_plugin_solari_runtime::plugin_registration()),
-        _ => None,
-    }
+#[cfg(any(
+    feature = "first-party-runtime-plugins",
+    feature = "first-party-advanced-render-runtime-plugins",
+    feature = "first-party-navigation-runtime-plugin"
+))]
+fn first_party_runtime_plugin_registrations_for_manifest_impl(
+    target_mode: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+) -> Vec<RuntimePluginRegistrationReport> {
+    zircon_first_party_runtime_catalog::first_party_runtime_plugin_registrations_for_manifest(
+        target_mode,
+        manifest,
+    )
+}
+
+#[cfg(not(any(
+    feature = "first-party-runtime-plugins",
+    feature = "first-party-advanced-render-runtime-plugins",
+    feature = "first-party-navigation-runtime-plugin"
+)))]
+fn first_party_runtime_plugin_registrations_for_manifest_impl(
+    target_mode: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+) -> Vec<RuntimePluginRegistrationReport> {
+    let _ = (target_mode, manifest);
+    Vec::new()
 }
 
 fn add_render_profile_runtime_plugin_selections(

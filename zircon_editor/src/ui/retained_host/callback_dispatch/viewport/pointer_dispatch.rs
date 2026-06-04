@@ -56,6 +56,11 @@ fn viewport_pointer_dispatcher() -> UiPointerDispatcher {
         UiPointerEventKind::Scroll,
         |_context| UiPointerDispatchEffect::handled(),
     );
+    dispatcher.register(
+        VIEWPORT_SURFACE_NODE_ID,
+        UiPointerEventKind::Cancel,
+        |_context| UiPointerDispatchEffect::handled(),
+    );
     dispatcher
 }
 
@@ -87,5 +92,6 @@ fn map_pointer_route_to_viewport_event(route: &UiPointerRoute) -> Option<EditorV
         UiPointerEventKind::Scroll => Some(EditorViewportEvent::Scrolled {
             delta: route.scroll_delta,
         }),
+        UiPointerEventKind::Cancel => None,
     }
 }

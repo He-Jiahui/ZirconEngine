@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_telemetry_dashboard_workspace.zui"
+version = 2
+display_name = "Workbench Extension Telemetry Dashboard Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionTelemetryDashboardWorkspace]
+root = "telemetry_dashboard_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.telemetry_dashboard_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_rail_gap" }, { node = "telemetry_dashboard_left" }, { node = "telemetry_dashboard_center" }, { node = "telemetry_dashboard_right" }]
+
+[nodes.telemetry_dashboard_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionTelemetryDashboardRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.telemetry_dashboard_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_title" }, { node = "telemetry_dashboard_metrics_tab" }, { node = "telemetry_dashboard_segments_tab" }, { node = "telemetry_dashboard_raw_events_tab" }, { node = "telemetry_dashboard_retention_query_row" }, { node = "telemetry_dashboard_new_users_segment_row" }, { node = "telemetry_dashboard_metric_fps_row" }]
+
+[nodes.telemetry_dashboard_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionTelemetryDashboardTitle"
+props = { text = "Telemetry Dashboard" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.telemetry_dashboard_metrics_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionTelemetryDashboardMetricsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Metrics", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardMetricsTab", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metrics" }]
+
+[nodes.telemetry_dashboard_segments_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionTelemetryDashboardSegmentsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Segments", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardSegmentsTab", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Segments" }]
+
+[nodes.telemetry_dashboard_raw_events_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionTelemetryDashboardRawEventsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Raw Events", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardRawEventsTab", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.RawEvents" }]
+
+[nodes.telemetry_dashboard_retention_query_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionTelemetryDashboardRetentionQueryRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Query_Retention", icon = "info", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardRetentionQueryRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Query.Retention" }]
+
+[nodes.telemetry_dashboard_new_users_segment_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionTelemetryDashboardNewUsersSegmentRow"
+classes = ["workbench-list-row"]
+props = { text = "Segment_NewUsers", icon = "users", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardNewUsersSegmentRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Segment.NewUsers" }]
+
+[nodes.telemetry_dashboard_metric_fps_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionTelemetryDashboardMetricFpsRow"
+classes = ["workbench-list-row"]
+props = { text = "Metric_FPS", icon = "chart", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardMetricFpsRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metric.Fps" }]
+
+[nodes.telemetry_dashboard_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_center_header" }, { node = "telemetry_dashboard_metric_table" }, { node = "telemetry_dashboard_output" }]
+
+[nodes.telemetry_dashboard_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "telemetry_dashboard_center_title" }, { node = "telemetry_dashboard_header_fill" }, { node = "telemetry_dashboard_filter_button" }, { node = "telemetry_dashboard_run_query_button" }]
+
+[nodes.telemetry_dashboard_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionTelemetryDashboardCenterTitle"
+props = { text = "Telemetry Metrics" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.telemetry_dashboard_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionTelemetryDashboardHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.telemetry_dashboard_filter_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionTelemetryDashboardFilterTelemetryButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Filter Telemetry", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 132.0, preferred = 132.0, max = 146.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardFilterTelemetry", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.FilterTelemetry" }]
+
+[nodes.telemetry_dashboard_run_query_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionTelemetryDashboardRunQueryButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Run Query", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 94.0, preferred = 94.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardRunQuery", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.RunQuery" }]
+
+[nodes.telemetry_dashboard_metric_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardMetricTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_dau_table_row" }, { node = "telemetry_dashboard_fps_p95_table_row" }, { node = "telemetry_dashboard_crash_rate_table_row" }, { node = "telemetry_dashboard_queue_wait_table_row" }]
+
+[nodes.telemetry_dashboard_dau_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionTelemetryDashboardDauTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "DAU", value_text = "128K   +4.2 percent   Stable", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardDauTableRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metric.Dau" }]
+
+[nodes.telemetry_dashboard_fps_p95_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionTelemetryDashboardFpsP95TableRow"
+classes = ["workbench-table-row"]
+props = { text = "FPS P95", value_text = "58 FPS   24h range   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardFpsP95TableRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metric.FpsP95" }]
+
+[nodes.telemetry_dashboard_crash_rate_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionTelemetryDashboardCrashRateTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Crash Rate", value_text = "0.18 percent   segment filtered" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardCrashRateTableRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metric.CrashRate" }]
+
+[nodes.telemetry_dashboard_queue_wait_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionTelemetryDashboardQueueWaitTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Queue Wait", value_text = "42 sec   P95   Alert 3" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardQueueWaitTableRow", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Metric.QueueWait" }]
+
+[nodes.telemetry_dashboard_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionTelemetryDashboardOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Telemetry Output", value_text = "Events 2.4M   Segments 12   Alerts 3   Latency 120 ms" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/TelemetryDashboardOutput", event = "Click", route = "WorkbenchExtension.TelemetryDashboard.Output" }]
+
+[nodes.telemetry_dashboard_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionTelemetryDashboardRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_details_title" }, { node = "telemetry_dashboard_query_field" }, { node = "telemetry_dashboard_range_dropdown" }, { node = "telemetry_dashboard_segment_dropdown" }]
+
+[nodes.telemetry_dashboard_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionTelemetryDashboardDetailsTitle"
+props = { text = "Query Builder" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.telemetry_dashboard_query_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionTelemetryDashboardQueryField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "Query", value = "Query_Retention" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/TelemetryDashboardQueryEdit", event = "Change", route = "WorkbenchExtension.TelemetryDashboard.Query.Edit" },
+  { id = "WorkbenchExtension/TelemetryDashboardQueryCommit", event = "Submit", route = "WorkbenchExtension.TelemetryDashboard.Query.Commit" },
+]
+
+[nodes.telemetry_dashboard_range_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionTelemetryDashboardRangeDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "24h", value = "24h", options = ["1h", "24h", "7d", "30d"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/TelemetryDashboardRangeEdit", event = "Change", route = "WorkbenchExtension.TelemetryDashboard.Range.Edit" },
+  { id = "WorkbenchExtension/TelemetryDashboardRangeCommit", event = "Submit", route = "WorkbenchExtension.TelemetryDashboard.Range.Commit" },
+]
+
+[nodes.telemetry_dashboard_segment_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionTelemetryDashboardSegmentDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "New Users", value = "New Users", options = ["All Users", "New Users", "Returning", "Crashes"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/TelemetryDashboardSegmentEdit", event = "Change", route = "WorkbenchExtension.TelemetryDashboard.Segment.Edit" },
+  { id = "WorkbenchExtension/TelemetryDashboardSegmentCommit", event = "Submit", route = "WorkbenchExtension.TelemetryDashboard.Segment.Commit" },
+]

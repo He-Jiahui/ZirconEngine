@@ -395,7 +395,8 @@ fn scene_empty_state_actions_expose_typed_menu_bindings() {
             .as_ref()
             .and_then(|action| action.binding.as_ref())
             .map(|binding| binding.payload()),
-        Some(EditorUiBindingPayload::MenuAction { action_id }) if action_id == "OpenScene"
+        Some(EditorUiBindingPayload::MenuAction { action_id })
+            if action_id == "workbench.scene.open"
     ));
     assert!(matches!(
         empty_state
@@ -403,6 +404,7 @@ fn scene_empty_state_actions_expose_typed_menu_bindings() {
             .as_ref()
             .and_then(|action| action.binding.as_ref())
             .map(|binding| binding.payload()),
-        Some(EditorUiBindingPayload::MenuAction { action_id }) if action_id == "CreateScene"
+        Some(EditorUiBindingPayload::MenuAction { action_id })
+            if action_id == "workbench.scene.create"
     ));
 }

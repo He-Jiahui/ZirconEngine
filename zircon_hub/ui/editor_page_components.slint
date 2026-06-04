@@ -8,26 +8,24 @@ import {
 import {
     ActionRow,
     BuildHistoryRow,
-    Divider,
+    HubContentPanelSlot,
     EmptyStateBlock,
+    HubFormPanelSlot,
+    HubInteractiveRowSurface,
     HubListPanelSlot,
     HubListView,
     HubPathFieldRow,
     HubRowLeadingIconSlot,
     HubRowMainSlot,
-    HubRowSurface,
     HubRowTrailingSlot,
     HubTokens,
     HubVisualSpec,
     InfoRow,
     MaterialPalette,
     MaterialStyleMetrics,
-    PanelHeader,
-    PanelSlot,
-    StateLayerArea,
 } from "components.slint";
 
-export component SourceEngineRow inherits HubRowSurface {
+export component SourceEngineRow inherits HubInteractiveRowSurface {
     in property <SourceEngineRowData> engine;
     in property <bool> collapse-label: false;
     callback engine-selected(string);
@@ -47,15 +45,10 @@ export component SourceEngineRow inherits HubRowSurface {
     idle-background: HubVisualSpec.panel-background;
     selected-background: MaterialPalette.secondary_container;
     selected: root.engine.active;
+    interaction-foreground: root.content-foreground;
 
-    row-state := StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.content-foreground;
-        border_radius: root.row-radius;
-        clicked => {
-            root.engine-selected(root.engine.id);
-        }
+    clicked => {
+        root.engine-selected(root.engine.id);
     }
 
     HorizontalLayout {
@@ -328,7 +321,7 @@ export component EditorActionsPanel inherits HubListPanelSlot {
     }
 }
 
-export component EditorSourceSummaryPanel inherits PanelSlot {
+export component EditorSourceSummaryPanel inherits HubContentPanelSlot {
     in property <WorkspaceActionReadinessData> readiness;
     in property <SourceEngineData> source-engine;
     in property <UiTextData> ui-text;
@@ -336,22 +329,19 @@ export component EditorSourceSummaryPanel inherits PanelSlot {
     in property <bool> collapse-label: false;
     callback launch-editor();
 
+    title: root.readiness.selected-project-title;
+    subtitle: root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
+    show-badge: true;
+    badge-text: root.source-engine.build-profile;
+    badge-tone: root.readiness.open-editor-enabled ? "accent" : "warning";
+    show-action: root.readiness.open-editor-enabled;
+    action-text: root.ui-text.open-editor;
+    show-divider: true;
     body-spacing: HubTokens.space-3;
-
-    PanelHeader {
-        title: root.readiness.selected-project-title;
-        subtitle: root.readiness.source-engine-title + " / " + root.readiness.source-engine-status;
-        show-badge: true;
-        badge-text: root.source-engine.build-profile;
-        badge-tone: root.readiness.open-editor-enabled ? "accent" : "warning";
-        show-action: root.readiness.open-editor-enabled;
-        action-text: root.ui-text.open-editor;
-        action-clicked => {
-            root.launch-editor();
-        }
+    content-spacing: HubTokens.space-3;
+    action-clicked => {
+        root.launch-editor();
     }
-
-    Divider {}
 
     EditorSourceSummaryRow {
         row-height: root.row-height;
@@ -375,7 +365,7 @@ export component EditorSourceSummaryPanel inherits PanelSlot {
     }
 }
 
-export component EditorSourceSettingsPanel inherits PanelSlot {
+export component EditorSourceSettingsPanel inherits HubFormPanelSlot {
     in-out property <string> source-path;
     in-out property <string> output-path;
     in-out property <string> active-engine-name;
@@ -384,11 +374,9 @@ export component EditorSourceSettingsPanel inherits PanelSlot {
     callback browse-folder(string);
 
     body-spacing: HubTokens.space-3;
-
-    PanelHeader {
-        title: root.ui-text.source-engine;
-        subtitle: root.ui-text.source-checkout-path;
-    }
+    title: root.ui-text.source-engine;
+    subtitle: root.ui-text.source-checkout-path;
+    form-spacing: HubTokens.space-3;
 
     EditorPathFieldRow {
         field-label: root.ui-text.active-engine-name;

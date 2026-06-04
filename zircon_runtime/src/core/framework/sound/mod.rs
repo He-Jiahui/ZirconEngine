@@ -2,6 +2,7 @@
 
 mod acoustics;
 mod automation;
+mod channel_layout;
 mod components;
 mod effects;
 mod error;
@@ -25,6 +26,7 @@ pub use automation::{
     SoundAutomationKeyframe, SoundAutomationTarget, SoundTimelineAutomationSample,
     SoundTimelineAutomationTrack, SoundTimelineSequence, SoundTimelineSequenceAdvance,
 };
+pub use channel_layout::{SoundChannelLayout, SoundSpeakerChannel};
 pub use components::{
     SoundAttenuationMode, SoundExternalSourceBlock, SoundListenerDescriptor, SoundSourceDescriptor,
     SoundSourceInput, SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,
@@ -53,7 +55,12 @@ pub use ids::{
     SoundImpulseResponseId, SoundListenerId, SoundNodeId, SoundOutputDeviceId, SoundParameterId,
     SoundPlaybackId, SoundSourceId, SoundTimelineSequenceId, SoundTrackId, SoundVolumeId,
 };
-pub use manager::SoundManager;
+pub use manager::{
+    SoundAcousticsManager, SoundAutomationTimelineManager, SoundBackendManager,
+    SoundDynamicEventManager, SoundManager, SoundMixRenderManager, SoundMixerGraphManager,
+    SoundOutputDeviceManager, SoundPlaybackManager, SoundRuntimeSettingsManager,
+    SoundSourceManager,
+};
 pub use mix::SoundMixBlock;
 pub use options::{SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality};
 pub use output::{
@@ -68,3 +75,6 @@ pub use playback::{
 };
 pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};
+
+#[cfg(test)]
+mod tests;

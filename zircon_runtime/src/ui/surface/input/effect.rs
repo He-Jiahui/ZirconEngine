@@ -14,9 +14,24 @@ use zircon_runtime_interface::ui::{
 use crate::ui::tree::UiRuntimeTreeFocusExt;
 
 use super::super::surface::UiSurface;
-use super::require_valid_input_owner;
+use super::{
+    require_valid_input_owner, route_policy::annotate_route_policy,
+    route_steps::annotate_result_route_steps,
+};
 
 pub(crate) fn apply_dispatch_reply(
+    surface: &mut UiSurface,
+    event: UiInputEvent,
+    reply: UiDispatchReply,
+) -> UiInputDispatchResult {
+    let mut result = apply_dispatch_reply_core(surface, event, reply);
+    let event = result.event.clone();
+    annotate_route_policy(surface, &event, &mut result);
+    annotate_result_route_steps(&mut result);
+    result
+}
+
+fn apply_dispatch_reply_core(
     surface: &mut UiSurface,
     event: UiInputEvent,
     reply: UiDispatchReply,
@@ -45,7 +60,7 @@ pub(crate) fn apply_dispatch_reply(
         match apply_effect(surface, &effect) {
             Ok(applied) => {
                 if result.diagnostics.route_target.is_none() {
-                    result.diagnostics.route_target = effect_target(&effect);
+                    result.diagnostics.route_target = applied.or_else(|| effect_target(&effect));
                 }
                 result.applied_effects.push(UiDispatchAppliedEffect {
                     effect_index,
@@ -87,7 +102,9 @@ pub(crate) fn apply_dispatch_reply_steps(
     let stopped_at = merge.stopped_at;
     let stopped_phase = merge.stopped_phase;
     let step_count = merge.step_count;
-    let mut result = apply_dispatch_reply(surface, event, merge.reply);
+    let route_steps = merge.steps;
+    let mut result = apply_dispatch_reply_core(surface, event, merge.reply);
+    result.diagnostics.route_steps = route_steps;
     result
         .diagnostics
         .notes
@@ -104,6 +121,8 @@ pub(crate) fn apply_dispatch_reply_steps(
     if let Some(phase) = stopped_phase {
         result.diagnostics.handled_phase = Some(phase.as_str().to_string());
     }
+    let event = result.event.clone();
+    annotate_route_policy(surface, &event, &mut result);
     result
 }
 
@@ -274,18 +293,23 @@ fn apply_effect(
             if let Some(owner) = owner {
                 require_valid_input_owner(surface, *owner)?;
             }
+            let route_owner = owner.or_else(|| surface.input.popup_owner(popup_id.as_str()));
             match kind {
                 zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Open => {
-                    surface.input.open_popup(popup_id.clone(), *anchor);
+                    surface
+                        .input
+                        .open_popup(popup_id.clone(), route_owner, *anchor);
                 }
                 zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Close => {
                     surface.input.close_popup(popup_id.as_str());
                 }
                 zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Toggle => {
-                    surface.input.toggle_popup(popup_id.clone(), *anchor);
+                    surface
+                        .input
+                        .toggle_popup(popup_id.clone(), route_owner, *anchor);
                 }
             }
-            Ok(*owner)
+            Ok(route_owner)
         }
         UiDispatchEffect::Tooltip {
             kind,
@@ -295,19 +319,20 @@ fn apply_effect(
             if let Some(owner) = owner {
                 require_valid_input_owner(surface, *owner)?;
             }
+            let route_owner = owner.or_else(|| surface.input.tooltip_owner(tooltip_id.as_str()));
             match kind {
                 zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Arm => {
-                    surface.input.arm_tooltip(tooltip_id.clone());
+                    surface.input.arm_tooltip(tooltip_id.clone(), route_owner);
                 }
                 zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Show => {
-                    surface.input.show_tooltip(tooltip_id.clone());
+                    surface.input.show_tooltip(tooltip_id.clone(), route_owner);
                 }
                 zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Hide
                 | zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Cancel => {
                     surface.input.clear_tooltip(tooltip_id.as_str());
                 }
             }
-            Ok(*owner)
+            Ok(route_owner)
         }
         UiDispatchEffect::RequestInputMethod { request } => {
             apply_input_method_request(surface, request)

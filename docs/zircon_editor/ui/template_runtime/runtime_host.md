@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -57,6 +58,7 @@ related_code:
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -117,6 +119,7 @@ plan_sources:
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md
   - .codex/plans/GPU Command Stream 接管 Editor UI 渲染计划.md
 tests:
+  - rustfmt --edition 2021 --check zircon_editor\src\ui\template_runtime\runtime\build_session.rs
   - cargo check -p zircon_editor (2026-05-11: passed)
   - cargo test -p zircon_editor builtin_template_compile_cache_is_reused_across_runtime_instances -- --nocapture (2026-05-11: passed)
   - cargo test -p zircon_editor template_assets -- --nocapture (2026-05-11: passed, 10 passed)
@@ -264,4 +267,4 @@ Workbench shell and viewport toolbar bridges now keep their `UiSurface` instance
 
 ## Remaining Scope
 
-The runtime host still has old-template support for assets kept only as migration/test inputs. `ui_asset_editor.ui.toml` is no longer an exception and has been deleted; the remaining old-template inputs are legacy Material meta-component and additional authoring fixtures, such as `editor_widgets.ui.toml`, `material_meta_components.ui.toml`, `asset_browser.ui.toml`, `binding_browser.ui.toml`, `layout_workbench.ui.toml`, `preview_state_lab.ui.toml`, and `theme_browser.ui.toml`. These fixtures now live under `zircon_editor/src/tests/fixtures/ui_legacy/**`, outside the deployable asset roots. Staged `ZirconEngine/assets/ui/**` includes v2 UI templates only, and the guard test `packaged_ui_asset_roots_contain_only_v2_schema_files` prevents legacy `.ui.toml` files from returning to active editor/runtime asset roots.
+The runtime host still has tree-template support for assets kept only as migration/test inputs. `ui_asset_editor.ui.toml` is no longer an exception and has been deleted; the remaining historical inputs are Material meta-component and additional authoring fixtures, such as `editor_widgets.ui.toml`, `material_meta_components.ui.toml`, `asset_browser.ui.toml`, `binding_browser.ui.toml`, `layout_workbench.ui.toml`, `preview_state_lab.ui.toml`, and `theme_browser.ui.toml`. These fixtures now live under `zircon_editor/src/tests/fixtures/ui_legacy/**`, outside the deployable asset roots. Staged `ZirconEngine/assets/ui/**` includes v2 UI templates only, and the guard test `packaged_ui_asset_roots_contain_only_v2_schema_files` prevents historical `.ui.toml` files from returning to active editor/runtime asset roots.

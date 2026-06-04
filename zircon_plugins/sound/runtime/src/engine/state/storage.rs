@@ -63,6 +63,7 @@ impl SoundEngineState {
     pub(crate) fn new(config: &SoundConfig) -> Self {
         let mut graph = SoundMixerGraph::default_stereo(config.sample_rate_hz);
         graph.channel_count = config.channel_count.max(1);
+        graph.channel_layout = config.channel_layout.clone();
         Self {
             next_clip_id: 0,
             next_playback_id: 0,

@@ -5889,6 +5889,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_first_party_runtime_catalog"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_ai_runtime",
+ "zircon_plugin_animation_runtime",
+ "zircon_plugin_hybrid_gi_runtime",
+ "zircon_plugin_navigation_runtime",
+ "zircon_plugin_net_runtime",
+ "zircon_plugin_particles_runtime",
+ "zircon_plugin_rendering_runtime",
+ "zircon_plugin_solari_runtime",
+ "zircon_plugin_sound_runtime",
+ "zircon_plugin_texture_runtime",
+ "zircon_plugin_virtual_geometry_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_animation_editor"
 version = "0.1.0"
 dependencies = [
@@ -5904,6 +5922,13 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_ai_runtime"
+version = "0.1.0"
+dependencies = [
  "zircon_runtime",
 ]
 

@@ -22,13 +22,16 @@ pub(crate) struct SoundOutputDeviceRuntimeState {
 
 impl SoundOutputDeviceRuntimeState {
     pub(crate) fn new(config: &SoundConfig) -> Self {
+        let mut descriptor = SoundOutputDeviceDescriptor::software(
+            config.backend.clone(),
+            config.sample_rate_hz,
+            config.channel_count,
+            config.block_size_frames,
+        );
+        descriptor.channel_layout = config.channel_layout.clone();
+
         Self {
-            descriptor: SoundOutputDeviceDescriptor::software(
-                config.backend.clone(),
-                config.sample_rate_hz,
-                config.channel_count,
-                config.block_size_frames,
-            ),
+            descriptor,
             state: SoundOutputDeviceState::Stopped,
             rendered_blocks: 0,
             rendered_frames: 0,

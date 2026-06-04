@@ -52,7 +52,7 @@ node_id = "menu_bar_component_root"
 kind = "native"
 type = "UiHostToolbar"
 children = [
-  { node = { node_id = "open_project", kind = "native", type = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }] } },
-  { node = { node_id = "save_project", kind = "native", type = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }] } },
+{ node = { node_id = "open_project", kind = "native", type = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.workbench.project.open" }] } },
+{ node = { node_id = "save_project", kind = "native", type = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.workbench.project.save" }] } },
 ]
 "##;

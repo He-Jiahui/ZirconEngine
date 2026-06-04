@@ -34,6 +34,11 @@ struct VertexOutput {
     @location(0) uv: vec2<f32>,
 };
 
+struct DeferredGeometryOutput {
+    @location(0) albedo: vec4<f32>,
+    @location(1) material: vec4<f32>,
+};
+
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
@@ -44,7 +49,19 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+fn fs_main(input: VertexOutput) -> DeferredGeometryOutput {
     let albedo = textureSample(albedo_tex, albedo_sampler, input.uv) * model_data.tint;
-    return albedo;
+    let metallic = clamp(material_properties.data0.x, 0.0, 1.0);
+    var roughness = material_properties.data0.y;
+    if (roughness <= 0.0) {
+        roughness = 1.0;
+    }
+    var occlusion = material_properties.data0.z;
+    if (occlusion <= 0.0) {
+        occlusion = 1.0;
+    }
+    return DeferredGeometryOutput(
+        albedo,
+        vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), 1.0)
+    );
 }

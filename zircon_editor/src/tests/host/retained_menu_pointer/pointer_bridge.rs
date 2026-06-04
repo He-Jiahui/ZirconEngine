@@ -51,10 +51,10 @@ fn shared_menu_pointer_bridge_resolves_popup_item_and_dismiss_overlay_routes() {
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 1,
-            action_id: "SaveProject".to_string(),
+            action_id: "workbench.project.save".to_string(),
         })
     );
-    assert_eq!(item.action_id.as_deref(), Some("SaveProject"));
+    assert_eq!(item.action_id.as_deref(), Some("workbench.project.save"));
     assert_eq!(item.state.open_menu_index, None);
     assert_eq!(item.state.hovered_menu_index, None);
     assert_eq!(item.state.hovered_item_index, None);
@@ -95,7 +95,7 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 5,
             item_index: 2,
-            action_id: "LoadPreset.alpha-00".to_string(),
+            action_id: "workbench.layout.preset.load.alpha-00".to_string(),
         })
     );
     assert_eq!(moved.state.hovered_menu_index, Some(5));

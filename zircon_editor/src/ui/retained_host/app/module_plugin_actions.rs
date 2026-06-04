@@ -181,32 +181,32 @@ enum ModulePluginAction<'a> {
 
 fn parse_module_plugin_action(action_id: &str) -> Option<ModulePluginAction<'_>> {
     action_id
-        .strip_prefix("Plugin.Enable.")
+        .strip_prefix("workbench.plugin.enable.")
         .map(|plugin_id| ModulePluginAction::SetEnabled {
             plugin_id,
             enabled: true,
         })
         .or_else(|| {
-            action_id.strip_prefix("Plugin.Disable.").map(|plugin_id| {
-                ModulePluginAction::SetEnabled {
+            action_id
+                .strip_prefix("workbench.plugin.disable.")
+                .map(|plugin_id| ModulePluginAction::SetEnabled {
                     plugin_id,
                     enabled: false,
-                }
-            })
+                })
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.Packaging.Next.")
+                .strip_prefix("workbench.plugin.packaging.next.")
                 .map(|plugin_id| ModulePluginAction::CyclePackaging { plugin_id })
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.TargetModes.Next.")
+                .strip_prefix("workbench.plugin.target_modes.next.")
                 .map(|plugin_id| ModulePluginAction::CycleTargetModes { plugin_id })
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.Feature.EnableDependencies.")
+                .strip_prefix("workbench.plugin.feature.enable_dependencies.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::EnableFeatureDependencies {
@@ -217,7 +217,7 @@ fn parse_module_plugin_action(action_id: &str) -> Option<ModulePluginAction<'_>>
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.Feature.Enable.")
+                .strip_prefix("workbench.plugin.feature.enable.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::SetFeatureEnabled {
@@ -229,7 +229,7 @@ fn parse_module_plugin_action(action_id: &str) -> Option<ModulePluginAction<'_>>
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.Feature.Disable.")
+                .strip_prefix("workbench.plugin.feature.disable.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::SetFeatureEnabled {
@@ -241,12 +241,12 @@ fn parse_module_plugin_action(action_id: &str) -> Option<ModulePluginAction<'_>>
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.Unload.")
+                .strip_prefix("workbench.plugin.unload.")
                 .map(|plugin_id| ModulePluginAction::Unload { plugin_id })
         })
         .or_else(|| {
             action_id
-                .strip_prefix("Plugin.HotReload.")
+                .strip_prefix("workbench.plugin.hot_reload.")
                 .map(|plugin_id| ModulePluginAction::HotReload { plugin_id })
         })
 }
@@ -492,34 +492,34 @@ mod tests {
     #[test]
     fn module_plugin_actions_parse_enable_policy_and_target_mode_updates() {
         assert_eq!(
-            parse_module_plugin_action("Plugin.Enable.physics"),
+            parse_module_plugin_action("workbench.plugin.enable.physics"),
             Some(ModulePluginAction::SetEnabled {
                 plugin_id: "physics",
                 enabled: true,
             })
         );
         assert_eq!(
-            parse_module_plugin_action("Plugin.Disable.physics"),
+            parse_module_plugin_action("workbench.plugin.disable.physics"),
             Some(ModulePluginAction::SetEnabled {
                 plugin_id: "physics",
                 enabled: false,
             })
         );
         assert_eq!(
-            parse_module_plugin_action("Plugin.Packaging.Next.physics"),
+            parse_module_plugin_action("workbench.plugin.packaging.next.physics"),
             Some(ModulePluginAction::CyclePackaging {
                 plugin_id: "physics"
             })
         );
         assert_eq!(
-            parse_module_plugin_action("Plugin.TargetModes.Next.physics"),
+            parse_module_plugin_action("workbench.plugin.target_modes.next.physics"),
             Some(ModulePluginAction::CycleTargetModes {
                 plugin_id: "physics"
             })
         );
         assert_eq!(
             parse_module_plugin_action(
-                "Plugin.Feature.Enable.sound.sound.timeline_animation_track"
+                "workbench.plugin.feature.enable.sound.sound.timeline_animation_track"
             ),
             Some(ModulePluginAction::SetFeatureEnabled {
                 plugin_id: "sound",
@@ -529,7 +529,7 @@ mod tests {
         );
         assert_eq!(
             parse_module_plugin_action(
-                "Plugin.Feature.EnableDependencies.sound.sound.timeline_animation_track"
+                "workbench.plugin.feature.enable_dependencies.sound.sound.timeline_animation_track"
             ),
             Some(ModulePluginAction::EnableFeatureDependencies {
                 plugin_id: "sound",
@@ -538,7 +538,7 @@ mod tests {
         );
         assert_eq!(
             parse_module_plugin_action(
-                "Plugin.Feature.Disable.sound.sound.timeline_animation_track"
+                "workbench.plugin.feature.disable.sound.sound.timeline_animation_track"
             ),
             Some(ModulePluginAction::SetFeatureEnabled {
                 plugin_id: "sound",
@@ -547,20 +547,23 @@ mod tests {
             })
         );
         assert_eq!(
-            parse_module_plugin_action("Plugin.Unload.physics"),
+            parse_module_plugin_action("workbench.plugin.unload.physics"),
             Some(ModulePluginAction::Unload {
                 plugin_id: "physics"
             })
         );
         assert_eq!(
-            parse_module_plugin_action("Plugin.HotReload.physics"),
+            parse_module_plugin_action("workbench.plugin.hot_reload.physics"),
             Some(ModulePluginAction::HotReload {
                 plugin_id: "physics"
             })
         );
-        assert_eq!(parse_module_plugin_action("Plugin.Unknown.physics"), None);
         assert_eq!(
-            parse_module_plugin_action("Plugin.Feature.Enable.sound"),
+            parse_module_plugin_action("workbench.plugin.unknown.physics"),
+            None
+        );
+        assert_eq!(
+            parse_module_plugin_action("workbench.plugin.feature.enable.sound"),
             None
         );
     }

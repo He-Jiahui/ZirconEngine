@@ -25,5 +25,8 @@ pub fn wgpu_backend_caps(
             features.contains(wgpu::Features::PARTIALLY_BOUND_BINDING_ARRAY),
         )
         .with_sparse_texture(false)
+        .with_debug_markers(true)
+        .with_debug_groups(true)
+        .with_graphics_debugger_capture(true)
         .with_acceleration_structures(AccelerationStructureCaps::disabled())
 }

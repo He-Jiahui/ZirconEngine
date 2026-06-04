@@ -7,14 +7,21 @@ display_name = "Workbench Module Workspace"
 [imports]
 widgets = [
   "res://ui/editor/components/workbench_additional_module_workspaces.zui#WorkbenchAdditionalModuleWorkspaces",
+  "res://ui/editor/components/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace",
+  "res://ui/editor/components/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace",
+  "res://ui/editor/components/workbench_effect_workspace.zui#WorkbenchEffectWorkspace",
+  "res://ui/editor/components/workbench_material_workspace.zui#WorkbenchMaterialWorkspace",
   "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces",
   "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer",
   "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace",
 ]
 styles = []
 
@@ -29,1044 +36,92 @@ classes = ["workbench-module-workspace", "workbench-panel"]
 props = { visibility = "visible" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
-  { node = "effect_workspace" },
-  { node = "material_workspace" },
-  { node = "behavior_workspace" },
-  { node = "assets_workspace" },
-  { node = "vfx_workspace" },
+  { node = "effect_workspace_host" },
+  { node = "material_workspace_host" },
+  { node = "behavior_workspace_host" },
+  { node = "assets_workspace_host" },
+  { node = "vfx_workspace_host" },
   { node = "additional_module_workspaces" },
+  { node = "extension_module_workspaces" },
+  { node = "generated_bottom_drawer" },
 ]
 
 [nodes.additional_module_workspaces]
-component = "WorkbenchAdditionalModuleWorkspaces"
+component = "Overlay"
 control_id = "WorkbenchAdditionalModuleWorkspacesHost"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "additional_module_workspaces_body" }]
 
-[nodes.effect_workspace]
-component = "HorizontalGroup"
-control_id = "WorkbenchModuleEffectWorkspace"
-classes = ["workbench-module-body"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "effect_rail_gap" }, { node = "effect_left" }, { node = "effect_center" }, { node = "effect_right" }]
-
-[nodes.effect_rail_gap]
-component = "Container"
-control_id = "WorkbenchEffectRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.effect_left]
-component = "VerticalGroup"
-control_id = "WorkbenchEffectLeftPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "effect_title" }, { node = "effect_rules_tab" }, { node = "effect_tags_tab" }, { node = "effect_simulation_tab" }, { node = "effect_asset_search" }, { node = "effect_health_regen_row" }, { node = "effect_damage_fire_row" }, { node = "effect_stack_row" }, { node = "effect_cue_row" }]
-
-[nodes.effect_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchEffectTitle"
-classes = ["workbench-section-title"]
-props = { text = "Gameplay Effect" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.effect_rules_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchEffectRulesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Rules", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectRulesTab", event = "Click", route = "WorkbenchModule.Effect.Rules" }]
-
-[nodes.effect_tags_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchEffectTagsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Tags", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectTagsTab", event = "Click", route = "WorkbenchModule.Effect.Tags" }]
-
-[nodes.effect_simulation_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchEffectSimulationTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Simulation", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectSimulationTab", event = "Click", route = "WorkbenchModule.Effect.Simulation" }]
-
-[nodes.effect_asset_search]
-component = "WorkbenchField"
-control_id = "WorkbenchEffectAssetSearch"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "", placeholder = "Search Effects..." }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectSearchEdit", event = "Change", route = "WorkbenchModule.Effect.Search.Edit" },
-  { id = "WorkbenchModule/EffectSearchCommit", event = "Submit", route = "WorkbenchModule.Effect.Search.Commit" },
-]
-
-[nodes.effect_health_regen_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchEffectHealthRegenRow"
-classes = ["workbench-list-row"]
-props = { text = "GE_HealthRegen", value = "ge_health_regen", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectHealthRegenRow", event = "Click", route = "WorkbenchModule.Effect.Asset.HealthRegen" }]
-
-[nodes.effect_damage_fire_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchEffectDamageFireRow"
-classes = ["workbench-list-row"]
-props = { text = "GE_DamageFire", value = "ge_damage_fire", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectDamageFireRow", event = "Click", route = "WorkbenchModule.Effect.Asset.DamageFire" }]
-
-[nodes.effect_stack_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchEffectStackRow"
-classes = ["workbench-list-row"]
-props = { text = "Stacking Rules", value = "effect_stack", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectStackRow", event = "Click", route = "WorkbenchModule.Effect.Stack" }]
-
-[nodes.effect_cue_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchEffectCueRow"
-classes = ["workbench-list-row"]
-props = { text = "Gameplay Cues", value = "effect_cues", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectCueRow", event = "Click", route = "WorkbenchModule.Effect.Cues" }]
-
-[nodes.effect_center]
-component = "VerticalGroup"
-control_id = "WorkbenchEffectCenterPanel"
-classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "effect_center_header" }, { node = "effect_canvas" }, { node = "effect_output" }]
-
-[nodes.effect_center_header]
-component = "HorizontalGroup"
-control_id = "WorkbenchEffectCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
-children = [{ node = "effect_center_title" }, { node = "effect_header_fill" }, { node = "effect_apply_button" }]
-
-[nodes.effect_center_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchEffectCenterTitle"
-classes = ["workbench-section-title"]
-props = { text = "GE_HealthRegen" }
-layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.effect_header_fill]
-component = "Container"
-control_id = "WorkbenchEffectHeaderFill"
+[nodes.additional_module_workspaces_body]
+component = "WorkbenchAdditionalModuleWorkspaces"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.effect_apply_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchEffectApplyButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 76.0, preferred = 76.0, max = 86.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectApply", event = "Click", route = "WorkbenchModule.Effect.Apply" }]
+[nodes.extension_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchExtensionModuleWorkspacesHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "extension_module_workspaces_body" }]
 
-[nodes.effect_canvas]
-component = "VerticalGroup"
-control_id = "WorkbenchEffectCanvas"
-classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "effect_duration_row" }, { node = "effect_period_row" }, { node = "effect_policy_row" }, { node = "effect_mod_table" }, { node = "effect_mod_health_row" }, { node = "effect_mod_healing_row" }, { node = "effect_mod_cap_row" }, { node = "effect_graph_title" }, { node = "effect_graph_row" }]
-
-[nodes.effect_duration_row]
-component = "WorkbenchPropertyRow"
-control_id = "WorkbenchEffectDurationRow"
-classes = ["workbench-property-row"]
-props = { text = "Duration", value = "10.0 s" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectDurationRow", event = "Click", route = "WorkbenchModule.Effect.Duration" }]
-
-[nodes.effect_period_row]
-component = "WorkbenchPropertyRow"
-control_id = "WorkbenchEffectPeriodRow"
-classes = ["workbench-property-row"]
-props = { text = "Period", value = "1.0 s" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectPeriodRow", event = "Click", route = "WorkbenchModule.Effect.Period" }]
-
-[nodes.effect_policy_row]
-component = "WorkbenchDropdown"
-control_id = "WorkbenchEffectPolicyDropdown"
-classes = ["workbench-field", "workbench-dropdown"]
-props = { value = "has_duration", value_text = "Has Duration", options = ["instant", "has_duration", "infinite"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectPolicyEdit", event = "Change", route = "WorkbenchModule.Effect.Policy.Edit" },
-  { id = "WorkbenchModule/EffectPolicyCommit", event = "Submit", route = "WorkbenchModule.Effect.Policy.Commit" },
-]
-
-[nodes.effect_mod_table]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectModifierTable"
-classes = ["workbench-table-row", "workbench-table-header"]
-props = { text = "Attribute     Op       Value       Source", value = "modifier", options = ["Health", "Add", "+5.0", "Periodic"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-
-[nodes.effect_mod_health_row]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectModifierHealthRow"
-classes = ["workbench-table-row"]
-props = { text = "HealthRegen     Health        Additive       Scalable Float", value = "health_regen", options = ["HealthRegen", "Health", "Additive", "Scalable Float"], selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectModifierHealth", event = "Click", route = "WorkbenchModule.Effect.Modifier.HealthRegen" }]
-
-[nodes.effect_mod_healing_row]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectModifierHealingRow"
-classes = ["workbench-table-row"]
-props = { text = "IncomingHealing Healing       Multiply       Scalable Float", value = "incoming_healing", options = ["IncomingHealing", "Healing", "Multiply", "Scalable Float"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectModifierHealing", event = "Click", route = "WorkbenchModule.Effect.Modifier.IncomingHealing" }]
-
-[nodes.effect_mod_cap_row]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectModifierCapRow"
-classes = ["workbench-table-row"]
-props = { text = "MaxHealthCap    Max Health    Additive       Captured Attribute", value = "max_health_cap", options = ["MaxHealthCap", "Max Health", "Additive", "Captured Attribute"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectModifierCap", event = "Click", route = "WorkbenchModule.Effect.Modifier.MaxHealthCap" }]
-
-[nodes.effect_graph_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchEffectGraphTitle"
-classes = ["workbench-section-title"]
-props = { text = "Dependency Graph" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.effect_graph_row]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectGraphRow"
-classes = ["workbench-table-row"]
-props = { text = "Source HealthRegen  ->  Health Attribute  ->  Clamp Health", value = "effect_graph", options = ["Source HealthRegen", "Health Attribute", "Clamp Health"], selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectGraphSelect", event = "Click", route = "WorkbenchModule.Effect.Graph.Select" }]
-
-[nodes.effect_output]
-component = "WorkbenchListRow"
-control_id = "WorkbenchEffectOutputRow"
-classes = ["workbench-list-row"]
-props = { text = "Simulation Output: +50 health over 10 seconds", value = "effect_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectOutput", event = "Click", route = "WorkbenchModule.Effect.Output" }]
-
-[nodes.effect_right]
-component = "VerticalGroup"
-control_id = "WorkbenchEffectRightPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "effect_details_title" }, { node = "effect_name_field" }, { node = "effect_tag_field" }, { node = "effect_stack_field" }, { node = "effect_magnitude_field" }, { node = "effect_attribute_preview_row" }]
-
-[nodes.effect_details_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchEffectDetailsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Details" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.effect_name_field]
-component = "WorkbenchField"
-control_id = "WorkbenchEffectNameField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "GE_HealthRegen" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectNameEdit", event = "Change", route = "WorkbenchModule.Effect.Name.Edit" },
-  { id = "WorkbenchModule/EffectNameCommit", event = "Submit", route = "WorkbenchModule.Effect.Name.Commit" },
-]
-
-[nodes.effect_tag_field]
-component = "WorkbenchField"
-control_id = "WorkbenchEffectTagField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Effect.Health.Regen" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectTagEdit", event = "Change", route = "WorkbenchModule.Effect.Tag.Edit" },
-  { id = "WorkbenchModule/EffectTagCommit", event = "Submit", route = "WorkbenchModule.Effect.Tag.Commit" },
-]
-
-[nodes.effect_stack_field]
-component = "WorkbenchField"
-control_id = "WorkbenchEffectStackField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Aggregate by Source" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectStackEdit", event = "Change", route = "WorkbenchModule.Effect.Stack.Edit" },
-  { id = "WorkbenchModule/EffectStackCommit", event = "Submit", route = "WorkbenchModule.Effect.Stack.Commit" },
-]
-
-[nodes.effect_magnitude_field]
-component = "WorkbenchField"
-control_id = "WorkbenchEffectMagnitudeField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Magnitude: 10.0" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/EffectMagnitudeEdit", event = "Change", route = "WorkbenchModule.Effect.Magnitude.Edit" },
-  { id = "WorkbenchModule/EffectMagnitudeCommit", event = "Submit", route = "WorkbenchModule.Effect.Magnitude.Commit" },
-]
-
-[nodes.effect_attribute_preview_row]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchEffectAttributePreviewRow"
-classes = ["workbench-table-row"]
-props = { text = "Preview Level 1       Health +10.0", value = "attribute_preview", options = ["Preview Level 1", "Health +10.0"], selected = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/EffectAttributePreview", event = "Click", route = "WorkbenchModule.Effect.AttributePreview" }]
-
-[nodes.material_workspace]
-component = "HorizontalGroup"
-control_id = "WorkbenchModuleMaterialWorkspace"
-classes = ["workbench-module-body"]
-props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_rail_gap" }, { node = "material_left" }, { node = "material_center" }, { node = "material_right" }]
-
-[nodes.material_rail_gap]
-component = "Container"
-control_id = "WorkbenchMaterialRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.material_left]
-component = "VerticalGroup"
-control_id = "WorkbenchMaterialLeftPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_title" }, { node = "material_graph_tab" }, { node = "material_preview_tab" }, { node = "material_shader_tab" }, { node = "material_base_color_row" }, { node = "material_normal_row" }]
-
-[nodes.material_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchMaterialTitle"
-classes = ["workbench-section-title"]
-props = { text = "Material" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.material_graph_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialGraphTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Graph", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialGraphTab", event = "Click", route = "WorkbenchModule.Material.Graph" }]
-
-[nodes.material_preview_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialPreviewTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Preview", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialPreviewTab", event = "Click", route = "WorkbenchModule.Material.Preview" }]
-
-[nodes.material_shader_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialShaderTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Shader", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialShaderTab", event = "Click", route = "WorkbenchModule.Material.Shader" }]
-
-[nodes.material_base_color_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchMaterialBaseColorRow"
-classes = ["workbench-list-row"]
-props = { text = "Base Color", value = "base_color", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialBaseColorRow", event = "Click", route = "WorkbenchModule.Material.BaseColor" }]
-
-[nodes.material_normal_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchMaterialNormalRow"
-classes = ["workbench-list-row"]
-props = { text = "Normal Map", value = "normal_map", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialNormalRow", event = "Click", route = "WorkbenchModule.Material.Normal" }]
-
-[nodes.material_center]
-component = "VerticalGroup"
-control_id = "WorkbenchMaterialCenterPanel"
-classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_center_header" }, { node = "material_graph_canvas" }, { node = "material_output" }]
-
-[nodes.material_center_header]
-component = "HorizontalGroup"
-control_id = "WorkbenchMaterialCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
-children = [{ node = "material_center_title" }, { node = "material_header_fill" }, { node = "material_compile_button" }]
-
-[nodes.material_center_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchMaterialCenterTitle"
-classes = ["workbench-section-title"]
-props = { text = "M_Rock_Cliff" }
-layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.material_header_fill]
-component = "Container"
-control_id = "WorkbenchMaterialHeaderFill"
+[nodes.extension_module_workspaces_body]
+component = "WorkbenchExtensionModuleWorkspaces"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.material_compile_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchMaterialCompileButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Compile", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialCompile", event = "Click", route = "WorkbenchModule.Material.Compile" }]
+[nodes.generated_bottom_drawer]
+component = "Overlay"
+control_id = "WorkbenchGeneratedBottomDrawerHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_drawer_body" }]
 
-[nodes.material_graph_canvas]
-component = "VerticalGroup"
-control_id = "WorkbenchMaterialGraphCanvas"
-classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_node_row_01" }, { node = "material_node_row_02" }, { node = "material_node_row_03" }]
-
-[nodes.material_node_row_01]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchMaterialNodeRow01"
-classes = ["workbench-table-row"]
-props = { text = "Texture Sample     Albedo      T_Rock_A", value = "node_01", options = ["Texture Sample", "Albedo", "T_Rock_A", "RGBA"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialNodeAlbedo", event = "Click", route = "WorkbenchModule.Material.Node.Albedo" }]
-
-[nodes.material_node_row_02]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchMaterialNodeRow02"
-classes = ["workbench-table-row"]
-props = { text = "Multiply           Roughness   0.72", value = "node_02", options = ["Multiply", "Roughness", "0.72", "float"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialNodeRoughness", event = "Click", route = "WorkbenchModule.Material.Node.Roughness" }]
-
-[nodes.material_node_row_03]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchMaterialNodeRow03"
-classes = ["workbench-table-row"]
-props = { text = "Normal             Tangent     T_Rock_N", value = "node_03", options = ["Normal", "Tangent", "T_Rock_N", "RGB"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialNodeNormal", event = "Click", route = "WorkbenchModule.Material.Node.Normal" }]
-
-[nodes.material_output]
-component = "WorkbenchListRow"
-control_id = "WorkbenchMaterialOutputRow"
-classes = ["workbench-list-row"]
-props = { text = "Shader Output: 0 errors, 2 warnings", value = "material_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialOutput", event = "Click", route = "WorkbenchModule.Material.Output" }]
-
-[nodes.material_right]
-component = "VerticalGroup"
-control_id = "WorkbenchMaterialRightPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_details_title" }, { node = "material_domain_dropdown" }, { node = "material_blend_dropdown" }, { node = "material_preview_field" }]
-
-[nodes.material_details_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchMaterialDetailsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Details" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.material_domain_dropdown]
-component = "WorkbenchDropdown"
-control_id = "WorkbenchMaterialDomainDropdown"
-classes = ["workbench-field", "workbench-dropdown"]
-props = { value = "surface", value_text = "Surface", options = ["surface", "post_process", "decal"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/MaterialDomainEdit", event = "Change", route = "WorkbenchModule.Material.Domain.Edit" },
-  { id = "WorkbenchModule/MaterialDomainCommit", event = "Submit", route = "WorkbenchModule.Material.Domain.Commit" },
-]
-
-[nodes.material_blend_dropdown]
-component = "WorkbenchDropdown"
-control_id = "WorkbenchMaterialBlendDropdown"
-classes = ["workbench-field", "workbench-dropdown"]
-props = { value = "opaque", value_text = "Opaque", options = ["opaque", "masked", "translucent"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/MaterialBlendEdit", event = "Change", route = "WorkbenchModule.Material.Blend.Edit" },
-  { id = "WorkbenchModule/MaterialBlendCommit", event = "Submit", route = "WorkbenchModule.Material.Blend.Commit" },
-]
-
-[nodes.material_preview_field]
-component = "WorkbenchField"
-control_id = "WorkbenchMaterialPreviewField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Preview Mesh: Sphere" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/MaterialPreviewEdit", event = "Change", route = "WorkbenchModule.Material.Preview.Edit" },
-  { id = "WorkbenchModule/MaterialPreviewCommit", event = "Submit", route = "WorkbenchModule.Material.Preview.Commit" },
-]
-
-[nodes.behavior_workspace]
-component = "HorizontalGroup"
-control_id = "WorkbenchModuleBehaviorWorkspace"
-classes = ["workbench-module-body"]
-props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "behavior_rail_gap" }, { node = "behavior_left" }, { node = "behavior_center" }, { node = "behavior_right" }]
-
-[nodes.behavior_rail_gap]
-component = "Container"
-control_id = "WorkbenchBehaviorRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.behavior_left]
-component = "VerticalGroup"
-control_id = "WorkbenchBehaviorLeftPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "behavior_title" }, { node = "behavior_tree_tab" }, { node = "behavior_blackboard_tab" }, { node = "behavior_debug_tab" }, { node = "behavior_selector_row" }, { node = "behavior_attack_row" }]
-
-[nodes.behavior_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchBehaviorTitle"
-classes = ["workbench-section-title"]
-props = { text = "Behavior Tree" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.behavior_tree_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchBehaviorTreeTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Tree", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorTreeTab", event = "Click", route = "WorkbenchModule.Behavior.Tree" }]
-
-[nodes.behavior_blackboard_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchBehaviorBlackboardTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Blackboard", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorBlackboardTab", event = "Click", route = "WorkbenchModule.Behavior.Blackboard" }]
-
-[nodes.behavior_debug_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchBehaviorDebugTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Debugger", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorDebugTab", event = "Click", route = "WorkbenchModule.Behavior.Debug" }]
-
-[nodes.behavior_selector_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchBehaviorSelectorRow"
-classes = ["workbench-list-row"]
-props = { text = "Selector: Combat Root", value = "selector", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorSelectorRow", event = "Click", route = "WorkbenchModule.Behavior.Selector" }]
-
-[nodes.behavior_attack_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchBehaviorAttackRow"
-classes = ["workbench-list-row"]
-props = { text = "Task: Attack Target", value = "attack", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorAttackRow", event = "Click", route = "WorkbenchModule.Behavior.Attack" }]
-
-[nodes.behavior_center]
-component = "VerticalGroup"
-control_id = "WorkbenchBehaviorCenterPanel"
-classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "behavior_center_header" }, { node = "behavior_graph_canvas" }, { node = "behavior_output" }]
-
-[nodes.behavior_center_header]
-component = "HorizontalGroup"
-control_id = "WorkbenchBehaviorCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
-children = [{ node = "behavior_center_title" }, { node = "behavior_header_fill" }, { node = "behavior_validate_button" }]
-
-[nodes.behavior_center_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchBehaviorCenterTitle"
-classes = ["workbench-section-title"]
-props = { text = "BT_Enemy" }
-layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.behavior_header_fill]
-component = "Container"
-control_id = "WorkbenchBehaviorHeaderFill"
+[nodes.generated_bottom_drawer_body]
+component = "WorkbenchGeneratedBottomDrawer"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.behavior_validate_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchBehaviorValidateButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorValidate", event = "Click", route = "WorkbenchModule.Behavior.Validate" }]
+[nodes.effect_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchEffectWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_workspace_body" }]
 
-[nodes.behavior_graph_canvas]
-component = "VerticalGroup"
-control_id = "WorkbenchBehaviorGraphCanvas"
-classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "behavior_node_row_01" }, { node = "behavior_node_row_02" }, { node = "behavior_node_row_03" }]
-
-[nodes.behavior_node_row_01]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchBehaviorNodeRow01"
-classes = ["workbench-table-row"]
-props = { text = "Selector        Success      Running", value = "node_01", options = ["Selector", "Success", "Running", "root"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorNodeSelector", event = "Click", route = "WorkbenchModule.Behavior.Node.Selector" }]
-
-[nodes.behavior_node_row_02]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchBehaviorNodeRow02"
-classes = ["workbench-table-row"]
-props = { text = "Sequence        Attack       Pending", value = "node_02", options = ["Sequence", "Attack", "Pending", "child"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorNodeAttack", event = "Click", route = "WorkbenchModule.Behavior.Node.Attack" }]
-
-[nodes.behavior_node_row_03]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchBehaviorNodeRow03"
-classes = ["workbench-table-row"]
-props = { text = "Decorator       Cooldown     0.8 s", value = "node_03", options = ["Decorator", "Cooldown", "0.8 s", "guard"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorNodeCooldown", event = "Click", route = "WorkbenchModule.Behavior.Node.Cooldown" }]
-
-[nodes.behavior_output]
-component = "WorkbenchListRow"
-control_id = "WorkbenchBehaviorOutputRow"
-classes = ["workbench-list-row"]
-props = { text = "Runtime Trace: branch changed to Attack", value = "behavior_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/BehaviorOutput", event = "Click", route = "WorkbenchModule.Behavior.Output" }]
-
-[nodes.behavior_right]
-component = "VerticalGroup"
-control_id = "WorkbenchBehaviorRightPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "behavior_details_title" }, { node = "behavior_blackboard_field" }, { node = "behavior_ai_field" }, { node = "behavior_state_field" }]
-
-[nodes.behavior_details_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchBehaviorDetailsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Details" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.behavior_blackboard_field]
-component = "WorkbenchField"
-control_id = "WorkbenchBehaviorBlackboardField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "BB_Enemy" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/BehaviorBlackboardEdit", event = "Change", route = "WorkbenchModule.Behavior.Blackboard.Edit" },
-  { id = "WorkbenchModule/BehaviorBlackboardCommit", event = "Submit", route = "WorkbenchModule.Behavior.Blackboard.Commit" },
-]
-
-[nodes.behavior_ai_field]
-component = "WorkbenchField"
-control_id = "WorkbenchBehaviorAiField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "AIController_Enemy" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/BehaviorAiEdit", event = "Change", route = "WorkbenchModule.Behavior.Ai.Edit" },
-  { id = "WorkbenchModule/BehaviorAiCommit", event = "Submit", route = "WorkbenchModule.Behavior.Ai.Commit" },
-]
-
-[nodes.behavior_state_field]
-component = "WorkbenchField"
-control_id = "WorkbenchBehaviorStateField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Preview: Running" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/BehaviorStateEdit", event = "Change", route = "WorkbenchModule.Behavior.State.Edit" },
-  { id = "WorkbenchModule/BehaviorStateCommit", event = "Submit", route = "WorkbenchModule.Behavior.State.Commit" },
-]
-
-[nodes.assets_workspace]
-component = "HorizontalGroup"
-control_id = "WorkbenchModuleAssetsWorkspace"
-classes = ["workbench-module-body"]
-props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "assets_rail_gap" }, { node = "assets_left" }, { node = "assets_center" }, { node = "assets_right" }]
-
-[nodes.assets_rail_gap]
-component = "Container"
-control_id = "WorkbenchAssetsRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.assets_left]
-component = "VerticalGroup"
-control_id = "WorkbenchAssetsLeftPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "assets_title" }, { node = "assets_browser_tab" }, { node = "assets_import_tab" }, { node = "assets_validation_tab" }, { node = "assets_forest_row" }, { node = "assets_material_row" }]
-
-[nodes.assets_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchAssetsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Assets" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.assets_browser_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAssetsBrowserTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Browser", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsBrowserTab", event = "Click", route = "WorkbenchModule.Assets.Browser" }]
-
-[nodes.assets_import_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAssetsImportTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Import Queue", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsImportTab", event = "Click", route = "WorkbenchModule.Assets.Import" }]
-
-[nodes.assets_validation_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAssetsValidationTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Validation", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsValidationTab", event = "Click", route = "WorkbenchModule.Assets.Validation" }]
-
-[nodes.assets_forest_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchAssetsForestRow"
-classes = ["workbench-list-row"]
-props = { text = "Forest", value = "forest", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsForestRow", event = "Click", route = "WorkbenchModule.Assets.Forest" }]
-
-[nodes.assets_material_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchAssetsMaterialRow"
-classes = ["workbench-list-row"]
-props = { text = "Materials", value = "materials", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsMaterialRow", event = "Click", route = "WorkbenchModule.Assets.Materials" }]
-
-[nodes.assets_center]
-component = "VerticalGroup"
-control_id = "WorkbenchAssetsCenterPanel"
-classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "assets_center_header" }, { node = "assets_table" }, { node = "assets_output" }]
-
-[nodes.assets_center_header]
-component = "HorizontalGroup"
-control_id = "WorkbenchAssetsCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
-children = [{ node = "assets_center_title" }, { node = "assets_header_fill" }, { node = "assets_import_button" }]
-
-[nodes.assets_center_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchAssetsCenterTitle"
-classes = ["workbench-section-title"]
-props = { text = "Content/Environment/Forest" }
-layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.assets_header_fill]
-component = "Container"
-control_id = "WorkbenchAssetsHeaderFill"
+[nodes.effect_workspace_body]
+component = "WorkbenchEffectWorkspace"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.assets_import_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAssetsImportButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Import", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsImport", event = "Click", route = "WorkbenchModule.Assets.ImportNow" }]
+[nodes.material_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchMaterialWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_workspace_body" }]
 
-[nodes.assets_table]
-component = "VerticalGroup"
-control_id = "WorkbenchAssetsTable"
-classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "assets_table_row_01" }, { node = "assets_table_row_02" }, { node = "assets_table_row_03" }]
-
-[nodes.assets_table_row_01]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchAssetsTableRow01"
-classes = ["workbench-table-row"]
-props = { text = "SM_Tree_Oak_01     Static Mesh     2.4 MB     Today", value = "asset_01", options = ["SM_Tree_Oak_01", "Static Mesh", "2.4 MB", "Today"], selected = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableTree", event = "Click", route = "WorkbenchModule.Assets.Table.Tree" }]
-
-[nodes.assets_table_row_02]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchAssetsTableRow02"
-classes = ["workbench-table-row"]
-props = { text = "M_Bark_Master      Material        512 KB     10m ago", value = "asset_02", options = ["M_Bark_Master", "Material", "512 KB", "10m ago"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableMaterial", event = "Click", route = "WorkbenchModule.Assets.Table.Material" }]
-
-[nodes.assets_table_row_03]
-component = "WorkbenchTableRow"
-control_id = "WorkbenchAssetsTableRow03"
-classes = ["workbench-table-row"]
-props = { text = "T_Leaf_N           Texture         1.2 MB     1h ago", value = "asset_03", options = ["T_Leaf_N", "Texture", "1.2 MB", "1h ago"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableTexture", event = "Click", route = "WorkbenchModule.Assets.Table.Texture" }]
-
-[nodes.assets_output]
-component = "WorkbenchListRow"
-control_id = "WorkbenchAssetsOutputRow"
-classes = ["workbench-list-row"]
-props = { text = "Validation: 19 issues across imported content", value = "assets_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsOutput", event = "Click", route = "WorkbenchModule.Assets.Output" }]
-
-[nodes.assets_right]
-component = "VerticalGroup"
-control_id = "WorkbenchAssetsRightPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "assets_details_title" }, { node = "assets_type_field" }, { node = "assets_path_field" }, { node = "assets_owner_field" }]
-
-[nodes.assets_details_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchAssetsDetailsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Details" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.assets_type_field]
-component = "WorkbenchField"
-control_id = "WorkbenchAssetsTypeField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Static Mesh" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/AssetsTypeEdit", event = "Change", route = "WorkbenchModule.Assets.Type.Edit" },
-  { id = "WorkbenchModule/AssetsTypeCommit", event = "Submit", route = "WorkbenchModule.Assets.Type.Commit" },
-]
-
-[nodes.assets_path_field]
-component = "WorkbenchField"
-control_id = "WorkbenchAssetsPathField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "/Game/Environment/Forest" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/AssetsPathEdit", event = "Change", route = "WorkbenchModule.Assets.Path.Edit" },
-  { id = "WorkbenchModule/AssetsPathCommit", event = "Submit", route = "WorkbenchModule.Assets.Path.Commit" },
-]
-
-[nodes.assets_owner_field]
-component = "WorkbenchField"
-control_id = "WorkbenchAssetsOwnerField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Source: glTF importer" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/AssetsOwnerEdit", event = "Change", route = "WorkbenchModule.Assets.Owner.Edit" },
-  { id = "WorkbenchModule/AssetsOwnerCommit", event = "Submit", route = "WorkbenchModule.Assets.Owner.Commit" },
-]
-
-[nodes.vfx_workspace]
-component = "HorizontalGroup"
-control_id = "WorkbenchModuleVfxWorkspace"
-classes = ["workbench-module-body"]
-props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "vfx_rail_gap" }, { node = "vfx_left" }, { node = "vfx_center" }, { node = "vfx_right" }]
-
-[nodes.vfx_rail_gap]
-component = "Container"
-control_id = "WorkbenchVfxRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.vfx_left]
-component = "VerticalGroup"
-control_id = "WorkbenchVfxLeftPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "vfx_title" }, { node = "vfx_emitters_tab" }, { node = "vfx_timeline_tab" }, { node = "vfx_compile_tab" }, { node = "vfx_emitter_row" }, { node = "vfx_curve_row" }]
-
-[nodes.vfx_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchVfxTitle"
-classes = ["workbench-section-title"]
-props = { text = "VFX" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.vfx_emitters_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchVfxEmittersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Emitters", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxEmittersTab", event = "Click", route = "WorkbenchModule.Vfx.Emitters" }]
-
-[nodes.vfx_timeline_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchVfxTimelineTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Timeline", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxTimelineTab", event = "Click", route = "WorkbenchModule.Vfx.Timeline" }]
-
-[nodes.vfx_compile_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchVfxCompileTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Compile", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxCompileTab", event = "Click", route = "WorkbenchModule.Vfx.Compile" }]
-
-[nodes.vfx_emitter_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchVfxEmitterRow"
-classes = ["workbench-list-row"]
-props = { text = "Emitter: Sparks", value = "sparks", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxEmitterRow", event = "Click", route = "WorkbenchModule.Vfx.Emitter" }]
-
-[nodes.vfx_curve_row]
-component = "WorkbenchListRow"
-control_id = "WorkbenchVfxCurveRow"
-classes = ["workbench-list-row"]
-props = { text = "Curve: Spawn Rate", value = "spawn_rate", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxCurveRow", event = "Click", route = "WorkbenchModule.Vfx.Curve" }]
-
-[nodes.vfx_center]
-component = "VerticalGroup"
-control_id = "WorkbenchVfxCenterPanel"
-classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "vfx_center_header" }, { node = "vfx_canvas" }, { node = "vfx_output" }]
-
-[nodes.vfx_center_header]
-component = "HorizontalGroup"
-control_id = "WorkbenchVfxCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
-children = [{ node = "vfx_center_title" }, { node = "vfx_header_fill" }, { node = "vfx_simulate_button" }]
-
-[nodes.vfx_center_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchVfxCenterTitle"
-classes = ["workbench-section-title"]
-props = { text = "P_Bolt_01" }
-layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.vfx_header_fill]
-component = "Container"
-control_id = "WorkbenchVfxHeaderFill"
+[nodes.material_workspace_body]
+component = "WorkbenchMaterialWorkspace"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.vfx_simulate_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchVfxSimulateButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 90.0, preferred = 90.0, max = 100.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxSimulate", event = "Click", route = "WorkbenchModule.Vfx.Simulate" }]
+[nodes.behavior_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchBehaviorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_workspace_body" }]
 
-[nodes.vfx_canvas]
-component = "VerticalGroup"
-control_id = "WorkbenchVfxCanvas"
-classes = ["workbench-panel", "workbench-module-canvas"]
-props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "vfx_spawn_row" }, { node = "vfx_lifetime_row" }, { node = "vfx_material_row" }]
+[nodes.behavior_workspace_body]
+component = "WorkbenchBehaviorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.vfx_spawn_row]
-component = "WorkbenchPropertyRow"
-control_id = "WorkbenchVfxSpawnRow"
-classes = ["workbench-property-row"]
-props = { text = "Spawn Rate", value = "280 / sec" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxSpawnRow", event = "Click", route = "WorkbenchModule.Vfx.Spawn" }]
+[nodes.vfx_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchVfxWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_workspace_body" }]
 
-[nodes.vfx_lifetime_row]
-component = "WorkbenchPropertyRow"
-control_id = "WorkbenchVfxLifetimeRow"
-classes = ["workbench-property-row"]
-props = { text = "Lifetime", value = "0.65 s" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxLifetimeRow", event = "Click", route = "WorkbenchModule.Vfx.Lifetime" }]
+[nodes.vfx_workspace_body]
+component = "WorkbenchVfxWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.vfx_material_row]
-component = "WorkbenchPropertyRow"
-control_id = "WorkbenchVfxMaterialRow"
-classes = ["workbench-property-row"]
-props = { text = "Material", value = "M_Bolt_01" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxMaterialRow", event = "Click", route = "WorkbenchModule.Vfx.Material" }]
+[nodes.assets_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchAssetsWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "assets_workspace_body" }]
 
-[nodes.vfx_output]
-component = "WorkbenchListRow"
-control_id = "WorkbenchVfxOutputRow"
-classes = ["workbench-list-row"]
-props = { text = "Compile Output: 60 fps preview, no errors", value = "vfx_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/VfxOutput", event = "Click", route = "WorkbenchModule.Vfx.Output" }]
-
-[nodes.vfx_right]
-component = "VerticalGroup"
-control_id = "WorkbenchVfxRightPanel"
-classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "vfx_details_title" }, { node = "vfx_system_field" }, { node = "vfx_bounds_field" }, { node = "vfx_sort_field" }]
-
-[nodes.vfx_details_title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchVfxDetailsTitle"
-classes = ["workbench-section-title"]
-props = { text = "Details" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.vfx_system_field]
-component = "WorkbenchField"
-control_id = "WorkbenchVfxSystemField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "P_Bolt_01" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/VfxSystemEdit", event = "Change", route = "WorkbenchModule.Vfx.System.Edit" },
-  { id = "WorkbenchModule/VfxSystemCommit", event = "Submit", route = "WorkbenchModule.Vfx.System.Commit" },
-]
-
-[nodes.vfx_bounds_field]
-component = "WorkbenchField"
-control_id = "WorkbenchVfxBoundsField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Fixed Bounds: 400 cm" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/VfxBoundsEdit", event = "Change", route = "WorkbenchModule.Vfx.Bounds.Edit" },
-  { id = "WorkbenchModule/VfxBoundsCommit", event = "Submit", route = "WorkbenchModule.Vfx.Bounds.Commit" },
-]
-
-[nodes.vfx_sort_field]
-component = "WorkbenchField"
-control_id = "WorkbenchVfxSortField"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Sort: Depth" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [
-  { id = "WorkbenchModule/VfxSortEdit", event = "Change", route = "WorkbenchModule.Vfx.Sort.Edit" },
-  { id = "WorkbenchModule/VfxSortCommit", event = "Submit", route = "WorkbenchModule.Vfx.Sort.Commit" },
-]
+[nodes.assets_workspace_body]
+component = "WorkbenchAssetsWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

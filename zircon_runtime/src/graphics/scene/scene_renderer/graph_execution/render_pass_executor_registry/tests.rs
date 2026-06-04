@@ -168,6 +168,7 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
     for executor_id in [
         "post.bloom",
         "post.bloom-extract",
+        "post.depth-of-field-prepare",
         "post.color-grade",
         "post.stack",
         "history.scene-color",
@@ -313,6 +314,19 @@ fn bloom_extract_executor_requires_post_process_context_instead_of_nooping() {
     assert_eq!(
         error,
         "bloom graph executor for pass `bloom-extract` requires post-process stack context"
+    );
+}
+
+#[test]
+fn depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "depth-of-field-prepare",
+        "post.depth-of-field-prepare",
+    );
+
+    assert_eq!(
+        error,
+        "depth-of-field prepare graph executor for pass `depth-of-field-prepare` requires post-process stack context"
     );
 }
 
@@ -760,6 +774,77 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
 }
 
 #[test]
+fn shadow_map_executor_requires_graph_shadow_map_resource_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context("shadow-map", "shadow.map");
+
+    assert_eq!(
+        error,
+        "render graph execution texture resource `shadow-map` is not bound"
+    );
+}
+
+#[test]
+fn shadow_map_executor_records_depth_only_pass_when_graph_resource_is_bound() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
+    let mut encoder = backend
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("shadow-map-executor-test"),
+        });
+    let scene_bind_group_layout =
+        backend
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("shadow-map-executor-empty-layout"),
+                entries: &[],
+            });
+    let scene_bind_group = backend
+        .device
+        .create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("shadow-map-executor-empty-bind-group"),
+            layout: &scene_bind_group_layout,
+            entries: &[],
+        });
+    let mut resources = RenderGraphExecutionResources::new();
+    import_shadow_map_texture(&mut resources, &backend.device);
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+        Arc::new(ProjectAssetManager::default()),
+        &backend.device,
+        &backend.queue,
+        wgpu::TextureFormat::Rgba8Unorm,
+    );
+    let mut plugin_outputs = RenderPluginRendererOutputs::default();
+    let gpu = RenderPassGpuExecutionContext::new_for_test(
+        &backend.device,
+        &backend.queue,
+        &mut encoder,
+        &frame,
+        &scene_bind_group,
+        &mut resources,
+        &mut plugin_outputs,
+        &mut screen_space_ui_renderer,
+    );
+    let mut context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+        "shadow-map",
+        RenderPassExecutorId::new("shadow.map"),
+        QueueLane::Graphics,
+        PassFlags::default(),
+        vec![RenderGraphPassResourceAccess {
+            name: "shadow-map".to_string(),
+            kind: RenderGraphResourceKind::TransientTexture,
+            access: RenderGraphResourceAccessKind::Write,
+            attachment_ops: Some(RenderGraphAttachmentOps::clear_store()),
+        }],
+    )
+    .with_gpu(gpu);
+
+    RenderPassExecutorRegistry::with_builtin_noop_executors()
+        .execute(&mut context)
+        .unwrap();
+}
+
+#[test]
 fn deferred_gbuffer_executor_requires_renderer_context_instead_of_nooping() {
     let backend = RenderBackend::new_offscreen().unwrap();
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
@@ -787,6 +872,11 @@ fn deferred_gbuffer_executor_requires_renderer_context_instead_of_nooping() {
         &mut resources,
         &backend.device,
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
+    );
+    import_test_texture(
+        &mut resources,
+        &backend.device,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
     );
     import_test_texture(
         &mut resources,
@@ -861,6 +951,7 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
     for resource in [
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
     ] {
@@ -1012,4 +1103,25 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
     RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)
         .expect("culled passes should not require executor registration");
+}
+
+fn import_shadow_map_texture(resources: &mut RenderGraphExecutionResources, device: &wgpu::Device) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("shadow-map"),
+        size: wgpu::Extent3d {
+            width: 16,
+            height: 16,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    resources.import_texture_view(
+        "shadow-map",
+        texture.create_view(&wgpu::TextureViewDescriptor::default()),
+    );
 }

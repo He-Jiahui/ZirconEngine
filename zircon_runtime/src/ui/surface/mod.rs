@@ -7,6 +7,7 @@ mod frame_hit_test;
 mod input;
 mod interaction_gate;
 mod node_pool;
+mod popup_stack;
 mod property_mutation;
 mod reflection_snapshot;
 mod render;

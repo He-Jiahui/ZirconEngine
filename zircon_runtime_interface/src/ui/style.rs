@@ -217,10 +217,12 @@ pub enum UiPainterFamily {
     Slider,
     Dropdown,
     PopupRow,
+    Alert,
     Tooltip,
     TextField,
     ListRow,
     TreeRow,
+    TableRow,
     Tab,
     Toast,
 }
@@ -289,7 +291,10 @@ impl UiPainterState {
         self.hovered || self.drop_hovered || self.dragging
     }
 
-    pub const fn resolved_state_for_family(self, family: UiPainterFamily) -> UiPainterResolvedState {
+    pub const fn resolved_state_for_family(
+        self,
+        family: UiPainterFamily,
+    ) -> UiPainterResolvedState {
         match family {
             UiPainterFamily::Button => self.button_resolved_state(),
             UiPainterFamily::Checkbox | UiPainterFamily::Radio | UiPainterFamily::Toggle => {
@@ -300,10 +305,12 @@ impl UiPainterState {
             | UiPainterFamily::IconButton
             | UiPainterFamily::Dropdown
             | UiPainterFamily::PopupRow
+            | UiPainterFamily::Alert
             | UiPainterFamily::Tooltip
             | UiPainterFamily::TextField
             | UiPainterFamily::ListRow
             | UiPainterFamily::TreeRow
+            | UiPainterFamily::TableRow
             | UiPainterFamily::Tab
             | UiPainterFamily::Toast => self.interactive_resolved_state(),
         }

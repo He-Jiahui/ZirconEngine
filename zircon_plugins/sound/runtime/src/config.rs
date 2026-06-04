@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::sound::{
-    SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality,
+    SoundChannelLayout, SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -8,6 +8,7 @@ pub struct SoundConfig {
     pub backend: String,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
+    pub channel_layout: SoundChannelLayout,
     pub master_gain: f32,
     pub block_size_frames: usize,
     pub max_voices: usize,
@@ -31,11 +32,19 @@ impl Default for SoundConfig {
 
 impl SoundConfig {
     pub fn from_plugin_options(options: SoundPluginOptions) -> Self {
+        let channel_count = options.channel_count.max(1);
+        let channel_layout = if options.channel_layout.matches_channel_count(channel_count) {
+            options.channel_layout
+        } else {
+            SoundChannelLayout::for_channel_count(channel_count)
+        };
+
         Self {
             enabled: options.enabled,
             backend: options.backend,
             sample_rate_hz: options.sample_rate_hz,
-            channel_count: options.channel_count,
+            channel_count,
+            channel_layout,
             master_gain: options.global_volume_gain,
             block_size_frames: options.block_size_frames,
             max_voices: options.max_voices,

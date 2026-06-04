@@ -23,16 +23,14 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
     let components = read_ui_file("components.slint");
     for snippet in [
         "HubAnchoredPopupPanel,",
-        "HubDrawer,",
-        "HubDropDownSurface,",
-        "HubModalDrawer,",
-        "HubPopupMenu,",
+        "HubPopupDivider,",
+        "HubPopupProfileHeader,",
+        "HubPopupSectionHeader,",
         "HubPopupWindow,",
-        "HubSelectDropDownSurface,",
-        "HubSelectMenu,",
-        "HubWindowView,",
         "PopupPanel",
         "from \"overlays.slint\";",
+        "export { HubPopupMenu, HubSelectMenu, HubDropDownSurface, HubSelectDropDownSurface } from \"dropdown_components.slint\";",
+        "export { HubDrawer, HubModalDrawer, HubWindowView } from \"drawer_window_components.slint\";",
     ] {
         assert!(
             components.contains(snippet),
@@ -41,12 +39,9 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
     }
 
     let overlays = read_ui_file("overlays.slint");
+    let dropdowns = read_ui_file("dropdown_components.slint");
+    let drawer_window = read_ui_file("drawer_window_components.slint");
     for snippet in [
-        "Drawer as MaterialDrawer,",
-        "DropDownMenu,",
-        "ModalDrawer as MaterialModalDrawer,",
-        "MaterialWindow,",
-        "PopupMenu,",
         "export component HubAnchoredPopupPanel inherits PopupWindow",
         "export component HubPopupWindow inherits PopupWindow",
         "close-policy: close-on-click-outside;",
@@ -56,6 +51,26 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
         "PopupPanel {",
         "VerticalLayout {",
         "@children",
+        "export component HubPopupSectionHeader inherits Rectangle",
+        "MaterialText {",
+        "text: root.title;",
+        "text: root.meta;",
+        "style: MaterialTypography.label_large;",
+        "style: MaterialTypography.label_medium;",
+        "export component HubPopupProfileHeader inherits Rectangle",
+        "avatar-text",
+        "text: root.title;",
+        "text: root.subtitle;",
+        "export component HubPopupDivider inherits Rectangle",
+        "background: root.divider-color;",
+    ] {
+        assert!(
+            overlays.contains(snippet),
+            "overlays.slint must keep popup panel/window wrappers backed by the local Material template; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "import { DropDownMenu, MenuItem, MaterialStyleMetrics, PopupMenu } from \"material_bridge.slint\";",
         "export component HubPopupMenu inherits PopupMenu",
         "items: root.menu-items;",
         "export component HubSelectMenu inherits HubPopupMenu",
@@ -69,6 +84,16 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
         "select-width: HubTokens.input-width;",
         "select-height: HubTokens.input-field;",
         "dropdown-items: root.select-items;",
+    ] {
+        assert!(
+            dropdowns.contains(snippet),
+            "dropdown_components.slint must keep popup-menu/dropdown wrappers backed by the local Material template; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "Drawer as MaterialDrawer,",
+        "ModalDrawer as MaterialModalDrawer,",
+        "MaterialWindow,",
         "export component HubDrawer inherits MaterialDrawer",
         "min-width: root.drawer-width;",
         "export component HubModalDrawer inherits MaterialModalDrawer",
@@ -80,8 +105,25 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
         "background: HubVisualSpec.page-background;",
     ] {
         assert!(
-            overlays.contains(snippet),
-            "overlays.slint must keep popup/drawer/window wrappers backed by the local Material template; missing {snippet}"
+            drawer_window.contains(snippet),
+            "drawer_window_components.slint must keep drawer/window wrappers backed by the local Material template; missing {snippet}"
+        );
+    }
+    for moved_component in ["HubDrawer", "HubModalDrawer", "HubWindowView"] {
+        assert!(
+            !overlays.contains(&format!("export component {moved_component}")),
+            "overlays.slint should not retain drawer/window ownership after the focused module split: {moved_component}"
+        );
+    }
+    for moved_component in [
+        "HubPopupMenu",
+        "HubSelectMenu",
+        "HubDropDownSurface",
+        "HubSelectDropDownSurface",
+    ] {
+        assert!(
+            !overlays.contains(&format!("export component {moved_component}")),
+            "overlays.slint should not retain dropdown/menu ownership after the focused module split: {moved_component}"
         );
     }
 
@@ -96,11 +138,18 @@ fn hub_overlay_wrappers_delegate_to_material_popup_drawer_and_window() {
         "HubModalDrawer",
         "HubWindowView",
     ] {
-        let wrapper = overlays
+        let wrapper_source = if wrapper_name.contains("Drawer") || wrapper_name == "HubWindowView" {
+            &drawer_window
+        } else if wrapper_name.contains("Menu") || wrapper_name.contains("DropDown") {
+            &dropdowns
+        } else {
+            &overlays
+        };
+        let wrapper = wrapper_source
             .split(&format!("export component {wrapper_name}"))
             .nth(1)
             .and_then(|source| source.split("export component ").next())
-            .unwrap_or_else(|| panic!("overlays.slint must declare {wrapper_name}"));
+            .unwrap_or_else(|| panic!("focused overlay module must declare {wrapper_name}"));
         for forbidden in ["TouchArea", "area.has-hover", "\n    Window {"] {
             assert!(
                 !wrapper.contains(forbidden),

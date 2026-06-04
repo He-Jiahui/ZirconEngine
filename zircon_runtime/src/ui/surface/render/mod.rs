@@ -1,11 +1,15 @@
+mod buttons;
 mod cache;
+mod collection_rows;
 mod dropdowns;
 mod extract;
+mod feedback;
 mod node_visual_data;
 mod popup_menu;
 mod popup_options;
 mod popup_rows;
 mod resolve;
+mod segmented_controls;
 mod selection_controls;
 mod sliders;
 mod text_fields;

@@ -32,7 +32,7 @@ import { LearnPage } from "learn.slint";
 import { TeamPage } from "team.slint";
 import { SettingsPage } from "settings.slint";
 import { ZirconMaterialTheme } from "theme.slint";
-import { HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack, HubTokens, HubTopHeader, HubNavSidebar, HubPageHeader, HubStatusBar, HubVisualSpec, HubWindowView, HubWorkspaceSurface, NavigationItem, ResponsiveState } from "components.slint";
+import { HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack, HubTokens, HubTopHeader, HubNavigationDrawer, HubPageHeader, HubStatusBar, HubVisualSpec, HubWindowView, HubWorkspaceSurface, NavigationItem, ResponsiveState } from "components.slint";
 
 export component HubWindow inherits HubWindowView {
     in-out property <bool> nav-collapsed: false;
@@ -252,7 +252,7 @@ export component HubWindow inherits HubWindowView {
 
             HubShellBody {
                 width: parent.width;
-                HubNavSidebar {
+                HubNavigationDrawer {
                         nav-width: root.nav-width;
                         nav-pad: root.nav-pad;
                         nav-status-height: root.nav-status-height;

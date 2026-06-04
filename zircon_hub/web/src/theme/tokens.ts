@@ -1,0 +1,36 @@
+export const hubTokens = {
+  window: {
+    width: 1568,
+    height: 1003,
+    topBarHeight: 73,
+    sidebarWidth: 222,
+    sidebarCollapsedWidth: 78,
+    pagePaddingX: 30,
+    pagePaddingY: 28,
+  },
+  radius: {
+    compact: 7,
+    panel: 8,
+    card: 8,
+  },
+  colors: {
+    background: "#111212",
+    chrome: "#151515",
+    panel: "#202020",
+    panelLow: "#1c1c1c",
+    line: "rgba(255,255,255,0.10)",
+    lineStrong: "rgba(255,255,255,0.16)",
+    text: "#eeeeee",
+    textSoft: "#b9b9b9",
+    textMuted: "#8d8d8d",
+    accent: "#21d5cf",
+    accentDim: "rgba(20, 121, 119, 0.72)",
+    success: "#77d77a",
+    warning: "#ffc24d",
+    error: "#ef655e",
+  },
+  shadows: {
+    panel: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.28)",
+    accent: "0 0 14px rgba(33,213,207,0.2)",
+  },
+} as const;

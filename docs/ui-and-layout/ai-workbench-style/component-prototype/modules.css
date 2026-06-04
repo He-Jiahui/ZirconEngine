@@ -183,7 +183,6 @@
   background: linear-gradient(180deg, #171c20, #111619);
 }
 
-.zr-module-bottom-body,
 .zr-module-right .zr-panel-view {
   min-height: 0;
   overflow: auto;
@@ -341,9 +340,11 @@
 
 .zr-module-editor-grid.is-library {
   grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+  grid-template-rows: minmax(0, 1fr) minmax(160px, 0.38fr);
 }
 
 .zr-module-editor-grid.is-library .zr-module-card:first-child {
+  grid-row: 1 / span 2;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -489,6 +490,46 @@
   grid-column: 1 / -1;
   padding-top: 4px;
   border-top: 1px solid #222a30;
+}
+
+.zr-library-drilldown {
+  min-height: 0;
+  display: grid;
+}
+
+.zr-panel-group,
+.zr-panel-group-body {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.zr-library-drilldown .zr-panel-tabs {
+  min-width: 0;
+  overflow: auto hidden;
+}
+
+.zr-panel-group .zr-panel-view.is-active {
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+}
+
+.zr-panel > .zr-panel-group {
+  height: 100%;
+}
+
+.zr-module-card-body > .zr-panel-group {
+  min-height: 0;
+}
+
+.zr-module-bottom .zr-panel-group {
+  height: 100%;
+}
+
+.zr-module-bottom .zr-panel-group-body {
+  min-height: 0;
 }
 
 .zr-module-settings {

@@ -343,7 +343,7 @@ tests:
   - passed: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib registration_does_not_select_legacy_ui_document_formats --jobs 1 --target-dir target\codex-ui-v2-plugin-guard
   - passed: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --jobs 1 --target-dir target\codex-ui-v2-plugin-guard
   - passed: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1
-  - passed: cargo test -p zircon_runtime --lib importer_registry_rejects_non_fixture_legacy_ui_toml_importer_registration --jobs 1 --target-dir target\codex-ui-v2-guard
+  - passed: cargo test -p zircon_runtime --lib importer_registry_rejects_non_fixture_ui_toml_source_importer_registration --jobs 1 --target-dir target\codex-ui-v2-guard
   - passed: cargo test -p zircon_runtime --lib importer_registry_routes_v2_ui_toml_to_v2_document_backend --jobs 1 --target-dir target\codex-ui-v2-guard
   - passed: cargo test -p zircon_runtime --lib importer_reports_ui_toml_schema_migration --locked --jobs 1
   - passed: cargo test -p zircon_runtime --lib native_import_response --locked --jobs 1 with CARGO_TARGET_DIR=E:\cargo-targets\zircon-asset-importer-gap-continuation
@@ -357,7 +357,7 @@ tests:
   - 2026-05-03: git diff --check on importer default/fixture and migrated runtime test files (passed with LF-to-CRLF warnings only)
   - 2026-05-03: cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed with existing runtime warnings after plugin catalog/export repair)
   - 2026-05-03: cargo test -p zircon_runtime importer_default_reports_missing_first_wave_plugin_backend --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed, 1 test, with existing runtime warnings)
-  - 2026-05-03: cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed again after gating legacy first-wave helper modules as test-only; existing runtime warnings only)
+  - 2026-05-03: cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed again after gating source-template first-wave helper modules as test-only; existing runtime warnings only)
   - 2026-05-03: cargo test -p zircon_runtime importer_decodes_obj_and_gltf_into_model_assets --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed, 1 fixture-backed test, with existing runtime warnings)
   - 2026-05-03: cargo test -p zircon_runtime runtime_extension_registry_installs_asset_importers_before_project_open --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (timed out after 10 minutes during Windows test build/link while other Cargo jobs were active; no Rust diagnostics returned)
   - passed: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib typed_toml_importer_decodes_ui_v2_view_asset --jobs 1 --target-dir target\codex-ui-v2-plugin-guard
@@ -437,15 +437,15 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
-Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry now rejects legacy `.ui.toml` and broad `.v2.ui.toml` importer descriptors on the production path, so plugin manifests cannot reintroduce either the old recursive UI schema or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test migration fixtures are allowed to register those matchers for schema migration coverage.
+Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry rejects `.ui.toml` source-template and `.v2.ui.toml` source-template importer descriptors on the production path, so plugin manifests cannot reintroduce recursive UI source schemas or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test source-template fixtures are allowed to register those matchers for schema migration coverage.
 
 ## Built-In Coverage
 
 The production default importer registry installs real Rust paths for runtime-core formats only: plain TOML/JSON data, `.zui` UI component documents, typed Zircon source assets such as `.zmaterial`, `.zshader`, `.zmesh`, material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, and the remaining GLSL/SPIR-V shader paths. It no longer decodes the first-wave independent plugin formats directly.
 
-Common image textures, WGSL, OBJ, glTF/GLB, and WAV now register diagnostic-only `zircon.plugin_required.*` descriptors by default. These descriptors preserve output kind, matcher, importer version, and capability metadata so scans produce stable error records when a plugin is disabled or missing, but they do not perform decoding in production runtime code. Legacy UI `.ui.toml` and `.v2.ui.toml` no longer register production plugin-required fallbacks, and `AssetImporterRegistry` rejects non-fixture matcher registration for both suffixes. They remain reachable only through exact migration fixtures used by unit tests. The real stable split backends live in `texture_importer`, `shader_wgsl_importer`, `obj_importer`, `gltf_importer`, and `audio_importer`, while `ui_document_importer` mirrors the `.zui` component payload path for plugin packaging.
+Common image textures, WGSL, OBJ, glTF/GLB, and WAV now register diagnostic-only `zircon.plugin_required.*` descriptors by default. These descriptors preserve output kind, matcher, importer version, and capability metadata so scans produce stable error records when a plugin is disabled or missing, but they do not perform decoding in production runtime code. UI source-template `.ui.toml` and `.v2.ui.toml` no longer register production plugin-required fallbacks, and `AssetImporterRegistry` rejects non-fixture matcher registration for both suffixes. They remain reachable only through exact source-template migration fixtures used by unit tests. The real stable split backends live in `texture_importer`, `shader_wgsl_importer`, `obj_importer`, `gltf_importer`, and `audio_importer`, while `ui_document_importer` mirrors the `.zui` component payload path for plugin packaging.
 
-Runtime tests that intentionally exercise these first-wave formats install explicit fixture importers with the same package ids and higher priority as the split plugin crates. The fixtures still call test-only legacy runtime helper modules so the runtime test crate can validate artifact/project behavior without taking a dev-dependency on `zircon_plugins`; the production default path is diagnostic-only. Graphics project-render and M4 behavior-layer tests now use that explicit fixture path for PNG/WGSL/OBJ projects, so the tests prove render behavior with installed importer plugins instead of silently reintroducing production built-in decoders.
+Runtime tests that intentionally exercise these first-wave formats install explicit fixture importers with the same package ids and higher priority as the split plugin crates. The fixtures call test-only source helper modules so the runtime test crate can validate artifact/project behavior without taking a dev-dependency on `zircon_plugins`; the production default path is diagnostic-only. Graphics project-render and M4 behavior-layer tests now use that explicit fixture path for PNG/WGSL/OBJ projects, so the tests prove render behavior with installed importer plugins instead of silently reintroducing production built-in decoders.
 
 The `asset_importer.data` runtime plugin now registers real TOML/JSON/YAML/XML `DataAsset`
 backends so project/plugin selection can move structured data loading out of the built-in fallback
@@ -577,9 +577,10 @@ missing backend cases remain stable importer errors. The
 `asset_importer.shader` family package now owns a real Naga path for WGSL validation plus
 GLSL/vertex/fragment/compute and SPIR-V conversion into normalized WGSL `ShaderAsset` payloads. The
 split `ui_document_importer` package imports only `.zui` component documents and emits
-`UiV2ComponentAsset` payloads. The older `.ui.toml` migration path, pre-`.zui` `.v2.ui.toml`
-view/style/component importer, and serialized `.ui.json`/`.uidoc` `UiAssetDocument` paths are not production
-plugin importers anymore; migration coverage must install explicit test fixtures.
+`UiV2ComponentAsset` payloads. The `.ui.toml` source-template migration path, pre-`.zui`
+`.v2.ui.toml` view/style/component importer, and serialized `.ui.json`/`.uidoc` `UiAssetDocument`
+paths are not production plugin importers anymore; migration coverage must install explicit
+source-template test fixtures.
 
 Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. Text `.cube` LUTs are no longer part of that diagnostic-only bucket: the built-in parser covers the neutral 3D RGBA8 LUT asset shape, while advanced LUT authoring policies such as half-float payloads, shaper LUTs, or GPU-baked LUT generation remain later work. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
 
@@ -606,9 +607,10 @@ import.
 
 The split `ui_document_importer` runtime package routes `.zui` TOML through `UiZuiAssetLoader`.
 The importer descriptor and package `plugin.toml` both expose a single `ui_document_importer.zui_component`
-entry for `.zui` with importer version 2 and `UiWidget` output. Legacy `.ui.toml` and `.v2.ui.toml` are intentionally absent from
-production registration so they cannot silently route through `UiAssetLoader`, the recursive
-`UiAssetDocument` migration chain, or the old mixed-kind v2 importer. `.ui.json` and `.uidoc` are also absent from production
+entry for `.zui` with importer version 2 and `UiWidget` output. `.ui.toml` and `.v2.ui.toml`
+source-template suffixes are intentionally absent from production registration so they cannot
+silently route through `UiAssetLoader`, the recursive `UiAssetDocument` migration chain, or the
+pre-`.zui` mixed-kind v2 importer. `.ui.json` and `.uidoc` are also absent from production
 registration; the plugin no longer depends on `serde_json` or `bincode` for UI document import.
 
 `ProjectAssetManager` keeps a host-owned importer registry for plugin contributions that arrive

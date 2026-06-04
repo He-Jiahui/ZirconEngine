@@ -64,7 +64,7 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
-            action_id: "apply_batch".to_string(),
+            action_id: "inspector.apply_batch.invoke".to_string(),
             arguments: vec![
                 UiBindingValue::string("entity://selected"),
                 UiBindingValue::array(vec![
@@ -104,7 +104,7 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
-            action_id: "resize".to_string(),
+            action_id: "workbench.viewport.resize".to_string(),
             arguments: vec![
                 UiBindingValue::Unsigned(1024),
                 UiBindingValue::Unsigned(768),
@@ -124,7 +124,7 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
-            action_id: "detach_to_window".to_string(),
+            action_id: "workbench.view.detach_to_window".to_string(),
             arguments: Vec::new(),
         });
     assert!(matches!(
@@ -144,7 +144,7 @@ fn workbench_reflection_call_action_dispatches_typed_draft_actions() {
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
-            action_id: "edit_field".to_string(),
+            action_id: "inspector.field.edit".to_string(),
             arguments: vec![
                 UiBindingValue::string("entity://selected"),
                 UiBindingValue::string("name"),
@@ -176,7 +176,7 @@ fn workbench_reflection_call_action_dispatches_typed_draft_actions() {
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
-            action_id: "set_mesh_import_path".to_string(),
+            action_id: "workbench.asset.mesh_import.path.set".to_string(),
             arguments: vec![UiBindingValue::string("E:/Models/cube.glb")],
         });
     assert!(matches!(
@@ -199,7 +199,7 @@ fn workbench_reflection_call_action_dispatches_asset_import_action() {
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/drawers/left_top/editor.assets#1"),
-            action_id: "import_model".to_string(),
+            action_id: "workbench.asset.model.import".to_string(),
             arguments: Vec::new(),
         });
     assert!(matches!(
@@ -242,7 +242,7 @@ fn workbench_reflection_call_action_dispatches_animation_track_creation_from_ins
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
             node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
-            action_id: "create_animation_track".to_string(),
+            action_id: "animation.track.create".to_string(),
             arguments: vec![UiBindingValue::string("Root/Hero:AnimationPlayer.weight")],
         });
     assert!(matches!(

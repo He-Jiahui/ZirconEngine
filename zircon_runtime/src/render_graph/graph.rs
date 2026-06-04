@@ -1,7 +1,7 @@
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
-    RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderGraphResourceLifetime,
-    RenderPassId,
+    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderPassId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,14 +41,26 @@ pub struct CompiledRenderGraphTransientAllocation {
     pub resource_name: String,
     pub kind: RenderGraphResourceKind,
     pub slot: usize,
+    pub size_bytes: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CompiledRenderGraphTransientSlotReservation {
+    pub kind: RenderGraphResourceKind,
+    pub slot: usize,
+    pub bytes_reserved: u64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CompiledRenderGraphTransientAllocationPlan {
     pub allocations: Vec<CompiledRenderGraphTransientAllocation>,
+    pub slot_reservations: Vec<CompiledRenderGraphTransientSlotReservation>,
     pub texture_slot_count: usize,
     pub buffer_slot_count: usize,
     pub sparse_texture_slot_count: usize,
+    pub dense_texture_bytes_reserved: u64,
+    pub dense_buffer_bytes_reserved: u64,
+    pub sparse_texture_virtual_bytes: u64,
 }
 
 impl CompiledRenderGraphTransientAllocationPlan {
@@ -57,6 +69,25 @@ impl CompiledRenderGraphTransientAllocationPlan {
             .iter()
             .find(|allocation| allocation.resource_name == resource_name)
             .map(|allocation| allocation.slot)
+    }
+
+    pub fn size_bytes_for(&self, resource_name: &str) -> Option<u64> {
+        self.allocations
+            .iter()
+            .find(|allocation| allocation.resource_name == resource_name)
+            .map(|allocation| allocation.size_bytes)
+    }
+
+    pub fn slot_bytes(&self, kind: RenderGraphResourceKind, slot: usize) -> Option<u64> {
+        self.slot_reservations
+            .iter()
+            .find(|reservation| reservation.kind == kind && reservation.slot == slot)
+            .map(|reservation| reservation.bytes_reserved)
+    }
+
+    pub fn total_dense_bytes_reserved(&self) -> u64 {
+        self.dense_texture_bytes_reserved
+            .saturating_add(self.dense_buffer_bytes_reserved)
     }
 }
 
@@ -113,7 +144,7 @@ impl CompiledRenderGraph {
             .map(|allocation| allocation.slot + 1)
             .max()
             .unwrap_or(0);
-        let sparse_texture_slot_count = self
+        let sparse_texture_lifetimes = self
             .resource_lifetimes
             .iter()
             .filter(|lifetime| {
@@ -121,7 +152,13 @@ impl CompiledRenderGraph {
                     && !lifetime.imported
                     && lifetime.is_sparse_reserved_texture()
             })
-            .count();
+            .collect::<Vec<_>>();
+        let sparse_texture_slot_count = sparse_texture_lifetimes.len();
+        let sparse_texture_virtual_bytes = sparse_texture_lifetimes
+            .iter()
+            .copied()
+            .map(resource_lifetime_size_bytes)
+            .fold(0_u64, u64::saturating_add);
         let mut buffer_allocations = allocate_transient_lifetimes(
             self.resource_lifetimes
                 .iter()
@@ -134,12 +171,27 @@ impl CompiledRenderGraph {
             .unwrap_or(0);
         allocations.append(&mut buffer_allocations);
         allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
+        let slot_reservations = slot_reservations_for(&allocations);
+        let dense_texture_bytes_reserved = slot_reservations
+            .iter()
+            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
+            .map(|reservation| reservation.bytes_reserved)
+            .fold(0_u64, u64::saturating_add);
+        let dense_buffer_bytes_reserved = slot_reservations
+            .iter()
+            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
+            .map(|reservation| reservation.bytes_reserved)
+            .fold(0_u64, u64::saturating_add);
 
         CompiledRenderGraphTransientAllocationPlan {
             allocations,
+            slot_reservations,
             texture_slot_count,
             buffer_slot_count,
             sparse_texture_slot_count,
+            dense_texture_bytes_reserved,
+            dense_buffer_bytes_reserved,
+            sparse_texture_virtual_bytes,
         }
     }
 
@@ -237,8 +289,54 @@ fn allocate_transient_lifetimes<'a>(
             resource_name: lifetime.name.clone(),
             kind: lifetime.kind,
             slot,
+            size_bytes: resource_lifetime_size_bytes(lifetime),
         });
     }
 
     allocations
+}
+
+fn slot_reservations_for(
+    allocations: &[CompiledRenderGraphTransientAllocation],
+) -> Vec<CompiledRenderGraphTransientSlotReservation> {
+    let mut reservations = Vec::<CompiledRenderGraphTransientSlotReservation>::new();
+
+    for allocation in allocations {
+        if let Some(reservation) = reservations.iter_mut().find(|reservation| {
+            reservation.kind == allocation.kind && reservation.slot == allocation.slot
+        }) {
+            reservation.bytes_reserved = reservation.bytes_reserved.max(allocation.size_bytes);
+        } else {
+            reservations.push(CompiledRenderGraphTransientSlotReservation {
+                kind: allocation.kind,
+                slot: allocation.slot,
+                bytes_reserved: allocation.size_bytes,
+            });
+        }
+    }
+
+    reservations.sort_by(|left, right| {
+        resource_kind_sort_key(left.kind)
+            .cmp(&resource_kind_sort_key(right.kind))
+            .then_with(|| left.slot.cmp(&right.slot))
+    });
+    reservations
+}
+
+fn resource_lifetime_size_bytes(lifetime: &RenderGraphResourceLifetime) -> u64 {
+    match &lifetime.desc {
+        RenderGraphResourceDesc::Texture(desc) => {
+            desc.checked_storage_size_bytes().unwrap_or(u64::MAX)
+        }
+        RenderGraphResourceDesc::Buffer(desc) => desc.size_bytes,
+        RenderGraphResourceDesc::External => 0,
+    }
+}
+
+const fn resource_kind_sort_key(kind: RenderGraphResourceKind) -> u8 {
+    match kind {
+        RenderGraphResourceKind::TransientTexture => 0,
+        RenderGraphResourceKind::TransientBuffer => 1,
+        RenderGraphResourceKind::External => 2,
+    }
 }

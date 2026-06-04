@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, event_ui::UiRouteId, la
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiHostBindingProjection {
     pub binding_id: String,
+    pub action_id: String,
     pub event_kind: UiEventKind,
     pub route_id: Option<UiRouteId>,
 }

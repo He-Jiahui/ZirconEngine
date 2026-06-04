@@ -52,6 +52,26 @@ fn ui_pipeline_stage_order_matches_bevy_aligned_schedule_contract() {
         round_trip(&UiPipelineStage::RenderExtract),
         UiPipelineStage::RenderExtract
     );
+    assert_eq!(UiPipelineStage::ARCHIVED_DIAGNOSTIC_FORMAT_VERSION, 1);
+    assert!(UiPipelineStage::Focus.is_runtime_schedule_stage());
+    assert!(!UiPipelineStage::Diagnostics.is_runtime_schedule_stage());
+    assert!(!UiPipelineStage::Focus.is_archived_diagnostic_stage());
+    assert_eq!(
+        UiPipelineStage::archived_diagnostic_stages(),
+        &[
+            UiPipelineStage::FocusInteraction,
+            UiPipelineStage::ContentMeasure,
+            UiPipelineStage::PostLayoutStack,
+            UiPipelineStage::HitGrid,
+            UiPipelineStage::PaintSubmit,
+            UiPipelineStage::Diagnostics,
+        ]
+    );
+    for stage in UiPipelineStage::archived_diagnostic_stages() {
+        assert!(stage.is_archived_diagnostic_stage());
+        assert!(!stage.is_runtime_schedule_stage());
+        assert!(!UiPipelineStage::ordered().contains(stage));
+    }
     assert_eq!(
         serde_json::from_str::<UiPipelineStage>("\"focus_interaction\"").unwrap(),
         UiPipelineStage::FocusInteraction

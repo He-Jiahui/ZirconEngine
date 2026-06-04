@@ -1160,7 +1160,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("button dropdown open binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "OpenComponentLabButtonDropdown"
+            if action_id == "component_lab.button_dropdown.open"
     ));
     assert!(matches!(
         bridge
@@ -1168,7 +1168,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("button dropdown select binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabButtonDropdownOption"
+            if action_id == "component_lab.button_dropdown_option.select"
     ));
     assert!(matches!(
         bridge
@@ -1176,7 +1176,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("icon toggle segmented binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabIconToggleSegment"
+            if action_id == "component_lab.icon_toggle_segment.select"
     ));
     assert!(matches!(
         bridge
@@ -1184,7 +1184,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("material module tab binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleMaterial"
+            if action_id == "workbench.module.material.select"
     ));
     assert!(matches!(
         bridge
@@ -1192,7 +1192,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("compile module command binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "InvokeWorkbenchModuleCompile"
+            if action_id == "workbench.module.compile.invoke"
     ));
     let module_workspace = template_contract_node(&nodes, "WorkbenchMainBandModuleWorkspace");
     assert_eq!(
@@ -1360,7 +1360,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material module tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleMaterial"
+            if action_id == "workbench.module.material.select"
     ));
     assert!(!control_bool(&bridge, "WorkbenchModuleEffect", "selected"));
     assert!(control_bool(&bridge, "WorkbenchModuleMaterial", "selected"));
@@ -1395,7 +1395,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material node row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchMaterialNodeRoughness"
+            if action_id == "workbench.module.material.node_roughness.select"
     ));
     assert!(control_bool(
         &bridge,
@@ -1415,7 +1415,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material domain dropdown should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "EditWorkbenchMaterialDomain"
+            if action_id == "workbench.module.material.domain.edit"
     ));
 
     assert!(matches!(
@@ -1425,7 +1425,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("effect module tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleEffect"
+            if action_id == "workbench.module.effect.select"
     ));
     assert_eq!(
         control_visibility(&bridge, "WorkbenchModuleEffectWorkspace"),
@@ -1442,7 +1442,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("effect asset row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchEffectDamageFireRow"
+            if action_id == "workbench.module.effect.damage_fire_row.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -1461,7 +1461,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("effect modifier row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchEffectModifierHealing"
+            if action_id == "workbench.module.effect.modifier_healing.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -1480,7 +1480,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("effect magnitude field should expose a preview submit binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "CommitWorkbenchEffectMagnitude"
+            if action_id == "workbench.module.effect.magnitude.commit"
     ));
 
     assert!(matches!(
@@ -1490,7 +1490,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material module tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleMaterial"
+            if action_id == "workbench.module.material.select"
     ));
 
     assert!(matches!(
@@ -1500,7 +1500,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material preview tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchMaterialPreviewTab"
+            if action_id == "workbench.module.material.preview_tab.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -1520,7 +1520,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("material normal row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchMaterialNormalRow"
+            if action_id == "workbench.module.material.normal_row.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -1540,7 +1540,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("diff module command should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "InvokeWorkbenchModuleDiff"
+            if action_id == "workbench.module.diff.invoke"
     ));
     assert!(!control_bool(&bridge, "WorkbenchModuleCompile", "selected"));
     assert!(control_bool(&bridge, "WorkbenchModuleDiff", "selected"));
@@ -1553,7 +1553,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("browse module command should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "InvokeWorkbenchModuleBrowse"
+            if action_id == "workbench.module.browse.invoke"
     ));
     assert!(control_bool(&bridge, "WorkbenchModuleBrowse", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchModuleDiff", "selected"));
@@ -1579,7 +1579,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("assets import button should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "InvokeWorkbenchAssetsImport"
+            if action_id == "workbench.module.assets.import.invoke"
     ));
     assert!(control_bool(
         &bridge,
@@ -1594,7 +1594,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("ability module tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleAbility"
+            if action_id == "workbench.module.ability.select"
     ));
     assert!(control_bool(&bridge, "WorkbenchModuleAbility", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchModuleAssets", "selected"));
@@ -1626,7 +1626,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("ability task row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchAbilityTaskCost"
+            if action_id == "workbench.module.ability.task_cost.select"
     ));
     assert!(control_bool(
         &bridge,
@@ -1645,28 +1645,28 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("ability name field should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "EditWorkbenchAbilityName"
+            if action_id == "workbench.module.ability.name.edit"
     ));
 
     for (control_id, action_id, workspace_id) in [
         (
             "WorkbenchModuleTags",
-            "SelectWorkbenchModuleTags",
+            "workbench.module.tags.select",
             "WorkbenchModuleTagsWorkspace",
         ),
         (
             "WorkbenchModulePerception",
-            "SelectWorkbenchModulePerception",
+            "workbench.module.perception.select",
             "WorkbenchModulePerceptionWorkspace",
         ),
         (
             "WorkbenchModuleRender",
-            "SelectWorkbenchModuleRender",
+            "workbench.module.render.select",
             "WorkbenchModuleRenderWorkspace",
         ),
         (
             "WorkbenchModuleHud",
-            "SelectWorkbenchModuleHud",
+            "workbench.module.hud.select",
             "WorkbenchModuleHudWorkspace",
         ),
     ] {
@@ -1697,7 +1697,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("tags row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchTagsAbilityActivate"
+            if action_id == "workbench.module.tags.ability_activate.select"
     ));
     assert!(matches!(
         bridge
@@ -1706,7 +1706,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("perception dropdown should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "EditWorkbenchPerceptionConfig"
+            if action_id == "workbench.module.perception.config.edit"
     ));
     assert!(matches!(
         bridge
@@ -1715,7 +1715,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("render pass row should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchRenderLightingPass"
+            if action_id == "workbench.module.render.lighting_pass.select"
     ));
     assert!(matches!(
         bridge
@@ -1724,7 +1724,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("hud dropdown should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "EditWorkbenchHudScreen"
+            if action_id == "workbench.module.hud.screen.edit"
     ));
 }
 
@@ -2556,7 +2556,7 @@ fn componentized_workbench_window_template_bridge_updates_panel_tab_state() {
     assert!(matches!(
         scene_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectSceneTreeLayersTab"
+            if action_id == "scene_tree.layers_tab.select"
     ));
     assert!(!control_bool(&bridge, "WorkbenchSceneTabScene", "selected"));
     assert!(control_bool(&bridge, "WorkbenchSceneTabLayers", "selected"));
@@ -2573,7 +2573,7 @@ fn componentized_workbench_window_template_bridge_updates_panel_tab_state() {
     assert!(matches!(
         inspector_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectInspectorHistoryTab"
+            if action_id == "inspector.history_tab.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -2625,7 +2625,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_tab_s
     assert!(matches!(
         binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentDrawerConsoleTab"
+            if action_id == "component_drawer.console_tab.select"
     ));
     assert!(!control_bool(
         &bridge,
@@ -2723,7 +2723,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_input
     assert!(matches!(
         dropdown_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "OpenComponentLabInputDropdown"
+            if action_id == "component_lab.input_dropdown.open"
     ));
     assert!(control_bool(
         &bridge,
@@ -2743,7 +2743,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_input
     assert!(matches!(
         segment_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabInputSegment"
+            if action_id == "component_lab.input_segment.select"
     ));
     assert_eq!(
         control_string(&bridge, "WorkbenchInputSegmented", "value").as_deref(),
@@ -2784,7 +2784,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_butto
     assert!(matches!(
         dropdown_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "OpenComponentLabButtonDropdown"
+            if action_id == "component_lab.button_dropdown.open"
     ));
     assert!(control_bool(
         &bridge,
@@ -2800,7 +2800,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_butto
     assert!(matches!(
         icon_toggle_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabIconToggleSegment"
+            if action_id == "component_lab.icon_toggle_segment.select"
     ));
     assert_eq!(
         control_string(&bridge, "WorkbenchIconToggleSegmented", "value").as_deref(),
@@ -2867,14 +2867,14 @@ fn componentized_workbench_window_projection_exports_dropdown_and_popup_rows() {
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
     assert_eq!(delete.raw.as_str(), "Delete|danger,hovered,icon=trash");
     assert_eq!(delete.label.as_str(), "Delete");
-    assert_eq!(delete.action_id.as_str(), "Delete");
+    assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(delete.hovered);
     assert!(!delete.disabled);
 
     let more_tools = template_contract_menu_item(&popup_menu.structured_menu_items, 4);
     assert_eq!(more_tools.raw.as_str(), "More Tools|submenu");
     assert_eq!(more_tools.label.as_str(), "More Tools");
-    assert_eq!(more_tools.action_id.as_str(), "More Tools");
+    assert_eq!(more_tools.action_id.as_str(), "menu.item.more_tools");
     assert!(!more_tools.hovered);
     assert!(!more_tools.disabled);
 }
@@ -2926,7 +2926,7 @@ fn componentized_workbench_dropdown_option_selection_updates_value_and_projectio
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::Transient(EditorEventTransient::PressNode {
-            node_path: "ComponentLab/InputDropdownSelect".to_string(),
+            node_path: "component_lab.input_dropdown.select".to_string(),
             pressed: false,
         })
     );
@@ -3053,7 +3053,7 @@ fn componentized_workbench_popup_menu_item_selection_updates_value_and_projectio
         &harness.runtime,
         &mut bridge,
         "WorkbenchPopupMenu",
-        "Delete",
+        "menu.item.delete",
     )
     .expect("popup menu item should be handled")
     .expect("popup menu item selection should dispatch");
@@ -3078,7 +3078,7 @@ fn componentized_workbench_popup_menu_item_selection_updates_value_and_projectio
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
     assert_eq!(delete.raw.as_str(), "Delete|danger,icon=trash");
-    assert_eq!(delete.action_id.as_str(), "Delete");
+    assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(!delete.hovered);
     assert!(!delete.pressed);
 
@@ -3119,7 +3119,7 @@ fn componentized_workbench_popup_cancel_closes_menu_without_selecting_item() {
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
     assert_eq!(delete.raw.as_str(), "Delete|danger,icon=trash");
-    assert_eq!(delete.action_id.as_str(), "Delete");
+    assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(!delete.focused);
     assert!(!delete.hovered);
     assert!(!delete.pressed);
@@ -3226,7 +3226,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("labs tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabLabsTabTwo"
+            if action_id == "component_lab.labs_tab_two.select"
     ));
     assert!(!control_bool(&bridge, "WorkbenchLabsTabOne", "selected"));
     assert!(control_bool(&bridge, "WorkbenchLabsTabTwo", "selected"));
@@ -3240,7 +3240,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("checkbox should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "ToggleComponentLabCheckboxOff"
+            if action_id == "component_lab.checkbox_off.toggle"
     ));
     assert!(control_bool(&bridge, "WorkbenchCheckboxOff", "checked"));
     assert!(control_bool(&bridge, "WorkbenchCheckboxOff", "selected"));
@@ -3256,7 +3256,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("radio should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabRadioOff"
+            if action_id == "component_lab.radio_off.select"
     ));
     assert!(!control_bool(&bridge, "WorkbenchRadioOn", "checked"));
     assert!(control_bool(&bridge, "WorkbenchRadioOff", "checked"));
@@ -3268,7 +3268,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("switch should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "ToggleComponentLabSwitch"
+            if action_id == "component_lab.switch.toggle"
     ));
     assert!(!control_bool(&bridge, "WorkbenchToggleOn", "checked"));
     assert!(!control_bool(&bridge, "WorkbenchToggleOn", "selected"));
@@ -3280,7 +3280,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("list item should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabListItem"
+            if action_id == "component_lab.list_item.select"
     ));
     assert!(control_bool(&bridge, "WorkbenchListItem", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchListSelected", "selected"));
@@ -3296,7 +3296,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("table item should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabTableItem"
+            if action_id == "component_lab.table_item.select"
     ));
     assert!(control_bool(&bridge, "WorkbenchTableItem", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchTableSelected", "selected"));
@@ -3309,7 +3309,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
             .expect("table tail should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectComponentLabTableTail"
+            if action_id == "component_lab.table_tail.select"
     ));
     assert!(!control_bool(&bridge, "WorkbenchTableItem", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchTableSelected", "selected"));

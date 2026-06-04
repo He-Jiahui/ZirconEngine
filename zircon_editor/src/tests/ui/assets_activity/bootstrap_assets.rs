@@ -271,7 +271,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(thumb_mode.selected);
     assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
     assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset");
-    assert_eq!(thumb_mode.action_id.to_string(), "SetViewMode");
+    assert_eq!(
+        thumb_mode.action_id.to_string(),
+        "workbench.asset.view_mode.set"
+    );
     assert_eq!(
         thumb_mode.binding_id.to_string(),
         "AssetSurface/SetViewMode"
@@ -280,7 +283,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(references_tab.selected);
     assert_eq!(references_tab.surface_variant.to_string(), "inset");
     assert_eq!(references_tab.dispatch_kind.to_string(), "asset");
-    assert_eq!(references_tab.action_id.to_string(), "SetUtilityTab");
+    assert_eq!(
+        references_tab.action_id.to_string(),
+        "workbench.asset.utility_tab.set"
+    );
     assert_eq!(
         references_tab.binding_id.to_string(),
         "AssetSurface/SetUtilityTab"
@@ -289,7 +295,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(texture_chip.selected);
     assert_eq!(texture_chip.surface_variant.to_string(), "inset");
     assert_eq!(texture_chip.dispatch_kind.to_string(), "asset");
-    assert_eq!(texture_chip.action_id.to_string(), "SetKindFilter");
+    assert_eq!(
+        texture_chip.action_id.to_string(),
+        "workbench.asset.kind_filter.set"
+    );
     assert_eq!(
         texture_chip.binding_id.to_string(),
         "AssetSurface/SetKindFilter"

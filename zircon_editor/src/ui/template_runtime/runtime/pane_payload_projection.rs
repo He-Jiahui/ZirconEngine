@@ -482,6 +482,12 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
                 ),
             );
         }
+        PanePayload::GeneratedBottomV1(payload) => {
+            attributes.insert(
+                "payload_status".to_string(),
+                Value::String(payload.status.clone()),
+            );
+        }
         PanePayload::UiComponentShowcaseV1(payload) => {
             attributes.insert(
                 "payload_state_summary".to_string(),

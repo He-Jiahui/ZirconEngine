@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::ui::v2::UiV2AssetLoader;
+use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 
 pub(super) const BUILTIN_ZUI_ASSET_ID_ALIASES: &[(&str, &str)] = &[(
     "res://ui/editor/host/activity_drawer_window.zui",
@@ -189,8 +189,32 @@ pub(super) fn production_widget_import_asset_ids(asset_roots: &[PathBuf]) -> BTr
     asset_ids
 }
 
+fn zui_import_locator_for(asset_id: &str) -> Option<String> {
+    if let Some(locator) = builtin_zui_asset_id_alias_locator_for(asset_id) {
+        return Some(locator.to_string());
+    }
+    asset_id
+        .to_ascii_lowercase()
+        .contains(".zui")
+        .then(|| asset_id.to_string())
+}
+
+fn push_zui_import_locator(
+    asset_id: &str,
+    locators: &mut BTreeSet<String>,
+    pending: &mut Vec<String>,
+) {
+    let Some(locator) = zui_import_locator_for(asset_id.trim()) else {
+        return;
+    };
+    if locators.insert(locator.clone()) {
+        pending.push(locator);
+    }
+}
+
 pub(super) fn production_widget_import_zui_locators(asset_roots: &[PathBuf]) -> BTreeSet<String> {
     let mut locators = BTreeSet::new();
+    let mut pending = Vec::new();
     for asset_root in asset_roots {
         for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
             let source = fs::read_to_string(&path)
@@ -203,15 +227,25 @@ pub(super) fn production_widget_import_zui_locators(asset_roots: &[PathBuf]) -> 
                 else {
                     continue;
                 };
-                if let Some(locator) = builtin_zui_asset_id_alias_locator_for(asset_id) {
-                    locators.insert(locator.to_string());
-                    continue;
-                }
-                if asset_id.to_ascii_lowercase().contains(".zui") {
-                    locators.insert(asset_id.to_string());
-                }
+                push_zui_import_locator(asset_id, &mut locators, &mut pending);
             }
         }
     }
+
+    while let Some(locator) = pending.pop() {
+        let Some(path) = resolve_res_locator(&locator, asset_roots) else {
+            continue;
+        };
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+        let document = UiZuiAssetLoader::load_zui_str(&source)
+            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+
+        for import in &document.imports.widgets {
+            let (asset_id, _fragment) = split_import_fragment(import);
+            push_zui_import_locator(asset_id, &mut locators, &mut pending);
+        }
+    }
+
     locators
 }

@@ -5,8 +5,8 @@ use crate::ui::component::{UiComponentEvent, UiDragMetrics};
 use crate::ui::event_ui::UiNodeId;
 
 use super::{
-    UiClipboardRequest, UiDispatchEffect, UiDispatchReply, UiInputEvent, UiInputMethodRequest,
-    UiPointerLockPolicy, UiPopupEffectKind, UiTooltipEffectKind,
+    UiClipboardRequest, UiDispatchEffect, UiDispatchReply, UiDispatchReplyStepTrace, UiInputEvent,
+    UiInputMethodRequest, UiPointerLockPolicy, UiPopupEffectKind, UiTooltipEffectKind,
 };
 use crate::ui::layout::UiPoint;
 
@@ -39,11 +39,27 @@ impl UiInputRoutePolicy {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+pub struct UiInputRouteTrace {
+    pub preview_tunnel: Vec<UiNodeId>,
+    pub direct_target: Option<UiNodeId>,
+    pub target: Option<UiNodeId>,
+    pub bubble_path: Vec<UiNodeId>,
+    pub focus_path: Vec<UiNodeId>,
+    pub capture_target: Option<UiNodeId>,
+    pub root_targets: Vec<UiNodeId>,
+    pub popup_stack: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiInputDispatchDiagnostics {
     pub routed: bool,
     pub handled_phase: Option<String>,
     pub route_policy: UiInputRoutePolicy,
     pub route_target: Option<UiNodeId>,
+    pub route_trace: UiInputRouteTrace,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub route_steps: Vec<UiDispatchReplyStepTrace>,
     pub blocked_by: Option<UiNodeId>,
     pub notes: Vec<String>,
 }

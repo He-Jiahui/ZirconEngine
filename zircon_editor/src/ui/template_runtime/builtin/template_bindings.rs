@@ -24,7 +24,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "WorkbenchMenuBar",
                 "OpenProject",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("OpenProject"),
+                EditorUiBindingPayload::menu_action("workbench.project.open"),
             ),
         ),
         (
@@ -33,7 +33,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "WorkbenchMenuBar",
                 "SaveProject",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("SaveProject"),
+                EditorUiBindingPayload::menu_action("workbench.project.save"),
             ),
         ),
         (
@@ -42,7 +42,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "WorkbenchMenuBar",
                 "ResetLayout",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("ResetLayout"),
+                EditorUiBindingPayload::menu_action("workbench.layout.reset"),
             ),
         ),
         (
@@ -253,7 +253,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "ViewportToolbar",
                 "EnterPlayMode",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("EnterPlayMode"),
+                EditorUiBindingPayload::menu_action("workbench.play_mode.enter"),
             ),
         ),
         (
@@ -262,7 +262,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "ViewportToolbar",
                 "ExitPlayMode",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("ExitPlayMode"),
+                EditorUiBindingPayload::menu_action("workbench.play_mode.exit"),
             ),
         ),
         (
@@ -516,7 +516,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "InspectorView",
                 "DeleteSelected",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("DeleteSelected"),
+                EditorUiBindingPayload::menu_action("workbench.selection.delete_selected"),
             ),
         ),
         (
@@ -525,7 +525,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "PaneSurface",
                 "TriggerAction",
                 EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("OpenProject"),
+                EditorUiBindingPayload::menu_action("workbench.project.open"),
             ),
         ),
         (

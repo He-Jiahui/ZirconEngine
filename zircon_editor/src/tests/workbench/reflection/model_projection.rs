@@ -49,10 +49,10 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
         scene,
         UiControlResponse::Node(Some(node))
             if node.properties["kind"].reflected_value == serde_json::json!("activity_view")
-                && node.actions.contains_key("focus_view")
-                && node.actions.contains_key("detach_to_window")
-                && node.actions.contains_key("pointer_move")
-                && node.actions.contains_key("scroll")
+                && node.actions.contains_key("workbench.view.focus")
+                && node.actions.contains_key("workbench.view.detach_to_window")
+                && node.actions.contains_key("workbench.viewport.pointer.move")
+                && node.actions.contains_key("workbench.viewport.scroll")
     ));
     let inspector = service.handle_request(UiControlRequest::QueryNode {
         node_path: UiNodePath::new("editor/workbench/drawers/right_top/editor.inspector#1"),
@@ -60,13 +60,14 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
     assert!(matches!(
         inspector,
         UiControlResponse::Node(Some(node))
-            if node.actions.contains_key("apply_batch")
-                && node.actions.contains_key("edit_field")
-                && node.actions.contains_key("create_animation_track")
-                && node.actions["apply_batch"].binding_symbol == "InspectorFieldBatch"
-                && node.actions["edit_field"].binding_symbol
+            if node.actions.contains_key("inspector.apply_batch.invoke")
+                && node.actions.contains_key("inspector.field.edit")
+                && node.actions.contains_key("animation.track.create")
+                && node.actions["inspector.apply_batch.invoke"].binding_symbol
+                    == "InspectorFieldBatch"
+                && node.actions["inspector.field.edit"].binding_symbol
                     == "DraftCommand.SetInspectorField"
-                && node.actions["create_animation_track"].binding_symbol
+                && node.actions["animation.track.create"].binding_symbol
                     == "AnimationCommand.CreateTrack"
     ));
 
@@ -76,11 +77,11 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
     assert!(matches!(
         assets,
         UiControlResponse::Node(Some(node))
-            if node.actions.contains_key("set_mesh_import_path")
-                && node.actions.contains_key("import_model")
-                && node.actions["set_mesh_import_path"].binding_symbol
+            if node.actions.contains_key("workbench.asset.mesh_import.path.set")
+                && node.actions.contains_key("workbench.asset.model.import")
+                && node.actions["workbench.asset.mesh_import.path.set"].binding_symbol
                     == "DraftCommand.SetMeshImportPath"
-                && node.actions["import_model"].binding_symbol
+                && node.actions["workbench.asset.model.import"].binding_symbol
                     == "AssetCommand.ImportModel"
     ));
 }

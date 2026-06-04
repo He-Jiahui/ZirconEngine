@@ -166,6 +166,28 @@ pub(crate) fn to_host_contract_console_pane_from_host_pane_with_runtime(
         .unwrap_or_else(|| to_host_contract_console_pane(data.native_body.console.clone()))
 }
 
+pub(crate) fn to_host_contract_generated_bottom_pane_from_host_pane(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+) -> host_contract::GeneratedBottomPaneData {
+    let nodes = data
+        .pane_presentation
+        .as_ref()
+        .and_then(|presentation| project_pane_template_nodes(&presentation.body, content_size))
+        .map(model_rc)
+        .unwrap_or_else(|| {
+            map_model_rc(
+                &data.native_body.generated_bottom.nodes,
+                to_host_contract_template_node_owned,
+            )
+        });
+
+    host_contract::GeneratedBottomPaneData {
+        nodes,
+        status: data.native_body.generated_bottom.status.clone(),
+    }
+}
+
 pub(super) fn to_host_contract_assets_activity_pane(
     data: crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewData,
 ) -> host_contract::AssetsActivityPaneData {
@@ -485,7 +507,7 @@ fn inspector_field_nodes(
         "NameField",
         "Name",
         &fields.name,
-        "InspectorView/NameField",
+        "inspector.field.name.edit",
         start_x,
         start_y,
         field_width,
@@ -496,7 +518,7 @@ fn inspector_field_nodes(
         "ParentField",
         "Parent",
         &fields.parent,
-        "InspectorView/ParentField",
+        "inspector.field.parent.edit",
         start_x,
         start_y + INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP,
         field_width,
@@ -526,7 +548,7 @@ fn inspector_field_nodes(
         "PositionXField",
         "X",
         &fields.x,
-        "InspectorView/PositionXField",
+        "inspector.transform.position_x.edit",
         start_x,
         vector_y,
         vector_width,
@@ -537,7 +559,7 @@ fn inspector_field_nodes(
         "PositionYField",
         "Y",
         &fields.y,
-        "InspectorView/PositionYField",
+        "inspector.transform.position_y.edit",
         start_x + vector_width + INSPECTOR_VECTOR_FIELD_GAP,
         vector_y,
         vector_width,
@@ -548,7 +570,7 @@ fn inspector_field_nodes(
         "PositionZField",
         "Z",
         &fields.z,
-        "InspectorView/PositionZField",
+        "inspector.transform.position_z.edit",
         start_x + (vector_width + INSPECTOR_VECTOR_FIELD_GAP) * 2.0,
         vector_y,
         vector_width,
@@ -606,7 +628,7 @@ fn inspector_field_nodes(
         "apply",
         "ApplyBatchButton",
         "Apply",
-        "InspectorView/ApplyBatchButton",
+        "inspector.apply_batch.invoke",
         start_x,
         next_y,
         field_disabled,
@@ -615,7 +637,7 @@ fn inspector_field_nodes(
         "delete",
         "DeleteSelected",
         "Delete",
-        "InspectorView/DeleteSelected",
+        "workbench.selection.delete_selected",
         start_x + INSPECTOR_ACTION_BUTTON_WIDTH + INSPECTOR_FIELD_ROW_GAP,
         next_y,
         !fields.delete_enabled,
@@ -716,7 +738,7 @@ fn inspector_plugin_component_nodes(
                     &control_id,
                     property.label.as_str(),
                     &property.value,
-                    &format!("InspectorView/{control_id}"),
+                    &inspector_dynamic_component_edit_action_id(&property.field_id),
                     x,
                     y,
                     width,
@@ -770,6 +792,13 @@ fn inspector_plugin_component_height(fields: &InspectorVisualFields) -> f32 {
 
 fn inspector_dynamic_component_control_id(field_id: &str) -> String {
     format!("DynamicComponentField:{field_id}")
+}
+
+fn inspector_dynamic_component_edit_action_id(field_id: &str) -> String {
+    format!(
+        "inspector.dynamic_component.{}.edit",
+        inspector_component_key(field_id)
+    )
 }
 
 fn inspector_component_key(value: &str) -> String {
@@ -847,7 +876,7 @@ fn inspector_text_field_node(
     node.component_role = "input-field".into();
     node.value_text = value.to_string().into();
     node.edit_action_id = edit_action_id.to_string().into();
-    node.commit_action_id = "InspectorView/ApplyBatchButton".into();
+    node.commit_action_id = "inspector.apply_batch.commit".into();
     node.disabled = disabled;
     node.surface_variant = if disabled {
         "inset".into()
@@ -1119,10 +1148,10 @@ mod inspector_pane_tests {
         let name = find_node(&data.nodes, "NameField");
         assert_eq!(name.role.as_str(), "InputField");
         assert_eq!(name.value_text.as_str(), "Camera");
-        assert_eq!(name.edit_action_id.as_str(), "InspectorView/NameField");
+        assert_eq!(name.edit_action_id.as_str(), "inspector.field.name.edit");
         assert_eq!(
             name.commit_action_id.as_str(),
-            "InspectorView/ApplyBatchButton"
+            "inspector.apply_batch.commit"
         );
         assert_eq!(name.surface_variant.as_str(), "inspector-field");
         assert_eq!(name.text_tone.as_str(), "default");
@@ -1133,21 +1162,24 @@ mod inspector_pane_tests {
         assert_eq!(position_x.value_text.as_str(), "1.25");
         assert_eq!(
             position_x.edit_action_id.as_str(),
-            "InspectorView/PositionXField"
+            "inspector.transform.position_x.edit"
         );
         assert_eq!(position_x.surface_variant.as_str(), "inspector-field");
         assert_eq!(position_x.text_tone.as_str(), "default");
 
         let apply = find_node(&data.nodes, "ApplyBatchButton");
         assert_eq!(apply.role.as_str(), "Button");
-        assert_eq!(apply.action_id.as_str(), "InspectorView/ApplyBatchButton");
+        assert_eq!(apply.action_id.as_str(), "inspector.apply_batch.invoke");
         assert_eq!(apply.surface_variant.as_str(), "panel");
         assert_eq!(apply.text_tone.as_str(), "default");
         assert!(apply.selected);
         assert!(!apply.disabled);
 
         let delete = find_node(&data.nodes, "DeleteSelected");
-        assert_eq!(delete.action_id.as_str(), "InspectorView/DeleteSelected");
+        assert_eq!(
+            delete.action_id.as_str(),
+            "workbench.selection.delete_selected"
+        );
         assert_eq!(delete.surface_variant.as_str(), "panel");
         assert_eq!(delete.text_tone.as_str(), "default");
         assert!(delete.selected);
@@ -1283,7 +1315,7 @@ mod inspector_pane_tests {
         assert_eq!(coverage.value_text.as_str(), "0.75");
         assert_eq!(
             coverage.edit_action_id.as_str(),
-            "InspectorView/DynamicComponentField:weather.Component.CloudLayer.coverage"
+            "inspector.dynamic_component.weather_component_cloudlayer_coverage.edit"
         );
         assert_eq!(coverage.surface_variant.as_str(), "inspector-field");
         assert_eq!(coverage.text_tone.as_str(), "default");

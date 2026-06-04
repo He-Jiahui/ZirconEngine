@@ -5,7 +5,7 @@ use crate::ui::template_runtime::RetainedUiHostBindingProjection;
 use zircon_runtime_interface::ui::component::{UiValue, UiValueKind};
 
 use super::super::pane_value_conversion::value_as_string;
-use super::showcase_actions::showcase_binding_id_for_suffix;
+use super::showcase_actions::showcase_action_id_for_suffix;
 
 pub(super) fn collection_fields_for_component(
     component: &str,
@@ -27,9 +27,9 @@ fn array_collection_fields(
         .get("element_type")
         .and_then(value_as_string)
         .unwrap_or_else(|| "Element".to_string());
-    let edit_action_id = showcase_binding_id_for_suffix(bindings, "ArrayFieldSetElement");
-    let remove_action_id = showcase_binding_id_for_suffix(bindings, "ArrayFieldRemoveElement");
-    let move_action_id = showcase_binding_id_for_suffix(bindings, "ArrayFieldMoveElement");
+    let edit_action_id = showcase_action_id_for_suffix(bindings, "ArrayFieldSetElement");
+    let remove_action_id = showcase_action_id_for_suffix(bindings, "ArrayFieldRemoveElement");
+    let move_action_id = showcase_action_id_for_suffix(bindings, "ArrayFieldMoveElement");
     let items = attributes.get("items").map(UiValue::from_toml);
     let Some(UiValue::Array(values)) = items else {
         return vec![empty_collection_field(
@@ -108,8 +108,8 @@ fn map_collection_fields(
         .get("value_type")
         .and_then(value_as_string)
         .unwrap_or_else(|| "Value".to_string());
-    let edit_action_id = showcase_binding_id_for_suffix(bindings, "MapFieldSetEntry");
-    let remove_action_id = showcase_binding_id_for_suffix(bindings, "MapFieldRemoveEntry");
+    let edit_action_id = showcase_action_id_for_suffix(bindings, "MapFieldSetEntry");
+    let remove_action_id = showcase_action_id_for_suffix(bindings, "MapFieldRemoveEntry");
     let entries = attributes.get("entries").map(UiValue::from_toml);
     let Some(UiValue::Map(values)) = entries else {
         return vec![empty_collection_field(

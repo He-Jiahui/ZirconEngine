@@ -6,11 +6,8 @@ import {
 import {
     HubTokens,
     HubVisualSpec,
-    MaterialPalette,
     MaterialStyleMetrics,
     PageScrollSurface,
-    PanelHeader,
-    PanelSlot,
 } from "components.slint";
 
 import {
@@ -18,8 +15,7 @@ import {
 } from "project_page_components.slint";
 import {
     ProjectDetailActionsSection,
-    ProjectDetailInfoSection,
-    ProjectDetailStatusStrip,
+    ProjectDetailMainPanel,
 } from "project_detail_components.slint";
 
 export component ProjectDetailPage inherits PageScrollSurface {
@@ -92,7 +88,7 @@ export component ProjectDetailPage inherits PageScrollSurface {
         spacing-horizontal: root.page-gap;
         spacing-vertical: root.page-gap;
 
-        PanelSlot {
+        ProjectDetailMainPanel {
             basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-lg;
             flex-basis: root.narrow-flow ? root.content-width : HubTokens.panel-min-lg;
             grow: 2;
@@ -103,46 +99,19 @@ export component ProjectDetailPage inherits PageScrollSurface {
             height: root.detail-main-height;
             body-padding: root.detail-panel-padding;
             body-spacing: root.page-gap;
-
-            Rectangle {
-                horizontal-stretch: 1;
-                height: root.cover-height;
-                border-radius: HubVisualSpec.panel-radius;
-                background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : MaterialPalette.tertiary_container);
-                clip: true;
-                if root.project.has-cover: Image {
-                    width: parent.width;
-                    height: parent.height;
-                    source: root.project.cover-image;
-                    image-fit: cover;
-                }
-            }
-
-            PanelHeader {
-                title: root.project.title;
-                subtitle: root.narrow-flow ? "" : root.project.project-path;
-                show-badge: true;
-                badge-text: root.project.status;
-                badge-tone: root.project.missing ? "warning" : "accent";
-            }
-
-            ProjectDetailStatusStrip {
-                row-height: root.status-row-height;
-                row-spacing: root.status-gap;
-                version-badge-width: root.version-badge-width;
-                pin-badge-width: root.pin-badge-width;
-                detail: root.project;
-                copy: root.ui-text;
-            }
-
-            ProjectDetailInfoSection {
-                section-height: root.detail-info-section-height;
-                row-height: root.info-row-height;
-                row-spacing: root.detail-info-row-gap;
-                header-subtitle: root.narrow-flow ? "" : root.ui-text.project-info-subtitle;
-                project: root.project;
-                ui-text: root.ui-text;
-            }
+            project: root.project;
+            ui-text: root.ui-text;
+            cover-height: root.cover-height;
+            status-row-height: root.status-row-height;
+            status-row-spacing: root.status-gap;
+            info-section-height: root.detail-info-section-height;
+            info-row-height: root.info-row-height;
+            info-row-spacing: root.detail-info-row-gap;
+            content-stack-spacing: root.page-gap;
+            header-subtitle: root.narrow-flow ? "" : root.project.project-path;
+            info-header-subtitle: root.narrow-flow ? "" : root.ui-text.project-info-subtitle;
+            version-badge-width: root.version-badge-width;
+            pin-badge-width: root.pin-badge-width;
         }
 
         ProjectDetailActionsSection {

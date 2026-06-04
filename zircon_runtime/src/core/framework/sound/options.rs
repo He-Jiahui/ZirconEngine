@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+use super::SoundChannelLayout;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundPluginOptions {
     pub enabled: bool,
     pub backend: String,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
+    pub channel_layout: SoundChannelLayout,
     pub global_volume_gain: f32,
     pub block_size_frames: usize,
     pub max_voices: usize,
@@ -28,6 +31,7 @@ impl Default for SoundPluginOptions {
             backend: "software-mixer".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
+            channel_layout: SoundChannelLayout::stereo(),
             global_volume_gain: 1.0,
             block_size_frames: 256,
             max_voices: 128,

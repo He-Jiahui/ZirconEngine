@@ -24,6 +24,7 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.performance_timeline" => ViewContentKind::PerformanceTimeline,
         "editor.module_plugins" => ViewContentKind::ModulePlugins,
         "editor.build_export_desktop" => ViewContentKind::BuildExport,
+        "editor.generated_bottom" => ViewContentKind::GeneratedBottom,
         _ => ViewContentKind::Placeholder,
     }
 }

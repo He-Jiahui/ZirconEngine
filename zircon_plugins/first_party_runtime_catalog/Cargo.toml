@@ -1,0 +1,38 @@
+[package]
+name = "zircon_first_party_runtime_catalog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Linked first-party runtime provider catalog for Zircon."
+
+[features]
+default = []
+base-runtime-plugins = [
+    "dep:zircon_plugin_ai_runtime",
+    "dep:zircon_plugin_animation_runtime",
+    "dep:zircon_plugin_net_runtime",
+    "dep:zircon_plugin_particles_runtime",
+    "dep:zircon_plugin_rendering_runtime",
+    "dep:zircon_plugin_sound_runtime",
+    "dep:zircon_plugin_texture_runtime",
+]
+advanced-render-runtime-plugins = [
+    "dep:zircon_plugin_hybrid_gi_runtime",
+    "dep:zircon_plugin_solari_runtime",
+    "dep:zircon_plugin_virtual_geometry_runtime",
+]
+navigation-runtime-plugin = ["dep:zircon_plugin_navigation_runtime"]
+
+[dependencies]
+zircon_plugin_ai_runtime = { path = "../ai/runtime", optional = true }
+zircon_plugin_animation_runtime = { path = "../animation/runtime", optional = true }
+zircon_plugin_hybrid_gi_runtime = { path = "../hybrid_gi/runtime", optional = true }
+zircon_plugin_navigation_runtime = { path = "../navigation/runtime", optional = true }
+zircon_plugin_net_runtime = { path = "../net/runtime", optional = true }
+zircon_plugin_particles_runtime = { path = "../particles/runtime", optional = true }
+zircon_plugin_rendering_runtime = { path = "../rendering/runtime", optional = true }
+zircon_plugin_solari_runtime = { path = "../solari/runtime", optional = true }
+zircon_plugin_sound_runtime = { path = "../sound/runtime", optional = true }
+zircon_plugin_texture_runtime = { path = "../texture/runtime", optional = true }
+zircon_plugin_virtual_geometry_runtime = { path = "../virtual_geometry/runtime", optional = true }
+zircon_runtime = { path = "../../zircon_runtime", default-features = false }

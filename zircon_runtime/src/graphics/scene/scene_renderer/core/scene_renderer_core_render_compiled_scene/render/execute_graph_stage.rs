@@ -100,6 +100,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             .create_view(&wgpu::TextureViewDescriptor::default()),
     );
     resources.import_texture_view(
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        target
+            .gbuffer_material
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_view(
         PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
         target
             .ambient_occlusion
@@ -132,6 +138,18 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     resources.import_texture_alias(
         PostProcessGraphResourceNames::EFFECT_STACKED,
         &target.final_color,
+    );
+    resources.import_texture_view(
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+        target
+            .depth_of_field_coc
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_view(
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+        target
+            .depth_of_field_bokeh
+            .create_view(&wgpu::TextureViewDescriptor::default()),
     );
     resources.import_texture_alias(
         PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR,
@@ -197,14 +215,16 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        PostProcessEffectKind, PostProcessPassGraph, PostProcessPassNode,
-        RenderPluginRendererOutputs,
+        PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
+        PostProcessPassNode, RenderPluginRendererOutputs,
     };
+    use crate::core::math::UVec2;
+    use crate::graphics::backend::{OffscreenTarget, RenderBackend};
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionRecord, RenderGraphExecutionResources,
     };
 
-    use super::RenderGraphStageExecution;
+    use super::{import_frame_targets, RenderGraphStageExecution};
 
     #[test]
     fn stage_execution_records_post_process_graph_through_record_owner() {
@@ -233,6 +253,18 @@ mod tests {
             &["final-composite".to_string()]
         );
         assert!(record.executed_passes().is_empty());
+    }
+
+    #[test]
+    fn import_frame_targets_binds_depth_of_field_product_targets() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
+        let mut resources = RenderGraphExecutionResources::new();
+
+        import_frame_targets(&mut resources, &target);
+
+        assert!(resources.has_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC));
+        assert!(resources.has_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH));
     }
 }
 

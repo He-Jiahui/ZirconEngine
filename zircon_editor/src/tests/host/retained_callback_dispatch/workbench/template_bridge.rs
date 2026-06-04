@@ -53,12 +53,13 @@ fn builtin_host_open_project_requests_present_welcome_from_template_binding() {
 }
 
 #[test]
-fn builtin_host_reset_layout_matches_legacy_menu_action_dispatch() {
+fn builtin_host_reset_layout_matches_menu_action_dispatch() {
     let _guard = env_lock().lock().unwrap();
 
-    let legacy_harness = EventRuntimeHarness::new("zircon_retained_parity_reset_layout_legacy");
-    let legacy_effects = dispatch_menu_action(&legacy_harness.runtime, "ResetLayout").unwrap();
-    let legacy_record = legacy_harness
+    let menu_harness = EventRuntimeHarness::new("zircon_retained_parity_reset_layout_menu");
+    let menu_effects =
+        dispatch_menu_action(&menu_harness.runtime, "workbench.layout.reset").unwrap();
+    let menu_record = menu_harness
         .runtime
         .journal()
         .records()
@@ -80,6 +81,6 @@ fn builtin_host_reset_layout_matches_legacy_menu_action_dispatch() {
         .unwrap()
         .clone();
 
-    assert_eq!(builtin_effects, legacy_effects);
-    assert_eq!(builtin_record, legacy_record);
+    assert_eq!(builtin_effects, menu_effects);
+    assert_eq!(builtin_record, menu_record);
 }

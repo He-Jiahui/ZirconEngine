@@ -1,52 +1,6 @@
-import { HubTokens, HubVisualSpec } from "tokens.slint";
-import {
-    MaterialPalette,
-    MaterialStyleMetrics,
-    MaterialText,
-    MaterialTypography,
-    StateLayerArea,
-} from "material_bridge.slint";
-
-component CompactTabButton inherits Rectangle {
-    in property <string> text;
-    in property <bool> active: false;
-    in property <bool> enabled: true;
-    in property <length> button-width: HubTokens.control-md * 3;
-    callback clicked;
-
-    min-width: root.button-width;
-    preferred-width: root.button-width;
-    height: HubTokens.control-md;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: HubTokens.border-width;
-    border-color: root.active ? HubVisualSpec.view-toggle-active-stroke : HubVisualSpec.outline-muted;
-    background: root.active ? HubVisualSpec.view-toggle-active-fill : HubVisualSpec.panel-background;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.active ? HubVisualSpec.view-toggle-active-foreground : MaterialPalette.on_surface;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
-        }
-    }
-
-    MaterialText {
-        width: parent.width;
-        height: parent.height;
-        text: root.text;
-        color: root.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
-        style: MaterialTypography.label_medium;
-        horizontal_alignment: center;
-        vertical_alignment: center;
-        overflow: elide;
-    }
-}
+import { HubTokens } from "tokens.slint";
+import { NavigationItem } from "material_bridge.slint";
+import { HubTabs } from "navigation.slint";
 
 export component HubCompactTabStrip inherits Rectangle {
     in-out property <int> current-index: 0;
@@ -60,62 +14,115 @@ export component HubCompactTabStrip inherits Rectangle {
     in property <length> tab-width: HubTokens.control-md * 3;
     callback selected(int);
 
+    private property <[NavigationItem]> first-only-tabs: [
+        { text: root.first-label },
+    ];
+    private property <[NavigationItem]> first-second-tabs: [
+        { text: root.first-label },
+        { text: root.second-label },
+    ];
+    private property <[NavigationItem]> first-third-tabs: [
+        { text: root.first-label },
+        { text: root.third-label },
+    ];
+    private property <[NavigationItem]> first-fourth-tabs: [
+        { text: root.first-label },
+        { text: root.fourth-label },
+    ];
+    private property <[NavigationItem]> first-second-third-tabs: [
+        { text: root.first-label },
+        { text: root.second-label },
+        { text: root.third-label },
+    ];
+    private property <[NavigationItem]> first-second-fourth-tabs: [
+        { text: root.first-label },
+        { text: root.second-label },
+        { text: root.fourth-label },
+    ];
+    private property <[NavigationItem]> first-third-fourth-tabs: [
+        { text: root.first-label },
+        { text: root.third-label },
+        { text: root.fourth-label },
+    ];
+    private property <[NavigationItem]> all-tabs: [
+        { text: root.first-label },
+        { text: root.second-label },
+        { text: root.third-label },
+        { text: root.fourth-label },
+    ];
+    private property <[NavigationItem]> visible-tabs: root.show-second && root.show-third && root.show-fourth ? root.all-tabs : (
+        root.show-second && root.show-third ? root.first-second-third-tabs : (
+            root.show-second && root.show-fourth ? root.first-second-fourth-tabs : (
+                root.show-third && root.show-fourth ? root.first-third-fourth-tabs : (
+                    root.show-second ? root.first-second-tabs : (
+                        root.show-third ? root.first-third-tabs : (
+                            root.show-fourth ? root.first-fourth-tabs : root.first-only-tabs
+                        )
+                    )
+                )
+            )
+        )
+    );
+    private property <int> visible-current-index: root.current-index == 1 ? (root.show-second ? 1 : 0) : (
+        root.current-index == 2 ? (root.show-third ? (root.show-second ? 2 : 1) : 0) : (
+            root.current-index == 3 ? (
+                root.show-fourth ? (
+                    root.show-second && root.show-third ? 3 : (
+                        root.show-second || root.show-third ? 2 : 1
+                    )
+                ) : 0
+            ) : 0
+        )
+    );
+
     horizontal-stretch: 1;
     height: HubTokens.control-md;
     min-width: 1px;
     background: transparent;
     clip: true;
 
-    HorizontalLayout {
-        width: parent.width;
+    HubTabs {
+        width: root.tab-width * root.visible-tabs.length;
         height: parent.height;
-        spacing: HubTokens.space-2;
-        alignment: start;
-
-        CompactTabButton {
-            text: root.first-label;
-            active: root.current-index == 0;
-            button-width: root.tab-width;
-            clicked => {
+        current-index: root.visible-current-index;
+        items: root.visible-tabs;
+        secondary: true;
+        tabs-height: HubTokens.control-md;
+        selected(index) => {
+            if index == 0 {
                 root.current-index = 0;
                 root.selected(0);
-            }
-        }
-
-        if root.show-second: CompactTabButton {
-            text: root.second-label;
-            active: root.current-index == 1;
-            button-width: root.tab-width;
-            clicked => {
-                root.current-index = 1;
-                root.selected(1);
-            }
-        }
-
-        if root.show-third: CompactTabButton {
-            text: root.third-label;
-            active: root.current-index == 2;
-            button-width: root.tab-width;
-            clicked => {
-                root.current-index = 2;
-                root.selected(2);
-            }
-        }
-
-        if root.show-fourth: CompactTabButton {
-            text: root.fourth-label;
-            active: root.current-index == 3;
-            button-width: root.tab-width;
-            clicked => {
+            } else if index == 1 {
+                if root.show-second {
+                    root.current-index = 1;
+                    root.selected(1);
+                } else if root.show-third {
+                    root.current-index = 2;
+                    root.selected(2);
+                } else if root.show-fourth {
+                    root.current-index = 3;
+                    root.selected(3);
+                }
+            } else if index == 2 {
+                if root.show-second && root.show-third {
+                    root.current-index = 2;
+                    root.selected(2);
+                } else if root.show-fourth {
+                    root.current-index = 3;
+                    root.selected(3);
+                }
+            } else if index == 3 {
                 root.current-index = 3;
                 root.selected(3);
             }
         }
-
-        Rectangle {
-            horizontal-stretch: 1;
-            min-width: HubTokens.space-2;
-            background: transparent;
-        }
     }
+}
+
+export component HubWorkspaceTabStrip inherits HubCompactTabStrip {
+    first-label: "Overview";
+    second-label: "Details";
+    third-label: "History";
+    fourth-label: "Timeline";
+    tab-width: HubTokens.control-md * 4;
 }

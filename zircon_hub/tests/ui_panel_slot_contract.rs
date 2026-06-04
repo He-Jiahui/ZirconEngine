@@ -22,7 +22,7 @@ fn panel_slot_wraps_responsive_slot_and_material_panel_body() {
     let components = read_ui_file("components.slint");
 
     for snippet in [
-        "import { ResponsiveSlot } from \"layout.slint\";",
+        "import { Divider, ResponsiveSlot } from \"layout.slint\";",
         "export component PanelSlot inherits ResponsiveSlot",
         "in property <length> body-padding: HubTokens.space-4;",
         "in property <length> body-spacing: HubTokens.toolbar-gap;",
@@ -110,8 +110,10 @@ fn overview_panel_wraps_cloud_summary_header_and_team_uses_metric_first_overview
     assert!(
         !team.contains("OverviewPanel,")
             && !team.contains("OverviewPanel {")
-            && team.contains("summary-compact: root.content-width < HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
-            && team.contains("compact-rows: 4;")
+            && team.contains("summary-metrics := HubMetricSectionState {")
+            && team.contains("allow-two-columns: false;")
+            && team.contains("wide-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
+            && team.contains("compact-rows: summary-metrics.row-count;")
             && team.matches("TeamSummarySlot {").count() == 4
             && team.contains("TeamMembersPanel {")
             && team.contains("TeamActionsPanel {"),
@@ -218,13 +220,17 @@ fn builds_page_uses_panel_slot_for_workspace_panels() {
     let operation_timeline = read_ui_file("operation_timeline_components.slint");
 
     assert!(
-        builds_components.contains("PanelSlot,")
+        builds_components.contains("HubContentPanelSlot,")
             && builds_components.contains("HubListPanelSlot,")
+            && !builds_components.contains("\n    PanelSlot,")
             && !builds.contains("PanelSlot,"),
-        "BuildsPage should leave shared panel/list primitives to builds_page_components.slint"
+        "BuildsPage should leave shared content/list panel primitives to builds_page_components.slint"
     );
     assert_eq!(
         builds_components.matches("inherits PanelSlot").count()
+            + builds_components
+                .matches("inherits HubContentPanelSlot")
+                .count()
             + builds_components.matches("inherits HubListPanelSlot").count()
             + operation_timeline
                 .matches("export component OperationTimelinePanel inherits HubListPanelSlot")
@@ -234,14 +240,15 @@ fn builds_page_uses_panel_slot_for_workspace_panels() {
     );
     assert!(
         builds.contains("BuildTaskHistoryPanel {")
-            && builds_components.contains("export component BuildTaskHistoryPanel inherits PanelSlot"),
-        "BuildsPage should route current-task/build-history chrome through the PanelSlot-backed BuildTaskHistoryPanel"
+            && builds_components
+                .contains("export component BuildTaskHistoryPanel inherits HubContentPanelSlot"),
+        "BuildsPage should route current-task/build-history chrome through the HubContentPanelSlot-backed BuildTaskHistoryPanel"
     );
     for (component, base, message) in [
         (
             "BuildSourceSummaryPanel",
-            "PanelSlot",
-            "source/output summary chrome through the PanelSlot-backed BuildSourceSummaryPanel",
+            "HubContentPanelSlot",
+            "source/output summary chrome through the HubContentPanelSlot-backed BuildSourceSummaryPanel",
         ),
         (
             "BuildControlsPanel",
@@ -352,14 +359,14 @@ fn editor_page_uses_panel_slot_for_standard_workspace_panels() {
     assert!(
         editor.contains("EditorSourceSummaryPanel {")
             && editor_components
-                .contains("export component EditorSourceSummaryPanel inherits PanelSlot"),
-        "EditorPage should route the active source summary through the PanelSlot-backed EditorSourceSummaryPanel"
+                .contains("export component EditorSourceSummaryPanel inherits HubContentPanelSlot"),
+        "EditorPage should route the active source summary through the HubContentPanelSlot-backed EditorSourceSummaryPanel"
     );
     assert!(
         editor.contains("EditorSourceSettingsPanel {")
             && editor_components
-                .contains("export component EditorSourceSettingsPanel inherits PanelSlot"),
-        "EditorPage should route the source settings form through the PanelSlot-backed EditorSourceSettingsPanel"
+                .contains("export component EditorSourceSettingsPanel inherits HubFormPanelSlot"),
+        "EditorPage should route the source settings form through the HubFormPanelSlot-backed EditorSourceSettingsPanel"
     );
     assert!(
         editor.contains("EditorActionsPanel {")
@@ -388,7 +395,7 @@ fn editor_page_uses_panel_slot_for_standard_workspace_panels() {
 
     for snippet in [
         "body-spacing: HubTokens.space-3;",
-        "actions-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
+        "actions-first: workspace-split.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
         "editor-config-height: HubTokens.workspace-row-editor-config - HubTokens.list-row-md - HubTokens.control-lg;",
         "side-list-empty-height: HubTokens.list-row-sm + HubTokens.space-4;",
         "order: root.actions-first ? 1 : 0;",
@@ -397,8 +404,8 @@ fn editor_page_uses_panel_slot_for_standard_workspace_panels() {
         "flex-order: root.actions-first ? 0 : 1;",
         "row-height: root.editor-config-height;",
         "height: root.editor-config-height;",
-        "export component EditorSourceSummaryPanel inherits PanelSlot",
-        "export component EditorSourceSettingsPanel inherits PanelSlot",
+        "export component EditorSourceSummaryPanel inherits HubContentPanelSlot",
+        "export component EditorSourceSettingsPanel inherits HubFormPanelSlot",
         "EditorSourceSummaryPanel {",
         "EditorSourceSettingsPanel {",
         "source-engine: root.source-engine;",
@@ -513,11 +520,12 @@ fn project_dashboard_lower_panels_use_panel_slot() {
         "ProjectDashboardPage lower PanelGrid should leave ResponsiveSlot boilerplate to PanelSlot"
     );
     for snippet in [
-        "export component DashboardQuickActionRow inherits Rectangle",
+        "export component DashboardQuickActionRow inherits ActionRow",
         "export component DashboardRecentProjectsPanel inherits HubTableView",
         "export component DashboardQuickActionsPanel inherits HubListPanelSlot",
         "HubTableView,",
         "HubListPanelSlot,",
+        "ActionRow,",
         "DashboardRecentProjectsPanel {",
         "DashboardQuickActionsPanel {",
         "panel-title: root.dashboard-project-title;",
@@ -529,11 +537,20 @@ fn project_dashboard_lower_panels_use_panel_slot() {
         "show-divider: false;",
         "minimum-row-height: root.table-row-height;",
         "DataTable {",
+        "HubPanelNavigationCommand {",
+        "text: root.action-text;",
+        "source-image: @image-url(\"../assets/icons/nav/projects.svg\");",
         "panel-title: root.ui-text.quick-actions;",
         "quick-actions: root.quick-actions;",
         "quick-action-count: root.quick-action-count;",
-        "root.triggered(root.quick-action-data.id);",
-        "source: root.quick-action-data.has-icon-image ? root.quick-action-data.icon-image",
+        "action: root.quick-action-data;",
+        "detail-override: root.visual-detail;",
+        "compact-shell: true;",
+        "plain-avatar: true;",
+        "plain-trailing: true;",
+        "leading-shell-size-override: MaterialStyleMetrics.size_24;",
+        "leading-icon-size-override: MaterialStyleMetrics.size_24;",
+        "root.triggered(id);",
         "header-height: HubTokens.control-md * 2 / 3;",
         "quick-actions-scroll-y <=> root.quick-actions-scroll-y;",
         "scroll-y <=> root.quick-actions-scroll-y;",
@@ -554,10 +571,10 @@ fn project_dashboard_lower_panels_use_panel_slot() {
     }
     assert_eq!(
         dashboard_components
-            .matches("export component DashboardQuickActionRow inherits Rectangle")
+            .matches("export component DashboardQuickActionRow inherits ActionRow")
             .count(),
         1,
-        "project_dashboard_components.slint should own one exported Quick Actions row wrapper"
+        "project_dashboard_components.slint should own one exported Quick Actions ActionRow wrapper"
     );
     assert!(
         !dashboard.contains("component DashboardQuickActionRow inherits"),
@@ -639,7 +656,7 @@ fn cloud_and_team_lower_list_panels_use_panel_slot_shells() {
             &team,
             &team_components,
             "TeamMembersPanel {",
-            "export component TeamMembersPanel inherits PanelSlot",
+            "export component TeamMembersPanel inherits HubTabbedListPanelSlot",
             "flex-basis: HubTokens.panel-min-lg;",
             "height: root.overview-section-height;",
             "member-scroll-y <=> root.member-scroll-y;",
@@ -736,25 +753,26 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
     assert!(
         !new_page.contains("PanelSlot")
             && project_components.contains("PanelSlot")
-            && detail_page.contains("PanelSlot,"),
-        "Project New page should leave the shared PanelSlot primitive import to project_page_components.slint"
+            && !detail_page.contains("PanelSlot"),
+        "Project New and Detail pages should leave shared panel primitives to typed component modules"
     );
     assert_eq!(
         new_page.matches("PanelSlot {").count(),
         0,
-        "ProjectNewPage should route settings, compact summary, and template panels through typed PanelSlot-backed components"
+        "ProjectNewPage should route settings, compact summary, and template panels through typed shared panel-shell components"
     );
     assert!(
         new_page.contains("ProjectCreateSettingsPanel {")
-            && project_components
-                .contains("export component ProjectCreateSettingsPanel inherits PanelSlot"),
-        "ProjectNewPage should route the settings form through a typed PanelSlot-backed component"
+            && project_components.contains(
+                "export component ProjectCreateSettingsPanel inherits HubContentPanelSlot"
+            ),
+        "ProjectNewPage should route the settings form through the shared content-panel component"
     );
     assert!(
         new_page.contains("ProjectCreateCompactSummaryPanel {")
             && project_components
-                .contains("export component ProjectCreateCompactSummaryPanel inherits PanelSlot"),
-        "ProjectNewPage should route the compact summary through a typed PanelSlot-backed component"
+                .contains("export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot"),
+        "ProjectNewPage should route the compact summary through a typed HubContentPanelSlot-backed component"
     );
     assert!(
         new_page.contains("ProjectTemplateRailPanel {")
@@ -764,13 +782,20 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
     );
     assert_eq!(
         detail_page.matches("PanelSlot {").count(),
-        1,
-        "ProjectDetailPage should keep the main detail column as a direct PanelSlot and route actions through ProjectDetailActionsSection"
+        0,
+        "ProjectDetailPage should route the main detail and actions columns through typed panel components"
+    );
+    assert!(
+        detail_page.contains("ProjectDetailMainPanel {")
+            && detail_components.contains(
+                "export component ProjectDetailMainPanel inherits HubMediaContentPanelSlot"
+            ),
+        "ProjectDetailPage should route the main media/status/info column through the shared media content-panel component"
     );
     assert!(
         detail_page.contains("ProjectDetailActionsSection {")
-            && detail_components.contains("export component ProjectDetailActionsSection inherits PanelSlot"),
-        "ProjectDetailPage should route the actions column through a typed PanelSlot-backed component"
+            && detail_components.contains("export component ProjectDetailActionsSection inherits HubContentPanelSlot"),
+        "ProjectDetailPage should route the actions column through the shared content-panel component"
     );
     assert_eq!(
         browser_page.matches("PanelSlot {").count(),
@@ -795,13 +820,17 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
 
     for snippet in [
         "body-spacing: root.page-gap;",
-        "export component ProjectCreateSettingsPanel inherits PanelSlot",
-        "export component ProjectCreateCompactSummaryPanel inherits PanelSlot",
+        "export component ProjectCreateSettingsPanel inherits HubContentPanelSlot",
+        "export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot",
         "export component ProjectTemplateRailPanel inherits HubListPanelSlot",
         "HubListPanelSlot,",
         "title: root.ui-text.project-settings-title;",
+        "content-spacing: root.page-gap;",
         "ProjectCreateField {",
         "body-spacing: 0px;",
+        "content-spacing: 0px;",
+        "show-header: false;",
+        "export component ProjectCreateSummary inherits HubSection",
         "ProjectCreateSummary {",
         "panel-title: root.ui-text.templates-title;",
         "scroll-y <=> root.list-scroll-y;",
@@ -812,11 +841,20 @@ fn project_secondary_pages_use_panel_slot_for_standard_new_and_detail_panels() {
         "row-height: root.create-action-row-height;",
         "height: root.detail-main-height;",
         "height: root.detail-action-height;",
+        "export component ProjectDetailMainPanel inherits HubMediaContentPanelSlot",
+        "media-height: root.cover-height;",
+        "media-background: root.project.accent == 0 ? MaterialPalette.primary_container",
+        "has-media-source: root.project.has-cover;",
+        "ProjectDetailMainPanel {",
+        "cover-height: root.cover-height;",
+        "content-stack-spacing: root.page-gap;",
         "ProjectDetailStatusStrip {",
         "row-height: root.status-row-height;",
         "ProjectDetailInfoSection {",
         "section-height: root.detail-info-section-height;",
-        "PanelHeader { title: root.copy.project-actions-title; }",
+        "export component ProjectDetailActionsSection inherits HubContentPanelSlot",
+        "title: root.copy.project-actions-title;",
+        "content-spacing: root.panel-spacing;",
         "detail-engine-scroll-y: 0px;",
         "ProjectEngineChoiceList {",
         "list-scroll-y <=> root.engine-scroll-y;",
@@ -855,14 +893,30 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
 
     assert!(
         settings_components.contains("PanelSlot,")
+            && settings_components.contains("HubContentPanelSlot,")
+            && settings_components.contains("HubFormPanelSlot,")
             && settings_components.contains("HubListPanelSlot,")
             && !settings.contains("PanelSlot,"),
-        "SettingsPage should leave the shared PanelSlot primitive import to settings_page_components.slint"
+        "SettingsPage should leave shared panel primitives to settings_page_components.slint"
     );
     assert_eq!(
         settings_components.matches("inherits PanelSlot").count(),
-        3,
-        "SettingsPage should keep the non-list Settings panels on direct PanelSlot components"
+        0,
+        "SettingsPage should not keep semantic panels on direct PanelSlot after shared content/form/list shell extraction"
+    );
+    assert_eq!(
+        settings_components
+            .matches("inherits HubContentPanelSlot")
+            .count(),
+        1,
+        "SettingsPage should route the overview panel through the shared content panel slot"
+    );
+    assert_eq!(
+        settings_components
+            .matches("inherits HubFormPanelSlot")
+            .count(),
+        2,
+        "SettingsPage should route Toolchain and Build Defaults through the shared form panel slot"
     );
     assert_eq!(
         settings_components
@@ -873,11 +927,13 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
     );
 
     for snippet in [
-        "export component SettingsConfigurationOverviewPanel inherits PanelSlot",
-        "export component SettingsToolchainPanel inherits PanelSlot",
-        "export component SettingsBuildDefaultsPanel inherits PanelSlot",
+        "export component SettingsConfigurationOverviewPanel inherits HubContentPanelSlot",
+        "export component SettingsToolchainPanel inherits HubFormPanelSlot",
+        "export component SettingsBuildDefaultsPanel inherits HubFormPanelSlot",
         "export component SettingsDefaultPathsPanel inherits HubListPanelSlot",
         "export component SettingsConfigurationHealthPanel inherits HubListPanelSlot",
+        "title: root.panel-title;",
+        "form-spacing: HubTokens.space-2;",
         "private property <length> paths-scroll-y: 0px;",
         "private property <length> health-scroll-y: 0px;",
         "SettingsConfigurationOverviewPanel {",
@@ -913,13 +969,13 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
     ] {
         assert!(
             settings_surface.contains(snippet),
-            "SettingsPage should keep Settings panel shells in typed PanelSlot-backed components: {snippet}"
+        "SettingsPage should keep Settings panel shells in typed PanelSlot-backed components: {snippet}"
         );
     }
     for (component, base) in [
-        ("SettingsConfigurationOverviewPanel", "PanelSlot"),
-        ("SettingsToolchainPanel", "PanelSlot"),
-        ("SettingsBuildDefaultsPanel", "PanelSlot"),
+        ("SettingsConfigurationOverviewPanel", "HubContentPanelSlot"),
+        ("SettingsToolchainPanel", "HubFormPanelSlot"),
+        ("SettingsBuildDefaultsPanel", "HubFormPanelSlot"),
         ("SettingsDefaultPathsPanel", "HubListPanelSlot"),
         ("SettingsConfigurationHealthPanel", "HubListPanelSlot"),
     ] {
@@ -931,12 +987,11 @@ fn settings_page_uses_panel_slot_for_semantic_panel_shells() {
         );
     }
     assert!(
-        settings_components.contains("export component SettingsSaveActionRow inherits Rectangle")
-            && settings_components.contains("PillButton {")
-            && settings_components.contains("primary: true;")
-            && settings_components.contains("root.action-clicked();")
+        settings_components.contains("export component SettingsSaveActionRow inherits HubFormActionRow")
+            && settings_components.contains("action-width: root.button-width;")
+            && settings_components.contains("action-icon: @image-url(\"../assets/icons/ui/chevron-right.svg\");")
             && !settings.contains("PillButton {"),
-        "SettingsPage should import SettingsSaveActionRow so the footer PillButton construction stays in settings_page_components.slint"
+        "SettingsPage should import SettingsSaveActionRow so the footer primary action consumes HubFormActionRow"
     );
 
     for forbidden in [

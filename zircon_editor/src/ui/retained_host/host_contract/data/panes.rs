@@ -242,6 +242,12 @@ pub(crate) struct BuildExportPaneData {
 }
 
 #[derive(Clone, Default)]
+pub(crate) struct GeneratedBottomPaneData {
+    pub nodes: ModelRc<TemplatePaneNodeData>,
+    pub status: SharedString,
+}
+
+#[derive(Clone, Default)]
 pub(crate) struct PaneData {
     pub id: SharedString,
     pub slot: SharedString,
@@ -272,6 +278,7 @@ pub(crate) struct PaneData {
     pub performance_timeline: PerformanceTimelinePaneData,
     pub module_plugins: ModulePluginsPaneData,
     pub build_export: BuildExportPaneData,
+    pub generated_bottom: GeneratedBottomPaneData,
     pub ui_asset: UiAssetEditorPaneData,
     pub animation: AnimationEditorPaneData,
 }

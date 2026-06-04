@@ -4,9 +4,8 @@ import {
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import {
     FilledButton,
-    FilledIconButton,
     IconButton as MaterialIconButton,
-    OutlineIconButton,
+    OutlineButton,
     TonalButton,
     MaterialPalette,
     MaterialStyleMetrics,
@@ -96,6 +95,18 @@ export component PillButton inherits Rectangle {
     }
 }
 
+component HubCommandButtonLabel inherits MaterialText {
+    in property <string> value;
+    in property <bool> primary: false;
+
+    horizontal-stretch: root.primary ? 0 : 1;
+    text: root.value;
+    color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+    style: MaterialTypography.label_medium;
+    overflow: elide;
+    vertical_alignment: center;
+}
+
 export component HubCommandButton inherits Rectangle {
     in property <string> text;
     in property <image> source-image;
@@ -106,9 +117,12 @@ export component HubCommandButton inherits Rectangle {
     in property <bool> focused: false;
     in property <length> button-width: root.primary ? HubTokens.control-lg * 4 + HubTokens.space-7 + HubTokens.space-1 : HubTokens.control-lg * 4 + HubTokens.space-1;
     in property <length> button-height: HubTokens.control-lg;
+    in property <image> trailing-icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+    in property <bool> show-trailing-icon: false;
     callback clicked;
     private property <color> primary-command-fill: HubVisualSpec.command-primary-fill;
     private property <color> primary-command-stroke: HubVisualSpec.command-primary-stroke;
+    private property <bool> reserve-trailing-lane: root.with-menu || root.show-trailing-icon;
 
     width: root.button-width;
     height: root.button-height;
@@ -133,10 +147,10 @@ export component HubCommandButton inherits Rectangle {
 
     HorizontalLayout {
         x: 0px;
-        width: root.with-menu ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;
+        width: root.reserve-trailing-lane ? parent.width - root.height - MaterialStyleMetrics.size_2 : parent.width;
         height: parent.height;
         padding-left: root.primary ? HubTokens.space-6 + MaterialStyleMetrics.size_4 : HubTokens.space-4;
-        padding-right: root.primary ? HubTokens.space-2 : (root.with-menu ? HubTokens.space-3 : HubTokens.space-4);
+        padding-right: root.primary ? HubTokens.space-2 : (root.reserve-trailing-lane ? HubTokens.space-3 : HubTokens.space-4);
         spacing: root.primary ? HubTokens.space-3 : HubTokens.space-2;
         alignment: root.primary ? start : center;
 
@@ -148,13 +162,9 @@ export component HubCommandButton inherits Rectangle {
             has-source-image: root.has-source-image;
         }
 
-        MaterialText {
-            horizontal-stretch: root.primary ? 0 : 1;
-            text: root.text;
-            color: root.primary ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
-            style: MaterialTypography.label_medium;
-            overflow: elide;
-            vertical_alignment: center;
+        HubCommandButtonLabel {
+            value: root.text;
+            primary: root.primary;
         }
     }
 
@@ -174,6 +184,74 @@ export component HubCommandButton inherits Rectangle {
         source: @image-url("../assets/icons/ui/chevron-down.svg");
         colorize: MaterialPalette.on_primary_container;
     }
+
+    if root.show-trailing-icon && !root.with-menu: Image {
+        width: HubTokens.icon-xs;
+        height: HubTokens.icon-xs;
+        x: parent.width - root.height - MaterialStyleMetrics.size_2 + (root.height + MaterialStyleMetrics.size_2 - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.trailing-icon-image;
+        colorize: MaterialPalette.on_surface;
+    }
+}
+
+export component HubHeaderCommandGroup inherits HorizontalLayout {
+    in property <string> secondary-text;
+    in property <image> secondary-image: @image-url("../assets/icons/ui/plus.svg");
+    in property <string> primary-text;
+    in property <image> primary-image: @image-url("../assets/icons/ui/plus.svg");
+    in property <bool> primary-with-menu: false;
+    in property <length> action-height: HubTokens.control-lg;
+    in property <length> action-gap: HubTokens.toolbar-gap;
+    callback secondary-clicked();
+    callback primary-clicked();
+
+    height: root.action-height;
+    spacing: root.action-gap;
+    alignment: center;
+
+    HubCommandButton {
+        height: root.action-height;
+        button-height: root.action-height;
+        text: root.secondary-text;
+        source-image: root.secondary-image;
+        clicked => { root.secondary-clicked(); }
+    }
+
+    HubCommandButton {
+        height: root.action-height;
+        button-height: root.action-height;
+        text: root.primary-text;
+        source-image: root.primary-image;
+        primary: true;
+        with-menu: root.primary-with-menu;
+        clicked => { root.primary-clicked(); }
+    }
+}
+
+export component HubPanelNavigationCommand inherits Rectangle {
+    in property <string> text;
+    in property <image> source-image: @image-url("../assets/icons/ui/chevron-right.svg");
+    in property <length> button-width: HubTokens.control-md * 5;
+    in property <length> button-height: HubTokens.control-md;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: root.button-width;
+    height: root.button-height;
+    vertical-stretch: 0;
+    background: transparent;
+
+    HubCommandButton {
+        button-width: root.button-width;
+        button-height: root.button-height;
+        text: root.text;
+        source-image: root.source-image;
+        has-source-image: true;
+        show-trailing-icon: true;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
 }
 
 export component HubActionCommandButton inherits Rectangle {
@@ -183,7 +261,7 @@ export component HubActionCommandButton inherits Rectangle {
     in property <bool> primary: false;
     in property <bool> enabled: true;
     in property <bool> focused: false;
-    in property <length> action-height: HubTokens.control-md;
+    in property <length> action-height: MaterialStyleMetrics.size_40;
     callback clicked;
 
     horizontal-stretch: 1;
@@ -226,89 +304,199 @@ export component HubActionStack inherits Rectangle {
     }
 }
 
-export component IconButton inherits Rectangle {
-    in property <string> icon;
-    in property <image> icon-image;
-    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
-    in property <bool> has-icon-image: false;
-    in property <bool> active: false;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    callback clicked;
+export component HubFormActionRow inherits Rectangle {
+    in property <length> row-height: HubTokens.control-lg;
+    in property <length> row-spacing: HubTokens.toolbar-gap;
+    in property <length> action-width: MaterialStyleMetrics.size_40 * 4;
+    in property <length> action-height: MaterialStyleMetrics.size_40;
+    in property <string> action-label;
+    in property <image> action-icon: @image-url("../assets/icons/ui/chevron-right.svg");
+    in property <bool> action-enabled: true;
+    callback action-clicked();
 
-    private property <length> focus-radius: HubVisualSpec.compact-radius;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.row-height;
+    vertical-stretch: 0;
+    background: transparent;
 
-    width: MaterialStyleMetrics.size_40;
-    height: root.width;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    if root.active: FilledIconButton {
+    HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
-        enabled: root.enabled;
-        tooltip: root.icon;
-        clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
+        alignment: center;
+        spacing: root.row-spacing;
+
+        Rectangle { horizontal-stretch: 1; }
+
+        PillButton {
+            width: root.action-width;
+            height: root.action-height;
+            text: root.action-label;
+            icon-image: root.action-icon;
+            has-icon-image: true;
+            primary: true;
+            enabled: root.action-enabled;
+            clicked => { root.action-clicked(); }
         }
-    }
-
-    if !root.active: OutlineIconButton {
-        width: parent.width;
-        height: parent.height;
-        icon: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
-        enabled: root.enabled;
-        tooltip: root.icon;
-        clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
-        }
-    }
-
-    if root.focused: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        border-radius: root.focus-radius;
-        border-width: HubVisualSpec.focus-ring-width;
-        border-color: HubVisualSpec.focus-ring-color;
-        background: transparent;
     }
 }
 
-export component HubIconButton inherits Rectangle {
-    in property <string> icon;
-    in property <image> icon-image;
-    in property <image> fallback-icon-image: @image-url("../assets/icons/ui/alert.svg");
-    in property <bool> has-icon-image: false;
-    in property <bool> active: false;
+export component HubDisclosureButton inherits Rectangle {
+    in property <bool> expanded: false;
+    in property <string> expanded-label;
+    in property <string> collapsed-label;
+    in property <length> button-height: HubTokens.control-md;
     in property <bool> enabled: true;
-    in property <bool> focused: false;
-    in property <length> button-width: MaterialStyleMetrics.size_40;
-    in property <length> button-height: root.button-width;
-    in property <length> button-radius: HubVisualSpec.compact-radius;
-    in property <length> button-border-width: HubTokens.border-width;
-    in property <length> icon-size: HubTokens.icon-md;
-    in property <color> active-background: HubVisualSpec.accent-fill;
-    in property <color> idle-background: HubVisualSpec.panel-background;
-    in property <color> active-border: HubVisualSpec.accent-stroke;
-    in property <color> idle-border: HubVisualSpec.outline-muted;
-    in property <color> active-foreground: HubVisualSpec.accent-stroke;
-    in property <color> idle-foreground: MaterialPalette.on_surface;
-    in property <color> state-layer-color: root.active ? root.active-foreground : MaterialPalette.on_surface;
-    in property <float> disabled-opacity: HubVisualSpec.disabled-opacity;
+    callback toggled(bool);
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 0px;
+    height: root.button-height;
+    vertical-stretch: 0;
+    background: transparent;
+
+    PillButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.expanded ? root.expanded-label : root.collapsed-label;
+        icon-image: root.expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
+        has-icon-image: true;
+        enabled: root.enabled;
+        clicked => { root.toggled(!root.expanded); }
+    }
+}
+
+export component HubPanelHeaderActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <length> button-width: HubTokens.panel-min-sm / 2;
+    in property <length> button-height: HubVisualSpec.toolbar-density-height;
+    in property <image> icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
     callback clicked;
 
     width: root.button-width;
     height: root.button-height;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    OutlineButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.icon-image;
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+component HubUserMenuAvatarMark inherits Rectangle {
+    in property <string> value;
+
+    width: HubTokens.icon-xl;
+    height: HubTokens.icon-xl;
+    border-radius: HubTokens.icon-xl / 2;
+    background: HubVisualSpec.user-avatar-background;
+
+    MaterialText {
+        width: parent.width;
+        height: parent.height;
+        text: root.value;
+        color: HubVisualSpec.user-avatar-foreground;
+        style: MaterialTypography.label_medium_prominent;
+        horizontal_alignment: center;
+        vertical_alignment: center;
+    }
+}
+
+component HubUserMenuNameText inherits MaterialText {
+    in property <string> value;
+
+    text: root.value;
+    color: HubVisualSpec.user-name-foreground;
+    style: MaterialTypography.label_medium;
+    vertical_alignment: center;
+    horizontal-stretch: 1;
+    overflow: elide;
+}
+
+export component HubUserMenuTriggerButton inherits Rectangle {
+    in property <string> avatar-text;
+    in property <string> user-name;
+    in property <bool> tight: false;
+    in property <length> button-width: HubTokens.user-menu-min-width;
+    in property <length> button-height: HubTokens.control-lg;
+    in property <color> state-layer-color: HubVisualSpec.accent-stroke;
+    callback clicked;
+
+    width: root.button-width;
+    height: root.button-height;
+    border-radius: HubVisualSpec.compact-radius;
+    background: transparent;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.state-layer-color;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-2;
+        alignment: center;
+
+        HubUserMenuAvatarMark {
+            value: root.avatar-text;
+        }
+
+        if !root.tight: HubUserMenuNameText {
+            value: root.user-name;
+        }
+
+        if !root.tight: Image {
+            width: MaterialStyleMetrics.size_14;
+            height: MaterialStyleMetrics.size_14;
+            source: @image-url("../assets/icons/ui/chevron-down.svg");
+            image-fit: contain;
+            colorize: MaterialPalette.on_surface_variant;
+        }
+    }
+}
+
+component HubSidebarCollapseButtonLabel inherits MaterialText {
+    in property <string> value;
+    in property <color> foreground: MaterialPalette.on_surface_variant;
+
+    text: root.value;
+    color: root.foreground;
+    style: MaterialTypography.body_small;
+    vertical_alignment: center;
+    overflow: elide;
+}
+
+export component HubSidebarCollapseButton inherits Rectangle {
+    in property <bool> collapsed: false;
+    in property <string> text: "";
+    in property <length> button-height: HubTokens.control-md;
+    in property <length> button-radius: HubVisualSpec.panel-radius;
+    in property <color> foreground: MaterialPalette.on_surface_variant;
+    in property <color> state-layer-color: MaterialPalette.on_surface;
+    callback clicked;
+
+    height: root.button-height;
     border-radius: root.button-radius;
-    border-width: root.button-border-width;
-    border-color: root.active ? root.active-border : root.idle-border;
-    background: root.active ? root.active-background : root.idle-background;
-    opacity: root.enabled ? 1.0 : root.disabled-opacity;
+    background: transparent;
     clip: true;
 
     StateLayerArea {
@@ -317,28 +505,30 @@ export component HubIconButton inherits Rectangle {
         color: root.state-layer-color;
         border_radius: root.button-radius;
         clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
+            root.clicked();
         }
     }
 
-    Image {
-        width: root.icon-size;
-        height: root.icon-size;
-        x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2;
-        source: root.has-icon-image ? root.icon-image : root.fallback-icon-image;
-        colorize: root.active ? root.active-foreground : root.idle-foreground;
-    }
-
-    if root.focused: Rectangle {
+    HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        border-radius: root.button-radius;
-        border-width: HubVisualSpec.focus-ring-width;
-        border-color: HubVisualSpec.focus-ring-color;
-        background: transparent;
+        padding-left: root.collapsed ? 0px : HubTokens.space-2;
+        padding-right: root.collapsed ? 0px : HubTokens.space-2;
+        spacing: HubTokens.space-2;
+        alignment: start;
+
+        CenteredIcon {
+            width: root.collapsed ? parent.width : HubTokens.icon-sm;
+            height: parent.height;
+            icon-size: HubTokens.icon-sm;
+            source-image: root.collapsed ? @image-url("../assets/icons/ui/chevron-right.svg") : @image-url("../assets/icons/ui/collapse.svg");
+            has-source-image: true;
+        }
+
+        if !root.collapsed: HubSidebarCollapseButtonLabel {
+            value: root.text;
+            foreground: root.foreground;
+        }
     }
 }
 
@@ -382,17 +572,4 @@ export component WindowButton inherits Rectangle {
         border-color: HubVisualSpec.focus-ring-color;
         background: transparent;
     }
-}
-
-export component HubFloatingIconButton inherits HubIconButton {
-    button-width: MaterialStyleMetrics.padding_28;
-    button-height: MaterialStyleMetrics.size_32 - MaterialStyleMetrics.size_1;
-    button-radius: HubVisualSpec.compact-radius;
-    button-border-width: 0px;
-    icon-size: HubTokens.icon-sm;
-    active: false;
-    idle-background: HubVisualSpec.chrome-background.with_alpha(0.86);
-    idle-border: transparent;
-    idle-foreground: MaterialPalette.on_surface;
-    state-layer-color: MaterialPalette.on_surface;
 }

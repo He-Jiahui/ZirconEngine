@@ -3,6 +3,7 @@ mod animation_sequence;
 mod build_export;
 mod component_showcase;
 mod console;
+mod generated_bottom;
 mod hierarchy;
 mod inspector;
 mod module_plugins;
@@ -28,6 +29,7 @@ pub(super) fn build_payload(
         PanePayloadKind::PerformanceTimelineV1 => performance_timeline::build(context),
         PanePayloadKind::ModulePluginsV1 => module_plugins::build(context),
         PanePayloadKind::BuildExportV1 => build_export::build(context),
+        PanePayloadKind::GeneratedBottomV1 => generated_bottom::build(context),
         PanePayloadKind::UiComponentShowcaseV1 => component_showcase::build(context),
     }
 }

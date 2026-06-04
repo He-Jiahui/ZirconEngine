@@ -291,7 +291,8 @@ impl UiAssetEditorSession {
         self.source_buffer.replace(source);
         self.restore_source_cursor_snapshot(&source_cursor);
         if document_changed
-            && self.source_schema == super::ui_asset_editor_session::UiAssetSourceSchema::Legacy
+            && self.source_schema
+                == super::ui_asset_editor_session::UiAssetSourceSchema::LayoutDocument
         {
             self.apply_valid_document(replay_document)?;
             self.clear_palette_drag_state();

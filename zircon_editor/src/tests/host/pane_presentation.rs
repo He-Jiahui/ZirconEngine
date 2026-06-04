@@ -392,18 +392,19 @@ fn module_plugins_fixture() -> ModulePluginsPaneViewData {
             editor_capabilities: "inspector".into(),
             optional_features: "Ray Cast Queries [ready]".into(),
             feature_action_label: "Enable Feature".into(),
-            feature_action_id: "Plugin.Feature.Enable.physics.physics.raycast_queries".into(),
+            feature_action_id: "workbench.plugin.feature.enable.physics.physics.raycast_queries"
+                .into(),
             diagnostics: "".into(),
             primary_action_label: "Disable".into(),
-            primary_action_id: "Plugin.Disable.physics".into(),
+            primary_action_id: "workbench.plugin.disable.physics".into(),
             packaging_action_label: "Cycle linked".into(),
-            packaging_action_id: "Plugin.Packaging.Next.physics".into(),
+            packaging_action_id: "workbench.plugin.packaging.next.physics".into(),
             target_modes_action_label: "Cycle targets".into(),
-            target_modes_action_id: "Plugin.TargetModes.Next.physics".into(),
+            target_modes_action_id: "workbench.plugin.target_modes.next.physics".into(),
             unload_action_label: "Unload".into(),
-            unload_action_id: "Plugin.Unload.physics".into(),
+            unload_action_id: "workbench.plugin.unload.physics".into(),
             hot_reload_action_label: "Hot Reload".into(),
-            hot_reload_action_id: "Plugin.HotReload.physics".into(),
+            hot_reload_action_id: "workbench.plugin.hot_reload.physics".into(),
         }]),
         diagnostics: "plugin catalog ready".into(),
     }
@@ -489,6 +490,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             "editor.build_export_desktop",
             "pane.build_export_desktop.body",
             PanePayloadKind::BuildExportV1,
+        ),
+        (
+            "editor.generated_bottom",
+            "pane.generated_bottom.body",
+            PanePayloadKind::GeneratedBottomV1,
         ),
     ];
 
@@ -592,13 +598,14 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert!(payload.capture_controls.iter().any(|control| control
                     == &PerformanceTimelineCaptureControlPayload {
                         label: "Stop Capture".to_string(),
-                        action_id: "PerformanceTimeline.StopCapture".to_string(),
+                        action_id: "workbench.performance_timeline.capture.stop".to_string(),
                         enabled: true,
                     }));
                 assert!(payload
                     .capture_controls
                     .iter()
-                    .any(|control| control.action_id == "PerformanceTimeline.ExportReport"));
+                    .any(|control| control.action_id
+                        == "workbench.performance_timeline.report.export"));
             }
             ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
                 assert_eq!(payload.diagnostics, "plugin catalog ready");
@@ -613,27 +620,30 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert_eq!(payload.plugins[0].feature_action_label, "Enable Feature");
                 assert_eq!(
                     payload.plugins[0].feature_action_id,
-                    "Plugin.Feature.Enable.physics.physics.raycast_queries"
+                    "workbench.plugin.feature.enable.physics.physics.raycast_queries"
                 );
                 assert_eq!(payload.plugins[0].primary_action_label, "Disable");
                 assert_eq!(
                     payload.plugins[0].primary_action_id,
-                    "Plugin.Disable.physics"
+                    "workbench.plugin.disable.physics"
                 );
                 assert_eq!(
                     payload.plugins[0].packaging_action_id,
-                    "Plugin.Packaging.Next.physics"
+                    "workbench.plugin.packaging.next.physics"
                 );
                 assert_eq!(
                     payload.plugins[0].target_modes_action_id,
-                    "Plugin.TargetModes.Next.physics"
+                    "workbench.plugin.target_modes.next.physics"
                 );
                 assert_eq!(payload.plugins[0].unload_action_label, "Unload");
-                assert_eq!(payload.plugins[0].unload_action_id, "Plugin.Unload.physics");
+                assert_eq!(
+                    payload.plugins[0].unload_action_id,
+                    "workbench.plugin.unload.physics"
+                );
                 assert_eq!(payload.plugins[0].hot_reload_action_label, "Hot Reload");
                 assert_eq!(
                     payload.plugins[0].hot_reload_action_id,
-                    "Plugin.HotReload.physics"
+                    "workbench.plugin.hot_reload.physics"
                 );
             }
             ("editor.build_export_desktop", PanePayload::BuildExportV1(payload)) => {
@@ -648,6 +658,9 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     payload.targets[0].diagnostics,
                     "native plugin package ready"
                 );
+            }
+            ("editor.generated_bottom", PanePayload::GeneratedBottomV1(payload)) => {
+                assert_eq!(payload.status, "Generated editor feedback panels");
             }
             (unexpected_id, unexpected_payload) => panic!(
                 "builder for `{unexpected_id}` produced unexpected payload {unexpected_payload:?}"
@@ -758,11 +771,11 @@ fn pane_presentation_keeps_shell_and_body_split_without_erasing_payload_type() {
         body: "Nothing has been written yet.".to_string(),
         primary_action: Some(PaneActionPresentation {
             label: "Open".to_string(),
-            action_id: "OpenConsole".to_string(),
+            action_id: "workbench.console.open".to_string(),
         }),
         secondary_action: Some(PaneActionPresentation {
             label: "Dismiss".to_string(),
-            action_id: "DismissConsole".to_string(),
+            action_id: "workbench.console.dismiss".to_string(),
         }),
         secondary_hint: "Wait for editor output".to_string(),
     };
@@ -835,6 +848,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             "editor.build_export_desktop",
             "pane.build_export_desktop.body",
         ),
+        ("editor.generated_bottom", "pane.generated_bottom.body"),
     ];
 
     for (descriptor_id, document_id) in cases {
@@ -953,7 +967,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
                     assert_eq!(payload.plugins[0].plugin_id, "physics");
                     assert_eq!(
                         payload.plugins[0].primary_action_id,
-                        "Plugin.Disable.physics"
+                        "workbench.plugin.disable.physics"
                     );
                 }
                 unexpected => panic!("expected module plugins payload, found {unexpected:?}"),
@@ -972,6 +986,18 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
                     assert_eq!(payload.targets[0].status, "Ready");
                 }
                 unexpected => panic!("expected build export payload, found {unexpected:?}"),
+            }
+        }
+        if descriptor_id == "editor.generated_bottom" {
+            assert_eq!(
+                pane.native_body.generated_bottom.status,
+                "Generated editor feedback panels"
+            );
+            match &pane_presentation.body.payload {
+                PanePayload::GeneratedBottomV1(payload) => {
+                    assert_eq!(payload.status, "Generated editor feedback panels");
+                }
+                unexpected => panic!("expected generated bottom payload, found {unexpected:?}"),
             }
         }
     }

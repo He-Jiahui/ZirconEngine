@@ -6,6 +6,7 @@ use crate::core::lifecycle::{LifecycleState, ServiceKind};
 use crate::core::types::ServiceObject;
 
 use super::super::contexts::PluginContext;
+use super::super::descriptors::RegistryName;
 use super::super::state::ServiceEntryFactory;
 use super::CoreHandle;
 
@@ -38,9 +39,9 @@ impl CoreHandle {
         &self,
         service_name: &str,
         expected_kind: Option<ServiceKind>,
-        stack: &mut Vec<String>,
+        stack: &mut Vec<RegistryName>,
     ) -> Result<ServiceObject, CoreError> {
-        {
+        let service_key = {
             let services = self.inner.services.lock().unwrap();
             let entry = services
                 .get(service_name)
@@ -57,22 +58,27 @@ impl CoreHandle {
             if let Some(instance) = entry.instance.clone() {
                 return Ok(instance);
             }
-        }
+            entry.name.clone()
+        };
 
-        if stack.iter().any(|existing| existing == service_name) {
-            return Err(CoreError::DependencyCycle(service_name.to_string()));
+        if stack.iter().any(|existing| existing == &service_key) {
+            return Err(CoreError::DependencyCycle(service_key.to_string()));
         }
-        stack.push(service_name.to_string());
+        stack.push(service_key.clone());
 
-        let (owner_module, dependencies, factory) = {
+        let (owner_module, dependency_names, factory) = {
             let mut services = self.inner.services.lock().unwrap();
             let entry = services
-                .get_mut(service_name)
+                .get_mut(service_key.as_str())
                 .ok_or_else(|| CoreError::MissingService(service_name.to_string()))?;
             entry.lifecycle = LifecycleState::Initializing;
             (
                 entry.owner_module.clone(),
-                entry.dependencies.clone(),
+                entry
+                    .dependencies
+                    .iter()
+                    .map(|dependency| dependency.name.clone())
+                    .collect::<Vec<_>>(),
                 entry.factory.clone(),
             )
         };
@@ -87,8 +93,8 @@ impl CoreHandle {
             self.activate_module(&owner_module)?;
         }
 
-        for dependency in &dependencies {
-            self.resolve_named_service_inner(dependency.name.as_str(), None, stack)?;
+        for dependency_name in &dependency_names {
+            self.resolve_named_service_inner(dependency_name.as_str(), None, stack)?;
         }
 
         let instance = match factory {
@@ -109,7 +115,7 @@ impl CoreHandle {
         {
             let mut services = self.inner.services.lock().unwrap();
             let entry = services
-                .get_mut(service_name)
+                .get_mut(service_key.as_str())
                 .ok_or_else(|| CoreError::MissingService(service_name.to_string()))?;
             entry.instance = Some(instance.clone());
             entry.lifecycle = LifecycleState::Running;

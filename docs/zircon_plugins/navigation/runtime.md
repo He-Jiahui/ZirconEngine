@@ -3,11 +3,35 @@ related_code:
   - zircon_plugins/navigation/plugin.toml
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/components.rs
+  - zircon_plugins/navigation/runtime/src/components/agent.rs
+  - zircon_plugins/navigation/runtime/src/components/modifier.rs
+  - zircon_plugins/navigation/runtime/src/components/obstacle.rs
+  - zircon_plugins/navigation/runtime/src/components/off_mesh_bridge.rs
+  - zircon_plugins/navigation/runtime/src/components/off_mesh_link.rs
+  - zircon_plugins/navigation/runtime/src/components/surface.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/asset.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/diagnostics.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/filter.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/modifier.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/surface.rs
+  - zircon_plugins/navigation/runtime/src/manager/query.rs
+  - zircon_plugins/navigation/runtime/src/manager/state.rs
+  - zircon_plugins/navigation/runtime/src/manager/stats.rs
+  - zircon_plugins/navigation/runtime/src/manager/tick.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
+  - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs
   - zircon_plugins/navigation/runtime/src/settings_hash.rs
   - zircon_plugins/navigation/runtime/src/settings_validation.rs
+  - zircon_plugins/navigation/runtime/src/tests/mod.rs
+  - zircon_plugins/navigation/runtime/src/tests/bake.rs
+  - zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs
+  - zircon_plugins/navigation/runtime/src/tests/manager.rs
+  - zircon_plugins/navigation/runtime/src/tests/registration.rs
+  - zircon_plugins/navigation/runtime/src/tests/support.rs
   - zircon_plugins/navigation/runtime/Cargo.toml
   - zircon_plugins/navigation/native/src/lib.rs
   - zircon_plugins/navigation/native/src/bake.rs
@@ -31,11 +55,35 @@ related_code:
 implementation_files:
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/components.rs
+  - zircon_plugins/navigation/runtime/src/components/agent.rs
+  - zircon_plugins/navigation/runtime/src/components/modifier.rs
+  - zircon_plugins/navigation/runtime/src/components/obstacle.rs
+  - zircon_plugins/navigation/runtime/src/components/off_mesh_bridge.rs
+  - zircon_plugins/navigation/runtime/src/components/off_mesh_link.rs
+  - zircon_plugins/navigation/runtime/src/components/surface.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/asset.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/diagnostics.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/filter.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/modifier.rs
+  - zircon_plugins/navigation/runtime/src/manager/bake/surface.rs
+  - zircon_plugins/navigation/runtime/src/manager/query.rs
+  - zircon_plugins/navigation/runtime/src/manager/state.rs
+  - zircon_plugins/navigation/runtime/src/manager/stats.rs
+  - zircon_plugins/navigation/runtime/src/manager/tick.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
+  - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs
   - zircon_plugins/navigation/runtime/src/settings_hash.rs
   - zircon_plugins/navigation/runtime/src/settings_validation.rs
+  - zircon_plugins/navigation/runtime/src/tests/mod.rs
+  - zircon_plugins/navigation/runtime/src/tests/bake.rs
+  - zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs
+  - zircon_plugins/navigation/runtime/src/tests/manager.rs
+  - zircon_plugins/navigation/runtime/src/tests/registration.rs
+  - zircon_plugins/navigation/runtime/src/tests/support.rs
   - zircon_plugins/navigation/native/src/lib.rs
   - zircon_plugins/navigation/native/src/bake.rs
   - zircon_plugins/navigation/native/src/detour.rs
@@ -55,6 +103,9 @@ plan_sources:
   - .codex/sessions/20260510-0050-navigation-runtime-world-scan.md
 tests:
   - navigation_registration_contributes_runtime_module_and_components
+  - navigation_module_resolves_manager_and_queries_loaded_navmesh
+  - navigation_dynamic_component_descriptor_accepts_vec_and_resource_json
+  - bake_surface_expands_offmesh_bridge_lanes_and_tracks_stats
   - navigation_plugin_toml_matches_catalog_beta_partial_metadata
   - cargo test --manifest-path zircon_plugins\navigation\runtime\Cargo.toml navigation_registration_contributes_runtime_module_and_components --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet
   - cargo test --manifest-path Cargo.toml -p zircon_runtime --lib navigation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet
@@ -65,6 +116,12 @@ tests:
   - cargo test --manifest-path zircon_plugins\Cargo.toml --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins-m8-final --message-format short --color never
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_runtime --lib carved_runtime_obstacle_blocks_agent_path_on_loaded_navmesh --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins-m8-final --message-format short --color never -- --nocapture
   - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --message-format short --color never (passed 13 tests after package manifest option/event strictness fix)
+  - rustfmt --edition 2021 --check zircon_plugins/navigation/runtime/src/manager/bake.rs zircon_plugins/navigation/runtime/src/manager/bake/asset.rs zircon_plugins/navigation/runtime/src/manager/bake/diagnostics.rs zircon_plugins/navigation/runtime/src/manager/bake/filter.rs zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs zircon_plugins/navigation/runtime/src/manager/bake/modifier.rs zircon_plugins/navigation/runtime/src/manager/bake/surface.rs (2026-06-04 bake boundary split: passed)
+  - git diff --check -- zircon_plugins/navigation/runtime/src/manager/bake.rs zircon_plugins/navigation/runtime/src/manager/bake docs/zircon_plugins/navigation/runtime.md docs/zircon_runtime/core/framework/navigation.md (2026-06-04 bake boundary split: passed with expected LF-to-CRLF warnings)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-bake-split-0604 --message-format short --color never (planned for current bake boundary split)
+  - rustfmt --edition 2021 --check zircon_plugins/navigation/runtime/src/components.rs zircon_plugins/navigation/runtime/src/components/agent.rs zircon_plugins/navigation/runtime/src/components/modifier.rs zircon_plugins/navigation/runtime/src/components/obstacle.rs zircon_plugins/navigation/runtime/src/components/off_mesh_bridge.rs zircon_plugins/navigation/runtime/src/components/off_mesh_link.rs zircon_plugins/navigation/runtime/src/components/surface.rs (2026-06-04 component descriptor boundary split: passed)
+  - git diff --check -- zircon_plugins/navigation/runtime/src/components.rs zircon_plugins/navigation/runtime/src/components docs/zircon_plugins/navigation/runtime.md .codex/sessions/20260603-2304-plugin-ecosystem-continuation.md (2026-06-04 component descriptor boundary split: passed with expected LF-to-CRLF warnings)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-components-split-0604 --message-format short --color never (planned for current component descriptor boundary split)
   - cargo test -p zircon_runtime --lib world_mutations_mark_derived_state_dirty_until_post_update_systems_flush --locked --target-dir target\codex-shared-b -- --nocapture --test-threads=1
   - cargo test -p zircon_plugin_navigation_runtime --lib --locked --target-dir target\codex-shared-b -- --nocapture --test-threads=1
 doc_type: module-detail
@@ -74,11 +131,13 @@ doc_type: module-detail
 
 ## Purpose
 
-The navigation runtime plugin owns the first real navigation manager surface for Zircon. It registers the `NavigationModule`, contributes five dynamic component descriptors, loads baked navmesh assets, exposes path/sample/raycast APIs through the shared `NavigationManager` trait, and ticks basic scene agents toward destinations.
+The navigation runtime plugin owns the first real navigation manager surface for Zircon. It registers the `NavigationModule`, contributes six dynamic component descriptors, loads baked navmesh assets, exposes path/sample/raycast APIs through the shared `NavigationManager` trait, and ticks basic scene agents toward destinations.
 
 ## Related Files
 
-`src/lib.rs` wires the plugin descriptor, module descriptor, package manifest helpers, and extension registration. `src/components.rs` declares the editable properties for `NavMeshSurface`, `NavMeshModifier`, `NavMeshAgent`, `NavMeshObstacle`, and `NavMeshOffMeshLink`. `src/manager.rs` implements `DefaultNavigationManager`; `src/component_json.rs` normalizes tagged editor property JSON before component deserialization; `src/runtime_obstacles.rs` collects runtime obstacle descriptors and converts carving obstacles into Recast-native obstacle records; `src/settings_hash.rs` and `src/settings_validation.rs` keep stable bake-hash and settings-validation logic out of the manager file.
+`src/lib.rs` wires the plugin descriptor, module descriptor, package manifest helpers, and extension registration. It now stays structural and delegates test coverage to `src/tests/`. `src/components.rs` is the structural descriptor list for the six navigation authoring components, while `components/{surface,modifier,agent,obstacle,off_mesh_link,off_mesh_bridge}.rs` own each descriptor's editable property schema. `src/manager.rs` is now the structural `DefaultNavigationManager` facade: it owns the backend/state lock, service trait implementation, manager state mutation, and delegating entry points. `manager/bake.rs` is now the bake orchestration facade: `bake/surface.rs` owns enabled-surface discovery and request selection, `bake/geometry.rs` owns render/collider footprint collection and source counters, `bake/filter.rs` owns collection-mode/layer/volume filtering, `bake/modifier.rs` owns direct and inherited `NavMeshModifier` lookup, `bake/diagnostics.rs` owns bake diagnostics, and `bake/asset.rs` owns Recast/simple fallback dispatch, settings stamping, and off-mesh link embedding. `manager/query.rs` owns loaded-asset path/sample/raycast forwarding; `manager/tick.rs` owns runtime agent scanning, path-following, local avoidance, transform writeback, and tick stats updates; `manager/state.rs` owns loaded navmesh handles/settings/stats state; and `manager/stats.rs` owns immediate dynamic-component counting. `src/component_json.rs` normalizes tagged editor property JSON before component deserialization; `src/off_mesh_connections.rs` collects active off-mesh links and expands off-mesh bridges into bounded per-lane baked links; `src/runtime_obstacles.rs` collects runtime obstacle descriptors and converts carving obstacles into Recast-native obstacle records; `src/settings_hash.rs` and `src/settings_validation.rs` keep stable bake-hash and settings-validation logic out of the manager files.
+
+`src/tests/mod.rs` is the structural runtime test entry. `tests/registration.rs` covers plugin/module/component/option/event manifest contribution, `tests/manager.rs` covers manager resolution, loaded-navmesh queries, agent ticking, obstacle avoidance, no-path blocking, handle selection, and settings validation, `tests/dynamic_components.rs` covers dynamic component JSON property normalization, `tests/bake.rs` covers surface baking, modifier/off-mesh-link embedding, off-mesh bridge lane expansion, settings hashes, link-generation disabling, and carving, and `tests/support.rs` holds shared navmesh fixtures.
 
 `navigation/native` is the Recast/Detour backend boundary. It vendors upstream Recast Navigation C++ sources for Recast, Detour, DetourCrowd, and DetourTileCache under `vendor/recastnavigation`, compiles them through `cc`, and exposes C ABI bridge files under `native/`. `src/bake.rs` validates bake input and converts native Recast bake buffers into `NavMeshAsset`; `src/detour.rs` wraps an opaque native `dtNavMesh` / `dtNavMeshQuery` owner for path/sample/raycast queries; `src/tile_cache.rs` wraps an opaque native TileCache query owner for carved obstacle path queries; `src/ffi.rs` owns the ABI declarations. Triangle-mesh bakes pass through Recast heightfield, region, contour, and polygon mesh construction before returning Zircon DTOs, and representable navmesh assets now query through Detour or transient DetourTileCache before falling back to the deterministic Rust graph.
 
@@ -89,7 +148,7 @@ Registration contributes:
 - `NavigationModule` with lazy manager `NavigationModule.Manager.NavigationManager`
 - runtime capabilities `runtime.plugin.navigation` and `runtime.plugin.navigation.recast`
 - package metadata category `runtime`, maturity `beta`, and `runtime.plugin.navigation = partial` status with an explicit note that gameplay navmesh/pathfinding is separate from Bevy-style UI navigation parity
-- the five `navigation.Component.*` dynamic component descriptors
+- the six `navigation.Component.*` dynamic component descriptors
 - plugin options for the default agent type, default settings asset, debug gizmos, and bake backend
 - event catalog entries for bake completion, path query completion/failure, and agent ticks
 
@@ -97,7 +156,7 @@ The package manifest uses the shared strict manifest contract. `navigation.defau
 
 `DefaultNavigationManager` keeps loaded `NavMeshAsset` values in a mutex-protected map and returns stable `NavMeshHandle` values. Queries can address a specific handle or fall back deterministically to the lowest loaded handle. Empty maps return a structured missing-navmesh error; empty assets or blocked area masks return `NoPath`.
 
-The current backend supports deterministic simple-surface fallback baking, native Recast raster/poly-mesh baking for collected triangle geometry, stable settings-hash stamping, area-cost copying, Detour-backed path/sample/raycast queries for representable assets, transient DetourTileCache obstacle carving for runtime path queries that include carving obstacles, Rust polygon-graph fallback queries for unsupported asset shapes or off-mesh cost-override cases, area-mask filtering, disconnected-island no-path results, optional off-mesh link embedding controlled by `NavMeshSurface.generate_links`, and off-mesh links that bridge otherwise disconnected polygons. Scene authoring scans use fresh `World::node_records()` projections instead of the deferred `World::nodes()` cache so dynamic navigation components attached through direct world mutation are visible before the next scheduled `PostUpdate` cache refresh. Agent ticking reads `NavMeshAgent` dynamic components, follows an optional `destination`, prefers the next path waypoint from the loaded navmesh when available, falls back to direct movement only when no navmesh is loaded, blocks and reports agents when a loaded navmesh returns no path or an invalid query, respects `speed`, `stopping_distance`, `update_position`, and `update_rotation`, performs basic obstacle/agent separation, and updates the entity transform through `World::update_transform`.
+The current backend supports deterministic simple-surface fallback baking, native Recast raster/poly-mesh baking for collected triangle geometry, stable settings-hash stamping, area-cost copying, Detour-backed path/sample/raycast queries for representable assets, transient DetourTileCache obstacle carving for runtime path queries that include carving obstacles, Rust polygon-graph fallback queries for unsupported asset shapes or off-mesh cost-override cases, area-mask filtering, disconnected-island no-path results, optional off-mesh connection embedding controlled by `NavMeshSurface.generate_links`, single off-mesh links that bridge otherwise disconnected polygons, and wider off-mesh bridges that expand to bounded per-lane baked links. Scene authoring scans use fresh `World::node_records()` projections instead of the deferred `World::nodes()` cache so dynamic navigation components attached through direct world mutation are visible before the next scheduled `PostUpdate` cache refresh. Agent ticking reads `NavMeshAgent` dynamic components, follows an optional `destination`, prefers the next path waypoint from the loaded navmesh when available, falls back to direct movement only when no navmesh is loaded, blocks and reports agents when a loaded navmesh returns no path or an invalid query, respects `speed`, `stopping_distance`, `update_position`, and `update_rotation`, performs basic obstacle/agent separation, and updates the entity transform through `World::update_transform`.
 
 ## Design and Rationale
 
@@ -107,9 +166,9 @@ The native C++ boundary is intentionally narrow. It proves that upstream Recast/
 
 ## Control Flow
 
-At plugin registration time, `NavigationRuntimePlugin::register_runtime_extensions` registers the module and every component descriptor. `load_navigation_settings` validates unique agent/area ids, finite numeric settings, non-empty names, and maskable area ids before installing settings. When the manager bakes a surface, it scans fresh scene node projections for enabled `NavMeshSurface` descriptors, chooses the requested surface or the first enabled surface, validates the requested agent type against `NavigationSettingsAsset`, and collects bake geometry according to the surface collection mode. Render-mesh mode uses cube/mesh node footprints when model vertex payloads are not available through the world; collider mode uses box/sphere/capsule collider footprints. The collector excludes navigation surface authoring volumes, agents, obstacles, and off-mesh-link nodes from source geometry; applies nearest `NavMeshModifier` remove/area override rules; treats a modifier on the selected surface as a bake-scope area override; removes static bake sources intersecting carving obstacles; then sends remaining triangles through native Recast rasterization. The native boundary normalizes downward-wound triangles before slope filtering, builds Recast regions/contours/polygons, and returns tile/polygon buffers. The manager optionally embeds active off-mesh links, stamps an explicit stable FNV-style hash over surface/settings fields, copies area costs into the asset, and returns a `NavMeshBakeReport` with source counts and diagnostics.
+At plugin registration time, `NavigationRuntimePlugin::register_runtime_extensions` registers the module and every component descriptor. `load_navigation_settings` validates unique agent/area ids, finite numeric settings, non-empty names, and maskable area ids before installing settings. When the manager bakes a surface, it scans fresh scene node projections for enabled `NavMeshSurface` descriptors, chooses the requested surface or the first enabled surface, validates the requested agent type against `NavigationSettingsAsset`, and collects bake geometry according to the surface collection mode. Render-mesh mode uses cube/mesh node footprints when model vertex payloads are not available through the world; collider mode uses box/sphere/capsule collider footprints. The collector excludes navigation surface authoring volumes, agents, obstacles, off-mesh-link nodes, and off-mesh-bridge nodes from source geometry; applies nearest `NavMeshModifier` remove/area override rules; treats a modifier on the selected surface as a bake-scope area override; removes static bake sources intersecting carving obstacles; then sends remaining triangles through native Recast rasterization. The native boundary normalizes downward-wound triangles before slope filtering, builds Recast regions/contours/polygons, and returns tile/polygon buffers. The manager optionally embeds active off-mesh connections, stamps an explicit stable FNV-style hash over surface/settings fields, copies area costs into the asset, and returns a `NavMeshBakeReport` with source counts and diagnostics.
 
-At runtime query time, `load_nav_mesh` stores the asset, `find_path` delegates to the backend, `sample_position` finds the nearest allowed polygon sample inside query extents, and `raycast` reports clear or blocked traversal. The backend first builds a native Detour query owner from copied asset buffers, reconstructs shared-edge neighbour data, applies Zircon area masks/costs through a virtual Detour filter, and uses `findPath` / `findStraightPath`, `findNearestPoly`, or `raycast` depending on the request. When the world contains active carving obstacles, `DefaultNavigationManager` collects them through `runtime_obstacles.rs` and calls `RecastBackend::find_path_with_obstacles(...)`; that path builds a transient TileCache layer from the loaded asset, applies box/capsule obstacles, updates the mutable navmesh, and queries the carved corridor before falling back to the normal non-carved path if the asset is not representable by the TileCache bridge. When the asset cannot be represented by the Detour bridge, the backend falls back to the lightweight Rust polygon graph and sampled visibility path, preserving off-mesh `cost_override` behavior and previous no-path semantics. Agent ticking is intentionally conservative and mutates only dynamic entities whose navigation component declares a destination. Runtime stats track loaded navmeshes, scanned active agents, active obstacles, and active off-mesh links. Component parsing normalizes editor property tags such as `{ "resource": "..." }` and `{ "entity": 12 }` before deserializing navigation descriptors.
+At runtime query time, `load_nav_mesh` stores the asset, `find_path` delegates to the backend, `sample_position` finds the nearest allowed polygon sample inside query extents, and `raycast` reports clear or blocked traversal. The backend first builds a native Detour query owner from copied asset buffers, reconstructs shared-edge neighbour data, applies Zircon area masks/costs through a virtual Detour filter, and uses `findPath` / `findStraightPath`, `findNearestPoly`, or `raycast` depending on the request. When the world contains active carving obstacles, `DefaultNavigationManager` collects them through `runtime_obstacles.rs` and calls `RecastBackend::find_path_with_obstacles(...)`; that path builds a transient TileCache layer from the loaded asset, applies box/capsule obstacles, updates the mutable navmesh, and queries the carved corridor before falling back to the normal non-carved path if the asset is not representable by the TileCache bridge. When the asset cannot be represented by the Detour bridge, the backend falls back to the lightweight Rust polygon graph and sampled visibility path, preserving off-mesh `cost_override` behavior and previous no-path semantics. Agent ticking is intentionally conservative and mutates only dynamic entities whose navigation component declares a destination. Runtime stats track loaded navmeshes, scanned active agents, active obstacles, active off-mesh links, and active off-mesh bridges. Component parsing normalizes editor property tags such as `{ "resource": "..." }` and `{ "entity": 12 }` before deserializing navigation descriptors.
 
 ## Edge Cases
 
@@ -120,6 +179,14 @@ Agent movement can be blocked by missing transforms or immutable/static entity t
 2026-05-31 linked metadata parity first failed `cargo test --manifest-path zircon_plugins\navigation\runtime\Cargo.toml navigation_registration_contributes_runtime_module_and_components --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet` because the linked package manifest still reported `Experimental` instead of `Beta`. After adding the linked descriptor maturity/status metadata and static `plugin.toml` category, the same command passed with 1 Navigation runtime test and 0 failures. `cargo test --manifest-path Cargo.toml -p zircon_runtime --lib navigation_plugin_toml_matches_catalog_beta_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-runtime-metadata --color never --quiet` also passed with 1 static TOML/catalog test and 0 failures. Existing output was limited to unrelated `zircon_runtime` warnings.
 
 Prior to the TileCache slice, `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never` passed: 12 unit tests and doctests. The tests cover runtime registration, dynamic component descriptor JSON conversion, typed resource properties, native Recast-backed surface baking, bake modifier/off-mesh-link embedding, link-generation disablement and settings hash stamping, obstacle carving, basic obstacle avoidance/stats, path queries over loaded navmeshes, deterministic default mesh selection, loaded-navmesh no-path agent blocking, invalid settings rejection, and agent ticking.
+
+2026-06-04 structural test split moved the inline `src/lib.rs` test block into `src/tests/{mod,registration,manager,dynamic_components,bake,support}.rs`. `rustfmt --edition 2021 --check --config skip_children=true zircon_plugins/navigation/runtime/src/lib.rs zircon_plugins/navigation/runtime/src/tests/mod.rs zircon_plugins/navigation/runtime/src/tests/support.rs zircon_plugins/navigation/runtime/src/tests/registration.rs zircon_plugins/navigation/runtime/src/tests/manager.rs zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs zircon_plugins/navigation/runtime/src/tests/bake.rs` passed for the moved root/test files. Focused Cargo validation remains pending while other active Cargo/rustc lanes are running, so this structural split is not yet test-compile accepted.
+
+2026-06-04 manager boundary split reduced `zircon_plugins/navigation/runtime/src/manager.rs` from an 855-line mixed manager into a 138-line facade plus `manager/{bake,query,state,stats,tick}.rs`. The split follows the NavigationSystem/NavMesh/agent separation visible in Unreal's NavigationSystem tree and keeps Recast bake/query, ECS world scans, agent movement, and state accounting in separate Rust modules. Static validation evidence is tracked in the live session note; focused Cargo validation remains pending while other active Cargo/rustc lanes are running.
+
+2026-06-04 bake boundary split reduced `zircon_plugins/navigation/runtime/src/manager/bake.rs` from a 509-line mixed bake implementation into a 106-line facade plus `manager/bake/{asset,diagnostics,filter,geometry,modifier,surface}.rs`. The split follows Unreal's NavMesh/Recast/NavLink separation and Godot's navigation region/link/obstacle/server/generator boundaries while preserving the current bake request, geometry collection, modifier/obstacle filtering, off-mesh embedding, diagnostics, and report behavior. Static validation evidence is tracked in the live session note; focused Cargo validation remains pending while other active Cargo/rustc lanes are running.
+
+2026-06-04 component descriptor boundary split reduced `zircon_plugins/navigation/runtime/src/components.rs` from a mixed six-descriptor declaration file into a structural descriptor list plus folder-backed `components/{surface,modifier,agent,obstacle,off_mesh_link,off_mesh_bridge}.rs`. The split preserves descriptor order, component type ids, plugin id metadata, property names, property kinds, and required flags while making each authoring component's schema independently owned. Static validation evidence is tracked in the live session note; focused Cargo validation remains pending while other active Cargo/rustc lanes are running.
 
 `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never` also passed before the TileCache slice with 16 unit tests, 3 Detour integration tests, and doctests, including native Recast raster bake filtering for steep faces, non-finite source rejection before FFI, unique-vertex polygon adjacency for triangulated fan output, Detour string-pulled corridor paths, Detour sample projection, and Detour raycast boundary hits. `cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never` passed previously with existing graphics/UI warnings.
 

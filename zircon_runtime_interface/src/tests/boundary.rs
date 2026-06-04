@@ -32,6 +32,17 @@ const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "std::sync",
 ];
 
+const EXPECTED_RUNTIME_API_MODULES: &[&str] = &[
+    "api_table",
+    "constants",
+    "events",
+    "host_requests",
+    "requests",
+    "viewport",
+];
+const RUNTIME_API_FACADE_LINE_BUDGET: usize = 20;
+const RUNTIME_API_CHILD_LINE_BUDGET: usize = 700;
+
 #[test]
 fn manifest_dependencies_stay_contract_only() {
     let manifest_path = manifest_dir().join("Cargo.toml");
@@ -79,6 +90,75 @@ fn production_source_does_not_include_or_import_implementation_crates() {
         "zircon_runtime_interface source must stay ABI/DTO/serialization-only:\n{}",
         violations.join("\n")
     );
+}
+
+#[test]
+fn runtime_api_surface_stays_folder_backed_by_abi_owner() {
+    let root_path = manifest_dir().join("src").join("runtime_api.rs");
+    let root_text = std::fs::read_to_string(&root_path).expect("read runtime_api facade");
+    let facade_lines = root_text
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count();
+
+    assert!(
+        facade_lines <= RUNTIME_API_FACADE_LINE_BUDGET,
+        "runtime_api.rs must stay a small facade over owner modules; found {facade_lines} non-empty lines"
+    );
+    for forbidden in [
+        "#[repr(",
+        "pub struct ",
+        "pub enum ",
+        "pub const ",
+        "pub type ",
+    ] {
+        assert!(
+            !root_text.contains(forbidden),
+            "runtime_api.rs must not own ABI declarations directly; found `{forbidden}`"
+        );
+    }
+
+    let module_root = manifest_dir().join("src").join("runtime_api");
+    let expected_files: BTreeSet<_> = EXPECTED_RUNTIME_API_MODULES
+        .iter()
+        .map(|module| format!("{module}.rs"))
+        .collect();
+    let actual_files: BTreeSet<_> = std::fs::read_dir(&module_root)
+        .expect("read runtime_api module directory")
+        .map(|entry| {
+            entry
+                .expect("read runtime_api module entry")
+                .file_name()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .filter(|file_name| file_name.ends_with(".rs"))
+        .collect();
+
+    assert_eq!(
+        actual_files, expected_files,
+        "runtime_api module owners changed; update the boundary review when adding/removing ABI owner files"
+    );
+
+    for module in EXPECTED_RUNTIME_API_MODULES {
+        assert!(
+            root_text.contains(&format!("mod {module};")),
+            "runtime_api.rs must declare `{module}` as an owner module"
+        );
+        assert!(
+            root_text.contains(&format!("pub use {module}::*;")),
+            "runtime_api.rs must re-export `{module}` through runtime_api::*"
+        );
+
+        let module_path = module_root.join(format!("{module}.rs"));
+        let module_text = std::fs::read_to_string(&module_path).expect("read runtime_api owner");
+        let module_lines = module_text.lines().count();
+        assert!(
+            module_lines <= RUNTIME_API_CHILD_LINE_BUDGET,
+            "{} must be split before it becomes another support hot spot; found {module_lines} lines",
+            relative_to_manifest(&module_path).display()
+        );
+    }
 }
 
 fn production_rust_sources() -> Vec<PathBuf> {

@@ -24,10 +24,10 @@ pub use metadata::{
 };
 pub use reply::{
     UiDispatchDisposition, UiDispatchPhase, UiDispatchReply, UiDispatchReplyMergeReport,
-    UiDispatchReplyStep,
+    UiDispatchReplyStep, UiDispatchReplyStepTrace,
 };
 pub use result::{
     UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchHostRequest,
     UiDispatchHostRequestKind, UiDispatchRejectedEffect, UiInputDispatchDiagnostics,
-    UiInputDispatchResult, UiInputRoutePolicy,
+    UiInputDispatchResult, UiInputRoutePolicy, UiInputRouteTrace,
 };

@@ -5,7 +5,8 @@ fn save_preset_menu_action_dispatch_updates_active_preset_name_and_status_line()
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_save_preset");
-    let effects = dispatch_menu_action(&harness.runtime, "SavePreset.rider").unwrap();
+    let effects =
+        dispatch_menu_action(&harness.runtime, "workbench.layout.preset.save.rider").unwrap();
 
     let journal = harness.runtime.journal();
     assert_eq!(
@@ -30,8 +31,9 @@ fn load_preset_menu_action_without_suffix_falls_back_to_current_name() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_load_preset");
-    dispatch_menu_action(&harness.runtime, "SavePreset.current").unwrap();
-    let effects = dispatch_menu_action(&harness.runtime, "LoadPreset.").unwrap();
+    dispatch_menu_action(&harness.runtime, "workbench.layout.preset.save.current").unwrap();
+    let effects =
+        dispatch_menu_action(&harness.runtime, "workbench.layout.preset.load.").unwrap();
 
     let journal = harness.runtime.journal();
     assert_eq!(

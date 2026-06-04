@@ -93,14 +93,14 @@ fn pointer_menu_items(
     if menu.label.eq_ignore_ascii_case("Window") {
         let resolved_preset_name = active_layout_preset.unwrap_or("rider");
         let mut items = vec![menu_action(
-            format!("SavePreset.{resolved_preset_name}"),
+            format!("workbench.layout.preset.save.{resolved_preset_name}"),
             true,
         )];
         items.extend(pointer_menu_item_tree(&menu.items));
         items.extend(
             preset_names
                 .iter()
-                .map(|preset| menu_action(format!("LoadPreset.{preset}"), true)),
+                .map(|preset| menu_action(format!("workbench.layout.preset.load.{preset}"), true)),
         );
         items
     } else {

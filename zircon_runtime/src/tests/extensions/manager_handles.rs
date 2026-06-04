@@ -1,4 +1,4 @@
-﻿#[test]
+#[test]
 fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
@@ -33,10 +33,34 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     let sound_service_source =
         std::fs::read_to_string(plugin_root.join("sound/runtime/src/service_types.rs"))
             .unwrap_or_default();
-    let sound_manager_trait_source = std::fs::read_to_string(
-        plugin_root.join("sound/runtime/src/service_types/manager_trait.rs"),
-    )
-    .unwrap_or_default();
+    let sound_manager_trait_root =
+        plugin_root.join("sound/runtime/src/service_types/manager_trait.rs");
+    let sound_manager_trait_dir = plugin_root.join("sound/runtime/src/service_types/manager_trait");
+    let sound_manager_trait_source =
+        std::fs::read_to_string(&sound_manager_trait_root).unwrap_or_default();
+    let sound_manager_trait_child_sources: Vec<String> =
+        std::fs::read_dir(&sound_manager_trait_dir)
+            .ok()
+            .into_iter()
+            .flat_map(|entries| entries.filter_map(Result::ok))
+            .filter(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    .is_some_and(|extension| extension == "rs")
+            })
+            .filter_map(|entry| std::fs::read_to_string(entry.path()).ok())
+            .collect();
+    let ai_plugin_mod_source =
+        std::fs::read_to_string(plugin_root.join("ai/runtime/src/module.rs")).unwrap_or_default();
+    let ai_plugin_lib_source =
+        std::fs::read_to_string(plugin_root.join("ai/runtime/src/lib.rs")).unwrap_or_default();
+    let ai_plugin_manager_source =
+        std::fs::read_to_string(plugin_root.join("ai/runtime/src/manager.rs")).unwrap_or_default();
+    let ai_plugin_manager_service_source =
+        std::fs::read_to_string(plugin_root.join("ai/runtime/src/manager/service.rs"))
+            .unwrap_or_default();
     let manager_mod_source =
         std::fs::read_to_string(runtime_root.join("src/core/manager/mod.rs")).unwrap_or_default();
     let manager_resolver_source =
@@ -97,10 +121,45 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     }
 
     for required in [
+        "DefaultAiManager",
+        "impl AiManager for DefaultAiManager",
+        "AI_MANAGER_NAME",
+    ] {
+        assert!(
+            ai_plugin_mod_source.contains(required)
+                || ai_plugin_lib_source.contains(required)
+                || ai_plugin_manager_source.contains(required)
+                || ai_plugin_manager_service_source.contains(required),
+            "AI plugin should keep its framework-backed manager service wiring `{required}`"
+        );
+    }
+
+    for required in [
+        "impl SoundBackendManager for DefaultSoundManager",
+        "impl SoundOutputDeviceManager for DefaultSoundManager",
+        "impl SoundPlaybackManager for DefaultSoundManager",
+        "impl SoundMixerGraphManager for DefaultSoundManager",
+        "impl SoundSourceManager for DefaultSoundManager",
+        "impl SoundAutomationTimelineManager for DefaultSoundManager",
+        "impl SoundDynamicEventManager for DefaultSoundManager",
+        "impl SoundAcousticsManager for DefaultSoundManager",
+        "impl SoundMixRenderManager for DefaultSoundManager",
+    ] {
+        assert!(
+            sound_manager_trait_child_sources
+                .iter()
+                .any(|source| source.contains(required)),
+            "sound plugin should keep its framework-backed manager capability wiring `{required}`"
+        );
+    }
+
+    for required in [
+        "AiManagerHandle",
         "PhysicsManagerHandle",
         "AnimationManagerHandle",
         "NetManagerHandle",
         "SoundManagerHandle",
+        "resolve_ai_manager",
         "resolve_physics_manager",
         "resolve_animation_manager",
         "resolve_net_manager",
@@ -113,6 +172,7 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     }
 
     for required in [
+        "AI_MANAGER_NAME",
         "PHYSICS_MANAGER_NAME",
         "ANIMATION_MANAGER_NAME",
         "NET_MANAGER_NAME",

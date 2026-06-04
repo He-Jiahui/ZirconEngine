@@ -135,10 +135,11 @@ fn input_and_navigation_state_owners_do_not_bypass_shared_primitives() {
     let mut violations = Vec::new();
     let allowed_state_owner_files = [
         "inputs.slint",
+        "text_input_components.slint",
+        "input_state_components.slint",
         "button_components.slint",
+        "icon_button_components.slint",
         "navigation.slint",
-        "shared.slint",
-        "shell_sidebar_components.slint",
         "app.slint",
         "project_browser_components.slint",
         "project_card_flow_components.slint",
@@ -267,7 +268,12 @@ fn page_scroll_surface_is_owned_by_page_roots() {
         let file_name = path.file_name().and_then(|name| name.to_str());
         if matches!(
             file_name,
-            Some("data_display.slint" | "table_view_components.slint")
+            Some(
+                "data_display.slint"
+                    | "list_container_components.slint"
+                    | "table_view_components.slint"
+                    | "tree_view_components.slint"
+            )
         ) {
             continue;
         }
@@ -377,11 +383,15 @@ fn absolute_positioning_stays_out_of_page_layouts() {
             file_name,
             "app.slint"
                 | "button_components.slint"
+                | "icon_button_components.slint"
                 | "data_display.slint"
                 | "overlays.slint"
+                | "dropdown_components.slint"
                 | "project_browser_components.slint"
                 | "project_card_flow_components.slint"
                 | "inputs.slint"
+                | "text_input_components.slint"
+                | "input_state_components.slint"
                 | "project_dashboard_components.slint"
                 | "shared.slint"
                 | "shell_header_components.slint"

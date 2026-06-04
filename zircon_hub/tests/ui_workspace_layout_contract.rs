@@ -187,26 +187,35 @@ fn workspace_pages_use_workspace_panel_section() {
         );
     }
 
+    let data_display = read_ui_file("data_display.slint");
+    assert!(
+        data_display.contains("export component HubMetricSlot inherits ResponsiveSlot")
+            && data_display.contains("MetricCard {")
+            && data_display.contains("export component HubMetricSectionState inherits Rectangle")
+            && data_display.contains("out property <int> row-count: root.four-columns ? 1 : (root.two-columns ? 2 : 4);")
+            && data_display.contains("out property <length> section-height: root.row-height * root.row-count + root.metric-gap * (root.row-count - 1);"),
+        "data_display.slint should own the shared metric slot, Material MetricCard body, and metric-section sizing state"
+    );
+
     let cloud = read_ui_file("cloud.slint");
     let cloud_components = read_ui_file("cloud_page_components.slint");
     let cloud_surface = format!("{cloud}\n{cloud_components}");
     assert!(
         cloud_surface.contains("compact-stack: false;")
-            && cloud_surface.contains("compact-rows: root.metric-row-count;")
-            && cloud_surface.contains("metric-row-height: root.metrics-compact ? HubTokens.list-row-md + HubTokens.space-2 : HubTokens.workspace-row-cloud-metrics;")
-            && cloud_surface.contains("row-height: root.metric-row-height;")
-            && cloud_surface.contains("metrics-four-columns:")
-            && cloud_surface.contains("metrics-two-columns:")
-            && cloud_surface.contains("metric-row-count:")
-            && (cloud_surface.contains("metric-slot-basis: root.metrics-four-columns ? root.metric-min-width : (root.metrics-two-columns ? HubTokens.panel-min-md : root.content-width);")
-                || cloud_surface.contains("metric-slot-basis: root.metrics-four-columns || root.metrics-two-columns ? root.metric-min-width : root.content-width;"))
-            && cloud_surface.contains("metric-slot-min-width: root.metrics-four-columns || root.metrics-two-columns ? root.metric-min-width : root.content-width;")
-            && cloud_surface.contains("metric-slot-grow: 1;")
-            && cloud_surface.contains("export component CloudMetricSlot inherits ResponsiveSlot")
-            && cloud_surface.contains("basis: root.metric-slot-basis;")
-            && cloud_surface.contains("grow: root.metric-slot-grow;")
-            && cloud_surface.contains("min-width: root.metric-slot-min-width;")
-            && cloud_surface.contains("height: root.metric-row-height;")
+            && cloud_surface.contains("cloud-metrics := HubMetricSectionState {")
+            && cloud_surface.contains("content-width: root.content-width;")
+            && cloud_surface.contains("metric-gap: HubTokens.space-3;")
+            && cloud_surface.contains("regular-row-height: HubTokens.workspace-row-cloud-metrics;")
+            && cloud_surface.contains("compact-row-height: HubTokens.list-row-md + HubTokens.space-2;")
+            && cloud_surface.contains("compact-card-breakpoint: HubTokens.panel-min-md * 2 + HubTokens.space-3;")
+            && cloud_surface.contains("compact-rows: cloud-metrics.row-count;")
+            && cloud_surface.contains("row-height: cloud-metrics.row-height;")
+            && cloud_surface.contains("export component CloudMetricSlot inherits HubMetricSlot")
+            && cloud_surface.contains("basis: cloud-metrics.slot-basis;")
+            && cloud_surface.contains("grow: cloud-metrics.slot-grow;")
+            && cloud_surface.contains("min-width: cloud-metrics.slot-min-width;")
+            && cloud_surface.contains("height: cloud-metrics.row-height;")
+            && cloud_surface.contains("compact-card: cloud-metrics.compact-card;")
             && cloud_surface.contains("export component CloudPage inherits PageScrollSurface")
             && cloud_surface.contains("in property <bool> collapse-label: false;")
             && cloud_surface.contains("collapse-trailing-label: root.collapse-label;")
@@ -215,7 +224,7 @@ fn workspace_pages_use_workspace_panel_section() {
             && cloud_surface.contains("service-row-slot-height: HubTokens.list-row-lg + HubTokens.space-2;")
             && cloud_surface.contains("service-panel-chrome-height: HubTokens.control-md + HubTokens.toolbar-gap + HubTokens.space-4 * 2;")
             && cloud_surface.contains("service-visible-rows: root.service-count < 4 ? root.service-count : 4;")
-            && cloud_surface.contains("service-available-height: max(root.service-panel-chrome-height + root.service-row-slot-height, root.content-height - root.header-height - root.metric-section-height - HubTokens.panel-gap * 2);")
+            && cloud_surface.contains("service-available-height: max(root.service-panel-chrome-height + root.service-row-slot-height, root.content-height - root.header-height - cloud-metrics.section-height - HubTokens.panel-gap * 2);")
             && cloud_surface.contains("service-available-list-height: max(root.service-row-slot-height, root.service-available-height - root.service-panel-chrome-height);")
             && cloud_surface.contains("service-fit-row-count: Math.floor(root.service-available-list-height / root.service-row-slot-height);")
             && cloud_surface.contains("service-panel-rows: root.service-visible-rows < 1 ? 1 : (root.service-visible-rows < root.service-fit-rows ? root.service-visible-rows : root.service-fit-rows);")
@@ -268,10 +277,9 @@ fn workspace_pages_use_workspace_panel_section() {
         4,
         "CloudPage should render its four summary metrics through CloudMetricSlot"
     );
-    assert_eq!(
-        cloud_components.matches("MetricCard {").count(),
-        1,
-        "cloud_page_components.slint should keep metric card content in CloudMetricSlot instead of repeating it at every metric call site"
+    assert!(
+        !cloud_components.contains("MetricCard {"),
+        "cloud_page_components.slint should inherit HubMetricSlot instead of owning MetricCard content"
     );
     assert_eq!(
         cloud.matches("CloudServicesPanel {").count(),
@@ -280,6 +288,13 @@ fn workspace_pages_use_workspace_panel_section() {
     );
     for forbidden in [
         "ResponsiveSlot {\n                basis: root.metric-slot-basis;",
+        "metrics-four-columns:",
+        "metrics-two-columns:",
+        "metric-row-count:",
+        "metric-slot-basis:",
+        "metric-slot-min-width:",
+        "metric-slot-grow:",
+        "metric-section-height:",
         "metric-card-width",
         "root.content-width - HubTokens.panel-gap",
         "root.content-width - root.metric-gap",
@@ -305,16 +320,27 @@ fn workspace_pages_use_workspace_panel_section() {
     let team_components = read_ui_file("team_page_components.slint");
     let team_surface = format!("{team}\n{team_components}");
     assert!(
-        team_surface.contains("row-height: HubTokens.workspace-row-team-summary;")
-            && team_surface.contains("export component TeamSummarySlot inherits ResponsiveSlot")
+        team_surface.contains("summary-metrics := HubMetricSectionState {")
+            && team_surface.contains("metric-gap: HubTokens.panel-gap;")
+            && team_surface.contains("regular-row-height: HubTokens.workspace-row-team-summary;")
+            && team_surface.contains("compact-row-height: HubTokens.workspace-row-team-summary;")
+            && team_surface.contains("allow-two-columns: false;")
+            && team_surface.contains("wide-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
+            && team_surface.contains("compact-card-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
+            && team_surface.contains("row-height: summary-metrics.row-height;")
+            && team_surface.contains("export component TeamSummarySlot inherits HubMetricSlot")
             && team_surface.contains("export component TeamPage inherits PageScrollSurface")
             && team_surface.contains("in property <bool> collapse-label: false;")
             && team_surface.contains("collapse-trailing-label: root.collapse-label;")
             && team_surface.contains("label-collapse := ResponsiveCollapse {")
             && team_surface.contains("collapse-label: label-collapse.collapsed;")
-            && team_surface.contains("summary-compact: root.content-width < HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
             && team_surface.contains("overview-compact: root.content-width < HubTokens.panel-min-lg + HubTokens.panel-min-md + HubTokens.panel-gap;")
-            && team_surface.contains("compact-rows: 4;")
+            && team_surface.contains("compact-rows: summary-metrics.row-count;")
+            && team_surface.contains("basis: summary-metrics.slot-basis;")
+            && team_surface.contains("grow: summary-metrics.slot-grow;")
+            && team_surface.contains("min-width: summary-metrics.slot-min-width;")
+            && team_surface.contains("height: summary-metrics.row-height;")
+            && team_surface.contains("compact-card: summary-metrics.compact-card;")
             && team_surface.contains("label: root.ui-text.team-git-identity;")
             && team_surface.contains("primary: root.summary.identity-name;")
             && team_surface.contains("secondary: root.summary.identity-email;")
@@ -335,7 +361,7 @@ fn workspace_pages_use_workspace_panel_section() {
             && team_surface.contains("members-panel-height: root.member-panel-chrome-height + root.member-list-height;")
             && team_surface.contains("actions-panel-height: HubTokens.list-row-sm + root.action-row-height * 6 + HubTokens.toolbar-gap * 6 + HubTokens.space-4 * 2;")
             && team_surface.contains("overview-section-height: max(root.members-panel-height, root.actions-panel-height);")
-            && team_surface.contains("export component TeamMembersPanel inherits PanelSlot")
+            && team_surface.contains("export component TeamMembersPanel inherits HubTabbedListPanelSlot")
             && team_surface.contains("TeamMembersPanel {")
             && team_surface.contains("height: root.overview-section-height;")
             && team_surface.contains("summary: root.summary;")
@@ -348,8 +374,11 @@ fn workspace_pages_use_workspace_panel_section() {
             && team_surface.contains("center-content: true;")
             && team_surface.contains("export component TeamIdentityRow inherits InfoRow")
             && team_surface.contains("TeamIdentityRow {")
-            && team_surface.contains("HubCompactTabStrip {")
-            && team_surface.contains("PanelListViewport {")
+            && team_surface.contains("HubTabbedListPanelSlot,")
+            && team_surface.contains("first-tab-label: \"Identity\";")
+            && team_surface.contains("second-tab-label: \"Review\";")
+            && team_surface.contains("third-tab-label: \"Access\";")
+            && team_surface.contains("show-fourth-tab: false;")
             && team_surface.contains("export component TeamActionsPanel inherits HubListPanelSlot")
             && team_surface.contains("export component TeamActionRow inherits ActionRow")
             && team_surface.contains("TeamActionsPanel {")
@@ -370,10 +399,9 @@ fn workspace_pages_use_workspace_panel_section() {
         4,
         "TeamPage should render identity, repository, members, and access summaries through TeamSummarySlot"
     );
-    assert_eq!(
-        team_components.matches("MetricCard {").count(),
-        1,
-        "team_page_components.slint should keep summary MetricCard content in TeamSummarySlot instead of repeating it at every summary call site"
+    assert!(
+        !team_components.contains("MetricCard {"),
+        "team_page_components.slint should inherit HubMetricSlot instead of owning MetricCard content"
     );
     assert_eq!(
         team.matches("TeamMembersPanel {").count(),
@@ -388,6 +416,8 @@ fn workspace_pages_use_workspace_panel_section() {
     for forbidden in [
         "ResponsiveSlot {\n                basis: HubTokens.panel-min-sm * 4 / 5;",
         "ResponsiveSlot {\n                basis: HubTokens.panel-min-md;",
+        "summary-compact:",
+        "summary-section-height:",
         "member-content-height:",
         "member-available-height:",
         "member-available-list-height:",
@@ -432,10 +462,10 @@ fn workspace_pages_use_workspace_panel_section() {
             "EditorPage",
             &editor,
             &[
-                "basis: root.overview-min-width;",
-                "flex-basis: root.overview-min-width;",
-                "grow: 2;",
-                "flex-grow: 2;",
+                "basis: workspace-split.main-basis;",
+                "flex-basis: workspace-split.main-basis;",
+                "grow: workspace-split.main-grow;",
+                "flex-grow: workspace-split.main-grow;",
                 "shrink: 1;",
                 "flex-shrink: 1;",
                 "order: root.actions-first ? 1 : 0;",
@@ -446,10 +476,11 @@ fn workspace_pages_use_workspace_panel_section() {
             "SettingsPage",
             &settings,
             &[
+                "workspace-split := HubWorkspaceSplitState {",
                 "SettingsToolchainPanel {",
                 "SettingsBuildDefaultsPanel {",
-                "grow: 1;",
-                "flex-grow: 1;",
+                "grow: workspace-split.side-grow;",
+                "flex-grow: workspace-split.side-grow;",
                 "shrink: 1;",
                 "flex-shrink: 1;",
             ][..],
@@ -458,10 +489,10 @@ fn workspace_pages_use_workspace_panel_section() {
             "BuildsPage",
             &builds,
             &[
-                "basis: root.overview-min-width;",
-                "flex-basis: root.overview-min-width;",
-                "grow: 2;",
-                "flex-grow: 2;",
+                "basis: workspace-split.main-basis;",
+                "flex-basis: workspace-split.main-basis;",
+                "grow: workspace-split.main-grow;",
+                "flex-grow: workspace-split.main-grow;",
                 "order: root.controls-first ? 1 : 0;",
                 "flex-order: root.controls-first ? 1 : 0;",
             ][..],
@@ -475,28 +506,27 @@ fn workspace_pages_use_workspace_panel_section() {
         }
     }
     for snippet in [
-        "side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;",
-        "overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;",
-        "basis: root.overview-min-width;",
-        "basis: root.side-panel-min-width;",
-        "grow: 2;",
-        "grow: 1;",
+        "workspace-split := HubWorkspaceSplitState {",
+        "compact-label-breakpoint: HubTokens.breakpoint-wide;",
+        "basis: workspace-split.main-basis;",
+        "basis: workspace-split.side-basis;",
+        "grow: workspace-split.main-grow;",
+        "grow: workspace-split.side-grow;",
         "build-source-summary-height: HubTokens.list-row-sm + HubTokens.border-width + root.build-row-height * 2 + HubTokens.toolbar-gap * 3 + HubTokens.space-4 * 2;",
         "build-summary-section-height: root.build-source-summary-height + root.build-summary-height + HubTokens.panel-gap;",
-        "actions-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
-        "compact-labels: root.content-width < HubTokens.breakpoint-wide;",
+        "actions-first: workspace-split.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
         "editor-config-height: HubTokens.workspace-row-editor-config - HubTokens.list-row-md - HubTokens.control-lg;",
         "side-list-empty-height: HubTokens.list-row-sm + HubTokens.space-4;",
         "compact-height-override: root.build-summary-section-height;",
         "row-height: root.editor-config-height;",
-        "height: root.compact ? root.build-source-summary-height : root.build-summary-height;",
+        "height: workspace-split.compact ? root.build-source-summary-height : root.build-summary-height;",
         "height: root.build-summary-height;",
         "height: root.editor-config-height;",
         "order: root.actions-first ? 1 : 0;",
         "order: root.actions-first ? 0 : 1;",
-        "min-width: root.compact ? root.content-width : root.overview-min-width;",
-        "min-width: root.compact ? root.content-width : root.side-panel-min-width;",
-        "collapse-label: root.compact-labels;",
+        "min-width: workspace-split.main-min-width;",
+        "min-width: workspace-split.side-min-width;",
+        "collapse-label: workspace-split.compact-labels;",
         "export component EditorSideListPanel inherits HubListView",
         "export component EditorSourceEngineListPanel inherits EditorSideListPanel",
         "export component EditorBuildHistoryPanel inherits EditorSideListPanel",
@@ -592,9 +622,9 @@ fn workspace_pages_use_workspace_panel_section() {
         "empty-title: root.ui-text.no-build-history-short;",
         "body-padding: MaterialStyleMetrics.padding_16;",
         "center-content: true;",
-        "export component EditorSourceSummaryPanel inherits PanelSlot",
+        "export component EditorSourceSummaryPanel inherits HubContentPanelSlot",
         "subtitle: root.readiness.source-engine-title + \" / \" + root.readiness.source-engine-status;",
-        "export component EditorSourceSettingsPanel inherits PanelSlot",
+        "export component EditorSourceSettingsPanel inherits HubFormPanelSlot",
         "EditorSourceSummaryPanel {",
         "EditorSourceSettingsPanel {",
         "readiness: root.readiness;",
@@ -734,16 +764,18 @@ fn workspace_pages_use_workspace_panel_section() {
         "basis: HubTokens.panel-min-md;",
         "grow: 2;",
         "grow: 1;",
-        "export component SettingsConfigurationOverviewPanel inherits PanelSlot",
-        "export component SettingsToolchainPanel inherits PanelSlot",
-        "export component SettingsBuildDefaultsPanel inherits PanelSlot",
+        "export component SettingsConfigurationOverviewPanel inherits HubContentPanelSlot",
+        "HubMetricSlot {",
+        "compact-card: true;",
+        "export component SettingsToolchainPanel inherits HubFormPanelSlot",
+        "export component SettingsBuildDefaultsPanel inherits HubFormPanelSlot",
         "export component SettingsDefaultPathsPanel inherits HubListPanelSlot",
         "export component SettingsConfigurationHealthPanel inherits HubListPanelSlot",
         "export component SettingsComboChoice inherits Rectangle",
         "export component PathSettingRow inherits Rectangle",
         "export component SettingStatusRow inherits InfoRow",
         "export component SettingsToolchainField inherits HubTextField",
-        "export component SettingsSaveActionRow inherits Rectangle",
+        "export component SettingsSaveActionRow inherits HubFormActionRow",
         "scope: string,",
         "action-id: string,",
         "action-label: string,",
@@ -776,10 +808,13 @@ fn workspace_pages_use_workspace_panel_section() {
         "init =>",
         "root.selected-index = root.desired-index;",
         "changed selected-value =>",
-        "min-width: root.compact ? root.content-width : HubTokens.panel-min-lg;",
-        "min-width: root.compact ? root.content-width : HubTokens.panel-min-md;",
-        "compact-labels: root.content-width < HubTokens.breakpoint-medium;",
-        "health-compact-labels: root.compact-labels || root.content-width < HubTokens.breakpoint-wide;",
+        "workspace-split := HubWorkspaceSplitState {",
+        "main-basis: HubTokens.panel-min-lg + HubTokens.control-lg;",
+        "side-basis: HubTokens.panel-min-md;",
+        "compact-label-breakpoint: HubTokens.breakpoint-medium;",
+        "min-width: workspace-split.main-min-width;",
+        "min-width: workspace-split.side-min-width;",
+        "health-compact-labels: workspace-split.compact-labels || root.content-width < HubTokens.breakpoint-wide;",
         "health-empty-height: HubTokens.list-row-lg + HubTokens.space-4;",
         "panel-title: root.ui-text.toolchain;",
         "panel-title: root.ui-text.build-defaults;",
@@ -792,7 +827,7 @@ fn workspace_pages_use_workspace_panel_section() {
         "center-content: true;",
         "collapse-trailing-label: root.collapse-label;",
         "compact-labels: root.health-compact-labels;",
-        "collapse-label: root.compact-labels;",
+        "collapse-label: workspace-split.compact-labels;",
         "save-button-width: min(root.content-width, HubTokens.panel-min-sm);",
         "SettingsSaveActionRow {",
         "button-width: root.save-button-width;",
@@ -902,10 +937,9 @@ fn workspace_pages_use_workspace_panel_section() {
         );
     }
     for snippet in [
-        "side-panel-min-width: HubTokens.panel-min-md + HubTokens.control-lg * 2;",
-        "overview-min-width: HubTokens.panel-min-lg + HubTokens.control-lg * 2;",
-        "controls-first: root.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
-        "compact-labels: root.content-width < HubTokens.breakpoint-medium;",
+        "workspace-split := HubWorkspaceSplitState {",
+        "compact-label-breakpoint: HubTokens.breakpoint-medium;",
+        "controls-first: workspace-split.compact && root.content-height < root.build-summary-section-height + HubTokens.control-lg;",
         "export component BuildControlAction inherits ActionRow",
         "in property <string> action-id;",
         "in property <image> action-icon;",
@@ -935,10 +969,10 @@ fn workspace_pages_use_workspace_panel_section() {
         "export component BuildSourceSummaryRow inherits InfoRow",
         "HubSection,",
         "HubListPanelSlot,",
-        "export component BuildSourceSummaryPanel inherits PanelSlot",
+        "export component BuildSourceSummaryPanel inherits HubContentPanelSlot",
         "export component BuildControlsPanel inherits HubListPanelSlot",
         "export component BuildPipelinePanel inherits HubListPanelSlot",
-        "export component BuildTaskHistoryPanel inherits PanelSlot",
+        "export component BuildTaskHistoryPanel inherits HubContentPanelSlot",
         "export component OperationTimelinePanel inherits HubListPanelSlot",
         "in property <ProjectDetailData> project;",
         "in property <SourceEngineData> source-engine;",
@@ -1009,19 +1043,19 @@ fn workspace_pages_use_workspace_panel_section() {
         "section-spacing: HubTokens.panel-gap;",
         "title: root.no-build-history-title;",
         "compact-height-override: root.build-summary-section-height;",
-        "basis: root.overview-min-width;",
-        "basis: root.side-panel-min-width;",
-        "basis: root.overview-min-width - HubTokens.control-lg * 3;",
+        "basis: workspace-split.main-basis;",
+        "basis: workspace-split.side-basis;",
+        "basis: workspace-split.main-basis - HubTokens.control-lg * 3;",
         "basis: HubTokens.panel-min-sm;",
-        "grow: 2;",
-        "grow: 1;",
+        "grow: workspace-split.main-grow;",
+        "grow: workspace-split.side-grow;",
         "order: root.controls-first ? 1 : 0;",
         "order: root.controls-first ? 0 : 1;",
-        "height: root.compact ? root.build-source-summary-height : root.build-summary-height;",
+        "height: workspace-split.compact ? root.build-source-summary-height : root.build-summary-height;",
         "height: root.build-summary-height;",
-        "min-width: root.compact ? root.content-width : root.overview-min-width;",
-        "min-width: root.compact ? root.content-width : root.side-panel-min-width;",
-        "collapse-label: root.compact-labels;",
+        "min-width: workspace-split.main-min-width;",
+        "min-width: workspace-split.side-min-width;",
+        "collapse-label: workspace-split.compact-labels;",
         "if root.source-build-history-count == 0: EmptyStateBlock",
         "history-list-empty-height: root.row-height + HubTokens.space-2;",
         "height: root.history-list-empty-height;",

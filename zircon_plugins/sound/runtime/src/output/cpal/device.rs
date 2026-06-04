@@ -60,6 +60,7 @@ fn output_device_info(
     config: &SoundConfig,
 ) -> SoundOutputDeviceInfo {
     use cpal::traits::DeviceTrait;
+    use zircon_runtime::core::framework::sound::SoundChannelLayout;
 
     let display_name = device
         .name()
@@ -70,12 +71,15 @@ fn output_device_info(
         display_name,
         sample_rate_hz: config.sample_rate_hz,
         channel_count: config.channel_count,
+        channel_layout: config.channel_layout.clone(),
         block_size_frames: config.block_size_frames,
         latency_blocks: zircon_runtime::core::framework::sound::DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS,
     };
     if let Ok(default_config) = device.default_output_config() {
         descriptor.sample_rate_hz = default_config.sample_rate().0;
         descriptor.channel_count = default_config.channels();
+        descriptor.channel_layout =
+            SoundChannelLayout::for_channel_count(default_config.channels());
     }
     let diagnostic = select_stream_config(device, &descriptor)
         .err()
@@ -97,6 +101,7 @@ fn unavailable_default_output_device(config: &SoundConfig) -> SoundOutputDeviceI
             display_name: "CPAL Default Output".to_string(),
             sample_rate_hz: config.sample_rate_hz,
             channel_count: config.channel_count,
+            channel_layout: config.channel_layout.clone(),
             block_size_frames: config.block_size_frames,
             latency_blocks:
                 zircon_runtime::core::framework::sound::DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS,

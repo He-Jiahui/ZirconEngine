@@ -265,14 +265,34 @@ fn blend_effect_stack(
                 to.depth_of_field.focus_distance,
                 weight,
             ),
+            focus_range: lerp(
+                from.depth_of_field.focus_range,
+                to.depth_of_field.focus_range,
+                weight,
+            ),
             aperture: lerp(
                 from.depth_of_field.aperture,
                 to.depth_of_field.aperture,
                 weight,
             ),
+            focal_length_mm: lerp(
+                from.depth_of_field.focal_length_mm,
+                to.depth_of_field.focal_length_mm,
+                weight,
+            ),
             max_blur_radius: lerp(
                 from.depth_of_field.max_blur_radius,
                 to.depth_of_field.max_blur_radius,
+                weight,
+            ),
+            bokeh_blade_count: blend_discrete(
+                from.depth_of_field.bokeh_blade_count,
+                to.depth_of_field.bokeh_blade_count,
+                weight,
+            ),
+            bokeh_rotation_radians: lerp(
+                from.depth_of_field.bokeh_rotation_radians,
+                to.depth_of_field.bokeh_rotation_radians,
                 weight,
             ),
         },
@@ -467,8 +487,12 @@ mod tests {
                             ..Default::default()
                         },
                         depth_of_field: RenderDepthOfFieldSettings {
+                            focus_range: 2.0,
                             aperture: 0.8,
+                            focal_length_mm: 85.0,
                             max_blur_radius: 4.0,
+                            bokeh_blade_count: 7,
+                            bokeh_rotation_radians: 0.25,
                             ..Default::default()
                         },
                         screen_space_reflection: RenderScreenSpaceReflectionSettings {
@@ -497,6 +521,13 @@ mod tests {
             RenderTonemapOperator::Aces
         );
         assert_near(resolved.effect_stack.depth_of_field.aperture, 0.8);
+        assert_near(resolved.effect_stack.depth_of_field.focus_range, 2.0);
+        assert_near(resolved.effect_stack.depth_of_field.focal_length_mm, 85.0);
+        assert_eq!(resolved.effect_stack.depth_of_field.bokeh_blade_count, 7);
+        assert_near(
+            resolved.effect_stack.depth_of_field.bokeh_rotation_radians,
+            0.25,
+        );
         assert_eq!(resolved.effect_stack.screen_space_reflection.max_steps, 48);
         assert_near(resolved.effect_stack.dither.intensity, 0.2);
     }

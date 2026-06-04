@@ -11,9 +11,7 @@ impl SceneViewportController {
         &self,
         scene: &Scene,
     ) -> Option<u64> {
-        scene
-            .editor_projection(self.selected_node())
-            .selected_entity
+        scene.inspect_world(self.selected_node()).focused_entity
     }
 
     pub(in crate::scene::viewport::controller) fn handle_overlays(

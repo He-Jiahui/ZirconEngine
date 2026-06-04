@@ -570,7 +570,7 @@ The Transform section in `workbench_inspector_panel.zui` is now composed bottom-
 
 `module_field_edit.rs` handles retained/native edit and commit callbacks for module workspace
 fields. The bridge recognizes `WorkbenchModule/*` bindings only when the binding resolves to an
-`EditWorkbench*` or `CommitWorkbench*` preview action and the edited control owns the matching
+`.edit` or `.commit` preview action and the edited control owns the matching
 Change/Submit route. A matched field updates `value` and `value_text`, refreshes the componentized
 surface, regenerates retained projection, and requests paint-only invalidation. That makes Ability,
 Tags, Perception, Render, HUD, and the earlier Effect/Material/Behavior/Assets/VFX field samples
@@ -873,9 +873,9 @@ is
 
 The module-dropdown follow-up extends the same `WorkbenchDropdown` component behavior from the
 component drawer into the module workspaces without adding per-control layout code. When a module
-field action starts with `EditWorkbench...` and the source control exposes authored `options`, the
-componentized Workbench bridge treats the Change dispatch as a shared dropdown activation and opens
-the popup on that control. Option selection continues through `popup_state.rs`, so module
+field action ends with `.edit` and the source control exposes authored `options`, the componentized
+Workbench bridge treats the Change dispatch as a shared dropdown activation and opens the popup on
+that control. Option selection continues through `popup_state.rs`, so module
 dropdowns reuse the existing option validation, `value` / `value_text` writeback, transient
 option-state clearing, popup closure, and retained projection refresh path. The regression
 `workbench_module_dropdowns_open_select_and_close_with_shared_dropdown_path` covers the Material

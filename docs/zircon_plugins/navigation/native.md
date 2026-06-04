@@ -3,11 +3,27 @@ related_code:
   - zircon_plugins/navigation/native/Cargo.toml
   - zircon_plugins/navigation/native/build.rs
   - zircon_plugins/navigation/native/src/lib.rs
+  - zircon_plugins/navigation/native/src/asset_ffi.rs
   - zircon_plugins/navigation/native/src/bake.rs
   - zircon_plugins/navigation/native/src/detour.rs
+  - zircon_plugins/navigation/native/src/detour_result.rs
+  - zircon_plugins/navigation/native/src/fallback_query.rs
+  - zircon_plugins/navigation/native/src/fallback_query/geometry.rs
+  - zircon_plugins/navigation/native/src/fallback_query/graph.rs
+  - zircon_plugins/navigation/native/src/fallback_query/path.rs
+  - zircon_plugins/navigation/native/src/fallback_query/raycast.rs
+  - zircon_plugins/navigation/native/src/fallback_query/sampling.rs
+  - zircon_plugins/navigation/native/src/fallback_query/validation.rs
   - zircon_plugins/navigation/native/src/tile_cache.rs
   - zircon_plugins/navigation/native/src/ffi.rs
-  - zircon_plugins/navigation/native/src/tests.rs
+  - zircon_plugins/navigation/native/src/tests/mod.rs
+  - zircon_plugins/navigation/native/src/tests/asset.rs
+  - zircon_plugins/navigation/native/src/tests/bake.rs
+  - zircon_plugins/navigation/native/src/tests/linkage.rs
+  - zircon_plugins/navigation/native/src/tests/path.rs
+  - zircon_plugins/navigation/native/src/tests/raycast.rs
+  - zircon_plugins/navigation/native/src/tests/sampling.rs
+  - zircon_plugins/navigation/native/src/tests/support.rs
   - zircon_plugins/navigation/native/tests/detour_query.rs
   - zircon_plugins/navigation/native/tests/tile_cache_smoke.cpp
   - zircon_plugins/navigation/native/native/recast_bridge.cpp
@@ -22,11 +38,27 @@ implementation_files:
   - zircon_plugins/navigation/native/Cargo.toml
   - zircon_plugins/navigation/native/build.rs
   - zircon_plugins/navigation/native/src/lib.rs
+  - zircon_plugins/navigation/native/src/asset_ffi.rs
   - zircon_plugins/navigation/native/src/bake.rs
   - zircon_plugins/navigation/native/src/detour.rs
+  - zircon_plugins/navigation/native/src/detour_result.rs
+  - zircon_plugins/navigation/native/src/fallback_query.rs
+  - zircon_plugins/navigation/native/src/fallback_query/geometry.rs
+  - zircon_plugins/navigation/native/src/fallback_query/graph.rs
+  - zircon_plugins/navigation/native/src/fallback_query/path.rs
+  - zircon_plugins/navigation/native/src/fallback_query/raycast.rs
+  - zircon_plugins/navigation/native/src/fallback_query/sampling.rs
+  - zircon_plugins/navigation/native/src/fallback_query/validation.rs
   - zircon_plugins/navigation/native/src/tile_cache.rs
   - zircon_plugins/navigation/native/src/ffi.rs
-  - zircon_plugins/navigation/native/src/tests.rs
+  - zircon_plugins/navigation/native/src/tests/mod.rs
+  - zircon_plugins/navigation/native/src/tests/asset.rs
+  - zircon_plugins/navigation/native/src/tests/bake.rs
+  - zircon_plugins/navigation/native/src/tests/linkage.rs
+  - zircon_plugins/navigation/native/src/tests/path.rs
+  - zircon_plugins/navigation/native/src/tests/raycast.rs
+  - zircon_plugins/navigation/native/src/tests/sampling.rs
+  - zircon_plugins/navigation/native/src/tests/support.rs
   - zircon_plugins/navigation/native/tests/detour_query.rs
   - zircon_plugins/navigation/native/tests/tile_cache_smoke.cpp
   - zircon_plugins/navigation/native/native/recast_bridge.cpp
@@ -37,6 +69,14 @@ implementation_files:
 plan_sources:
   - user: 2026-05-02 ZirconEngine navigation/pathfinding plugin completion plan
 tests:
+  - zircon_plugins/navigation/native/src/tests/mod.rs
+  - zircon_plugins/navigation/native/src/tests/asset.rs
+  - zircon_plugins/navigation/native/src/tests/bake.rs
+  - zircon_plugins/navigation/native/src/tests/linkage.rs
+  - zircon_plugins/navigation/native/src/tests/path.rs
+  - zircon_plugins/navigation/native/src/tests/raycast.rs
+  - zircon_plugins/navigation/native/src/tests/sampling.rs
+  - zircon_plugins/navigation/native/src/tests/support.rs
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never
   - wsl.exe --cd /mnt/e/Git/ZirconEngine --exec sh -lc "g++ -std=c++17 -DDT_VIRTUAL_QUERYFILTER ... zircon_plugins/navigation/native/tests/tile_cache_smoke.cpp ... -o /mnt/c/Users/HeJiahui/AppData/Local/Temp/opencode/zircon_tile_cache_smoke && /mnt/c/Users/HeJiahui/AppData/Local/Temp/opencode/zircon_tile_cache_smoke"
 doc_type: module-detail
@@ -59,11 +99,11 @@ doc_type: module-detail
 - native Detour query ownership: `dtCreateNavMeshData`, `dtNavMesh`, and `dtNavMeshQuery` are created and freed behind an opaque C handle; path, sample-position, and raycast queries run through that handle and return copied Zircon-friendly result buffers
 - native DetourTileCache obstacle carving: a copied single-tile compressed layer is built from Zircon navmesh polygons, box/cylinder obstacle requests are applied to a private `dtTileCache`, and the resulting mutable `dtNavMesh` is queried through an opaque C handle
 
-`src/ffi.rs` owns the Rust ABI declarations and C layout records, `src/bake.rs` owns Rust-side bake input validation plus native-output conversion into `NavMeshAsset`, `src/detour.rs` owns the Rust RAII wrapper around the opaque Detour query handle, and `src/tile_cache.rs` owns the Rust RAII wrapper for the opaque TileCache query handle plus plugin-local obstacle DTOs. The upstream license is kept in `vendor/recastnavigation/License.txt`.
+`src/lib.rs` is now the public facade for bridge version checks, `RecastBackend`, bake DTO exports, and TileCache obstacle DTO exports. `src/ffi.rs` owns the Rust ABI declarations and C layout records, `src/bake.rs` owns Rust-side bake input validation plus native-output conversion into `NavMeshAsset`, `src/asset_ffi.rs` owns the shared asset-to-Detour input packing used by Detour and TileCache wrappers, `src/detour_result.rs` owns native Detour path-result conversion into Zircon path DTOs, `src/detour.rs` owns the Rust RAII wrapper around the opaque Detour query handle, and `src/tile_cache.rs` owns the Rust RAII wrapper for the opaque TileCache query handle plus plugin-local obstacle DTOs. `src/fallback_query.rs` is a structural fallback module; its child modules separate agent validation, shared polygon geometry, polygon graph/route search, path result construction, sampling projection, and raycast gap checks. `src/tests/mod.rs` is a structural test entry point; its child modules cover native linkage, bake validation, pathing, sampling, raycast behavior, binary asset roundtrips, and shared fixtures. The upstream license is kept in `vendor/recastnavigation/License.txt`.
 
 ## Runtime Facade
 
-The Rust facade still performs Zircon asset packaging and keeps deterministic graph queries as fallback support, but representable `NavMeshAsset` values now build an internal Detour tile/query object for pathfinding, nearest-position sampling, and walkability raycasts. It can bake simple fallback surfaces, rasterize collected triangle mesh input through native Recast into `.znavmesh` asset data with per-polygon areas, create a Detour corridor from copied asset buffers, apply 64-bit area masks and area costs through the custom query filter, reject mismatched agent-type queries, sample the nearest allowed Detour polygon inside query extents, raycast through Detour's surface query after preserving the facade's start-outside behavior, and include Detour off-mesh flags in path results.
+The Rust facade still performs Zircon asset packaging and keeps deterministic graph queries as fallback support, but representable `NavMeshAsset` values now build an internal Detour tile/query object for pathfinding, nearest-position sampling, and walkability raycasts. It can bake simple fallback surfaces, rasterize collected triangle mesh input through native Recast into `.znavmesh` asset data with per-polygon areas, create a Detour corridor from copied asset buffers, apply 64-bit area masks and area costs through the custom query filter, reject mismatched agent-type queries, sample the nearest allowed Detour polygon inside query extents, raycast through Detour's surface query after preserving the facade's start-outside behavior, and include Detour off-mesh flags in path results. When the native Detour wrapper cannot represent an asset exactly, the fallback path stays isolated under `src/fallback_query/` instead of growing the public crate root.
 
 `NavMeshAsset` carries copied area cost records from the active navigation settings. The backend uses those records to reject non-walkable areas and to weight polygon/link traversal, with link `cost_override` taking precedence when present. Runtime obstacle carving calls `RecastBackend::find_path_with_obstacles(...)`; when obstacles are present and the asset is representable by the TileCache bridge, `src/tile_cache.rs` builds the mutable native query and returns the carved Detour result before the normal non-carved Detour/Rust fallback path. Binary `NavMeshAsset::to_bytes()` / `from_bytes()` round-trip tests protect deterministic `.znavmesh` artifact payloads shared with the runtime asset store.
 
@@ -71,6 +111,8 @@ The native bake boundary normalizes downward-wound triangles before slope filter
 
 ## Validation
 
-Prior to the TileCache slice, `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never` passed: 16 unit tests, 3 Detour integration tests, and doctests. The tests cover native bridge linkage, simple-surface pathing, native Recast raster bake filtering for steep faces, non-finite bake source rejection before FFI, unique-vertex polygon adjacency for triangulated fan output, Detour string-pulled paths without Rust graph centroid waypoints, Detour sample projection, Detour raycast boundary hits, area masks, disconnected islands, off-mesh link bridging, agent mismatch errors, deterministic binary roundtrip, nearest-polygon sampling, vertical projection, triangle-edge projection, and raycast behavior that ignores off-mesh links while reporting straight-line gaps as hits.
+Prior to the TileCache slice, `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never` passed: 16 unit tests, 3 Detour integration tests, and doctests. The current unit tests are split under `src/tests/` by behavior area. They cover native bridge linkage, simple-surface pathing, native Recast raster bake filtering for steep faces, non-finite bake source rejection before FFI, unique-vertex polygon adjacency for triangulated fan output, Detour string-pulled paths without Rust graph centroid waypoints, Detour sample projection, Detour raycast boundary hits, area masks, disconnected islands, off-mesh link bridging, agent mismatch errors, deterministic binary roundtrip, nearest-polygon sampling, vertical projection, triangle-edge projection, and raycast behavior that ignores off-mesh links while reporting straight-line gaps as hits.
 
 For the TileCache slice, a focused Windows Cargo regression was attempted with `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_recast tile_cache_carved_obstacle_blocks_corridor_path --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never -- --exact --nocapture`, but it did not reach navigation test execution because the shared `zircon_runtime` dependency currently fails in unrelated renderer code (`scene_renderer_render_with_pipeline`). WSL has `g++ 11.4.0`; a direct native harness command compiling `zircon_plugins/navigation/native/tests/tile_cache_smoke.cpp`, `native/detour_tile_cache.cpp`, `native/detour_query.cpp`, and vendored Recast/Detour sources with `-std=c++17 -DDT_VIRTUAL_QUERYFILTER` passed and printed `create status=1 polygons=3 obstacles=1` followed by `path status=2 ... TileCache path query found no complete path`. That harness protects the TileCache C ABI behavior until the unrelated renderer compile blocker allows Cargo to run the Rust regression.
+
+For the 2026-06-04 native facade/fallback split, static validation passed with `rustfmt --edition 2021 --check` over `src/lib.rs`, `src/asset_ffi.rs`, `src/detour_result.rs`, `src/fallback_query.rs`, every file under `src/fallback_query/`, `src/detour.rs`, and `src/tile_cache.rs`; `git diff --check` passed for the touched native Rust files, this doc, and the active session note with only expected line-ending warnings. A low-concurrency `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-native-facade-fallback-split-0604 --message-format short --color never` attempt timed out after ten minutes before returning Rust diagnostics. A process audit immediately afterward showed active Cargo/rustc lanes belonged to other target directories, so compile/test acceptance for this relocation is still pending.

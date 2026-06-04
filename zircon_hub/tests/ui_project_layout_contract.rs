@@ -165,8 +165,9 @@ fn project_pages_use_responsive_taffy_sizing() {
         "expanded-visible-rows: root.card-row-count < 3 ? root.card-row-count : 3;",
         "flow-visible-height: root.visible-row-count * root.card-height + (root.visible-row-count - 1) * root.card-gap-y;",
         "flow-content-height: root.card-row-count * root.card-height + (root.card-row-count - 1) * root.card-gap-y;",
-        "viewport_y <=> root.card-scroll-y;",
-        "viewport_height: root.expanded ? root.flow-content-height : root.flow-visible-height;",
+        "card-scroll := FlowScrollSurface {",
+        "scroll-y <=> root.card-scroll-y;",
+        "content-height: root.expanded ? root.flow-content-height : root.flow-visible-height;",
         "project: card;",
         "cover-height: HubVisualSpec.card-cover-height;",
         "flow-width: parent.width;",
@@ -192,27 +193,46 @@ fn project_pages_use_responsive_taffy_sizing() {
         "dashboard-side-basis: HubTokens.panel-min-md + HubTokens.control-lg;",
         "quick-action-count: root.quick-actions.length;",
         "quick-action-row-gap: MaterialStyleMetrics.spacing_6;",
-        "export component DashboardQuickActionRow inherits Rectangle",
+        "export component DashboardQuickActionRow inherits ActionRow",
+        "component DashboardButtonStatesTitle",
+        "component DashboardButtonStatesSectionLabel",
+        "DashboardButtonStatesTitle {",
+        "DashboardButtonStatesSectionLabel {",
         "export component DashboardRecentProjectsPanel inherits HubTableView",
         "export component DashboardQuickActionsPanel inherits HubListPanelSlot",
         "HubTableView,",
         "HubListPanelSlot,",
+        "ActionRow,",
+        "import { HubViewToggleGroup } from \"icon_button_components.slint\";",
+        "FlowScrollSurface",
+        "HubButtonStateTextSample,",
+        "HubButtonStateIconSample,",
         "prominent: true;",
-        "component DashboardViewToggleButton inherits HubIconButton",
-        "active-background: HubVisualSpec.view-toggle-active-fill;",
-        "active-border: HubVisualSpec.view-toggle-active-stroke;",
-        "active-foreground: HubVisualSpec.view-toggle-active-foreground;",
-        "idle-foreground: HubVisualSpec.view-toggle-idle-foreground;",
-        "component ProjectFlowNextButton inherits HubIconButton",
-        "HubFloatingIconButton {",
-        "text: root.visual-detail;",
+        "HubFlowNextButton,",
+        "HubFlowNextButton {",
+        "HubMoreMenuButton,",
+        "HubMoreMenuButton {",
+        "HubViewToggleGroup {",
+        "selected-mode: root.project-view-mode;",
+        "selected(mode) =>",
+        "HubButtonStateTextSample {",
+        "variant: \"primary\";",
+        "variant: \"secondary\";",
+        "variant: \"tertiary\";",
+        "HubButtonStateIconSample {",
         "Build your project for development or release",
         "Deploy your project to a connected device",
         "Create a distributable package",
         "Launch the editor with a project",
-        "border-radius: HubVisualSpec.compact-radius;",
-        "root.triggered(root.quick-action-data.id);",
-        "source: root.quick-action-data.has-icon-image ? root.quick-action-data.icon-image",
+        "action: root.quick-action-data;",
+        "detail-override: root.visual-detail;",
+        "compact-shell: true;",
+        "plain-avatar: true;",
+        "plain-trailing: true;",
+        "leading-shell-size-override: MaterialStyleMetrics.size_24;",
+        "leading-icon-size-override: MaterialStyleMetrics.size_24;",
+        "activate(id) =>",
+        "root.triggered(id);",
         "DashboardRecentProjectsPanel {",
         "body-padding: HubTokens.space-3;",
         "body-spacing: HubTokens.space-1;",
@@ -221,6 +241,10 @@ fn project_pages_use_responsive_taffy_sizing() {
         "title: root.panel-title;",
         "show-divider: false;",
         "minimum-row-height: root.table-row-height;",
+        "HubPanelNavigationCommand {",
+        "text: root.action-text;",
+        "source-image: @image-url(\"../assets/icons/nav/projects.svg\");",
+        "clicked => { root.view-all(); }",
         "DashboardQuickActionsPanel {",
         "body-spacing: HubTokens.space-2;",
         "project-rows: root.dashboard-project-rows;",
@@ -255,13 +279,19 @@ fn project_pages_use_responsive_taffy_sizing() {
     }
     for component_name in [
         "ProjectCover",
+        "ProjectCardIdentityStack",
         "ProjectCard",
         "ProjectFlow",
         "DashboardProjectCardsSection",
     ] {
+        let declaration = if component_name == "ProjectCardIdentityStack" {
+            format!("component {component_name}")
+        } else {
+            format!("export component {component_name}")
+        };
         assert!(
-            project_card_flow_components.contains(&format!("export component {component_name}")),
-            "project_card_flow_components.slint should own the exported project-card-flow component {component_name}"
+            project_card_flow_components.contains(&declaration),
+            "project_card_flow_components.slint should own the focused project-card-flow component {component_name}"
         );
         assert!(
             !dashboard_components.contains(&format!("export component {component_name}")),
@@ -297,24 +327,48 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectCover should render the reference project cover PNGs without an extra darkening overlay"
     );
     for snippet in [
-        "HubFloatingIconButton,",
+        "HubDisclosureButton,",
         "} from \"button_components.slint\";",
-        "HubFloatingIconButton {",
+        "HubFlowNextButton,",
+        "HubMoreMenuButton,",
+        "} from \"icon_button_components.slint\";",
+        "HubMoreMenuButton {",
         "button-width: root.menu-width;",
         "button-height: root.menu-height;",
-        "icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
-        "has-icon-image: true;",
         "root.menu-clicked();",
     ] {
         assert!(
             project_card_flow_components.contains(snippet),
-            "ProjectCover should route its cover menu through the shared floating icon-button primitive: {snippet}"
+            "ProjectCover should route its cover menu through the shared more-menu button primitive: {snippet}"
         );
     }
     assert!(
         !project_cover.contains("StateLayerArea {")
-            && !project_cover.contains("source: @image-url(\"../assets/icons/ui/more-vertical.svg\");"),
-        "ProjectCover should not reintroduce a local painted menu button after HubFloatingIconButton extraction"
+            && !project_cover.contains("source: @image-url(\"../assets/icons/ui/more-vertical.svg\");")
+            && !project_cover.contains("icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");")
+            && !project_cover.contains("has-icon-image: true;"),
+        "ProjectCover should not reintroduce local menu icon binding after HubMoreMenuButton extraction"
+    );
+    for snippet in [
+        "if root.project-card-count > root.card-column-count && !root.expanded: HubFlowNextButton {",
+        "x: parent.width - self.width - MaterialStyleMetrics.size_2;",
+        "y: root.card-height * 2 / 5;",
+        "root.expanded = true;",
+    ] {
+        assert!(
+            project_card_flow_components.contains(snippet),
+            "ProjectFlow should route its collapsed next affordance through the shared HubFlowNextButton primitive: {snippet}"
+        );
+    }
+    assert!(
+        !project_card_flow_components.contains("component ProjectFlowNextButton")
+            && !project_card_flow_components.lines().any(|line| line.trim() == "HubIconButton {"),
+        "ProjectFlow should not reintroduce a page-local flow next button or raw HubIconButton after adopting HubFlowNextButton"
+    );
+    assert!(
+        !project_card_flow_components.contains("card-scroll := ScrollView")
+            && !project_card_flow_components.contains("ScrollView,"),
+        "ProjectFlow should consume FlowScrollSurface instead of importing Material ScrollView directly"
     );
     for forbidden in [
         "DataTable {",
@@ -324,12 +378,102 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectSortSelect {",
         "ProjectFlow {",
         "PillButton {",
+        "DashboardViewToggleButton {",
         "for action in root.quick-actions: DashboardQuickActionRow {",
         "if root.quick-action-count == 0: EmptyStateBlock {",
     ] {
         assert!(
             !dashboard.contains(forbidden),
             "ProjectDashboardPage should leave dashboard component internals inside focused component modules: {forbidden}"
+        );
+    }
+    let dashboard_quick_action_row = dashboard_components
+        .split("export component DashboardQuickActionRow")
+        .nth(1)
+        .and_then(|source| source.split("export component DashboardToolbar").next())
+        .expect("project_dashboard_components.slint must declare DashboardQuickActionRow before DashboardToolbar");
+    for forbidden in [
+        "StateLayerArea {",
+        "MaterialText {",
+        "Image {",
+        "HorizontalLayout {",
+        "VerticalLayout {",
+        "border-radius: HubVisualSpec.compact-radius;",
+        "root.triggered(root.quick-action-data.id);",
+    ] {
+        assert!(
+            !dashboard_quick_action_row.contains(forbidden),
+            "DashboardQuickActionRow should specialize the shared ActionRow instead of repainting a local row: {forbidden}"
+        );
+    }
+    assert!(
+        !dashboard_components.contains("component DashboardViewToggleButton inherits")
+            && !dashboard_components.contains("DashboardViewToggleButton {"),
+        "Dashboard toolbar should consume HubViewToggleGroup instead of retaining a page-local DashboardViewToggleButton"
+    );
+    for forbidden in [
+        "component DashboardStateButton inherits",
+        "component DashboardTertiaryState inherits",
+        "component DashboardStateIcon inherits",
+    ] {
+        assert!(
+            !dashboard_components.contains(forbidden),
+            "Dashboard Button States strip should consume button-family state samples instead of retaining page-local button primitives: {forbidden}"
+        );
+    }
+    let dashboard_button_states_title = dashboard_components
+        .split("component DashboardButtonStatesTitle")
+        .nth(1)
+        .and_then(|source| source.split("component DashboardButtonStatesSectionLabel").next())
+        .expect(
+            "project_dashboard_components.slint must declare DashboardButtonStatesTitle before DashboardButtonStatesSectionLabel",
+        );
+    let dashboard_button_states_section_label = dashboard_components
+        .split("component DashboardButtonStatesSectionLabel")
+        .nth(1)
+        .and_then(|source| source.split("export component DashboardButtonStatesStrip").next())
+        .expect(
+            "project_dashboard_components.slint must declare DashboardButtonStatesSectionLabel before DashboardButtonStatesStrip",
+        );
+    let dashboard_button_states_strip = dashboard_components
+        .split("export component DashboardButtonStatesStrip")
+        .nth(1)
+        .expect("project_dashboard_components.slint must export DashboardButtonStatesStrip");
+    for snippet in [
+        "inherits MaterialText",
+        "text: root.title;",
+        "style: MaterialTypography.title_medium;",
+        "color: MaterialPalette.on_surface;",
+    ] {
+        assert!(
+            dashboard_button_states_title.contains(snippet),
+            "DashboardButtonStatesTitle must own the Button States title typography: {snippet}"
+        );
+    }
+    for snippet in ["inherits MutedText", "text: root.label;"] {
+        assert!(
+            dashboard_button_states_section_label.contains(snippet),
+            "DashboardButtonStatesSectionLabel must own the Button States section label typography: {snippet}"
+        );
+    }
+    for snippet in [
+        "DashboardButtonStatesTitle { title: \"Button States\"; }",
+        "DashboardButtonStatesSectionLabel { label: \"Primary\"; }",
+        "DashboardButtonStatesSectionLabel { label: \"Secondary\"; }",
+        "DashboardButtonStatesSectionLabel { label: \"Tertiary\"; }",
+        "DashboardButtonStatesSectionLabel { label: \"Icon\"; }",
+        "HubButtonStateTextSample {",
+        "HubButtonStateIconSample {",
+    ] {
+        assert!(
+            dashboard_button_states_strip.contains(snippet),
+            "DashboardButtonStatesStrip must compose shared label and button-state helpers: {snippet}"
+        );
+    }
+    for forbidden in ["MaterialText {", "MutedText {"] {
+        assert!(
+            !dashboard_button_states_strip.contains(forbidden),
+            "DashboardButtonStatesStrip should not recreate label typography after adopting label helpers: {forbidden}"
         );
     }
     for snippet in [
@@ -344,14 +488,22 @@ fn project_pages_use_responsive_taffy_sizing() {
         "open(path) => { root.open-project-detail(path); }",
         "export component DashboardProjectCardsSection inherits VerticalLayout",
         "ProjectFlow {",
-        "text: root.expanded ? root.collapse-label : root.show-more-label;",
-        "clicked => { root.expanded = !root.expanded; }",
+        "HubDisclosureButton {",
+        "button-height: root.show-more-height;",
+        "expanded: root.expanded;",
+        "expanded-label: root.collapse-label;",
+        "collapsed-label: root.show-more-label;",
+        "toggled(expanded) => { root.expanded = expanded; }",
     ] {
         assert!(
             dashboard_surface.contains(snippet),
             "ProjectDashboardPage should route cards and Show More through DashboardProjectCardsSection: {snippet}"
         );
     }
+    assert!(
+        !project_card_flow_components.contains("PillButton {"),
+        "DashboardProjectCardsSection should consume HubDisclosureButton instead of instantiating low-level PillButton directly"
+    );
     assert!(
         !dashboard_surface.contains("dashboard-column-width"),
         "ProjectDashboardPage lower panels should not return to page-local remaining width formulas"
@@ -425,9 +577,9 @@ fn project_pages_use_responsive_taffy_sizing() {
         "page-gap: root.compact-page ? HubTokens.toolbar-gap : HubTokens.panel-gap;",
         "form-panel-height: HubTokens.space-4 * 2 + HubTokens.list-row-sm + root.field-height * 2 + root.engine-section-height + root.create-action-row-height + root.page-gap * 4;",
         "ProjectCreateSettingsPanel {",
-        "export component ProjectCreateSettingsPanel inherits PanelSlot",
+        "export component ProjectCreateSettingsPanel inherits HubContentPanelSlot",
         "ProjectCreateCompactSummaryPanel {",
-        "export component ProjectCreateCompactSummaryPanel inherits PanelSlot",
+        "export component ProjectCreateCompactSummaryPanel inherits HubContentPanelSlot",
         "project-name <=> root.project-name;",
         "project-location <=> root.project-location;",
         "engine-scroll-y <=> root.new-engine-scroll-y;",
@@ -444,11 +596,8 @@ fn project_pages_use_responsive_taffy_sizing() {
         "field-text <=> root.project-location;",
         "show-browse: true;",
         "root.browse-folder(\"new-project-location\");",
-        "component ProjectCreateActionRow inherits Rectangle",
-        "in property <string> action-label;",
-        "in property <bool> action-enabled;",
-        "callback action-clicked();",
-        "clicked => { root.action-clicked(); }",
+        "export component ProjectCreateActionRow inherits HubFormActionRow",
+        "action-icon: @image-url(\"../assets/icons/ui/plus.svg\");",
         "ProjectCreateActionRow {",
         "row-height: root.create-action-row-height;",
         "row-spacing: root.page-gap;",
@@ -472,7 +621,7 @@ fn project_pages_use_responsive_taffy_sizing() {
         "row-count: root.engine-count;",
         "vertical-padding: 0px;",
         "for engine in root.engines: EngineChoiceRow {",
-        "selected(id) => { root.selected(id); }",
+        "engine-selected(id) => { root.selected(id); }",
         "ProjectEngineChoiceList {",
         "list-height: root.engine-list-height;",
         "list-scroll-y <=> root.engine-scroll-y;",
@@ -505,12 +654,14 @@ fn project_pages_use_responsive_taffy_sizing() {
         "for template in root.templates: TemplateChoiceRow",
         "template-selected(id) => { root.selected(id); }",
         "private property <CheckState> selection-state: root.template.selected ? CheckState.checked : CheckState.unchecked;",
-        "export component TemplateChoiceRow inherits HubRowSurface",
+        "export component TemplateChoiceRow inherits HubInteractiveRowSurface",
         "HubRowSelectionSlot {",
         "HubRowMainSlot {",
         "HubRowTrailingSlot {",
         "check-state: root.selection-state;",
-        "StateLayerArea {",
+        "interaction-enabled: root.template.enabled;",
+        "interaction-foreground: root.template.selected ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface;",
+        "clicked =>",
         "badge-text: root.trailing-label;",
         "flow-visible-height: max(root.content-height - root.header-height - root.page-gap, root.project-settings-panel-height);",
         "flow-height: root.narrow-flow ? root.project-settings-panel-height + root.page-gap + root.summary-panel-height + root.page-gap + root.template-panel-height : max(root.flow-visible-height, root.template-panel-height);",
@@ -548,6 +699,18 @@ fn project_pages_use_responsive_taffy_sizing() {
         "detail-title-header-height: root.narrow-flow ? HubTokens.control-md : HubTokens.list-row-sm;",
         "detail-info-header-height: root.narrow-flow ? HubTokens.control-md : HubTokens.list-row-sm;",
         "detail-info-section-height: root.detail-info-header-height + root.info-row-height * 5 + root.detail-info-row-gap * 5;",
+        "component ProjectDetailMainPanel inherits HubMediaContentPanelSlot",
+        "media-height: root.cover-height;",
+        "media-radius: HubVisualSpec.panel-radius;",
+        "media-background: root.project.accent == 0 ? MaterialPalette.primary_container",
+        "media-source: root.project.cover-image;",
+        "has-media-source: root.project.has-cover;",
+        "content-spacing: root.content-stack-spacing;",
+        "ProjectDetailMainPanel {",
+        "cover-height: root.cover-height;",
+        "content-stack-spacing: root.page-gap;",
+        "header-subtitle: root.narrow-flow ? \"\" : root.project.project-path;",
+        "info-header-subtitle: root.narrow-flow ? \"\" : root.ui-text.project-info-subtitle;",
         "component ProjectDetailStatusStrip inherits HubBadgeMetaStrip",
         "in property <ProjectDetailData> detail;",
         "in property <UiTextData> copy;",
@@ -575,9 +738,10 @@ fn project_pages_use_responsive_taffy_sizing() {
         "project: root.project;",
         "ui-text: root.ui-text;",
         "detail-engine-list-height: root.engine-count == 0 ? HubTokens.list-row-lg : root.detail-engine-panel-rows * root.detail-choice-row-height + (root.detail-engine-panel-rows - 1) * root.detail-engine-row-gap;",
-        "component ProjectDetailActionsSection inherits PanelSlot",
+        "component ProjectDetailActionsSection inherits HubContentPanelSlot",
         "body-padding: root.panel-padding;",
         "body-spacing: root.panel-spacing;",
+        "content-spacing: root.panel-spacing;",
         "ProjectDetailActionsSection {",
         "panel-padding: root.detail-panel-padding;",
         "panel-spacing: root.page-gap;",
@@ -604,6 +768,12 @@ fn project_pages_use_responsive_taffy_sizing() {
         "checked: root.detail.pinned;",
         "label: root.detail.pinned ? root.copy.pinned-label : root.copy.not-pinned-label;",
         "supporting-text: root.detail.pinned ? root.copy.unpin-project : root.copy.pin-project;",
+        "component ProjectDetailActionNote inherits MutedText",
+        "text: root.note-text;",
+        "height: root.note-height;",
+        "ProjectDetailActionNote {",
+        "note-height: root.note-height;",
+        "note-text: root.copy.remove-from-hub-detail;",
         "ProjectDetailPinToggleRow {",
         "row-height: root.pin-toggle-row-height;",
         "toggled(checked) => { root.toggle-pin(); }",
@@ -635,6 +805,64 @@ fn project_pages_use_responsive_taffy_sizing() {
         assert!(
             project_surface.contains(snippet),
             "Project secondary pages are missing ResponsiveSlot/scroll sizing snippet: {snippet}"
+        );
+    }
+    let page_header = project_components
+        .split("export component PageHeader")
+        .nth(1)
+        .and_then(|source| source.split("export component EngineChoiceRow").next())
+        .expect("project_page_components.slint must declare PageHeader before EngineChoiceRow");
+    let page_header_title_stack = project_components
+        .split("component PageHeaderTitleStack")
+        .nth(1)
+        .and_then(|source| source.split("export component PageHeader").next())
+        .expect(
+            "project_page_components.slint must declare PageHeaderTitleStack before PageHeader",
+        );
+    for snippet in [
+        "import { HubFormActionRow } from \"button_components.slint\";",
+        "import { HubBackButton } from \"icon_button_components.slint\";",
+        "HubBackButton {",
+        "button-size: root.back-size;",
+        "clicked => { root.back(); }",
+        "PageHeaderTitleStack {",
+        "stack-height: parent.height;",
+        "title: root.title;",
+        "subtitle: root.subtitle;",
+        "stack-spacing: MaterialStyleMetrics.spacing_2;",
+    ] {
+        assert!(
+            project_components.contains(snippet) || page_header.contains(snippet),
+            "PageHeader must render its secondary-page back affordance and text lane through shared/focused helpers: {snippet}"
+        );
+    }
+    for snippet in [
+        "MaterialText {",
+        "in property <length> stack-height: MaterialStyleMetrics.size_48;",
+        "height: root.stack-height;",
+        "text: root.title;",
+        "style: MaterialTypography.title_large;",
+        "MutedText {",
+        "text: root.subtitle;",
+    ] {
+        assert!(
+            page_header_title_stack.contains(snippet),
+            "PageHeaderTitleStack must own Projects secondary-page header text styling: {snippet}"
+        );
+    }
+    assert!(
+        project_components.contains("component PageHeaderTitleStack inherits Rectangle"),
+        "project_page_components.slint must keep PageHeaderTitleStack as a private focused helper"
+    );
+    assert!(
+        !page_header.lines().any(|line| line.trim() == "IconButton {")
+            && !page_header.lines().any(|line| line.trim() == "HubIconButton {"),
+        "PageHeader should not return to generic IconButton or raw HubIconButton after adopting HubBackButton"
+    );
+    for forbidden in ["MaterialText {", "MutedText {"] {
+        assert!(
+            !page_header.contains(forbidden),
+            "PageHeader should not recreate title/subtitle text after adopting PageHeaderTitleStack: {forbidden}"
         );
     }
     for component_name in [
@@ -687,6 +915,7 @@ fn project_pages_use_responsive_taffy_sizing() {
         "ProjectDetailStatusStrip",
         "ProjectDetailInfoSection",
         "ProjectDetailEngineSection",
+        "ProjectDetailMainPanel",
     ] {
         assert!(
             project_detail_components.contains(&format!("export component {component_name}")),
@@ -792,8 +1021,7 @@ fn project_pages_use_responsive_taffy_sizing() {
         "row-height: root.info-row-height;\n                            label: root.ui-text.source-engine;",
         "row-height: root.info-row-height;\n                            label: root.ui-text.engine-version-column;",
         "row-height: root.info-row-height;\n                            label: root.ui-text.last-modified-column;",
-        "height: root.create-action-row-height;\n                                vertical-stretch: 0;\n                                alignment: center;",
-        "PillButton {\n                                    text: root.ui-text.create;",
+        "export component ProjectCreateActionRow inherits HubFormActionRow",
         "if !root.project.pending-delete: VerticalLayout {\n                        horizontal-stretch: 1;\n                        height: root.detail-engine-section-height;",
         "title: root.ui-text.change-source-engine;\n                            subtitle: root.ui-text.bound-source-engine + \": \" + root.project.engine-label;",
         "browser-list := HubTableBody",
@@ -879,17 +1107,24 @@ fn project_pages_use_responsive_taffy_sizing() {
     );
     assert_eq!(
         project_detail_page
+            .matches("ProjectDetailMainPanel {")
+            .count(),
+        1,
+        "ProjectDetailPage should route the main media/status/info column through one ProjectDetailMainPanel"
+    );
+    assert_eq!(
+        project_detail_components
             .matches("ProjectDetailInfoSection {")
             .count(),
         1,
-        "ProjectDetailPage should route the five project-info rows through one ProjectDetailInfoSection"
+        "ProjectDetailMainPanel should route the five project-info rows through one ProjectDetailInfoSection"
     );
     assert_eq!(
-        project_detail_page
+        project_detail_components
             .matches("ProjectDetailStatusStrip {")
             .count(),
         1,
-        "ProjectDetailPage should route version, pinned state, and modified time through one ProjectDetailStatusStrip"
+        "ProjectDetailMainPanel should route version, pinned state, and modified time through one ProjectDetailStatusStrip"
     );
     assert_eq!(
         project_new_page.matches("ProjectCreateActionRow {").count(),
@@ -903,4 +1138,20 @@ fn project_pages_use_responsive_taffy_sizing() {
         1,
         "ProjectDetailActionsSection should route Change Source Engine controls through one ProjectDetailEngineSection"
     );
+    let project_detail_action_stack = project_detail_components
+        .split("export component ProjectDetailActionStack")
+        .nth(1)
+        .and_then(|source| source.split("export component ProjectDetailDeleteActionStack").next())
+        .expect(
+            "project_detail_components.slint must declare ProjectDetailActionStack before ProjectDetailDeleteActionStack",
+        );
+    for forbidden in [
+        "MutedText {",
+        "        text: root.copy.remove-from-hub-detail;",
+    ] {
+        assert!(
+            !project_detail_action_stack.contains(forbidden),
+            "ProjectDetailActionStack should route remove-from-Hub supporting copy through ProjectDetailActionNote: {forbidden}"
+        );
+    }
 }

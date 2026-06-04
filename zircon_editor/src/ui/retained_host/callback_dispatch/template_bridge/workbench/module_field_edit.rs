@@ -8,8 +8,10 @@ use super::{
 };
 
 const WORKBENCH_MODULE_BINDING_PREFIX: &str = "WorkbenchModule/";
-const EDIT_ACTION_PREFIX: &str = "EditWorkbench";
-const COMMIT_ACTION_PREFIX: &str = "CommitWorkbench";
+const WORKBENCH_EXTENSION_BINDING_PREFIX: &str = "WorkbenchExtension/";
+const WORKBENCH_GENERATED_BOTTOM_BINDING_PREFIX: &str = "WorkbenchGeneratedBottom/";
+const EDIT_ACTION_SUFFIX: &str = ".edit";
+const COMMIT_ACTION_SUFFIX: &str = ".commit";
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn edit_workbench_module_field(
@@ -52,7 +54,10 @@ fn is_workbench_module_field_binding(
     bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
     binding_id: &str,
 ) -> bool {
-    if !binding_id.starts_with(WORKBENCH_MODULE_BINDING_PREFIX) {
+    if !binding_id.starts_with(WORKBENCH_MODULE_BINDING_PREFIX)
+        && !binding_id.starts_with(WORKBENCH_EXTENSION_BINDING_PREFIX)
+        && !binding_id.starts_with(WORKBENCH_GENERATED_BOTTOM_BINDING_PREFIX)
+    {
         return false;
     }
 
@@ -60,8 +65,8 @@ fn is_workbench_module_field_binding(
         matches!(
             binding.payload(),
             EditorUiBindingPayload::MenuAction { action_id }
-                if action_id.starts_with(EDIT_ACTION_PREFIX)
-                    || action_id.starts_with(COMMIT_ACTION_PREFIX)
+                if action_id.ends_with(EDIT_ACTION_SUFFIX)
+                    || action_id.ends_with(COMMIT_ACTION_SUFFIX)
         )
     })
 }

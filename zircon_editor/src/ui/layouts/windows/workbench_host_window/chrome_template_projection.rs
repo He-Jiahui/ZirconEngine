@@ -344,20 +344,22 @@ fn menu_popup_item_icon_name(item: &super::HostMenuChromeItemData) -> String {
         return icon;
     }
     match action {
-        "OpenProject" => "folder-open-outline",
-        "OpenScene" => "cube-outline",
-        "CreateScene" => "add-outline",
-        "SaveProject" | "SaveLayout" => "save-outline",
-        "ResetLayout" => "sync-outline",
-        "EnterPlayMode" => "play-outline",
-        "ExitPlayMode" => "remove-outline",
-        "Undo" => "chevron-back-outline",
-        "Redo" => "chevron-forward-outline",
-        "DeleteSelected" => "remove-outline",
-        _ if action.starts_with("SavePreset.") => "save-outline",
-        _ if action.starts_with("LoadPreset.") => "folder-open-outline",
-        _ if action.starts_with("CreateNode.") => scene_create_menu_icon_name(action),
-        _ if action.starts_with("OpenView.") => open_view_menu_icon_name(action),
+        "workbench.project.open" => "folder-open-outline",
+        "workbench.scene.open" => "cube-outline",
+        "workbench.scene.create" => "add-outline",
+        "workbench.project.save" | "workbench.layout.save" => "save-outline",
+        "workbench.layout.reset" => "sync-outline",
+        "workbench.play_mode.enter" => "play-outline",
+        "workbench.play_mode.exit" => "remove-outline",
+        "workbench.history.undo" => "chevron-back-outline",
+        "workbench.history.redo" => "chevron-forward-outline",
+        "workbench.selection.delete_selected" => "remove-outline",
+        _ if action.starts_with("workbench.layout.preset.save.") => "save-outline",
+        _ if action.starts_with("workbench.layout.preset.load.") => "folder-open-outline",
+        _ if action.starts_with("workbench.scene.node.create.") => {
+            scene_create_menu_icon_name(action)
+        }
+        _ if action.starts_with("workbench.view.open.") => open_view_menu_icon_name(action),
         _ => menu_label_icon_name(item.label.as_str()),
     }
     .to_string()
@@ -365,10 +367,13 @@ fn menu_popup_item_icon_name(item: &super::HostMenuChromeItemData) -> String {
 
 #[cfg(test)]
 fn scene_create_menu_icon_name(action: &str) -> &'static str {
-    match action.strip_prefix("CreateNode.").unwrap_or_default() {
-        "Cube" => "cube-outline",
-        "Camera" => "scan-outline",
-        "AmbientLight" | "DirectionalLight" | "PointLight" | "RectLight" | "SpotLight" => {
+    match action
+        .strip_prefix("workbench.scene.node.create.")
+        .unwrap_or_default()
+    {
+        "cube" => "cube-outline",
+        "camera" => "scan-outline",
+        "ambient_light" | "directional_light" | "point_light" | "rect_light" | "spot_light" => {
             "color-fill-outline"
         }
         _ => "add-outline",
@@ -378,7 +383,7 @@ fn scene_create_menu_icon_name(action: &str) -> &'static str {
 #[cfg(test)]
 fn open_view_menu_icon_name(action: &str) -> &'static str {
     let descriptor = action
-        .strip_prefix("OpenView.")
+        .strip_prefix("workbench.view.open.")
         .unwrap_or_default()
         .replace('-', "_")
         .to_lowercase();
@@ -1372,7 +1377,7 @@ mod tests {
                 .map(|index| HostMenuChromeItemData {
                     label: format!("Preset {index:02}").into(),
                     shortcut: "".into(),
-                    action_id: format!("LoadPreset.Preset{index:02}").into(),
+                    action_id: format!("workbench.layout.preset.load.preset_{index:02}").into(),
                     enabled: index != 17,
                     children: ModelRc::default(),
                 })
@@ -1449,17 +1454,22 @@ mod tests {
     #[test]
     fn menu_popup_nodes_project_action_svg_icons() {
         let items = model_rc(vec![
-            test_menu_item("Open Project", "Ctrl+O", "OpenProject", true),
-            test_menu_item("Save Project", "Ctrl+S", "SaveProject", true),
-            test_menu_item("Undo", "Ctrl+Z", "Undo", false),
+            test_menu_item("Open Project", "Ctrl+O", "workbench.project.open", true),
+            test_menu_item("Save Project", "Ctrl+S", "workbench.project.save", true),
+            test_menu_item("Undo", "Ctrl+Z", "workbench.history.undo", false),
             test_menu_item(
                 "Build Export",
                 "",
-                "OpenView.editor.build_export_desktop",
+                "workbench.view.open.editor.build_export_desktop",
                 true,
             ),
-            test_menu_item("Create Cube", "", "CreateNode.Cube", true),
-            test_menu_item("Create Rect Light", "", "CreateNode.RectLight", true),
+            test_menu_item("Create Cube", "", "workbench.scene.node.create.cube", true),
+            test_menu_item(
+                "Create Rect Light",
+                "",
+                "workbench.scene.node.create.rect_light",
+                true,
+            ),
         ]);
 
         let nodes = menu_popup_nodes(&items, 224.0, 180.0);

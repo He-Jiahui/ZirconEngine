@@ -19,7 +19,7 @@ fn editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings() {
         "WorkbenchMenuBar",
         "SaveProject",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::menu_action("SaveProject"),
+        EditorUiBindingPayload::menu_action("workbench.project.save"),
     );
     let menu_route = service.register_route(menu_binding.as_ui_binding(), |_context| {
         Ok(json!({ "saved": true }))
@@ -96,7 +96,7 @@ fn editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings() {
     assert!(matches!(
         menu,
         UiControlResponse::Node(Some(node))
-            if node.actions.contains_key("onClick")
+            if node.actions.contains_key("workbench.menu.item.click")
                 && node.properties["operation_path"].reflected_value
                     == json!("File.Project.Save")
                 && node.properties["shortcut"].reflected_value == json!("Ctrl+S")
@@ -104,7 +104,8 @@ fn editor_ui_reflection_adapter_projects_activity_hosts_and_menu_bindings() {
     let invoked = service.handle_request(UiControlRequest::InvokeBinding {
         binding: UiEventBinding::new(
             UiEventPath::new("WorkbenchMenuBar", "SaveProject", UiEventKind::Click),
-            UiBindingCall::new("MenuAction").with_argument(UiBindingValue::string("SaveProject")),
+            UiBindingCall::new("MenuAction")
+                .with_argument(UiBindingValue::string("workbench.project.save")),
         ),
     });
     assert!(matches!(

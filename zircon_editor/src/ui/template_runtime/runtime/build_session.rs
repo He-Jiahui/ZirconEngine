@@ -360,11 +360,11 @@ mod tests {
         clear_v2_template_file_cache_for_tests();
         builtin_template_compile_cache()
             .lock()
-            .expect("legacy compile cache mutex should not be poisoned")
+            .expect("tree-template compile cache mutex should not be poisoned")
             .clear();
         builtin_template_document_cache()
             .lock()
-            .expect("legacy document cache mutex should not be poisoned")
+            .expect("tree-template document cache mutex should not be poisoned")
             .clear();
 
         let mut first = EditorUiHostRuntime::default();
@@ -387,18 +387,18 @@ mod tests {
         assert_eq!(
             builtin_template_compile_cache()
                 .lock()
-                .expect("legacy compile cache mutex should not be poisoned")
+                .expect("tree-template compile cache mutex should not be poisoned")
                 .len(),
             0,
-            "v2 builtin host templates should bypass the legacy recursive compiler cache"
+            "v2 builtin host templates should bypass the tree-template compiler cache"
         );
         assert_eq!(
             builtin_template_document_cache()
                 .lock()
-                .expect("legacy document cache mutex should not be poisoned")
+                .expect("tree-template document cache mutex should not be poisoned")
                 .len(),
             0,
-            "v2 builtin host templates should bypass the legacy recursive document cache"
+            "v2 builtin host templates should bypass the tree-template document cache"
         );
     }
 }

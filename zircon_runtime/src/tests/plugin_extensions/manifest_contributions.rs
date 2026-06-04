@@ -512,10 +512,24 @@ fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata() {
     let plugins_root = plugins_workspace_root();
     for (id, capabilities) in [
         (
+            "ai",
+            vec![
+                "runtime.plugin.ai",
+                "runtime.feature.ai.behavior_tree",
+                "runtime.feature.ai.blackboard",
+                "runtime.feature.ai.perception",
+            ],
+        ),
+        (
             "physics",
             vec![
                 "runtime.plugin.physics",
                 "runtime.capability.physics.raycast",
+                "runtime.capability.physics.overlap",
+                "runtime.capability.physics.shape_cast",
+                "runtime.capability.physics.trigger_events",
+                "runtime.capability.physics.constraints",
+                "runtime.capability.physics.skeletal_joints",
             ],
         ),
         (

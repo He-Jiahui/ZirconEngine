@@ -28,7 +28,7 @@ kind = "native"
 type = "Button"
 control_id = "SaveButton"
 props = { text = "Save", text_expr = "=status.text" }
-bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject" }]
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.workbench.project.save" }]
 "##;
 
 const PREVIEW_STATE_GRAPH_LAYOUT_ASSET_TOML: &str = r##"
@@ -146,7 +146,7 @@ kind = "native"
 type = "Button"
 control_id = "SaveButton"
 props = { text = "Save", summary_expr = "=concat(StatusLabel.text, \" / \", self.text)", fallback_expr = "=coalesce(StatusLabel.subtitle, StatusLabel.text, \"Unknown\")", item_count_expr = "=count(StatusLabel.items)", first_item_expr = "=first(StatusLabel.items)", last_item_expr = "=last(StatusLabel.items)", joined_items_expr = "=join(StatusLabel.items, \" | \")", status_matches_expr = "=eq(StatusLabel.text, \"Dirty\")", cta_expr = "=if(eq(StatusLabel.text, \"Dirty\"), \"Go\", \"Stop\")", metadata_title_expr = "=get(StatusLabel.metadata, \"title\")", review_item_expr = "=at(StatusLabel.items, 1)", has_title_expr = "=has(StatusLabel.metadata, \"title\")" }
-bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject" }]
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.workbench.project.save" }]
 "##;
 
 #[test]
@@ -223,7 +223,7 @@ fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them(
     assert!(initial
         .inspector_binding_route_suggestion_items
         .iter()
-        .any(|item| item.contains("MenuAction.SaveProject")));
+        .any(|item| item.contains("MenuAction.workbench.project.save")));
 
     assert!(session
         .apply_selected_binding_route_suggestion(1)
@@ -231,7 +231,7 @@ fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them(
     let route_applied = session.pane_presentation();
     assert_ne!(
         route_applied.inspector_binding_route_target,
-        "MenuAction.SaveProject"
+        "MenuAction.workbench.project.save"
     );
 
     assert!(session
@@ -241,7 +241,7 @@ fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them(
     assert!(action_suggestions
         .inspector_binding_action_suggestion_items
         .iter()
-        .any(|item| item.contains("EditorAction.SaveProject")));
+        .any(|item| item.contains("EditorAction.workbench.project.save")));
 
     assert!(session
         .apply_selected_binding_action_suggestion(0)
@@ -249,7 +249,7 @@ fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them(
     let action_applied = session.pane_presentation();
     assert_eq!(
         action_applied.inspector_binding_action_target,
-        "EditorAction.SaveProject"
+        "EditorAction.workbench.project.save"
     );
 }
 
@@ -388,7 +388,7 @@ fn ui_asset_editor_session_projects_binding_schema_items_for_route_and_action_ta
         route_schema.inspector_binding_schema_items,
         vec![
             "event [UiEvent] = onClick".to_string(),
-            "route.target [Route] = MenuAction.SaveProject".to_string(),
+            "route.target [Route] = MenuAction.workbench.project.save".to_string(),
             "payload.confirm [Bool] default = true".to_string(),
             "payload.channel [Text] default = \"toolbar\"".to_string(),
             "payload.source [Text] default = \"ui.click\"".to_string(),
@@ -399,14 +399,14 @@ fn ui_asset_editor_session_projects_binding_schema_items_for_route_and_action_ta
         .select_binding_action_kind(2)
         .expect("switch to action binding kind"));
     assert!(session
-        .set_selected_binding_action_target("EditorAction.SaveProject")
+        .set_selected_binding_action_target("EditorAction.workbench.project.save")
         .expect("set action target"));
     let action_schema = session.pane_presentation();
     assert_eq!(
         action_schema.inspector_binding_schema_items,
         vec![
             "event [UiEvent] = onClick".to_string(),
-            "action.target [EditorAction] = EditorAction.SaveProject".to_string(),
+            "action.target [EditorAction] = EditorAction.workbench.project.save".to_string(),
             "payload.confirm [Bool] default = true".to_string(),
             "payload.source [Text] default = \"ui.click\"".to_string(),
         ]
@@ -521,7 +521,7 @@ fn ui_asset_editor_session_projects_target_aware_structured_binding_payload_sche
         .select_binding_action_kind(2)
         .expect("switch to action binding kind"));
     assert!(session
-        .set_selected_binding_action_target("EditorAction.ToggleVisibility")
+        .set_selected_binding_action_target("EditorAction.workbench.visibility.toggle")
         .expect("set toggle visibility action"));
     let action_payload = session.pane_presentation();
     assert_eq!(
@@ -599,7 +599,7 @@ fn ui_asset_editor_session_projects_binding_expression_payload_previews_and_inte
     ));
     assert!(pane
         .preview_state_graph_items
-        .contains(&"SaveButton.onClick => MenuAction.SaveProject".to_string()));
+        .contains(&"SaveButton.onClick => MenuAction.workbench.project.save".to_string()));
     assert!(pane.preview_state_graph_items.contains(
         &"SaveButton.onClick.payload.status_text -> StatusLabel.text = \"Dirty\"".to_string()
     ));

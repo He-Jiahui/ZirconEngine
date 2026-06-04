@@ -5,6 +5,7 @@ use crate::core::math::UVec2;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};
@@ -269,6 +270,30 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         Ok(())
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn record_shadow_map_to_resource(
+        &mut self,
+        pass_name: &str,
+        shadow_map_resource_name: &str,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Result<(), String> {
+        let shadow_map_view = self
+            .resources
+            .require_texture_view(shadow_map_resource_name)?;
+        let _pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some(pass_name),
+            color_attachments: &[],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: shadow_map_view,
+                depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
+                stencil_ops: None,
+            }),
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        Ok(())
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_mesh_stage_to_resources(
         &mut self,
         color_resource_name: &str,
@@ -312,12 +337,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
         pass_name: &str,
         gbuffer_albedo_resource_name: &str,
+        gbuffer_material_resource_name: &str,
         depth_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
+        albedo_attachment_ops: RenderGraphAttachmentOps,
+        material_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
         let gbuffer_albedo_view = self
             .resources
             .require_texture_view(gbuffer_albedo_resource_name)?;
+        let gbuffer_material_view = self
+            .resources
+            .require_texture_view(gbuffer_material_resource_name)?;
         let depth_view = self.resources.require_texture_view(depth_resource_name)?;
         let deferred = self.deferred.ok_or_else(|| {
             format!(
@@ -330,9 +360,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         deferred.record_gbuffer_geometry(
             self.encoder,
             gbuffer_albedo_view,
+            gbuffer_material_view,
             depth_view,
             self.scene_bind_group,
-            attachment_ops,
+            albedo_attachment_ops,
+            material_attachment_ops,
             mesh_draw_lists.non_transparent.iter().copied(),
         );
         Ok(())
@@ -343,6 +375,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         pass_name: &str,
         gbuffer_albedo_resource_name: &str,
         gbuffer_normal_resource_name: &str,
+        gbuffer_material_resource_name: &str,
         background_resource_name: &str,
         scene_color_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
@@ -353,6 +386,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let gbuffer_normal_view = self
             .resources
             .require_texture_view(gbuffer_normal_resource_name)?;
+        let gbuffer_material_view = self
+            .resources
+            .require_texture_view(gbuffer_material_resource_name)?;
         let background_view = self
             .resources
             .require_texture_view(background_resource_name)?;
@@ -370,6 +406,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.scene_bind_group,
             gbuffer_albedo_view,
             gbuffer_normal_view,
+            gbuffer_material_view,
             background_view,
             scene_color_view,
             attachment_ops,
@@ -502,6 +539,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let scene_normal_view = self
             .resources
             .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let scene_material_view = stack
+            .material_gbuffer_valid
+            .then(|| {
+                self.resources
+                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            })
+            .transpose()?;
         let ambient_occlusion_view = self
             .resources
             .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
@@ -529,6 +573,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_color_view,
             scene_depth_view,
             scene_normal_view,
+            scene_material_view,
             ambient_occlusion_view,
             history.map(|history| &history.scene_color_view),
             history.map(|history| &history.global_illumination_view),
@@ -666,6 +711,29 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         Ok(())
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn record_depth_of_field_prepare_to_resources(
+        &mut self,
+        pass_name: &str,
+        scene_depth_resource_name: &str,
+        coc_resource_name: &str,
+        bokeh_resource_name: &str,
+    ) -> Result<(), String> {
+        let stack = self.post_process_stack.ok_or_else(|| {
+            format!(
+                "depth-of-field prepare graph executor for pass `{pass_name}` requires post-process stack context"
+            )
+        })?;
+        let _scene_depth_view = self
+            .resources
+            .require_texture_view(scene_depth_resource_name)?;
+        let coc_view = self.resources.require_texture_view(coc_resource_name)?;
+        let bokeh_view = self.resources.require_texture_view(bokeh_resource_name)?;
+        stack
+            .post_process
+            .execute_depth_of_field_prepare(self.encoder, coc_view, bokeh_view);
+        Ok(())
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_overlay_to_resources(
         &mut self,
         pass_name: &str,
@@ -704,6 +772,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassPostProcessStack
     runtime_features: SceneRuntimeFeatureFlags,
     history_textures: Option<&'a SceneFrameHistoryTextures>,
     history_available: bool,
+    material_gbuffer_valid: bool,
 }
 
 impl<'a> RenderPassPostProcessStackContext<'a> {
@@ -722,7 +791,16 @@ impl<'a> RenderPassPostProcessStackContext<'a> {
             runtime_features,
             history_textures,
             history_available,
+            material_gbuffer_valid: false,
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_material_gbuffer_valid(
+        mut self,
+        material_gbuffer_valid: bool,
+    ) -> Self {
+        self.material_gbuffer_valid = material_gbuffer_valid;
+        self
     }
 }
 

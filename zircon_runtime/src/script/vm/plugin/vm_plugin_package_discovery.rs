@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 use crate::script::{
-    CapabilitySet, VmError, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
-    ZrVmExecutionMode, ZrVmPluginProjectSource,
+    CapabilitySet, VmError, VmPluginManagementPolicy, VmPluginManifest, VmPluginPackage,
+    VmPluginPackageSource, ZrVmExecutionMode, ZrVmPluginProjectSource,
 };
 
 const DEFAULT_BACKEND_NAME: &str = "unavailable";
@@ -32,6 +32,8 @@ struct DiskVmPluginManifest {
     bytecode: Option<String>,
     #[serde(default)]
     zr_vm: Option<DiskZrVmProject>,
+    #[serde(default)]
+    management: VmPluginManagementPolicy,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,6 +106,12 @@ pub fn discover_vm_plugin_package(
         })?;
     let (bytecode, bytecode_path, zr_vm_project) =
         load_package_payload(&package_root, &disk_manifest)?;
+    disk_manifest.management.validate().map_err(|error| {
+        VmError::Parse(format!(
+            "invalid plugin management policy in {}: {error}",
+            manifest_path.display()
+        ))
+    })?;
 
     Ok(DiscoveredVmPluginPackage {
         backend_name: disk_manifest.backend,
@@ -121,6 +129,7 @@ pub fn discover_vm_plugin_package(
                 version: disk_manifest.version,
                 entry: disk_manifest.entry,
                 capabilities: disk_manifest.capabilities,
+                management: disk_manifest.management,
             },
             zr_vm_project,
             bytecode,
@@ -211,4 +220,150 @@ fn default_zr_vm_entry_module() -> String {
 
 fn is_zr_vm_project_backend(backend: &str) -> bool {
     backend == "zr_vm:project"
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::script::{VmError, VmPluginGarbageCollectionMode, VmPluginHotReloadPolicy};
+
+    use super::discover_vm_plugin_package;
+
+    #[test]
+    fn discovery_defaults_vm_management_policy_when_manifest_omits_it() {
+        let fixture = PackageFixture::new();
+        fixture.write_bytecode_package(concat!(
+            "name = \"default_policy\"\n",
+            "version = \"0.1.0\"\n",
+            "entry = \"main\"\n",
+            "backend = \"mock\"\n",
+            "bytecode = \"plugin.bin\"\n",
+            "\n",
+            "[capabilities]\n",
+            "capabilities = [\"render\"]\n",
+        ));
+
+        let discovered = discover_vm_plugin_package(&fixture.manifest_path).unwrap();
+
+        assert_eq!(
+            discovered.package.manifest.management.hot_reload,
+            VmPluginHotReloadPolicy::PreserveState
+        );
+        assert_eq!(
+            discovered
+                .package
+                .manifest
+                .management
+                .garbage_collection
+                .mode,
+            VmPluginGarbageCollectionMode::BackendManaged
+        );
+    }
+
+    #[test]
+    fn discovery_parses_vm_management_policy_from_manifest() {
+        let fixture = PackageFixture::new();
+        fixture.write_bytecode_package(concat!(
+            "name = \"managed_policy\"\n",
+            "version = \"0.1.0\"\n",
+            "entry = \"main\"\n",
+            "backend = \"mock\"\n",
+            "bytecode = \"plugin.bin\"\n",
+            "\n",
+            "[capabilities]\n",
+            "capabilities = [\"render\"]\n",
+            "\n",
+            "[management]\n",
+            "hot_reload = \"stateless\"\n",
+            "\n",
+            "[management.garbage_collection]\n",
+            "mode = \"cooperative\"\n",
+            "interval_frames = 120\n",
+            "\n",
+            "[management.memory]\n",
+            "soft_limit_bytes = 1024\n",
+            "hard_limit_bytes = 2048\n",
+        ));
+
+        let discovered = discover_vm_plugin_package(&fixture.manifest_path).unwrap();
+        let management = discovered.package.manifest.management;
+
+        assert_eq!(management.hot_reload, VmPluginHotReloadPolicy::Stateless);
+        assert_eq!(
+            management.garbage_collection.mode,
+            VmPluginGarbageCollectionMode::Cooperative
+        );
+        assert_eq!(management.garbage_collection.interval_frames, Some(120));
+        assert_eq!(management.memory.soft_limit_bytes, Some(1024));
+        assert_eq!(management.memory.hard_limit_bytes, Some(2048));
+    }
+
+    #[test]
+    fn discovery_rejects_invalid_vm_management_policy() {
+        let fixture = PackageFixture::new();
+        fixture.write_bytecode_package(concat!(
+            "name = \"bad_policy\"\n",
+            "version = \"0.1.0\"\n",
+            "entry = \"main\"\n",
+            "backend = \"mock\"\n",
+            "bytecode = \"plugin.bin\"\n",
+            "\n",
+            "[capabilities]\n",
+            "capabilities = [\"render\"]\n",
+            "\n",
+            "[management.memory]\n",
+            "soft_limit_bytes = 2048\n",
+            "hard_limit_bytes = 1024\n",
+        ));
+
+        let error = discover_vm_plugin_package(&fixture.manifest_path).unwrap_err();
+
+        assert!(matches!(error, VmError::Parse(_)));
+        assert!(error
+            .to_string()
+            .contains("invalid plugin management policy"));
+        assert!(error.to_string().contains("soft_limit_bytes 2048 exceeds"));
+    }
+
+    struct PackageFixture {
+        root: PathBuf,
+        manifest_path: PathBuf,
+        bytecode_path: PathBuf,
+    }
+
+    impl PackageFixture {
+        fn new() -> Self {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let root = std::env::temp_dir().join(format!("zircon-vm-management-{nonce}"));
+            fs::create_dir_all(&root).unwrap();
+            Self {
+                manifest_path: root.join("plugin.toml"),
+                bytecode_path: root.join("plugin.bin"),
+                root,
+            }
+        }
+
+        fn write_bytecode_package(&self, manifest: &str) {
+            fs::write(&self.manifest_path, manifest).unwrap();
+            fs::write(&self.bytecode_path, [1, 2, 3]).unwrap();
+        }
+    }
+
+    impl Drop for PackageFixture {
+        fn drop(&mut self) {
+            remove_dir_all_if_exists(&self.root);
+        }
+    }
+
+    fn remove_dir_all_if_exists(path: &Path) {
+        if path.exists() {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
 }

@@ -779,7 +779,7 @@ fn string_attribute_any_prefer_non_default(
     node: &UiTemplateNode,
     names: &[(&str, &str)],
 ) -> Option<String> {
-    // Descriptor defaults make both MUI and legacy props present, so prefer the first value that
+    // Descriptor defaults make both MUI and source-template props present, so prefer the first value that
     // differs from its default while keeping the first default as the fallback class.
     let mut first = None;
     for (name, default) in names {

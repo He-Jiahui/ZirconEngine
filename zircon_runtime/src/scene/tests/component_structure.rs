@@ -100,6 +100,86 @@ fn scene_render_extract_does_not_use_snapshot_adapter_for_frame_extract() {
 }
 
 #[test]
+fn runtime_scene_exposes_neutral_world_inspection_surface() {
+    let scene_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("scene");
+
+    assert!(
+        scene_root.join("inspection").join("mod.rs").exists(),
+        "runtime scene should expose neutral world inspection under src/scene/inspection"
+    );
+    assert!(
+        !scene_root.join("editor_projection").exists(),
+        "runtime scene must not keep editor_projection as a production module"
+    );
+
+    for relative in [
+        "mod.rs",
+        "inspection/mod.rs",
+        "inspection/hierarchy.rs",
+        "inspection/field.rs",
+        "inspection/snapshot.rs",
+    ] {
+        let source = std::fs::read_to_string(scene_root.join(relative)).unwrap();
+        assert!(
+            !source.contains("SceneEditor") && !source.contains("editor_projection"),
+            "runtime scene inspection public surface must stay neutral in {relative}"
+        );
+    }
+}
+
+#[test]
+fn scene_project_serialization_sources_do_not_store_editor_authoring_state() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+
+    for relative in [
+        "src/scene/world/world.rs",
+        "src/scene/world/project_io.rs",
+        "src/scene/dynamic_scene/document.rs",
+        "src/scene/dynamic_scene/entity.rs",
+        "src/scene/dynamic_scene/scene.rs",
+        "src/scene/dynamic_scene/value.rs",
+        "src/asset/assets/scene.rs",
+    ] {
+        let path = manifest_root.join(relative);
+        let source = std::fs::read_to_string(&path).unwrap();
+
+        for forbidden in [
+            "selected",
+            "selection",
+            "selected_entity",
+            "selected_node",
+            "set_selected",
+            "SceneViewportSettings",
+            "SceneViewportTool",
+            "TransformSpace",
+            "GridMode",
+            "ViewOrientation",
+            "RenderOverlayExtract",
+            "SelectionHighlightExtract",
+            "SelectionAnchorExtract",
+            "GridOverlayExtract",
+            "HandleOverlayExtract",
+            "SceneGizmoOverlayExtract",
+            "SceneGizmoKind",
+            "scene_gizmos",
+            "selection_anchors",
+            "active_camera_override",
+            "camera_override",
+            "preview_lighting",
+            "preview_skybox",
+            "display_mode",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "runtime scene project serialization source {relative} must not store editor authoring state token {forbidden}"
+            );
+        }
+    }
+}
+
+#[test]
 fn scene_ecs_does_not_reintroduce_late_update_stage_or_compatibility_path() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 

@@ -6,6 +6,7 @@ impl BuiltinRenderFeature {
             self,
             Self::GlobalIllumination
                 | Self::HistoryResolve
+                | Self::Particle
                 | Self::NeuralCompute
                 | Self::SparseTexture
                 | Self::Terrain

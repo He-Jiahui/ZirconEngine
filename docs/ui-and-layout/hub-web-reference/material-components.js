@@ -30,11 +30,16 @@
       "metric-card",
       "info-row",
       "source-engine-row",
+      "tree-row",
       "setting-summary-row",
       "project-status-strip",
       "project-detail-actions-section",
+      "media-content-panel",
+      "project-detail-main-panel",
       "action-row",
       "path-field-row",
+      "form-panel",
+      "content-panel",
       "catalog-column-row",
       "project-card",
     ],
@@ -43,6 +48,7 @@
       "data-table",
       "project-table",
       "quick-actions",
+      "tabbed-list-panel",
       "menu",
       "select-menu",
       "menu-list",
@@ -54,6 +60,7 @@
       "project-action-stack",
       "row-list",
       "browser-table",
+      "tree-view",
     ],
     overlays: [
       "anchored-popover",
@@ -229,6 +236,43 @@
       </div>`;
     }
 
+    function tabbedListPanel(title, detail, tabs, rowsHtml, className = "") {
+      return `
+      <article class="panel tall tabbed-list-panel ${className}" data-component="tabbed-list-panel" data-material-slot="panel tabbed-list-panel tab-strip row-list">
+        ${sectionTitle(title, detail)}
+        ${tabStrip(tabs, 0)}
+        <div class="row-list compact">${rowsHtml}</div>
+      </article>`;
+    }
+
+    function formPanel(title, rowsHtml, className = "", detail = "") {
+      return `
+      <article class="panel settings-panel form-panel ${className}" data-component="form-panel" data-material-slot="panel form-panel form-control-stack">
+        ${sectionTitle(title, detail)}
+        <div class="row-list compact form-stack">${rowsHtml}</div>
+      </article>`;
+    }
+
+    function contentPanel(title, bodyHtml, className = "", detail = "") {
+      return `
+      <article class="panel content-panel ${className}" data-component="content-panel" data-material-slot="panel content-panel card-header card-content">
+        ${sectionTitle(title, detail)}
+        <div class="content-panel-body">${bodyHtml}</div>
+      </article>`;
+    }
+
+    function mediaContentPanel(title, detail, mediaHtml, bodyHtml, className = "", componentName = "media-content-panel") {
+      const componentAttr = componentName === "project-detail-main-panel"
+        ? 'data-component="project-detail-main-panel"'
+        : `data-component="${esc(componentName)}"`;
+      return `
+      <article class="panel content-panel media-content-panel ${className}" ${componentAttr} data-material-slot="panel content-panel media-content-panel ${esc(componentName)} card-media card-header card-content">
+        <div class="media-panel-media">${mediaHtml}</div>
+        ${sectionTitle(title, detail)}
+        <div class="content-panel-body media-content-panel-body">${bodyHtml}</div>
+      </article>`;
+    }
+
     function htmlCell(html) {
       return { html };
     }
@@ -264,16 +308,47 @@
       </div>`;
     }
 
-    function sourceEngineRow(iconLabel, title, detail, badge, tone = "accent", selected = false) {
+    function sourceEngineRow(iconLabel, title, detail, badge, tone = "accent", selected = false, options = {}) {
+      const classes = ["source-engine-row", "row-surface"];
+      if (options.className) {
+        classes.push(options.className);
+      }
+      if (selected) {
+        classes.push("selected");
+      }
+      const route = options.route ?? "hub-source-engine-popup";
+      const showAction = options.showAction ?? true;
       return `
-      <button class="source-engine-row row-surface${selected ? " selected" : ""}" data-component="source-engine-row" data-material-slot="source-engine-row row-surface${selected ? " selected-row" : ""}" type="button" data-route="hub-source-engine-popup">
+      <button class="${classes.join(" ")}" data-component="source-engine-row" data-material-slot="source-engine-row row-surface${selected ? " selected-row" : ""}" type="button" data-route="${esc(route)}">
         ${rowIcon(iconLabel)}
         <span class="row-main row-main-slot" data-component="row-main-slot" data-material-slot="row-main-slot"><strong>${esc(title)}</strong><span>${esc(detail)}</span></span>
         <span class="row-trailing-slot" data-component="row-trailing-slot" data-material-slot="row-trailing-slot">
           ${tag(badge, tone)}
-          <span class="row-action" data-component="icon-button"><img src="${icon("ui/close.svg")}" alt=""></span>
+          ${showAction ? `<span class="row-action" data-component="icon-button"><img src="${icon("ui/close.svg")}" alt=""></span>` : ""}
         </span>
       </button>`;
+    }
+
+    function treeRow(iconLabel, title, detail, badge = "", tone = "neutral", depth = 0, expanded = false, hasChildren = false, selected = false) {
+      const disclosure = hasChildren
+        ? `<span class="tree-disclosure row-action" data-component="icon-button" data-material-slot="tree-disclosure">${expanded ? "v" : ">"}</span>`
+        : `<span class="tree-disclosure empty" data-material-slot="tree-disclosure"></span>`;
+      return `
+      <button class="tree-row row-surface${selected ? " selected" : ""}" data-component="tree-row" data-material-slot="tree-row row-surface${selected ? " selected-row" : ""}" type="button" style="--tree-depth: ${Math.max(0, Number(depth) || 0)}">
+        <span class="tree-indent" aria-hidden="true"></span>
+        ${disclosure}
+        ${rowIcon(iconLabel)}
+        <span class="row-main row-main-slot" data-component="row-main-slot" data-material-slot="row-main-slot"><strong>${esc(title)}</strong><span>${esc(detail)}</span></span>
+        ${badge ? `<span class="row-trailing-slot" data-component="row-trailing-slot" data-material-slot="row-trailing-slot">${tag(badge, tone)}</span>` : ""}
+      </button>`;
+    }
+
+    function treeView(title, rowsHtml, className = "") {
+      return `
+      <article class="panel tree-view ${className}" data-component="tree-view" data-material-slot="panel tree-view row-list">
+        ${sectionTitle(title)}
+        <div class="row-list compact">${rowsHtml}</div>
+      </article>`;
     }
 
     function settingSummaryRow(label, value, badgeValue = false, tone = "neutral") {
@@ -340,6 +415,44 @@
             </div>
           </div>` : ""}
       </aside>`;
+    }
+
+    function projectDetailMainPanel(project) {
+      const panel = mediaContentPanel(
+        project.title,
+        project.path,
+        projectCover(project, "hero"),
+        `
+          ${projectStatusStrip(project.version, "Not pinned", project.modified)}
+          <div class="detail-stats">
+            ${smallStat("Assets", "1,284", "indexed", "accent")}
+            ${smallStat("Builds", "12", "last 7 days", "success")}
+            ${smallStat("Warnings", "1", "non-blocking", "warning")}
+            ${smallStat("Size", "12.8 GB", "workspace", "")}
+          </div>
+          <div class="detail-grid">
+            <div class="row-list compact">
+              ${settingSummaryRow("Status", "Ready", true, "success")}
+              ${settingSummaryRow("Project Root", project.path)}
+              ${settingSummaryRow("Source Engine", "Zircon Engine 1.8.2")}
+              ${settingSummaryRow("Engine Version", project.version)}
+              ${settingSummaryRow("Last Modified", project.modified)}
+            </div>
+            <div class="activity-panel">
+              ${sectionTitle("Activity", "Latest project events")}
+              ${[
+                ["Asset catalog refreshed", "2h ago", "success"],
+                ["Build package queued", "5h ago", "accent"],
+                ["Shader warning recorded", "Yesterday", "warning"],
+              ].map(([title, time, tone]) => `
+                <div class="timeline-item ${tone}"><span></span><strong>${esc(title)}</strong><em>${esc(time)}</em>${tag(tone || "Info", tone)}</div>`).join("")}
+            </div>
+          </div>
+        `,
+        "detail-main project-detail-main-panel",
+        "project-detail-main-panel",
+      );
+      return panel;
     }
 
     function emptyState(title, detail = "") {
@@ -540,13 +653,20 @@
       metricGrid,
       sectionTitle,
       tabStrip,
+      tabbedListPanel,
+      formPanel,
+      contentPanel,
+      mediaContentPanel,
       htmlCell,
       dataTable,
       rowIcon,
       infoRow,
       sourceEngineRow,
+      treeRow,
+      treeView,
       settingSummaryRow,
       projectStatusStrip,
+      projectDetailMainPanel,
       projectDetailActionsSection,
       actionCommandButton,
       actionRow,

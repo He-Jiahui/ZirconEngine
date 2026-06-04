@@ -1,18 +1,22 @@
 use zircon_plugin_physics_runtime::{
-    integrate_builtin_physics_steps, module_descriptor, scene_hook_registration,
-    DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME, PHYSICS_MODULE_NAME,
+    build_world_sync_state, integrate_builtin_physics_steps, module_descriptor,
+    scene_hook_registration, DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME,
+    PHYSICS_MODULE_NAME,
 };
 use zircon_runtime::core::framework::physics::{
-    PhysicsBackendState, PhysicsManager, PhysicsRayCastQuery, PhysicsSettings,
-    PhysicsSimulationMode, PhysicsWorldStepPlan,
+    PhysicsBackendState, PhysicsColliderShape, PhysicsJointConstraintMetadata, PhysicsJointDrive,
+    PhysicsJointType, PhysicsManager, PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings,
+    PhysicsShapeCastQuery, PhysicsShapeOverlapQuery, PhysicsSimulationMode,
+    PhysicsSkeletonJointBinding, PhysicsWorldStepPlan,
 };
 use zircon_runtime::core::manager::resolve_physics_manager;
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::core::math::{Quat, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::plugin::RuntimeExtensionRegistry;
 use zircon_runtime::scene::components::{
-    ColliderComponent, ColliderShape, NodeKind, RigidBodyComponent, RigidBodyType,
+    ColliderComponent, ColliderShape, JointComponent, JointKind, NodeKind, RigidBodyComponent,
+    RigidBodyType,
 };
 use zircon_runtime::scene::{create_default_level, SCENE_MODULE_NAME};
 
@@ -79,6 +83,76 @@ fn unknown_backend_reports_unavailable_not_ready() {
     assert_eq!(status.requested_backend, "experimental");
     assert_eq!(status.active_backend, None);
     assert_eq!(status.state, PhysicsBackendState::Unavailable);
+}
+
+#[test]
+fn world_sync_preserves_constraint_and_skeletal_joint_metadata() {
+    let runtime = create_runtime_with_scene_and_physics();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let (world_handle, skeleton, joint_entity) = level.with_world_mut(|world| {
+        let skeleton = world.spawn_node(NodeKind::Mesh);
+        let joint_entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_joint(
+                joint_entity,
+                Some(JointComponent {
+                    joint_type: JointKind::Generic6Dof,
+                    connected_entity: Some(skeleton),
+                    anchor: Vec3::new(0.0, 1.0, 0.0),
+                    axis: Vec3::Y,
+                    limits: Some([-0.25, 0.25]),
+                    collide_connected: true,
+                    constraint: PhysicsJointConstraintMetadata {
+                        linear_limits: [Some([-0.2, 0.2]), None, Some([0.0, 0.5])],
+                        angular_limits: [Some([-0.5, 0.5]), Some([-0.25, 0.25]), None],
+                        linear_drives: [
+                            PhysicsJointDrive {
+                                target_position: 0.1,
+                                stiffness: 12.0,
+                                damping: 2.0,
+                                max_force: 30.0,
+                                ..PhysicsJointDrive::default()
+                            },
+                            PhysicsJointDrive::default(),
+                            PhysicsJointDrive::default(),
+                        ],
+                        break_force: Some(120.0),
+                        break_torque: Some(40.0),
+                        ..PhysicsJointConstraintMetadata::default()
+                    },
+                    skeleton_binding: Some(PhysicsSkeletonJointBinding {
+                        skeleton_entity: skeleton,
+                        bone_path: "Armature/Hips/Spine".to_string(),
+                        parent_bone_path: Some("Armature/Hips".to_string()),
+                    }),
+                }),
+            )
+            .unwrap();
+        (level.handle(), skeleton, joint_entity)
+    });
+
+    let sync = level.with_world(|world| build_world_sync_state(world_handle, world));
+    let joint = sync
+        .joints
+        .iter()
+        .find(|joint| joint.entity == joint_entity)
+        .expect("joint metadata should be synced");
+
+    assert_eq!(joint.kind, PhysicsJointType::Generic6Dof);
+    assert_eq!(joint.connected_entity, Some(skeleton));
+    assert!(joint.collide_connected);
+    assert_eq!(joint.constraint.linear_limits[0], Some([-0.2, 0.2]));
+    assert_eq!(joint.constraint.angular_limits[1], Some([-0.25, 0.25]));
+    assert_eq!(joint.constraint.linear_drives[0].stiffness, 12.0);
+    assert_eq!(joint.constraint.break_force, Some(120.0));
+    assert_eq!(
+        joint.skeleton_binding.as_ref().map(|binding| (
+            binding.skeleton_entity,
+            binding.bone_path.as_str(),
+            binding.parent_bone_path.as_deref()
+        )),
+        Some((skeleton, "Armature/Hips/Spine", Some("Armature/Hips")))
+    );
 }
 
 mod contact;

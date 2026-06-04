@@ -108,11 +108,14 @@ fn reference_workbench_surface_extracts_renderable_panels_and_controls() {
             && command.kind == UiRenderCommandKind::Quad
             && command.style.background_color.as_deref()
                 == Some(reference.palette.viewport_background)));
-    assert!(commands
-        .iter()
-        .any(|command| command.node_id == reference.ids.primary_button
-            && command.kind == UiRenderCommandKind::Quad
-            && command.text.as_deref() == Some("Primary")));
+    assert!(commands.iter().any(|command| {
+        command.node_id == reference.ids.primary_button && command.kind == UiRenderCommandKind::Quad
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == reference.ids.primary_button
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Primary")
+    }));
     for text in ["Scene", "Inspector", "Transform", "No Errors"] {
         assert!(
             commands

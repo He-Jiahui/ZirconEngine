@@ -1,5 +1,8 @@
 //! Animation framework contracts for sequence, graph, state-machine, parameter, and pose evaluation.
 
+mod avatar_mask;
+mod event;
+mod gpu_skinning;
 mod graph_blend_mode;
 mod graph_clip_instance;
 mod graph_evaluation;
@@ -10,11 +13,17 @@ mod playback_settings;
 mod pose_bone;
 mod pose_output;
 mod pose_source;
+mod runtime_status;
 mod sequence_apply_report;
 mod state_machine_evaluation;
+mod tick;
+mod timeline;
 mod track_path;
 mod track_path_error;
 
+pub use avatar_mask::AnimationAvatarMask;
+pub use event::AnimationEventRecord;
+pub use gpu_skinning::{AnimationGpuSkinningReadiness, AnimationSkinningBackend};
 pub use graph_blend_mode::AnimationGraphBlendMode;
 pub use graph_clip_instance::AnimationGraphClipInstance;
 pub use graph_evaluation::AnimationGraphEvaluation;
@@ -25,9 +34,21 @@ pub use playback_settings::AnimationPlaybackSettings;
 pub use pose_bone::AnimationPoseBone;
 pub use pose_output::AnimationPoseOutput;
 pub use pose_source::AnimationPoseSource;
+pub use runtime_status::{
+    AnimationPlayerKind, AnimationPlayerRuntimeState, AnimationPlayerRuntimeStatus,
+    AnimationRigRuntimeStatus, AnimationRuntimeStatus,
+};
 pub use sequence_apply_report::AnimationSequenceApplyReport;
 pub use state_machine_evaluation::{
     AnimationStateMachineEvaluation, AnimationStateTransitionEvaluation,
 };
+pub use tick::{AnimationTickReport, AnimationTickRequest};
+pub use timeline::{
+    AnimationTimelineClipDescriptor, AnimationTimelineDescriptor, AnimationTimelineEventDescriptor,
+    AnimationTimelineTrackDescriptor, AnimationTimelineTrackKind,
+};
 pub use track_path::AnimationTrackPath;
 pub use track_path_error::AnimationTrackPathError;
+
+#[cfg(test)]
+mod tests;

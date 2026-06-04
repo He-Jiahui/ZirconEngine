@@ -274,9 +274,13 @@ impl RetainedEditorHost {
             self.set_status_line("Welcome UI controls are not available");
             return;
         };
+        let Some(binding_control_id) = welcome_surface_binding_control_id(control_id) else {
+            self.set_status_line(format!("Unknown welcome surface control {control_id}"));
+            return;
+        };
         let Some(result) = callback_dispatch::dispatch_builtin_welcome_surface_control(
             welcome_surface_bridge,
-            control_id,
+            binding_control_id,
             event_kind,
             arguments,
         ) else {
@@ -288,5 +292,15 @@ impl RetainedEditorHost {
             Ok(event) => self.handle_welcome_surface_event(event),
             Err(error) => self.set_status_line(error),
         }
+    }
+}
+
+fn welcome_surface_binding_control_id(action_or_control_id: &str) -> Option<&'static str> {
+    match action_or_control_id {
+        "ProjectNameEdited" | "welcome.project.name.edit" => Some("ProjectNameEdited"),
+        "LocationEdited" | "welcome.project.location.edit" => Some("LocationEdited"),
+        "CreateProject" | "welcome.project.create" => Some("CreateProject"),
+        "OpenExistingProject" | "welcome.project.open_existing" => Some("OpenExistingProject"),
+        _ => None,
     }
 }

@@ -121,6 +121,7 @@ impl UiDispatchReply {
         let mut stopped = false;
         let mut stopped_at = None;
         let mut stopped_phase = None;
+        let mut routed_steps = Vec::new();
 
         for mut step in steps {
             step_count += 1;
@@ -131,16 +132,37 @@ impl UiDispatchReply {
                 step.reply.phase = Some(step.phase);
             }
 
+            let effect_start = merged.effects.len();
+            let effect_count = step.reply.effects.len();
             merged.effects.extend(step.reply.effects);
 
             match step.reply.disposition {
-                UiDispatchDisposition::Unhandled => {}
+                UiDispatchDisposition::Unhandled => {
+                    routed_steps.push(UiDispatchReplyStepTrace {
+                        phase: step.phase,
+                        target: step.target,
+                        handler: step.reply.handler,
+                        disposition: step.reply.disposition,
+                        effect_start,
+                        effect_count,
+                        stopped: false,
+                    });
+                }
                 UiDispatchDisposition::Passthrough => {
                     if merged.disposition == UiDispatchDisposition::Unhandled {
                         merged.disposition = UiDispatchDisposition::Passthrough;
                         merged.handler = step.reply.handler;
                         merged.phase = step.reply.phase;
                     }
+                    routed_steps.push(UiDispatchReplyStepTrace {
+                        phase: step.phase,
+                        target: step.target,
+                        handler: step.reply.handler,
+                        disposition: step.reply.disposition,
+                        effect_start,
+                        effect_count,
+                        stopped: false,
+                    });
                 }
                 UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked => {
                     merged.disposition = step.reply.disposition;
@@ -149,6 +171,15 @@ impl UiDispatchReply {
                     stopped = true;
                     stopped_at = step.reply.handler;
                     stopped_phase = step.reply.phase;
+                    routed_steps.push(UiDispatchReplyStepTrace {
+                        phase: step.phase,
+                        target: step.target,
+                        handler: step.reply.handler,
+                        disposition: step.reply.disposition,
+                        effect_start,
+                        effect_count,
+                        stopped: true,
+                    });
                     break;
                 }
             }
@@ -160,6 +191,7 @@ impl UiDispatchReply {
             stopped,
             stopped_at,
             stopped_phase,
+            steps: routed_steps,
         }
     }
 }
@@ -191,4 +223,19 @@ pub struct UiDispatchReplyMergeReport {
     pub stopped_at: Option<UiNodeId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stopped_phase: Option<UiDispatchPhase>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steps: Vec<UiDispatchReplyStepTrace>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiDispatchReplyStepTrace {
+    pub phase: UiDispatchPhase,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<UiNodeId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handler: Option<UiNodeId>,
+    pub disposition: UiDispatchDisposition,
+    pub effect_start: usize,
+    pub effect_count: usize,
+    pub stopped: bool,
 }

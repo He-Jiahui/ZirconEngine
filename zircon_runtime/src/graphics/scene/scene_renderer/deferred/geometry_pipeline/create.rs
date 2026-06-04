@@ -1,6 +1,6 @@
 use crate::graphics::scene::resources::GpuMeshVertex;
 
-use super::super::constants::GBUFFER_ALBEDO_FORMAT;
+use super::super::constants::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
 use super::shader_source::DEFERRED_GEOMETRY_SHADER;
 
 pub(in crate::graphics::scene::scene_renderer::deferred) fn create_geometry_pipeline(
@@ -49,11 +49,18 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_geometry_pipe
             module: &geometry_shader,
             entry_point: Some("fs_main"),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
-            targets: &[Some(wgpu::ColorTargetState {
-                format: GBUFFER_ALBEDO_FORMAT,
-                blend: Some(wgpu::BlendState::REPLACE),
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
+            targets: &[
+                Some(wgpu::ColorTargetState {
+                    format: GBUFFER_ALBEDO_FORMAT,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                }),
+                Some(wgpu::ColorTargetState {
+                    format: GBUFFER_MATERIAL_FORMAT,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                }),
+            ],
         }),
         multiview_mask: None,
         cache: None,

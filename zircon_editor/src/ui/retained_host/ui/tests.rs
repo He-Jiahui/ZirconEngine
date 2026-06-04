@@ -352,6 +352,7 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
             performance_timeline: host_window::PerformanceTimelinePaneViewData::default(),
             module_plugins: host_window::ModulePluginsPaneViewData::default(),
             build_export: host_window::BuildExportPaneViewData::default(),
+            generated_bottom: host_window::GeneratedBottomPaneViewData::default(),
             ui_asset: UiAssetEditorPanePresentation::default(),
             animation: host_window::AnimationEditorPaneViewData::default(),
         },

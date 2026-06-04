@@ -28,13 +28,13 @@ impl CoreHandle {
         &self,
         stage: SystemStage,
     ) -> Vec<SceneRuntimeHookRegistration> {
-        self.inner
-            .scene_hooks
-            .lock()
-            .unwrap()
-            .iter()
+        self.scene_runtime_hooks_snapshot()
+            .into_iter()
             .filter(|hook| hook.descriptor().stage == stage)
-            .cloned()
             .collect()
+    }
+
+    pub(crate) fn scene_runtime_hooks_snapshot(&self) -> Vec<SceneRuntimeHookRegistration> {
+        self.inner.scene_hooks.lock().unwrap().to_vec()
     }
 }

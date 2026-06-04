@@ -94,6 +94,12 @@ fn builtin_pane_views_expose_template_metadata() {
             PaneInteractionMode::HybridNativeSlot,
         ),
         (
+            "editor.generated_bottom",
+            PanePayloadKind::GeneratedBottomV1,
+            PaneRouteNamespace::Dock,
+            PaneInteractionMode::TemplateOnly,
+        ),
+        (
             "editor.ui_component_showcase",
             PanePayloadKind::UiComponentShowcaseV1,
             PaneRouteNamespace::UiComponentShowcase,

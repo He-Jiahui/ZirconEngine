@@ -1,6 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::template_component_family::{is_component_family, TemplateComponentFamily};
 use super::render_commands::HostPaintCommand;
+use super::style_selector::{select_workbench_tree_row_style, WorkbenchTreeRowStyle};
 use super::template_node_labels::template_node_label;
 use super::theme::PALETTE;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -15,11 +16,7 @@ const TREE_ACTION_SIZE: f32 = 14.0;
 const TREE_ACTION_GAP: f32 = 16.0;
 const TREE_ROW_RADIUS: f32 = 5.0;
 const TREE_GUIDE_STEP: f32 = 18.0;
-const TREE_TEXT_NORMAL: [u8; 4] = [168, 178, 183, 255];
-const TREE_TEXT_SELECTED: [u8; 4] = [204, 232, 234, 255];
-const TREE_ICON_MUTED: [u8; 4] = [143, 163, 172, 255];
 const TREE_GUIDE_COLOR: [u8; 4] = [42, 55, 64, 255];
-const TREE_ACTION_COLOR: [u8; 4] = [156, 173, 182, 255];
 const TREE_OBJECT_BLUE: [u8; 4] = [82, 148, 240, 255];
 
 pub(super) fn push_tree_row_commands(
@@ -284,75 +281,35 @@ fn tree_action_rect(rect: &FrameRect, index_from_right: usize) -> FrameRect {
 }
 
 fn tree_row_background(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    if node.disabled {
-        None
-    } else if node.selected || node.checked {
-        Some(PALETTE.surface_selected)
-    } else if node.pressed {
-        Some(PALETTE.surface_pressed)
-    } else if node.hovered || node.focused {
-        Some(PALETTE.surface_hover)
-    } else {
-        None
-    }
+    tree_row_style(node).background
 }
 
 fn tree_row_border(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    if node.disabled {
-        None
-    } else if node.selected || node.checked || node.focused || node.pressed {
-        Some(PALETTE.focus_ring)
-    } else {
-        None
-    }
+    tree_row_style(node).border
 }
 
 fn tree_row_border_width(node: &TemplatePaneNodeData) -> f32 {
-    if node.selected || node.checked || node.focused || node.pressed {
-        1.0
-    } else {
-        0.0
-    }
+    tree_row_style(node).border_width
 }
 
 fn tree_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if node.selected || node.checked {
-        TREE_TEXT_SELECTED
-    } else {
-        TREE_TEXT_NORMAL
-    }
+    tree_row_style(node).text
 }
 
 fn tree_icon_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if node.selected || node.checked {
-        TREE_TEXT_SELECTED
-    } else {
-        TREE_ICON_MUTED
-    }
+    tree_row_style(node).icon
 }
 
 fn tree_secondary_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if node.selected || node.checked {
-        TREE_TEXT_SELECTED
-    } else {
-        PALETTE.text_muted
-    }
+    tree_row_style(node).secondary
 }
 
 fn tree_action_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if node.selected || node.checked {
-        TREE_TEXT_SELECTED
-    } else {
-        TREE_ACTION_COLOR
-    }
+    tree_row_style(node).action
+}
+
+fn tree_row_style(node: &TemplatePaneNodeData) -> WorkbenchTreeRowStyle {
+    select_workbench_tree_row_style(node)
 }
 
 fn shows_tree_lock_action(node: &TemplatePaneNodeData) -> bool {
@@ -585,9 +542,11 @@ fn local_rect(origin: &FrameRect, x: f32, y: f32, width: f32, height: f32) -> Fr
 #[cfg(test)]
 mod tests {
     use super::super::super::data::TemplateNodeFrameData;
+    use super::super::style_selector::WORKBENCH_TREE_ROW_TEXT_SELECTED as TREE_TEXT_SELECTED;
     use super::super::template_nodes::paint_template_nodes_for_test;
     use super::*;
     use crate::ui::layouts::common::model_rc;
+    use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
     #[test]
     fn tree_row_kind_matches_roles_and_scene_ids() {
@@ -651,6 +610,42 @@ mod tests {
         assert_eq!(pixel_at(&bytes, 240, 8, 18), [0, 0, 0, 255]);
         assert_ne!(pixel_at(&bytes, 240, 21, 18), [0, 0, 0, 255]);
         assert!(changed_pixel_count(&bytes, 240, 32, 10, 48, 22) > 0);
+    }
+
+    #[test]
+    fn tree_row_style_uses_shared_state_priority() {
+        let mut node = tree_node(
+            "WorkbenchScenePropsItem",
+            "TreeRow",
+            "tree-row",
+            "Props",
+            2,
+            true,
+        );
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+
+        let pressed = tree_row_style(&node);
+        assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+        assert_eq!(pressed.background, Some(PALETTE.surface_selected));
+        assert_eq!(pressed.border, Some(PALETTE.focus_ring));
+        assert_eq!(pressed.text, TREE_TEXT_SELECTED);
+
+        node.pressed = false;
+        node.selected = false;
+        node.checked = false;
+        let focused = tree_row_style(&node);
+        assert_eq!(focused.state, UiPainterResolvedState::Focused);
+        assert_eq!(focused.background, Some(PALETTE.surface_hover));
+        assert_eq!(focused.border, Some(PALETTE.focus_ring));
+
+        node.disabled = true;
+        let disabled = tree_row_style(&node);
+        assert_eq!(disabled.state, UiPainterResolvedState::Disabled);
+        assert_eq!(disabled.background, None);
+        assert_eq!(disabled.border, None);
+        assert_eq!(disabled.text, PALETTE.text_disabled);
     }
 
     #[test]

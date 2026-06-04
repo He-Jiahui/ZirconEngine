@@ -7,13 +7,14 @@ use crate::CompiledRenderPipeline;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, clustered_lighting_executor,
-    color_grading_postprocess_executor, effect_stack_postprocess_executor,
-    final_composite_postprocess_executor, fxaa_postprocess_executor,
-    history_resolve_postprocess_executor, post_stack_executor, ssao_executor,
+    color_grading_postprocess_executor, depth_of_field_prepare_executor,
+    effect_stack_postprocess_executor, final_composite_postprocess_executor,
+    fxaa_postprocess_executor, history_resolve_postprocess_executor, post_stack_executor,
+    ssao_executor,
 };
 use super::builtin_scene_executors::{
     deferred_gbuffer_executor, deferred_lighting_executor, depth_prepass_executor, mesh_executor,
-    overlay_gizmo_executor, screen_space_ui_executor, sprite_executor,
+    overlay_gizmo_executor, screen_space_ui_executor, shadow_map_executor, sprite_executor,
 };
 use super::preview_sky_executor::{
     preview_sky_final_color_executor, preview_sky_scene_color_executor,
@@ -65,6 +66,7 @@ impl RenderPassExecutorRegistry {
         registry.register("deferred.depth-prepass".into(), depth_prepass_executor);
         registry.register("deferred.gbuffer".into(), deferred_gbuffer_executor);
         registry.register("lighting.deferred".into(), deferred_lighting_executor);
+        registry.register("shadow.map".into(), shadow_map_executor);
         registry.register(
             "sky.preview-scene-color".into(),
             preview_sky_scene_color_executor,
@@ -79,6 +81,10 @@ impl RenderPassExecutorRegistry {
             clustered_lighting_executor,
         );
         registry.register("post.bloom-extract".into(), bloom_extract_executor);
+        registry.register(
+            "post.depth-of-field-prepare".into(),
+            depth_of_field_prepare_executor,
+        );
         registry.register("post.stack".into(), post_stack_executor);
         registry.register("ui.screen-space".into(), screen_space_ui_executor);
         registry.register("overlay.gizmo".into(), overlay_gizmo_executor);
@@ -185,7 +191,6 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "mesh.opaque",
     "mesh.transparent",
     "post.color-grade",
-    "shadow.map",
 ];
 
 fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {

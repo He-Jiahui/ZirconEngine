@@ -1,8 +1,59 @@
 import { ProjectDetailData, SourceEngineData, UiTextData } from "shared.slint";
-import { HubCommandButton } from "button_components.slint";
+import { HubHeaderCommandGroup } from "button_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { Badge } from "surfaces.slint";
 import { MaterialPalette, MaterialStyleMetrics, MaterialText, MaterialTypography } from "material_bridge.slint";
+
+component HubPageHeaderTitleStack inherits Rectangle {
+    in property <string> title-text;
+    in property <string> subtitle-text;
+    in property <length> stack-height: HubTokens.shell-header-height;
+    in property <length> stack-spacing: MaterialStyleMetrics.spacing_6;
+
+    height: root.stack-height;
+    horizontal-stretch: 0;
+    min-width: 1px;
+    background: transparent;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.stack-spacing;
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+        MaterialText {
+            text: root.title-text;
+            color: MaterialPalette.on_surface;
+            style: MaterialTypography.headline_medium;
+            overflow: elide;
+        }
+        MaterialText {
+            text: root.subtitle-text;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.body_medium;
+            overflow: elide;
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+    }
+}
+
+component HubStatusDetailText inherits MaterialText {
+    in property <string> detail-text;
+
+    text: root.detail-text;
+    color: MaterialPalette.on_surface_variant;
+    style: MaterialTypography.label_medium;
+    vertical_alignment: center;
+    overflow: elide;
+    horizontal-stretch: 1;
+}
 
 export component HubPageHeader inherits Rectangle {
     in property <string> selected-page;
@@ -45,30 +96,10 @@ export component HubPageHeader inherits Rectangle {
         spacing: root.gap;
         alignment: stretch;
 
-        VerticalLayout {
-            height: parent.height;
-            horizontal-stretch: 0;
-            spacing: MaterialStyleMetrics.spacing_6;
-            Rectangle {
-                vertical-stretch: 1;
-                min-height: 0px;
-            }
-            MaterialText {
-                text: root.selected-page-title;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.headline_medium;
-                overflow: elide;
-            }
-            MaterialText {
-                text: root.selected-page-subtitle;
-                color: MaterialPalette.on_surface_variant;
-                style: MaterialTypography.body_medium;
-                overflow: elide;
-            }
-            Rectangle {
-                vertical-stretch: 1;
-                min-height: 0px;
-            }
+        HubPageHeaderTitleStack {
+            stack-height: parent.height;
+            title-text: root.selected-page-title;
+            subtitle-text: root.selected-page-subtitle;
         }
 
         Rectangle { horizontal-stretch: 1; }
@@ -83,34 +114,26 @@ export component HubPageHeader inherits Rectangle {
                 min-height: 0px;
             }
 
-            HorizontalLayout {
-                height: root.action-height;
-                spacing: root.gap;
-                alignment: center;
-
-                HubCommandButton {
-                    text: root.projects-action-strip-visible ? root.ui-text.import-project : root.secondary-action-label;
-                    source-image: root.projects-action-strip-visible ? @image-url("../assets/icons/ui/import.svg") : root.secondary-action-image;
-                    clicked => {
-                        if (root.projects-action-strip-visible) {
-                            root.import-project();
-                        } else {
-                            root.page-action(root.secondary-action-id);
-                        }
+            HubHeaderCommandGroup {
+                action-height: root.action-height;
+                action-gap: root.gap;
+                secondary-text: root.projects-action-strip-visible ? root.ui-text.import-project : root.secondary-action-label;
+                secondary-image: root.projects-action-strip-visible ? @image-url("../assets/icons/ui/import.svg") : root.secondary-action-image;
+                primary-text: root.projects-action-strip-visible ? root.ui-text.create-project : root.primary-action-label;
+                primary-image: root.projects-action-strip-visible ? @image-url("../assets/icons/ui/plus.svg") : root.primary-action-image;
+                primary-with-menu: root.projects-action-strip-visible || root.primary-action-with-menu;
+                secondary-clicked => {
+                    if (root.projects-action-strip-visible) {
+                        root.import-project();
+                    } else {
+                        root.page-action(root.secondary-action-id);
                     }
                 }
-
-                HubCommandButton {
-                    text: root.projects-action-strip-visible ? root.ui-text.create-project : root.primary-action-label;
-                    source-image: root.projects-action-strip-visible ? @image-url("../assets/icons/ui/plus.svg") : root.primary-action-image;
-                    primary: true;
-                    with-menu: root.projects-action-strip-visible || root.primary-action-with-menu;
-                    clicked => {
-                        if (root.projects-action-strip-visible) {
-                            root.create-project();
-                        } else {
-                            root.page-action(root.primary-action-id);
-                        }
+                primary-clicked => {
+                    if (root.projects-action-strip-visible) {
+                        root.create-project();
+                    } else {
+                        root.page-action(root.primary-action-id);
                     }
                 }
             }
@@ -149,13 +172,8 @@ export component HubStatusBar inherits Rectangle {
         spacing: HubTokens.toolbar-gap;
         alignment: center;
 
-        MaterialText {
-            text: root.status-detail;
-            color: MaterialPalette.on_surface_variant;
-            style: MaterialTypography.label_medium;
-            vertical_alignment: center;
-            overflow: elide;
-            horizontal-stretch: 1;
+        HubStatusDetailText {
+            detail-text: root.status-detail;
         }
 
         if !root.compact: Badge {

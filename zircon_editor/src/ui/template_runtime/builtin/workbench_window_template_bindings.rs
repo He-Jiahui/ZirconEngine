@@ -12,25 +12,25 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "MenuAction",
         "OpenMainMenu",
-        EditorUiBindingPayload::menu_action("OpenMainMenu"),
+        EditorUiBindingPayload::menu_action("workbench.menu.main.open"),
     );
     insert_click(
         &mut bindings,
         "MenuAction",
         "NewAsset",
-        EditorUiBindingPayload::menu_action("NewAsset"),
+        EditorUiBindingPayload::menu_action("workbench.asset.create"),
     );
     insert_click(
         &mut bindings,
         "MenuAction",
         "OpenProject",
-        EditorUiBindingPayload::menu_action("OpenProject"),
+        EditorUiBindingPayload::menu_action("workbench.project.open"),
     );
     insert_click(
         &mut bindings,
         "MenuAction",
         "SaveProject",
-        EditorUiBindingPayload::menu_action("SaveProject"),
+        EditorUiBindingPayload::menu_action("workbench.project.save"),
     );
 
     insert_click(
@@ -74,13 +74,13 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "Run",
         "Play",
-        EditorUiBindingPayload::menu_action("EnterPlayMode"),
+        EditorUiBindingPayload::menu_action("workbench.play_mode.enter"),
     );
     insert_click(
         &mut bindings,
         "Run",
         "OpenModeMenu",
-        EditorUiBindingPayload::menu_action("OpenRunModeMenu"),
+        EditorUiBindingPayload::menu_action("workbench.run_mode.menu.open"),
     );
 
     insert_click(
@@ -137,20 +137,20 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "DockCommand",
         "OpenLayoutMenu",
-        EditorUiBindingPayload::menu_action("OpenLayoutMenu"),
+        EditorUiBindingPayload::menu_action("workbench.layout.menu.open"),
     );
 
     insert_click(
         &mut bindings,
         "Hierarchy",
         "OpenFilter",
-        EditorUiBindingPayload::menu_action("OpenHierarchyFilter"),
+        EditorUiBindingPayload::menu_action("workbench.hierarchy.filter.open"),
     );
     insert_click(
         &mut bindings,
         "Hierarchy",
         "AddEntity",
-        EditorUiBindingPayload::menu_action("CreateNode.Cube"),
+        EditorUiBindingPayload::menu_action("workbench.scene.node.create.cube"),
     );
     for control_id in [
         "SelectEntity",
@@ -179,44 +179,44 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "Inspector",
         "AddComponent",
-        EditorUiBindingPayload::menu_action("AddComponent"),
+        EditorUiBindingPayload::menu_action("workbench.inspector.component.add"),
     );
     insert_inspector_transform_axis_bindings(&mut bindings);
     insert_click(
         &mut bindings,
         "PanelTab",
         "SceneTreeScene",
-        EditorUiBindingPayload::menu_action("SelectSceneTreeSceneTab"),
+        EditorUiBindingPayload::menu_action("scene_tree.scene_tab.select"),
     );
     insert_click(
         &mut bindings,
         "PanelTab",
         "SceneTreeLayers",
-        EditorUiBindingPayload::menu_action("SelectSceneTreeLayersTab"),
+        EditorUiBindingPayload::menu_action("scene_tree.layers_tab.select"),
     );
     insert_click(
         &mut bindings,
         "PanelTab",
         "InspectorMain",
-        EditorUiBindingPayload::menu_action("SelectInspectorMainTab"),
+        EditorUiBindingPayload::menu_action("inspector.main_tab.select"),
     );
     insert_click(
         &mut bindings,
         "PanelTab",
         "InspectorHistory",
-        EditorUiBindingPayload::menu_action("SelectInspectorHistoryTab"),
+        EditorUiBindingPayload::menu_action("inspector.history_tab.select"),
     );
     insert_click(
         &mut bindings,
         "PanelTab",
         "ComponentDrawerComponents",
-        EditorUiBindingPayload::menu_action("SelectComponentDrawerComponentsTab"),
+        EditorUiBindingPayload::menu_action("component_drawer.components_tab.select"),
     );
     insert_click(
         &mut bindings,
         "PanelTab",
         "ComponentDrawerConsole",
-        EditorUiBindingPayload::menu_action("SelectComponentDrawerConsoleTab"),
+        EditorUiBindingPayload::menu_action("component_drawer.console_tab.select"),
     );
     insert_click(
         &mut bindings,
@@ -258,147 +258,153 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "ComponentLab",
         "ButtonDropdownOpen",
-        EditorUiBindingPayload::menu_action("OpenComponentLabButtonDropdown"),
+        EditorUiBindingPayload::menu_action("component_lab.button_dropdown.open"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "ButtonDropdownSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabButtonDropdownOption"),
+        EditorUiBindingPayload::menu_action("component_lab.button_dropdown_option.select"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "InputTextEdit",
-        EditorUiBindingPayload::menu_action("ComponentLab.ValueChanged.InputText"),
+        EditorUiBindingPayload::menu_action("component_lab.input_text.edit"),
     );
     insert_submit(
         &mut bindings,
         "ComponentLab",
         "InputTextCommit",
-        EditorUiBindingPayload::menu_action("ComponentLab.Commit.InputText"),
+        EditorUiBindingPayload::menu_action("component_lab.input_text.commit"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "InputFocusedEdit",
-        EditorUiBindingPayload::menu_action("ComponentLab.ValueChanged.InputFocused"),
+        EditorUiBindingPayload::menu_action("component_lab.input_focused.edit"),
     );
     insert_submit(
         &mut bindings,
         "ComponentLab",
         "InputFocusedCommit",
-        EditorUiBindingPayload::menu_action("ComponentLab.Commit.InputFocused"),
+        EditorUiBindingPayload::menu_action("component_lab.input_focused.commit"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "InputDropdownOpen",
-        EditorUiBindingPayload::menu_action("OpenComponentLabInputDropdown"),
+        EditorUiBindingPayload::menu_action("component_lab.input_dropdown.open"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "InputDropdownSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabInputDropdownOption"),
+        EditorUiBindingPayload::menu_action("component_lab.input_dropdown_option.select"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "InputSegmentedSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabInputSegment"),
+        EditorUiBindingPayload::menu_action("component_lab.input_segment.select"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "IconToggleSegmentedSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabIconToggleSegment"),
+        EditorUiBindingPayload::menu_action("component_lab.icon_toggle_segment.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "LabsTabOne",
-        EditorUiBindingPayload::menu_action("SelectComponentLabLabsTabOne"),
+        EditorUiBindingPayload::menu_action("component_lab.labs_tab_one.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "LabsTabTwo",
-        EditorUiBindingPayload::menu_action("SelectComponentLabLabsTabTwo"),
+        EditorUiBindingPayload::menu_action("component_lab.labs_tab_two.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "LabsTabThree",
-        EditorUiBindingPayload::menu_action("SelectComponentLabLabsTabThree"),
+        EditorUiBindingPayload::menu_action("component_lab.labs_tab_three.select"),
     );
     insert_toggle(
         &mut bindings,
         "ComponentLab",
         "CheckboxOnToggle",
-        EditorUiBindingPayload::menu_action("ToggleComponentLabCheckboxOn"),
+        EditorUiBindingPayload::menu_action("component_lab.checkbox_on.toggle"),
     );
     insert_toggle(
         &mut bindings,
         "ComponentLab",
         "CheckboxOffToggle",
-        EditorUiBindingPayload::menu_action("ToggleComponentLabCheckboxOff"),
+        EditorUiBindingPayload::menu_action("component_lab.checkbox_off.toggle"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "RadioOnChange",
-        EditorUiBindingPayload::menu_action("SelectComponentLabRadioOn"),
+        EditorUiBindingPayload::menu_action("component_lab.radio_on.select"),
     );
     insert_change(
         &mut bindings,
         "ComponentLab",
         "RadioOffChange",
-        EditorUiBindingPayload::menu_action("SelectComponentLabRadioOff"),
+        EditorUiBindingPayload::menu_action("component_lab.radio_off.select"),
     );
     insert_toggle(
         &mut bindings,
         "ComponentLab",
         "ToggleSwitch",
-        EditorUiBindingPayload::menu_action("ToggleComponentLabSwitch"),
+        EditorUiBindingPayload::menu_action("component_lab.switch.toggle"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "ListItemSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabListItem"),
+        EditorUiBindingPayload::menu_action("component_lab.list_item.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "ListSelectedSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabListSelected"),
+        EditorUiBindingPayload::menu_action("component_lab.list_selected.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "TableItemSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabTableItem"),
+        EditorUiBindingPayload::menu_action("component_lab.table_item.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "TableSelectedSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabTableSelected"),
+        EditorUiBindingPayload::menu_action("component_lab.table_selected.select"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "TableTailSelect",
-        EditorUiBindingPayload::menu_action("SelectComponentLabTableTail"),
+        EditorUiBindingPayload::menu_action("component_lab.table_tail.select"),
     );
     insert_inspector_component_property_bindings(&mut bindings);
     super::workbench_module_template_bindings::insert_workbench_module_bindings(&mut bindings);
+    super::workbench_extension_module_template_bindings::insert_workbench_extension_module_bindings(
+        &mut bindings,
+    );
+    super::workbench_generated_bottom_template_bindings::insert_workbench_generated_bottom_bindings(
+        &mut bindings,
+    );
     insert_click(
         &mut bindings,
         "Workbench",
         "ToggleTheme",
-        EditorUiBindingPayload::menu_action("ToggleTheme"),
+        EditorUiBindingPayload::menu_action("workbench.theme.toggle"),
     );
 
     bindings
@@ -408,7 +414,11 @@ fn insert_inspector_transform_axis_bindings(bindings: &mut BTreeMap<String, Edit
     for group in ["Position", "Rotation", "Scale"] {
         for axis in ["X", "Y", "Z"] {
             let edit_control_id = format!("Transform{group}{axis}Edit");
-            let edit_action = format!("Inspector.Transform.{group}{axis}.Edit");
+            let edit_action = format!(
+                "inspector.transform.{}_{}.edit",
+                group.to_ascii_lowercase(),
+                axis.to_ascii_lowercase()
+            );
             insert_change(
                 bindings,
                 "Inspector",
@@ -417,7 +427,11 @@ fn insert_inspector_transform_axis_bindings(bindings: &mut BTreeMap<String, Edit
             );
 
             let commit_control_id = format!("Transform{group}{axis}Commit");
-            let commit_action = format!("Inspector.Transform.{group}{axis}.Commit");
+            let commit_action = format!(
+                "inspector.transform.{}_{}.commit",
+                group.to_ascii_lowercase(),
+                axis.to_ascii_lowercase()
+            );
             insert_submit(
                 bindings,
                 "Inspector",
@@ -432,7 +446,7 @@ fn insert_inspector_component_property_bindings(bindings: &mut BTreeMap<String, 
     for index in 1..=4 {
         let slot = format!("ComponentProperty{index:02}");
         let edit_control_id = format!("{slot}Edit");
-        let edit_action = format!("Inspector.{slot}.Edit");
+        let edit_action = format!("inspector.component_property_{index:02}.edit");
         insert_change(
             bindings,
             "Inspector",
@@ -441,7 +455,7 @@ fn insert_inspector_component_property_bindings(bindings: &mut BTreeMap<String, 
         );
 
         let commit_control_id = format!("{slot}Commit");
-        let commit_action = format!("Inspector.{slot}.Commit");
+        let commit_action = format!("inspector.component_property_{index:02}.commit");
         insert_submit(
             bindings,
             "Inspector",

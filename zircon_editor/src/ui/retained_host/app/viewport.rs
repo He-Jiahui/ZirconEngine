@@ -13,6 +13,7 @@ const VIEWPORT_POINTER_DOWN: i32 = 0;
 const VIEWPORT_POINTER_MOVE: i32 = 1;
 const VIEWPORT_POINTER_UP: i32 = 2;
 const VIEWPORT_POINTER_SCROLL: i32 = 3;
+const VIEWPORT_POINTER_CANCEL: i32 = 4;
 
 const VIEWPORT_POINTER_BUTTON_NONE: i32 = 0;
 const VIEWPORT_POINTER_BUTTON_PRIMARY: i32 = 1;
@@ -191,6 +192,7 @@ fn world_space_ui_pointer_status(kind: UiPointerEventKind, control_id: &str) -> 
         UiPointerEventKind::Scroll => Some(format!("World-space UI scroll routed: {control_id}")),
         UiPointerEventKind::Up => Some(format!("World-space UI target released: {control_id}")),
         UiPointerEventKind::Move => None,
+        UiPointerEventKind::Cancel => Some(format!("World-space UI target canceled: {control_id}")),
     }
 }
 
@@ -206,6 +208,7 @@ fn map_viewport_pointer_event(
         VIEWPORT_POINTER_MOVE => UiPointerEventKind::Move,
         VIEWPORT_POINTER_UP => UiPointerEventKind::Up,
         VIEWPORT_POINTER_SCROLL => UiPointerEventKind::Scroll,
+        VIEWPORT_POINTER_CANCEL => UiPointerEventKind::Cancel,
         _ => return Err(format!("unknown viewport pointer kind {kind}")),
     };
 

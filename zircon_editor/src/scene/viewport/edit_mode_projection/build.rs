@@ -1,4 +1,4 @@
-use zircon_runtime::scene::{EntityId, Scene, SceneEditorHierarchyRow, SceneEditorInspectorField};
+use zircon_runtime::scene::{EntityId, Scene, WorldInspectionField, WorldInspectionHierarchyRow};
 use zircon_runtime_interface::reflect::ReflectedValue;
 
 use crate::scene::viewport::SceneViewportSettings;
@@ -31,18 +31,18 @@ pub(crate) fn build_scene_edit_mode_projection(
     selected: Option<EntityId>,
     handle_drag_active: bool,
 ) -> SceneEditModeProjection {
-    let runtime_projection = scene.editor_projection(selected);
-    let selected_entity = runtime_projection.selected_entity;
+    let inspection = scene.inspect_world(selected);
+    let selected_entity = inspection.focused_entity;
 
     SceneEditModeProjection {
         selected_entity,
-        hierarchy_rows: runtime_projection
+        hierarchy_rows: inspection
             .hierarchy_rows
             .into_iter()
             .map(SceneHierarchyRow::from)
             .collect(),
-        inspector_fields: runtime_projection
-            .inspector_fields
+        inspector_fields: inspection
+            .fields
             .into_iter()
             .filter_map(scene_inspector_field_from_runtime)
             .collect(),
@@ -51,27 +51,25 @@ pub(crate) fn build_scene_edit_mode_projection(
     }
 }
 
-impl From<SceneEditorHierarchyRow> for SceneHierarchyRow {
-    fn from(row: SceneEditorHierarchyRow) -> Self {
+impl From<WorldInspectionHierarchyRow> for SceneHierarchyRow {
+    fn from(row: WorldInspectionHierarchyRow) -> Self {
         Self {
             entity: row.entity,
             parent: row.parent,
             depth: row.depth,
             display_name: row.display_name,
             kind: row.kind,
-            selected: row.selected,
+            selected: row.focused,
             active_in_hierarchy: row.active_in_hierarchy,
             has_children: row.has_children,
         }
     }
 }
 
-fn scene_inspector_field_from_runtime(
-    field: SceneEditorInspectorField,
-) -> Option<SceneInspectorField> {
+fn scene_inspector_field_from_runtime(field: WorldInspectionField) -> Option<SceneInspectorField> {
     let property_path = property_path_for_field(&field);
     let value = scene_inspector_value_from_reflected(&field)?;
-    let editable = field.editable && property_path.is_some();
+    let editable = field.writable && property_path.is_some();
     Some(SceneInspectorField {
         component: component_label(&field).to_string(),
         label: field_label(&field),
@@ -82,7 +80,7 @@ fn scene_inspector_field_from_runtime(
 }
 
 fn scene_inspector_value_from_reflected(
-    field: &SceneEditorInspectorField,
+    field: &WorldInspectionField,
 ) -> Option<SceneInspectorFieldValue> {
     match &field.value {
         ReflectedValue::Bool(value) => Some(SceneInspectorFieldValue::Bool(*value)),
@@ -107,11 +105,11 @@ fn scene_inspector_value_from_reflected(
     }
 }
 
-fn is_transform_rotation(field: &SceneEditorInspectorField) -> bool {
+fn is_transform_rotation(field: &WorldInspectionField) -> bool {
     field.component_type_path == LOCAL_TRANSFORM_TYPE_PATH && field.field_name == "rotation"
 }
 
-fn property_path_for_field(field: &SceneEditorInspectorField) -> Option<String> {
+fn property_path_for_field(field: &WorldInspectionField) -> Option<String> {
     if field.component_type_path == ACTIVE_IN_HIERARCHY_TYPE_PATH {
         return None;
     }
@@ -120,7 +118,7 @@ fn property_path_for_field(field: &SceneEditorInspectorField) -> Option<String> 
     Some(format!("{component}.{property}"))
 }
 
-fn property_component_name(field: &SceneEditorInspectorField) -> &str {
+fn property_component_name(field: &WorldInspectionField) -> &str {
     match field.component_type_path.as_str() {
         NAME_TYPE_PATH => "Name",
         HIERARCHY_TYPE_PATH => "Hierarchy",
@@ -141,7 +139,7 @@ fn property_component_name(field: &SceneEditorInspectorField) -> &str {
     }
 }
 
-fn property_field_name(field: &SceneEditorInspectorField) -> &str {
+fn property_field_name(field: &WorldInspectionField) -> &str {
     match (
         field.component_type_path.as_str(),
         field.field_name.as_str(),
@@ -152,7 +150,7 @@ fn property_field_name(field: &SceneEditorInspectorField) -> &str {
     }
 }
 
-fn component_label(field: &SceneEditorInspectorField) -> &str {
+fn component_label(field: &WorldInspectionField) -> &str {
     match field.component_type_path.as_str() {
         LOCAL_TRANSFORM_TYPE_PATH => "Transform",
         ACTIVE_SELF_TYPE_PATH | ACTIVE_IN_HIERARCHY_TYPE_PATH => "Active",
@@ -169,7 +167,7 @@ fn component_label(field: &SceneEditorInspectorField) -> &str {
     }
 }
 
-fn field_label(field: &SceneEditorInspectorField) -> String {
+fn field_label(field: &WorldInspectionField) -> String {
     match (
         field.component_type_path.as_str(),
         field.field_name.as_str(),

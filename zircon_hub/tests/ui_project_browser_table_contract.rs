@@ -66,10 +66,12 @@ fn project_browser_rows_have_localized_status_data() {
 fn project_browser_header_and_rows_share_one_column_model() {
     let components = read_ui_file("project_browser_components.slint");
     let page = read_ui_file("project_browser_page.slint");
+    let table_view = read_ui_file("table_view_components.slint");
 
     for snippet in [
         "export component ProjectBrowserTableHeader inherits Rectangle",
-        "export component ProjectBrowserRow inherits HubRowSurface",
+        "component ProjectBrowserNameCell inherits Rectangle",
+        "export component ProjectBrowserRow inherits HubInteractiveRowSurface",
         "export component ProjectBrowserResultsPanel inherits HubTableView",
         "in property <length> table-padding-x",
         "in property <length> table-gap",
@@ -79,12 +81,18 @@ fn project_browser_header_and_rows_share_one_column_model() {
         "in property <length> status-column-width",
         "in property <length> detail-column-width",
         "in property <bool> compact-table",
-        "if !root.compact-table: MaterialText",
+        "TableCellText,",
+        "TableColumnHeader,",
+        "if !root.compact-table: TableColumnHeader",
         "if !root.compact-table: StatusBadge",
         "selected: root.project.selected;",
         "idle-background: HubVisualSpec.panel-background;",
         "selected-background: MaterialPalette.secondary_container;",
         "selected-border-width: MaterialStyleMetrics.size_1;",
+        "row-radius: HubVisualSpec.compact-radius;",
+        "interaction-foreground: root.content-foreground;",
+        "clicked =>",
+        "root.select(root.project.open-path);",
         "detail-slot := HubRowTrailingSlot {",
         "slot-width: root.detail-column-width;",
         "show-action: true;",
@@ -99,8 +107,15 @@ fn project_browser_header_and_rows_share_one_column_model() {
     let header = components
         .split("export component ProjectBrowserTableHeader")
         .nth(1)
+        .and_then(|source| source.split("component ProjectBrowserNameCell").next())
+        .expect("project_browser_components.slint must declare ProjectBrowserTableHeader before ProjectBrowserNameCell");
+    let name_cell = components
+        .split("component ProjectBrowserNameCell")
+        .nth(1)
         .and_then(|source| source.split("export component ProjectBrowserRow").next())
-        .expect("project_browser_components.slint must declare ProjectBrowserTableHeader before ProjectBrowserRow");
+        .expect(
+            "project_browser_components.slint must declare ProjectBrowserNameCell before ProjectBrowserRow",
+        );
     let row = components
         .split("export component ProjectBrowserRow")
         .nth(1)
@@ -122,13 +137,124 @@ fn project_browser_header_and_rows_share_one_column_model() {
         );
     }
     assert!(
-        header.matches("horizontal_alignment: left;").count() >= 4,
-        "ProjectBrowserTableHeader must left-align every visible column label so labels share row column starts"
+        header.matches("TableColumnHeader {").count() >= 4,
+        "ProjectBrowserTableHeader must delegate every visible column label to the shared TableColumnHeader primitive"
     );
+    for snippet in [
+        "text: root.name-label;",
+        "row-height: root.header-height;",
+        "horizontal-stretch: 1;",
+        "if !root.compact-table: TableColumnHeader",
+        "width: root.engine-column-width;",
+        "text: root.engine-label;",
+        "width: root.modified-column-width;",
+        "text: root.modified-label;",
+        "width: root.status-column-width;",
+        "text: root.status-label;",
+    ] {
+        assert!(
+            header.contains(snippet),
+            "ProjectBrowserTableHeader must preserve Browser column labels while using TableColumnHeader; missing {snippet}"
+        );
+    }
+    for forbidden in ["MaterialText {", "MaterialTypography.label_medium"] {
+        assert!(
+            !header.contains(forbidden),
+            "ProjectBrowserTableHeader should not recreate table-header typography after adopting TableColumnHeader: {forbidden}"
+        );
+    }
+
+    for snippet in [
+        "in property <RecentProjectRowData> project;",
+        "in property <length> cell-height: HubTokens.list-row-lg;",
+        "in property <color> title-foreground: MaterialPalette.on_surface;",
+        "MaterialText {",
+        "text: root.project.title;",
+        "color: root.title-foreground;",
+        "style: MaterialTypography.label_large;",
+        "horizontal_alignment: left;",
+        "if root.project.pinned: Badge",
+        "text: root.pinned-label;",
+        "badge-width: root.pinned-badge-width;",
+        "if root.project.missing: Badge",
+        "text: root.missing-label;",
+        "badge-width: root.missing-badge-width;",
+        "MutedText {",
+        "text: root.project.project-path;",
+    ] {
+        assert!(
+            name_cell.contains(snippet),
+            "ProjectBrowserNameCell must own Browser title/path/badge typography; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "ProjectBrowserNameCell {",
+        "cell-height: root.row-height;",
+        "project: root.project;",
+        "table-gap: root.table-gap;",
+        "title-line-height: root.title-line-height;",
+        "pinned-label: root.pinned-label;",
+        "missing-label: root.missing-label;",
+        "pinned-badge-width: root.pinned-badge-width;",
+        "missing-badge-width: root.missing-badge-width;",
+        "title-foreground: root.content-foreground;",
+    ] {
+        assert!(
+            row.contains(snippet),
+            "ProjectBrowserRow must delegate the custom name lane to ProjectBrowserNameCell; missing {snippet}"
+        );
+    }
     assert!(
-        row.matches("horizontal_alignment: left;").count() >= 3,
-        "ProjectBrowserRow must left-align name, engine, and modified text against the table header columns"
+        table_view
+            .split("export component TableCellText")
+            .nth(1)
+            .and_then(|source| source.split("export component ProjectTableRow").next())
+            .is_some_and(|source| source.contains("horizontal_alignment: left;")),
+        "ProjectBrowserRow must inherit ordinary body-cell alignment from TableCellText"
     );
+    assert_eq!(
+        row.matches("if !root.compact-table: TableCellText").count(),
+        2,
+        "ProjectBrowserRow should delegate engine and modified ordinary body columns to TableCellText"
+    );
+    for snippet in [
+        "if !root.compact-table: TableCellText",
+        "width: root.engine-column-width;",
+        "row-height: root.row-height;",
+        "text: root.project.version;",
+        "width: root.modified-column-width;",
+        "text: root.project.modified;",
+    ] {
+        assert!(
+            row.contains(snippet),
+            "ProjectBrowserRow must preserve Browser body column geometry while using TableCellText; missing {snippet}"
+        );
+    }
+    for forbidden in [
+        "if !root.compact-table: MaterialText",
+        "MaterialText {",
+        "MutedText {",
+        "style: MaterialTypography.label_large;",
+        "text: root.project.title;",
+        "text: root.project.project-path;",
+        "style: MaterialTypography.body_small;",
+        "color: MaterialPalette.on_surface_variant;",
+    ] {
+        assert!(
+            !row.contains(forbidden),
+            "ProjectBrowserRow should not recreate ordinary body-cell text styling after adopting TableCellText: {forbidden}"
+        );
+    }
+    for forbidden in [
+        "row-state := StateLayerArea {",
+        "area := TouchArea",
+        "row-state.mouse-x",
+    ] {
+        assert!(
+            !row.contains(forbidden),
+            "ProjectBrowserRow should keep Browser selection on HubInteractiveRowSurface rather than local row hit testing: {forbidden}"
+        );
+    }
 
     let panel = components
         .split("export component ProjectBrowserResultsPanel")

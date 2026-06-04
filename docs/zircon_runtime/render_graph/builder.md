@@ -17,6 +17,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
 implementation_files:
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/error.rs
@@ -38,6 +39,7 @@ implementation_files:
   - zircon_runtime/src/core/diagnostics/render_stats_store/graph.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/render_graph/tests/resources.rs
+  - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
 plan_sources:
   - .codex/plans/Zircon SRPRHI 渲染管线补全计划.md
@@ -55,6 +57,8 @@ tests:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_storage_write_mode_on_read_access
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_preserves_compute_workload_metadata
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_preserves_sparse_texture_reservations_without_dense_transient_slot
+  - zircon_runtime/src/render_graph/tests/resources.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
+  - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs::render_framework_stats_report_transient_allocation_bytes
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_preserves_compute_workload_from_feature_descriptor
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_rejects_compute_workload_on_non_compute_queue
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_audits_planned_compute_workloads_against_dispatches
@@ -113,6 +117,10 @@ Sparse texture resources use the ordinary `TextureDesc` shape plus `TextureResid
 
 Transient allocation planning keeps sparse reservations out of the dense transient texture aliasing pool. `CompiledRenderGraphTransientAllocationPlan.texture_slot_count` still counts only dense transient texture slots, while `sparse_texture_slot_count` records the number of sparse transient reservations that a later residency manager must own explicitly. That keeps virtual texture resources visible to graph validation and diagnostics without pretending they can alias with ordinary render targets or scratch textures.
 
+The allocation plan is now byte-aware. Each dense transient allocation records its descriptor-derived `size_bytes`; each texture or buffer slot records the maximum byte requirement of all non-overlapping resources assigned to that slot; and the plan exposes `dense_texture_bytes_reserved`, `dense_buffer_bytes_reserved`, and `total_dense_bytes_reserved()`. Sparse reservations remain excluded from dense slots but still contribute to `sparse_texture_virtual_bytes`, giving residency planning a virtual footprint without claiming dense backing memory. The size estimate uses the same RHI-neutral `BufferDesc.size_bytes` and `TextureDesc::checked_storage_size_bytes()` inputs as the headless WGPU transient allocator stats, so later RenderGraph/RHI pooling work can compare planned alias pressure against live backend pressure without exposing concrete WGPU resources.
+
+`update_base_stats(...)` copies those byte totals into `RenderStats` as `last_graph_transient_texture_bytes_reserved`, `last_graph_transient_buffer_bytes_reserved`, `last_graph_transient_dense_bytes_reserved`, and `last_graph_sparse_texture_virtual_bytes`. Runtime diagnostics mirror them with `bytes` units under `render.graph.transient_texture_bytes_reserved`, `render.graph.transient_buffer_bytes_reserved`, `render.graph.transient_dense_bytes_reserved`, and `render.graph.sparse_texture_virtual_bytes`. These rows are graph planning evidence only; they do not imply that WGPU allocated a sparse object or a concrete transient pool yet.
+
 ## Compute Workload Metadata
 
 Compute workload metadata is a planned graph contract, not a backend object. `RenderGraphComputeWorkload` carries a neutral pipeline label, non-zero workgroup size, and dispatch extent (`Viewport`, `ClusterGrid`, or `Fixed`). SRP feature descriptors attach it with `with_compute_workload(...)`; `RenderPipelineAsset::compile(...)` validates that the pass still declares `QueueLane::AsyncCompute`, then copies the workload onto `CompiledRenderPass.compute_workload`.
@@ -130,3 +138,7 @@ Focused RenderGraph validation on 2026-06-02 passed with 22 tests, 0 failures, u
 The 2026-06-03 M8 storage-write slice used the same target dir. `graph_records_storage_writes_without_attachment_ops`, `compile_options_fallback_async_compute_passes_to_graphics_queue`, and `pipeline_compile_rejects_storage_write_mode_on_read_access` passed, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only.
 
 The 2026-06-03 M8 workload-audit slice reused `E:\cargo-targets\zircon-render-main-chain`. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. `cargo test -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --color never compute_workload` passed 5 filtered tests, covering graph metadata preservation, pipeline compile validation, and execution-record workload audit status. `headless_wgpu_server_falls_back_async_compute_passes_to_graphics` and `runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins` also passed, proving the matched workload count reaches `RenderStats` and runtime diagnostics. The follow-up dispatch-extent audit extends the execution-record tests so viewport, cluster-grid, and fixed dispatch plans preserve planned/actual dispatch-group evidence and report `DispatchExtentMismatch` when a renderer records the wrong group count.
+
+The 2026-06-04 byte-aware transient allocation slice extended `CompiledRenderGraphTransientAllocationPlan` with per-resource byte size, per-slot reserved byte size, dense texture/buffer byte totals, and sparse virtual texture bytes. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. Focused `cargo test -p zircon_runtime --lib render_graph::tests::resources::graph_transient_allocation_plan_reports_slot_reserved_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` initially timed out while the Windows lib-test binary was compiling and linking; after the compile lane drained and produced `zircon_runtime-b34ee8d8fc52f1fd.exe`, the warmed rerun passed 1 test, 0 failed, 2680 filtered, with existing warnings only.
+
+The follow-up diagnostics bridge preserves those planned byte totals through `RenderStats` and `DiagnosticStore` without exposing backend allocations. Focused validation target: `cargo test -p zircon_runtime --lib render_framework_stats_report_transient_allocation_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture`.

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::framework::sound::{SoundError, SoundManager};
+use zircon_runtime::core::framework::sound::{
+    SoundBackendManager, SoundError, SoundOutputDeviceManager,
+};
 
 use super::model::{
     SoundEditorOutputAction, SoundEditorOutputActionReport, SoundEditorOutputDeviceRow,
@@ -9,12 +11,12 @@ use super::model::{
 
 #[derive(Clone)]
 pub struct SoundEditorLiveOutputController {
-    manager: Arc<dyn SoundManager>,
+    manager: Arc<dyn SoundEditorLiveOutputManager>,
 }
 
 impl SoundEditorLiveOutputController {
-    /// Creates a plugin-local live output controller over the neutral sound manager contract.
-    pub fn new(manager: Arc<dyn SoundManager>) -> Self {
+    /// Creates a plugin-local live output controller over the neutral output control contracts.
+    pub fn new(manager: Arc<dyn SoundEditorLiveOutputManager>) -> Self {
         Self { manager }
     }
 
@@ -78,6 +80,16 @@ impl SoundEditorLiveOutputController {
     }
 }
 
+pub trait SoundEditorLiveOutputManager:
+    SoundBackendManager + SoundOutputDeviceManager + Send + Sync
+{
+}
+
+impl<T> SoundEditorLiveOutputManager for T where
+    T: SoundBackendManager + SoundOutputDeviceManager + Send + Sync
+{
+}
+
 fn dedupe_diagnostics(diagnostics: &mut Vec<String>) {
     let mut unique = Vec::with_capacity(diagnostics.len());
     for diagnostic in diagnostics.drain(..) {
@@ -99,22 +111,10 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use zircon_runtime::core::framework::sound::{
-        ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId,
-        SoundAutomationCurve, SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState,
-        SoundBackendStatus, SoundClipId, SoundClipInfo, SoundDynamicEventCatalog,
-        SoundDynamicEventDelivery, SoundDynamicEventDescriptor, SoundDynamicEventExecutionReport,
-        SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation, SoundEffectDescriptor,
-        SoundEffectId, SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor,
-        SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixBlock,
-        SoundMixerGraph, SoundMixerPresetDescriptor, SoundMixerSnapshot,
-        SoundOutputDeviceDescriptor, SoundOutputDeviceId, SoundOutputDeviceInfo,
-        SoundOutputDeviceState, SoundOutputDeviceStatus, SoundOutputLatencyStatus,
-        SoundParameterId, SoundPlaybackFinished, SoundPlaybackId, SoundPlaybackSettings,
-        SoundPlaybackStatus, SoundRayTracedImpulseResponseDescriptor,
-        SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceFinished,
-        SoundSourceId, SoundSourceStatus, SoundTimelineSequence, SoundTimelineSequenceAdvance,
-        SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
-        SoundVolumeDescriptor, SoundVolumeId,
+        SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState, SoundBackendStatus,
+        SoundChannelLayout, SoundMixBlock, SoundOutputDeviceDescriptor, SoundOutputDeviceId,
+        SoundOutputDeviceInfo, SoundOutputDeviceState, SoundOutputDeviceStatus,
+        SoundOutputLatencyStatus,
     };
 
     use super::*;
@@ -216,7 +216,7 @@ mod tests {
         }
     }
 
-    impl SoundManager for FakeSoundManager {
+    impl SoundBackendManager for FakeSoundManager {
         fn backend_name(&self) -> String {
             self.descriptor.lock().unwrap().backend.clone()
         }
@@ -230,9 +230,12 @@ mod tests {
                 detail: None,
                 sample_rate_hz: descriptor.sample_rate_hz,
                 channel_count: descriptor.channel_count,
+                channel_layout: descriptor.channel_layout.clone(),
             }
         }
+    }
 
+    impl SoundOutputDeviceManager for FakeSoundManager {
         fn configure_output_device(
             &self,
             descriptor: SoundOutputDeviceDescriptor,
@@ -308,443 +311,6 @@ mod tests {
         fn pull_output_backend_callback(&self) -> Result<SoundBackendCallbackBlock, SoundError> {
             unimplemented!("not used by live output tests")
         }
-
-        fn global_volume_gain(&self) -> Result<f32, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_global_volume_gain(&self, _gain: f32) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn default_spatial_scale(&self) -> Result<f32, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_default_spatial_scale(&self, _scale: f32) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn load_clip(&self, _locator: &str) -> Result<SoundClipId, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn clip_info(&self, _clip: SoundClipId) -> Result<SoundClipInfo, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn play_clip(
-            &self,
-            _clip: SoundClipId,
-            _settings: SoundPlaybackSettings,
-        ) -> Result<SoundPlaybackId, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn stop_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn pause_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn resume_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn toggle_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_playback_gain(
-            &self,
-            _playback: SoundPlaybackId,
-            _gain: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_playback_speed(
-            &self,
-            _playback: SoundPlaybackId,
-            _speed: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn seek_playback_seconds(
-            &self,
-            _playback: SoundPlaybackId,
-            _seconds: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn mute_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn unmute_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn toggle_mute_playback(&self, _playback: SoundPlaybackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn playback_empty(&self, _playback: SoundPlaybackId) -> Result<bool, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn playback_status(
-            &self,
-            _playback: SoundPlaybackId,
-        ) -> Result<SoundPlaybackStatus, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn drain_finished_playbacks(&self) -> Result<Vec<SoundPlaybackFinished>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn available_mixer_presets(&self) -> Result<Vec<SoundMixerPresetDescriptor>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn apply_mixer_preset(&self, _locator: &str) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn configure_mixer(&self, _graph: SoundMixerGraph) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn mixer_snapshot(&self) -> Result<SoundMixerSnapshot, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn add_or_update_track(&self, _track: SoundTrackDescriptor) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_track(&self, _track: SoundTrackId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn add_or_update_track_send(
-            &self,
-            _track: SoundTrackId,
-            _send: SoundTrackSend,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_track_send(
-            &self,
-            _track: SoundTrackId,
-            _target: SoundTrackId,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn add_or_update_effect(
-            &self,
-            _track: SoundTrackId,
-            _effect: SoundEffectDescriptor,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_effect(
-            &self,
-            _track: SoundTrackId,
-            _effect: SoundEffectId,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn create_source(
-            &self,
-            _source: SoundSourceDescriptor,
-        ) -> Result<SoundSourceId, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn update_source(&self, _source: SoundSourceDescriptor) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn stop_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn pause_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn resume_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn toggle_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_source_gain(&self, _source: SoundSourceId, _gain: f32) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_source_speed(&self, _source: SoundSourceId, _speed: f32) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn seek_source_seconds(
-            &self,
-            _source: SoundSourceId,
-            _seconds: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn mute_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn unmute_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn toggle_mute_source(&self, _source: SoundSourceId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn source_empty(&self, _source: SoundSourceId) -> Result<bool, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn source_status(&self, _source: SoundSourceId) -> Result<SoundSourceStatus, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn submit_external_source_block(
-            &self,
-            _handle: ExternalAudioSourceHandle,
-            _block: SoundExternalSourceBlock,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn clear_external_source(
-            &self,
-            _handle: &ExternalAudioSourceHandle,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn update_listener(&self, _listener: SoundListenerDescriptor) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_listener(&self, _listener: SoundListenerId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn update_volume(&self, _volume: SoundVolumeDescriptor) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_volume(&self, _volume: SoundVolumeId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_parameter(
-            &self,
-            _parameter: SoundParameterId,
-            _value: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn parameter_value(&self, _parameter: &SoundParameterId) -> Result<f32, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn bind_automation(&self, _binding: SoundAutomationBinding) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn apply_automation_value(
-            &self,
-            _binding: SoundAutomationBindingId,
-            _value: f32,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn apply_automation_curve_sample(
-            &self,
-            _binding: SoundAutomationBindingId,
-            _curve: &SoundAutomationCurve,
-            _time_seconds: f32,
-        ) -> Result<f32, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn unbind_automation(&self, _binding: SoundAutomationBindingId) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn schedule_timeline_sequence(
-            &self,
-            _sequence: SoundTimelineSequence,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_timeline_sequence(
-            &self,
-            _sequence: &SoundTimelineSequenceId,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn timeline_sequences(&self) -> Result<Vec<SoundTimelineSequence>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn advance_timeline_sequences(
-            &self,
-            _delta_seconds: f32,
-        ) -> Result<Vec<SoundTimelineSequenceAdvance>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn dynamic_event_catalog(&self) -> Result<SoundDynamicEventCatalog, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn register_dynamic_event(
-            &self,
-            _descriptor: SoundDynamicEventDescriptor,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn unregister_dynamic_event(&self, _event_id: &str) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn dynamic_event_handlers(
-            &self,
-        ) -> Result<Vec<SoundDynamicEventHandlerDescriptor>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn register_dynamic_event_handler(
-            &self,
-            _handler: SoundDynamicEventHandlerDescriptor,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn unregister_dynamic_event_handler(
-            &self,
-            _plugin_id: &str,
-            _handler_id: &str,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn submit_dynamic_event(
-            &self,
-            _invocation: SoundDynamicEventInvocation,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn drain_dynamic_events(&self) -> Result<Vec<SoundDynamicEventInvocation>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn dispatch_dynamic_events(&self) -> Result<Vec<SoundDynamicEventDelivery>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn execute_dynamic_events(&self) -> Result<SoundDynamicEventExecutionReport, SoundError> {
-            Ok(SoundDynamicEventExecutionReport {
-                executions: Vec::new(),
-            })
-        }
-
-        fn set_impulse_response(
-            &self,
-            _impulse_response: SoundImpulseResponseId,
-            _samples: Vec<f32>,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_impulse_response(
-            &self,
-            _impulse_response: SoundImpulseResponseId,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn load_hrtf_profile(
-            &self,
-            _profile: SoundHrtfProfileDescriptor,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn remove_hrtf_profile(&self, _profile_id: &str) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn hrtf_profiles(&self) -> Result<Vec<SoundHrtfProfileDescriptor>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn set_ray_tracing_convolution_status(
-            &self,
-            _status: SoundRayTracingConvolutionStatus,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn submit_ray_traced_impulse_response(
-            &self,
-            _descriptor: SoundRayTracedImpulseResponseDescriptor,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn ray_traced_impulse_responses(
-            &self,
-        ) -> Result<Vec<SoundRayTracedImpulseResponseDescriptor>, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn clear_ray_traced_impulse_response(
-            &self,
-            _impulse_response: SoundImpulseResponseId,
-        ) -> Result<(), SoundError> {
-            unimplemented!("not used by live output tests")
-        }
-
-        fn render_mix(&self, _frames: usize) -> Result<SoundMixBlock, SoundError> {
-            unimplemented!("not used by live output tests")
-        }
     }
 
     fn software_descriptor() -> SoundOutputDeviceDescriptor {
@@ -754,6 +320,7 @@ mod tests {
             display_name: "Software Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
+            channel_layout: SoundChannelLayout::stereo(),
             block_size_frames: 256,
             latency_blocks: 2,
         }
@@ -766,6 +333,7 @@ mod tests {
             display_name: "CPAL Default Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
+            channel_layout: SoundChannelLayout::stereo(),
             block_size_frames: 256,
             latency_blocks: 2,
         }

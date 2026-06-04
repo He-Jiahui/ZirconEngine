@@ -7,10 +7,12 @@ use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiDispatchDisposition, UiInputEvent, UiInputEventMetadata, UiInputSequence,
-        UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
+        UiDispatchDisposition, UiDispatchEffect, UiFocusEffectReason, UiInputEvent,
+        UiInputEventMetadata, UiInputRoutePolicy, UiInputSequence, UiInputTimestamp,
+        UiKeyboardInputEvent, UiKeyboardInputState,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    focus::UiFocusedInputKind,
     layout::UiFrame,
     template::UiBindingRef,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
@@ -109,17 +111,43 @@ fn text_input_keyboard_text_payload_rejects_stale_disabled_focus_owner() {
 }
 
 #[test]
-fn text_input_keyboard_text_payload_ignores_tab_navigation() {
+fn text_input_keyboard_tab_does_not_insert_text_and_routes_navigation() {
     let mut surface = text_input_surface("ab", 1, []);
     surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = dispatch_key_with_text(&mut surface, "Tab", 9, Some("\t"), |_| {});
 
-    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.navigation")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_navigation=Next"));
+    assert!(matches!(
+        &result.applied_effects[0].effect,
+        UiDispatchEffect::SetFocus { target, reason }
+            if *target == UiNodeId::new(2)
+                && *reason == UiFocusEffectReason::Navigation
+    ));
     assert_eq!(text_attr(&surface, "content"), "ab");
     assert_eq!(int_attr(&surface, "caret_offset"), 1);
     assert!(result.component_events.is_empty());
     assert!(result.binding_reports.is_empty());
+    assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Navigation
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
 }
 
 #[test]

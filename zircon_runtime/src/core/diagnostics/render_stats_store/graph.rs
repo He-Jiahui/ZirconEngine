@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{record_bool, record_bytes, record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_frame_graph(store, stats);
@@ -85,6 +85,34 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_graph_transient_buffer_slot_count,
         &["render", "graph", "transient", "buffer"],
+    );
+    record_bytes(
+        store,
+        "render.graph.transient_texture_bytes_reserved",
+        frame_index,
+        stats.last_graph_transient_texture_bytes_reserved,
+        &["render", "graph", "transient", "texture"],
+    );
+    record_bytes(
+        store,
+        "render.graph.transient_buffer_bytes_reserved",
+        frame_index,
+        stats.last_graph_transient_buffer_bytes_reserved,
+        &["render", "graph", "transient", "buffer"],
+    );
+    record_bytes(
+        store,
+        "render.graph.transient_dense_bytes_reserved",
+        frame_index,
+        stats.last_graph_transient_dense_bytes_reserved,
+        &["render", "graph", "transient"],
+    );
+    record_bytes(
+        store,
+        "render.graph.sparse_texture_virtual_bytes",
+        frame_index,
+        stats.last_graph_sparse_texture_virtual_bytes,
+        &["render", "graph", "transient", "texture", "sparse_texture"],
     );
     record_count(
         store,
@@ -197,6 +225,13 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_particle_graph_executed_pass_count,
         &["render", "graph", "particle"],
+    );
+    record_count(
+        store,
+        "render.graph.executed_shadow_pass_count",
+        frame_index,
+        stats.last_shadow_graph_executed_pass_count,
+        &["render", "graph", "shadow"],
     );
     record_count(
         store,

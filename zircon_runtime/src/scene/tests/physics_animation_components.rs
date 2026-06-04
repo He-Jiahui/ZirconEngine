@@ -3,7 +3,10 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
+use crate::core::framework::physics::{
+    PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
+    PhysicsSkeletonJointBinding,
+};
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -55,12 +58,34 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
         local_transform: Transform::default(),
     };
     let joint = JointComponent {
-        joint_type: JointKind::Hinge,
+        joint_type: JointKind::Generic6Dof,
         connected_entity: Some(world.active_camera()),
         anchor: crate::core::math::Vec3::new(0.0, 1.0, 0.0),
         axis: crate::core::math::Vec3::Y,
         limits: Some([-0.5, 0.5]),
         collide_connected: false,
+        constraint: PhysicsJointConstraintMetadata {
+            linear_limits: [Some([-0.1, 0.1]), None, Some([0.0, 0.5])],
+            angular_limits: [Some([-0.5, 0.5]), Some([-0.25, 0.25]), None],
+            angular_drives: [
+                PhysicsJointDrive::default(),
+                PhysicsJointDrive {
+                    target_velocity: 1.0,
+                    stiffness: 8.0,
+                    damping: 0.5,
+                    max_force: 20.0,
+                    ..PhysicsJointDrive::default()
+                },
+                PhysicsJointDrive::default(),
+            ],
+            break_force: Some(100.0),
+            ..PhysicsJointConstraintMetadata::default()
+        },
+        skeleton_binding: Some(PhysicsSkeletonJointBinding {
+            skeleton_entity: entity,
+            bone_path: "Armature/Hips/Spine".to_string(),
+            parent_bone_path: Some("Armature/Hips".to_string()),
+        }),
     };
     let animation_skeleton = AnimationSkeletonComponent {
         skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(ResourceId::from_stable_label(

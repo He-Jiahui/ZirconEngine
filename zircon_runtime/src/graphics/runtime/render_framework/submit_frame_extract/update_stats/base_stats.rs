@@ -38,6 +38,14 @@ pub(super) fn update_base_stats(
     state.stats.last_graph_transient_texture_slot_count = allocation_plan.texture_slot_count;
     state.stats.last_graph_sparse_texture_slot_count = allocation_plan.sparse_texture_slot_count;
     state.stats.last_graph_transient_buffer_slot_count = allocation_plan.buffer_slot_count;
+    state.stats.last_graph_transient_texture_bytes_reserved =
+        allocation_plan.dense_texture_bytes_reserved;
+    state.stats.last_graph_transient_buffer_bytes_reserved =
+        allocation_plan.dense_buffer_bytes_reserved;
+    state.stats.last_graph_transient_dense_bytes_reserved =
+        allocation_plan.total_dense_bytes_reserved();
+    state.stats.last_graph_sparse_texture_virtual_bytes =
+        allocation_plan.sparse_texture_virtual_bytes;
     state.stats.last_graph_executed_passes =
         state.renderer.last_render_graph_executed_passes().to_vec();
     state.stats.last_graph_executed_executor_ids = state
@@ -128,6 +136,8 @@ pub(super) fn update_base_stats(
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "hybrid-gi.");
     state.stats.last_particle_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
+    state.stats.last_shadow_graph_executed_pass_count =
+        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "shadow.");
     state.stats.last_transparent_graph_executed_pass_count = state
         .renderer
         .last_render_graph_executed_stage_count(RenderPassStage::Transparent3d);

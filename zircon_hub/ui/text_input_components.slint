@@ -1,0 +1,212 @@
+import { HubTokens, HubVisualSpec } from "tokens.slint";
+import { HubCommandButton } from "button_components.slint";
+import {
+    Icon,
+    TextField,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialText,
+    MaterialTypography,
+    StateLayerArea,
+} from "material_bridge.slint";
+
+component SearchBoxPlaceholderText inherits MaterialText {
+    in property <string> value;
+    in property <color> foreground;
+
+    text: root.value;
+    color: root.foreground;
+    style: MaterialTypography.body_medium;
+    vertical_alignment: center;
+    overflow: elide;
+}
+
+export component SearchBox inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> enabled: true;
+    in property <bool> prominent: false;
+    out property <bool> focused: search-field.has-focus;
+    in property <length> box-width: HubTokens.input-width;
+    in property <length> box-height: HubVisualSpec.toolbar-density-height;
+    callback edited(string);
+    callback accepted(string);
+
+    // The compact toolbar search keeps text editing local while visual states
+    // derive from shared Hub tokens so dashboard and browser toolbars align.
+    private property <color> state-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : (root.prominent ? HubVisualSpec.search-prominent-background : HubVisualSpec.panel-background));
+    private property <bool> highlighted: root.focused || root.prominent;
+    private property <color> state-border: root.focused ? HubVisualSpec.focus-ring-color : (root.prominent ? HubVisualSpec.search-prominent-stroke : (root.text != "" ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted));
+    private property <color> placeholder-color: root.focused ? MaterialPalette.on_surface_variant : (root.prominent ? HubVisualSpec.search-prominent-placeholder : MaterialPalette.on_surface_variant.with_alpha(0.72));
+
+    forward-focus: search-field;
+    width: root.box-width;
+    height: root.box-height;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+    border-color: root.state-border;
+    background: root.state-background;
+    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    clip: true;
+
+    StateLayerArea {
+        width: parent.width;
+        height: parent.height;
+        color: root.focused ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+        border_radius: HubVisualSpec.compact-radius;
+        clicked => {
+            if (root.enabled) {
+                search-field.focus();
+            }
+        }
+    }
+
+    Icon {
+        width: HubTokens.icon-md;
+        height: HubTokens.icon-md;
+        x: HubTokens.space-4;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/search.svg");
+        colorize: MaterialPalette.on_surface_variant;
+    }
+
+    search-field := TextInput {
+        x: HubTokens.space-4 + HubTokens.icon-md + HubTokens.space-3;
+        width: parent.width - self.x - HubTokens.space-4;
+        height: parent.height;
+        text <=> root.text;
+        color: MaterialPalette.on_surface;
+        horizontal-alignment: left;
+        vertical-alignment: center;
+        single-line: true;
+        enabled: root.enabled;
+        accepted => {
+            root.accepted(root.text);
+        }
+        edited => {
+            root.edited(root.text);
+        }
+    }
+
+    if root.text == "": SearchBoxPlaceholderText {
+        x: search-field.x;
+        width: search-field.width;
+        height: parent.height;
+        value: root.placeholder;
+        foreground: root.placeholder-color;
+    }
+}
+
+export component HubTextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> label;
+    in property <string> placeholder;
+    in property <string> supporting-text;
+    in property <bool> enabled: true;
+    out property <bool> focused: material-field.has-focus;
+    in property <image> leading-icon;
+    in property <image> trailing-icon;
+    callback edited(string);
+    callback accepted(string);
+
+    // Material TextField owns editing and label behavior; this wrapper owns the
+    // shared Hub disabled and focus treatment used by all input primitives.
+    private property <color> focus-border: root.focused ? HubVisualSpec.focus-ring-color : transparent;
+    private property <float> state-opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+
+    forward-focus: material-field;
+    height: HubTokens.input-field;
+    min-width: 1px;
+    preferred-width: HubTokens.input-width;
+    horizontal-stretch: 1;
+    border-radius: HubVisualSpec.compact-radius;
+    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
+    border-color: root.focus-border;
+    opacity: root.state-opacity;
+    clip: false;
+
+    material-field := TextField {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.text;
+        label: root.label;
+        placeholder_text: root.placeholder != "" ? root.placeholder : root.label;
+        supporting_text: root.supporting-text;
+        leading_icon: root.leading-icon;
+        trailing_icon: root.trailing-icon;
+        enabled: root.enabled;
+        edited(value) => {
+            root.edited(value);
+        }
+        accepted(value) => {
+            root.accepted(value);
+        }
+    }
+}
+
+export component HubPathFieldRow inherits Rectangle {
+    in property <string> label;
+    in property <string> placeholder;
+    in property <string> supporting-text;
+    in-out property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> show-action: true;
+    in property <bool> action-enabled: true;
+    in property <bool> action-primary: false;
+    in property <string> action-label;
+    in property <image> action-icon: @image-url("../assets/icons/ui/folder.svg");
+    in property <bool> has-action-icon: true;
+    in property <length> field-height: HubTokens.input-field;
+    in property <length> action-width: HubTokens.control-md * 3;
+    in property <length> action-height: HubTokens.control-md;
+    in property <length> row-spacing: HubTokens.toolbar-gap;
+    in property <length> row-padding: 0px;
+    in property <bool> framed: false;
+    in property <length> row-height: max(root.field-height, root.action-height) + root.row-padding * 2;
+    in property <length> row-preferred-width: HubTokens.input-width + (root.show-action ? root.action-width + root.row-spacing : 0px);
+    callback action-clicked();
+
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: root.row-preferred-width;
+    height: root.row-height;
+    background: root.framed ? HubVisualSpec.panel-background : transparent;
+    border-radius: root.framed ? HubVisualSpec.compact-radius : 0px;
+    border-width: root.framed ? HubTokens.border-width : 0px;
+    border-color: HubVisualSpec.outline-muted;
+    clip: root.framed;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.row-padding;
+        padding-right: root.row-padding;
+        padding-top: root.row-padding;
+        padding-bottom: root.row-padding;
+        spacing: root.row-spacing;
+        alignment: center;
+
+        HubTextField {
+            height: root.field-height;
+            horizontal-stretch: 1;
+            label: root.label;
+            placeholder: root.placeholder != "" ? root.placeholder : root.label;
+            supporting-text: root.supporting-text;
+            text <=> root.text;
+            enabled: root.enabled;
+        }
+
+        if root.show-action: HubCommandButton {
+            button-width: root.action-width;
+            button-height: root.action-height;
+            text: root.action-label;
+            source-image: root.action-icon;
+            has-source-image: root.has-action-icon;
+            primary: root.action-primary;
+            enabled: root.action-enabled && root.enabled;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}

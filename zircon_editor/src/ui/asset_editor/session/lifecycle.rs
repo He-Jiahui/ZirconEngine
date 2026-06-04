@@ -138,7 +138,7 @@ impl UiAssetEditorSession {
         };
         Ok(Self {
             route,
-            source_schema: UiAssetSourceSchema::Legacy,
+            source_schema: UiAssetSourceSchema::LayoutDocument,
             source_buffer: UiAssetSourceBuffer::new(source.clone()),
             last_valid_source_text: source,
             last_valid_document: document,
@@ -604,13 +604,15 @@ impl UiAssetEditorSession {
 
     pub(super) fn revalidate(&mut self) -> Result<(), UiAssetEditorSessionError> {
         match self.source_schema {
-            UiAssetSourceSchema::Legacy => match parse_ui_asset_source(self.source_buffer.text()) {
-                Ok(document) => self.apply_valid_document(document),
-                Err(error) => {
-                    self.mark_current_source_invalid(error.to_string());
-                    Ok(())
+            UiAssetSourceSchema::LayoutDocument => {
+                match parse_ui_asset_source(self.source_buffer.text()) {
+                    Ok(document) => self.apply_valid_document(document),
+                    Err(error) => {
+                        self.mark_current_source_invalid(error.to_string());
+                        Ok(())
+                    }
                 }
-            },
+            }
             UiAssetSourceSchema::V2 => {
                 match UiV2AssetLoader::load_toml_str(self.source_buffer.text()) {
                     Ok(document) => self.apply_valid_v2_document(document),
@@ -785,7 +787,7 @@ impl UiAssetEditorSession {
         document: &UiAssetDocument,
     ) -> Result<String, UiAssetEditorSessionError> {
         match self.source_schema {
-            UiAssetSourceSchema::Legacy => serialize_document(document),
+            UiAssetSourceSchema::LayoutDocument => serialize_document(document),
             UiAssetSourceSchema::V2 => {
                 let document = legacy_projection_document_to_v2_document(
                     document,

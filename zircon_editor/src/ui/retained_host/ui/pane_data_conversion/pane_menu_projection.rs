@@ -32,7 +32,7 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
 
     host_contract::TemplatePaneMenuItemData {
         raw: raw.into(),
-        action_id: label.into(),
+        action_id: menu_item_action_id(label).into(),
         label: label.into(),
         shortcut: shortcut.into(),
         checked: has_flag(flags, "checked"),
@@ -42,6 +42,28 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
         hovered: has_flag(flags, "hovered"),
         pressed: has_flag(flags, "pressed"),
     }
+}
+
+fn menu_item_action_id(label: &str) -> String {
+    format!("menu.item.{}", label_to_action_segment(label))
+}
+
+fn label_to_action_segment(label: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in label.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 fn has_flag(flags: &str, expected: &str) -> bool {

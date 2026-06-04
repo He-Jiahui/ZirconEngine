@@ -59,42 +59,42 @@ children = [{ node = "toolbar_search_field" }]
 [nodes.toolbar_kind_all_chip]
 component = "Button"
 control_id = "AssetBrowserKindAllChip"
-props = { text = "All", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value_text = "" }
+props = { text = "All", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value_text = "" }
 layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_texture_chip]
 component = "Button"
 control_id = "AssetBrowserKindTextureChip"
-props = { text = "Texture", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Texture" }
+props = { text = "Texture", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "Texture" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_material_chip]
 component = "Button"
 control_id = "AssetBrowserKindMaterialChip"
-props = { text = "Material", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Material" }
+props = { text = "Material", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "Material" }
 layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_scene_chip]
 component = "Button"
 control_id = "AssetBrowserKindSceneChip"
-props = { text = "Scene", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Scene" }
+props = { text = "Scene", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "Scene" }
 layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_model_chip]
 component = "Button"
 control_id = "AssetBrowserKindModelChip"
-props = { text = "Model", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Model" }
+props = { text = "Model", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "Model" }
 layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_shader_chip]
 component = "Button"
 control_id = "AssetBrowserKindShaderChip"
-props = { text = "Shader", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Shader" }
+props = { text = "Shader", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "Shader" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
@@ -105,14 +105,14 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.toolbar_view_mode_list_button]
 component = "Button"
 control_id = "AssetBrowserViewModeListButton"
-props = { text = "List", dispatch_kind = "asset:browser", action_id = "SetViewMode", value = "list" }
+props = { text = "List", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "list" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
 
 [nodes.toolbar_view_mode_thumb_button]
 component = "Button"
 control_id = "AssetBrowserViewModeThumbButton"
-props = { text = "Thumb", dispatch_kind = "asset:browser", action_id = "SetViewMode", value = "thumbnail" }
+props = { text = "Thumb", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
 layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
 
@@ -125,42 +125,42 @@ children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_c
 [nodes.toolbar_kind_physics_chip]
 component = "Button"
 control_id = "AssetBrowserKindPhysicsChip"
-props = { text = "Physics", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "PhysicsMaterial" }
+props = { text = "Physics", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "PhysicsMaterial" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_skeleton_chip]
 component = "Button"
 control_id = "AssetBrowserKindSkeletonChip"
-props = { text = "Skeleton", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationSkeleton" }
+props = { text = "Skeleton", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "AnimationSkeleton" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_clip_chip]
 component = "Button"
 control_id = "AssetBrowserKindClipChip"
-props = { text = "Clip", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationClip" }
+props = { text = "Clip", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "AnimationClip" }
 layout = { width = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_sequence_chip]
 component = "Button"
 control_id = "AssetBrowserKindSequenceChip"
-props = { text = "Sequence", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationSequence" }
+props = { text = "Sequence", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "AnimationSequence" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_graph_chip]
 component = "Button"
 control_id = "AssetBrowserKindGraphChip"
-props = { text = "Graph", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationGraph" }
+props = { text = "Graph", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "AnimationGraph" }
 layout = { width = { min = 66.0, preferred = 66.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
 [nodes.toolbar_kind_state_chip]
 component = "Button"
 control_id = "AssetBrowserKindStateChip"
-props = { text = "State", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationStateMachine" }
+props = { text = "State", dispatch_kind = "asset:browser", action_id = "workbench.asset.kind_filter.set", value = "AnimationStateMachine" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
 
@@ -496,28 +496,28 @@ children = [{ node = "sources_panel" }, { node = "content_panel" }, { node = "de
 [nodes.utility_preview_button]
 component = "Button"
 control_id = "AssetBrowserPreviewTabButton"
-props = { text = "Preview", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "preview" }
+props = { text = "Preview", dispatch_kind = "asset:browser", action_id = "workbench.asset.utility_tab.set", value = "preview" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 
 [nodes.utility_references_button]
 component = "Button"
 control_id = "AssetBrowserReferencesTabButton"
-props = { text = "References", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "references" }
+props = { text = "References", dispatch_kind = "asset:browser", action_id = "workbench.asset.utility_tab.set", value = "references" }
 layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 
 [nodes.utility_metadata_button]
 component = "Button"
 control_id = "AssetBrowserMetadataTabButton"
-props = { text = "Metadata", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "metadata" }
+props = { text = "Metadata", dispatch_kind = "asset:browser", action_id = "workbench.asset.utility_tab.set", value = "metadata" }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 
 [nodes.utility_plugins_button]
 component = "Button"
 control_id = "AssetBrowserPluginsTabButton"
-props = { text = "Plugins", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "plugins" }
+props = { text = "Plugins", dispatch_kind = "asset:browser", action_id = "workbench.asset.utility_tab.set", value = "plugins" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
 

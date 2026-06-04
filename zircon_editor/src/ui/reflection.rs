@@ -171,12 +171,18 @@ impl EditorUiReflectionAdapter {
                 visible_enabled_flags(true, item.enabled),
                 properties,
                 vec![match item.route_id {
-                    Some(route_id) => {
-                        UiActionDescriptor::new("onClick", action.path.event_kind, symbol)
-                            .with_callable_from_remote(true)
-                            .with_route_id(route_id)
-                    }
-                    None => UiActionDescriptor::new("onClick", action.path.event_kind, symbol),
+                    Some(route_id) => UiActionDescriptor::new(
+                        "workbench.menu.item.click",
+                        action.path.event_kind,
+                        symbol,
+                    )
+                    .with_callable_from_remote(true)
+                    .with_route_id(route_id),
+                    None => UiActionDescriptor::new(
+                        "workbench.menu.item.click",
+                        action.path.event_kind,
+                        symbol,
+                    ),
                 }],
             );
             builder.add_child(menu_root, node);

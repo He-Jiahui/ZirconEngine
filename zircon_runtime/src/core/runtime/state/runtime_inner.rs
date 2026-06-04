@@ -11,11 +11,12 @@ use crate::core::tasks::TaskPools;
 use crate::core::time::RuntimeTimeClocks;
 use crate::plugin::SceneRuntimeHookRegistration;
 
+use super::super::descriptors::RegistryName;
 use super::{ModuleEntry, ServiceEntry};
 
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
-    pub(crate) services: Mutex<HashMap<String, ServiceEntry>>,
+    pub(crate) services: Mutex<HashMap<RegistryName, ServiceEntry>>,
     pub(crate) event_bus: EventBus,
     pub(crate) config_store: ConfigStore,
     pub(crate) scheduler: JobScheduler,

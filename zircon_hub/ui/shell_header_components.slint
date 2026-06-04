@@ -8,7 +8,8 @@ import {
     StatusPill,
     UiTextData,
 } from "shared.slint";
-import { HubIconButton, WindowButton } from "button_components.slint";
+import { WindowButton } from "button_components.slint";
+import { HubTopbarIconButton } from "icon_button_components.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { HeaderGroup } from "surfaces.slint";
 import { HeaderEngineSelector } from "shell_header_popup_components.slint";
@@ -65,6 +66,46 @@ component HeaderControlSlot inherits Rectangle {
 
         @children
 
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+    }
+}
+
+component HeaderBrandTitleStack inherits Rectangle {
+    in property <string> title-text: "ZIRCON HUB";
+    in property <string> subtitle-text;
+    in property <length> stack-height: HubTokens.shell-row-min;
+
+    height: root.stack-height;
+    min-width: 1px;
+    preferred-width: 0px;
+    horizontal-stretch: 1;
+    background: transparent;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.space-0;
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+        MaterialText {
+            text: root.title-text;
+            color: HubVisualSpec.brand-title-foreground;
+            style: MaterialTypography.title_medium;
+            overflow: elide;
+        }
+        MaterialText {
+            text: root.subtitle-text;
+            color: HubVisualSpec.brand-subtitle-foreground;
+            style: MaterialTypography.body_medium;
+            overflow: elide;
+        }
         Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
@@ -147,29 +188,9 @@ export component HubTopHeader inherits HeaderGroup {
 
                         BrandMark {}
                     }
-                    if !root.minimal: VerticalLayout {
-                        height: parent.height;
-                        spacing: HubTokens.space-0;
-                        Rectangle {
-                            vertical-stretch: 1;
-                            min-height: 0px;
-                        }
-                        MaterialText {
-                            text: "ZIRCON HUB";
-                            color: HubVisualSpec.brand-title-foreground;
-                            style: MaterialTypography.title_medium;
-                            overflow: elide;
-                        }
-                        MaterialText {
-                            text: root.brand-subtitle;
-                            color: HubVisualSpec.brand-subtitle-foreground;
-                            style: MaterialTypography.body_medium;
-                            overflow: elide;
-                        }
-                        Rectangle {
-                            vertical-stretch: 1;
-                            min-height: 0px;
-                        }
+                    if !root.minimal: HeaderBrandTitleStack {
+                        stack-height: parent.height;
+                        subtitle-text: root.brand-subtitle;
                     }
                 }
 
@@ -249,60 +270,33 @@ export component HubTopHeader inherits HeaderGroup {
                 slot-width: root.header-button-size;
                 slot-height: parent.height;
 
-                HubIconButton {
+                HubTopbarIconButton {
                     width: root.header-button-size;
                     height: root.header-button-size;
-                    button-width: root.header-button-size;
-                    button-height: root.header-button-size;
-                    button-border-width: 0px;
-                    idle-background: transparent;
-                    idle-border: transparent;
-                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
-                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
-                    disabled-opacity: 0.58;
-                    icon-size: HubTokens.icon-md;
+                    button-size: root.header-button-size;
                     icon-image: @image-url("../assets/icons/ui/bell.svg");
-                    has-icon-image: true;
                 }
             }
             if !root.tight: HeaderControlSlot {
                 slot-width: root.header-button-size;
                 slot-height: parent.height;
 
-                HubIconButton {
+                HubTopbarIconButton {
                     width: root.header-button-size;
                     height: root.header-button-size;
-                    button-width: root.header-button-size;
-                    button-height: root.header-button-size;
-                    button-border-width: 0px;
-                    idle-background: transparent;
-                    idle-border: transparent;
-                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
-                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
-                    disabled-opacity: 0.58;
-                    icon-size: HubTokens.icon-md;
+                    button-size: root.header-button-size;
                     icon-image: @image-url("../assets/icons/ui/help.svg");
-                    has-icon-image: true;
                 }
             }
             HeaderControlSlot {
                 slot-width: root.header-button-size;
                 slot-height: parent.height;
 
-                HubIconButton {
+                HubTopbarIconButton {
                     width: root.header-button-size;
                     height: root.header-button-size;
-                    button-width: root.header-button-size;
-                    button-height: root.header-button-size;
-                    button-border-width: 0px;
-                    idle-background: transparent;
-                    idle-border: transparent;
-                    idle-foreground: HubVisualSpec.topbar-icon-foreground;
-                    state-layer-color: HubVisualSpec.topbar-icon-foreground;
-                    disabled-opacity: 0.58;
-                    icon-size: HubTokens.icon-md;
+                    button-size: root.header-button-size;
                     icon-image: @image-url("../assets/icons/ui/settings.svg");
-                    has-icon-image: true;
                     clicked => {
                         root.settings-clicked();
                     }

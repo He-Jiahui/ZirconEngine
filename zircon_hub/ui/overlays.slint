@@ -1,13 +1,9 @@
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 import { HubPanel } from "surfaces.slint";
 import {
-    Drawer as MaterialDrawer,
-    DropDownMenu,
-    MenuItem,
-    ModalDrawer as MaterialModalDrawer,
-    MaterialStyleMetrics,
-    MaterialWindow,
-    PopupMenu,
+    MaterialPalette,
+    MaterialText,
+    MaterialTypography,
 } from "material_bridge.slint";
 
 export component PopupPanel inherits HubPanel {
@@ -69,69 +65,116 @@ export component HubAnchoredPopupPanel inherits PopupWindow {
     }
 }
 
-export component HubPopupMenu inherits PopupMenu {
-    in property <length> menu-width: MaterialStyleMetrics.size_200;
-    in property <[MenuItem]> menu-items: [];
+export component HubPopupSectionHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> meta;
+    in property <length> section-height: HubTokens.icon-lg;
+    in property <length> section-spacing: HubTokens.space-2;
 
-    width: root.menu-width;
-    items: root.menu-items;
+    horizontal-stretch: 1;
+    height: root.section-height;
+    background: transparent;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.section-spacing;
+        alignment: center;
+
+        MaterialText {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            text: root.title;
+            color: MaterialPalette.on_surface;
+            style: MaterialTypography.label_large;
+            vertical_alignment: center;
+            overflow: elide;
+        }
+
+        if root.meta != "": MaterialText {
+            text: root.meta;
+            color: MaterialPalette.on_surface_variant;
+            style: MaterialTypography.label_medium;
+            vertical_alignment: center;
+            overflow: elide;
+        }
+    }
 }
 
-export component HubSelectMenu inherits HubPopupMenu {
-    in property <length> anchor-width: HubTokens.input-width;
-    in property <length> anchor-height: HubTokens.control-md;
-    in property <length> menu-min-width: HubTokens.input-width / 2;
-    in property <length> menu-offset-y: MaterialStyleMetrics.spacing_6;
-    in property <[MenuItem]> select-items: [];
+export component HubPopupDivider inherits Rectangle {
+    in property <length> divider-height: HubTokens.border-width;
+    in property <color> divider-color: HubVisualSpec.outline-muted;
 
-    private property <length> resolved-menu-width: max(root.anchor-width, root.menu-min-width);
-
-    x: min(0px, root.anchor-width - root.resolved-menu-width);
-    y: root.anchor-height + root.menu-offset-y;
-    menu-width: root.resolved-menu-width;
-    menu-items: root.select-items;
+    horizontal-stretch: 1;
+    height: root.divider-height;
+    background: root.divider-color;
 }
 
-export component HubDropDownSurface inherits DropDownMenu {
-    in property <length> dropdown-width: HubTokens.input-width;
-    in property <length> dropdown-height: HubTokens.input-field;
-    in property <[MenuItem]> dropdown-items: [];
+export component HubPopupProfileHeader inherits Rectangle {
+    in property <string> avatar-text;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <length> profile-height: HubTokens.list-row-lg;
+    in property <length> profile-spacing: HubTokens.space-3;
+    in property <length> avatar-size: HubTokens.icon-xl + HubTokens.space-2;
+    in property <length> avatar-border-width: HubTokens.border-width;
+    in property <color> avatar-border: HubVisualSpec.accent-stroke;
+    in property <color> avatar-background: MaterialPalette.secondary_container;
+    in property <color> avatar-foreground: MaterialPalette.on_secondary_container;
+    in property <color> title-foreground: MaterialPalette.on_surface;
+    in property <color> subtitle-foreground: MaterialPalette.on_surface_variant;
 
-    width: root.dropdown-width;
-    height: root.dropdown-height;
-    items: root.dropdown-items;
-}
+    horizontal-stretch: 1;
+    height: root.profile-height;
+    background: transparent;
+    clip: true;
 
-export component HubSelectDropDownSurface inherits HubDropDownSurface {
-    in property <length> select-width: HubTokens.input-width;
-    in property <length> select-height: HubTokens.input-field;
-    in property <[MenuItem]> select-items: [];
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: root.profile-spacing;
+        alignment: center;
 
-    dropdown-width: root.select-width;
-    dropdown-height: root.select-height;
-    dropdown-items: root.select-items;
-}
+        Rectangle {
+            width: root.avatar-size;
+            height: root.avatar-size;
+            border-radius: root.avatar-size / 2;
+            border-width: root.avatar-border-width;
+            border-color: root.avatar-border;
+            background: root.avatar-background;
 
-export component HubDrawer inherits MaterialDrawer {
-    in property <length> drawer-width: MaterialStyleMetrics.size_360;
+            MaterialText {
+                width: parent.width;
+                height: parent.height;
+                text: root.avatar-text;
+                color: root.avatar-foreground;
+                style: MaterialTypography.title_small;
+                horizontal_alignment: center;
+                vertical_alignment: center;
+            }
+        }
 
-    min-width: root.drawer-width;
-}
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            height: parent.height;
+            spacing: HubTokens.space-0;
 
-export component HubModalDrawer inherits MaterialModalDrawer {
-    in property <length> drawer-width: MaterialStyleMetrics.size_360;
-
-    width: root.drawer-width;
-}
-
-export component HubWindowView inherits MaterialWindow {
-    title: "Zircon Hub";
-    no-frame: true;
-    resize-border-width: HubTokens.window-resize-border;
-    min-width: HubTokens.window-min-width;
-    min-height: HubTokens.window-min-height;
-    preferred-width: HubTokens.window-preferred-width;
-    preferred-height: HubTokens.window-preferred-height;
-    background: HubVisualSpec.page-background;
-    disable-hover: false;
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+            MaterialText {
+                text: root.title;
+                color: root.title-foreground;
+                style: MaterialTypography.label_large;
+                overflow: elide;
+            }
+            MaterialText {
+                text: root.subtitle;
+                color: root.subtitle-foreground;
+                style: MaterialTypography.body_small;
+                overflow: elide;
+            }
+            Rectangle { vertical-stretch: 1; min-height: 0px; }
+        }
+    }
 }

@@ -2,13 +2,27 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::rhi::{
-    BufferDesc, BufferHandle, BufferUsage, CommandList, CommandListCommand, FenceValue,
-    PipelineDesc, PipelineHandle, PipelineKind, RenderBackendCaps, RenderDevice, RenderQueueClass,
-    RhiError, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, TextureDesc,
-    TextureFormat, TextureHandle, TextureUsage,
+    BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutHandle, BufferDesc,
+    BufferHandle, BufferUsage, CommandList, CommandListCommand, FenceValue, IndexFormat,
+    PipelineDesc, PipelineHandle, PipelineLayoutDesc, PipelineLayoutHandle, RenderBackendCaps,
+    RenderDevice, RenderPassColorAttachmentDesc, RenderPassDepthStencilAttachmentDesc,
+    RenderQueueClass, RenderScissorRect, RenderViewportDesc, RhiError, SamplerDesc, SamplerHandle,
+    ShaderModuleDesc, ShaderModuleHandle, TextureCopyRegion, TextureDesc, TextureHandle,
+    TextureUsage, TransientAllocatorStats,
 };
 
+use super::bind_group_validation::{validate_bind_group_desc, BindGroupResourceLookup};
 use super::capabilities::wgpu_backend_caps;
+use super::command_validation::{execute_recorded_commands, validate_recorded_commands};
+use super::pipeline_validation::{
+    validate_pipeline_desc, validate_pipeline_layout_desc, validate_shader_module_desc,
+    PipelineResourceLookup,
+};
+use super::resource_validation::{
+    ensure_buffer_usage, ensure_texture_usage, texture_storage_size,
+    validate_bind_group_layout_desc, validate_buffer_desc, validate_sampler_desc,
+    validate_texture_desc,
+};
 
 #[derive(Clone, Debug)]
 pub struct WgpuRenderDevice {
@@ -17,27 +31,132 @@ pub struct WgpuRenderDevice {
 }
 
 #[derive(Clone, Debug, Default)]
-struct WgpuRenderDeviceState {
+pub(super) struct WgpuRenderDeviceState {
     next_handle: u64,
     next_fence: u64,
     completed_fence: u64,
-    buffers: HashMap<BufferHandle, WgpuBufferResource>,
-    textures: HashMap<TextureHandle, WgpuTextureResource>,
+    pub(super) buffers: HashMap<BufferHandle, WgpuBufferResource>,
+    pub(super) textures: HashMap<TextureHandle, WgpuTextureResource>,
     samplers: HashMap<SamplerHandle, SamplerDesc>,
+    bind_group_layouts: HashMap<BindGroupLayoutHandle, BindGroupLayoutDesc>,
+    bind_groups: HashMap<BindGroupHandle, WgpuBindGroupResource>,
     shaders: HashMap<ShaderModuleHandle, ShaderModuleDesc>,
-    pipelines: HashMap<PipelineHandle, PipelineDesc>,
+    pipeline_layouts: HashMap<PipelineLayoutHandle, PipelineLayoutDesc>,
+    pub(super) pipelines: HashMap<PipelineHandle, PipelineDesc>,
 }
 
 #[derive(Clone, Debug)]
-struct WgpuBufferResource {
-    desc: BufferDesc,
-    contents: Vec<u8>,
+pub(super) struct WgpuBufferResource {
+    pub(super) desc: BufferDesc,
+    pub(super) contents: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
-struct WgpuTextureResource {
-    desc: TextureDesc,
-    contents: Vec<u8>,
+pub(super) struct WgpuTextureResource {
+    pub(super) desc: TextureDesc,
+    pub(super) contents: Vec<u8>,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct WgpuBindGroupResource {
+    pub(super) desc: BindGroupDesc,
+}
+
+impl WgpuRenderDeviceState {
+    pub(super) fn bind_group_desc_ref(
+        &self,
+        handle: BindGroupHandle,
+    ) -> Result<&BindGroupDesc, RhiError> {
+        self.bind_groups
+            .get(&handle)
+            .map(|bind_group| &bind_group.desc)
+            .ok_or(RhiError::UnknownBindGroup(handle.raw()))
+    }
+
+    pub(super) fn pipeline_layout_desc_ref(
+        &self,
+        handle: PipelineLayoutHandle,
+    ) -> Result<&PipelineLayoutDesc, RhiError> {
+        self.pipeline_layouts
+            .get(&handle)
+            .ok_or(RhiError::UnknownPipelineLayout(handle.raw()))
+    }
+
+    pub(super) fn texture_desc_ref(&self, handle: TextureHandle) -> Result<&TextureDesc, RhiError> {
+        self.textures
+            .get(&handle)
+            .map(|texture| &texture.desc)
+            .ok_or(RhiError::UnknownTexture(handle.raw()))
+    }
+
+    fn transient_allocator_stats(&self) -> TransientAllocatorStats {
+        let buffer_bytes = self
+            .buffers
+            .values()
+            .map(|buffer| buffer.desc.size_bytes)
+            .sum::<u64>();
+        let texture_bytes = self
+            .textures
+            .values()
+            .map(|texture| texture.contents.len() as u64)
+            .sum::<u64>();
+        TransientAllocatorStats {
+            bytes_reserved: buffer_bytes.saturating_add(texture_bytes),
+            allocations: self.buffers.len().saturating_add(self.textures.len()) as u32,
+        }
+    }
+}
+
+impl BindGroupResourceLookup for WgpuRenderDeviceState {
+    fn layout_desc(&self, handle: BindGroupLayoutHandle) -> Result<&BindGroupLayoutDesc, RhiError> {
+        self.bind_group_layouts
+            .get(&handle)
+            .ok_or(RhiError::UnknownBindGroupLayout(handle.raw()))
+    }
+
+    fn buffer_desc(&self, handle: BufferHandle) -> Result<&BufferDesc, RhiError> {
+        self.buffers
+            .get(&handle)
+            .map(|buffer| &buffer.desc)
+            .ok_or(RhiError::UnknownBuffer(handle.raw()))
+    }
+
+    fn texture_desc(&self, handle: TextureHandle) -> Result<&TextureDesc, RhiError> {
+        self.textures
+            .get(&handle)
+            .map(|texture| &texture.desc)
+            .ok_or(RhiError::UnknownTexture(handle.raw()))
+    }
+
+    fn sampler_desc(&self, handle: SamplerHandle) -> Result<&SamplerDesc, RhiError> {
+        self.samplers
+            .get(&handle)
+            .ok_or(RhiError::UnknownSampler(handle.raw()))
+    }
+}
+
+impl PipelineResourceLookup for WgpuRenderDeviceState {
+    fn bind_group_layout_exists(&self, handle: BindGroupLayoutHandle) -> bool {
+        self.bind_group_layouts.contains_key(&handle)
+    }
+
+    fn pipeline_layout_desc(
+        &self,
+        handle: PipelineLayoutHandle,
+    ) -> Result<&PipelineLayoutDesc, RhiError> {
+        self.pipeline_layouts
+            .get(&handle)
+            .ok_or(RhiError::UnknownPipelineLayout(handle.raw()))
+    }
+
+    fn shader_module_desc(
+        &self,
+        handle: ShaderModuleHandle,
+    ) -> Result<&ShaderModuleDesc, RhiError> {
+        self.shaders
+            .get(&handle)
+            .ok_or(RhiError::UnknownShaderModule(handle.raw()))
+    }
 }
 
 impl WgpuRenderDevice {
@@ -140,6 +259,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn create_sampler(&self, desc: &SamplerDesc) -> Result<SamplerHandle, RhiError> {
+        validate_sampler_desc(desc)?;
         let mut state = self.state.lock().unwrap();
         let handle = SamplerHandle::new(Self::allocate_handle(&mut state));
         state.samplers.insert(handle, desc.clone());
@@ -164,10 +284,71 @@ impl RenderDevice for WgpuRenderDevice {
             .ok_or(RhiError::UnknownSampler(handle.raw()))
     }
 
+    fn create_bind_group_layout(
+        &self,
+        desc: &BindGroupLayoutDesc,
+    ) -> Result<BindGroupLayoutHandle, RhiError> {
+        validate_bind_group_layout_desc(desc)?;
+        let mut state = self.state.lock().unwrap();
+        let handle = BindGroupLayoutHandle::new(Self::allocate_handle(&mut state));
+        state.bind_group_layouts.insert(handle, desc.clone());
+        Ok(handle)
+    }
+
+    fn bind_group_layout_desc(
+        &self,
+        handle: BindGroupLayoutHandle,
+    ) -> Result<BindGroupLayoutDesc, RhiError> {
+        let state = self.state.lock().unwrap();
+        state
+            .bind_group_layouts
+            .get(&handle)
+            .cloned()
+            .ok_or(RhiError::UnknownBindGroupLayout(handle.raw()))
+    }
+
+    fn destroy_bind_group_layout(&self, handle: BindGroupLayoutHandle) -> Result<(), RhiError> {
+        let mut state = self.state.lock().unwrap();
+        state
+            .bind_group_layouts
+            .remove(&handle)
+            .map(|_| ())
+            .ok_or(RhiError::UnknownBindGroupLayout(handle.raw()))
+    }
+
+    fn create_bind_group(&self, desc: &BindGroupDesc) -> Result<BindGroupHandle, RhiError> {
+        let mut state = self.state.lock().unwrap();
+        validate_bind_group_desc(&*state, desc)?;
+        let handle = BindGroupHandle::new(Self::allocate_handle(&mut state));
+        state
+            .bind_groups
+            .insert(handle, WgpuBindGroupResource { desc: desc.clone() });
+        Ok(handle)
+    }
+
+    fn bind_group_desc(&self, handle: BindGroupHandle) -> Result<BindGroupDesc, RhiError> {
+        let state = self.state.lock().unwrap();
+        state
+            .bind_groups
+            .get(&handle)
+            .map(|bind_group| bind_group.desc.clone())
+            .ok_or(RhiError::UnknownBindGroup(handle.raw()))
+    }
+
+    fn destroy_bind_group(&self, handle: BindGroupHandle) -> Result<(), RhiError> {
+        let mut state = self.state.lock().unwrap();
+        state
+            .bind_groups
+            .remove(&handle)
+            .map(|_| ())
+            .ok_or(RhiError::UnknownBindGroup(handle.raw()))
+    }
+
     fn create_shader_module(
         &self,
         desc: &ShaderModuleDesc,
     ) -> Result<ShaderModuleHandle, RhiError> {
+        validate_shader_module_desc(desc)?;
         let mut state = self.state.lock().unwrap();
         let handle = ShaderModuleHandle::new(Self::allocate_handle(&mut state));
         state.shaders.insert(handle, desc.clone());
@@ -192,8 +373,41 @@ impl RenderDevice for WgpuRenderDevice {
             .ok_or(RhiError::UnknownShaderModule(handle.raw()))
     }
 
+    fn create_pipeline_layout(
+        &self,
+        desc: &PipelineLayoutDesc,
+    ) -> Result<PipelineLayoutHandle, RhiError> {
+        let mut state = self.state.lock().unwrap();
+        validate_pipeline_layout_desc(&*state, desc)?;
+        let handle = PipelineLayoutHandle::new(Self::allocate_handle(&mut state));
+        state.pipeline_layouts.insert(handle, desc.clone());
+        Ok(handle)
+    }
+
+    fn pipeline_layout_desc(
+        &self,
+        handle: PipelineLayoutHandle,
+    ) -> Result<PipelineLayoutDesc, RhiError> {
+        let state = self.state.lock().unwrap();
+        state
+            .pipeline_layouts
+            .get(&handle)
+            .cloned()
+            .ok_or(RhiError::UnknownPipelineLayout(handle.raw()))
+    }
+
+    fn destroy_pipeline_layout(&self, handle: PipelineLayoutHandle) -> Result<(), RhiError> {
+        let mut state = self.state.lock().unwrap();
+        state
+            .pipeline_layouts
+            .remove(&handle)
+            .map(|_| ())
+            .ok_or(RhiError::UnknownPipelineLayout(handle.raw()))
+    }
+
     fn create_pipeline(&self, desc: &PipelineDesc) -> Result<PipelineHandle, RhiError> {
         let mut state = self.state.lock().unwrap();
+        validate_pipeline_desc(&*state, desc)?;
         let handle = PipelineHandle::new(Self::allocate_handle(&mut state));
         state.pipelines.insert(handle, desc.clone());
         Ok(handle)
@@ -252,6 +466,10 @@ impl RenderDevice for WgpuRenderDevice {
             return Err(RhiError::UnknownFence(fence.0));
         }
         Ok(fence.0 <= state.completed_fence)
+    }
+
+    fn transient_allocator_stats(&self) -> TransientAllocatorStats {
+        self.state.lock().unwrap().transient_allocator_stats()
     }
 
     fn write_buffer(&self, handle: BufferHandle, offset: u64, data: &[u8]) -> Result<(), RhiError> {
@@ -346,6 +564,16 @@ impl CommandList for WgpuCommandList {
         });
     }
 
+    fn push_debug_group(&mut self, label: &str) {
+        self.commands.push(CommandListCommand::PushDebugGroup {
+            label: label.to_string(),
+        });
+    }
+
+    fn pop_debug_group(&mut self) {
+        self.commands.push(CommandListCommand::PopDebugGroup);
+    }
+
     fn copy_buffer_to_buffer(
         &mut self,
         source: BufferHandle,
@@ -369,16 +597,14 @@ impl CommandList for WgpuCommandList {
         destination: TextureHandle,
         source_offset: u64,
         bytes_per_row: u64,
-        width: u32,
-        height: u32,
+        region: TextureCopyRegion,
     ) {
         self.commands.push(CommandListCommand::CopyBufferToTexture {
             source,
             destination,
             source_offset,
             bytes_per_row,
-            width,
-            height,
+            region,
         });
     }
 
@@ -388,17 +614,32 @@ impl CommandList for WgpuCommandList {
         destination: BufferHandle,
         destination_offset: u64,
         bytes_per_row: u64,
-        width: u32,
-        height: u32,
+        region: TextureCopyRegion,
     ) {
         self.commands.push(CommandListCommand::CopyTextureToBuffer {
             source,
             destination,
             destination_offset,
             bytes_per_row,
-            width,
-            height,
+            region,
         });
+    }
+
+    fn begin_render_pass(
+        &mut self,
+        label: &str,
+        color_attachments: Vec<RenderPassColorAttachmentDesc>,
+        depth_stencil_attachment: Option<RenderPassDepthStencilAttachmentDesc>,
+    ) {
+        self.commands.push(CommandListCommand::BeginRenderPass {
+            label: label.to_string(),
+            color_attachments,
+            depth_stencil_attachment,
+        });
+    }
+
+    fn end_render_pass(&mut self) {
+        self.commands.push(CommandListCommand::EndRenderPass);
     }
 
     fn set_pipeline(&mut self, pipeline: PipelineHandle) {
@@ -406,411 +647,79 @@ impl CommandList for WgpuCommandList {
             .push(CommandListCommand::SetPipeline { pipeline });
     }
 
+    fn set_bind_group(&mut self, slot: u32, bind_group: BindGroupHandle) {
+        self.commands
+            .push(CommandListCommand::SetBindGroup { slot, bind_group });
+    }
+
+    fn set_viewport(&mut self, viewport: RenderViewportDesc) {
+        self.commands
+            .push(CommandListCommand::SetViewport { viewport });
+    }
+
+    fn set_scissor_rect(&mut self, rect: RenderScissorRect) {
+        self.commands
+            .push(CommandListCommand::SetScissorRect { rect });
+    }
+
+    fn set_vertex_buffer(&mut self, slot: u32, buffer: BufferHandle, offset: u64, size: u64) {
+        self.commands.push(CommandListCommand::SetVertexBuffer {
+            slot,
+            buffer,
+            offset,
+            size,
+        });
+    }
+
+    fn set_index_buffer(
+        &mut self,
+        buffer: BufferHandle,
+        offset: u64,
+        size: u64,
+        format: IndexFormat,
+    ) {
+        self.commands.push(CommandListCommand::SetIndexBuffer {
+            buffer,
+            offset,
+            size,
+            format,
+        });
+    }
+
+    fn draw(
+        &mut self,
+        vertex_start: u32,
+        vertex_count: u32,
+        instance_start: u32,
+        instance_count: u32,
+    ) {
+        self.commands.push(CommandListCommand::Draw {
+            vertex_start,
+            vertex_count,
+            instance_start,
+            instance_count,
+        });
+    }
+
+    fn draw_indexed(
+        &mut self,
+        index_start: u32,
+        index_count: u32,
+        base_vertex: i32,
+        instance_start: u32,
+        instance_count: u32,
+    ) {
+        self.commands.push(CommandListCommand::DrawIndexed {
+            index_start,
+            index_count,
+            base_vertex,
+            instance_start,
+            instance_count,
+        });
+    }
+
     fn dispatch_compute(&mut self, x: u32, y: u32, z: u32) {
         self.commands
             .push(CommandListCommand::DispatchCompute { x, y, z });
-    }
-}
-
-fn validate_recorded_commands(
-    state: &WgpuRenderDeviceState,
-    commands: &[CommandListCommand],
-    queue_class: RenderQueueClass,
-) -> Result<(), RhiError> {
-    let mut current_pipeline = None::<(PipelineHandle, PipelineKind)>;
-    for command in commands {
-        match command {
-            CommandListCommand::DebugMarker { .. } => {}
-            CommandListCommand::CopyBufferToBuffer {
-                source,
-                destination,
-                source_offset,
-                destination_offset,
-                size,
-            } => {
-                let source_buffer = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?;
-                let destination_buffer = state
-                    .buffers
-                    .get(destination)
-                    .ok_or(RhiError::UnknownBuffer(destination.raw()))?;
-                ensure_buffer_usage(source.raw(), &source_buffer.desc, BufferUsage::COPY_SRC)?;
-                ensure_buffer_usage(
-                    destination.raw(),
-                    &destination_buffer.desc,
-                    BufferUsage::COPY_DST,
-                )?;
-                let source_end = source_offset.saturating_add(*size);
-                let destination_end = destination_offset.saturating_add(*size);
-                if source_end > source_buffer.desc.size_bytes
-                    || destination_end > destination_buffer.desc.size_bytes
-                {
-                    return Err(RhiError::BufferCopyOutOfRange {
-                        source_buffer: source.raw(),
-                        destination_buffer: destination.raw(),
-                        source_offset: *source_offset,
-                        destination_offset: *destination_offset,
-                        size: *size,
-                    });
-                }
-            }
-            CommandListCommand::CopyBufferToTexture {
-                source,
-                destination,
-                source_offset,
-                bytes_per_row,
-                width,
-                height,
-            } => {
-                let source_buffer = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?;
-                let destination_texture = state
-                    .textures
-                    .get(destination)
-                    .ok_or(RhiError::UnknownTexture(destination.raw()))?;
-                ensure_buffer_usage(source.raw(), &source_buffer.desc, BufferUsage::COPY_SRC)?;
-                ensure_texture_usage(
-                    destination.raw(),
-                    &destination_texture.desc,
-                    TextureUsage::COPY_DST,
-                )?;
-                let row_size = u64::from(*width)
-                    * u64::from(texture_bytes_per_pixel(destination_texture.desc.format));
-                let copy_size = buffer_to_texture_copy_size(*height, *bytes_per_row, row_size);
-                if *width > destination_texture.desc.width
-                    || *height > destination_texture.desc.height
-                    || *bytes_per_row < row_size
-                    || source_offset.saturating_add(copy_size) > source_buffer.desc.size_bytes
-                {
-                    return Err(RhiError::BufferToTextureCopyOutOfRange {
-                        source_buffer: source.raw(),
-                        destination_texture: destination.raw(),
-                        source_offset: *source_offset,
-                        bytes_per_row: *bytes_per_row,
-                        width: *width,
-                        height: *height,
-                    });
-                }
-            }
-            CommandListCommand::CopyTextureToBuffer {
-                source,
-                destination,
-                destination_offset,
-                bytes_per_row,
-                width,
-                height,
-            } => {
-                let source_texture = state
-                    .textures
-                    .get(source)
-                    .ok_or(RhiError::UnknownTexture(source.raw()))?;
-                let destination_buffer = state
-                    .buffers
-                    .get(destination)
-                    .ok_or(RhiError::UnknownBuffer(destination.raw()))?;
-                ensure_texture_usage(source.raw(), &source_texture.desc, TextureUsage::COPY_SRC)?;
-                ensure_buffer_usage(
-                    destination.raw(),
-                    &destination_buffer.desc,
-                    BufferUsage::COPY_DST,
-                )?;
-                let row_size = u64::from(*width)
-                    * u64::from(texture_bytes_per_pixel(source_texture.desc.format));
-                let copy_size = buffer_to_texture_copy_size(*height, *bytes_per_row, row_size);
-                if *width > source_texture.desc.width
-                    || *height > source_texture.desc.height
-                    || *bytes_per_row < row_size
-                    || destination_offset.saturating_add(copy_size)
-                        > destination_buffer.desc.size_bytes
-                {
-                    return Err(RhiError::TextureToBufferCopyOutOfRange {
-                        source_texture: source.raw(),
-                        destination_buffer: destination.raw(),
-                        destination_offset: *destination_offset,
-                        bytes_per_row: *bytes_per_row,
-                        width: *width,
-                        height: *height,
-                    });
-                }
-            }
-            CommandListCommand::SetPipeline { pipeline } => {
-                let pipeline_desc = state
-                    .pipelines
-                    .get(pipeline)
-                    .ok_or(RhiError::UnknownPipeline(pipeline.raw()))?;
-                current_pipeline = Some((*pipeline, pipeline_desc.kind));
-            }
-            CommandListCommand::DispatchCompute { x, y, z } => {
-                if queue_class == RenderQueueClass::Copy {
-                    return Err(RhiError::InvalidCommandQueue {
-                        queue: queue_class,
-                        command: "dispatch_compute".to_string(),
-                    });
-                }
-                if *x == 0 || *y == 0 || *z == 0 {
-                    return Err(RhiError::InvalidComputeDispatch {
-                        reason: "workgroup counts must be greater than zero".to_string(),
-                    });
-                }
-                match current_pipeline {
-                    Some((_pipeline, PipelineKind::Compute)) => {}
-                    Some((pipeline, actual)) => {
-                        return Err(RhiError::InvalidPipelineUsage {
-                            pipeline: pipeline.raw(),
-                            required: PipelineKind::Compute,
-                            actual,
-                        });
-                    }
-                    None => {
-                        return Err(RhiError::InvalidComputeDispatch {
-                            reason: "compute dispatch requires a bound compute pipeline"
-                                .to_string(),
-                        });
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-fn execute_recorded_commands(
-    state: &mut WgpuRenderDeviceState,
-    commands: &[CommandListCommand],
-) -> Result<(), RhiError> {
-    for command in commands {
-        match command {
-            CommandListCommand::DebugMarker { .. } => {}
-            CommandListCommand::CopyBufferToBuffer {
-                source,
-                destination,
-                source_offset,
-                destination_offset,
-                size,
-            } => {
-                let source_start = *source_offset as usize;
-                let source_end = source_start + *size as usize;
-                let destination_start = *destination_offset as usize;
-                let destination_end = destination_start + *size as usize;
-                let bytes = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?
-                    .contents[source_start..source_end]
-                    .to_vec();
-                state
-                    .buffers
-                    .get_mut(destination)
-                    .ok_or(RhiError::UnknownBuffer(destination.raw()))?
-                    .contents[destination_start..destination_end]
-                    .copy_from_slice(&bytes);
-            }
-            CommandListCommand::CopyBufferToTexture {
-                source,
-                destination,
-                source_offset,
-                bytes_per_row,
-                width,
-                height,
-            } => {
-                let destination_desc = state
-                    .textures
-                    .get(destination)
-                    .ok_or(RhiError::UnknownTexture(destination.raw()))?
-                    .desc
-                    .clone();
-                let bytes_per_pixel = texture_bytes_per_pixel(destination_desc.format) as usize;
-                let row_size = *width as usize * bytes_per_pixel;
-                let source_offset = *source_offset as usize;
-                let bytes_per_row = *bytes_per_row as usize;
-                let source_contents = state
-                    .buffers
-                    .get(source)
-                    .ok_or(RhiError::UnknownBuffer(source.raw()))?
-                    .contents
-                    .clone();
-                let destination_stride = destination_desc.width as usize * bytes_per_pixel;
-                let destination_texture = state
-                    .textures
-                    .get_mut(destination)
-                    .ok_or(RhiError::UnknownTexture(destination.raw()))?;
-                for row in 0..*height as usize {
-                    let source_start = source_offset + row * bytes_per_row;
-                    let source_end = source_start + row_size;
-                    let destination_start = row * destination_stride;
-                    let destination_end = destination_start + row_size;
-                    destination_texture.contents[destination_start..destination_end]
-                        .copy_from_slice(&source_contents[source_start..source_end]);
-                }
-            }
-            CommandListCommand::CopyTextureToBuffer {
-                source,
-                destination,
-                destination_offset,
-                bytes_per_row,
-                width,
-                height,
-            } => {
-                let source_texture = state
-                    .textures
-                    .get(source)
-                    .ok_or(RhiError::UnknownTexture(source.raw()))?
-                    .clone();
-                let bytes_per_pixel = texture_bytes_per_pixel(source_texture.desc.format) as usize;
-                let row_size = *width as usize * bytes_per_pixel;
-                let source_stride = source_texture.desc.width as usize * bytes_per_pixel;
-                let destination_offset = *destination_offset as usize;
-                let bytes_per_row = *bytes_per_row as usize;
-                let destination_buffer = state
-                    .buffers
-                    .get_mut(destination)
-                    .ok_or(RhiError::UnknownBuffer(destination.raw()))?;
-                for row in 0..*height as usize {
-                    let source_start = row * source_stride;
-                    let source_end = source_start + row_size;
-                    let destination_start = destination_offset + row * bytes_per_row;
-                    let destination_end = destination_start + row_size;
-                    destination_buffer.contents[destination_start..destination_end]
-                        .copy_from_slice(&source_texture.contents[source_start..source_end]);
-                }
-            }
-            CommandListCommand::SetPipeline { .. } | CommandListCommand::DispatchCompute { .. } => {
-            }
-        }
-    }
-    Ok(())
-}
-
-fn ensure_buffer_usage(
-    handle: u64,
-    desc: &BufferDesc,
-    required: BufferUsage,
-) -> Result<(), RhiError> {
-    if desc.usage.contains(required) {
-        Ok(())
-    } else {
-        Err(RhiError::InvalidBufferUsage {
-            buffer: handle,
-            required,
-            actual: desc.usage,
-        })
-    }
-}
-
-fn validate_buffer_desc(desc: &BufferDesc) -> Result<(), RhiError> {
-    if desc.size_bytes == 0 {
-        return Err(RhiError::InvalidBufferDescriptor {
-            label: desc.label.clone(),
-            reason: "size_bytes must be greater than zero".to_string(),
-        });
-    }
-    if desc.usage == BufferUsage::NONE {
-        return Err(RhiError::InvalidBufferDescriptor {
-            label: desc.label.clone(),
-            reason: "usage must not be empty".to_string(),
-        });
-    }
-    Ok(())
-}
-
-fn validate_texture_desc(
-    desc: &TextureDesc,
-    supports_sparse_texture: bool,
-) -> Result<(), RhiError> {
-    if desc.width == 0 || desc.height == 0 || desc.depth == 0 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "width, height, and depth must be greater than zero".to_string(),
-        });
-    }
-    if desc.mip_levels == 0 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "mip_levels must be greater than zero".to_string(),
-        });
-    }
-    if desc.sample_count == 0 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "sample_count must be greater than zero".to_string(),
-        });
-    }
-    if desc.usage == TextureUsage::NONE {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "usage must not be empty".to_string(),
-        });
-    }
-    if desc.sample_count > 1 && desc.mip_levels > 1 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "multisampled textures cannot declare mip levels".to_string(),
-        });
-    }
-    if desc.dimension == crate::rhi::TextureDimension::Cube && desc.depth % 6 != 0 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "cube textures must declare depth as a multiple of six faces".to_string(),
-        });
-    }
-    if desc.is_sparse_reserved() && !supports_sparse_texture {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "sparse texture residency requires backend sparse texture support".to_string(),
-        });
-    }
-    let Some(storage_size) = desc.checked_storage_size_bytes() else {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "storage size overflows u64".to_string(),
-        });
-    };
-    if !desc.is_sparse_reserved() && storage_size > usize::MAX as u64 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "storage size exceeds addressable memory".to_string(),
-        });
-    }
-    Ok(())
-}
-
-fn ensure_texture_usage(
-    handle: u64,
-    desc: &TextureDesc,
-    required: TextureUsage,
-) -> Result<(), RhiError> {
-    if desc.usage.contains(required) {
-        Ok(())
-    } else {
-        Err(RhiError::InvalidTextureUsage {
-            texture: handle,
-            required,
-            actual: desc.usage,
-        })
-    }
-}
-
-fn texture_bytes_per_pixel(format: TextureFormat) -> u32 {
-    format.bytes_per_pixel()
-}
-
-fn texture_storage_size(desc: &TextureDesc) -> u64 {
-    if desc.is_sparse_reserved() {
-        return 0;
-    }
-    desc.checked_storage_size_bytes().unwrap_or(u64::MAX)
-}
-
-fn buffer_to_texture_copy_size(height: u32, bytes_per_row: u64, row_size: u64) -> u64 {
-    if height == 0 {
-        0
-    } else {
-        u64::from(height - 1)
-            .saturating_mul(bytes_per_row)
-            .saturating_add(row_size)
     }
 }

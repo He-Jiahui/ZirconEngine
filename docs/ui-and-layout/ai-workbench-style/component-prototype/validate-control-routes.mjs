@@ -20,6 +20,7 @@ const port = Number.parseInt(process.env.ZIRCON_WORKBENCH_ROUTE_CDP_PORT ?? Stri
 const profile = resolve(tmpdir(), `zircon-workbench-route-cdp-${process.pid}-${Date.now()}`);
 const expectedExtensionCards = extensionModules.length;
 const expectedTopLevelModuleTabs = webModuleTabs.length;
+const routeAuditTimeoutMs = Number.parseInt(process.env.ZIRCON_WORKBENCH_ROUTE_AUDIT_TIMEOUT_MS ?? "480000", 10);
 let nextId = 1;
 
 mkdirSync(profile, { recursive: true });
@@ -70,6 +71,7 @@ function controlRouteAuditExpression() {
     const failures = [];
     const routeWrites = [];
     const audits = [];
+    const auditDeadlineAt = performance.now() + ${routeAuditTimeoutMs};
     let captureHistoryWrites = true;
     let baselineCounter = 0;
     const originalPushState = history.pushState.bind(history);
@@ -92,7 +94,19 @@ function controlRouteAuditExpression() {
     const settle = () => Promise.resolve();
     const responseCount = () => Number.parseInt(document.documentElement.dataset.zrResponseCount || "0", 10);
     const activeModule = () => document.querySelector(".zr-module-main")?.dataset.moduleActive || "";
+    const activePanel = () => {
+      const panelTarget = new URLSearchParams(location.hash.replace(/^#/, "")).get("panel") || "";
+      if (!panelTarget) return "";
+      return document.querySelector('.zr-panel-view.is-active[data-panel-view="' + attrEscape(panelTarget) + '"]')
+        ? panelTarget
+        : "";
+    };
     const attrEscape = (value) => String(value).replace(/["\\\\]/g, "\\\\$&");
+    const checkDeadline = (context) => {
+      if (performance.now() <= auditDeadlineAt) return;
+      const recentAudits = audits.slice(-8).map((audit) => audit.context + ":" + audit.count).join(", ");
+      throw new Error("route audit deadline exceeded at " + context + "; recent audits: " + recentAudits);
+    };
     const clickForRestore = async (selector, context) => {
       const node = document.querySelector(selector);
       if (!node) {
@@ -146,10 +160,13 @@ function controlRouteAuditExpression() {
       return (label || node.tagName.toLowerCase()).replace(/\\s+/g, " ").slice(0, 96);
     };
     const exerciseControl = async (node, context) => {
+      checkDeadline(context);
       if (!node) {
         failures.push("control disappeared before exercise for " + context);
-        return;
+        return false;
       }
+      const beforeModule = activeModule();
+      const beforePanel = activePanel();
       const before = responseCount();
       const beforeHash = location.hash;
       const label = labelFor(node);
@@ -174,6 +191,7 @@ function controlRouteAuditExpression() {
       if (routeWrites.length === 0 && location.hash === beforeHash && !reachedExpectedModule && !reachedExpectedPanel) {
         failures.push("no route-state write after " + context + ": " + label);
       }
+      return beforeModule !== activeModule() || beforePanel !== activePanel() || !document.contains(node);
     };
     const auditIndexedControls = async (selector, context, restore) => {
       await restore();
@@ -182,15 +200,25 @@ function controlRouteAuditExpression() {
         failures.push("no controls found for " + context);
         return 0;
       }
+      let needsRestore = false;
       for (let index = 0; index < available; index += 1) {
-        await restore();
-        const list = controls(selector);
-        const node = list[index];
+        checkDeadline(context + " #" + (index + 1) + "/" + available);
+        if (needsRestore) {
+          await restore();
+          needsRestore = false;
+        }
+        let list = controls(selector);
+        let node = list[index];
+        if (!node) {
+          await restore();
+          list = controls(selector);
+          node = list[index];
+        }
         if (!node) {
           failures.push("control disappeared for " + context + " #" + (index + 1));
           continue;
         }
-        await exerciseControl(node, context + " #" + (index + 1) + "/" + available);
+        needsRestore = await exerciseControl(node, context + " #" + (index + 1) + "/" + available);
       }
       audits.push({ context, count: available });
       return available;
@@ -263,6 +291,10 @@ function controlRouteAuditExpression() {
       }
 
       for (const id of extensionIds) {
+        await routeBaseline(id);
+        if (!document.querySelector('.zr-module-main[data-module-active="' + attrEscape(id) + '"] .zr-module-editor-grid[data-extension-blueprint="reference"]')) {
+          failures.push("extension editor did not render reference blueprint: " + id);
+        }
         await auditIndexedControls(".zr-module-toolbar button:not([disabled])", "all extension toolbar controls " + id, async () => routeBaseline(id));
         await auditIndexedControls(
           ".zr-module-left button:not([disabled]), .zr-module-left input:not([disabled]), .zr-module-main button:not([disabled]), .zr-module-main [role='button'], .zr-module-main input:not([disabled])",
@@ -301,6 +333,8 @@ function controlRouteAuditExpression() {
         }
         audits.push({ context: "popup menu rows", count: popupRows.length });
       }
+    } catch (error) {
+      failures.push(error?.message ?? String(error));
     } finally {
       captureHistoryWrites = false;
       history.pushState = originalPushState;

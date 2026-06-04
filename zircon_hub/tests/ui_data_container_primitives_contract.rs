@@ -24,12 +24,10 @@ fn components_reexport_data_container_primitives() {
     for snippet in [
         "TreeItemData,",
         "HubRowSurface,",
-        "HubListPanelSlot,",
-        "HubListView,",
+        "HubInteractiveRowSurface,",
         "} from \"data_display.slint\";",
-        "HubTreeRow,",
-        "HubTreeView,",
-        "} from \"tree_view_components.slint\";",
+        "export { PanelListViewport, HubMenuListViewport, HubListView, HubListPanelSlot, HubTabbedListPanelSlot } from \"list_container_components.slint\";",
+        "export { TreeItemData, HubTreeRow, HubTreeView } from \"tree_view_components.slint\";",
         "HubTableView,",
         "HubTableBody,",
         "} from \"table_view_components.slint\";",
@@ -42,11 +40,12 @@ fn components_reexport_data_container_primitives() {
 }
 
 #[test]
-fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
+fn list_table_and_tree_views_compose_material_scroll_and_row_slots() {
     let data_display = read_ui_file("data_display.slint");
+    let list_container = read_ui_file("list_container_components.slint");
     let table_view = read_ui_file("table_view_components.slint");
     let tree_view = read_ui_file("tree_view_components.slint");
-    let data_surface = format!("{data_display}\n{table_view}\n{tree_view}");
+    let data_surface = format!("{list_container}\n{table_view}\n{tree_view}");
     for snippet in [
         "export struct TreeItemData",
         "depth: int,",
@@ -56,9 +55,14 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         "PanelListViewport {",
         "scroll-y <=> root.scroll-y;",
         "row-count: root.row-count;",
+        "export component HubMenuListViewport inherits PanelListViewport",
+        "row-height: HubTokens.list-row-md;",
         "export component HubListPanelSlot inherits PanelSlot",
         "PanelHeader {",
         "height: root.header-height;",
+        "export component HubTabbedListPanelSlot inherits PanelSlot",
+        "HubCompactTabStrip {",
+        "PanelListViewport {",
         "export component HubTableView inherits HubPanel",
         "in property <length> basis: HubTokens.panel-min-md;",
         "in property <float> grow: 1;",
@@ -69,15 +73,23 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         "minimum-row-height: HubVisualSpec.visual-table-row-height;",
         "export component HubTableBody inherits PanelListViewport",
         "row-height: HubVisualSpec.visual-table-row-height;",
-        "export component HubTreeRow inherits HubRowSurface",
+        "export component HubTreeRow inherits HubInteractiveRowSurface",
         "selected: root.item.selected;",
         "enabled: !root.item.disabled;",
         "private property <length> depth-indent: root.item.depth * HubTokens.space-4;",
-        "StateLayerArea {",
-        "color: root.content-foreground;",
-        "ListTile {",
-        "source: root.item.expanded ? @image-url(\"../assets/icons/ui/chevron-down.svg\") : @image-url(\"../assets/icons/ui/chevron-right.svg\");",
-        "StatusBadge {",
+        "row-radius: HubVisualSpec.compact-radius;",
+        "interaction-enabled: root.enabled;",
+        "interaction-foreground: root.content-foreground;",
+        "clicked =>",
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "HubRowTrailingSlot {",
+        "icon-image: root.visible-icon-image;",
+        "title: root.item.title;",
+        "detail: root.supporting-text;",
+        "badge-text: root.item.trailing-text;",
+        "HubRowActionButton {",
+        "icon-image: root.item.expanded ? @image-url(\"../assets/icons/ui/chevron-down.svg\") : @image-url(\"../assets/icons/ui/chevron-right.svg\");",
         "export component HubTreeView inherits HubPanel",
         "for item in root.items: HubTreeRow",
         "toggle-expanded(id) =>",
@@ -91,6 +103,7 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
     for wrapper_name in [
         "HubListView",
         "HubListPanelSlot",
+        "HubTabbedListPanelSlot",
         "HubTableView",
         "HubTableBody",
         "HubTreeRow",
@@ -101,7 +114,7 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         } else if wrapper_name.contains("Tree") {
             &tree_view
         } else {
-            &data_display
+            &list_container
         };
         let wrapper = wrapper_source
             .split(&format!("export component {wrapper_name}"))
@@ -116,11 +129,42 @@ fn list_table_and_tree_views_compose_material_scroll_and_list_tiles() {
         }
     }
 
+    let tree_row = tree_view
+        .split("export component HubTreeRow")
+        .nth(1)
+        .and_then(|source| source.split("export component HubTreeView").next())
+        .expect("tree_view_components.slint must declare HubTreeRow before HubTreeView");
+    for forbidden in [
+        "row-state := StateLayerArea {",
+        "ListTile {",
+        "StatusBadge {",
+        "avatar_icon:",
+        "avatar_background:",
+        "avatar_foreground:",
+    ] {
+        assert!(
+            !tree_row.contains(forbidden),
+            "HubTreeRow should compose shared row slots instead of returning to a local ListTile/avatar/status shell: {forbidden}"
+        );
+    }
+
     for tree_component in ["TreeItemData", "HubTreeRow", "HubTreeView"] {
         assert!(
             !data_display.contains(&format!("export component {tree_component}"))
                 && !data_display.contains(&format!("export struct {tree_component}")),
             "data_display.slint should not regain tree-view ownership after the tree module split: {tree_component}"
+        );
+    }
+    for list_component in [
+        "PanelListViewport",
+        "HubMenuListViewport",
+        "HubListView",
+        "HubListPanelSlot",
+        "HubTabbedListPanelSlot",
+    ] {
+        assert!(
+            !data_display.contains(&format!("export component {list_component}")),
+            "data_display.slint should not retain list-container ownership after the focused list module split: {list_component}"
         );
     }
 }
@@ -174,12 +218,14 @@ fn cloud_and_team_lower_lists_consume_shared_panel_slots() {
     }
 
     for snippet in [
-        "export component TeamMembersPanel inherits PanelSlot",
-        "PanelHeader {",
+        "HubTabbedListPanelSlot,",
+        "export component TeamMembersPanel inherits HubTabbedListPanelSlot",
         "title: \"Team Overview\";",
-        "HubCompactTabStrip {",
-        "PanelListViewport {",
         "scroll-y <=> root.member-scroll-y;",
+        "first-tab-label: \"Identity\";",
+        "second-tab-label: \"Review\";",
+        "third-tab-label: \"Access\";",
+        "show-fourth-tab: false;",
         "TeamIdentityRow {",
         "if root.member-count == 0: EmptyStateBlock {",
         "for member in root.members: TeamMemberRow {",
@@ -187,6 +233,23 @@ fn cloud_and_team_lower_lists_consume_shared_panel_slots() {
         assert!(
             team_components.contains(snippet),
             "TeamMembersPanel must keep the compact overview rows in shared PanelSlot/ListViewport primitives; missing {snippet}"
+        );
+    }
+
+    let members_panel = team_components
+        .split("export component TeamMembersPanel inherits HubTabbedListPanelSlot")
+        .nth(1)
+        .and_then(|body| body.split("\nexport component ").next())
+        .expect("TeamMembersPanel must be declared in team_page_components.slint");
+    for forbidden in [
+        "PanelHeader {",
+        "PanelListViewport {",
+        "HubCompactTabStrip {",
+        "inherits PanelSlot",
+    ] {
+        assert!(
+            !members_panel.contains(forbidden),
+            "TeamMembersPanel should not reintroduce a local tabbed panel/list shell after moving to HubTabbedListPanelSlot: {forbidden}"
         );
     }
 }
@@ -341,6 +404,7 @@ fn dashboard_quick_actions_consumes_hub_list_panel_slot() {
 #[test]
 fn catalog_page_consumes_shared_hub_list_view() {
     let data_display = read_ui_file("data_display.slint");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
     let assets = read_ui_file("assets.slint");
     let plugins = read_ui_file("plugins.slint");
     let learn = read_ui_file("learn.slint");
@@ -353,10 +417,23 @@ fn catalog_page_consumes_shared_hub_list_view() {
         "if root.row-count == 0: EmptyStateBlock",
     ] {
         assert!(
-            data_display.contains(snippet),
+            catalog_components.contains(snippet),
             "CatalogListPanel must consume HubListView while preserving catalog list chrome: {snippet}"
         );
     }
+    assert!(
+        catalog_components
+            .contains("import { HubInteractiveRowSurface } from \"data_display.slint\";")
+            && catalog_components
+                .contains("import { HubListView } from \"list_container_components.slint\";")
+            && catalog_components.contains("export component CatalogPage inherits PageScrollSurface"),
+        "catalog_page_components.slint must own the catalog page/list shell while consuming generic data-display list primitives"
+    );
+    assert!(
+        !data_display.contains("export component CatalogListPanel")
+            && !data_display.contains("export component CatalogPage"),
+        "data_display.slint should not regain catalog-page ownership after the focused catalog module split"
+    );
 
     for (page, source, row) in [
         ("assets.slint", assets, "for asset in root.assets: AssetRow"),
@@ -374,6 +451,65 @@ fn catalog_page_consumes_shared_hub_list_view() {
         assert!(
             source.contains("inherits CatalogPage") && source.contains(row),
             "{page} must continue routing catalog rows through CatalogPage after the list-view refactor"
+        );
+    }
+}
+
+#[test]
+fn catalog_rows_consume_interactive_row_surface_and_slots() {
+    let components = read_ui_file("components.slint");
+    let catalog_components = read_ui_file("catalog_page_components.slint");
+    let catalog_row = catalog_components
+        .split("component CatalogColumnRow")
+        .nth(1)
+        .and_then(|source| source.split("export component AssetRow").next())
+        .expect("catalog_page_components.slint must declare CatalogColumnRow before public catalog rows");
+
+    assert!(
+        components.contains("HubInteractiveRowSurface,"),
+        "components.slint must re-export the shared interactive row-surface primitive"
+    );
+
+    for snippet in [
+        "component CatalogColumnRow inherits HubInteractiveRowSurface",
+        "import { HubInteractiveRowSurface } from \"data_display.slint\";",
+        "import { HubListView } from \"list_container_components.slint\";",
+        "row-radius: HubVisualSpec.panel-radius;",
+        "idle-border-width: HubTokens.border-width;",
+        "idle-border: HubVisualSpec.outline-muted;",
+        "selected-border: HubVisualSpec.accent-stroke;",
+        "idle-background: HubVisualSpec.panel-background;",
+        "in property <length> content-width: HubTokens.panel-min-lg;",
+        "root.content-width / 4",
+        "HubRowLeadingIconSlot {",
+        "HubRowMainSlot {",
+        "title: root.title;",
+        "detail: root.detail;",
+        "title-foreground: HubTokens.text-primary;",
+        "HubRowMetaSlot {",
+        "HubRowTrailingSlot {",
+        "clicked => { root.clicked(); }",
+    ] {
+        assert!(
+            catalog_components.contains(snippet) || catalog_row.contains(snippet),
+            "CatalogColumnRow must consume the shared interactive row-surface and row-slot family; missing {snippet}"
+        );
+    }
+
+    for forbidden in [
+        "StateLayerArea",
+        "MaterialText",
+        "MaterialTypography",
+        "MaterialPalette",
+        "border-radius: HubVisualSpec.panel-radius;",
+        "\n    border-width: HubTokens.border-width;",
+        "border-color: HubVisualSpec.outline-muted;",
+        "\n    background: HubVisualSpec.panel-background;",
+        "VerticalLayout {\n            min-width: HubTokens.panel-min-sm * 3 / 5;",
+    ] {
+        assert!(
+            !catalog_row.contains(forbidden),
+            "CatalogColumnRow should not reintroduce local row surface or text assembly after adopting HubInteractiveRowSurface: {forbidden}"
         );
     }
 }
@@ -435,6 +571,10 @@ fn dashboard_recent_table_consumes_shared_hub_table_body() {
         "show-divider: false;",
         "minimum-row-height: root.table-row-height;",
         "DataTable {",
+        "HubPanelNavigationCommand {",
+        "text: root.action-text;",
+        "source-image: @image-url(\"../assets/icons/nav/projects.svg\");",
+        "clicked => { root.view-all(); }",
         "show-selection: false;",
         "show-thumbnail-accent: false;",
         "thumbnail-size: HubTokens.control-md - MaterialStyleMetrics.size_8;",
@@ -455,7 +595,15 @@ fn dashboard_recent_table_consumes_shared_hub_table_body() {
                 .next()
         })
         .expect("DashboardRecentProjectsPanel must be declared before DashboardQuickActionsPanel");
-    for forbidden in ["PanelHeader {", "inherits PanelSlot", "HubTableBody {"] {
+    for forbidden in [
+        "PanelHeader {",
+        "inherits PanelSlot",
+        "HubTableBody {",
+        "StateLayerArea {",
+        "MaterialText {",
+        "HorizontalLayout {",
+        "source: @image-url(\"../assets/icons/ui/chevron-right.svg\");",
+    ] {
         assert!(
             !recent_panel.contains(forbidden),
             "DashboardRecentProjectsPanel should not reintroduce a local panel/table shell after moving to HubTableView: {forbidden}"
@@ -569,6 +717,9 @@ fn build_task_history_uses_hub_section_for_internal_sections() {
         "section-spacing: HubTokens.panel-gap;",
         "title: root.current-task-title;",
         "title: root.build-history-title;",
+        "HubSectionSummary {",
+        "title: root.status-label;",
+        "detail: root.readiness.operation-summary;",
         "PanelListViewport {",
         "scroll-y <=> root.history-scroll-y;",
         "if root.source-build-history-count == 0: EmptyStateBlock",
@@ -588,6 +739,17 @@ fn build_task_history_uses_hub_section_for_internal_sections() {
         !task_panel.contains("PanelHeader {"),
         "BuildTaskHistoryPanel should not hand-build current-task/history section headers after moving to HubSection"
     );
+    let current_task_section = task_panel
+        .split("title: root.current-task-title;")
+        .nth(1)
+        .and_then(|source| source.split("Divider {}").next())
+        .expect("BuildTaskHistoryPanel must declare current task section before the divider");
+    for forbidden in ["MaterialText {", "MutedText {"] {
+        assert!(
+            !current_task_section.contains(forbidden),
+            "BuildTaskHistoryPanel current task section should delegate summary text to HubSectionSummary: {forbidden}"
+        );
+    }
 }
 
 #[test]

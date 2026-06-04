@@ -707,8 +707,11 @@ mod tests {
             .unwrap();
         let initial = coordinator.slot(slot).unwrap();
         assert_eq!(initial.backend_name, "mock");
+        assert_eq!(initial.state, super::super::VmPluginSlotState::Active);
+        assert_eq!(initial.generation, 1);
         assert_eq!(initial.source, source);
         assert_eq!(initial.manifest.version, "0.1.0");
+        assert_eq!(initial.management, initial.manifest.management);
 
         coordinator
             .hot_reload(
@@ -722,6 +725,7 @@ mod tests {
 
         let reloaded = coordinator.slot(slot).unwrap();
         assert_eq!(reloaded.manifest.version, "0.2.0");
+        assert_eq!(reloaded.generation, 2);
         assert_eq!(coordinator.list_slots(), vec![reloaded.clone()]);
 
         let unloaded = coordinator.unload_slot(slot).unwrap();
@@ -1027,6 +1031,11 @@ mod tests {
             "host/vm_plugin_host_context.rs",
             "host/vm_plugin_slot_lifecycle.rs",
             "plugin/mod.rs",
+            "plugin/management_policy/mod.rs",
+            "plugin/management_policy/policy.rs",
+            "plugin/management_policy/hot_reload.rs",
+            "plugin/management_policy/garbage_collection.rs",
+            "plugin/management_policy/memory.rs",
             "plugin/vm_plugin_manifest.rs",
             "plugin/vm_plugin_package.rs",
             "plugin/vm_plugin_package_source.rs",
@@ -1036,6 +1045,7 @@ mod tests {
             "runtime/mod.rs",
             "runtime/hot_reload_coordinator.rs",
             "runtime/vm_plugin_slot_record.rs",
+            "runtime/vm_plugin_slot_state.rs",
             "runtime/vm_plugin_manager.rs",
         ] {
             assert!(
@@ -1053,6 +1063,7 @@ mod tests {
                 version: version.to_string(),
                 entry: "main".to_string(),
                 capabilities: CapabilitySet::default().with("render"),
+                management: super::super::VmPluginManagementPolicy::default(),
             },
             zr_vm_project: None,
             bytecode: vec![1, 2, 3],

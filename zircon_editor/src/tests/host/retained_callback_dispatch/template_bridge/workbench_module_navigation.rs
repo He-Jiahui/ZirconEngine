@@ -18,17 +18,73 @@ const WORKBENCH_MODULE_EVENT_SOURCES: &[(&str, &str)] = &[
         )),
     ),
     (
-        "workbench_module_workspace.zui",
+        "workbench_effect_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_module_workspace.zui"
+            "/assets/ui/editor/components/workbench_effect_workspace.zui"
         )),
     ),
     (
-        "workbench_additional_module_workspaces.zui",
+        "workbench_material_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_additional_module_workspaces.zui"
+            "/assets/ui/editor/components/workbench_material_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_behavior_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_behavior_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_assets_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_assets_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_vfx_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_vfx_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_ability_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_ability_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_tags_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_tags_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_perception_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_perception_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_render_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_render_workspace.zui"
+        )),
+    ),
+    (
+        "workbench_hud_workspace.zui",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/components/workbench_hud_workspace.zui"
         )),
     ),
 ];
@@ -36,52 +92,52 @@ const WORKBENCH_MODULE_EVENT_SOURCES: &[(&str, &str)] = &[
 const MODULE_SWITCH_CASES: &[(&str, &str, &str)] = &[
     (
         "WorkbenchModuleEffect",
-        "SelectWorkbenchModuleEffect",
+        "workbench.module.effect.select",
         "WorkbenchModuleEffectWorkspace",
     ),
     (
         "WorkbenchModuleAbility",
-        "SelectWorkbenchModuleAbility",
+        "workbench.module.ability.select",
         "WorkbenchModuleAbilityWorkspace",
     ),
     (
         "WorkbenchModuleTags",
-        "SelectWorkbenchModuleTags",
+        "workbench.module.tags.select",
         "WorkbenchModuleTagsWorkspace",
     ),
     (
         "WorkbenchModulePerception",
-        "SelectWorkbenchModulePerception",
+        "workbench.module.perception.select",
         "WorkbenchModulePerceptionWorkspace",
     ),
     (
         "WorkbenchModuleMaterial",
-        "SelectWorkbenchModuleMaterial",
+        "workbench.module.material.select",
         "WorkbenchModuleMaterialWorkspace",
     ),
     (
         "WorkbenchModuleBehavior",
-        "SelectWorkbenchModuleBehavior",
+        "workbench.module.behavior.select",
         "WorkbenchModuleBehaviorWorkspace",
     ),
     (
         "WorkbenchModuleRender",
-        "SelectWorkbenchModuleRender",
+        "workbench.module.render.select",
         "WorkbenchModuleRenderWorkspace",
     ),
     (
         "WorkbenchModuleAssets",
-        "SelectWorkbenchModuleAssets",
+        "workbench.module.assets.select",
         "WorkbenchModuleAssetsWorkspace",
     ),
     (
         "WorkbenchModuleVfx",
-        "SelectWorkbenchModuleVfx",
+        "workbench.module.vfx.select",
         "WorkbenchModuleVfxWorkspace",
     ),
     (
         "WorkbenchModuleHud",
-        "SelectWorkbenchModuleHud",
+        "workbench.module.hud.select",
         "WorkbenchModuleHudWorkspace",
     ),
 ];
@@ -293,7 +349,7 @@ fn workbench_scene_tab_restores_scene_workspace_and_hides_module_workspaces() {
             .expect("scene module tab should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "SelectWorkbenchModuleScene"
+            if action_id == "workbench.module.scene.select"
     ));
 
     assert!(control_bool(&bridge, "WorkbenchModuleScene", "selected"));
@@ -338,7 +394,7 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
             .expect("ability playtest button should expose a preview binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "InvokeWorkbenchAbilityPlaytest"
+            if action_id == "workbench.module.ability.playtest.invoke"
     ));
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusReady", "text").as_deref(),
@@ -531,7 +587,7 @@ fn workbench_module_dropdowns_open_select_and_close_with_shared_dropdown_path() 
     assert!(matches!(
         open_binding.payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "EditWorkbenchMaterialDomain"
+            if action_id == "workbench.module.material.domain.edit"
     ));
     assert!(control_bool(
         &bridge,

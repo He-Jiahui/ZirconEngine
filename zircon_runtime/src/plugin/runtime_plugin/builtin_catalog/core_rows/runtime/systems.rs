@@ -4,6 +4,18 @@ use super::super::super::rows::BuiltinCatalogRow;
 
 pub(super) const RUNTIME_SYSTEM_ROWS: &[BuiltinCatalogRow] = &[
     BuiltinCatalogRow {
+        package_id: "ai",
+        display_name: "AI",
+        runtime_id: RuntimePluginId::Ai,
+        runtime_crate: "zircon_plugin_ai_runtime",
+        capability: "runtime.plugin.ai",
+        target_modes: &[
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::ServerRuntime,
+            RuntimeTargetMode::EditorHost,
+        ],
+    },
+    BuiltinCatalogRow {
         package_id: "navigation",
         display_name: "Navigation",
         runtime_id: RuntimePluginId::Navigation,

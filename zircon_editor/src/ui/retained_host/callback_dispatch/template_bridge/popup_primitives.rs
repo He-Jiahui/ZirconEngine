@@ -45,11 +45,33 @@ pub(crate) fn template_popup_menu_item_state(raw: &str) -> Option<TemplatePopupM
     }
     let flags = parts.next().unwrap_or_default();
     Some(TemplatePopupMenuItemState {
-        action_id: label.to_string(),
+        action_id: menu_item_action_id(label),
         label: label.to_string(),
         disabled: menu_item_has_flag(flags, "disabled"),
         separator: false,
     })
+}
+
+fn menu_item_action_id(label: &str) -> String {
+    format!("menu.item.{}", label_to_action_segment(label))
+}
+
+fn label_to_action_segment(label: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in label.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 pub(crate) fn menu_item_without_transient_flags(raw: &str) -> String {
@@ -107,7 +129,7 @@ mod tests {
     fn popup_menu_item_state_parses_action_label_and_disabled_separator_state() {
         let item = template_popup_menu_item_state("Delete|danger,disabled,icon=trash")
             .expect("menu item should parse");
-        assert_eq!(item.action_id, "Delete");
+        assert_eq!(item.action_id, "menu.item.delete");
         assert_eq!(item.label, "Delete");
         assert!(item.disabled);
         assert!(!item.separator);

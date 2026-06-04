@@ -72,7 +72,7 @@ fn editor_ui_host_runtime_projects_asset_document_source_into_retained_projectio
                 "WorkbenchMenuBar",
                 "OpenProject",
                 crate::ui::binding::EditorUiEventKind::Click,
-                crate::ui::binding::EditorUiBindingPayload::menu_action("OpenProject"),
+                crate::ui::binding::EditorUiBindingPayload::menu_action("workbench.project.open"),
             ),
         )
         .unwrap();
@@ -83,7 +83,7 @@ fn editor_ui_host_runtime_projects_asset_document_source_into_retained_projectio
                 "WorkbenchMenuBar",
                 "SaveProject",
                 crate::ui::binding::EditorUiEventKind::Click,
-                crate::ui::binding::EditorUiBindingPayload::menu_action("SaveProject"),
+                crate::ui::binding::EditorUiBindingPayload::menu_action("workbench.project.save"),
             ),
         )
         .unwrap();

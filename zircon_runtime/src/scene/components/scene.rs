@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::PhysicsMaterialMetadata;
+use crate::core::framework::physics::{
+    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
+};
 use crate::core::framework::render::{
     ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderMaterialAlphaMode,
     RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
@@ -292,6 +294,9 @@ pub enum JointKind {
     Fixed,
     Distance,
     Hinge,
+    Slider,
+    ConeTwist,
+    Generic6Dof,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -302,6 +307,10 @@ pub struct JointComponent {
     pub axis: Vec3,
     pub limits: Option<[Real; 2]>,
     pub collide_connected: bool,
+    #[serde(default)]
+    pub constraint: PhysicsJointConstraintMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skeleton_binding: Option<PhysicsSkeletonJointBinding>,
 }
 
 impl Default for JointComponent {
@@ -313,6 +322,8 @@ impl Default for JointComponent {
             axis: Vec3::Y,
             limits: None,
             collide_connected: false,
+            constraint: PhysicsJointConstraintMetadata::default(),
+            skeleton_binding: None,
         }
     }
 }

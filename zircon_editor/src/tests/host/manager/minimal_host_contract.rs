@@ -3,7 +3,8 @@ use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::script::{
-    VmPluginManager, VmPluginManifest, VmPluginPackage, VM_PLUGIN_MANAGER_NAME,
+    VmPluginManagementPolicy, VmPluginManager, VmPluginManifest, VmPluginPackage,
+    VM_PLUGIN_MANAGER_NAME,
 };
 
 use crate::ui::host::minimal_host_contract::editor_host_minimal_contract;
@@ -374,6 +375,7 @@ fn editor_manager_vm_extension_load_failure_is_reported_without_breaking_host() 
             version: "0.1.0".to_string(),
             entry: "main".to_string(),
             capabilities: Default::default(),
+            management: VmPluginManagementPolicy::default(),
         },
         zr_vm_project: None,
         bytecode: vec![1, 2, 3],
@@ -1276,6 +1278,7 @@ fn editor_runtime_sandbox_can_be_disabled_before_vm_bridge_registration() {
             version: "0.1.0".to_string(),
             entry: "main".to_string(),
             capabilities: Default::default(),
+            management: VmPluginManagementPolicy::default(),
         },
         zr_vm_project: None,
         bytecode: vec![1, 2, 3],

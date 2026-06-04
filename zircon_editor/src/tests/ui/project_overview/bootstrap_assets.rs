@@ -67,7 +67,10 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
     assert_eq!(open_assets.role.to_string(), "Button");
     assert_eq!(open_assets.text.to_string(), "Open Assets");
     assert_eq!(open_assets.dispatch_kind.to_string(), "surface");
-    assert_eq!(open_assets.action_id.to_string(), "OpenView.editor.assets");
+    assert_eq!(
+        open_assets.action_id.to_string(),
+        "workbench.view.open.editor.assets"
+    );
 
     let open_browser = nodes
         .iter()

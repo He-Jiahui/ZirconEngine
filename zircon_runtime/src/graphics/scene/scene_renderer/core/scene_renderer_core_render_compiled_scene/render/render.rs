@@ -15,6 +15,7 @@ use crate::graphics::scene::scene_renderer::mesh::prepare_mesh_queue;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::render_graph::RenderGraphResourceAccessKind;
 use crate::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::{
@@ -105,6 +106,10 @@ impl SceneRendererCore {
                 non_transparent: &non_transparent_mesh_draws,
             };
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
+        let material_gbuffer_valid = pipeline_writes_resource(
+            pipeline,
+            crate::core::framework::render::PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        );
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
@@ -121,6 +126,9 @@ impl SceneRendererCore {
                     .create_view(&wgpu::TextureViewDescriptor::default()),
             );
         }
+        graph_resources
+            .materialize_transient_resources(device, &pipeline.graph)
+            .map_err(GraphicsError::Asset)?;
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
         let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
         let mut graph_execution = RenderGraphStageExecution::new(
@@ -135,7 +143,8 @@ impl SceneRendererCore {
             runtime_features,
             history_textures.as_deref(),
             history_available,
-        );
+        )
+        .with_material_gbuffer_valid(material_gbuffer_valid);
         for stage in EARLY_GRAPH_STAGES {
             let is_depth_prepass = *stage == RenderPassStage::DepthPrepass;
             if is_depth_prepass {
@@ -230,7 +239,8 @@ impl SceneRendererCore {
             runtime_features,
             history_textures.as_deref(),
             history_available,
-        );
+        )
+        .with_material_gbuffer_valid(material_gbuffer_valid);
         execute_graph_stage(
             pipeline,
             render_pass_executors,
@@ -331,6 +341,19 @@ fn pipeline_has_active_sprite_stage(
                         .as_deref()
                         .is_some_and(|executor_id| executor_id.starts_with("sprite."))
             })
+        })
+}
+
+fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &str) -> bool {
+    pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .flat_map(|pass| pass.resources.iter())
+        .any(|resource| {
+            resource.name == resource_name
+                && resource.access == RenderGraphResourceAccessKind::Write
         })
 }
 

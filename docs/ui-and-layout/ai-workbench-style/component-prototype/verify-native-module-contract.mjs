@@ -1,5 +1,12 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { nativeModules } from "./modules.js";
+
+const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
+const nativeActionSourceExtensions = new Set([".rs", ".toml", ".zui"]);
+const nativeActionSourceRoots = [
+  "../../../../zircon_editor/src/ui/",
+  "../../../../zircon_editor/assets/ui/editor/",
+];
 
 const nativeEventSources = [
   [
@@ -11,8 +18,48 @@ const nativeEventSources = [
     "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui",
   ],
   [
+    "workbench_effect_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui",
+  ],
+  [
+    "workbench_material_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui",
+  ],
+  [
+    "workbench_behavior_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui",
+  ],
+  [
+    "workbench_assets_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui",
+  ],
+  [
+    "workbench_vfx_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui",
+  ],
+  [
     "workbench_additional_module_workspaces.zui",
     "../../../../zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui",
+  ],
+  [
+    "workbench_ability_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui",
+  ],
+  [
+    "workbench_tags_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui",
+  ],
+  [
+    "workbench_perception_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui",
+  ],
+  [
+    "workbench_render_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui",
+  ],
+  [
+    "workbench_hud_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui",
   ],
 ];
 
@@ -33,29 +80,29 @@ const nativeModuleToWebModule = new Map([
 ]);
 
 const webCommandNativeActions = new Map([
-  ["browse", "InvokeWorkbenchModuleBrowse"],
-  ["import", "InvokeWorkbenchAssetsImport"],
-  ["import-assets", "InvokeWorkbenchAssetsImport"],
-  ["import-from-path", "InvokeWorkbenchAssetsImport"],
-  ["simulation", "InvokeWorkbenchModuleSimulate"],
-  ["simulate", "InvokeWorkbenchVfxSimulate"],
-  ["add-tag", "InvokeWorkbenchTagsAdd"],
-  ["rename", "InvokeWorkbenchTagsRename"],
-  ["compile", "InvokeWorkbenchModuleCompile"],
-  ["diff", "InvokeWorkbenchModuleDiff"],
-  ["playtest", "InvokeWorkbenchAbilityPlaytest"],
-  ["activate-ability", "SelectWorkbenchAbilityTaskActivate"],
-  ["roughness", "SelectWorkbenchMaterialNodeRoughness"],
-  ["selector", "SelectWorkbenchBehaviorNodeSelector"],
-  ["attack", "SelectWorkbenchBehaviorNodeAttack"],
-  ["sight", "SelectWorkbenchPerceptionSightTab"],
-  ["hearing", "SelectWorkbenchPerceptionHearingTab"],
-  ["simulate-perception", "InvokeWorkbenchPerceptionSimulate"],
-  ["compile-pipeline", "InvokeWorkbenchRenderCompile"],
-  ["preview-hud", "InvokeWorkbenchHudPreview"],
-  ["weapon-panel", "SelectWorkbenchHudWidgetButton"],
-  ["blackboard", "SelectWorkbenchBehaviorBlackboardTab"],
-  ["timeline", "SelectWorkbenchVfxTimelineTab"],
+  ["browse", "workbench.module.browse.invoke"],
+  ["import", "workbench.module.assets.import.invoke"],
+  ["import-assets", "workbench.module.assets.import.invoke"],
+  ["import-from-path", "workbench.module.assets.import.invoke"],
+  ["simulation", "workbench.module.simulate.invoke"],
+  ["simulate", "workbench.module.vfx.simulate.invoke"],
+  ["add-tag", "workbench.module.tags.add.invoke"],
+  ["rename", "workbench.module.tags.rename.invoke"],
+  ["compile", "workbench.module.compile.invoke"],
+  ["diff", "workbench.module.diff.invoke"],
+  ["playtest", "workbench.module.ability.playtest.invoke"],
+  ["activate-ability", "workbench.module.ability.task_activate.select"],
+  ["roughness", "workbench.module.material.node_roughness.select"],
+  ["selector", "workbench.module.behavior.node_selector.select"],
+  ["attack", "workbench.module.behavior.node_attack.select"],
+  ["sight", "workbench.module.perception.sight_tab.select"],
+  ["hearing", "workbench.module.perception.hearing_tab.select"],
+  ["simulate-perception", "workbench.module.perception.simulate.invoke"],
+  ["compile-pipeline", "workbench.module.render.compile.invoke"],
+  ["preview-hud", "workbench.module.hud.preview.invoke"],
+  ["weapon-panel", "workbench.module.hud.widget_button.select"],
+  ["blackboard", "workbench.module.behavior.blackboard_tab.select"],
+  ["timeline", "workbench.module.vfx.timeline_tab.select"],
 ]);
 
 const webPrototypeOnlyCommands = new Set([
@@ -118,15 +165,15 @@ const nativeModuleFeedbackRows = [
 ];
 
 const nativeSharedModuleCommands = [
-  ["InvokeWorkbenchModuleSave", "save_status", "save_output"],
-  ["InvokeWorkbenchModuleCompile", "compile_status", "compile_output"],
-  ["InvokeWorkbenchModuleDiff", "diff_status", "diff_output"],
-  ["InvokeWorkbenchModuleSimulate", "simulate_status", "simulate_output"],
+  ["workbench.module.save.invoke", "save_status", "save_output"],
+  ["workbench.module.compile.invoke", "compile_status", "compile_output"],
+  ["workbench.module.diff.invoke", "diff_status", "diff_output"],
+  ["workbench.module.simulate.invoke", "simulate_status", "simulate_output"],
 ];
 
 const nativeScopedCommandSamples = [
-  ["material:compile", "compile", "InvokeWorkbenchModuleCompile"],
-  ["vfx:compile", "compile", "InvokeWorkbenchModuleCompile"],
+  ["material:compile", "compile", "workbench.module.compile.invoke"],
+  ["vfx:compile", "compile", "workbench.module.compile.invoke"],
 ];
 
 const nativeCompileFeedbackSamples = [
@@ -154,22 +201,62 @@ const nativeModuleWorkspaceSources = [
     "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui",
   ],
   [
+    "workbench_effect_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui",
+  ],
+  [
+    "workbench_material_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui",
+  ],
+  [
+    "workbench_behavior_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui",
+  ],
+  [
+    "workbench_assets_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui",
+  ],
+  [
+    "workbench_vfx_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui",
+  ],
+  [
     "workbench_additional_module_workspaces.zui",
     "../../../../zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui",
+  ],
+  [
+    "workbench_ability_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui",
+  ],
+  [
+    "workbench_tags_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui",
+  ],
+  [
+    "workbench_perception_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui",
+  ],
+  [
+    "workbench_render_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui",
+  ],
+  [
+    "workbench_hud_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui",
   ],
 ];
 
 const nativeModuleWorkspaceContracts = [
-  ["Effect", "effect", "workbench_module_workspace.zui"],
-  ["Ability", "ability", "workbench_additional_module_workspaces.zui"],
-  ["Tags", "tags", "workbench_additional_module_workspaces.zui"],
-  ["Perception", "perception", "workbench_additional_module_workspaces.zui"],
-  ["Material", "material", "workbench_module_workspace.zui"],
-  ["Behavior", "behavior", "workbench_module_workspace.zui"],
-  ["Render", "render", "workbench_additional_module_workspaces.zui"],
-  ["Assets", "assets", "workbench_module_workspace.zui"],
-  ["Vfx", "vfx", "workbench_module_workspace.zui"],
-  ["Hud", "hud", "workbench_additional_module_workspaces.zui"],
+  ["Effect", "effect", "workbench_effect_workspace.zui"],
+  ["Ability", "ability", "workbench_ability_workspace.zui"],
+  ["Tags", "tags", "workbench_tags_workspace.zui"],
+  ["Perception", "perception", "workbench_perception_workspace.zui"],
+  ["Material", "material", "workbench_material_workspace.zui"],
+  ["Behavior", "behavior", "workbench_behavior_workspace.zui"],
+  ["Render", "render", "workbench_render_workspace.zui"],
+  ["Assets", "assets", "workbench_assets_workspace.zui"],
+  ["Vfx", "vfx", "workbench_vfx_workspace.zui"],
+  ["Hud", "hud", "workbench_hud_workspace.zui"],
 ];
 
 const nativeSceneShellWorkspace = {
@@ -215,6 +302,79 @@ function orderedNativeModuleIdsWithoutScene(nativeModuleTabs) {
 
 function readRelative(path) {
   return readFileSync(new URL(path, import.meta.url), "utf8");
+}
+
+function nativeActionSourceFiles() {
+  return nativeActionSourceRoots.flatMap((root) =>
+    collectNativeActionSourceFiles(new URL(root, import.meta.url)),
+  );
+}
+
+function collectNativeActionSourceFiles(rootUrl) {
+  const files = [];
+  for (const entry of readdirSync(rootUrl, { withFileTypes: true })) {
+    const childUrl = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, rootUrl);
+    if (entry.isDirectory()) {
+      files.push(...collectNativeActionSourceFiles(childUrl));
+      continue;
+    }
+    if (nativeActionSourceExtensions.has(sourceExtension(entry.name))) {
+      files.push(childUrl);
+    }
+  }
+  return files;
+}
+
+function sourceExtension(name) {
+  const index = name.lastIndexOf(".");
+  return index < 0 ? "" : name.slice(index);
+}
+
+function collectNativeActionIds() {
+  const actionIds = [];
+  const patterns = [
+    ["menu action payload", /EditorUiBindingPayload::menu_action\(\s*"([^"]+)"/g],
+    ["menu action helper", /\bmenu_action\(\s*"([^"]+)"/g],
+    ["template action field", /\b(?:action_id|edit_action_id|commit_action_id)\s*[:=]\s*"([^"]+)"/g],
+    ["reflection action descriptor", /UiActionDescriptor::new\(\s*"([^"]+)"/g],
+    ["template action route", /\b(?:MenuAction|EditorAction)\.([A-Za-z0-9_.]+)/g],
+  ];
+
+  for (const fileUrl of nativeActionSourceFiles()) {
+    const source = readFileSync(fileUrl, "utf8");
+    const sourceName = fileUrl.pathname.replace(/\\/g, "/").split("/ZirconEngine/").pop() ?? fileUrl.pathname;
+    for (const [kind, pattern] of patterns) {
+      for (const match of source.matchAll(pattern)) {
+        const actionId = normalizeActionId(match[1]);
+        if (isPartialActionTemplate(actionId)) {
+          continue;
+        }
+        actionIds.push({ sourceName, kind, actionId });
+      }
+    }
+  }
+  return actionIds;
+}
+
+function normalizeActionId(actionId) {
+  return actionId
+    .replace(/^MenuAction\./, "")
+    .replace(/^EditorAction\./, "");
+}
+
+function isPartialActionTemplate(actionId) {
+  return actionId.endsWith(".");
+}
+
+function validateNativeActionIds(failures) {
+  const invalid = collectNativeActionIds()
+    .filter(({ actionId }) => !previewActionIdPattern.test(actionId))
+    .map(({ sourceName, kind, actionId }) => `${sourceName} ${kind} ${actionId}`);
+  if (invalid.length > 0) {
+    failures.push(
+      `native action ids must use dotted lower-case functional paths, not CamelCase or slash paths: ${invalid.join("; ")}`,
+    );
+  }
 }
 
 function zuiModuleEventsFromBlock(block) {
@@ -304,7 +464,7 @@ function moduleBindingsFromRust(source) {
   const bindings = new Map();
   for (const match of source.matchAll(/\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,?\s*\)/g)) {
     const [, controlKey, actionId] = match;
-    if (actionId.startsWith("SelectWorkbench") || actionId.startsWith("InvokeWorkbench")) {
+    if (isWorkbenchModulePreviewAction(actionId)) {
       bindings.set(`WorkbenchModule/${controlKey}`, { eventKind: "Click", actionId });
     }
   }
@@ -327,14 +487,27 @@ function moduleBindingsFromRust(source) {
 }
 
 function previewActionsFromRust(source) {
-  const listStart = source.indexOf("WORKBENCH_PREVIEW_ACTION_IDS");
-  const bracketStart = source.indexOf("&[", listStart);
-  const bracketEnd = source.indexOf("];", bracketStart);
-  if (listStart < 0 || bracketStart < 0 || bracketEnd < 0) {
-    throw new Error("WORKBENCH_PREVIEW_ACTION_IDS array was not found");
+  const ids = new Set();
+  const invalidIds = new Set();
+  for (const listMatch of source.matchAll(/PREVIEW_ACTION_IDS:\s*&\[&str\]\s*=\s*&\[([\s\S]*?)\];/g)) {
+    for (const idMatch of listMatch[1].matchAll(/"([^"]+)"/g)) {
+      const id = idMatch[1];
+      if (!previewActionIdPattern.test(id)) {
+        invalidIds.add(id);
+        continue;
+      }
+      ids.add(id);
+    }
   }
-  const listBody = source.slice(bracketStart, bracketEnd);
-  return new Set([...listBody.matchAll(/"([A-Za-z0-9_]+)"/g)].map((match) => match[1]));
+  if (invalidIds.size > 0) {
+    throw new Error(
+      `preview action ids must use dotted functional paths: ${[...invalidIds].join(", ")}`,
+    );
+  }
+  if (ids.size === 0) {
+    throw new Error("preview action arrays were not found");
+  }
+  return ids;
 }
 
 function routeCommandIdsFromSource(source) {
@@ -451,10 +624,170 @@ function assertSceneShellWorkspaceContract(failures) {
   }
 }
 
+function assertSplitModuleWorkspaceHosts(failures) {
+  const moduleWorkspaceSource = workspaceSources.get("workbench_module_workspace.zui");
+  const moduleWorkspaceNodes = workspaceNodeMaps.get("workbench_module_workspace.zui");
+  const additionalModuleWorkspacesSource = workspaceSources.get("workbench_additional_module_workspaces.zui");
+  const additionalModuleWorkspaceNodes = workspaceNodeMaps.get("workbench_additional_module_workspaces.zui");
+  if (!moduleWorkspaceSource || !moduleWorkspaceNodes) {
+    failures.push("Workbench module workspace host source was not loaded");
+    return;
+  }
+
+  const root = moduleWorkspaceNodes.get("module_workspace");
+  if (!root) {
+    failures.push("Workbench module workspace host is missing module_workspace root");
+    return;
+  }
+
+  for (const splitHost of [
+    {
+      importId: "workbench_effect_workspace.zui#WorkbenchEffectWorkspace",
+      hostNode: "effect_workspace_host",
+      bodyNode: "effect_workspace_body",
+      component: "WorkbenchEffectWorkspace",
+      controlId: "WorkbenchEffectWorkspaceHost",
+    },
+    {
+      importId: "workbench_material_workspace.zui#WorkbenchMaterialWorkspace",
+      hostNode: "material_workspace_host",
+      bodyNode: "material_workspace_body",
+      component: "WorkbenchMaterialWorkspace",
+      controlId: "WorkbenchMaterialWorkspaceHost",
+    },
+    {
+      importId: "workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace",
+      hostNode: "behavior_workspace_host",
+      bodyNode: "behavior_workspace_body",
+      component: "WorkbenchBehaviorWorkspace",
+      controlId: "WorkbenchBehaviorWorkspaceHost",
+    },
+    {
+      importId: "workbench_assets_workspace.zui#WorkbenchAssetsWorkspace",
+      hostNode: "assets_workspace_host",
+      bodyNode: "assets_workspace_body",
+      component: "WorkbenchAssetsWorkspace",
+      controlId: "WorkbenchAssetsWorkspaceHost",
+    },
+    {
+      importId: "workbench_vfx_workspace.zui#WorkbenchVfxWorkspace",
+      hostNode: "vfx_workspace_host",
+      bodyNode: "vfx_workspace_body",
+      component: "WorkbenchVfxWorkspace",
+      controlId: "WorkbenchVfxWorkspaceHost",
+    },
+  ]) {
+    if (!moduleWorkspaceSource.includes(splitHost.importId)) {
+      failures.push(`Workbench module workspace should import split component ${splitHost.importId}`);
+    }
+    if (!root.children.includes(splitHost.hostNode)) {
+      failures.push(`Workbench module workspace host should mount ${splitHost.hostNode}`);
+    }
+    const host = moduleWorkspaceNodes.get(splitHost.hostNode);
+    if (!host) {
+      failures.push(`Workbench module workspace host is missing ${splitHost.hostNode}`);
+      continue;
+    }
+    if (host.component !== "Overlay") {
+      failures.push(`${splitHost.hostNode} should use Overlay host wrapper, found ${host.component}`);
+    }
+    if (host.controlId !== splitHost.controlId) {
+      failures.push(`${splitHost.hostNode} should use ${splitHost.controlId}, found ${host.controlId}`);
+    }
+    if (!host.children.includes(splitHost.bodyNode)) {
+      failures.push(`${splitHost.hostNode} should mount ${splitHost.bodyNode}`);
+    }
+    const body = moduleWorkspaceNodes.get(splitHost.bodyNode);
+    if (!body) {
+      failures.push(`Workbench module workspace host is missing ${splitHost.bodyNode}`);
+      continue;
+    }
+    if (body.component !== splitHost.component) {
+      failures.push(`${splitHost.bodyNode} should use ${splitHost.component}, found ${body.component}`);
+    }
+  }
+
+  if (!additionalModuleWorkspacesSource || !additionalModuleWorkspaceNodes) {
+    failures.push("Workbench additional module workspaces host source was not loaded");
+    return;
+  }
+
+  const additionalRoot = additionalModuleWorkspaceNodes.get("additional_module_workspaces");
+  if (!additionalRoot) {
+    failures.push("Workbench additional module workspaces host is missing additional_module_workspaces root");
+    return;
+  }
+
+  for (const splitHost of [
+    {
+      importId: "workbench_ability_workspace.zui#WorkbenchAbilityWorkspace",
+      hostNode: "ability_workspace_host",
+      bodyNode: "ability_workspace_body",
+      component: "WorkbenchAbilityWorkspace",
+      controlId: "WorkbenchAbilityWorkspaceHost",
+    },
+    {
+      importId: "workbench_tags_workspace.zui#WorkbenchTagsWorkspace",
+      hostNode: "tags_workspace_host",
+      bodyNode: "tags_workspace_body",
+      component: "WorkbenchTagsWorkspace",
+      controlId: "WorkbenchTagsWorkspaceHost",
+    },
+    {
+      importId: "workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace",
+      hostNode: "perception_workspace_host",
+      bodyNode: "perception_workspace_body",
+      component: "WorkbenchPerceptionWorkspace",
+      controlId: "WorkbenchPerceptionWorkspaceHost",
+    },
+    {
+      importId: "workbench_render_workspace.zui#WorkbenchRenderWorkspace",
+      hostNode: "render_workspace_host",
+      bodyNode: "render_workspace_body",
+      component: "WorkbenchRenderWorkspace",
+      controlId: "WorkbenchRenderWorkspaceHost",
+    },
+    {
+      importId: "workbench_hud_workspace.zui#WorkbenchHudWorkspace",
+      hostNode: "hud_workspace_host",
+      bodyNode: "hud_workspace_body",
+      component: "WorkbenchHudWorkspace",
+      controlId: "WorkbenchHudWorkspaceHost",
+    },
+  ]) {
+    if (!additionalModuleWorkspacesSource.includes(splitHost.importId)) {
+      failures.push(`Workbench additional module workspaces should import split component ${splitHost.importId}`);
+    }
+    if (!additionalRoot.children.includes(splitHost.hostNode)) {
+      failures.push(`Workbench additional module workspaces host should mount ${splitHost.hostNode}`);
+    }
+    const host = additionalModuleWorkspaceNodes.get(splitHost.hostNode);
+    if (!host) {
+      failures.push(`Workbench additional module workspaces host is missing ${splitHost.hostNode}`);
+      continue;
+    }
+    if (host.component !== "Overlay") {
+      failures.push(`${splitHost.hostNode} should use Overlay host wrapper, found ${host.component}`);
+    }
+    if (host.controlId !== splitHost.controlId) {
+      failures.push(`${splitHost.hostNode} should use ${splitHost.controlId}, found ${host.controlId}`);
+    }
+    if (!host.children.includes(splitHost.bodyNode)) {
+      failures.push(`${splitHost.hostNode} should mount ${splitHost.bodyNode}`);
+    }
+    const body = additionalModuleWorkspaceNodes.get(splitHost.bodyNode);
+    if (!body) {
+      failures.push(`Workbench additional module workspaces host is missing ${splitHost.bodyNode}`);
+      continue;
+    }
+    if (body.component !== splitHost.component) {
+      failures.push(`${splitHost.bodyNode} should use ${splitHost.component}, found ${body.component}`);
+    }
+  }
+}
+
 function isWorkbenchModulePreviewAction(actionId) {
-  return /^(Select|Invoke|Edit|Commit)Workbench(Module|Effect|Material|Behavior|Assets|Vfx|Ability|Tags|Perception|Render|Hud)/.test(
-    actionId,
-  );
+  return actionId.startsWith("workbench.module.");
 }
 
 const moduleEvents = nativeEventSources.flatMap(([sourceName, path]) =>
@@ -467,7 +800,10 @@ const moduleBindings = moduleBindingsFromRust(
   readRelative("../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs"),
 );
 const previewActions = previewActionsFromRust(
-  readRelative("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"),
+  [
+    readRelative("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"),
+    readRelative("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs"),
+  ].join("\n"),
 );
 const routesSource = readRelative("./routes.js");
 const webRouteCommands = routeCommandIdsFromSource(routesSource);
@@ -483,6 +819,7 @@ const workspaceNodeMaps = new Map(
 );
 
 const failures = [];
+validateNativeActionIds(failures);
 const seenBindingIds = new Set();
 const declaredBindingIds = new Set(moduleEvents.map((event) => event.bindingId));
 const bindingActionIds = new Set([...moduleBindings.values()].map((binding) => binding.actionId));
@@ -534,6 +871,7 @@ if (JSON.stringify(actualWorkspaceModuleOrder) !== JSON.stringify(expectedWorksp
 }
 
 assertSceneShellWorkspaceContract(failures);
+assertSplitModuleWorkspaceHosts(failures);
 
 for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
   const nodes = workspaceNodeMaps.get(sourceName);

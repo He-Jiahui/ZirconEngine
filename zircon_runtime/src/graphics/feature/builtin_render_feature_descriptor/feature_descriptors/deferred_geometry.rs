@@ -43,7 +43,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("deferred.gbuffer")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO),
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "transparent-mesh",

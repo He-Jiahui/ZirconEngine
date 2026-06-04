@@ -1,0 +1,28 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_generated_bottom_drawer.zui"
+version = 2
+display_name = "Workbench Generated Bottom Drawer"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
+]
+styles = []
+
+[components.WorkbenchGeneratedBottomDrawer]
+root = "generated_bottom_drawer"
+default_classes = ["workbench-generated-bottom-drawer", "workbench-panel"]
+
+[nodes.generated_bottom_drawer]
+component = "Overlay"
+control_id = "WorkbenchGeneratedBottomDrawer"
+classes = ["workbench-generated-bottom-drawer", "workbench-panel"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_panel" }]
+
+[nodes.generated_bottom_panel]
+component = "WorkbenchGeneratedBottomPanel"
+control_id = "WorkbenchGeneratedBottomPanelHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

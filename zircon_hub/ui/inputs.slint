@@ -1,15 +1,9 @@
 import { HubTokens, HubVisualSpec } from "tokens.slint";
-import { HubCommandButton } from "button_components.slint";
 import {
-    CheckBox as MaterialCheckBox,
-    CheckBoxTile as MaterialCheckBoxTile,
-    CheckState,
     MenuItem,
     Icon,
     OutlineButton,
     SegmentedButton,
-    Switch as MaterialSwitch,
-    TextField,
     TonalButton,
     MaterialPalette,
     MaterialStyleMetrics,
@@ -17,7 +11,7 @@ import {
     MaterialTypography,
     StateLayerArea,
 } from "material_bridge.slint";
-import { HubSelectDropDownSurface, HubSelectMenu } from "overlays.slint";
+import { HubSelectMenu } from "dropdown_components.slint";
 
 export struct SelectOptionData {
     id: string,
@@ -25,196 +19,111 @@ export struct SelectOptionData {
     active: bool,
 }
 
-export component SearchBox inherits Rectangle {
-    in-out property <string> text;
-    in property <string> placeholder;
-    in property <bool> enabled: true;
-    in property <bool> prominent: false;
-    out property <bool> focused: search-field.has-focus;
-    in property <length> box-width: HubTokens.input-width;
-    in property <length> box-height: HubVisualSpec.toolbar-density-height;
-    callback edited(string);
-    callback accepted(string);
+component HubSelectTriggerLabel inherits MaterialText {
+    in property <string> value;
+    in property <color> foreground;
+    in property <bool> dense: false;
 
-    // The compact toolbar search keeps text editing local while visual states
-    // derive from shared Hub tokens so dashboard and browser toolbars align.
-    private property <color> state-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : (root.prominent ? HubVisualSpec.search-prominent-background : HubVisualSpec.panel-background));
-    private property <bool> highlighted: root.focused || root.prominent;
-    private property <color> state-border: root.focused ? HubVisualSpec.focus-ring-color : (root.prominent ? HubVisualSpec.search-prominent-stroke : (root.text != "" ? HubVisualSpec.outline-strong : HubVisualSpec.outline-muted));
-    private property <color> placeholder-color: root.focused ? MaterialPalette.on_surface_variant : (root.prominent ? HubVisualSpec.search-prominent-placeholder : MaterialPalette.on_surface_variant.with_alpha(0.72));
-
-    forward-focus: search-field;
-    width: root.box-width;
-    height: root.box-height;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
-    border-color: root.state-border;
-    background: root.state-background;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.focused ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            if (root.enabled) {
-                search-field.focus();
-            }
-        }
-    }
-
-    Icon {
-        width: HubTokens.icon-md;
-        height: HubTokens.icon-md;
-        x: HubTokens.space-4;
-        y: (parent.height - self.height) / 2;
-        source: @image-url("../assets/icons/ui/search.svg");
-        colorize: MaterialPalette.on_surface_variant;
-    }
-
-    search-field := TextInput {
-        x: HubTokens.space-4 + HubTokens.icon-md + HubTokens.space-3;
-        width: parent.width - self.x - HubTokens.space-4;
-        height: parent.height;
-        text <=> root.text;
-        color: MaterialPalette.on_surface;
-        horizontal-alignment: left;
-        vertical-alignment: center;
-        single-line: true;
-        enabled: root.enabled;
-        accepted => {
-            root.accepted(root.text);
-        }
-        edited => {
-            root.edited(root.text);
-        }
-    }
-
-    if root.text == "": MaterialText {
-        x: search-field.x;
-        width: search-field.width;
-        height: parent.height;
-        text: root.placeholder;
-        color: root.placeholder-color;
-        style: MaterialTypography.body_medium;
-        vertical_alignment: center;
-        overflow: elide;
-    }
+    horizontal-stretch: 1;
+    min-width: 1px;
+    text: root.value;
+    color: root.foreground;
+    style: root.dense ? MaterialTypography.label_medium : MaterialTypography.label_large;
+    vertical_alignment: center;
+    overflow: elide;
 }
 
-export component HubTextField inherits Rectangle {
-    in-out property <string> text;
-    in property <string> label;
-    in property <string> placeholder;
-    in property <string> supporting-text;
+export component HubSelectTrigger inherits Rectangle {
+    in property <string> text;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
+    in property <length> trigger-width: HubVisualSpec.toolbar-density-height * 7 / 2;
+    in property <length> trigger-height: HubVisualSpec.toolbar-density-height;
+    in property <length> chevron-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.trigger-height * 2 / 5));
+    in property <length> content-inset: max(MaterialStyleMetrics.padding_12, root.trigger-height / 4);
     in property <bool> enabled: true;
-    out property <bool> focused: material-field.has-focus;
-    in property <image> leading-icon;
-    in property <image> trailing-icon;
-    callback edited(string);
-    callback accepted(string);
+    in property <bool> focused: false;
+    in property <bool> menu-ready: true;
+    in property <bool> dense-label: false;
+    in property <color> idle-foreground: HubVisualSpec.toolbar-select-foreground;
+    callback activated();
 
-    // Material TextField owns editing and label behavior; this wrapper owns the
-    // shared Hub disabled and focus treatment used by all input primitives.
-    private property <color> focus-border: root.focused ? HubVisualSpec.focus-ring-color : transparent;
-    private property <float> state-opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+    // MUI Select separates the button-like anchor from the menu surface. Hub
+    // keeps that split so toolbar and shell selectors share one trigger shape.
+    private property <color> select-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
+    private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;
+    private property <color> select-foreground: root.focused ? MaterialPalette.on_surface_variant : root.idle-foreground;
 
-    forward-focus: material-field;
-    height: HubTokens.input-field;
-    min-width: 1px;
-    preferred-width: HubTokens.input-width;
-    horizontal-stretch: 1;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
-    border-color: root.focus-border;
-    opacity: root.state-opacity;
+    width: root.trigger-width;
+    height: root.trigger-height;
     clip: false;
 
-    material-field := TextField {
+    trigger := OutlineButton {
         width: parent.width;
         height: parent.height;
-        text <=> root.text;
-        label: root.label;
-        placeholder_text: root.placeholder != "" ? root.placeholder : root.label;
-        supporting_text: root.supporting-text;
-        leading_icon: root.leading-icon;
-        trailing_icon: root.trailing-icon;
+        text: root.text;
+        icon: root.icon-image;
+        opacity: 0%;
         enabled: root.enabled;
-        edited(value) => {
-            root.edited(value);
-        }
-        accepted(value) => {
-            root.accepted(value);
-        }
-    }
-}
-
-export component HubPathFieldRow inherits Rectangle {
-    in property <string> label;
-    in property <string> placeholder;
-    in property <string> supporting-text;
-    in-out property <string> text;
-    in property <bool> enabled: true;
-    in property <bool> show-action: true;
-    in property <bool> action-enabled: true;
-    in property <bool> action-primary: false;
-    in property <string> action-label;
-    in property <image> action-icon: @image-url("../assets/icons/ui/folder.svg");
-    in property <bool> has-action-icon: true;
-    in property <length> field-height: HubTokens.input-field;
-    in property <length> action-width: HubTokens.control-md * 3;
-    in property <length> action-height: HubTokens.control-md;
-    in property <length> row-spacing: HubTokens.toolbar-gap;
-    in property <length> row-padding: 0px;
-    in property <bool> framed: false;
-    in property <length> row-height: max(root.field-height, root.action-height) + root.row-padding * 2;
-    in property <length> row-preferred-width: HubTokens.input-width + (root.show-action ? root.action-width + root.row-spacing : 0px);
-    callback action-clicked();
-
-    horizontal-stretch: 1;
-    min-width: 1px;
-    preferred-width: root.row-preferred-width;
-    height: root.row-height;
-    background: root.framed ? HubVisualSpec.panel-background : transparent;
-    border-radius: root.framed ? HubVisualSpec.compact-radius : 0px;
-    border-width: root.framed ? HubTokens.border-width : 0px;
-    border-color: HubVisualSpec.outline-muted;
-    clip: root.framed;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: root.row-padding;
-        padding-right: root.row-padding;
-        padding-top: root.row-padding;
-        padding-bottom: root.row-padding;
-        spacing: root.row-spacing;
-        alignment: center;
-
-        HubTextField {
-            height: root.field-height;
-            horizontal-stretch: 1;
-            label: root.label;
-            placeholder: root.placeholder != "" ? root.placeholder : root.label;
-            supporting-text: root.supporting-text;
-            text <=> root.text;
-            enabled: root.enabled;
-        }
-
-        if root.show-action: HubCommandButton {
-            button-width: root.action-width;
-            button-height: root.action-height;
-            text: root.action-label;
-            source-image: root.action-icon;
-            has-source-image: root.has-action-icon;
-            primary: root.action-primary;
-            enabled: root.action-enabled && root.enabled;
-            clicked => {
-                root.action-clicked();
+        clicked => {
+            if (root.menu-ready) {
+                root.activated();
             }
         }
+    }
+
+    select-visual := Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: HubVisualSpec.compact-radius;
+        border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
+        border-color: root.select-border;
+        background: root.select-background;
+        opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
+        clip: true;
+
+        HorizontalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: root.content-inset;
+            padding-right: root.content-inset + root.chevron-size + HubTokens.space-2;
+            spacing: HubTokens.space-2;
+            alignment: center;
+
+            if root.has-icon-image: Icon {
+                width: HubTokens.icon-sm;
+                height: HubTokens.icon-sm;
+                source: root.icon-image;
+                colorize: root.select-foreground;
+            }
+
+            HubSelectTriggerLabel {
+                value: root.text;
+                foreground: root.select-foreground;
+                dense: root.dense-label;
+            }
+        }
+
+        StateLayerArea {
+            width: parent.width;
+            height: parent.height;
+            color: root.menu-ready ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
+            border_radius: HubVisualSpec.compact-radius;
+            clicked => {
+                if (root.menu-ready) {
+                    root.activated();
+                }
+            }
+        }
+    }
+
+    trailing-chevron := Icon {
+        width: root.chevron-size;
+        height: root.chevron-size;
+        x: parent.width - root.content-inset - self.width;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../assets/icons/ui/chevron-down.svg");
+        colorize: root.select-foreground;
     }
 }
 
@@ -233,87 +142,24 @@ export component ToolbarSelect inherits Rectangle {
     callback selected(string);
     callback selected-index(int);
 
-    private property <length> trailing-icon-size: max(MaterialStyleMetrics.icon_size_18, min(MaterialStyleMetrics.icon_size_24, root.select-height * 2 / 5));
-    private property <length> trailing-icon-inset: max(MaterialStyleMetrics.padding_12, root.select-height / 4);
     private property <bool> menu-ready: root.enabled && root.menu-items.length > 0;
-    private property <color> select-background: !root.enabled ? HubVisualSpec.panel-background.with_alpha(MaterialPalette.disable_opacity) : (root.focused ? MaterialPalette.surface_container_high : HubVisualSpec.panel-background);
-    private property <color> select-border: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;
-    private property <color> select-foreground: root.focused ? MaterialPalette.on_surface_variant : HubVisualSpec.toolbar-select-foreground;
 
     width: root.select-width;
     height: root.select-height;
     clip: false;
 
-    trigger := OutlineButton {
-        width: parent.width;
-        height: parent.height;
+    HubSelectTrigger {
+        trigger-width: parent.width;
+        trigger-height: parent.height;
         text: root.text;
-        icon: root.icon-image;
-        opacity: 0%;
+        icon-image: root.icon-image;
+        has-icon-image: root.has-icon-image;
         enabled: root.enabled;
-        clicked => {
-            if (root.menu-ready) {
-                menu.show();
-            }
+        focused: root.focused;
+        menu-ready: root.menu-ready;
+        activated => {
+            menu.show();
         }
-    }
-
-    select-visual := Rectangle {
-        width: parent.width;
-        height: parent.height;
-        border-radius: HubVisualSpec.compact-radius;
-        border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
-        border-color: root.select-border;
-        background: root.select-background;
-        opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-        clip: true;
-
-        HorizontalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding-left: root.trailing-icon-inset;
-            padding-right: root.trailing-icon-inset + root.trailing-icon-size + HubTokens.space-2;
-            spacing: HubTokens.space-2;
-            alignment: center;
-
-            Icon {
-                width: HubTokens.icon-sm;
-                height: HubTokens.icon-sm;
-                source: root.icon-image;
-                colorize: root.select-foreground;
-            }
-
-            MaterialText {
-                horizontal-stretch: 1;
-                min-width: 1px;
-                text: root.text;
-                color: root.select-foreground;
-                style: MaterialTypography.label_large;
-                vertical_alignment: center;
-                overflow: elide;
-            }
-        }
-
-        StateLayerArea {
-            width: parent.width;
-            height: parent.height;
-            color: root.menu-ready ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface_variant;
-            border_radius: HubVisualSpec.compact-radius;
-            clicked => {
-                if (root.menu-ready) {
-                    menu.show();
-                }
-            }
-        }
-    }
-
-    trailing-chevron := Icon {
-        width: root.trailing-icon-size;
-        height: root.trailing-icon-size;
-        x: parent.width - root.trailing-icon-inset - self.width;
-        y: (parent.height - self.height) / 2;
-        source: @image-url("../assets/icons/ui/chevron-down.svg");
-        colorize: root.select-foreground;
     }
 
     menu := HubSelectMenu {
@@ -429,204 +275,5 @@ export component SegmentButton inherits Rectangle {
 
     changed active => {
         root.selected-index = root.active ? 0 : -1;
-    }
-}
-
-export component HubCheckBox inherits Rectangle {
-    in-out property <CheckState> check-state: CheckState.unchecked;
-    in property <bool> tristate: false;
-    in property <bool> has-error: false;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    out property <bool> checked: root.check-state == CheckState.checked;
-    callback changed(CheckState);
-
-    width: HubTokens.control-md;
-    height: HubTokens.control-md;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: false;
-
-    material-check := MaterialCheckBox {
-        width: parent.width;
-        height: parent.height;
-        check_state <=> root.check-state;
-        tristate: root.tristate;
-        has_error: root.has-error;
-        enabled: root.enabled;
-        checked_state_changed(state) => {
-            root.changed(state);
-        }
-    }
-
-    if root.focused: Rectangle {
-        width: parent.width;
-        height: parent.height;
-        border-radius: parent.height / 2;
-        border-width: HubVisualSpec.focus-ring-width;
-        border-color: HubVisualSpec.focus-ring-color;
-        background: transparent;
-    }
-}
-
-export component HubCheckBoxRow inherits Rectangle {
-    in-out property <CheckState> check-state: CheckState.unchecked;
-    in property <string> label;
-    in property <string> supporting-text;
-    in property <bool> tristate: false;
-    in property <bool> has-error: false;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    in property <length> row-height: HubTokens.list-row-md;
-    callback changed(CheckState);
-
-    horizontal-stretch: 1;
-    height: root.row-height;
-    min-width: 1px;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.focused ? HubVisualSpec.focus-ring-width : 0px;
-    border-color: root.focused ? HubVisualSpec.focus-ring-color : transparent;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    material-row := MaterialCheckBoxTile {
-        width: parent.width;
-        height: parent.height;
-        text: root.label;
-        supporting_text: root.supporting-text;
-        check_state <=> root.check-state;
-        tristate: root.tristate;
-        has_error: root.has-error;
-        enabled: root.enabled;
-        checked_state_changed(state) => {
-            root.changed(state);
-        }
-    }
-}
-
-export component HubSwitch inherits Rectangle {
-    in-out property <bool> checked: false;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    in property <image> on-icon;
-    in property <image> off-icon;
-    callback toggled(bool);
-
-    width: MaterialStyleMetrics.size_52;
-    height: MaterialStyleMetrics.size_32;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: false;
-
-    material-switch := MaterialSwitch {
-        width: parent.width;
-        height: parent.height;
-        checked <=> root.checked;
-        enabled: root.enabled;
-        on_icon: root.on-icon;
-        off_icon: root.off-icon;
-        checked_state_changed(checked) => {
-            root.toggled(checked);
-        }
-    }
-
-    if root.focused: Rectangle {
-        width: parent.width + HubVisualSpec.focus-ring-offset * 2;
-        height: parent.height + HubVisualSpec.focus-ring-offset * 2;
-        x: -HubVisualSpec.focus-ring-offset;
-        y: -HubVisualSpec.focus-ring-offset;
-        border-radius: parent.height / 2 + HubVisualSpec.focus-ring-offset;
-        border-width: HubVisualSpec.focus-ring-width;
-        border-color: HubVisualSpec.focus-ring-color;
-        background: transparent;
-    }
-}
-
-export component HubToggleRow inherits Rectangle {
-    in-out property <bool> checked: false;
-    in property <string> label;
-    in property <string> supporting-text;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    in property <length> row-height: HubTokens.list-row-md;
-    callback toggled(bool);
-
-    horizontal-stretch: 1;
-    height: root.row-height;
-    min-width: 1px;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.focused ? HubVisualSpec.focus-ring-width : HubTokens.border-width;
-    border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.outline-muted;
-    background: HubVisualSpec.panel-background;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: MaterialStyleMetrics.padding_16;
-        padding-right: MaterialStyleMetrics.padding_16;
-        spacing: HubTokens.toolbar-gap;
-        alignment: stretch;
-
-        VerticalLayout {
-            horizontal-stretch: 1;
-            spacing: MaterialStyleMetrics.spacing_2;
-
-            MaterialText {
-                horizontal-stretch: 1;
-                text: root.label;
-                overflow: elide;
-                color: MaterialPalette.on_surface;
-                style: MaterialTypography.label_large;
-                horizontal_alignment: left;
-            }
-
-            if root.supporting-text != "": MaterialText {
-                horizontal-stretch: 1;
-                text: root.supporting-text;
-                overflow: elide;
-                color: MaterialPalette.on_surface_variant;
-                style: MaterialTypography.body_small;
-                horizontal_alignment: left;
-            }
-        }
-
-        HubSwitch {
-            checked <=> root.checked;
-            enabled: root.enabled;
-            focused: false;
-            toggled(checked) => {
-                root.toggled(checked);
-            }
-        }
-    }
-}
-
-export component HubComboBox inherits Rectangle {
-    in property <string> label;
-    in property <bool> enabled: true;
-    in property <image> leading-icon;
-    in property <[MenuItem]> items: [];
-    in-out property <int> current-index: -1;
-    in property <length> combo-width: HubTokens.input-width;
-    in property <length> combo-height: HubTokens.input-field;
-    callback selected(int);
-
-    width: root.combo-width;
-    height: root.combo-height;
-    min-width: 1px;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: false;
-
-    material-combo := HubSelectDropDownSurface {
-        select-width: parent.width;
-        select-height: parent.height;
-        select-items: root.items;
-        label: root.label;
-        enabled: root.enabled;
-        leading_icon: root.leading-icon;
-        current_index <=> root.current-index;
-        selected(index) => {
-            root.selected(index);
-        }
     }
 }

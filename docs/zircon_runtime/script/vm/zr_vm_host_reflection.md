@@ -24,9 +24,17 @@ related_code:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -56,9 +64,17 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -123,6 +139,11 @@ tests:
   - "rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-24"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-zrvm-real-backend-hardening: passed 2026-05-24; 3 passed, 0 failed, 0 doc-tests"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug and PATH including E:\\Git\\zr_vm\\build\\codex-msvc-debug\\bin\\Debug: passed 2026-05-24; 11 passed, 0 failed, 3 filtered out"
+  - "rustfmt --edition 2021 --check zircon_runtime/src/script/vm/plugin/management_policy/mod.rs zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs zircon_runtime/src/script/vm/plugin/management_policy/memory.rs zircon_runtime/src/script/vm/plugin/management_policy/policy.rs zircon_runtime/src/script/vm/plugin/mod.rs zircon_runtime/src/script/vm/plugin/vm_plugin_manifest.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs zircon_runtime/src/script/vm/runtime/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs zircon_runtime/src/script/vm/mod.rs zircon_runtime/src/script/mod.rs zircon_runtime/src/script/vm/tests.rs: passed 2026-06-04"
+  - "git diff --check -- zircon_runtime/src/script/vm/plugin/management_policy zircon_runtime/src/script/vm/plugin/mod.rs zircon_runtime/src/script/vm/plugin/vm_plugin_manifest.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/runtime zircon_runtime/src/script/vm/mod.rs zircon_runtime/src/script/mod.rs zircon_runtime/src/script/vm/tests.rs: passed 2026-06-04 with only expected LF-to-CRLF warnings"
+  - "cargo test -p zircon_runtime hot_reload_policy --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
+  - "cargo test -p zircon_runtime discovery_parses_vm_management_policy_from_manifest --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
+  - "cargo test -p zircon_runtime default_management_policy_preserves_state_and_defers_gc_to_backend --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
 doc_type: module-detail
 ---
 
@@ -209,6 +230,31 @@ The built-in math module is the proof that handwritten and macro-generated descr
 The real `zr_vm` backend treats `HostExportRegistry` records as already validated neutral descriptors, then applies only target-backend lowering checks. Function arity must fit the `zr_vm` native function ABI (`u16` min/max bounds), `min_argument_count` must not exceed `max_argument_count`, and reflected parameter count must fit the maximum arity. These are backend constraints, not shared descriptor constraints for every future VM backend.
 
 Native callbacks convert ZrVM null, bool, int, float, and string arguments into `ScriptHostValue` before dispatching through `HostExportRegistry::call_with_capabilities`. Host return values lower null, bool, int, float, string, bytes as lossy UTF-8 strings, and `HostHandle` as integers. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
+
+## VM Plugin Management Policy
+
+VM plugin manifests now carry a neutral `management` policy block. The default policy keeps existing behavior: hot reload preserves VM state through `save_state` and `restore_state`, garbage collection is backend-managed, and no soft or hard memory limits are declared. This keeps old bytecode and `zr_vm:project` packages compatible while giving project tooling a stable place to declare lifecycle and memory expectations.
+
+The hot-reload policy has three modes. `preserve_state` saves state from the active slot, deactivates it, loads and activates the replacement instance, and restores the saved state. `stateless` deactivates the old instance and activates the replacement without calling state transfer hooks. `disabled` rejects hot reload before deactivation, leaving the active slot untouched.
+
+The garbage-collection policy is descriptive at this layer. `backend_managed` means the backend owns collection timing, `cooperative` can declare an `interval_frames` cadence for future host-driven collection, and `disabled` forbids an interval. Memory policy can declare `soft_limit_bytes` and `hard_limit_bytes`; invalid zero limits or a soft limit above the hard limit are rejected during package discovery before the package reaches a backend.
+
+`VmPluginSlotRecord` exposes the resolved management policy beside each loaded slot, plus a monotonic `generation` and a lifecycle state. Initial loads start at generation 1, and successful hot reload increments the generation. The status projection uses `active` for a running instance, `reloading` while the coordinator is saving state, deactivating, loading, activating, or restoring a replacement, and `failed` when a reload step fails after the original instance has already left the clean active path. Reload hooks run without holding the coordinator slot-table lock, so a VM plugin can safely query its slot lifecycle facade during `activate` or `restore_state` and still observe the transient `reloading` record. This gives editor, Hub, export, and diagnostics surfaces a single read-only status projection without needing to inspect backend internals. Real GC execution and live memory measurements remain backend follow-up work; this slice only establishes the neutral contract and lifecycle bookkeeping that those backends can report through.
+
+Example package policy:
+
+```toml
+[management]
+hot_reload = "stateless"
+
+[management.garbage_collection]
+mode = "cooperative"
+interval_frames = 120
+
+[management.memory]
+soft_limit_bytes = 104857600
+hard_limit_bytes = 268435456
+```
 
 ## Package Protocol
 

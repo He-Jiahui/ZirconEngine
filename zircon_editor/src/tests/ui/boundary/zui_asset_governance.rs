@@ -509,7 +509,7 @@ fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
     );
     assert!(
         offenders.is_empty(),
-        "production .zui component assets must remain reachable from direct res:// .zui widget imports or registered builtin aliases: {offenders:#?}"
+        "production .zui component assets must remain reachable from direct or transitive res:// .zui widget imports or registered builtin aliases: {offenders:#?}"
     );
 }
 

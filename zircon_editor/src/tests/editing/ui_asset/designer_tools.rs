@@ -102,7 +102,7 @@ fn ui_asset_editor_session_dispatches_preview_interact_binding_from_canvas_node(
     assert_eq!(dispatch.control_id, "SaveButton");
     assert_eq!(dispatch.event, UiEventKind::Click);
     assert_eq!(dispatch.binding_id, "SaveButton/onClick");
-    assert_eq!(dispatch.route, "MenuAction.SaveProject");
+    assert_eq!(dispatch.route, "MenuAction.workbench.project.save");
     assert_eq!(dispatch.side_effect_class, UiActionSideEffectClass::AssetIo);
     assert_eq!(
         dispatch.payload_items,
@@ -114,7 +114,7 @@ fn ui_asset_editor_session_dispatches_preview_interact_binding_from_canvas_node(
     assert_eq!(pane.designer_tool_mode, "Preview Interact");
     assert_eq!(pane.preview_interact_node_id, "button");
     assert_eq!(pane.preview_interact_event, "onClick");
-    assert_eq!(pane.preview_interact_route, "MenuAction.SaveProject");
+    assert_eq!(pane.preview_interact_route, "MenuAction.workbench.project.save");
     assert_eq!(pane.preview_interact_side_effect, "AssetIo");
     assert_eq!(pane.preview_interact_payload_items, dispatch.payload_items);
 }

@@ -3,11 +3,10 @@ import {
     ActionRow,
     EmptyStateBlock,
     HubListPanelSlot,
+    HubMetricSlot,
     HubTokens,
     InfoRow,
     MaterialStyleMetrics,
-    MetricCard,
-    ResponsiveSlot,
 } from "components.slint";
 
 export component CloudPackageActionRow inherits ActionRow {
@@ -50,21 +49,7 @@ export component CloudServiceRow inherits InfoRow {
     row-height: HubTokens.list-row-lg;
 }
 
-export component CloudMetricSlot inherits ResponsiveSlot {
-    in property <string> label;
-    in property <string> primary;
-    in property <string> secondary;
-    in property <bool> compact-card: false;
-
-    MetricCard {
-        width: parent.width;
-        height: parent.height;
-        label: root.label;
-        primary: root.primary;
-        secondary: root.secondary;
-        compact: root.compact-card;
-    }
-}
+export component CloudMetricSlot inherits HubMetricSlot {}
 
 export component CloudPackageActionsPanel inherits HubListPanelSlot {
     in property <CloudSummaryData> summary;

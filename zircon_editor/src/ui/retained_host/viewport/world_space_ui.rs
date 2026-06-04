@@ -59,6 +59,7 @@ impl RetainedViewportController {
                 shared.world_space_ui_pointer_capture.clone().or(hit)
             }
             UiPointerEventKind::Up => shared.world_space_ui_pointer_capture.take().or(hit),
+            UiPointerEventKind::Cancel => shared.world_space_ui_pointer_capture.take(),
         }?;
 
         Some(WorldSpaceUiPointerRoute {

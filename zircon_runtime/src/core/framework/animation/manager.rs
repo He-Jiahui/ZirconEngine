@@ -2,13 +2,15 @@ use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
     AnimationStateMachineAsset,
 };
+use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::scene::World;
 
 use super::{
-    AnimationGraphEvaluation, AnimationParameterMap, AnimationParameterValue,
-    AnimationPlaybackSettings, AnimationPoseOutput, AnimationSequenceApplyReport,
-    AnimationStateMachineEvaluation, AnimationTrackPath,
+    AnimationGpuSkinningReadiness, AnimationGraphEvaluation, AnimationParameterMap,
+    AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput,
+    AnimationRuntimeStatus, AnimationSequenceApplyReport, AnimationStateMachineEvaluation,
+    AnimationTickReport, AnimationTickRequest, AnimationTimelineDescriptor, AnimationTrackPath,
 };
 
 pub trait AnimationManager: Send + Sync {
@@ -44,6 +46,24 @@ pub trait AnimationManager: Send + Sync {
         time_seconds: Real,
         looping: bool,
     ) -> Result<AnimationPoseOutput, String>;
+    fn tick_world_contract(&self, request: AnimationTickRequest) -> AnimationTickReport {
+        AnimationTickReport::new(request.world)
+    }
+    fn runtime_status(&self, world: WorldHandle) -> AnimationRuntimeStatus {
+        AnimationRuntimeStatus::new(world)
+    }
+    fn gpu_skinning_readiness(&self) -> AnimationGpuSkinningReadiness {
+        AnimationGpuSkinningReadiness::default()
+    }
+    fn sequence_timeline_descriptor(
+        &self,
+        sequence: &AnimationSequenceAsset,
+    ) -> AnimationTimelineDescriptor {
+        AnimationTimelineDescriptor::from_sequence(sequence)
+    }
+    fn clip_timeline_descriptor(&self, clip: &AnimationClipAsset) -> AnimationTimelineDescriptor {
+        AnimationTimelineDescriptor::from_clip(clip)
+    }
     fn sequence_track_paths(&self, sequence: &AnimationSequenceAsset) -> Vec<AnimationTrackPath> {
         sequence.track_paths()
     }

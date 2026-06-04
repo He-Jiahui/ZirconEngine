@@ -9,15 +9,16 @@ use zircon_runtime_interface::ui::dispatch::{
     UiDragSessionId, UiFocusEffectReason, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
     UiInputMethodRequestKind, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
     UiKeyboardInputState, UiNavigationInputEvent, UiNavigationRequestPolicy,
-    UiPointerCaptureReason, UiPointerId, UiPointerLockPolicy, UiPopupInputEvent,
-    UiPopupInputEventKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+    UiPointerCaptureReason, UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy,
+    UiPopupInputEvent, UiPopupInputEventKind, UiTooltipTimerInputEvent,
+    UiTooltipTimerInputEventKind,
 };
 use zircon_runtime_interface::ui::{
     component::{UiDragPayload, UiDragPayloadKind, UiValue},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusChangeReason,
     layout::{UiFrame, UiPoint},
-    surface::UiNavigationEventKind,
+    surface::{UiNavigationEventKind, UiPointerButton, UiPointerEventKind},
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
@@ -853,6 +854,137 @@ fn analog_input_suppresses_repeated_values_before_routing() {
     );
 }
 
+#[test]
+fn unified_input_dispatch_reports_slate_style_pointer_and_focus_route_trace() {
+    let mut surface = two_button_surface();
+    let pointer_dispatcher = UiPointerDispatcher::default();
+    let navigation_dispatcher = UiNavigationDispatcher::default();
+
+    let pointer = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            pointer_event(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0)),
+        )
+        .unwrap();
+
+    assert_eq!(pointer.diagnostics.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(
+        pointer.diagnostics.route_trace.target,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        pointer.diagnostics.route_trace.bubble_path,
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
+    );
+    assert_eq!(
+        pointer.diagnostics.route_trace.preview_tunnel,
+        vec![UiNodeId::new(1), UiNodeId::new(2)]
+    );
+    assert_eq!(
+        pointer.diagnostics.route_trace.focus_path,
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
+    );
+
+    let keyboard = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            keyboard_event(),
+        )
+        .unwrap();
+
+    assert_eq!(
+        keyboard.diagnostics.route_trace.focus_path,
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
+    );
+    assert_eq!(
+        keyboard.diagnostics.route_trace.preview_tunnel,
+        vec![UiNodeId::new(1), UiNodeId::new(2)]
+    );
+    assert_eq!(keyboard.diagnostics.route_trace.capture_target, None);
+}
+
+#[test]
+fn unified_input_dispatch_trace_reports_capture_and_popup_stack() {
+    let mut surface = two_button_surface();
+    let pointer_id = UiPointerId::new(7);
+    let session_id = UiDragSessionId::new(42);
+    let pointer_dispatcher = UiPointerDispatcher::default();
+    let navigation_dispatcher = UiNavigationDispatcher::default();
+
+    surface
+        .input
+        .begin_drag_drop(
+            UiNodeId::new(2),
+            UiNodeId::new(2),
+            pointer_id,
+            Some(session_id),
+            Some(UiPoint::new(20.0, 20.0)),
+            None,
+        )
+        .unwrap();
+    surface.focus.captured = Some(UiNodeId::new(2));
+    surface.input.captured_pointer_id = Some(pointer_id);
+    surface.input.open_popup(
+        "menu.file".to_string(),
+        Some(UiNodeId::new(2)),
+        Some(UiPoint::new(8.0, 12.0)),
+    );
+
+    let drag = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            drag_drop_input_event(
+                UiDragDropInputEventKind::Over,
+                Some(session_id),
+                UiPoint::new(20.0, 60.0),
+                None,
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(
+        drag.diagnostics.route_trace.capture_target,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        drag.diagnostics.route_trace.popup_stack,
+        vec!["menu.file".to_string()]
+    );
+    assert_eq!(
+        drag.diagnostics.route_trace.direct_target,
+        Some(UiNodeId::new(2))
+    );
+
+    let popup_close = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            popup_input_event_for_owner(
+                UiPopupInputEventKind::CloseRequested,
+                "menu.file",
+                Some(UiNodeId::new(2)),
+                None,
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(
+        popup_close.diagnostics.route_trace.target,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        popup_close.diagnostics.route_trace.bubble_path,
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
+    );
+    assert_eq!(
+        popup_close.diagnostics.route_trace.capture_target,
+        Some(UiNodeId::new(2))
+    );
+}
+
 fn two_button_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input.owner"));
     surface.tree.insert_root(
@@ -922,6 +1054,14 @@ fn drag_drop_input_event(
         session_id,
         point,
         payload,
+    })
+}
+
+fn pointer_event(kind: UiPointerEventKind, point: UiPoint) -> UiInputEvent {
+    UiInputEvent::Pointer(UiPointerInputEvent {
+        metadata: input_metadata(),
+        event: UiPointerEvent::new(kind, point).with_button(UiPointerButton::Primary),
+        precise_scroll: None,
     })
 }
 

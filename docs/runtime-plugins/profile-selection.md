@@ -32,8 +32,11 @@ related_code:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
+  - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_plugins/first_party_runtime_catalog/Cargo.toml
+  - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
@@ -77,8 +80,11 @@ implementation_files:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
+  - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_plugins/first_party_runtime_catalog/Cargo.toml
+  - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
@@ -112,6 +118,9 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
+  - zircon_app/src/entry/tests/source_assertions.rs
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --format-version 1 --no-deps --locked
+  - cargo metadata --format-version 1 --no-deps --locked
   - cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture
   - cargo test -p zircon_app --locked profile_bootstrap
   - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1
@@ -173,7 +182,7 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 
 ## App Plugin Groups
 
-`RuntimeProfileDescriptor` owns the runtime-plugin/profile contract. `zircon_app::plugins` owns the Bevy-style composition layer that selects concrete runtime modules for an app entry. This split is intentional: `zircon_runtime` can describe profiles and capabilities without depending on `zircon_plugins`, while `zircon_app` can provide concrete module groups and linked first-party provider registrations.
+`RuntimeProfileDescriptor` owns the runtime-plugin/profile contract. `zircon_app::plugins` owns the Bevy-style composition layer that selects concrete runtime modules for an app entry. Linked first-party provider registration is centralized in `zircon_first_party_runtime_catalog`. This split is intentional: `zircon_runtime` can describe profiles and capabilities without depending on `zircon_plugins`, while `zircon_app` can project profile/render config without depending on every concrete provider crate.
 
 | Zircon group | Bevy role | Current module families | Profile use |
 | --- | --- | --- | --- |
@@ -197,7 +206,7 @@ Admission rules for M1:
 
 - Core app/runtime foundations may enter stable preludes once they have source-owned tests or smoke tests: state, time, tasks, diagnostics, log settings, profile descriptors, plugin group types, and entry selection.
 - Experimental subsystem internals must stay behind their subsystem modules until their milestone promotes them. This includes active render, UI, asset, sound, navigation, and importer implementation details.
-- `zircon_runtime::prelude` must not re-export provider crate types from `zircon_plugins`; linked/native provider ownership stays in `zircon_app` or generated export hosts.
+- `zircon_runtime::prelude` must not re-export provider crate types from `zircon_plugins`; linked provider fan-out stays in `zircon_first_party_runtime_catalog`, and native/generated export providers stay behind their generated host surfaces.
 - `zircon_app/src/tests/prelude.rs` is the public-surface smoke test. Any later prelude expansion should add a smoke assertion there or in the owning crate's equivalent test.
 
 ## Core Foundation Gates
@@ -270,7 +279,7 @@ The manifest-specific profile helpers are intentionally available through the `z
 
 The 2026-05-25 editor-host closeout reran `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation` and passed. That build exercises the crate-root helper exports plus the app-side manifest-preservation path used by provider-aware editor bootstrap.
 
-`zircon_app` now owns the linked first-party registration provider for profile bootstrap. `EntryConfig::for_runtime_profile()` maps `RuntimeProfileId` into the appropriate app `EntryProfile`, target mode, and projected profile manifest. `first_party_runtime_plugin_registrations_for_config()` then selects compiled-in first-party provider reports from that manifest and feeds them into `BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations()` or `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations()`. The app feature `first-party-runtime-plugins` links the non-native profile-provider crates; `first-party-navigation-runtime-plugin` links the Recast-backed navigation crate separately.
+`zircon_app` now owns profile and render-profile projection for provider bootstrap, but not the provider crate fan-out. `EntryConfig::for_runtime_profile()` maps `RuntimeProfileId` into the appropriate app `EntryProfile`, target mode, and projected profile manifest. `first_party_runtime_plugin_registrations_for_config()` appends render-profile selections, then delegates compiled-in first-party provider selection to `zircon_first_party_runtime_catalog`. The resulting reports feed into `BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations()` or `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations()`. The app feature `first-party-runtime-plugins` now links the catalog's `base-runtime-plugins`; `first-party-navigation-runtime-plugin` links the catalog's navigation provider group separately.
 
 Advanced render provider collection is driven by the app render profile, not by target defaults. When `EntryConfig::render_profile` contains `VirtualGeometry`, `HybridGlobalIllumination`, or `Solari`, `first_party_runtime_plugin_registrations_for_config(...)` appends target-scoped project selections for `RuntimePluginId::VirtualGeometry`, `RuntimePluginId::HybridGi`, and `RuntimePluginId::Solari` before collecting linked providers. Those providers are compiled only behind `first-party-advanced-render-runtime-plugins`, so `DefaultRender` and normal `Client3d` profile selection remain lightweight unless a caller explicitly chooses an advanced or Solari render profile. The current Solari provider is a contract-only unavailable provider, not a visual pass implementation.
 
@@ -290,7 +299,7 @@ M2 closes the gap between a profile saying "this plugin is required" and the app
 | Linked provider classification | Bevy apps add concrete plugin instances into the app. | `availability_report_with_providers()` and `availability_report_for_registration_reports()`. | `LibraryEmbed` and source-style reports classify as `linked`; wrong-target or disabled registrations are ignored; linked providers remove the same id from `externalized_missing`. |
 | Native dynamic classification | Bevy plugin presence is explicit; Zircon native packages need the same explicit report bucket. | `RuntimePluginAvailabilityReport::native_dynamic` and export/native loader report merging. | Native dynamic registrations classify separately from linked providers and do not masquerade as source-linked crates. |
 | Runtime module load fatality | Bevy duplicate/missing plugin cases become direct app errors or panics. | `RuntimeModuleLoadReport::{effective_required_missing,effective_errors,has_fatal_diagnostics}`. | Structured `missing_required` contributes to fatal diagnostics; no caller should need to parse `warnings` text to decide whether bootstrap failed. |
-| App first-party provider injection | Bevy default plugins are available when the crate feature is compiled. | `zircon_app::entry::first_party_runtime_plugin_registrations_for_config()` and `EntryConfig::for_runtime_profile()`. | App profile bootstrap supplies linked first-party providers from the projected profile manifest; `RuntimeProfileId::Minimal` remains provider-free. |
+| App first-party provider injection | Bevy default plugins are available when the crate feature is compiled. | `EntryConfig::for_runtime_profile()`, `zircon_app::entry::first_party_runtime_plugin_registrations_for_config()`, and `zircon_first_party_runtime_catalog::first_party_runtime_plugin_registrations_for_manifest()`. | App profile bootstrap supplies linked first-party providers from the projected profile manifest through the catalog; `RuntimeProfileId::Minimal` remains provider-free. |
 | Feature provider registration | Bevy optional feature collections do not imply unrelated default plugins. | `runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports()` and app render profile provider collection. | Advanced render or sound feature providers are selected only by explicit render/profile/feature selection and do not widen normal `Client3d` defaults silently. |
 | Export availability | Bevy Cargo features produce a concrete build graph. | `ExportBuildPlan.runtime_plugin_availability`, `linked_runtime_crates`, `native_dynamic_packages`, and materialize reports. | Export plans serialize linked/native/externalized/missing categories; target/profile mismatch or unsupported required native provider is fatal. |
 | No warning-string resolver contract | Bevy plugin errors are typed at the API boundary. | `RuntimeModuleLoadReport` plus profile/export tests. | New code must consume `RuntimePluginAvailabilityReport` or `effective_errors()` instead of checking text from `externalized_runtime_plugin_message(...)`. |
@@ -310,9 +319,9 @@ Debug order matters. If a profile bootstrap fails, inspect `RuntimePluginAvailab
 
 ## Boundaries
 
-`zircon_runtime` owns the descriptor and report contracts. First-party runtime implementations continue to be supplied from `zircon_plugins` through registration reports passed by `zircon_app` or generated export hosts. That preserves the existing boundary: runtime knows plugin ids and capabilities, but not plugin crate implementations.
+`zircon_runtime` owns the descriptor and report contracts. First-party runtime implementations continue to be supplied from `zircon_plugins` through registration reports passed by `zircon_app` or generated export hosts. The concrete linked-provider fan-out is now isolated in `zircon_first_party_runtime_catalog`, so runtime knows plugin ids and capabilities, but not plugin crate implementations.
 
-`zircon_app` is the only root package in this slice that may directly depend on selected first-party runtime plugin crates, and those dependencies are feature-gated. Generated export hosts keep using their generated `zircon_plugins.rs` provider module, so export output does not depend on the app's built-in provider feature set.
+`zircon_app` must not directly depend on selected first-party runtime plugin crates. Its provider features depend on `zircon_first_party_runtime_catalog` and forward into catalog feature groups. Generated export hosts keep using their generated `zircon_plugins.rs` provider module, so export output does not depend on the app's built-in provider feature set.
 
 ## M10 Profile / Catalog Sync Gates
 
@@ -323,7 +332,7 @@ M10 makes profile selection maintainable. Bevy's matching practice is to treat f
 | Profile vocabulary | Bevy exposes public feature/profile collections in `Cargo.toml` and checks generated feature docs for missing updates. | `RuntimeProfileId`, `RuntimeProfileDescriptor`, `core_profiles`, and this document's Built-In Profiles section. | Every profile id, target mode, required capability, optional plugin, and minimum maturity must appear here before a profile is promoted. |
 | Catalog and plugin manifests | Bevy feature documentation is synchronized with actual Cargo features rather than manually trusted. | `RuntimePluginDescriptor::builtin_catalog()`, `RuntimePluginId`, and `zircon_plugins/*/plugin.toml` maturity/capability rows. | Catalog additions, new first-party plugin TOML files, or changed capability statuses must update this document or the parity matrix in the same change. |
 | Availability categories | Bevy default plugin presence is concrete; missing/duplicate plugin edits fail at the API or CI boundary. | `RuntimePluginAvailabilityReport` buckets, `RuntimeModuleLoadReport` fatal diagnostics, and `ExportBuildPlan.runtime_plugin_availability`. | Stable/default profiles must keep required `Externalized`, `Stub`, below-minimum maturity, blocked-by-target, and missing-provider entries out of `missing_required`; optional failures must remain structured warnings. |
-| Provider feature gates | Bevy optional feature collections do not imply unrelated default plugins. | `zircon_app` first-party provider features, generated export providers, and profile bootstrap tests. | New linked/native providers must be selected by explicit profile/feature/export data. App features may provide implementations, but they must not silently widen `Client2d`, `Client3d`, `Editor`, `Dev`, or `Server` defaults. |
+| Provider feature gates | Bevy optional feature collections do not imply unrelated default plugins. | `zircon_first_party_runtime_catalog` feature groups, `zircon_app` provider feature forwarding, generated export providers, and profile bootstrap tests. | New linked/native providers must be selected by explicit profile/feature/export data. App features may provide implementations through catalog groups, but they must not silently widen `Client2d`, `Client3d`, `Editor`, `Dev`, or `Server` defaults. |
 | Docs evidence | Bevy CI has missing-feature/missing-example docs checks and all-feature rustdoc/doc-test lanes. | This document, `docs/runtime-plugins/bevy-parity-matrix.md`, and machine-readable doc headers. | The owning docs must list related code, implementation files, plan sources, tests, candidate commands, and validation notes. Docs-only continuations must state that no Cargo was run. |
 | Local and CI validation | Bevy's `tools/ci` expands aliases into format, clippy, tests, doc checks, compile-fail, benches, and examples. | `.github/workflows/ci.yml`, `validate-matrix.ps1`, validation skill docs, and reporting rules. | M10 promotion requires a named validation ladder: static docs checks, focused profile/export tests, app/profile bootstrap, plugin workspace checks, export-platform matrix, workspace build/test, then validator or CI evidence when shared targets are available. |
 

@@ -42,6 +42,22 @@ fn record_count(
     );
 }
 
+fn record_bytes(
+    store: &mut DiagnosticStore,
+    path: &'static str,
+    frame_index: u64,
+    value: u64,
+    subsystem_tags: &[&str],
+) {
+    store.record(
+        path,
+        frame_index,
+        value as f64,
+        Some("bytes"),
+        subsystem_tags.iter().copied(),
+    );
+}
+
 fn record_bool(
     store: &mut DiagnosticStore,
     path: &'static str,

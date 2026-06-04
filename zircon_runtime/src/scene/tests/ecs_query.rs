@@ -306,7 +306,10 @@ fn query_access_rejects_duplicate_mutable_component_in_one_query() {
         .spawn((Name("Entity".to_string()), Health(1)))
         .unwrap();
 
-    let error = QueryState::<(&mut Health, &mut Health)>::try_new(&mut world).unwrap_err();
+    let error = match QueryState::<(&mut Health, &mut Health)>::try_new(&mut world) {
+        Ok(_) => panic!("expected duplicate mutable component query to fail"),
+        Err(error) => error,
+    };
 
     assert!(error.to_string().contains("mutably"));
 }

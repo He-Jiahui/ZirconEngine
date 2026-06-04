@@ -107,6 +107,19 @@ pub(super) fn bloom_extract_executor(
     )
 }
 
+pub(super) fn depth_of_field_prepare_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_depth_of_field_prepare_to_resources(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+    )
+}
+
 pub(super) fn post_stack_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {

@@ -1,0 +1,473 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_module_workspaces.zui"
+version = 2
+display_name = "Workbench Extension Module Workspaces"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_extension_accessibility_audit_workspace.zui#WorkbenchExtensionAccessibilityAuditWorkspace",
+  "res://ui/editor/components/workbench_extension_animation_compression_workspace.zui#WorkbenchExtensionAnimationCompressionWorkspace",
+  "res://ui/editor/components/workbench_extension_automation_report_workspace.zui#WorkbenchExtensionAutomationReportWorkspace",
+  "res://ui/editor/components/workbench_extension_blend_space_workspace.zui#WorkbenchExtensionBlendSpaceWorkspace",
+  "res://ui/editor/components/workbench_extension_build_export_workspace.zui#WorkbenchExtensionBuildExportWorkspace",
+  "res://ui/editor/components/workbench_extension_collision_proxy_workspace.zui#WorkbenchExtensionCollisionProxyWorkspace",
+  "res://ui/editor/components/workbench_extension_console_diagnostics_workspace.zui#WorkbenchExtensionConsoleDiagnosticsWorkspace",
+  "res://ui/editor/components/workbench_extension_control_rig_workspace.zui#WorkbenchExtensionControlRigWorkspace",
+  "res://ui/editor/components/workbench_extension_data_table_workspace.zui#WorkbenchExtensionDataTableWorkspace",
+  "res://ui/editor/components/workbench_extension_foliage_editor_workspace.zui#WorkbenchExtensionFoliageEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_font_atlas_workspace.zui#WorkbenchExtensionFontAtlasWorkspace",
+  "res://ui/editor/components/workbench_extension_icon_library_workspace.zui#WorkbenchExtensionIconLibraryWorkspace",
+  "res://ui/editor/components/workbench_extension_level_streaming_workspace.zui#WorkbenchExtensionLevelStreamingWorkspace",
+  "res://ui/editor/components/workbench_extension_level_variant_workspace.zui#WorkbenchExtensionLevelVariantWorkspace",
+  "res://ui/editor/components/workbench_extension_lighting_bake_workspace.zui#WorkbenchExtensionLightingBakeWorkspace",
+  "res://ui/editor/components/workbench_extension_lobby_editor_workspace.zui#WorkbenchExtensionLobbyEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_matchmaking_editor_workspace.zui#WorkbenchExtensionMatchmakingEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_menu_flow_workspace.zui#WorkbenchExtensionMenuFlowWorkspace",
+  "res://ui/editor/components/workbench_extension_montage_editor_workspace.zui#WorkbenchExtensionMontageEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_motion_matching_workspace.zui#WorkbenchExtensionMotionMatchingWorkspace",
+  "res://ui/editor/components/workbench_extension_particle_library_workspace.zui#WorkbenchExtensionParticleLibraryWorkspace",
+  "res://ui/editor/components/workbench_extension_performance_workspace.zui#WorkbenchExtensionPerformanceWorkspace",
+  "res://ui/editor/components/workbench_extension_pose_library_workspace.zui#WorkbenchExtensionPoseLibraryWorkspace",
+  "res://ui/editor/components/workbench_extension_prefab_editor_workspace.zui#WorkbenchExtensionPrefabEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_post_process_workspace.zui#WorkbenchExtensionPostProcessWorkspace",
+  "res://ui/editor/components/workbench_extension_project_overview_workspace.zui#WorkbenchExtensionProjectOverviewWorkspace",
+  "res://ui/editor/components/workbench_extension_retarget_workspace.zui#WorkbenchExtensionRetargetWorkspace",
+  "res://ui/editor/components/workbench_extension_runtime_diagnostics_workspace.zui#WorkbenchExtensionRuntimeDiagnosticsWorkspace",
+  "res://ui/editor/components/workbench_extension_save_data_workspace.zui#WorkbenchExtensionSaveDataWorkspace",
+  "res://ui/editor/components/workbench_extension_scatter_editor_workspace.zui#WorkbenchExtensionScatterEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_sequencer_workspace.zui#WorkbenchExtensionSequencerWorkspace",
+  "res://ui/editor/components/workbench_extension_shader_editor_workspace.zui#WorkbenchExtensionShaderEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_source_control_workspace.zui#WorkbenchExtensionSourceControlWorkspace",
+  "res://ui/editor/components/workbench_extension_spawn_rules_workspace.zui#WorkbenchExtensionSpawnRulesWorkspace",
+  "res://ui/editor/components/workbench_extension_telemetry_dashboard_workspace.zui#WorkbenchExtensionTelemetryDashboardWorkspace",
+  "res://ui/editor/components/workbench_extension_terrain_editor_workspace.zui#WorkbenchExtensionTerrainEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_ui_asset_editor_workspace.zui#WorkbenchExtensionUiAssetEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_ui_binding_workspace.zui#WorkbenchExtensionUiBindingWorkspace",
+  "res://ui/editor/components/workbench_extension_volume_editor_workspace.zui#WorkbenchExtensionVolumeEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_weather_editor_workspace.zui#WorkbenchExtensionWeatherEditorWorkspace",
+  "res://ui/editor/components/workbench_extension_world_state_workspace.zui#WorkbenchExtensionWorldStateWorkspace",
+]
+styles = []
+
+[components.WorkbenchExtensionModuleWorkspaces]
+root = "extension_module_workspaces"
+default_classes = ["workbench-module-workspace"]
+
+[nodes.extension_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchExtensionModuleWorkspaces"
+classes = ["workbench-module-workspace"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_editor_workspace_host" }, { node = "lighting_bake_workspace_host" }, { node = "post_process_workspace_host" }, { node = "sequencer_workspace_host" }, { node = "montage_editor_workspace_host" }, { node = "blend_space_workspace_host" }, { node = "pose_library_workspace_host" }, { node = "retarget_workspace_host" }, { node = "control_rig_workspace_host" }, { node = "motion_matching_workspace_host" }, { node = "animation_compression_workspace_host" }, { node = "terrain_editor_workspace_host" }, { node = "foliage_editor_workspace_host" }, { node = "level_streaming_workspace_host" }, { node = "level_variant_workspace_host" }, { node = "prefab_editor_workspace_host" }, { node = "scatter_editor_workspace_host" }, { node = "volume_editor_workspace_host" }, { node = "weather_editor_workspace_host" }, { node = "spawn_rules_workspace_host" }, { node = "world_state_workspace_host" }, { node = "collision_proxy_workspace_host" }, { node = "lobby_editor_workspace_host" }, { node = "matchmaking_editor_workspace_host" }, { node = "data_table_workspace_host" }, { node = "source_control_workspace_host" }, { node = "build_export_workspace_host" }, { node = "automation_report_workspace_host" }, { node = "project_overview_workspace_host" }, { node = "save_data_workspace_host" }, { node = "particle_library_workspace_host" }, { node = "ui_asset_editor_workspace_host" }, { node = "ui_binding_workspace_host" }, { node = "icon_library_workspace_host" }, { node = "accessibility_audit_workspace_host" }, { node = "menu_flow_workspace_host" }, { node = "font_atlas_workspace_host" }, { node = "console_diagnostics_workspace_host" }, { node = "runtime_diagnostics_workspace_host" }, { node = "performance_workspace_host" }, { node = "telemetry_dashboard_workspace_host" }]
+
+[nodes.shader_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionShaderEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_editor_workspace_body" }]
+
+[nodes.shader_editor_workspace_body]
+component = "WorkbenchExtensionShaderEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.lighting_bake_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionLightingBakeWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_workspace_body" }]
+
+[nodes.lighting_bake_workspace_body]
+component = "WorkbenchExtensionLightingBakeWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.post_process_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionPostProcessWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_workspace_body" }]
+
+[nodes.post_process_workspace_body]
+component = "WorkbenchExtensionPostProcessWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sequencer_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionSequencerWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sequencer_workspace_body" }]
+
+[nodes.sequencer_workspace_body]
+component = "WorkbenchExtensionSequencerWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.montage_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionMontageEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "montage_editor_workspace_body" }]
+
+[nodes.montage_editor_workspace_body]
+component = "WorkbenchExtensionMontageEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.blend_space_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionBlendSpaceWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_workspace_body" }]
+
+[nodes.blend_space_workspace_body]
+component = "WorkbenchExtensionBlendSpaceWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.pose_library_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionPoseLibraryWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_workspace_body" }]
+
+[nodes.pose_library_workspace_body]
+component = "WorkbenchExtensionPoseLibraryWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.retarget_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionRetargetWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_workspace_body" }]
+
+[nodes.retarget_workspace_body]
+component = "WorkbenchExtensionRetargetWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.control_rig_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionControlRigWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "control_rig_workspace_body" }]
+
+[nodes.control_rig_workspace_body]
+component = "WorkbenchExtensionControlRigWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.motion_matching_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionMotionMatchingWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "motion_matching_workspace_body" }]
+
+[nodes.motion_matching_workspace_body]
+component = "WorkbenchExtensionMotionMatchingWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.animation_compression_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionAnimationCompressionWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "animation_compression_workspace_body" }]
+
+[nodes.animation_compression_workspace_body]
+component = "WorkbenchExtensionAnimationCompressionWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.terrain_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionTerrainEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_workspace_body" }]
+
+[nodes.terrain_editor_workspace_body]
+component = "WorkbenchExtensionTerrainEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.foliage_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionFoliageEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_workspace_body" }]
+
+[nodes.foliage_editor_workspace_body]
+component = "WorkbenchExtensionFoliageEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.level_streaming_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionLevelStreamingWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_workspace_body" }]
+
+[nodes.level_streaming_workspace_body]
+component = "WorkbenchExtensionLevelStreamingWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.level_variant_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionLevelVariantWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_workspace_body" }]
+
+[nodes.level_variant_workspace_body]
+component = "WorkbenchExtensionLevelVariantWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.prefab_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionPrefabEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_workspace_body" }]
+
+[nodes.prefab_editor_workspace_body]
+component = "WorkbenchExtensionPrefabEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.scatter_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionScatterEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_workspace_body" }]
+
+[nodes.scatter_editor_workspace_body]
+component = "WorkbenchExtensionScatterEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.volume_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionVolumeEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "volume_editor_workspace_body" }]
+
+[nodes.volume_editor_workspace_body]
+component = "WorkbenchExtensionVolumeEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.weather_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionWeatherEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "weather_editor_workspace_body" }]
+
+[nodes.weather_editor_workspace_body]
+component = "WorkbenchExtensionWeatherEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.spawn_rules_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionSpawnRulesWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "spawn_rules_workspace_body" }]
+
+[nodes.spawn_rules_workspace_body]
+component = "WorkbenchExtensionSpawnRulesWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.world_state_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionWorldStateWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_workspace_body" }]
+
+[nodes.world_state_workspace_body]
+component = "WorkbenchExtensionWorldStateWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.collision_proxy_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionCollisionProxyWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_workspace_body" }]
+
+[nodes.collision_proxy_workspace_body]
+component = "WorkbenchExtensionCollisionProxyWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.lobby_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionLobbyEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_workspace_body" }]
+
+[nodes.lobby_editor_workspace_body]
+component = "WorkbenchExtensionLobbyEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.matchmaking_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionMatchmakingEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_workspace_body" }]
+
+[nodes.matchmaking_editor_workspace_body]
+component = "WorkbenchExtensionMatchmakingEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.data_table_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionDataTableWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "data_table_workspace_body" }]
+
+[nodes.data_table_workspace_body]
+component = "WorkbenchExtensionDataTableWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.source_control_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionSourceControlWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_workspace_body" }]
+
+[nodes.source_control_workspace_body]
+component = "WorkbenchExtensionSourceControlWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.build_export_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionBuildExportWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_workspace_body" }]
+
+[nodes.build_export_workspace_body]
+component = "WorkbenchExtensionBuildExportWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.automation_report_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionAutomationReportWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_workspace_body" }]
+
+[nodes.automation_report_workspace_body]
+component = "WorkbenchExtensionAutomationReportWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.project_overview_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionProjectOverviewWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_workspace_body" }]
+
+[nodes.project_overview_workspace_body]
+component = "WorkbenchExtensionProjectOverviewWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.save_data_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionSaveDataWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_workspace_body" }]
+
+[nodes.save_data_workspace_body]
+component = "WorkbenchExtensionSaveDataWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.particle_library_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionParticleLibraryWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_workspace_body" }]
+
+[nodes.particle_library_workspace_body]
+component = "WorkbenchExtensionParticleLibraryWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_asset_editor_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionUiAssetEditorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_workspace_body" }]
+
+[nodes.ui_asset_editor_workspace_body]
+component = "WorkbenchExtensionUiAssetEditorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_binding_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionUiBindingWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_binding_workspace_body" }]
+
+[nodes.ui_binding_workspace_body]
+component = "WorkbenchExtensionUiBindingWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.icon_library_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionIconLibraryWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_workspace_body" }]
+
+[nodes.icon_library_workspace_body]
+component = "WorkbenchExtensionIconLibraryWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.accessibility_audit_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionAccessibilityAuditWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_workspace_body" }]
+
+[nodes.accessibility_audit_workspace_body]
+component = "WorkbenchExtensionAccessibilityAuditWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.menu_flow_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionMenuFlowWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_workspace_body" }]
+
+[nodes.menu_flow_workspace_body]
+component = "WorkbenchExtensionMenuFlowWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.font_atlas_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionFontAtlasWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "font_atlas_workspace_body" }]
+
+[nodes.font_atlas_workspace_body]
+component = "WorkbenchExtensionFontAtlasWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.console_diagnostics_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionConsoleDiagnosticsWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_workspace_body" }]
+
+[nodes.console_diagnostics_workspace_body]
+component = "WorkbenchExtensionConsoleDiagnosticsWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.runtime_diagnostics_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionRuntimeDiagnosticsWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "runtime_diagnostics_workspace_body" }]
+
+[nodes.runtime_diagnostics_workspace_body]
+component = "WorkbenchExtensionRuntimeDiagnosticsWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.performance_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionPerformanceWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_workspace_body" }]
+
+[nodes.performance_workspace_body]
+component = "WorkbenchExtensionPerformanceWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.telemetry_dashboard_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchExtensionTelemetryDashboardWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_workspace_body" }]
+
+[nodes.telemetry_dashboard_workspace_body]
+component = "WorkbenchExtensionTelemetryDashboardWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

@@ -16,7 +16,7 @@ pub(super) fn register_animation_route(
     event_kind: UiEventKind,
 ) -> Option<UiRouteId> {
     let (control_id, payload) = match action_id {
-        "create_animation_track" => (
+        "animation.track.create" => (
             "CreateAnimationTrack",
             EditorUiBindingPayload::animation_command(AnimationCommand::CreateTrack {
                 track_path: String::new(),

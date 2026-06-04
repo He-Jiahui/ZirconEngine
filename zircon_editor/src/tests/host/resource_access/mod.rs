@@ -6,17 +6,17 @@ use zircon_runtime_interface::resource::{
 };
 
 #[test]
-fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
+fn resolve_ready_handle_returns_typed_handle_from_resource_manager() {
     let locator = ResourceLocator::parse("res://models/triangle.obj").unwrap();
     let expected_id = ResourceId::from_locator(&locator);
-    let server = FakeResourceServer::new(vec![status(
+    let manager = FakeResourceManager::new(vec![status(
         &locator.to_string(),
         ResourceKind::Model,
         ResourceState::Ready,
     )]);
 
     let handle =
-        crate::ui::host::resource_access::resolve_ready_handle::<ModelMarker>(&server, &locator)
+        crate::ui::host::resource_access::resolve_ready_handle::<ModelMarker>(&manager, &locator)
             .expect("ready model handle");
 
     assert_eq!(handle, ResourceHandle::<ModelMarker>::new(expected_id));
@@ -25,7 +25,7 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
 #[test]
 fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
     let locator = ResourceLocator::parse("res://materials/default.zmaterial").unwrap();
-    let server = FakeResourceServer::new(vec![ResourceRecord {
+    let manager = FakeResourceManager::new(vec![ResourceRecord {
         id: ResourceId::from_locator(&locator),
         kind: ResourceKind::Material,
         primary_locator: locator.clone(),
@@ -42,9 +42,10 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
         config_hash: String::new(),
     }]);
 
-    let error =
-        crate::ui::host::resource_access::resolve_ready_handle::<MaterialMarker>(&server, &locator)
-            .expect_err("error state should be rejected");
+    let error = crate::ui::host::resource_access::resolve_ready_handle::<MaterialMarker>(
+        &manager, &locator,
+    )
+    .expect_err("error state should be rejected");
 
     assert!(error.contains("res://materials/default.zmaterial"));
     assert!(error.contains("Error"));
@@ -52,17 +53,17 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
 }
 
 #[derive(Clone, Debug)]
-struct FakeResourceServer {
+struct FakeResourceManager {
     records: Vec<ResourceRecord>,
 }
 
-impl FakeResourceServer {
+impl FakeResourceManager {
     fn new(records: Vec<ResourceRecord>) -> Self {
         Self { records }
     }
 }
 
-impl ResourceManager for FakeResourceServer {
+impl ResourceManager for FakeResourceManager {
     fn resolve_resource_id(&self, locator: &str) -> Option<String> {
         self.records
             .iter()

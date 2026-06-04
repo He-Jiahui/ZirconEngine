@@ -379,8 +379,8 @@ fn welcome_nodes_with_native_dispatch(
                     "WelcomeProjectNameField" => {
                         node.component_role = "input-field".into();
                         node.dispatch_kind = "welcome_text".into();
-                        node.action_id = "ProjectNameEdited".into();
-                        node.edit_action_id = "ProjectNameEdited".into();
+                        node.action_id = "welcome.project.name.edit".into();
+                        node.edit_action_id = "welcome.project.name.edit".into();
                         node.value_text = form.project_name.clone();
                         if node.text.is_empty() {
                             node.text = form.project_name.clone();
@@ -389,8 +389,8 @@ fn welcome_nodes_with_native_dispatch(
                     "WelcomeLocationField" => {
                         node.component_role = "input-field".into();
                         node.dispatch_kind = "welcome_text".into();
-                        node.action_id = "LocationEdited".into();
-                        node.edit_action_id = "LocationEdited".into();
+                        node.action_id = "welcome.project.location.edit".into();
+                        node.edit_action_id = "welcome.project.location.edit".into();
                         node.value_text = form.location.clone();
                         if node.text.is_empty() {
                             node.text = form.location.clone();
@@ -398,12 +398,12 @@ fn welcome_nodes_with_native_dispatch(
                     }
                     "WelcomeCreateProjectButton" => {
                         node.dispatch_kind = "welcome".into();
-                        node.action_id = "CreateProject".into();
+                        node.action_id = "welcome.project.create".into();
                         node.disabled = !form.can_create;
                     }
                     "WelcomeOpenExistingButton" => {
                         node.dispatch_kind = "welcome".into();
-                        node.action_id = "OpenExistingProject".into();
+                        node.action_id = "welcome.project.open_existing".into();
                         node.disabled = !form.can_open_existing;
                     }
                     _ => {}
@@ -697,6 +697,13 @@ fn to_host_contract_build_export_pane(
     pane_data_conversion::to_host_contract_build_export_pane_from_host_pane(data, pane_size)
 }
 
+fn to_host_contract_generated_bottom_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::GeneratedBottomPaneData {
+    pane_data_conversion::to_host_contract_generated_bottom_pane_from_host_pane(data, pane_size)
+}
+
 fn to_host_contract_runtime_diagnostics_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
@@ -773,6 +780,13 @@ fn to_host_contract_pane(
                 host_window::PanePayload::BuildExportV1(_)
             )
         });
+    let has_generated_bottom_payload = pane_kind == "GeneratedBottom"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::GeneratedBottomV1(_)
+            )
+        });
     let has_ui_asset_payload = pane_kind == "UiAssetEditor"
         || data.native_body.ui_asset
             != crate::ui::asset_editor::UiAssetEditorPanePresentation::default();
@@ -845,6 +859,12 @@ fn to_host_contract_pane(
     } else {
         host_contract::BuildExportPaneData::default()
     };
+    let generated_bottom = if has_generated_bottom_payload {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_generated_bottom");
+        to_host_contract_generated_bottom_pane(&data, pane_size)
+    } else {
+        host_contract::GeneratedBottomPaneData::default()
+    };
     let project_overview = if has_component_showcase_payload {
         zircon_runtime::profile_scope!(
             "editor",
@@ -909,6 +929,7 @@ fn to_host_contract_pane(
         performance_timeline,
         module_plugins,
         build_export,
+        generated_bottom,
         ui_asset: if has_ui_asset_payload {
             to_host_contract_ui_asset_pane(data.native_body.ui_asset, &pane_id)
         } else {

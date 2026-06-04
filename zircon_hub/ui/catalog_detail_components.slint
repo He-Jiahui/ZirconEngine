@@ -1,7 +1,7 @@
 import { MutedText } from "shared.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
-import { PanelHeader, PanelSlot } from "surfaces.slint";
-import { HubRowLeadingIconSlot, HubRowTrailingSlot } from "row_slot_components.slint";
+import { HubContentPanelSlot } from "surfaces.slint";
+import { HubRowLeadingIconSlot, HubRowMainSlot, HubRowTrailingSlot } from "row_slot_components.slint";
 import {
     MaterialPalette,
     MaterialStyleMetrics,
@@ -91,22 +91,11 @@ component CatalogDetailCheckRow inherits Rectangle {
             icon-image: root.icon-image;
         }
 
-        VerticalLayout {
-            min-width: 1px;
-            vertical-stretch: 1;
-            spacing: MaterialStyleMetrics.spacing_2;
-
-            MaterialText {
-                text: root.title;
-                overflow: elide;
-                color: HubTokens.text-primary;
-                style: MaterialTypography.label_medium;
-            }
-
-            MutedText {
-                text: root.detail;
-                overflow: elide;
-            }
+        HubRowMainSlot {
+            row-height: HubTokens.list-row-sm;
+            title: root.title;
+            detail: root.detail;
+            title-foreground: HubTokens.text-primary;
         }
 
         HubRowTrailingSlot {
@@ -297,12 +286,9 @@ component CatalogDetailCheckList inherits Rectangle {
     }
 }
 
-export component CatalogDetailPanel inherits PanelSlot {
+export component CatalogDetailPanel inherits HubContentPanelSlot {
     in property <string> panel-title;
     in property <string> panel-subtitle;
-    in property <string> badge-text;
-    in property <string> badge-tone: "accent";
-    in property <length> badge-width: HubTokens.control-md * 4;
     in property <image> icon-image;
     in property <bool> has-icon-image: true;
     in property <string> primary;
@@ -335,15 +321,12 @@ export component CatalogDetailPanel inherits PanelSlot {
 
     body-padding: MaterialStyleMetrics.padding_16;
     body-spacing: HubTokens.toolbar-gap;
-
-    PanelHeader {
-        title: root.panel-title;
-        subtitle: root.panel-subtitle;
-        show-badge: true;
-        badge-text: root.badge-text;
-        badge-tone: root.badge-tone;
-        badge-width: root.badge-width;
-    }
+    content-spacing: HubTokens.toolbar-gap;
+    title: root.panel-title;
+    subtitle: root.panel-subtitle;
+    show-badge: true;
+    badge-tone: "accent";
+    badge-width: HubTokens.control-md * 4;
 
     CatalogDetailPreviewBand {
         preview-height: root.preview-height;

@@ -6,4 +6,5 @@ pub enum UiPointerEventKind {
     Up,
     Move,
     Scroll,
+    Cancel,
 }

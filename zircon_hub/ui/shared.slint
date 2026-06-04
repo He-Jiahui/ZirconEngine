@@ -3,7 +3,6 @@ import {
     MaterialPalette,
     MaterialStyleMetrics,
     MaterialTypography,
-    StateLayerArea,
 } from "material_bridge.slint";
 import { HubTokens, HubVisualSpec } from "tokens.slint";
 
@@ -490,65 +489,6 @@ export component CenteredIcon inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
-        }
-    }
-}
-
-export component NavButton inherits Rectangle {
-    in property <NavItemData> item;
-    in property <bool> collapsed: false;
-    in property <bool> enabled: true;
-    in property <bool> focused: false;
-    callback clicked(string);
-
-    height: MaterialStyleMetrics.size_48 + MaterialStyleMetrics.size_2;
-    border-radius: HubVisualSpec.compact-radius;
-    border-width: root.focused ? HubVisualSpec.focus-ring-width : (root.item.active ? HubTokens.border-width : 0px);
-    border-color: root.focused ? HubVisualSpec.focus-ring-color : HubVisualSpec.nav-active-stroke;
-    background: root.item.active ? HubVisualSpec.nav-active-fill : transparent;
-    opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;
-    clip: true;
-
-    StateLayerArea {
-        width: parent.width;
-        height: parent.height;
-        color: root.item.active ? HubVisualSpec.nav-active-stroke : MaterialPalette.on_surface;
-        border_radius: HubVisualSpec.compact-radius;
-        clicked => {
-            if (root.enabled) {
-                root.clicked(root.item.id);
-            }
-        }
-    }
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: root.collapsed ? 0px : HubTokens.space-3;
-        padding-right: root.collapsed ? 0px : HubTokens.space-3;
-        spacing: HubTokens.space-3;
-        alignment: start;
-
-        Rectangle {
-            width: HubTokens.icon-lg;
-            height: parent.height;
-
-            Image {
-                width: HubTokens.icon-lg;
-                height: HubTokens.icon-lg;
-                source: root.item.has-icon-image ? root.item.icon-image : @image-url("../assets/icons/nav/projects.svg");
-                colorize: root.item.active ? HubVisualSpec.neutral-icon-foreground : HubVisualSpec.nav-idle-foreground;
-            }
-        }
-
-        if !root.collapsed: MaterialText {
-            horizontal-stretch: 1;
-            height: parent.height;
-            text: root.item.title;
-            color: root.item.active ? MaterialPalette.on_surface : HubVisualSpec.nav-idle-foreground;
-            style: MaterialTypography.label_large;
-            overflow: elide;
-            vertical_alignment: center;
         }
     }
 }

@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench_extension_particle_library_workspace.zui"
+version = 2
+display_name = "Workbench Extension Particle Library Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionParticleLibraryWorkspace]
+root = "particle_library_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.particle_library_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionParticleLibraryWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_rail_gap" }, { node = "particle_library_left" }, { node = "particle_library_center" }, { node = "particle_library_right" }]
+
+[nodes.particle_library_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionParticleLibraryRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.particle_library_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionParticleLibraryLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_title" }, { node = "particle_library_emitters_tab" }, { node = "particle_library_metadata_tab" }, { node = "particle_library_compile_tab" }, { node = "particle_library_sparks_row" }, { node = "particle_library_dust_row" }, { node = "particle_library_impact_row" }]
+
+[nodes.particle_library_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionParticleLibraryTitle"
+props = { text = "Particle Library" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.particle_library_emitters_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionParticleLibraryEmittersTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Emitters", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryEmittersTab", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Emitters" }]
+
+[nodes.particle_library_metadata_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionParticleLibraryMetadataTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Metadata", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryMetadataTab", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Metadata" }]
+
+[nodes.particle_library_compile_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionParticleLibraryCompileTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Compile", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryCompileTab", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Compile" }]
+
+[nodes.particle_library_sparks_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionParticleLibrarySparksRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "P_Sparks", icon = "sparkles", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibrarySparksRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Emitter.Sparks" }]
+
+[nodes.particle_library_dust_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionParticleLibraryDustRow"
+classes = ["workbench-list-row"]
+props = { text = "P_DustTrail", icon = "cloud", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryDustRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Emitter.Dust" }]
+
+[nodes.particle_library_impact_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionParticleLibraryImpactRow"
+classes = ["workbench-list-row"]
+props = { text = "P_ImpactBurst", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryImpactRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Emitter.Impact" }]
+
+[nodes.particle_library_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionParticleLibraryCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_center_header" }, { node = "particle_library_table" }, { node = "particle_library_output" }]
+
+[nodes.particle_library_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionParticleLibraryCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "particle_library_center_title" }, { node = "particle_library_header_fill" }, { node = "particle_library_simulate_button" }, { node = "particle_library_compile_button" }]
+
+[nodes.particle_library_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionParticleLibraryCenterTitle"
+props = { text = "Emitter Metadata" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.particle_library_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionParticleLibraryHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.particle_library_simulate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionParticleLibrarySimulateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Simulate", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 90.0, preferred = 90.0, max = 100.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibrarySimulate", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Simulate" }]
+
+[nodes.particle_library_compile_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionParticleLibraryCompileButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Compile", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryCompile", event = "Click", route = "WorkbenchExtension.ParticleLibrary.CompileCommand" }]
+
+[nodes.particle_library_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionParticleLibraryTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_gpu_spark_row" }, { node = "particle_library_cpu_dust_row" }, { node = "particle_library_impact_gpu_row" }, { node = "particle_library_deprecated_row" }]
+
+[nodes.particle_library_gpu_spark_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionParticleLibraryGpuSparkRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "GPU Spark Burst", value_text = "GPU   60 fps   Selected" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryGpuSparkRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Row.GpuSpark" }]
+
+[nodes.particle_library_cpu_dust_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionParticleLibraryCpuDustRow"
+classes = ["workbench-table-row"]
+props = { text = "CPU Dust Trail", value_text = "CPU   45 fps   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryCpuDustRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Row.CpuDust" }]
+
+[nodes.particle_library_impact_gpu_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionParticleLibraryImpactGpuRow"
+classes = ["workbench-table-row"]
+props = { text = "Impact GPU Burst", value_text = "GPU   bounds fixed   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryImpactGpuRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Row.ImpactGpu" }]
+
+[nodes.particle_library_deprecated_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionParticleLibraryDeprecatedRow"
+classes = ["workbench-table-row"]
+props = { text = "Legacy Smoke", value_text = "CPU   deprecated   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryDeprecatedRow", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Row.Deprecated" }]
+
+[nodes.particle_library_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionParticleLibraryOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Particles", value_text = "P_Sparks   GPU   4 emitters" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryOutput", event = "Click", route = "WorkbenchExtension.ParticleLibrary.Output" }]
+
+[nodes.particle_library_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionParticleLibraryRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_details_title" }, { node = "particle_library_emitter_dropdown" }, { node = "particle_library_duration_field" }, { node = "particle_library_bounds_dropdown" }]
+
+[nodes.particle_library_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionParticleLibraryDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.particle_library_emitter_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionParticleLibraryEmitterDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "P_Sparks", value = "P_Sparks", options = ["P_Sparks", "P_DustTrail", "P_ImpactBurst"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ParticleLibraryEmitterEdit", event = "Change", route = "WorkbenchExtension.ParticleLibrary.Emitter.Edit" },
+  { id = "WorkbenchExtension/ParticleLibraryEmitterCommit", event = "Submit", route = "WorkbenchExtension.ParticleLibrary.Emitter.Commit" },
+]
+
+[nodes.particle_library_duration_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionParticleLibraryDurationField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "1.25 s" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ParticleLibraryDurationEdit", event = "Change", route = "WorkbenchExtension.ParticleLibrary.Duration.Edit" },
+  { id = "WorkbenchExtension/ParticleLibraryDurationCommit", event = "Submit", route = "WorkbenchExtension.ParticleLibrary.Duration.Commit" },
+]
+
+[nodes.particle_library_bounds_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionParticleLibraryBoundsDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Fixed Bounds", value = "Fixed Bounds", options = ["Fixed Bounds", "Dynamic Bounds", "GPU Estimated"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ParticleLibraryBoundsEdit", event = "Change", route = "WorkbenchExtension.ParticleLibrary.Bounds.Edit" },
+  { id = "WorkbenchExtension/ParticleLibraryBoundsCommit", event = "Submit", route = "WorkbenchExtension.ParticleLibrary.Bounds.Commit" },
+]

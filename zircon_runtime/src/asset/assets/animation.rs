@@ -219,7 +219,7 @@ pub struct AnimationSkeletonAsset {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationClipBoneTrackAsset {
     pub bone_name: String,
-    /// Stable optional retargeting id; legacy assets can continue to use `bone_name` alone.
+    /// Stable optional retargeting id; v1 payloads continue to use `bone_name` alone.
     #[serde(default)]
     pub target_id: Option<String>,
     pub translation: AnimationChannelAsset,
@@ -803,10 +803,10 @@ impl AnimationSkeletonAsset {
 
 impl AnimationClipAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset_with_fallback::<AnimationClipBinaryAsset, AnimationClipBinaryAssetV1>(
-            AnimationBinaryAssetKind::Clip,
-            bytes,
-        )
+        decode_binary_asset_with_v1_payload_fallback::<
+            AnimationClipBinaryAsset,
+            AnimationClipBinaryAssetV1,
+        >(AnimationBinaryAssetKind::Clip, bytes)
         .and_then(AnimationClipAsset::try_from)
     }
 
@@ -824,10 +824,10 @@ impl AnimationClipAsset {
 
 impl AnimationSequenceAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset_with_fallback::<AnimationSequenceAsset, AnimationSequenceAssetV1>(
-            AnimationBinaryAssetKind::Sequence,
-            bytes,
-        )
+        decode_binary_asset_with_v1_payload_fallback::<
+            AnimationSequenceAsset,
+            AnimationSequenceAssetV1,
+        >(AnimationBinaryAssetKind::Sequence, bytes)
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
@@ -862,7 +862,7 @@ impl AnimationSequenceAsset {
 
 impl AnimationGraphAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset_with_fallback::<AnimationGraphAsset, AnimationGraphAssetV1>(
+        decode_binary_asset_with_v1_payload_fallback::<AnimationGraphAsset, AnimationGraphAssetV1>(
             AnimationBinaryAssetKind::Graph,
             bytes,
         )
@@ -942,24 +942,24 @@ where
     }
 }
 
-fn decode_binary_asset_with_fallback<T, Legacy>(
+fn decode_binary_asset_with_v1_payload_fallback<T, V1>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
 ) -> Result<T, String>
 where
     T: DeserializeOwned,
-    Legacy: DeserializeOwned + TryInto<T>,
-    <Legacy as TryInto<T>>::Error: std::fmt::Display,
+    V1: DeserializeOwned + TryInto<T>,
+    <V1 as TryInto<T>>::Error: std::fmt::Display,
 {
     match decode_binary_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
         Err(primary_error) => {
-            let legacy = decode_binary_asset::<Legacy>(kind, bytes)
+            let v1_payload = decode_binary_asset::<V1>(kind, bytes)
                 .and_then(|payload| payload.try_into().map_err(|error| error.to_string()))
-                .map_err(|legacy_error| {
-                    format!("{primary_error}; legacy animation asset decode failed: {legacy_error}")
+                .map_err(|v1_error| {
+                    format!("{primary_error}; v1 animation asset decode failed: {v1_error}")
                 })?;
-            Ok(legacy)
+            Ok(v1_payload)
         }
     }
 }

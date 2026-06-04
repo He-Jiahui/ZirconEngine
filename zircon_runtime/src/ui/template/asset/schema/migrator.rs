@@ -2,7 +2,7 @@ use serde::Deserialize;
 use toml::Value;
 
 use super::flat_nodes;
-use super::legacy_template;
+use super::source_template_fixture;
 use crate::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetMigrationOutcome, UiAssetMigrationReport,
@@ -10,8 +10,8 @@ use zircon_runtime_interface::ui::template::{
     UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
-const DEFAULT_LEGACY_TEMPLATE_ASSET_ID: &str = "legacy.template_fixture";
-const DEFAULT_LEGACY_TEMPLATE_DISPLAY_NAME: &str = "Legacy Template Fixture";
+const DEFAULT_SOURCE_TEMPLATE_FIXTURE_ASSET_ID: &str = "source.template_fixture";
+const DEFAULT_SOURCE_TEMPLATE_FIXTURE_DISPLAY_NAME: &str = "Source Template Fixture";
 
 #[derive(Default)]
 pub struct UiAssetSchemaMigrator;
@@ -35,24 +35,24 @@ impl UiAssetSchemaMigrator {
             return Self::migrate_tree_asset(input);
         }
 
-        Self::migrate_legacy_template_str(
-            DEFAULT_LEGACY_TEMPLATE_ASSET_ID,
-            DEFAULT_LEGACY_TEMPLATE_DISPLAY_NAME,
+        Self::migrate_source_template_fixture_str(
+            DEFAULT_SOURCE_TEMPLATE_FIXTURE_ASSET_ID,
+            DEFAULT_SOURCE_TEMPLATE_FIXTURE_DISPLAY_NAME,
             input,
         )
     }
 
-    pub fn migrate_legacy_template_str(
+    pub fn migrate_source_template_fixture_str(
         asset_id: impl Into<String>,
         display_name: impl Into<String>,
         input: &str,
     ) -> Result<UiAssetMigrationOutcome, UiAssetError> {
-        let legacy: UiTemplateDocument =
+        let source_template: UiTemplateDocument =
             toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
-        Self::migrate_legacy_template_document(asset_id, display_name, &legacy)
+        Self::migrate_source_template_fixture_document(asset_id, display_name, &source_template)
     }
 
-    pub fn migrate_legacy_template_document(
+    pub fn migrate_source_template_fixture_document(
         asset_id: impl Into<String>,
         display_name: impl Into<String>,
         document: &UiTemplateDocument,
@@ -68,7 +68,7 @@ impl UiAssetSchemaMigrator {
             });
         }
 
-        let mut converted = legacy_template::convert_legacy_template_document(
+        let mut converted = source_template_fixture::convert_source_template_fixture_document(
             asset_id.clone(),
             display_name,
             document,

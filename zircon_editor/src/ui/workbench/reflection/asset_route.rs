@@ -16,7 +16,7 @@ pub(super) fn register_asset_route(
     event_kind: UiEventKind,
 ) -> Option<UiRouteId> {
     let (control_id, payload) = match action_id {
-        "import_model" => (
+        "workbench.asset.model.import" => (
             "ImportModel",
             EditorUiBindingPayload::asset_command(AssetCommand::ImportModel),
         ),

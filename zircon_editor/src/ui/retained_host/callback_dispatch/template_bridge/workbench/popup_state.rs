@@ -82,11 +82,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .map(|raw| UiValue::String(menu_item_without_transient_flags(raw)))
                 .collect(),
         );
-        self.mutate_control_property(control_id, "value", UiValue::String(selected_item.label))?;
+        self.mutate_control_property(
+            control_id,
+            "value",
+            UiValue::String(selected_item.label.clone()),
+        )?;
         self.mutate_control_property(
             control_id,
             "value_text",
-            UiValue::String(selected_item.action_id),
+            UiValue::String(selected_item.label),
         )?;
         self.mutate_control_property(control_id, "menu_items", normalized_items)?;
         for node_id in control_node_ids_with_descendants(&self.template_surface.surface, control_id)

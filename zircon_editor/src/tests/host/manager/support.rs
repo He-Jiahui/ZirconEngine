@@ -304,7 +304,7 @@ kind = "native"
 type = "Button"
 control_id = "SaveButton"
 props = { text = "Save" }
-bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.SaveProject", action = { route = "MenuAction.SaveProject", payload = { confirm = true, mode = "full" } } }]
+bindings = [{ id = "SaveButton/onClick", event = "Click", route = "MenuAction.workbench.project.save", action = { route = "MenuAction.workbench.project.save", payload = { confirm = true, mode = "full" } } }]
 "##;
 
 pub(super) const CONTEXTUAL_BINDING_SUGGESTION_UI_LAYOUT_ASSET: &str = r##"

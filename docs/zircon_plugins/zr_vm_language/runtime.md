@@ -5,6 +5,17 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/module.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/support.rs
   - zircon_plugins/zr_vm_language/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
@@ -27,6 +38,18 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/module.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/support.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
@@ -46,7 +69,10 @@ plan_sources:
   - user: 2026-05-15 implement ZrVM language plugin and reflection registration plan
   - user: 2026-05-16 continue precise VM host reflection macro implementation
 tests:
-  - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/support.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime: passed 2026-05-15"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm: passed 2026-05-15 with ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug"
@@ -88,6 +114,10 @@ doc_type: module-detail
 
 The plugin is optional and disabled by default in project selection. This keeps ZirconEngine buildable on machines that do not have `E:\Git\zr_vm` or the `zr_vm_rust_binding` dynamic library available.
 
+The crate root is a structural plugin surface: it declares backend/module children, exposes the plugin descriptor helpers, and delegates unit coverage to `src/tests/mod.rs`. Default-build registration and module tests live in `tests/registration.rs`; feature-gated native binding lifecycle tests live in `tests/real_backend.rs`; temporary ZrVM package fixtures and host-context helpers live in `tests/support.rs`.
+
+`src/real_backend.rs` is now the structural entry for the feature-gated native backend. `real_backend/package.rs` owns package loading and session startup, `instance.rs` owns `VmPluginInstance` lifecycle forwarding, `host_modules.rs` owns host module/type/function registration, `values.rs` owns host-value lowering and ZrVM argument lifting, `errors.rs` owns binding error normalization, and `lock.rs` owns the process-global runtime mutex. `real_backend/tests.rs` keeps private helper coverage for arity validation, value conversion, callback diagnostics, and unsupported argument rejection.
+
 ## Runtime Catalog Registration
 
 `RuntimePluginDescriptor::builtin_catalog()` includes the `zr_vm_language` runtime-backed package so the runtime package manifest tests can reconcile three sources of truth:
@@ -118,7 +148,7 @@ The real backend serializes access through a process-global mutex because the cu
 
 Lifecycle export calls pass the target module name to `ProjectSession::call_module_export` and keep `RunOptions::module_name` empty when the session is started. This matches the current `zr_vm_rust_binding` export-call contract: the binding loads the project entry once, then resolves later `module.export` calls from the same project global.
 
-The feature-gated test suite includes a real project fixture when `real-zr-vm` is enabled. That fixture writes a JSON `.zrp`, imports `zr.zircon.math` and `zr.zircon.foundation`, calls native host functions from `activate()`, then verifies the package can be loaded, hot reloaded through `saveState`/`restoreState`, and unloaded. It also copies the documented minimal example into a temporary package root and loads that copy, so the checked-in example stays aligned with the real backend without writing build artifacts into `docs/`.
+The feature-gated test suite includes a real project fixture when `real-zr-vm` is enabled. That fixture now lives in `tests/support.rs`; it writes a JSON `.zrp`, imports `zr.zircon.math` and `zr.zircon.foundation`, calls native host functions from `activate()`, then verifies the package can be loaded, hot reloaded through `saveState`/`restoreState`, and unloaded. It also copies the documented minimal example into a temporary package root and loads that copy, so the checked-in example stays aligned with the real backend without writing build artifacts into `docs/`.
 
 ## Host Module Translation
 
@@ -126,11 +156,11 @@ When `real-zr-vm` is enabled, `ZrVmBackend`:
 
 1. Opens the discovered `.zrp` project.
 2. Builds a standard `zr_vm` runtime.
-3. Converts every `HostExportRegistry` module descriptor into a `zr_vm_rust_binding::ModuleBuilder`.
-4. Registers native callbacks that dispatch back into `HostExportRegistry::call_with_capabilities`.
+3. Delegates host module translation to `real_backend/host_modules.rs`, which converts every `HostExportRegistry` module descriptor into a `zr_vm_rust_binding::ModuleBuilder`.
+4. Registers native callbacks that dispatch back into `HostExportRegistry::call_with_capabilities` after `real_backend/values.rs` lifts ZrVM arguments into neutral `ScriptHostValue` records.
 5. Compiles the project incrementally.
 6. Starts a persistent `zr_vm_rust_binding::ProjectSession`.
-7. Maps optional lifecycle exports to `VmPluginInstance` methods.
+7. Maps optional lifecycle exports through `real_backend/instance.rs` to `VmPluginInstance` methods.
 
 Host type registration uses descriptor metadata without re-infering Rust names:
 
@@ -141,6 +171,8 @@ Host type registration uses descriptor metadata without re-infering Rust names:
 - Native function return types use `ScriptHostFunctionDescriptor::return_type.type_name`.
 
 This means a Rust helper such as `fn length(value: f64) -> f64` registers as ZrVM `float -> float` by default, while custom value descriptors can register semantic host types such as `Vec3` without exposing Rust object pointers or requiring the plugin backend to know Rust type spelling.
+
+The native callback bridge deliberately stays descriptor-driven rather than type-name-special-cased. The plugin accepts only the host value kinds that the shared script framework already exposes, rejects unsupported ZrVM argument kinds with the target function label, and wraps return-value lowering failures with the same label. This keeps interface registration and reflection metadata aligned with the shared `HostExportRegistry` contract instead of adding backend-local dispatch branches.
 
 The lifecycle names are optional:
 

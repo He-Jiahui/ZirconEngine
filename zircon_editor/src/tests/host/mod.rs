@@ -20,6 +20,7 @@ mod retained_document_tab_pointer;
 mod retained_drawer_header_pointer;
 mod retained_drawer_resize;
 mod retained_event_bridge;
+mod retained_generated_bottom_template_body;
 mod retained_hierarchy_template_body;
 mod retained_host_page_pointer;
 mod retained_inspector_template_body;

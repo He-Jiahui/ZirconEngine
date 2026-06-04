@@ -6,6 +6,7 @@ mod manager;
 mod module;
 mod query_contact;
 mod scene_hook;
+mod trigger;
 
 pub use backend::JOLT_ENABLED;
 pub use manager::{
@@ -61,12 +62,37 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     ])
     .with_capability("runtime.plugin.physics")
     .with_capability("runtime.capability.physics.raycast")
+    .with_capability("runtime.capability.physics.overlap")
+    .with_capability("runtime.capability.physics.shape_cast")
+    .with_capability("runtime.capability.physics.trigger_events")
+    .with_capability("runtime.capability.physics.constraints")
+    .with_capability("runtime.capability.physics.skeletal_joints")
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
         "runtime.plugin.physics",
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
         "runtime.capability.physics.raycast",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.overlap",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.shape_cast",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.trigger_events",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.constraints",
+        zircon_runtime::plugin::CapabilityStatus::Partial,
+    ))
+    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+        "runtime.capability.physics.skeletal_joints",
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
 }
@@ -91,6 +117,11 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
     &[
         "runtime.plugin.physics",
         "runtime.capability.physics.raycast",
+        "runtime.capability.physics.overlap",
+        "runtime.capability.physics.shape_cast",
+        "runtime.capability.physics.trigger_events",
+        "runtime.capability.physics.constraints",
+        "runtime.capability.physics.skeletal_joints",
     ]
 }
 
@@ -126,6 +157,11 @@ mod tests {
         for capability in [
             "runtime.plugin.physics",
             "runtime.capability.physics.raycast",
+            "runtime.capability.physics.overlap",
+            "runtime.capability.physics.shape_cast",
+            "runtime.capability.physics.trigger_events",
+            "runtime.capability.physics.constraints",
+            "runtime.capability.physics.skeletal_joints",
         ] {
             assert!(report
                 .package_manifest

@@ -6,7 +6,9 @@ export {
     Row,
     Column,
     Flow,
+    FlowScrollSurface,
     ResponsiveSlot,
+    HubWorkspaceSplitState,
     ResponsiveState,
     ResponsiveCollapse,
     PanelGrid,
@@ -18,7 +20,11 @@ export {
 export {
     HubPanel,
     HubCard,
+    HubInteractiveCardSurface,
     PanelSlot,
+    HubFormPanelSlot,
+    HubContentPanelSlot,
+    HubMediaContentPanelSlot,
     HeaderGroup,
     Badge,
     StatusBadge,
@@ -28,61 +34,54 @@ export {
     EmptyStateBlock,
     EmptyStatePanel,
     StatusBanner,
+    HubSectionSummary,
 } from "surfaces.slint";
 export {
     SelectOptionData,
-    HubCheckBox,
-    HubCheckBoxRow,
-    HubComboBox,
-    HubSwitch,
-    HubTextField,
-    HubPathFieldRow,
-    HubToggleRow,
-    SearchBox,
+    HubSelectTrigger,
     ToolbarSelect,
     DropDownButton,
     SegmentButton,
 } from "inputs.slint";
+export {
+    HubTextField,
+    HubPathFieldRow,
+    SearchBox,
+} from "text_input_components.slint";
+export { HubCheckBox, HubCheckBoxRow, HubComboBox, HubSwitch, HubToggleRow, } from "input_state_components.slint";
 export { HubTopHeader, } from "shell_header_components.slint";
 export { HubPageContentSlot, HubShellBody, HubShellRootSurface, HubShellStack, HubWorkspaceSurface } from "shell_layout_components.slint";
-export { HubCompactTabStrip } from "compact_page_components.slint";
+export { HubCompactTabStrip, HubWorkspaceTabStrip } from "compact_page_components.slint";
 export { CatalogDetailPanel } from "catalog_detail_components.slint";
 export { HubRowLeadingIconSlot, HubRowMainSlot, HubRowMetaSlot, HubRowSelectionSlot, HubRowTrailingSlot } from "row_slot_components.slint";
-export { HubNavSidebar, } from "shell_sidebar_components.slint";
+export { HubNavSidebar, HubNavigationDrawer } from "shell_sidebar_components.slint";
 export { HubPageHeader, HubStatusBar } from "shell_page_components.slint";
-export { PillButton, HubCommandButton, HubActionCommandButton, HubActionStack, IconButton, HubIconButton, WindowButton, HubFloatingIconButton } from "button_components.slint";
+export { PillButton, HubCommandButton, HubHeaderCommandGroup, HubPanelNavigationCommand, HubActionCommandButton, HubActionStack, HubFormActionRow, HubDisclosureButton, HubPanelHeaderActionButton, HubUserMenuTriggerButton, HubSidebarCollapseButton, WindowButton } from "button_components.slint";
+export { IconButton, HubIconButton, HubTopbarIconButton, HubBackButton, HubFlowNextButton, HubRowActionButton, HubViewToggleButton, HubViewToggleGroup, HubFloatingIconButton, HubMoreMenuButton } from "icon_button_components.slint";
+export { HubButtonStateTextSample, HubButtonStateIconSample } from "button_state_sample_components.slint";
 export { ProjectCover, ProjectCard, ProjectFlow, DashboardProjectCardsSection } from "project_card_flow_components.slint";
+export { CatalogListPanel, CatalogPage, AssetRow, PluginRow, LearnRow } from "catalog_page_components.slint";
 export {
     InfoRow,
     ActionRow,
     HubKeyValueRow,
     HubBadgeMetaStrip,
     HubRowSurface,
+    HubInteractiveRowSurface,
     HubMenuRow,
+    HubMetricSlot,
+    HubMetricSectionState,
     MetricCard,
     BuildHistoryRow,
-    HubListPanelSlot,
-    HubListView,
-    CatalogListPanel,
-    CatalogPage,
-    PanelListViewport,
 } from "data_display.slint";
-export { TableColumnHeader, HubTableView, HubTableBody, ProjectTableRow, DataTable } from "table_view_components.slint";
+export { PanelListViewport, HubMenuListViewport, HubListView, HubListPanelSlot, HubTabbedListPanelSlot } from "list_container_components.slint";
+export { TableColumnHeader, TableCellText, HubTableView, HubTableBody, ProjectTableRow, DataTable } from "table_view_components.slint";
 export { TreeItemData, HubTreeRow, HubTreeView } from "tree_view_components.slint";
 export { OperationTimelineRow, OperationTimelinePanel } from "operation_timeline_components.slint";
-export { HubTabs, NavRail } from "navigation.slint";
-export {
-    HubAnchoredPopupPanel,
-    HubDropDownSurface,
-    HubDrawer,
-    HubModalDrawer,
-    HubPopupMenu,
-    HubPopupWindow,
-    HubSelectDropDownSurface,
-    HubSelectMenu,
-    HubWindowView,
-    PopupPanel,
-} from "overlays.slint";
+export { HubTabs, NavButton, NavRail } from "navigation.slint";
+export { HubAnchoredPopupPanel, HubPopupDivider, HubPopupProfileHeader, HubPopupSectionHeader, HubPopupWindow, PopupPanel } from "overlays.slint";
+export { HubPopupMenu, HubSelectMenu, HubDropDownSurface, HubSelectDropDownSurface } from "dropdown_components.slint";
+export { HubDrawer, HubModalDrawer, HubWindowView } from "drawer_window_components.slint";
 export { NavItemData } from "shared.slint";
 export {
     AppBar,

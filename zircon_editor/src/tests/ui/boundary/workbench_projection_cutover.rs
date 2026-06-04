@@ -229,7 +229,7 @@ fn view_template_projection_is_hard_cut_to_v2_prototype_store() {
         "UiV2PrototypeStoreFileCache",
         ".load_store(",
         "UiV2SurfaceBuilder::build_surface_from_compiled_document",
-        "LegacyAssetPath",
+        "NonV2AssetPath",
     ] {
         assert_contains("view_projection.rs", &view_projection, required);
     }

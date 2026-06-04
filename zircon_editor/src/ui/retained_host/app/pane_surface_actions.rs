@@ -73,11 +73,13 @@ impl RetainedEditorHost {
         {
             return None;
         }
-        let has_workbench_binding = !action_id.is_empty()
-            && self
-                .workbench_window_bridge
-                .binding_by_id(action_id)
-                .is_some();
+        let workbench_binding_id = (!action_id.is_empty())
+            .then(|| {
+                self.workbench_window_bridge
+                    .binding_id_for_action_id(action_id)
+            })
+            .flatten();
+        let has_workbench_binding = workbench_binding_id.is_some();
         let has_workbench_control = self.workbench_window_bridge.has_control(control_id);
         if !has_workbench_binding && !has_workbench_control {
             return None;
@@ -106,7 +108,7 @@ impl RetainedEditorHost {
                 &self.runtime,
                 &mut self.workbench_window_bridge,
                 control_id,
-                action_id,
+                workbench_binding_id.as_deref().unwrap_or(action_id),
             )
         } else {
             callback_dispatch::dispatch_componentized_workbench_control(
@@ -174,7 +176,15 @@ impl RetainedEditorHost {
             return;
         }
 
-        let Some(binding) = self.pane_surface_bridge.binding_by_id(binding_id).cloned() else {
+        let resolved_binding_id = self
+            .pane_surface_bridge
+            .binding_id_for_action_id(binding_id)
+            .unwrap_or_else(|| binding_id.to_string());
+        let Some(binding) = self
+            .pane_surface_bridge
+            .binding_by_id(resolved_binding_id.as_str())
+            .cloned()
+        else {
             let result = callback_dispatch::dispatch_builtin_template_binding_with_arguments(
                 &self.runtime,
                 binding_id,
@@ -207,10 +217,14 @@ impl RetainedEditorHost {
         {
             return None;
         }
+        let binding_id = self
+            .workbench_window_bridge
+            .binding_id_for_action_id(binding_id)
+            .unwrap_or_else(|| binding_id.to_string());
         callback_dispatch::dispatch_componentized_workbench_surface_control_edited(
             &mut self.workbench_window_bridge,
             control_id,
-            binding_id,
+            binding_id.as_str(),
             value,
         )
     }
@@ -221,8 +235,11 @@ impl RetainedEditorHost {
         action_id: &str,
     ) {
         self.focus_callback_source_window();
-        let input = self.demo_input_for_showcase_action(control_id, action_id);
-        self.dispatch_component_showcase_event(control_id, action_id, input);
+        let Some(binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
+            return;
+        };
+        let input = self.demo_input_for_showcase_action(control_id, binding_id.as_str());
+        self.dispatch_component_showcase_event(control_id, binding_id.as_str(), input);
     }
 
     pub(super) fn dispatch_component_showcase_control_drag_delta(
@@ -232,12 +249,15 @@ impl RetainedEditorHost {
         delta: f64,
     ) {
         self.focus_callback_source_window();
-        let input = if action_id.contains("LargeDragUpdate") {
+        let Some(binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
+            return;
+        };
+        let input = if binding_id.contains("LargeDragUpdate") {
             UiComponentShowcaseDemoEventInput::LargeDragDelta(delta)
         } else {
             UiComponentShowcaseDemoEventInput::DragDelta(delta)
         };
-        self.dispatch_component_showcase_event(control_id, action_id, input);
+        self.dispatch_component_showcase_event(control_id, binding_id.as_str(), input);
     }
 
     pub(super) fn dispatch_component_showcase_control_edited(
@@ -247,8 +267,11 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
-        let input = demo_input_for_showcase_edit(action_id, value);
-        self.dispatch_component_showcase_event(control_id, action_id, input);
+        let Some(binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
+            return;
+        };
+        let input = demo_input_for_showcase_edit(binding_id.as_str(), value);
+        self.dispatch_component_showcase_event(control_id, binding_id.as_str(), input);
     }
 
     pub(super) fn dispatch_component_showcase_control_context_requested(
@@ -259,16 +282,16 @@ impl RetainedEditorHost {
         y: f64,
     ) {
         self.focus_callback_source_window();
-        let action_id = if control_id == "ContextActionMenuDemo"
-            && !action_id.contains("ContextActionMenuOpenAt")
-        {
-            "UiComponentShowcase/ContextActionMenuOpenAt"
-        } else {
-            action_id
+        let Some(mut binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
+            return;
         };
+        if control_id == "ContextActionMenuDemo" && !binding_id.contains("ContextActionMenuOpenAt")
+        {
+            binding_id = "UiComponentShowcase/ContextActionMenuOpenAt".to_string();
+        }
         self.dispatch_component_showcase_event(
             control_id,
-            action_id,
+            binding_id.as_str(),
             UiComponentShowcaseDemoEventInput::OpenPopupAt { x, y },
         );
     }
@@ -286,11 +309,44 @@ impl RetainedEditorHost {
             self.apply_dispatch_result(result);
             return;
         }
+        let Some(binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
+            return;
+        };
         self.dispatch_component_showcase_event(
             control_id,
-            action_id,
+            binding_id.as_str(),
             select_option(option_id, true),
         );
+    }
+
+    fn component_showcase_binding_id_for_action(&mut self, action_id: &str) -> Option<String> {
+        if action_id.starts_with(MATERIAL_LAB_BINDING_PREFIX) {
+            return Some(action_id.to_string());
+        }
+        if let Err(error) = self.ensure_component_showcase_runtime_loaded() {
+            self.set_status_line(error);
+            return None;
+        }
+        let binding_id = self
+            .component_showcase_runtime
+            .project_document(SHOWCASE_DOCUMENT_ID)
+            .ok()
+            .and_then(|projection| {
+                projection.bindings.into_iter().find_map(|binding| {
+                    if binding.binding_id == action_id
+                        || component_showcase_action_id_for_binding_id(&binding.binding_id)
+                            == action_id
+                    {
+                        Some(binding.binding_id)
+                    } else {
+                        None
+                    }
+                })
+            });
+        if binding_id.is_none() {
+            self.set_status_line(format!("Unknown component showcase action {action_id}"));
+        }
+        binding_id
     }
 
     fn dispatch_component_showcase_event(
@@ -433,6 +489,36 @@ impl RetainedEditorHost {
             page_size,
         }
     }
+}
+
+fn component_showcase_action_id_for_binding_id(binding_id: &str) -> String {
+    let Some(suffix) = binding_id.strip_prefix("UiComponentShowcase/") else {
+        return binding_id
+            .split(['/', '.', ':'])
+            .filter(|segment| !segment.is_empty())
+            .map(camel_to_snake_segment)
+            .collect::<Vec<_>>()
+            .join(".");
+    };
+    format!("ui_component_showcase.{}", camel_to_snake_segment(suffix))
+}
+
+fn camel_to_snake_segment(value: &str) -> String {
+    let mut output = String::new();
+    let mut previous_was_separator = true;
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if ch.is_ascii_uppercase() && !previous_was_separator && !output.ends_with('_') {
+                output.push('_');
+            }
+            output.push(ch.to_ascii_lowercase());
+            previous_was_separator = false;
+        } else if !output.ends_with('_') {
+            output.push('_');
+            previous_was_separator = true;
+        }
+    }
+    output.trim_matches('_').to_string()
 }
 
 struct UiAssetDetailSurfaceBinding {

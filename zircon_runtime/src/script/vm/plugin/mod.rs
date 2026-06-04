@@ -1,3 +1,4 @@
+mod management_policy;
 mod vm_plugin_instance;
 mod vm_plugin_manifest;
 mod vm_plugin_package;
@@ -5,6 +6,10 @@ mod vm_plugin_package_discovery;
 mod vm_plugin_package_source;
 mod vm_state_blob;
 
+pub use management_policy::{
+    VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
+    VmPluginManagementPolicy, VmPluginMemoryPolicy,
+};
 pub use vm_plugin_instance::VmPluginInstance;
 pub use vm_plugin_manifest::VmPluginManifest;
 pub use vm_plugin_package::{VmPluginPackage, ZrVmExecutionMode, ZrVmPluginProjectSource};

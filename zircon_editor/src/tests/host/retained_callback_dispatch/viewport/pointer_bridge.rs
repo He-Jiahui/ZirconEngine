@@ -73,6 +73,49 @@ fn shared_viewport_pointer_bridge_keeps_move_and_up_routed_to_captured_viewport(
 }
 
 #[test]
+fn shared_viewport_pointer_bridge_routes_cancel_to_capture_without_viewport_command() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_shared_pointer_cancel");
+    let mut bridge = SharedViewportPointerBridge::new(UiFrame::new(0.0, 0.0, 100.0, 100.0));
+
+    dispatch_viewport_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(10.0, 10.0))
+            .with_button(UiPointerButton::Primary),
+    )
+    .unwrap();
+    let record_count_after_down = harness.runtime.journal().records().len();
+
+    let cancel_effects = dispatch_viewport_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Cancel, UiPoint::new(180.0, 180.0)),
+    )
+    .unwrap();
+    assert_eq!(
+        cancel_effects,
+        crate::ui::retained_host::event_bridge::UiHostEventEffects::default()
+    );
+    assert_eq!(
+        harness.runtime.journal().records().len(),
+        record_count_after_down
+    );
+
+    dispatch_viewport_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(180.0, 180.0)),
+    )
+    .unwrap();
+    assert_eq!(
+        harness.runtime.journal().records().len(),
+        record_count_after_down
+    );
+}
+
+#[test]
 fn shared_viewport_pointer_move_without_feedback_stays_dirty_domain_idle() {
     let _guard = env_lock().lock().unwrap();
 

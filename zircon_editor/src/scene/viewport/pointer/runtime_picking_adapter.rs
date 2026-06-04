@@ -95,6 +95,7 @@ fn runtime_pointer_action_for_event(event: &UiPointerEvent) -> PointerAction {
             unit: PointerScrollUnit::Pixel,
             delta: Vec2::new(0.0, event.scroll_delta),
         },
+        UiPointerEventKind::Cancel => PointerAction::Cancel,
     }
 }
 
