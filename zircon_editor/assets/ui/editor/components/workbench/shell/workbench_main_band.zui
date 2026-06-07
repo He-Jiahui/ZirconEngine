@@ -1,0 +1,64 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/shell/workbench_main_band.zui"
+version = 2
+display_name = "Workbench Main Band"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/shell/workbench_activity_rail.zui#WorkbenchActivityRail",
+  "res://ui/editor/components/workbench/shell/workbench_inspector_panel.zui#WorkbenchInspectorPanel",
+  "res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui#WorkbenchModuleWorkspace",
+  "res://ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui#WorkbenchSceneTreePanel",
+  "res://ui/editor/components/workbench/shell/workbench_viewport_panel.zui#WorkbenchViewportPanel",
+]
+styles = []
+
+[components.WorkbenchMainBand]
+root = "main_band"
+default_classes = ["workbench-main-band"]
+
+[nodes.main_band]
+component = "Overlay"
+control_id = "WorkbenchMainBand"
+classes = ["workbench-main-band"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scene_workspace" }, { node = "module_workspace" }]
+
+[nodes.scene_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchSceneWorkspace"
+classes = ["workbench-main-band", "workbench-scene-workspace"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "activity_rail" },
+  { node = "scene_tree_panel" },
+  { node = "viewport_panel" },
+  { node = "inspector_panel" },
+]
+
+[nodes.activity_rail]
+component = "WorkbenchActivityRail"
+control_id = "WorkbenchMainBandActivityRail"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scene_tree_panel]
+component = "WorkbenchSceneTreePanel"
+control_id = "WorkbenchMainBandSceneTreePanel"
+layout = { width = { min = 332.0, preferred = 332.0, max = 332.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.viewport_panel]
+component = "WorkbenchViewportPanel"
+control_id = "WorkbenchMainBandViewportPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.inspector_panel]
+component = "WorkbenchInspectorPanel"
+control_id = "WorkbenchMainBandInspectorPanel"
+layout = { width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.module_workspace]
+component = "WorkbenchModuleWorkspace"
+control_id = "WorkbenchMainBandModuleWorkspace"
+props = { visibility = "visible" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

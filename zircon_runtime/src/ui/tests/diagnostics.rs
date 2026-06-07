@@ -1,14 +1,16 @@
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
-        UiContainerKind, UiFrame, UiLayoutEngineBackend, UiLayoutEngineFallbackReason,
-        UiLayoutEngineFamily, UiLayoutEngineSupport, UiLinearBoxConfig, UiPoint, UiSize,
-        UiSizeBoxConfig,
+        Anchor, AxisConstraint, BoxConstraints, Pivot, Position, StretchMode,
+        UiCanvasSlotPlacement, UiContainerKind, UiFrame, UiLayoutEngineBackend,
+        UiLayoutEngineFallbackReason, UiLayoutEngineFamily, UiLayoutEngineSupport,
+        UiLinearBoxConfig, UiMargin, UiPoint, UiSize, UiSizeBoxConfig, UiSlot, UiSlotKind,
     },
     surface::{
-        UiDebugOverlayPrimitiveKind, UiHitTestRejectReason, UiRenderCommandKind,
-        UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UI_SURFACE_DEBUG_SCHEMA_VERSION,
+        UiCanvasLayerGroup, UiDebugOverlayPrimitiveKind, UiHitTestRejectReason,
+        UiRenderCommandKind, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
+        UI_SURFACE_DEBUG_SCHEMA_VERSION,
     },
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -296,6 +298,48 @@ fn surface_debug_snapshot_uses_surface_frame_as_single_spatial_source() {
     assert_eq!(front.render_command_count, 1);
 }
 
+#[test]
+fn surface_debug_snapshot_reports_parent_owned_canvas_slot_provenance() {
+    let surface = diagnostic_canvas_slot_surface();
+    let snapshot = surface.debug_snapshot();
+    let canvas_child = snapshot
+        .nodes
+        .iter()
+        .find(|node| node.node_id == UiNodeId::new(31))
+        .expect("canvas child should be reflected");
+    let slot = canvas_child
+        .slot
+        .as_ref()
+        .expect("reflector node should expose the parent-owned Canvas slot");
+    let placement = slot
+        .canvas_placement
+        .expect("Canvas slot placement should be preserved for diagnostics");
+
+    assert_eq!(canvas_child.frame, UiFrame::new(64.0, 13.0, 80.0, 40.0));
+    assert_eq!(canvas_child.z_index, 8);
+    assert_eq!(slot.parent_id, UiNodeId::new(30));
+    assert_eq!(slot.child_id, UiNodeId::new(31));
+    assert_eq!(slot.kind, UiSlotKind::Canvas);
+    assert_eq!(slot.order, 4);
+    assert_eq!(slot.z_order, 6);
+    assert_eq!(slot.dirty_revision, 2);
+    assert_eq!(placement.anchor, Anchor::new(0.5, 0.25));
+    assert_eq!(placement.anchor_max, None);
+    assert_eq!(placement.pivot, Pivot::new(0.5, 0.5));
+    assert_eq!(placement.position, Position::new(4.0, 6.0));
+    assert_eq!(placement.offset, UiMargin::new(10.0, 2.0, 80.0, 40.0));
+    assert!(!placement.auto_size);
+    assert_eq!(
+        snapshot.canvas_layers,
+        vec![UiCanvasLayerGroup {
+            parent_id: UiNodeId::new(30),
+            layer_index: 0,
+            z_order: 6,
+            child_ids: vec![UiNodeId::new(31)],
+        }]
+    );
+}
+
 fn diagnostic_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.diagnostics"));
     surface.tree.insert_root(
@@ -329,6 +373,49 @@ fn diagnostic_surface() -> UiSurface {
         )
         .unwrap();
     surface.rebuild();
+    surface
+}
+
+fn diagnostic_canvas_slot_surface() -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.diagnostics.canvas_slot"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(30), UiNodePath::new("root"))
+            .with_container(UiContainerKind::Canvas)
+            .with_input_policy(UiInputPolicy::Ignore),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(30),
+            button_node(
+                31,
+                "root/canvas_child",
+                "canvas.button",
+                UiFrame::default(),
+                2,
+            )
+            .with_constraints(BoxConstraints {
+                width: fixed_constraint(32.0),
+                height: fixed_constraint(18.0),
+            }),
+        )
+        .unwrap();
+    surface.tree.slots.push(
+        UiSlot::new(UiNodeId::new(30), UiNodeId::new(31), UiSlotKind::Canvas)
+            .with_canvas_placement(
+                UiCanvasSlotPlacement::new(
+                    Anchor::new(0.5, 0.25),
+                    Pivot::new(0.5, 0.5),
+                    Position::new(4.0, 6.0),
+                )
+                .with_offset(UiMargin::new(10.0, 2.0, 80.0, 40.0)),
+            )
+            .with_order(4)
+            .with_z_order(6)
+            .with_dirty_revision(2),
+    );
+
+    surface.compute_layout(UiSize::new(200.0, 100.0)).unwrap();
     surface
 }
 
@@ -398,6 +485,17 @@ color = "#224466"
             .unwrap(),
             ..Default::default()
         })
+}
+
+fn fixed_constraint(size: f32) -> AxisConstraint {
+    AxisConstraint {
+        min: size,
+        max: size,
+        preferred: size,
+        priority: 100,
+        weight: 1.0,
+        stretch_mode: StretchMode::Fixed,
+    }
 }
 
 fn pointer_state() -> UiStateFlags {

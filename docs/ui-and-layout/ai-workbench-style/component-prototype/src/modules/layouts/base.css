@@ -1,0 +1,8 @@
+.zr-module-editor-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+}

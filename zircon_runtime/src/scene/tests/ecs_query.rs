@@ -1,8 +1,8 @@
 use crate::scene::components::{Name, RenderLayerMask};
 use crate::scene::ecs::{
-    ArchetypeId, Changed, Component, ComponentStorageLocation, Mut, QueryEntityError,
-    QuerySingleError, QueryState, Ref, StableEntityLocation, StorageType, UniqueEntityArray, With,
-    Without,
+    ArchetypeId, Changed, Component, ComponentStorageLocation, Mut, QueryDataAccess,
+    QueryEntityError, QueryFilter, QuerySingleError, QueryState, Ref, StableEntityLocation,
+    StorageType, UniqueEntityArray, With, Without,
 };
 use crate::scene::{EntityId, World};
 
@@ -33,6 +33,24 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
         Ok(_) => panic!("expected query error"),
         Err(error) => error,
     }
+}
+
+fn cached_component_locations_for<D, F>(
+    query: &QueryState<D, F>,
+    index: usize,
+) -> &[ComponentStorageLocation]
+where
+    D: QueryDataAccess,
+    F: QueryFilter,
+{
+    let offsets = query.cached_component_location_offsets();
+    let start = *offsets
+        .get(index)
+        .expect("cached component location start offset");
+    let end = *offsets
+        .get(index + 1)
+        .expect("cached component location end offset");
+    &query.cached_component_locations()[start..end]
 }
 
 #[test]
@@ -209,7 +227,7 @@ fn query_state_mutates_matching_components_without_touching_filtered_entities() 
     assert_eq!(query.cached_location_count(), 1);
     assert_eq!(query.cached_locations()[0].stable_id, player);
     assert_eq!(
-        query.cached_component_locations()[0][0].component_id,
+        cached_component_locations_for(&query, 0)[0].component_id,
         health_id
     );
     assert_eq!(query.cache_rebuilds(), 1);
@@ -438,7 +456,7 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         world.internal_entity_location(player).unwrap()
     );
     assert_eq!(
-        query.cached_component_locations()[0].as_slice(),
+        cached_component_locations_for(&query, 0),
         &[ComponentStorageLocation {
             component_id: health_id,
             storage_type: StorageType::Table,
@@ -480,10 +498,8 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         vec![player, prop]
     );
     assert_eq!(
-        query
-            .cached_component_locations()
-            .iter()
-            .map(|locations| locations[0].entity)
+        (0..query.cached_location_count())
+            .map(|index| cached_component_locations_for(&query, index)[0].entity)
             .collect::<Vec<_>>(),
         vec![
             world.internal_entity(player).unwrap(),
@@ -504,7 +520,10 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         query.cached_locations()[0],
         world.internal_entity_location(prop).unwrap()
     );
-    assert_eq!(query.cached_component_locations()[0][0].table_row, Some(0));
+    assert_eq!(
+        cached_component_locations_for(&query, 0)[0].table_row,
+        Some(0)
+    );
     assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
 }
 
@@ -851,8 +870,15 @@ fn query_state_cached_direct_iteration_reads_storage_locations() {
 
     assert_eq!(first, vec![(player, 10), (enemy, 4)]);
     assert_eq!(query.cached_component_locations().len(), 2);
-    assert_eq!(query.cached_component_locations()[0][0].table_row, Some(0));
-    assert_eq!(query.cached_component_locations()[1][0].table_row, Some(1));
+    assert_eq!(query.cached_component_location_offsets(), &[0, 1, 2]);
+    assert_eq!(
+        cached_component_locations_for(&query, 0)[0].table_row,
+        Some(0)
+    );
+    assert_eq!(
+        cached_component_locations_for(&query, 1)[0].table_row,
+        Some(1)
+    );
     assert_eq!(query.cache_rebuilds(), 1);
 
     world.remove::<Health>(player).unwrap();
@@ -863,7 +889,11 @@ fn query_state_cached_direct_iteration_reads_storage_locations() {
 
     assert_eq!(after_remove, vec![(enemy, 4)]);
     assert_eq!(query.cache_rebuilds(), 2);
-    assert_eq!(query.cached_component_locations()[0][0].table_row, Some(0));
+    assert_eq!(query.cached_component_location_offsets(), &[0, 1]);
+    assert_eq!(
+        cached_component_locations_for(&query, 0)[0].table_row,
+        Some(0)
+    );
 }
 
 #[test]
@@ -911,10 +941,8 @@ fn query_state_cached_direct_iteration_reads_sparse_locations() {
 
     assert_eq!(rows, vec![(player, 3), (enemy, 9)]);
     assert_eq!(
-        query
-            .cached_component_locations()
-            .iter()
-            .map(|locations| locations[0])
+        (0..query.cached_location_count())
+            .map(|index| cached_component_locations_for(&query, index)[0])
             .collect::<Vec<_>>(),
         vec![
             ComponentStorageLocation {
@@ -940,7 +968,7 @@ fn query_state_cached_direct_iteration_reads_sparse_locations() {
 
     assert_eq!(after_remove, vec![(enemy, 9)]);
     assert_eq!(
-        query.cached_component_locations()[0][0],
+        cached_component_locations_for(&query, 0)[0],
         ComponentStorageLocation {
             component_id: score_id,
             storage_type: StorageType::SparseSet,

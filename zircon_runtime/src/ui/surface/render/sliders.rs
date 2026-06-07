@@ -1,11 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 const TRACK_HEIGHT: f32 = 3.0;
 const TRACK_RADIUS: f32 = 2.0;
@@ -40,6 +43,7 @@ pub(super) fn slider_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -56,7 +60,7 @@ pub(super) fn slider_render_commands(
         return Vec::new();
     }
 
-    let state = SliderRenderState::resolve(metadata, state_flags);
+    let state = SliderRenderState::resolve(metadata, state_flags, component_state);
     let label = slider_label(metadata);
     let value_rect = slider_value_rect(frame);
     let track_rect = slider_track_rect(metadata, frame, value_rect, label.is_some());
@@ -164,23 +168,14 @@ struct SliderRenderState {
 }
 
 impl SliderRenderState {
-    fn resolve(metadata: &UiTemplateNodeMetadata, state_flags: &UiStateFlags) -> Self {
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            checked: bool_attribute(metadata, "checked").unwrap_or(false),
-            selected: bool_attribute(metadata, "selected").unwrap_or(false),
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-        };
+    fn resolve(
+        metadata: &UiTemplateNodeMetadata,
+        state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
+    ) -> Self {
+        let painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
         let family = UiPainterFamily::Slider;
         Self {
             family,
@@ -629,10 +624,6 @@ fn pixel_aligned_frame(frame: UiFrame) -> UiFrame {
         frame.width.round().max(1.0),
         frame.height.round().max(1.0),
     )
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
-    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

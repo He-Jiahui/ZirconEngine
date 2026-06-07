@@ -53,28 +53,28 @@ component = "Button"
 control_id = "WelcomeStartupWorkbenchButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Default Workbench", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Welcome/OpenStartupWorkbench", event = "Click", route = "Welcome.OpenStartupWorkbench" }]
+events = [{ id = "Welcome/OpenStartupWorkbench", event = "Click", route = "workbench.welcome.open_startup_workbench" }]
 
 [nodes.startup_chooser_button_demo]
 component = "Button"
 control_id = "WelcomeStartupDemoButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Component Showcase", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Welcome/OpenStartupDemo", event = "Click", route = "Welcome.OpenStartupDemo" }]
+events = [{ id = "Welcome/OpenStartupDemo", event = "Click", route = "workbench.welcome.open_startup_demo" }]
 
 [nodes.startup_chooser_button_asset]
 component = "Button"
 control_id = "WelcomeStartupAssetWindowButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Asset Window", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Welcome/OpenStartupAssetWindow", event = "Click", route = "Welcome.OpenStartupAssetWindow" }]
+events = [{ id = "Welcome/OpenStartupAssetWindow", event = "Click", route = "workbench.welcome.open_startup_asset_window" }]
 
 [nodes.startup_chooser_button_ui_layout]
 component = "Button"
 control_id = "WelcomeStartupUILayoutEditorButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "UI Layout Editor", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Welcome/OpenStartupUILayoutEditor", event = "Click", route = "Welcome.OpenStartupUILayoutEditor" }]
+events = [{ id = "Welcome/OpenStartupUILayoutEditor", event = "Click", route = "workbench.welcome.open_startup_ui_layout_editor" }]
 
 [nodes.startup_chooser_row]
 component = "HorizontalBox"
@@ -163,14 +163,14 @@ component = "Button"
 control_id = "WelcomeOpenExistingButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Open", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 32.0 }
-events = [{ id = "Welcome/OpenExisting", event = "Click", route = "Welcome.OpenExisting" }]
+events = [{ id = "Welcome/OpenExisting", event = "Click", route = "workbench.welcome.open_existing" }]
 
 [nodes.create_project_button]
 component = "Button"
 control_id = "WelcomeCreateProjectButton"
 classes = ["showcase-field", "material-control", "material-button", "material-button-primary"]
 props = { text = "Create Project", surface_variant = "accent", button_variant = "primary", border_width = 1.0, corner_radius = 999.0, validation_level = "normal", height = 32.0 }
-events = [{ id = "Welcome/CreateProject", event = "Click", route = "Welcome.CreateProject" }]
+events = [{ id = "Welcome/CreateProject", event = "Click", route = "workbench.welcome.create_project" }]
 
 [nodes.actions_row]
 component = "HorizontalBox"

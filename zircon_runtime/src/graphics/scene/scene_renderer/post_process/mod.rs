@@ -15,10 +15,21 @@ use gpu_data::{
     clustered_directional_light, hybrid_gi_probe_gpu, hybrid_gi_trace_region_gpu,
     reflection_probe_gpu,
 };
-use params::{bloom_params, cluster_params, post_process_params, ssao_params};
+use params::{
+    bloom_params, cluster_params, depth_of_field_prepare_params, motion_vector_camera_params,
+    post_process_params, ssao_params,
+};
 
 pub(crate) use cluster_dimensions::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};
+pub(crate) use constants::{
+    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT,
+    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
+    SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
+};
 pub(crate) use pass_graph::execute_post_process_pass_graph;
+pub(in crate::graphics::scene::scene_renderer) use params::motion_vector_camera_params::MotionVectorCameraParams;
 pub(crate) use scene_post_process_resources::ScenePostProcessResources;
 pub(crate) use scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 

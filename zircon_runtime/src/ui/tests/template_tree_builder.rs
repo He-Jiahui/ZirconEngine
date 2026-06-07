@@ -1,5 +1,4 @@
 use crate::ui::template::{UiTemplateInstance, UiTemplateTreeBuilder};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, template::UiTemplateNode};
 
 #[test]

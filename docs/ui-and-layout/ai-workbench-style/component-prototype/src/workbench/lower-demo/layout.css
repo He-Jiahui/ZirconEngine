@@ -1,0 +1,13 @@
+.zr-lower-demo {
+  display: grid;
+  grid-template-columns: minmax(360px, 500px) 362px 118px minmax(260px, 1fr);
+  align-items: start;
+  gap: 34px;
+  padding: 6px 240px 0 18px;
+  border-top: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 38%);
+}
+
+.zr-lower-demo > div:first-child {
+  transform: translateY(8px);
+}

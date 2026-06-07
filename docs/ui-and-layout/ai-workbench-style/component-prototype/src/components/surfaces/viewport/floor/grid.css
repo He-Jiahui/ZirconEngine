@@ -1,0 +1,27 @@
+.zr-viewport-grid-line {
+  position: absolute;
+  display: block;
+  background: rgba(116, 126, 128, 0.24);
+  box-shadow: 0 0 14px rgba(225, 236, 238, 0.02);
+}
+
+.zr-viewport-grid-line.is-horizontal {
+  left: -12%;
+  right: -12%;
+  bottom: calc(22px + var(--line) * var(--line) * 7px + var(--line) * 19px);
+  height: 1px;
+  transform: skewX(-11deg);
+}
+
+.zr-viewport-grid-line.is-vertical {
+  left: calc(12% + var(--line) * 12.8%);
+  bottom: 0;
+  width: 1px;
+  height: 100%;
+  transform: perspective(560px) rotateX(58deg) skewX(-12deg);
+  transform-origin: bottom;
+}
+
+.zr-viewport-grid-line.is-major {
+  background: rgba(145, 155, 157, 0.34);
+}

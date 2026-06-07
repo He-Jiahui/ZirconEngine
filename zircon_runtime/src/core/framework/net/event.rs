@@ -11,10 +11,17 @@ pub enum NetEvent {
         socket: NetSocketId,
         endpoint: NetEndpoint,
     },
+    UdpSocketClosed {
+        socket: NetSocketId,
+    },
     ListenerStarted {
         listener: NetListenerId,
         transport: NetTransportKind,
         endpoint: NetEndpoint,
+    },
+    ListenerClosed {
+        listener: NetListenerId,
+        transport: NetTransportKind,
     },
     ConnectionStateChanged {
         connection: NetConnectionId,
@@ -24,15 +31,20 @@ pub enum NetEvent {
     ConnectionAccepted {
         listener: NetListenerId,
         connection: NetConnectionId,
+        transport: NetTransportKind,
         remote: NetEndpoint,
     },
     ConnectionClosed {
         connection: NetConnectionId,
+        transport: NetTransportKind,
     },
     HttpRouteRegistered {
         route: NetRouteId,
         path: String,
         methods: Vec<NetHttpMethod>,
+    },
+    HttpRouteUnregistered {
+        route: NetRouteId,
     },
     WebSocketPairOpened {
         client: NetConnectionId,

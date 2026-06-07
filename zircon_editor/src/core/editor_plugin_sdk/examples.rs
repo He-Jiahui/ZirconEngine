@@ -35,7 +35,7 @@ impl EditorPlugin for ExampleWindowEditorPlugin {
         &self,
         registry: &mut EditorExtensionRegistry,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let operation_path = parse_operation("Sdk.Example.ToggleWeatherWindow")?;
+        let operation_path = parse_operation("sdk.example.toggle_weather_window")?;
         registry.register_operation(
             EditorOperationDescriptor::new(operation_path.clone(), "Toggle SDK Weather Window")
                 .with_menu_path("Tools/SDK Examples/Toggle Weather Window"),
@@ -79,8 +79,8 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
         &self,
         registry: &mut EditorExtensionRegistry,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let import_operation = parse_operation("Sdk.Example.ImportModel")?;
-        let open_operation = parse_operation("Sdk.Example.OpenModelInspector")?;
+        let import_operation = parse_operation("sdk.example.import_model")?;
+        let open_operation = parse_operation("sdk.example.open_model_inspector")?;
         registry.register_operation(
             EditorOperationDescriptor::new(import_operation.clone(), "Import SDK Model")
                 .with_menu_path("Assets/SDK Examples/Import Model")

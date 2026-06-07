@@ -1,0 +1,81 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui"
+version = 2
+display_name = "Workbench Additional Module Workspaces"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace",
+  "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui#WorkbenchHudWorkspace",
+  "res://ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace",
+  "res://ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace",
+  "res://ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui#WorkbenchTagsWorkspace",
+]
+styles = []
+[components.WorkbenchAdditionalModuleWorkspaces]
+root = "additional_module_workspaces"
+default_classes = ["workbench-module-workspace"]
+
+[nodes.additional_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchAdditionalModuleWorkspaces"
+classes = ["workbench-module-workspace"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "ability_workspace_host" },
+  { node = "tags_workspace_host" },
+  { node = "perception_workspace_host" },
+  { node = "render_workspace_host" },
+  { node = "hud_workspace_host" },
+]
+
+[nodes.ability_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchAbilityWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_workspace_body" }]
+
+[nodes.ability_workspace_body]
+component = "WorkbenchAbilityWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.tags_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchTagsWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_workspace_body" }]
+
+[nodes.tags_workspace_body]
+component = "WorkbenchTagsWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.perception_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchPerceptionWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_workspace_body" }]
+
+[nodes.perception_workspace_body]
+component = "WorkbenchPerceptionWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.render_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchRenderWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_workspace_body" }]
+
+[nodes.render_workspace_body]
+component = "WorkbenchRenderWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.hud_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchHudWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "hud_workspace_body" }]
+
+[nodes.hud_workspace_body]
+component = "WorkbenchHudWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

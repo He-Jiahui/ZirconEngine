@@ -1,0 +1,127 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui"
+version = 2
+display_name = "Workbench Module Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui#WorkbenchAdditionalModuleWorkspaces",
+  "res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace",
+  "res://ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace",
+  "res://ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui#WorkbenchEffectWorkspace",
+  "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui#WorkbenchMaterialWorkspace",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace",
+]
+styles = []
+
+[components.WorkbenchModuleWorkspace]
+root = "module_workspace"
+default_classes = ["workbench-module-workspace"]
+
+[nodes.module_workspace]
+component = "Overlay"
+control_id = "WorkbenchModuleWorkspace"
+classes = ["workbench-module-workspace", "workbench-panel"]
+props = { visibility = "visible" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "effect_workspace_host" },
+  { node = "material_workspace_host" },
+  { node = "behavior_workspace_host" },
+  { node = "assets_workspace_host" },
+  { node = "vfx_workspace_host" },
+  { node = "additional_module_workspaces" },
+  { node = "extension_module_workspaces" },
+  { node = "generated_bottom_drawer" },
+]
+
+[nodes.additional_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchAdditionalModuleWorkspacesHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "additional_module_workspaces_body" }]
+
+[nodes.additional_module_workspaces_body]
+component = "WorkbenchAdditionalModuleWorkspaces"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.extension_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchExtensionModuleWorkspacesHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "extension_module_workspaces_body" }]
+
+[nodes.extension_module_workspaces_body]
+component = "WorkbenchExtensionModuleWorkspaces"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.generated_bottom_drawer]
+component = "Overlay"
+control_id = "WorkbenchGeneratedBottomDrawerHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_drawer_body" }]
+
+[nodes.generated_bottom_drawer_body]
+component = "WorkbenchGeneratedBottomDrawer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.effect_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchEffectWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_workspace_body" }]
+
+[nodes.effect_workspace_body]
+component = "WorkbenchEffectWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.material_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchMaterialWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_workspace_body" }]
+
+[nodes.material_workspace_body]
+component = "WorkbenchMaterialWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchBehaviorWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_workspace_body" }]
+
+[nodes.behavior_workspace_body]
+component = "WorkbenchBehaviorWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.vfx_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchVfxWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_workspace_body" }]
+
+[nodes.vfx_workspace_body]
+component = "WorkbenchVfxWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.assets_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchAssetsWorkspaceHost"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "assets_workspace_body" }]
+
+[nodes.assets_workspace_body]
+component = "WorkbenchAssetsWorkspace"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

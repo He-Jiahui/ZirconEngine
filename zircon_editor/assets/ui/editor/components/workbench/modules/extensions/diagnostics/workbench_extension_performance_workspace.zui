@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui"
+version = 2
+display_name = "Workbench Extension Performance Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionPerformanceWorkspace]
+root = "performance_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.performance_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPerformanceWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_rail_gap" }, { node = "performance_left" }, { node = "performance_center" }, { node = "performance_right" }]
+
+[nodes.performance_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionPerformanceRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.performance_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPerformanceLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_title" }, { node = "performance_frame_capture_tab" }, { node = "performance_cpu_lane_tab" }, { node = "performance_gpu_lane_tab" }, { node = "performance_capture_row" }, { node = "performance_cpu_game_thread_row" }, { node = "performance_gpu_lighting_row" }]
+
+[nodes.performance_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPerformanceTitle"
+props = { text = "Performance" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.performance_frame_capture_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPerformanceFrameCaptureTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Frame Capture", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceFrameCaptureTab", event = "Click", route = "workbench.extension.performance.frame_capture" }]
+
+[nodes.performance_cpu_lane_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPerformanceCpuLaneTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "CPU Lane", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceCpuLaneTab", event = "Click", route = "workbench.extension.performance.cpu_lane" }]
+
+[nodes.performance_gpu_lane_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPerformanceGpuLaneTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "GPU Lane", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceGpuLaneTab", event = "Click", route = "workbench.extension.performance.gpu_lane" }]
+
+[nodes.performance_capture_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPerformanceCaptureRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Capture_1234", icon = "info", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceCaptureRow", event = "Click", route = "workbench.extension.performance.capture.1234" }]
+
+[nodes.performance_cpu_game_thread_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPerformanceCpuGameThreadRow"
+classes = ["workbench-list-row"]
+props = { text = "CPU_GameThread", icon = "cpu", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceCpuGameThreadRow", event = "Click", route = "workbench.extension.performance.cpu.game_thread" }]
+
+[nodes.performance_gpu_lighting_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPerformanceGpuLightingRow"
+classes = ["workbench-list-row"]
+props = { text = "GPU_Lighting", icon = "light", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceGpuLightingRow", event = "Click", route = "workbench.extension.performance.gpu.lighting" }]
+
+[nodes.performance_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPerformanceCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_center_header" }, { node = "performance_timeline" }, { node = "performance_output" }]
+
+[nodes.performance_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPerformanceCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "performance_center_title" }, { node = "performance_header_fill" }, { node = "performance_capture_frame_button" }, { node = "performance_filter_samples_button" }]
+
+[nodes.performance_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPerformanceCenterTitle"
+props = { text = "Performance Timeline" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.performance_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionPerformanceHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.performance_capture_frame_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPerformanceCaptureFrameButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Capture Frame", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 120.0, preferred = 120.0, max = 134.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceCaptureFrame", event = "Click", route = "workbench.extension.performance.capture_frame" }]
+
+[nodes.performance_filter_samples_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPerformanceFilterSamplesButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Filter Samples", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 134.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceFilterSamples", event = "Click", route = "workbench.extension.performance.filter_samples" }]
+
+[nodes.performance_timeline]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPerformanceTimeline"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_game_thread_table_row" }, { node = "performance_render_thread_table_row" }, { node = "performance_gpu_lighting_table_row" }, { node = "performance_texture_upload_table_row" }]
+
+[nodes.performance_game_thread_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPerformanceGameThreadTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Game Thread", value_text = "7.1 ms   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceGameThreadTableRow", event = "Click", route = "workbench.extension.performance.sample.game_thread" }]
+
+[nodes.performance_render_thread_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPerformanceRenderThreadTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Render Thread", value_text = "4.8 ms   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceRenderThreadTableRow", event = "Click", route = "workbench.extension.performance.sample.render_thread" }]
+
+[nodes.performance_gpu_lighting_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPerformanceGpuLightingTableRow"
+classes = ["workbench-table-row"]
+props = { text = "GPU Lighting", value_text = "3.2 ms   Hotspot" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceGpuLightingTableRow", event = "Click", route = "workbench.extension.performance.sample.gpu_lighting" }]
+
+[nodes.performance_texture_upload_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPerformanceTextureUploadTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Texture Upload", value_text = "1.4 ms   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceTextureUploadTableRow", event = "Click", route = "workbench.extension.performance.sample.texture_upload" }]
+
+[nodes.performance_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPerformanceOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Performance Output", value_text = "Frame 1234   CPU 7.1 ms   GPU 9.2 ms   Spikes 3" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PerformanceOutput", event = "Click", route = "workbench.extension.performance.output" }]
+
+[nodes.performance_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPerformanceRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "performance_details_title" }, { node = "performance_capture_dropdown" }, { node = "performance_lane_dropdown" }, { node = "performance_threshold_field" }]
+
+[nodes.performance_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPerformanceDetailsTitle"
+props = { text = "Capture Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.performance_capture_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPerformanceCaptureDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Frame 1234", value = "Frame 1234", options = ["Frame 1234", "Frame 1233", "Frame 1228", "Live"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PerformanceCaptureEdit", event = "Change", route = "workbench.extension.performance.capture.edit" },
+  { id = "WorkbenchExtension/PerformanceCaptureCommit", event = "Submit", route = "workbench.extension.performance.capture.commit" },
+]
+
+[nodes.performance_lane_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPerformanceLaneDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "GPU", value = "GPU", options = ["All", "CPU", "GPU", "Memory"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PerformanceLaneEdit", event = "Change", route = "workbench.extension.performance.lane.edit" },
+  { id = "WorkbenchExtension/PerformanceLaneCommit", event = "Submit", route = "workbench.extension.performance.lane.commit" },
+]
+
+[nodes.performance_threshold_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionPerformanceThresholdField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "Threshold", value = "1.0 ms" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PerformanceThresholdEdit", event = "Change", route = "workbench.extension.performance.threshold.edit" },
+  { id = "WorkbenchExtension/PerformanceThresholdCommit", event = "Submit", route = "workbench.extension.performance.threshold.commit" },
+]

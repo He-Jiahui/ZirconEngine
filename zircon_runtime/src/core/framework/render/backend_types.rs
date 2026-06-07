@@ -2,8 +2,8 @@ use crate::core::math::UVec2;
 
 use super::{
     AdvancedProviderAvailability, AdvancedProviderReport, AntiAliasFallbackReport,
-    RenderFrameExtract, RenderPostProcessEffectStackReport,
-    RenderVirtualGeometryClusterSelectionInputSource,
+    RenderCameraTargetKind, RenderFrameExtract, RenderPostProcessEffectStackReport,
+    RenderShadowExecutionReport, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings,
@@ -97,6 +97,453 @@ impl FrameHistoryStatus {
             invalidation_reason,
             target_size,
             render_size,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHistoryCopyReport {
+    pub history_target_present: bool,
+    pub debug_marker_emitted: bool,
+    pub target_size: UVec2,
+    pub requested_copy_count: usize,
+    pub copied_count: usize,
+    pub scene_color_copied: bool,
+    pub global_illumination_copied: bool,
+    pub ambient_occlusion_copied: bool,
+    pub screen_space_reflection_copied: bool,
+}
+
+impl RenderHistoryCopyReport {
+    pub fn new(
+        history_target_present: bool,
+        target_size: UVec2,
+        requested_copy_count: usize,
+        scene_color_copied: bool,
+        global_illumination_copied: bool,
+        ambient_occlusion_copied: bool,
+        screen_space_reflection_copied: bool,
+    ) -> Self {
+        Self {
+            history_target_present,
+            debug_marker_emitted: history_target_present && requested_copy_count > 0,
+            target_size,
+            requested_copy_count,
+            copied_count: scene_color_copied as usize
+                + global_illumination_copied as usize
+                + ambient_occlusion_copied as usize
+                + screen_space_reflection_copied as usize,
+            scene_color_copied,
+            global_illumination_copied,
+            ambient_occlusion_copied,
+            screen_space_reflection_copied,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderCameraTargetResolutionReport {
+    pub target_kind: RenderCameraTargetKind,
+    pub primary_target_size: UVec2,
+    pub resolved_target_size: UVec2,
+    pub effective_view_size: UVec2,
+    pub effective_render_size: UVec2,
+}
+
+impl RenderCameraTargetResolutionReport {
+    pub const fn new(
+        target_kind: RenderCameraTargetKind,
+        primary_target_size: UVec2,
+        resolved_target_size: UVec2,
+        effective_view_size: UVec2,
+        effective_render_size: UVec2,
+    ) -> Self {
+        Self {
+            target_kind,
+            primary_target_size,
+            resolved_target_size,
+            effective_view_size,
+            effective_render_size,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderCameraTargetWritebackStatus {
+    #[default]
+    NotRequested,
+    PendingTargetDescriptor,
+    ReadyForCopy,
+    ReadyForConversion,
+    SkippedDirectImport,
+    Copied,
+    Converted,
+    BlockedFormatMismatch,
+}
+
+impl RenderCameraTargetWritebackStatus {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NotRequested => "not_requested",
+            Self::PendingTargetDescriptor => "pending_target_descriptor",
+            Self::ReadyForCopy => "ready_for_copy",
+            Self::ReadyForConversion => "ready_for_conversion",
+            Self::SkippedDirectImport => "skipped_direct_import",
+            Self::Copied => "copied",
+            Self::Converted => "converted",
+            Self::BlockedFormatMismatch => "blocked_format_mismatch",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderCameraTargetWritebackReport {
+    pub target_kind: RenderCameraTargetKind,
+    pub status: RenderCameraTargetWritebackStatus,
+    pub debug_marker_emitted: bool,
+    pub conversion_debug_marker_emitted: bool,
+    pub target_size: UVec2,
+    pub copied_count: usize,
+    pub converted_count: usize,
+}
+
+impl RenderCameraTargetWritebackReport {
+    pub const fn new(
+        target_kind: RenderCameraTargetKind,
+        status: RenderCameraTargetWritebackStatus,
+        debug_marker_emitted: bool,
+        conversion_debug_marker_emitted: bool,
+        target_size: UVec2,
+        copied_count: usize,
+        converted_count: usize,
+    ) -> Self {
+        Self {
+            target_kind,
+            status,
+            debug_marker_emitted,
+            conversion_debug_marker_emitted,
+            target_size,
+            copied_count,
+            converted_count,
+        }
+    }
+
+    pub fn not_requested(target_kind: RenderCameraTargetKind) -> Self {
+        Self::new(
+            target_kind,
+            RenderCameraTargetWritebackStatus::NotRequested,
+            false,
+            false,
+            UVec2::new(0, 0),
+            0,
+            0,
+        )
+    }
+
+    pub const fn pending_target_descriptor(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::PendingTargetDescriptor,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+
+    pub const fn ready_for_copy(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::ReadyForCopy,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+
+    pub const fn ready_for_conversion(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::ReadyForConversion,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+
+    pub const fn skipped_direct_import(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::SkippedDirectImport,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+
+    pub const fn copied(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::Copied,
+            true,
+            false,
+            target_size,
+            1,
+            0,
+        )
+    }
+
+    pub const fn converted(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::Converted,
+            false,
+            true,
+            target_size,
+            0,
+            1,
+        )
+    }
+
+    pub const fn blocked_format_mismatch(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::BlockedFormatMismatch,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderCameraTargetGraphImportStatus {
+    #[default]
+    NotRequested,
+    PendingTargetDescriptor,
+    ReadyForDirectImport,
+    DirectImported,
+    RequiresConversionWriteback,
+    BlockedFormatMismatch,
+}
+
+impl RenderCameraTargetGraphImportStatus {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NotRequested => "not_requested",
+            Self::PendingTargetDescriptor => "pending_target_descriptor",
+            Self::ReadyForDirectImport => "ready_for_direct_import",
+            Self::DirectImported => "direct_imported",
+            Self::RequiresConversionWriteback => "requires_conversion_writeback",
+            Self::BlockedFormatMismatch => "blocked_format_mismatch",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderCameraTargetGraphImportReport {
+    pub target_kind: RenderCameraTargetKind,
+    pub status: RenderCameraTargetGraphImportStatus,
+    pub target_size: UVec2,
+    pub direct_import_count: usize,
+    pub conversion_writeback_count: usize,
+    pub blocked_count: usize,
+}
+
+impl RenderCameraTargetGraphImportReport {
+    pub const fn new(
+        target_kind: RenderCameraTargetKind,
+        status: RenderCameraTargetGraphImportStatus,
+        target_size: UVec2,
+        direct_import_count: usize,
+        conversion_writeback_count: usize,
+        blocked_count: usize,
+    ) -> Self {
+        Self {
+            target_kind,
+            status,
+            target_size,
+            direct_import_count,
+            conversion_writeback_count,
+            blocked_count,
+        }
+    }
+
+    pub fn not_requested(target_kind: RenderCameraTargetKind) -> Self {
+        Self::new(
+            target_kind,
+            RenderCameraTargetGraphImportStatus::NotRequested,
+            UVec2::new(0, 0),
+            0,
+            0,
+            0,
+        )
+    }
+
+    pub const fn pending_target_descriptor(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::PendingTargetDescriptor,
+            target_size,
+            0,
+            0,
+            0,
+        )
+    }
+
+    pub const fn ready_for_direct_import(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::ReadyForDirectImport,
+            target_size,
+            0,
+            0,
+            0,
+        )
+    }
+
+    pub const fn direct_imported(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::DirectImported,
+            target_size,
+            1,
+            0,
+            0,
+        )
+    }
+
+    pub const fn requires_conversion_writeback(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::RequiresConversionWriteback,
+            target_size,
+            0,
+            1,
+            0,
+        )
+    }
+
+    pub const fn blocked_format_mismatch(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::BlockedFormatMismatch,
+            target_size,
+            0,
+            0,
+            1,
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionResourceReport {
+    pub texture_view_count: usize,
+    pub external_texture_view_count: usize,
+    pub owned_texture_count: usize,
+    pub buffer_count: usize,
+    pub total_bound_resource_count: usize,
+}
+
+impl RenderGraphExecutionResourceReport {
+    pub const fn new(
+        texture_view_count: usize,
+        external_texture_view_count: usize,
+        owned_texture_count: usize,
+        buffer_count: usize,
+    ) -> Self {
+        Self {
+            texture_view_count,
+            external_texture_view_count,
+            owned_texture_count,
+            buffer_count,
+            total_bound_resource_count: texture_view_count + buffer_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionCoverageReport {
+    pub planned_live_pass_count: usize,
+    pub executed_pass_count: usize,
+    pub matched_planned_pass_count: usize,
+    pub missing_planned_pass_count: usize,
+    pub unexpected_executed_pass_count: usize,
+    pub duplicate_executed_pass_count: usize,
+}
+
+impl RenderGraphExecutionCoverageReport {
+    pub const fn new(
+        planned_live_pass_count: usize,
+        executed_pass_count: usize,
+        matched_planned_pass_count: usize,
+        missing_planned_pass_count: usize,
+        unexpected_executed_pass_count: usize,
+        duplicate_executed_pass_count: usize,
+    ) -> Self {
+        Self {
+            planned_live_pass_count,
+            executed_pass_count,
+            matched_planned_pass_count,
+            missing_planned_pass_count,
+            unexpected_executed_pass_count,
+            duplicate_executed_pass_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphStageExecutionReport {
+    pub staged_pass_count: usize,
+    pub unstaged_pass_count: usize,
+    pub unique_stage_count: usize,
+    pub stage_transition_count: usize,
+    pub stage_order_violation_count: usize,
+}
+
+impl RenderGraphStageExecutionReport {
+    pub const fn new(
+        staged_pass_count: usize,
+        unstaged_pass_count: usize,
+        unique_stage_count: usize,
+        stage_transition_count: usize,
+        stage_order_violation_count: usize,
+    ) -> Self {
+        Self {
+            staged_pass_count,
+            unstaged_pass_count,
+            unique_stage_count,
+            stage_transition_count,
+            stage_order_violation_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum MotionVectorCameraStatus {
+    #[default]
+    NotRequested,
+    MissingPreviousCamera,
+    CameraCutOrInvalid,
+    Ready,
+}
+
+impl MotionVectorCameraStatus {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NotRequested => "not_requested",
+            Self::MissingPreviousCamera => "missing_previous_camera",
+            Self::CameraCutOrInvalid => "camera_cut_or_invalid",
+            Self::Ready => "ready",
         }
     }
 }
@@ -552,6 +999,13 @@ pub struct RenderStats {
     pub last_frame_render_size: Option<UVec2>,
     pub last_frame_history: Option<FrameHistoryHandle>,
     pub last_frame_history_status: FrameHistoryStatus,
+    pub last_frame_history_copy_report: RenderHistoryCopyReport,
+    pub last_camera_target_resolution: RenderCameraTargetResolutionReport,
+    pub last_camera_target_graph_import: RenderCameraTargetGraphImportReport,
+    pub last_camera_target_writeback: RenderCameraTargetWritebackReport,
+    pub last_capture_report: super::RenderCaptureReport,
+    pub last_scene_camera_scheduled_count: usize,
+    pub last_scene_camera_order_ambiguity_count: usize,
     pub last_quality_profile: Option<String>,
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
@@ -582,6 +1036,9 @@ pub struct RenderStats {
     pub last_graph_compute_missing_dispatch_count: usize,
     pub last_graph_compute_workload_mismatch_count: usize,
     pub last_graph_compute_unexpected_dispatch_count: usize,
+    pub last_graph_execution_resource_report: RenderGraphExecutionResourceReport,
+    pub last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport,
+    pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
     pub last_post_process_graph_node_count: usize,
     pub last_post_process_graph_skipped_node_count: usize,
     pub last_post_process_final_composite_node: Option<String>,
@@ -593,6 +1050,11 @@ pub struct RenderStats {
     pub last_post_process_lut_2d_strip_ready_count: usize,
     pub last_post_process_lut_3d_request_count: usize,
     pub last_post_process_lut_unsupported_shape_count: usize,
+    pub last_motion_vector_camera_status: MotionVectorCameraStatus,
+    pub last_motion_vector_previous_object_history_count: usize,
+    pub last_motion_vector_current_object_history_count: usize,
+    pub last_motion_vector_matched_object_history_count: usize,
+    pub last_motion_vector_missing_object_history_count: usize,
     pub last_anti_alias_fallback: AntiAliasFallbackReport,
     pub last_graph_requested_msaa_sample_count: u32,
     pub last_graph_effective_msaa_sample_count: u32,
@@ -601,6 +1063,7 @@ pub struct RenderStats {
     pub last_hybrid_gi_graph_executed_pass_count: usize,
     pub last_particle_graph_executed_pass_count: usize,
     pub last_shadow_graph_executed_pass_count: usize,
+    pub last_shadow_execution_report: RenderShadowExecutionReport,
     pub last_transparent_graph_executed_pass_count: usize,
     pub last_particle_gpu_alive_count: usize,
     pub last_particle_gpu_spawned_total: usize,
@@ -625,9 +1088,13 @@ pub struct RenderStats {
     pub last_mesh_alpha_mask_draw_count: usize,
     pub last_mesh_transparent_draw_count: usize,
     pub last_mesh_early_z_draw_count: usize,
+    pub last_mesh_shadow_caster_draw_count: usize,
+    pub last_mesh_alpha_mask_shadow_caster_draw_count: usize,
     pub last_mesh_prepared_geometry_draw_count: usize,
     pub last_mesh_dynamic_geometry_draw_count: usize,
     pub last_mesh_indirect_draw_count: usize,
+    pub last_mesh_previous_motion_vector_transform_draw_count: usize,
+    pub last_mesh_missing_motion_vector_transform_draw_count: usize,
     pub last_mesh_static_batch_candidate_group_count: usize,
     pub last_mesh_static_batch_candidate_draw_count: usize,
     pub last_mesh_dynamic_batch_candidate_group_count: usize,
@@ -735,31 +1202,83 @@ pub struct RenderStats {
     pub last_solari_runtime_report: SolariRuntimeReport,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CapturedFrame {
-    pub width: u32,
-    pub height: u32,
-    pub rgba: Vec<u8>,
-    pub generation: u64,
-}
-
-impl CapturedFrame {
-    pub fn new(width: u32, height: u32, rgba: Vec<u8>, generation: u64) -> Self {
-        Self {
-            width,
-            height,
-            rgba,
-            generation,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::core::math::UVec2;
+
     use super::{
-        RenderCapabilityClass, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-        RenderCapabilitySummary,
+        RenderCameraTargetWritebackReport, RenderCapabilityClass, RenderCapabilityKind,
+        RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+        RenderGraphExecutionCoverageReport, RenderGraphStageExecutionReport,
+        RenderHistoryCopyReport,
     };
+
+    #[test]
+    fn history_copy_report_counts_copied_slots_from_slot_flags() {
+        let report =
+            RenderHistoryCopyReport::new(true, UVec2::new(960, 540), 4, true, true, false, true);
+
+        assert!(report.history_target_present);
+        assert!(report.debug_marker_emitted);
+        assert_eq!(report.target_size, UVec2::new(960, 540));
+        assert_eq!(report.requested_copy_count, 4);
+        assert_eq!(report.copied_count, 3);
+
+        let missing_target_report = RenderHistoryCopyReport::new(
+            false,
+            UVec2::new(960, 540),
+            1,
+            false,
+            false,
+            false,
+            false,
+        );
+        assert!(!missing_target_report.debug_marker_emitted);
+    }
+
+    #[test]
+    fn camera_target_writeback_report_separates_copy_and_conversion_debug_markers() {
+        let size = UVec2::new(72, 40);
+        let copied = RenderCameraTargetWritebackReport::copied(size);
+        let ready = RenderCameraTargetWritebackReport::ready_for_copy(size);
+        let converted = RenderCameraTargetWritebackReport::converted(size);
+        let blocked = RenderCameraTargetWritebackReport::blocked_format_mismatch(size);
+
+        assert!(copied.debug_marker_emitted);
+        assert!(!copied.conversion_debug_marker_emitted);
+        assert_eq!(copied.copied_count, 1);
+        assert_eq!(converted.converted_count, 1);
+        assert_eq!(converted.copied_count, 0);
+        assert!(!converted.debug_marker_emitted);
+        assert!(converted.conversion_debug_marker_emitted);
+        assert!(!ready.debug_marker_emitted);
+        assert!(!ready.conversion_debug_marker_emitted);
+        assert!(!blocked.debug_marker_emitted);
+        assert!(!blocked.conversion_debug_marker_emitted);
+    }
+
+    #[test]
+    fn graph_stage_execution_report_preserves_neutral_counts() {
+        let report = RenderGraphStageExecutionReport::new(8, 2, 5, 4, 1);
+
+        assert_eq!(report.staged_pass_count, 8);
+        assert_eq!(report.unstaged_pass_count, 2);
+        assert_eq!(report.unique_stage_count, 5);
+        assert_eq!(report.stage_transition_count, 4);
+        assert_eq!(report.stage_order_violation_count, 1);
+    }
+
+    #[test]
+    fn graph_execution_coverage_report_preserves_neutral_counts() {
+        let report = RenderGraphExecutionCoverageReport::new(14, 15, 13, 1, 2, 1);
+
+        assert_eq!(report.planned_live_pass_count, 14);
+        assert_eq!(report.executed_pass_count, 15);
+        assert_eq!(report.matched_planned_pass_count, 13);
+        assert_eq!(report.missing_planned_pass_count, 1);
+        assert_eq!(report.unexpected_executed_pass_count, 2);
+        assert_eq!(report.duplicate_executed_pass_count, 1);
+    }
 
     #[test]
     fn capability_class_report_splits_default_advanced_and_experimental_requirements() {

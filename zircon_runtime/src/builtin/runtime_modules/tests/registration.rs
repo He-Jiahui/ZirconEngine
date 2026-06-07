@@ -189,3 +189,25 @@ fn runtime_profile_manifest_bootstrap_reports_manifest_optional_provider_availab
         RuntimePluginId::Animation
     ));
 }
+
+#[test]
+fn runtime_module_assembly_keeps_registration_input_aggregation_in_child_owner() {
+    let assembly_source = include_str!("../assembly.rs");
+    let registration_inputs_source = include_str!("../assembly/registration_inputs.rs");
+    let target_modules_source = include_str!("../assembly/target_modules.rs");
+
+    assert!(assembly_source.contains("mod registration_inputs;"));
+    assert!(assembly_source.contains("mod target_modules;"));
+    assert!(registration_inputs_source
+        .contains("pub(super) fn registration_inputs_for_plugin_and_feature_reports"));
+    assert!(target_modules_source
+        .contains("pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest"));
+    assert!(target_modules_source.contains("RuntimeRequiredPluginMissing"));
+    assert!(target_modules_source.contains("module_for_plugin"));
+    assert!(!assembly_source.contains("asset_importers_from_extension_registries"));
+    assert!(!assembly_source.contains("RuntimeExtensionRegistry"));
+    assert!(!assembly_source.contains(".extensions"));
+    assert!(!assembly_source.contains("manifest.enabled_for_target"));
+    assert!(!assembly_source.contains("module_for_plugin"));
+    assert!(!assembly_source.contains("RuntimeRequiredPluginMissing"));
+}

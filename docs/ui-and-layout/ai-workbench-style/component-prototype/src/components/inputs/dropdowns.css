@@ -1,0 +1,34 @@
+.zr-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: space-between;
+  min-width: 98px;
+  padding: 0 9px 0 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.zr-select:hover {
+  background: linear-gradient(180deg, #22282d, #171c20);
+  border-color: #3a444b;
+}
+
+.zr-select .zr-icon:first-child {
+  width: 16px;
+  height: 16px;
+}
+
+.zr-select-swatch {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #1aa7b3;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.zr-select .zr-icon:last-child {
+  width: 14px;
+  height: 14px;
+}

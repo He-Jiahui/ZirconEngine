@@ -1,8 +1,52 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
-use crate::ui::layout::UiFrame;
+use crate::ui::layout::{
+    UiAlignment2D, UiCanvasSlotPlacement, UiFrame, UiGridSlotPlacement, UiLinearSlotSizing,
+    UiMargin, UiSlot, UiSlotKind,
+};
 use crate::ui::tree::{UiInputPolicy, UiVisibility};
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiArrangedSlotSummary {
+    pub parent_id: UiNodeId,
+    pub child_id: UiNodeId,
+    pub kind: UiSlotKind,
+    pub padding: UiMargin,
+    pub alignment: UiAlignment2D,
+    pub linear_sizing: Option<UiLinearSlotSizing>,
+    pub canvas_placement: Option<UiCanvasSlotPlacement>,
+    pub grid_placement: Option<UiGridSlotPlacement>,
+    pub order: i32,
+    pub z_order: i32,
+    pub dirty_revision: u64,
+}
+
+impl From<&UiSlot> for UiArrangedSlotSummary {
+    fn from(slot: &UiSlot) -> Self {
+        Self {
+            parent_id: slot.parent_id,
+            child_id: slot.child_id,
+            kind: slot.kind,
+            padding: slot.padding,
+            alignment: slot.alignment,
+            linear_sizing: slot.linear_sizing,
+            canvas_placement: slot.canvas_placement,
+            grid_placement: slot.grid_placement,
+            order: slot.order,
+            z_order: slot.z_order,
+            dirty_revision: slot.dirty_revision,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiCanvasLayerGroup {
+    pub parent_id: UiNodeId,
+    pub layer_index: u32,
+    pub z_order: i32,
+    pub child_ids: Vec<UiNodeId>,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiArrangedNode {
@@ -22,6 +66,8 @@ pub struct UiArrangedNode {
     pub focusable: bool,
     pub clip_to_bounds: bool,
     pub control_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slot: Option<UiArrangedSlotSummary>,
 }
 
 impl UiArrangedNode {
@@ -52,6 +98,8 @@ pub struct UiArrangedTree {
     pub roots: Vec<UiNodeId>,
     pub nodes: Vec<UiArrangedNode>,
     pub draw_order: Vec<UiNodeId>,
+    #[serde(default)]
+    pub canvas_layers: Vec<UiCanvasLayerGroup>,
 }
 
 impl UiArrangedTree {

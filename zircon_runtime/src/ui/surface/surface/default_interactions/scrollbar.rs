@@ -11,7 +11,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::binding::{binding_update_report, runtime_state_update_with_source_kind};
 use crate::ui::surface::UiSurface;
-use crate::ui::tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeScrollExt};
+use crate::ui::tree::UiRuntimeTreeScrollExt;
 
 use super::widget_behavior;
 

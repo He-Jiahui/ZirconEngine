@@ -1,0 +1,6 @@
+.zr-showcase .zr-control-grid,
+.zr-showcase .zr-field-stack,
+.zr-showcase .zr-check-stack,
+.zr-showcase .zr-icon-grid {
+  gap: 7px;
+}

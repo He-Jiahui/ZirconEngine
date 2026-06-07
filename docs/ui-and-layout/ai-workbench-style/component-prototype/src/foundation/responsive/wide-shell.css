@@ -1,0 +1,19 @@
+@media (max-width: 1360px) {
+  :root {
+    --rail-w: 60px;
+    --left-w: 288px;
+    --right-w: 352px;
+    --showcase-h: 390px;
+  }
+
+  .zr-topbar {
+    grid-template-columns: auto minmax(260px, 1fr) auto;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+
+  .zr-topbar-group,
+  .zr-topbar-tools {
+    gap: 8px;
+  }
+}

@@ -8,6 +8,8 @@ pub struct NetDiagnostics {
     pub mode: NetRuntimeMode,
     pub open_udp_sockets: usize,
     pub open_tcp_listeners: usize,
+    pub open_http_listeners: usize,
+    pub open_websocket_listeners: usize,
     pub open_tcp_connections: usize,
     pub open_http_routes: usize,
     pub open_websocket_connections: usize,

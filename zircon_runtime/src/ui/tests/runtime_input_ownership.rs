@@ -1,7 +1,6 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
-    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::dispatch::{
     UiAnalogInputEvent, UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase, UiDispatchReply,

@@ -1,6 +1,7 @@
 use crate::core::framework::render::ProjectionMode;
 use crate::core::math::{view_matrix, Mat4, Real, RenderMat4, RenderVec3};
 
+use crate::graphics::scene::scene_renderer::post_process::MotionVectorCameraParams;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::fallback::{render_mat4_or, render_vec3_or};
@@ -62,13 +63,44 @@ impl SceneUniform {
             )
         };
 
+        let view_proj = projection * view;
+        let (previous_view_proj, motion_params) =
+            previous_motion_view_projection(frame, camera, view_proj);
+
         Self {
-            view_proj: render_mat4_or(projection * view, RenderMat4::IDENTITY).to_cols_array_2d(),
+            view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
+            inverse_view_proj: render_mat4_or(view_proj.inverse(), RenderMat4::IDENTITY)
+                .to_cols_array_2d(),
             light_dir,
             light_color,
             ambient_color,
+            previous_view_proj,
+            motion_params,
         }
     }
+}
+
+fn previous_motion_view_projection(
+    frame: &ViewportRenderFrame,
+    camera: &crate::core::framework::render::ViewportCameraSnapshot,
+    fallback_view_proj: Mat4,
+) -> ([[f32; 4]; 4], [f32; 4]) {
+    let Some(previous_camera) = frame.previous_motion_vector_camera() else {
+        return (
+            render_mat4_or(fallback_view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
+            [0.0, 0.0, 0.0, 0.0],
+        );
+    };
+    let params =
+        MotionVectorCameraParams::from_cameras(frame.viewport_size, camera, previous_camera, true);
+    if !params.is_enabled() {
+        return (
+            render_mat4_or(fallback_view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
+            [0.0, 0.0, 0.0, 0.0],
+        );
+    }
+
+    (params.previous_clip_from_world(), [1.0, 0.0, 0.0, 0.0])
 }
 
 fn authored_ambient_color(
@@ -97,7 +129,7 @@ mod tests {
         RenderFrameExtract, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
         RenderWorldSnapshotHandle, ViewportCameraSnapshot,
     };
-    use crate::core::math::{UVec2, Vec3, Vec4};
+    use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::graphics::types::ViewportRenderFrame;
 
     #[test]
@@ -133,6 +165,23 @@ mod tests {
         assert_close(uniform.ambient_color[1], 0.031);
         assert_close(uniform.ambient_color[2], 0.0395);
         assert_eq!(uniform.ambient_color[3], 1.0);
+    }
+
+    #[test]
+    fn scene_uniform_appends_previous_view_projection_for_object_motion_vectors() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.transform = Transform::from_translation(Vec3::new(0.5, 0.0, 0.0));
+        let previous_camera = ViewportCameraSnapshot::default();
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
+            .with_previous_motion_vector_camera(Some(previous_camera));
+
+        let uniform = SceneUniform::from_frame(&frame, 1.0);
+
+        assert_eq!(uniform.motion_params, [1.0, 0.0, 0.0, 0.0]);
+        assert_ne!(uniform.previous_view_proj, uniform.view_proj);
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

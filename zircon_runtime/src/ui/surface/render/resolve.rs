@@ -8,9 +8,12 @@ use zircon_runtime_interface::ui::surface::{
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::UiStateFlags,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 pub(super) fn resolve_command_kind(
     style: &UiResolvedStyle,
@@ -119,29 +122,11 @@ pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) 
 pub(super) fn resolve_painter_state(
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
 ) -> UiPainterResolvedState {
     let family = resolve_painter_family(metadata);
-    let state = UiPainterState {
-        hovered: resolve_bool_attribute(metadata, "hovered").unwrap_or(false),
-        pressed: state_flags.pressed
-            || resolve_bool_attribute(metadata, "pressed").unwrap_or(false),
-        focused: resolve_bool_attribute(metadata, "focused").unwrap_or(false),
-        disabled: !state_flags.enabled
-            || resolve_bool_attribute(metadata, "disabled").unwrap_or(false),
-        checked: state_flags.checked
-            || resolve_bool_attribute(metadata, "checked")
-                .or_else(|| resolve_bool_attribute(metadata, "value"))
-                .unwrap_or(false),
-        selected: resolve_bool_attribute(metadata, "selected").unwrap_or(false),
-        open: resolve_bool_attribute(metadata, "open")
-            .or_else(|| resolve_bool_attribute(metadata, "popup_open"))
-            .unwrap_or(false),
-        dragging: resolve_bool_attribute(metadata, "dragging").unwrap_or(false),
-        drop_hovered: resolve_bool_attribute(metadata, "drop_hovered")
-            .or_else(|| resolve_bool_attribute(metadata, "active_drag_target"))
-            .unwrap_or(false),
-        loading: resolve_bool_attribute(metadata, "loading").unwrap_or(false),
-    };
+    let state = UiRenderPainterStateSource::new(metadata, state_flags, component_state)
+        .painter_state_with_value_checked();
     state.resolved_state_for_family(family)
 }
 

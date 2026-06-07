@@ -1,0 +1,34 @@
+.zr-module-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zr-module-stat {
+  min-height: 70px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background: #11171a;
+}
+
+.zr-module-stat small {
+  color: #87939a;
+}
+
+.zr-module-stat strong {
+  color: #edf5f8;
+  font-size: 18px;
+}
+
+.zr-module-action-stack {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.zr-module-action-stack .zr-button {
+  justify-content: flex-start;
+}

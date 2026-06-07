@@ -1,0 +1,85 @@
+.zr-scene-lightwash {
+  position: absolute;
+  pointer-events: none;
+}
+
+.zr-scene-lightwash.left {
+  left: -32px;
+  top: 44px;
+  width: 170px;
+  height: 146px;
+  background:
+    radial-gradient(ellipse at 38% 40%, rgba(183, 143, 118, 0.74), transparent 64%),
+    radial-gradient(ellipse at 68% 65%, rgba(198, 193, 178, 0.16), transparent 56%);
+  filter: blur(8px);
+}
+
+.zr-scene-lightwash.center {
+  left: 41%;
+  top: 98px;
+  width: 252px;
+  height: 150px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(174, 198, 211, 0.15), transparent 62%);
+  filter: blur(10px);
+}
+
+.zr-scene-lightwash.lower {
+  left: min(24%, calc(100% - 520px));
+  bottom: 0;
+  width: 520px;
+  height: 204px;
+  background: radial-gradient(ellipse at 48% 42%, rgba(8, 6, 5, 0.22), transparent 66%);
+  filter: blur(14px);
+}
+
+.zr-scene-lightwash.floor {
+  left: 49%;
+  bottom: 34px;
+  width: 184px;
+  height: 162px;
+  background:
+    radial-gradient(ellipse at 46% 32%, rgba(170, 194, 211, 0.18), transparent 48%),
+    radial-gradient(ellipse at 62% 78%, rgba(128, 98, 70, 0.09), transparent 58%);
+  filter: blur(13px);
+  pointer-events: none;
+}
+
+.zr-scene-lightwash.floor-cool {
+  left: 50%;
+  bottom: 0;
+  width: 300px;
+  height: 150px;
+  background: radial-gradient(ellipse at 50% 45%, rgba(120, 145, 160, 0.12), transparent 62%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.zr-scene-lightwash.floor-right {
+  right: 25%;
+  bottom: 10px;
+  width: 190px;
+  height: 130px;
+  background: radial-gradient(ellipse at 48% 52%, rgba(148, 96, 58, 0.14), transparent 58%);
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.zr-scene-lightwash.wall-right {
+  right: -26px;
+  top: 70px;
+  width: 168px;
+  height: 118px;
+  background: radial-gradient(ellipse at 45% 48%, rgba(130, 154, 174, 0.16), transparent 58%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.zr-scene-lightwash.rear-walkway {
+  left: 39%;
+  right: 22%;
+  top: 162px;
+  height: 38px;
+  background: linear-gradient(90deg, transparent, rgba(173, 191, 199, 0.15), transparent);
+  filter: blur(3px);
+  pointer-events: none;
+}

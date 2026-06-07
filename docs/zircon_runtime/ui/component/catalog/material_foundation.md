@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/material_components/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/material_number_field.zui
-  - zircon_editor/assets/ui/editor/material_components/material_radio_buttons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_selects.zui
-  - zircon_editor/assets/ui/editor/material_components/material_switches.zui
-  - zircon_editor/assets/ui/editor/material_components/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/material_textarea_autosize.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_number_field.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_switches.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/ui/workbench/preset/panel_preset.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
@@ -45,14 +45,14 @@ related_code:
   - zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/material_components/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/material_number_field.zui
-  - zircon_editor/assets/ui/editor/material_components/material_radio_buttons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_selects.zui
-  - zircon_editor/assets/ui/editor/material_components/material_switches.zui
-  - zircon_editor/assets/ui/editor/material_components/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/material_textarea_autosize.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_number_field.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_switches.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs

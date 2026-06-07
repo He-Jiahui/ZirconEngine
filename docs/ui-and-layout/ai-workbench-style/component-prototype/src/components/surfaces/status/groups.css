@@ -1,0 +1,16 @@
+.zr-status-left,
+.zr-status-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.zr-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zr-status-item .zr-icon {
+  color: #9aa6ab;
+}

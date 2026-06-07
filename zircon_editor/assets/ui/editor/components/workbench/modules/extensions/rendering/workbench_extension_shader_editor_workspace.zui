@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Shader Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+[components.WorkbenchExtensionShaderEditorWorkspace]
+root = "shader_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.shader_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionShaderEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_rail_gap" }, { node = "shader_left" }, { node = "shader_center" }, { node = "shader_right" }]
+
+[nodes.shader_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionShaderRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.shader_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionShaderLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_title" }, { node = "shader_source_tab" }, { node = "shader_resources_tab" }, { node = "shader_issues_tab" }, { node = "shader_source_row" }, { node = "shader_include_row" }, { node = "shader_permutation_row" }]
+
+[nodes.shader_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionShaderTitle"
+props = { text = "Shader Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.shader_source_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionShaderSourceTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Source", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorSourceTab", event = "Click", route = "workbench.extension.shader_editor.source" }]
+
+[nodes.shader_resources_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionShaderResourcesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Resources", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorResourcesTab", event = "Click", route = "workbench.extension.shader_editor.resources" }]
+
+[nodes.shader_issues_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionShaderIssuesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Issues", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorIssuesTab", event = "Click", route = "workbench.extension.shader_editor.issues" }]
+
+[nodes.shader_source_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionShaderSourceRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "lighting.wgsl", icon = "code", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorSourceRow", event = "Click", route = "workbench.extension.shader_editor.source_file" }]
+
+[nodes.shader_include_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionShaderIncludeRow"
+classes = ["workbench-list-row"]
+props = { text = "common.wgsl", icon = "file", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorIncludeRow", event = "Click", route = "workbench.extension.shader_editor.include" }]
+
+[nodes.shader_permutation_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionShaderPermutationRow"
+classes = ["workbench-list-row"]
+props = { text = "Permutation_SM5", icon = "grid", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorPermutationRow", event = "Click", route = "workbench.extension.shader_editor.permutation" }]
+
+[nodes.shader_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionShaderCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_center_header" }, { node = "shader_compile_table" }, { node = "shader_output" }]
+
+[nodes.shader_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionShaderCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "shader_center_title" }, { node = "shader_header_fill" }, { node = "shader_preview_button" }, { node = "shader_compile_button" }]
+
+[nodes.shader_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionShaderCenterTitle"
+props = { text = "Shader Compile Workspace" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.shader_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionShaderHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.shader_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionShaderPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorPreview", event = "Click", route = "workbench.extension.shader_editor.preview" }]
+
+[nodes.shader_compile_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionShaderCompileButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Compile", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 82.0, preferred = 82.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorCompile", event = "Click", route = "workbench.extension.shader_editor.compile" }]
+
+[nodes.shader_compile_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionShaderCompileTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_vertex_row" }, { node = "shader_fragment_row" }, { node = "shader_compute_row" }, { node = "shader_common_row" }]
+
+[nodes.shader_vertex_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionShaderVertexRow"
+classes = ["workbench-table-row"]
+props = { text = "Vertex", value_text = "vs_main   Camera   Ready", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorVertexRow", event = "Click", route = "workbench.extension.shader_editor.stage.vertex" }]
+
+[nodes.shader_fragment_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionShaderFragmentRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Fragment", value_text = "fs_main   GBuffer   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorFragmentRow", event = "Click", route = "workbench.extension.shader_editor.stage.fragment" }]
+
+[nodes.shader_compute_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionShaderComputeRow"
+classes = ["workbench-table-row"]
+props = { text = "Compute", value_text = "cs_tile   Lighting   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorComputeRow", event = "Click", route = "workbench.extension.shader_editor.stage.compute" }]
+
+[nodes.shader_common_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionShaderCommonRow"
+classes = ["workbench-table-row"]
+props = { text = "Include", value_text = "common   BRDF   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorCommonRow", event = "Click", route = "workbench.extension.shader_editor.include.common" }]
+
+[nodes.shader_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionShaderOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Compiler", value_text = "3 warnings   0 errors   0.31 ms" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ShaderEditorOutput", event = "Click", route = "workbench.extension.shader_editor.output" }]
+
+[nodes.shader_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionShaderRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "shader_details_title" }, { node = "shader_target_dropdown" }, { node = "shader_entry_field" }, { node = "shader_live_compile_dropdown" }]
+
+[nodes.shader_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionShaderDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.shader_target_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionShaderTargetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "wgpu", value = "wgpu", options = ["wgpu", "spirv", "metal"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ShaderEditorTargetEdit", event = "Change", route = "workbench.extension.shader_editor.target.edit" },
+  { id = "WorkbenchExtension/ShaderEditorTargetCommit", event = "Submit", route = "workbench.extension.shader_editor.target.commit" },
+]
+
+[nodes.shader_entry_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionShaderEntryField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "fs_main" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ShaderEditorEntryEdit", event = "Change", route = "workbench.extension.shader_editor.entry.edit" },
+  { id = "WorkbenchExtension/ShaderEditorEntryCommit", event = "Submit", route = "workbench.extension.shader_editor.entry.commit" },
+]
+
+[nodes.shader_live_compile_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionShaderLiveCompileDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Live Compile: On", value = "on", options = ["on", "paused", "manual"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ShaderEditorLiveCompileEdit", event = "Change", route = "workbench.extension.shader_editor.live_compile.edit" },
+  { id = "WorkbenchExtension/ShaderEditorLiveCompileCommit", event = "Submit", route = "workbench.extension.shader_editor.live_compile.commit" },
+]

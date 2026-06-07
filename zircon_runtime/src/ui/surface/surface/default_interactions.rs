@@ -10,7 +10,6 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::UiSurface;
 

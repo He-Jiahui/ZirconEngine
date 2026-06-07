@@ -35,14 +35,14 @@ The Workbench `Window` menu is the command-level entry point for Unreal-style fu
 
 The functional window entries are:
 
-- `Prefab Editor` -> `editor.prefab_editor_window` -> `Window.PrefabEditor.Open`;
-- `Material Editor` -> `editor.material_editor_window` -> `Window.MaterialEditor.Open`;
-- `UI Component Showcase` -> `editor.ui_component_showcase` -> `Window.UiComponentShowcase.Open`;
-- `Material Demo` -> `editor.material_demo_window` -> `Window.MaterialDemo.Open`;
-- `UI Asset Editor` -> `editor.ui_asset_editor_window` -> `Window.UiAssetEditor.Open`;
-- `Animation Editor` -> `editor.animation_editor_window` -> `Window.AnimationEditor.Open`;
-- `Asset Browser` -> `editor.asset_browser_window` -> `Window.AssetBrowser.Open`;
-- `Diagnostics` -> `editor.diagnostics_window` -> `Window.Diagnostics.Open`.
+- `Prefab Editor` -> `editor.prefab_editor_window` -> `window.prefab_editor.open`;
+- `Material Editor` -> `editor.material_editor_window` -> `window.material_editor.open`;
+- `UI Component Showcase` -> `editor.ui_component_showcase` -> `window.ui_component_showcase.open`;
+- `Material Demo` -> `editor.material_demo_window` -> `window.material_demo.open`;
+- `UI Asset Editor` -> `editor.ui_asset_editor_window` -> `window.ui_asset_editor.open`;
+- `Animation Editor` -> `editor.animation_editor_window` -> `window.animation_editor.open`;
+- `Asset Browser` -> `editor.asset_browser_window` -> `window.asset_browser.open`;
+- `Diagnostics` -> `editor.diagnostics_window` -> `window.diagnostics.open`.
 
 `UI Component Showcase` is intentionally in `Window` because it is now the no-argument editor front screen and uses an exclusive activity-window page. `Material Demo` remains available as a separate diagnostic/demo entry but is no longer the Welcome startup demo route. `Debug Observatory` and `Reset Layout` remain in the same menu. The View menu keeps existing drawer/document view entries for compatibility, but new feature editors should be exposed through `Window` when they represent a top-level editing unit.
 

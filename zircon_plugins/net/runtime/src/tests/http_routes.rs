@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::net::{
-    NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
-    NetHttpRouteDescriptor, NetManager, NetRequestId,
+    NetEndpoint, NetError, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
+    NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId,
 };
 
 use crate::DefaultNetManager;
@@ -31,6 +31,10 @@ fn net_runtime_dispatches_registered_http_route() {
     assert_eq!(net.diagnostics().open_http_routes, 1);
     net.unregister_http_route(route).unwrap();
     assert_eq!(net.diagnostics().open_http_routes, 0);
+    assert!(net
+        .drain_events(8)
+        .iter()
+        .any(|event| matches!(event, NetEvent::HttpRouteUnregistered { route: removed } if *removed == route)));
 }
 
 #[test]

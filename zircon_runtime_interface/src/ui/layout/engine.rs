@@ -17,6 +17,7 @@ pub enum UiLayoutEngineBackend {
 #[serde(rename_all = "snake_case")]
 pub enum UiLayoutEngineFamily {
     Free,
+    Canvas,
     Container,
     Overlay,
     Flex,
@@ -33,12 +34,17 @@ impl UiLayoutEngineFamily {
         matches!(
             self,
             Self::Free
+                | Self::Canvas
                 | Self::Container
                 | Self::Overlay
                 | Self::Scrollable
                 | Self::VirtualizedList
                 | Self::Masonry
         )
+    }
+
+    pub const fn is_taffy_owned(self) -> bool {
+        matches!(self, Self::Flex | Self::Grid | Self::Block | Self::Wrap)
     }
 }
 
@@ -63,10 +69,12 @@ impl UiLayoutEngineCapability {
             backend: UiLayoutEngineBackend::LegacyZircon,
             supported_families: vec![
                 UiLayoutEngineFamily::Free,
+                UiLayoutEngineFamily::Canvas,
                 UiLayoutEngineFamily::Container,
                 UiLayoutEngineFamily::Overlay,
                 UiLayoutEngineFamily::Flex,
                 UiLayoutEngineFamily::Grid,
+                UiLayoutEngineFamily::Block,
                 UiLayoutEngineFamily::Scrollable,
                 UiLayoutEngineFamily::Wrap,
                 UiLayoutEngineFamily::Masonry,
@@ -77,14 +85,14 @@ impl UiLayoutEngineCapability {
         }
     }
 
-    pub fn taffy_flex_grid_block() -> Self {
+    pub fn taffy_flex_grid_wrap_block() -> Self {
         Self {
             backend: UiLayoutEngineBackend::Taffy,
             supported_families: vec![
                 UiLayoutEngineFamily::Flex,
                 UiLayoutEngineFamily::Grid,
-                UiLayoutEngineFamily::Block,
                 UiLayoutEngineFamily::Wrap,
+                UiLayoutEngineFamily::Block,
             ],
             supports_content_measure: true,
             supports_dpi_scaling: true,
@@ -126,9 +134,11 @@ impl UiLayoutEngineRequest {
     pub const fn from_container_kind(container: UiContainerKind) -> Self {
         let family = match container {
             UiContainerKind::Free => UiLayoutEngineFamily::Free,
+            UiContainerKind::Canvas => UiLayoutEngineFamily::Canvas,
             UiContainerKind::Container | UiContainerKind::Space | UiContainerKind::SizeBox(_) => {
                 UiLayoutEngineFamily::Container
             }
+            UiContainerKind::BlockBox => UiLayoutEngineFamily::Block,
             UiContainerKind::Overlay => UiLayoutEngineFamily::Overlay,
             UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
                 UiLayoutEngineFamily::Flex

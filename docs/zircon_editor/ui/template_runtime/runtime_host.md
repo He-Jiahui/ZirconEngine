@@ -9,6 +9,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/host_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
+  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
@@ -46,14 +47,14 @@ related_code:
   - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
   - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/showcase_command_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/showcase_bottom_log.zui
-  - zircon_editor/assets/ui/editor/components/showcase_category_nav.zui
-  - zircon_editor/assets/ui/editor/components/showcase_state_panel.zui
-  - zircon_editor/assets/ui/editor/components/showcase_visual_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_input_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_selection_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_collections_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_state_panel.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 implementation_files:
@@ -66,6 +67,7 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/host_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
+  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
@@ -103,14 +105,14 @@ implementation_files:
   - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
   - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/showcase_command_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/showcase_bottom_log.zui
-  - zircon_editor/assets/ui/editor/components/showcase_category_nav.zui
-  - zircon_editor/assets/ui/editor/components/showcase_state_panel.zui
-  - zircon_editor/assets/ui/editor/components/showcase_visual_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_input_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_selection_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_collections_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_state_panel.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 plan_sources:
@@ -159,6 +161,8 @@ tests:
   - cargo test -p zircon_editor --lib component_showcase --locked --target-dir target/codex-zui-state-panel --message-format short -- --test-threads=1 (2026-05-15 input-section .zui extraction: passed, 24 passed)
   - cargo test -p zircon_editor --lib component_showcase --locked --target-dir target/codex-zui-state-panel --message-format short -- --test-threads=1 (2026-05-15 selection-section .zui extraction: passed, 24 passed)
   - cargo test -p zircon_editor --lib component_showcase --locked --target-dir target/codex-zui-state-panel --message-format short -- --test-threads=1 (2026-05-15 collections-section .zui extraction: passed, 24 passed)
+  - cargo test -p zircon_editor --lib component_showcase_template_metadata_is_owned_by_rust_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 component showcase Rust action-id markers: passed, 1 passed / 1870 filtered)
+  - cargo test -p zircon_editor --lib component_showcase_option_and_action_callbacks_are_rust_wired --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 AssetField action suffix constants: passed, 1 passed)
   - cargo test -p zircon_editor --lib template_nodes --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 7 passed)
   - cargo test -p zircon_editor --lib dual_host_parity_preserves_layout_attributes_and_routes_for_representative_documents --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 1 passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed)
@@ -167,21 +171,21 @@ tests:
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 input-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 selection-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 collections-section .zui extraction: passed)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15: passed)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 state-panel .zui extraction: passed and included showcase_state_panel.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 visual-section .zui extraction: passed and included showcase_visual_section.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 input-section .zui extraction: passed and included showcase_input_section.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 selection-section .zui extraction: passed and included showcase_selection_section.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 collections-section .zui extraction: passed and included showcase_collections_section.zui in the editor build output)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15: passed, includes Window.UiComponentShowcase.Open)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 state-panel .zui extraction: passed, includes Window.UiComponentShowcase.Open)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 visual-section .zui extraction: passed, includes Window.UiComponentShowcase.Open)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 input-section .zui extraction: passed, includes Window.UiComponentShowcase.Open)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 selection-section .zui extraction: passed, includes Window.UiComponentShowcase.Open)
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 collections-section .zui extraction: passed, includes Window.UiComponentShowcase.Open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15: passed, includes window.ui_component_showcase.open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 state-panel .zui extraction: passed, includes window.ui_component_showcase.open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 visual-section .zui extraction: passed, includes window.ui_component_showcase.open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 input-section .zui extraction: passed, includes window.ui_component_showcase.open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 selection-section .zui extraction: passed, includes window.ui_component_showcase.open)
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15 collections-section .zui extraction: passed, includes window.ui_component_showcase.open)
   - .codex/run-logs/editor-noargs-smoke-polished.png (2026-05-15: no-argument editor smoke screenshot, Component Showcase first screen visible without bottom-log overlap)
   - .codex/run-logs/editor-noargs-smoke-zui-gallery.png (2026-05-15: no-argument editor smoke screenshot after all four center gallery sections moved to `.zui`; Component Showcase first screen visible with category nav, gallery, state panel, and bottom log)
   - 2026-05-15 continuation: cargo test -p zircon_editor --lib pane_body_documents --locked --jobs 1 --message-format=short -- --test-threads=1 (11 passed)
@@ -250,6 +254,8 @@ The shared workbench chrome projection now routes these root chrome assets to v2
 - `workbench_activity_rail.v2.ui.toml`
 
 The runtime component showcase is also now routed through `component_showcase.v2.ui.toml`. It no longer imports the old recursive `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` references on the builtin path. The v2 asset uses flat arena shell nodes while the demo-control sections live in imported `.zui` components, retaining existing control ids, event route ids, and Material measurement props so Rust callback dispatch and retained host projection continue to work. The showcase now imports `showcase_command_toolbar.zui#ShowcaseCommandToolbar`, `showcase_category_nav.zui#ShowcaseCategoryNav`, `showcase_visual_section.zui#ShowcaseVisualSection`, `showcase_input_section.zui#ShowcaseInputSection`, `showcase_selection_section.zui#ShowcaseSelectionSection`, `showcase_collections_section.zui#ShowcaseCollectionsSection`, `showcase_state_panel.zui#ShowcaseStatePanel`, and `showcase_bottom_log.zui#ShowcaseBottomLog`, proving the builtin runtime host can load `.zui` component prototypes from `res://` imports while the full view remains a `.v2.ui.toml` document. The category nav prototype keeps the `UiComponentShowcase.SelectCategory.*` event routes inside the reusable component asset, the Visual/Feedback prototype keeps display-control ids inside a reusable gallery section, the Input/Numeric prototype keeps button/text/numeric/vector event routes inside a reusable gallery section, the Selection/References prototype keeps option and reference-field routes inside a reusable gallery section, the Collections/Inspector prototype keeps collection/tree/menu/paging routes inside a reusable gallery section, and the state-panel prototype keeps the retained diagnostic `PropertyRow` control ids inside a reusable component asset. Category filtering, visual component projection, input/numeric event projection, selection/reference projection, collection/structure projection, and state projection therefore still pass through the generic template runtime path.
+
+The top-level showcase asset also carries explicit Rust contract action-id markers for generated input actions such as `ui_component_showcase.number_field_drag_update` and `ui_component_showcase.input_field_changed`. Those markers keep the owned Rust metadata visible in the source bundle even though the routed `.zui` components still author their human-readable PascalCase event ids. `showcase_event_inputs.rs` keeps exact `AssetFieldClear`, `AssetFieldLocate`, and `AssetFieldOpen` suffix constants beside the normalized matching helper, so the callback-wiring guard can verify the asset-field controls stay Rust-wired after action id normalization.
 
 The UI Asset Editor bootstrap layout is now `ui_asset_editor.v2.ui.toml`. UI Asset Editor sessions detect v2 source through `UiV2AssetLoader`, keep the last valid v2 document resident on the session, and serialize edited/canonical source back as v2 instead of downgrading authoring output to the old recursive schema. The deleted `ui_asset_editor.ui.toml` path is covered by the asset boundary guard, so UI authoring can no longer quietly reopen the old bootstrap asset.
 

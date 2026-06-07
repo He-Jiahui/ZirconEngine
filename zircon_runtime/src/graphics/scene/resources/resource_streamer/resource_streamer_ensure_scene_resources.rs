@@ -1,6 +1,12 @@
-use crate::core::framework::render::{RenderColorLookupTextureLayout, RenderImageDescriptor};
+use crate::core::framework::render::{
+    RenderCameraTargetGraphImportReport, RenderColorLookupTextureLayout, RenderImageDescriptor,
+};
+use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
-use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::types::{
+    GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportPlan,
+    ViewportTextureGraphImportStatus,
+};
 
 use super::ResourceStreamer;
 
@@ -26,6 +32,8 @@ impl ResourceStreamer {
         self.last_post_process_lut_2d_strip_ready_count = 0;
         self.last_post_process_lut_3d_request_count = 0;
         self.last_post_process_lut_unsupported_shape_count = 0;
+        self.last_output_target_graph_import_report =
+            RenderCameraTargetGraphImportReport::not_requested(frame.output_target().kind());
         for mesh in frame.meshes() {
             let direct_mesh_ready = mesh
                 .mesh
@@ -58,6 +66,8 @@ impl ResourceStreamer {
             }
             self.record_effect_stack_lut_texture_readiness(device, queue, texture_layout, request);
         }
+        self.ensure_output_target_texture(device, frame)?;
+        self.record_output_target_graph_import_readiness(frame);
         Ok(())
     }
 
@@ -132,6 +142,39 @@ impl ResourceStreamer {
             }
         }
     }
+
+    fn record_output_target_graph_import_readiness(&mut self, frame: &ViewportRenderFrame) {
+        let target_format = frame
+            .output_target()
+            .texture_handle()
+            .and_then(|texture| self.output_target_textures.get(&texture.id()))
+            .map(|prepared| prepared.resource.descriptor().format.as_str());
+        let plan = frame.output_target().graph_import_plan(target_format);
+        self.last_output_target_graph_import_report = output_target_graph_import_report(&plan);
+    }
+}
+
+fn output_target_graph_import_report(
+    plan: &ViewportTextureGraphImportPlan,
+) -> RenderCameraTargetGraphImportReport {
+    let size = plan.size().unwrap_or_else(|| UVec2::new(0, 0));
+    match plan.status() {
+        ViewportTextureGraphImportStatus::NotRequested => {
+            RenderCameraTargetGraphImportReport::not_requested(plan.target_kind())
+        }
+        ViewportTextureGraphImportStatus::PendingTargetDescriptor => {
+            RenderCameraTargetGraphImportReport::pending_target_descriptor(size)
+        }
+        ViewportTextureGraphImportStatus::ReadyForDirectImport => {
+            RenderCameraTargetGraphImportReport::ready_for_direct_import(size)
+        }
+        ViewportTextureGraphImportStatus::RequiresConversionWriteback => {
+            RenderCameraTargetGraphImportReport::requires_conversion_writeback(size)
+        }
+        ViewportTextureGraphImportStatus::BlockedFormatMismatch => {
+            RenderCameraTargetGraphImportReport::blocked_format_mismatch(size)
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -189,12 +232,13 @@ mod tests {
     };
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::ViewportRenderFrame;
+    use crate::graphics::types::{ViewportRenderFrame, ViewportRenderOutputTarget};
     use crate::scene::World;
 
     use super::{
         effect_stack_lut_texture_id, effect_stack_lut_texture_request,
-        effect_stack_lut_texture_status, EffectStackLutTextureStatus,
+        effect_stack_lut_texture_status, output_target_graph_import_report,
+        EffectStackLutTextureStatus,
     };
 
     #[test]
@@ -306,6 +350,69 @@ mod tests {
             ),
             EffectStackLutTextureStatus::UnsupportedShape
         );
+    }
+
+    #[test]
+    fn output_target_graph_import_report_marks_srgb_texture_ready_for_direct_import() {
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/output-target/graph-import/srgb",
+        ));
+        let frame = ViewportRenderFrame::from_extract(
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            UVec2::new(64, 64),
+        )
+        .with_output_target(ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(64, 64),
+        });
+
+        let report = output_target_graph_import_report(
+            &frame
+                .output_target()
+                .graph_import_plan(Some("rgba8unorm_srgb")),
+        );
+
+        assert_eq!(
+            report.status,
+            crate::core::framework::render::RenderCameraTargetGraphImportStatus::ReadyForDirectImport
+        );
+        assert_eq!(report.target_size, UVec2::new(64, 64));
+        assert_eq!(report.direct_import_count, 0);
+        assert_eq!(report.conversion_writeback_count, 0);
+        assert_eq!(report.blocked_count, 0);
+    }
+
+    #[test]
+    fn output_target_graph_import_report_keeps_linear_texture_on_writeback_path() {
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/output-target/graph-import/linear",
+        ));
+        let frame = ViewportRenderFrame::from_extract(
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            UVec2::new(64, 64),
+        )
+        .with_output_target(ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(64, 64),
+        });
+
+        let report = output_target_graph_import_report(
+            &frame.output_target().graph_import_plan(Some("rgba8unorm")),
+        );
+
+        assert_eq!(
+            report.status,
+            crate::core::framework::render::RenderCameraTargetGraphImportStatus::RequiresConversionWriteback
+        );
+        assert_eq!(report.direct_import_count, 0);
+        assert_eq!(report.conversion_writeback_count, 1);
+        assert_eq!(report.blocked_count, 0);
     }
 
     fn texture_descriptor(

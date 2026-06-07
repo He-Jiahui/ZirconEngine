@@ -115,12 +115,18 @@ impl DefaultNetManager {
         &self,
         socket: NetSocketId,
     ) -> Result<(), NetError> {
-        self.state
+        let removed = self
+            .state
             .udp_sockets
             .lock()
             .expect("net UDP sockets mutex poisoned")
             .remove(&socket)
-            .map(|_| ())
-            .ok_or(NetError::UnknownSocket { socket })
+            .is_some();
+        if !removed {
+            return Err(NetError::UnknownSocket { socket });
+        }
+
+        self.state.push_event(NetEvent::UdpSocketClosed { socket });
+        Ok(())
     }
 }

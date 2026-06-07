@@ -61,6 +61,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         history.render_size.y as usize,
         &["render", "history", "render_size"],
     );
+    record_history_copy_report(store, stats);
     record_invalidation_reason(
         store,
         frame_index,
@@ -108,6 +109,81 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         FrameHistoryInvalidationReason::FrameInputsChanged,
         "render.history.invalidated.frame_inputs_changed",
         "frame_inputs_changed",
+    );
+}
+
+fn record_history_copy_report(store: &mut DiagnosticStore, stats: &RenderStats) {
+    let frame_index = stats.submitted_frames;
+    let report = stats.last_frame_history_copy_report;
+    record_bool(
+        store,
+        "render.history.copy.history_target_present",
+        frame_index,
+        report.history_target_present,
+        &["render", "history", "copy"],
+    );
+    record_bool(
+        store,
+        "render.history.copy.debug_marker_emitted",
+        frame_index,
+        report.debug_marker_emitted,
+        &["render", "history", "copy", "debug_marker"],
+    );
+    record_count(
+        store,
+        "render.history.copy.requested_count",
+        frame_index,
+        report.requested_copy_count,
+        &["render", "history", "copy"],
+    );
+    record_count(
+        store,
+        "render.history.copy.copied_count",
+        frame_index,
+        report.copied_count,
+        &["render", "history", "copy"],
+    );
+    record_count(
+        store,
+        "render.history.copy.target_width",
+        frame_index,
+        report.target_size.x as usize,
+        &["render", "history", "copy", "target_size"],
+    );
+    record_count(
+        store,
+        "render.history.copy.target_height",
+        frame_index,
+        report.target_size.y as usize,
+        &["render", "history", "copy", "target_size"],
+    );
+    record_bool(
+        store,
+        "render.history.copy.scene_color_copied",
+        frame_index,
+        report.scene_color_copied,
+        &["render", "history", "copy", "scene_color"],
+    );
+    record_bool(
+        store,
+        "render.history.copy.global_illumination_copied",
+        frame_index,
+        report.global_illumination_copied,
+        &["render", "history", "copy", "global_illumination"],
+    );
+    record_bool(
+        store,
+        "render.history.copy.ambient_occlusion_copied",
+        frame_index,
+        report.ambient_occlusion_copied,
+        &["render", "history", "copy", "ambient_occlusion"],
+    );
+    record_bool(
+        store,
+        "render.history.copy.screen_space_reflection_copied",
+        frame_index,
+        report.screen_space_reflection_copied,
+        &["render", "history", "copy", "screen_space_reflection"],
     );
 }
 

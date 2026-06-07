@@ -3,14 +3,14 @@ use zircon_runtime_interface::ui::layout::{
     AxisConstraint, BoxConstraints, UiContainerKind, UiLayoutEngineFamily, UiLayoutEngineRequest,
 };
 
-/// Converts the subset of Zircon-owned layout contracts that can be solved by Taffy.
-/// Overlay, Canvas, Popup, and VirtualList stay outside this bridge by design.
+/// Converts the subset of Zircon layout contracts that can be solved by Taffy.
+/// Overlay, Canvas, Popup, Scroll, and VirtualList stay outside this bridge by design.
 pub fn taffy_style_for_container(
     container: UiContainerKind,
     constraints: BoxConstraints,
 ) -> Option<Style> {
     let request = UiLayoutEngineRequest::from_container_kind(container);
-    taffy_owned_family(request.family)?;
+    request.family.is_taffy_owned().then_some(())?;
     taffy_style_inputs_are_finite(container, constraints)?;
 
     let mut style = Style {
@@ -104,17 +104,6 @@ pub fn taffy_display_for_family(family: UiLayoutEngineFamily) -> Option<Display>
         UiLayoutEngineFamily::Block => Some(Display::Block),
         _ => None,
     }
-}
-
-fn taffy_owned_family(family: UiLayoutEngineFamily) -> Option<()> {
-    matches!(
-        family,
-        UiLayoutEngineFamily::Flex
-            | UiLayoutEngineFamily::Grid
-            | UiLayoutEngineFamily::Block
-            | UiLayoutEngineFamily::Wrap
-    )
-    .then_some(())
 }
 
 fn dimension_for_axis(value: f32) -> Dimension {

@@ -15,6 +15,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/management/record_summary.rs
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs
 implementation_files:
   - zircon_runtime/src/asset/management.rs
   - zircon_runtime/src/asset/mod.rs
@@ -26,12 +27,13 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs
 plan_sources:
   - user: 2026-05-30 continue model material mesh entity shader flow and asset management
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 tests:
-  - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
   - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_management_record_set_sorts_and_summarizes_records
   - zircon_runtime/src/asset/tests/assets/model.rs::model_asset_management_record_set_sorts_and_summarizes_records
   - zircon_runtime/src/asset/tests/assets/management.rs::asset_management_record_sets_summarize_asset_family_lists
@@ -56,6 +58,7 @@ tests:
   - cargo test --workspace --locked --verbose (2026-06-01 M6 root test gate: blocked by active Editor workbench test failures after asset-management and render snapshot compile issues were fixed)
   - cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose (2026-06-01 plugin build gate: passed)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime -p zircon_plugin_gltf_importer_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime -p zircon_plugin_material_editor_editor -p zircon_plugin_animation_runtime --locked --jobs 1 --message-format short --color never (2026-06-01 focused asset/render plugin gate: passed)
+  - cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 scene management split: passed, 11 passed including scene/management.rs regressions; existing zircon_runtime lib-test warnings only)
 doc_type: module-detail
 ---
 
@@ -129,7 +132,7 @@ The M6 project sample now instantiates a test `ResourceStreamer` over the same `
 
 `zircon_runtime/src/asset/tests/assets/material.rs` covers `MaterialAssetOverview`, `MaterialAssetManagementRecord`, and `MaterialAssetManagementRecordSet` by checking stable id sorting, shader/reference counts, authored texture slot counts, fallback slot counts, diagnostics, ready/degraded summary counts, and direct reference totals.
 
-`zircon_runtime/src/asset/tests/assets/scene.rs` covers `SceneEntityManagementRecordSet` by projecting a scene management record into flattened entity rows and checking stable `(scene_id, entity)` sorting plus entity-row summary totals.
+`zircon_runtime/src/asset/tests/assets/scene/management.rs` covers `SceneEntityManagementRecordSet` by projecting a scene management record into flattened entity rows and checking stable `(scene_id, entity)` sorting plus entity-row summary totals.
 
 `zircon_runtime/src/asset/tests/assets/model.rs` covers the model record-set summary that feeds this aggregate, including mesh-referenced model totals and primitive mesh-reference totals.
 
@@ -138,6 +141,8 @@ The M6 project sample now instantiates a test `ResourceStreamer` over the same `
 `zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` is the first project-level cross-family management sample. It loads a glTF scene, root model, mesh model, primitive mesh, scene entity, imported glTF material, authored `.zmaterial`, shader package, and DDS texture, then asserts the per-family management summaries for scene/entity primitive bindings and morph weights, model mesh references, mesh vertex/index/morph-target counts, material slot/fallback counts, and texture upload fallback. The sample also derives a compact `AssetManagementRecordSets` payload from those family rows and verifies the aggregate entity direct-mesh, primitive-binding, entity morph-weight, mesh morph-target, and mesh morph-target-attribute counters, so the top-level management summary matches the imported scene graph. The same sample opens the generated project through `ProjectAssetManager`, checks typed handles plus direct and recursive load states for scene, model, mesh, material, shader, and texture assets, verifies the pure project-manager aggregate/overview/family-status surfaces, then instantiates a `ResourceStreamer` over that manager and verifies the renderer surface delegates to the same aggregate when no prepared materials exist. This keeps management rows, facade residency state, built-in runtime defaults, and runtime-streamer summary projection verified from one import graph.
 
 Milestone acceptance still requires the broader asset, renderer, importer, and plugin validation from the asset gap plan. These tests lock the aggregate DTO math, wiring boundary, and the M6 minimal project sample.
+
+On 2026-06-05, the scene-management regressions were validated from their split module through the full `asset::tests::assets::scene` filter in `D:\cargo-targets\zircon-asset-test-splits-0605`. The run passed all 11 scene tests, including populated scene overview counts, empty-scene behavior, scene record-set sorting/summary, and flattened scene-entity record-set assertions.
 
 ## M6 Validation Status
 

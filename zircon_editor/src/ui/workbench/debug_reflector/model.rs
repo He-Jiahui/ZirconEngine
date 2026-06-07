@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{
 };
 
 const LAYOUT_ENGINE_SELECTION_PREVIEW_LIMIT: usize = 8;
+const CANVAS_LAYER_PREVIEW_LIMIT: usize = 8;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct EditorUiDebugReflectorSummary {
@@ -76,6 +77,7 @@ impl EditorUiDebugReflectorModel {
         let details = details(snapshot, selected_node);
         let sections = vec![
             layout_engine_section(snapshot),
+            canvas_layers_section(snapshot),
             render_section(snapshot),
             render_visualizer_section(snapshot),
             renderer_parity_section(snapshot),
@@ -326,6 +328,38 @@ fn layout_engine_fallback_reason_summary(snapshot: &UiSurfaceDebugSnapshot) -> S
         .collect::<Vec<_>>()
         .join(", ");
     format!("fallback reasons: {reasons}")
+}
+
+fn canvas_layers_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugReflectorSection {
+    let mut lines = vec![format!("groups: {}", snapshot.canvas_layers.len())];
+    for layer in snapshot
+        .canvas_layers
+        .iter()
+        .take(CANVAS_LAYER_PREVIEW_LIMIT)
+    {
+        let child_ids = layer
+            .child_ids
+            .iter()
+            .map(|child_id| child_id.0.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        lines.push(format!(
+            "parent={} layer={} z={} children=[{}]",
+            layer.parent_id.0, layer.layer_index, layer.z_order, child_ids
+        ));
+    }
+    if snapshot.canvas_layers.len() > CANVAS_LAYER_PREVIEW_LIMIT {
+        lines.push(format!(
+            "groups truncated: showing {} of {}",
+            CANVAS_LAYER_PREVIEW_LIMIT,
+            snapshot.canvas_layers.len()
+        ));
+    }
+
+    EditorUiDebugReflectorSection {
+        title: "Canvas Layers".to_string(),
+        lines,
+    }
 }
 
 fn render_visualizer_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugReflectorSection {

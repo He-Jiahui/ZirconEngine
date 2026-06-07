@@ -1,0 +1,19 @@
+.zr-inspector .zr-section.is-transform .zr-vector-row.has-linked-axis > .zr-linked-axis {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row.has-linked-axis .zr-linked-axis .zr-icon {
+  width: 17px;
+  height: 17px;
+  transform: translateX(-12px);
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row.has-linked-axis .zr-axis-x {
+  position: absolute;
+  left: 19px;
+  top: 0;
+  color: #68767e;
+}

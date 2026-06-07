@@ -56,6 +56,31 @@ pub(super) fn feedback(action_id: &str) -> Option<ExtensionModuleFeedback> {
             status_text: "World state conflict selected",
             output_text: "Selected Quest.Flag   Scenario conflict",
         },
+        "workbench.extension.navmesh_ai.open" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionNavmeshAiOutputRow",
+            status_text: "Navmesh AI opened",
+            output_text: "Native extension workspace opened for NavMesh_Main",
+        },
+        "workbench.extension.navmesh_ai.rebuild.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionNavmeshAiOutputRow",
+            status_text: "Navmesh rebuild queued",
+            output_text: "Rebuild queued   18 tiles   Humanoid agent",
+        },
+        "workbench.extension.navmesh_ai.query_path.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionNavmeshAiOutputRow",
+            status_text: "Navmesh query queued",
+            output_text: "Path query queued   Query_Patrol   4 agents",
+        },
+        "workbench.extension.navmesh_ai.tile_1208_table_row.select" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionNavmeshAiOutputRow",
+            status_text: "Navmesh tile selected",
+            output_text: "Selected Tile 12_08   green   96 polys",
+        },
+        "workbench.extension.navmesh_ai.blocked_link_table_row.select" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionNavmeshAiOutputRow",
+            status_text: "Navmesh blocked link selected",
+            output_text: "Selected Blocked Link   Door_A03 disabled",
+        },
         _ => return None,
     };
     Some(feedback)

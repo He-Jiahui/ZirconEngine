@@ -1,0 +1,37 @@
+.zr-statusbar .zr-icon,
+.zr-statusbar .zr-dot,
+.zr-statusbar .zr-select,
+.zr-statusbar .zr-icon-button {
+  filter: blur(0.1px);
+}
+
+.zr-statusbar .zr-select,
+.zr-statusbar .zr-icon-button {
+  opacity: 0.94;
+  border-color: #242c32;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #1c2226, #14191c);
+}
+
+.zr-status-right .zr-select {
+  min-width: 114px;
+  color: #7d8990;
+}
+
+.zr-status-right .zr-select:first-child {
+  min-width: 122px;
+}
+
+.zr-status-right .zr-select:last-child {
+  min-width: 112px;
+}
+
+.zr-status-right .zr-icon-button {
+  width: 34px;
+  min-width: 34px;
+}
+
+.zr-status-right .zr-icon-button .zr-icon {
+  color: #87939a;
+  opacity: 0.78;
+}

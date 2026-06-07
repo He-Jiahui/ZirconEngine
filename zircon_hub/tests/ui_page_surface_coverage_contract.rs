@@ -1,577 +1,622 @@
-//! Static contracts that real Hub pages use Material/Taffy wrappers instead of sample surfaces.
+//! Static contracts that real Hub pages are covered by React/MUI surfaces.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
+        fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
+            panic!("failed to read Hub crate file {path}: {error}");
         }),
     )
 }
 
+fn assert_contains_all(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
+        assert!(
+            source.contains(snippet),
+            "{label} must contain page-surface snippet: {snippet}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{label} must not contain obsolete page-surface snippet: {snippet}"
+        );
+    }
+}
+
+fn page_source(name: &str) -> String {
+    read_crate_file(&format!("web/src/pages/{name}.tsx"))
+}
+
 #[test]
-fn material_and_taffy_coverage_uses_real_hub_surfaces() {
-    assert!(
-        !ui_dir().join("placeholder.slint").exists(),
-        "Hub user-facing routes should use real page implementations, not a retained PlaceholderPage file"
+fn react_window_routes_every_primary_page_surface() {
+    let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+
+    assert_contains_all(
+        &hub_window,
+        &[
+            "import { BuildsPage } from \"../../pages/BuildsPage\";",
+            "import { CatalogPage } from \"../../pages/CatalogPage\";",
+            "import { CloudPage } from \"../../pages/CloudPage\";",
+            "import { EditorPage } from \"../../pages/EditorPage\";",
+            "import { ProjectsDashboard } from \"../../pages/ProjectsDashboard\";",
+            "import { SettingsPage } from \"../../pages/SettingsPage\";",
+            "import { TeamPage } from \"../../pages/TeamPage\";",
+            "import { WorkspacePage } from \"../../pages/WorkspacePage\";",
+            "state.activePage === \"projects\"",
+            "state.activePage === \"editor\"",
+            "state.activePage === \"builds\"",
+            "state.activePage === \"cloud\"",
+            "state.activePage === \"assets\" || state.activePage === \"plugins\" || state.activePage === \"learn\"",
+            "state.activePage === \"team\"",
+            "state.activePage === \"settings\"",
+            "<WorkspacePage state={state} onAction={onAction} />",
+            "component=\"main\"",
+            "height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`",
+        ],
+        "HubWindow",
     );
 
-    let components = read_ui_file("components.slint");
-    let data_display = read_ui_file("data_display.slint");
-    let list_container = read_ui_file("list_container_components.slint");
-    let table_view = read_ui_file("table_view_components.slint");
-    let tree_view = read_ui_file("tree_view_components.slint");
-    let catalog_components = read_ui_file("catalog_page_components.slint");
-    let data_surface = format!(
-        "{data_display}\n{list_container}\n{table_view}\n{tree_view}\n{catalog_components}"
+    assert_contains_all(
+        &drawer,
+        &[
+            "text.navItems.map(({ id, label }) =>",
+            "onClick={() => void onAction(HUB_ACTION.showPage, id)}",
+            "const [collapsed, setCollapsed] = useState(false);",
+            "const drawerWidth = collapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;",
+            "width: drawerWidth",
+            "{text.engineStatus}",
+            "{text.checkForUpdates}",
+            "{text.checkForUpdatesDetail}",
+            "disabled",
+            "onClick={() => setCollapsed((current) => !current)}",
+        ],
+        "NavigationDrawer",
     );
-    let layout = read_ui_file("layout.slint");
-    let inputs = read_ui_file("inputs.slint");
-    let text_inputs = read_ui_file("text_input_components.slint");
-    let input_state_components = read_ui_file("input_state_components.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    let button_components = read_ui_file("button_components.slint");
-    let icon_button_components = read_ui_file("icon_button_components.slint");
-    let material_bridge = read_ui_file("material_bridge.slint");
-    let dashboard = read_ui_file("project_dashboard.slint");
-    let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
-    let dashboard_surface =
-        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
-    let project_pages = read_ui_file("project_pages.slint");
-    let project_new_page = read_ui_file("project_new_page.slint");
-    let project_browser_page = read_ui_file("project_browser_page.slint");
-    let project_detail_page = read_ui_file("project_detail_page.slint");
-    let project_components = read_ui_file("project_page_components.slint");
-    let project_browser_components = read_ui_file("project_browser_components.slint");
-    let project_detail_components = read_ui_file("project_detail_components.slint");
-    let project_surface = format!(
-        "{project_pages}\n{project_new_page}\n{project_browser_page}\n{project_detail_page}\n{project_components}\n{project_browser_components}\n{project_detail_components}"
+}
+
+#[test]
+fn projects_dashboard_does_not_render_visual_button_state_reference_strip() {
+    let dashboard = page_source("ProjectsDashboard");
+
+    assert_not_contains_any(
+        &dashboard,
+        &[
+            "ButtonStatesPanel",
+            "text.buttonStates",
+            "buttonStatePrimary",
+            "buttonStateSecondary",
+            "buttonStateTertiary",
+            "buttonStateIcon",
+        ],
+        "ProjectsDashboard",
     );
-    let editor = read_ui_file("editor.slint");
-    let editor_components = read_ui_file("editor_page_components.slint");
-    let editor_surface = format!("{editor}\n{editor_components}");
-    let builds = read_ui_file("builds.slint");
-    let builds_components = read_ui_file("builds_page_components.slint");
-    let builds_surface = format!("{builds}\n{builds_components}");
-    let settings = read_ui_file("settings.slint");
-    let settings_components = read_ui_file("settings_page_components.slint");
-    let settings_surface = format!("{settings}\n{settings_components}");
-    let cloud = read_ui_file("cloud.slint");
-    let cloud_components = read_ui_file("cloud_page_components.slint");
-    let cloud_surface = format!("{cloud}\n{cloud_components}");
-    let team = read_ui_file("team.slint");
-    let team_components = read_ui_file("team_page_components.slint");
-    let team_surface = format!("{team}\n{team_components}");
-    let catalog_detail_components = read_ui_file("catalog_detail_components.slint");
-    let row_slot_components = read_ui_file("row_slot_components.slint");
-    let assets = read_ui_file("assets.slint");
-    let assets_surface = format!("{assets}\n{catalog_components}");
-    let plugins = read_ui_file("plugins.slint");
-    let plugins_surface = format!("{plugins}\n{catalog_components}");
-    let learn = read_ui_file("learn.slint");
-    let learn_surface = format!("{learn}\n{catalog_components}");
+}
 
-    for (name, source) in [
-        ("components.slint", &components),
-        ("data_display.slint", &data_display),
-        ("list_container_components.slint", &list_container),
-        ("table_view_components.slint", &table_view),
-        ("tree_view_components.slint", &tree_view),
-    ] {
-        for removed_sample in ["ButtonStates", "Button States", "ComponentSamples"] {
-            assert!(
-                !source.contains(removed_sample),
-                "{name} should not reintroduce the removed development sample surface: {removed_sample}"
-            );
-        }
-    }
+#[test]
+fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
+    let dashboard = page_source("ProjectsDashboard");
+    let browser = page_source("ProjectBrowserPage");
+    let detail = page_source("ProjectDetailPage");
 
-    for (name, source) in [
-        ("project_dashboard.slint", &dashboard),
-        ("project_pages.slint", &project_pages),
-        ("project_new_page.slint", &project_new_page),
-        ("project_browser_page.slint", &project_browser_page),
-        ("project_detail_page.slint", &project_detail_page),
-    ] {
-        assert!(
-            !source.contains("ComponentSamples"),
-            "{name} must not expose the internal ComponentSamples surface in user-facing Hub pages"
-        );
-    }
-
-    for snippet in [
-        "export component Flow",
-        "export component FlowScrollSurface",
-        "export component PanelGrid",
-        "export component WorkspacePanelSection",
-        "export component ResponsiveSlot",
-        "export component ResponsiveCollapse",
-    ] {
-        assert!(
-            layout.contains(snippet),
-            "layout.slint must expose the Taffy primitive used by real Hub pages: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "export component SegmentButton",
-        "material-segment := SegmentedButton",
-        "export component HubSelectTrigger",
-        "trigger := OutlineButton",
-        "export component ToolbarSelect",
-        "HubSelectTrigger {",
-        "menu := HubSelectMenu",
-    ] {
-        assert!(
-            inputs.contains(snippet),
-            "inputs.slint must keep the Hub select/button wrapper backed by the Material primitive: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "export component HubTextField",
-        "material-field := TextField",
-        "export component SearchBox",
-        "search-field := TextInput",
-        "border-radius: HubVisualSpec.compact-radius;",
-        "out property <bool> focused: search-field.has-focus;",
-        "private property <color> state-border:",
-        "border-color: root.state-border;",
-    ] {
-        assert!(
-            text_inputs.contains(snippet),
-            "text_input_components.slint must keep the Hub text-input wrapper backed by the Material primitive: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "export component HubCheckBox",
-        "material-check := MaterialCheckBox",
-        "export component HubCheckBoxRow",
-        "material-row := MaterialCheckBoxTile",
-        "export component HubSwitch",
-        "material-switch := MaterialSwitch",
-        "export component HubToggleRow",
-        "HubSwitch {",
-        "export component HubComboBox",
-        "material-combo := HubSelectDropDownSurface",
-    ] {
-        assert!(
-            input_state_components.contains(snippet),
-            "input_state_components.slint must keep the Hub state wrapper backed by the Material primitive: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "root.variant == \"selected\" ? HubVisualSpec.panel-hover-background : HubVisualSpec.panel-background",
-        "if root.show-action: HubPanelHeaderActionButton",
-        "export component OverviewPanel inherits HubPanel",
-        "export component EmptyStateBlock inherits Rectangle",
-        "export component EmptyStatePanel inherits HubPanel",
-        "MaterialText {",
-    ] {
-        assert!(
-            surfaces.contains(snippet),
-            "surfaces.slint must keep cards/text on Material primitives and actions on shared Hub button wrappers: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "FilledButton,",
-        "OutlineButton,",
-        "TonalButton,",
-        "if root.primary &&",
-        "export component HubFormActionRow",
-        "export component HubDisclosureButton",
-        "export component HubHeaderCommandGroup",
-        "export component HubPanelNavigationCommand",
-        "export component HubPanelHeaderActionButton",
-        "export component HubUserMenuTriggerButton",
-        "export component HubSidebarCollapseButton",
-        "StateLayerArea {",
-    ] {
-        assert!(
-            button_components.contains(snippet),
-            "button_components.slint must keep public Hub button APIs wired to Material buttons: {snippet}"
-        );
-    }
-    for snippet in [
-        "FilledIconButton,",
-        "OutlineIconButton,",
-        "export component IconButton",
-        "export component HubTopbarIconButton",
-        "export component HubBackButton",
-        "export component HubFlowNextButton",
-        "export component HubRowActionButton",
-        "export component HubFloatingIconButton",
-        "export component HubMoreMenuButton",
-        "StateLayerArea {",
-    ] {
-        assert!(
-            icon_button_components.contains(snippet),
-            "icon_button_components.slint must keep public Hub icon-button APIs wired to Material icon buttons: {snippet}"
-        );
-    }
-
-    for snippet in [
-        "OutlinedCard",
-        "TextField",
-        "FilledButton",
-        "OutlineButton",
-        "FilledIconButton",
-        "OutlineIconButton",
-        "Vertical",
-    ] {
-        assert!(
-            material_bridge.contains(snippet) && components.contains(snippet),
-            "material_bridge.slint and components.slint must re-export Material primitive {snippet}"
-        );
-    }
-
-    for snippet in [
-        "CatalogPage",
-        "PanelListViewport",
-        "InfoRow",
-        "ActionRow",
-        "MetricCard",
-        "HubMetricSlot",
-        "BuildHistoryRow",
-        "HubTableView",
-        "HubTableBody",
-        "EmptyStateBlock",
-        "ListTile",
-        "ScrollView",
-    ] {
-        assert!(
-            data_surface.contains(snippet),
-            "data-display and table-view modules must keep real list/table surfaces backed by Material wrappers: {snippet}"
-        );
-    }
-
-    for (page, source, snippets) in [
-        (
-            "project_dashboard.slint",
-            &dashboard_surface,
-            &[
-                "Flow",
-                "PanelGrid",
-                "HubTableView",
-                "ResponsiveSlot",
-                "SearchBox",
-                "ProjectFilterSelect",
-                "ProjectSortSelect",
-                "HubListPanelSlot",
-                "ActionRow",
-                "EmptyStateBlock",
-                "EmptyStatePanel",
-            ][..],
-        ),
-        (
-            "project workflow pages/components",
-            &project_surface,
-            &[
-                "PanelSlot",
-                "ResponsiveSlot",
-                "SearchBox",
-                "ProjectFilterSelect",
-                "ProjectSortSelect",
-                "HubPathFieldRow",
-            ][..],
-        ),
-        (
-            "project new page/components",
-            &project_surface,
-            &[
-                "PageScrollSurface",
-                "PanelSlot",
-                "ProjectCreateSettingsPanel",
-                "ProjectCreateCompactSummaryPanel",
-                "ProjectCreateField",
-                "ProjectCreateActionRow",
-                "ProjectCreateSummary",
-                "ProjectEngineChoiceList",
-                "ProjectTemplateRailPanel",
-                "TemplateChoiceRow",
-                "HubRowSelectionSlot",
-                "HubListPanelSlot",
-                "PanelListViewport",
-            ][..],
-        ),
-        (
-            "project_browser_page.slint",
-            &project_surface,
-            &[
-                "PageScrollSurface",
-                "ResponsiveSlot",
-                "SearchBox",
-                "ProjectFilterSelect",
-                "ProjectSortSelect",
-                "ProjectBrowserResultsPanel",
-                "ProjectBrowserTableHeader",
-                "ProjectBrowserRow",
-                "EmptyStateBlock",
-            ][..],
-        ),
-        (
-            "project_detail_page.slint",
-            &project_surface,
-            &[
-                "PageScrollSurface",
-                "PanelSlot",
-                "ProjectDetailMainPanel",
-                "ProjectDetailStatusStrip",
-                "ProjectDetailInfoSection",
-                "ProjectDetailActionsSection",
-                "HubActionCommandButton",
-                "ProjectDetailPinToggleRow",
-                "ProjectDetailEngineSection",
-                "StatusBanner",
-            ][..],
-        ),
-        (
-            "editor.slint",
-            &editor_surface,
-            &[
-                "WorkspacePanelSection",
-                "PanelSlot",
-                "ResponsiveSlot",
-                "HubPathFieldRow",
-                "InfoRow",
-                "ActionRow",
-                "export component EditorActionsPanel inherits HubListPanelSlot",
-                "export component EditorSourceSummaryPanel inherits HubContentPanelSlot",
-                "export component EditorSourceSettingsPanel inherits HubFormPanelSlot",
-                "EmptyStateBlock",
-            ][..],
-        ),
-        (
-            "builds.slint",
-            &builds_surface,
-            &[
-                "WorkspacePanelSection",
-                "PanelSlot",
-                "InfoRow",
-                "ActionRow",
-                "BuildHistoryRow",
-                "EmptyStateBlock",
-            ][..],
-        ),
-        (
-            "settings.slint",
-            &settings_surface,
-            &[
-                "WorkspacePanelSection",
-                "PanelSlot",
-                "EmptyStateBlock",
-                "HubTextField",
-                "HubComboBox",
-                "HubListPanelSlot",
-                "PathSettingRow",
-                "SettingStatusRow",
-                "SettingsComboChoice",
-                "SettingsSaveActionRow",
-            ][..],
-        ),
-        (
-            "cloud.slint",
-            &cloud_surface,
-            &[
-                "WorkspacePanelSection",
-                "OverviewPanel",
-                "PanelSlot",
-                "ResponsiveSlot",
-                "HubMetricSlot",
-                "HubListPanelSlot",
-                "export component CloudMetricSlot inherits HubMetricSlot",
-                "export component CloudPackageActionRow inherits ActionRow",
-                "export component CloudPackageActionsPanel inherits HubListPanelSlot",
-                "export component CloudServiceRow inherits InfoRow",
-                "export component CloudServicesPanel inherits HubListPanelSlot",
-                "collapse-label: label-collapse.collapsed;",
-                "EmptyStateBlock",
-            ][..],
-        ),
-        (
-            "team.slint",
-            &team_surface,
-            &[
-                "WorkspacePanelSection",
-                "PanelSlot",
-                "HubMetricSlot",
-                "HubListPanelSlot",
-                "export component TeamSummarySlot inherits HubMetricSlot",
-                "export component TeamActionRow inherits ActionRow",
-                "export component TeamIdentityRow inherits InfoRow",
-                "export component TeamMemberRow inherits InfoRow",
-                "HubTabbedListPanelSlot",
-                "export component TeamMembersPanel inherits HubTabbedListPanelSlot",
-                "export component TeamActionsPanel inherits HubListPanelSlot",
-                "collapse-label: label-collapse.collapsed;",
-                "EmptyStateBlock",
-            ][..],
-        ),
-        (
-            "assets.slint",
-            &assets_surface,
-            &[
-                "CatalogPage",
-                "CatalogColumnRow",
-                "export component AssetRow inherits CatalogColumnRow",
-                "row-height: HubTokens.list-row-md;",
-                "collapse-label: label-collapse.collapsed;",
-                "HubRowLeadingIconSlot",
-                "HubRowMetaSlot",
-                "HubRowTrailingSlot",
-            ][..],
-        ),
-        (
-            "plugins.slint",
-            &plugins_surface,
-            &[
-                "CatalogPage",
-                "CatalogColumnRow",
-                "export component PluginRow inherits CatalogColumnRow",
-                "row-height: HubTokens.list-row-md;",
-                "collapse-label: label-collapse.collapsed;",
-                "HubRowLeadingIconSlot",
-                "HubRowMetaSlot",
-                "HubRowTrailingSlot",
-            ][..],
-        ),
-        (
-            "learn.slint",
-            &learn_surface,
-            &[
-                "CatalogPage",
-                "CatalogColumnRow",
-                "export component LearnRow inherits CatalogColumnRow",
-                "row-height: HubTokens.list-row-md;",
-                "collapse-label: label-collapse.collapsed;",
-                "HubRowLeadingIconSlot",
-                "HubRowMetaSlot",
-                "HubRowTrailingSlot",
-            ][..],
-        ),
-    ] {
-        for snippet in snippets {
-            assert!(
-                source.contains(snippet),
-                "{page} must consume the real Material/Taffy wrapper instead of relying on a sample surface: {snippet}"
-            );
-        }
-
-        for snippet in [
-            "export component CatalogDetailPanel inherits HubContentPanelSlot",
-            "body-padding: MaterialStyleMetrics.padding_16;",
-            "body-spacing: HubTokens.toolbar-gap;",
-            "content-spacing: HubTokens.toolbar-gap;",
-            "component CatalogDetailPreviewBand inherits Rectangle",
-            "component CatalogDetailStatGrid inherits Rectangle",
-            "component CatalogDetailCheckList inherits Rectangle",
-            "component CatalogDetailCheckRow inherits Rectangle",
-            "CatalogDetailPreviewBand {",
-            "CatalogDetailStatGrid {",
-            "CatalogDetailCheckList {",
-            "HubRowLeadingIconSlot",
-            "HubRowMainSlot",
-            "HubRowTrailingSlot",
-        ] {
-            assert!(
-                catalog_detail_components.contains(snippet),
-                "CatalogDetailPanel must stay decomposed into panel, preview, stat, check-list, and row-slot components: {snippet}"
-            );
-        }
-
-        for forbidden in [
-            "export component CatalogDetailPanel inherits ResponsiveSlot",
-            "HubPanel {\n        width: parent.width;\n        height: parent.height;",
-        ] {
-            assert!(
-                !catalog_detail_components.contains(forbidden),
-                "CatalogDetailPanel should not reintroduce its old page-local panel shell after adopting PanelSlot: {forbidden}"
-            );
-        }
-
-        let check_row = catalog_detail_components
-            .split("component CatalogDetailCheckRow")
-            .nth(1)
-            .and_then(|source| source.split("component CatalogDetailPreviewBand").next())
-            .expect(
-                "catalog_detail_components.slint must declare CatalogDetailCheckRow before CatalogDetailPreviewBand",
-            );
-        for snippet in [
-            "HubRowLeadingIconSlot {",
-            "HubRowMainSlot {",
-            "title: root.title;",
-            "detail: root.detail;",
-            "title-foreground: HubTokens.text-primary;",
-            "HubRowTrailingSlot {",
-        ] {
-            assert!(
-                check_row.contains(snippet),
-                "CatalogDetailCheckRow must compose check-row content through the shared row slot family: {snippet}"
-            );
-        }
-        for forbidden in ["MaterialText {", "MutedText {", "VerticalLayout {"] {
-            assert!(
-                !check_row.contains(forbidden),
-                "CatalogDetailCheckRow should not return to local text-stack layout after adopting HubRowMainSlot: {forbidden}"
-            );
-        }
-
-        for snippet in [
-            "export component HubRowLeadingIconSlot inherits Rectangle",
-            "shell-border: HubVisualSpec.neutral-icon-stroke;",
-            "shell-background: HubVisualSpec.neutral-icon-background;",
-            "icon-foreground: HubVisualSpec.neutral-icon-foreground;",
-            "export component HubRowMainSlot inherits Rectangle",
-            "style: MaterialTypography.label_large;",
-            "style: MaterialTypography.body_small;",
-            "export component HubRowSelectionSlot inherits Rectangle",
-            "HubCheckBox",
-            "check-state: root.check-state;",
-            "export component HubRowTrailingSlot inherits Rectangle",
+    assert_contains_all(
+        &dashboard,
+        &[
+            "if (state.projectSubpage === \"project-browser\")",
+            "return <ProjectBrowserPage state={state} onAction={onAction} />;",
+            "if (state.projectSubpage === \"project-detail\")",
+            "return <ProjectDetailPage state={state} onAction={onAction} />;",
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "ProjectCard",
+            "ProjectTable",
+            "QuickActions",
+            "EmptyStateBlock",
+            "HubDialog",
+            "open={state.projectSubpage === \"new-project\"}",
+            "HubTextField label={text.projectName}",
+            "HubComboBox",
+            "onAction(HUB_ACTION.newProject)",
+            "onAction(HUB_ACTION.openProjectDetail, project.id)",
+            "onAction(HUB_ACTION.setProjectViewMode, value)",
+        ],
+        "ProjectsDashboard",
+    );
+    assert_contains_all(
+        &browser,
+        &[
+            "export function ProjectBrowserPage",
+            "HubStatusBanner",
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "ProjectTable",
+            "SourceEngineList",
+            "QuickActions",
+            "EmptyStateBlock title={text.noProjectsFound}",
+            "onAction(HUB_ACTION.searchProjects, undefined, { query: value })",
+            "onAction(HUB_ACTION.setProjectFilter, value)",
+            "onAction(HUB_ACTION.setProjectSort, value)",
+            "onAction(HUB_ACTION.selectProject, project.id)",
+            "onAction(HUB_ACTION.openProjectDetail, project.id)",
+            "onAction(HUB_ACTION.selectEngine, engine.id)",
+        ],
+        "ProjectBrowserPage",
+    );
+    assert_contains_all(
+        &detail,
+        &[
+            "export function ProjectDetailPage",
+            "const project = state.selectedProject ?? null;",
+            "HubStatusBanner",
+            "MetricCard",
+            "HubTabs",
+            "ProjectCover",
+            "HubList",
+            "HubTreeView",
             "StatusBadge",
-            "HubRowActionButton",
-            "in property <bool> show-action: false;",
-            "private property <bool> action-visible: root.show-action || root.show-chevron;",
-            "button-size: root.action-size;",
-            "button-radius: root.action-radius;",
-            "framed: root.action-framed;",
-            "state-layer-color: root.action-state-layer-color;",
-            "width: root.slot-width;",
-        ] {
-            assert!(
-                row_slot_components.contains(snippet),
-                "row_slot_components.slint must own shared neutral leading and trailing row slots: {snippet}"
-            );
-        }
-        for forbidden in [
-            "import { HubIconButton } from \"button_components.slint\";",
-            "HubIconButton {",
-            "StateLayerArea {",
-            "if root.action-visible && !root.action-framed: Rectangle",
-        ] {
-            assert!(
-                !row_slot_components.contains(forbidden),
-                "HubRowTrailingSlot should consume HubRowActionButton instead of owning local action-button internals: {forbidden}"
-            );
-        }
+            "QuickActions",
+            "SourceEngineList",
+            "EmptyStateBlock title={text.noProjectSelected}",
+            "{ value: \"overview\", label: text.overview }",
+            "{ value: \"files\", label: text.files }",
+            "{ value: \"actions\", label: text.actions }",
+            "projectTargetPayload(project)",
+            "onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+            "onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
+            "onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
+        ],
+        "ProjectDetailPage",
+    );
+}
+
+#[test]
+fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
+    for (page, snippets) in [
+        (
+            "EditorPage",
+            &[
+                "HubStatusBanner",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={text.launchTarget}",
+                "HubPanel title={text.editorPluginScope}",
+                "HubPanel title={text.editorActivity}",
+                "HubPanel title={text.launchReadiness}",
+                "SourceEngineList",
+                "QuickActions",
+                "HubTreeView",
+                "HubSwitch",
+                "HubCheckbox",
+                "EmptyStateBlock title={text.noProjectSelectedTitle}",
+                "EmptyStateBlock title={text.noEditorPluginsTitle}",
+                "EmptyStateBlock title={text.noEditorActivityTitle}",
+                "projectTargetPayload(project)",
+                "onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+            ][..],
+        ),
+        (
+            "BuildsPage",
+            &[
+                "HubStatusBanner",
+                "LinearProgress",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={text.buildWorkflow}",
+                "HubPanel title={common.selectedProject}",
+                "HubPanel title={text.buildHistory}",
+                "HubPanel title={text.outputTree}",
+                "BuildActionDetail",
+                "HubTreeView",
+                "QuickActions",
+                "SourceEngineList",
+                "EmptyStateBlock title={common.noProjectSelected}",
+                "EmptyStateBlock title={text.noBuildHistory}",
+                "EmptyStateBlock title={text.noWorkflowSelected}",
+                "workflowProjectTargetPayload(state)",
+                "workflowTargetProject(state)",
+                "onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)",
+                "onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)",
+                "onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)",
+            ][..],
+        ),
+        (
+            "CatalogPage",
+            &[
+                "HubStatusBanner",
+                "HubSearchField",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={catalogPanelTitle(mode, text)}",
+                "HubPanel title={text.selectedEntry}",
+                "HubPanel title={text.catalogTree}",
+                "QuickActions",
+                "SourceEngineList",
+                "HubTreeView",
+                "StatusBadge",
+                "EmptyStateBlock title={text.noEntriesFound}",
+                "EmptyStateBlock title={text.noCatalogEntrySelected}",
+                "state.activePage === \"plugins\" || state.activePage === \"learn\"",
+                "state.plugins.map",
+                "state.learnResources.map",
+                "state.assets.map",
+            ][..],
+        ),
+        (
+            "CloudPage",
+            &[
+                "HubStatusBanner",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={text.packageOutputs}",
+                "HubPanel title={text.deviceInstalls}",
+                "HubPanel title={text.reservedServices}",
+                "HubPanel title={text.localDeliveryTree}",
+                "HubPanel title={text.currentStatus}",
+                "HubSwitch",
+                "HubCheckbox",
+                "HubTreeView",
+                "QuickActions",
+                "StatusBadge",
+                "EmptyStateBlock title={text.noPackagesRecorded}",
+                "EmptyStateBlock title={text.noInstallsRecorded}",
+                "workflowProjectTargetPayload(state)",
+                "workflowTargetProject(state)",
+                "onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)",
+                "onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)",
+            ][..],
+        ),
+        (
+            "TeamPage",
+            &[
+                "HubStatusBanner",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={text.teamMembers}",
+                "HubPanel title={text.repositoryIdentity}",
+                "HubPanel title={text.teamTree}",
+                "HubPanel title={text.actionHistory}",
+                "HubPanel title={text.latestAction}",
+                "HubPanel title={common.sourceEngines}",
+                "QuickActions",
+                "SourceEngineList",
+                "HubTreeView",
+                "ActionDetail",
+                "StatusBadge",
+                "EmptyStateBlock title={text.noTeamMembersFound}",
+                "EmptyStateBlock title={text.noRecentActions}",
+                "EmptyStateBlock title={text.noActionSelected}",
+            ][..],
+        ),
+        (
+            "SettingsPage",
+            &[
+                "HubStatusBanner",
+                "LinearProgress",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={settingsText.buildDefaultsPanel}",
+                "HubPanel title={settingsText.configurationPathsPanel}",
+                "HubPanel title={settingsText.sourceEnginesPanel}",
+                "HubPanel title={settingsText.pathDefaultsPanel}",
+                "HubPanel title={settingsText.advancedConfigurationPanel}",
+                "HubPanel title={settingsText.configurationHealthPanel}",
+                "HubComboBox",
+                "HubTextField",
+                "HubSwitch",
+                "HubCheckbox",
+                "HubTreeView",
+                "SourceEngineList",
+                "StatusBadge",
+                "onAction(HUB_ACTION.saveSettings",
+            ][..],
+        ),
+        (
+            "WorkspacePage",
+            &[
+                "HubStatusBanner",
+                "MetricCard",
+                "HubTabs",
+                "HubPanel title={common.sourceEngines}",
+                "HubPanel title={settingsText.heading}",
+                "HubPanel title={settingsText.advancedConfigurationPanel}",
+                "HubPanel title={state.ui.editor.workspaceTree}",
+                "HubList",
+                "HubTreeView",
+                "QuickActions",
+                "SourceEngineList",
+                "HubSwitch",
+                "HubCheckbox",
+                "onAction(HUB_ACTION.showPage, \"settings\")",
+            ][..],
+        ),
+    ] {
+        let source = page_source(page);
+        assert_contains_all(&source, snippets, page);
+        assert!(
+            source.contains("@media (max-width:"),
+            "{page} must keep responsive page-surface constraints"
+        );
+    }
+}
+
+#[test]
+fn workspace_fallback_routes_to_settings_instead_of_saving_without_draft() {
+    let workspace = page_source("WorkspacePage");
+    let settings = page_source("SettingsPage");
+
+    assert_contains_all(
+        &workspace,
+        &[
+            "startIcon={<SettingsOutlinedIcon />}",
+            "onClick={() => void onAction(HUB_ACTION.showPage, \"settings\")}",
+            "{state.ui.shell.settings}",
+        ],
+        "WorkspacePage",
+    );
+    assert_not_contains_any(
+        &workspace,
+        &[
+            "SaveOutlinedIcon",
+            "onAction(HUB_ACTION.saveSettings)",
+            "{settingsText.saveButton}",
+        ],
+        "WorkspacePage",
+    );
+    assert_contains_all(
+        &settings,
+        &["onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })"],
+        "SettingsPage",
+    );
+}
+
+#[test]
+fn feedback_popups_and_state_surfaces_cover_menu_empty_loading_and_error_cases() {
+    let app = read_crate_file(&["web/src", "App.tsx"].join("/"));
+    let snackbar = read_crate_file("web/src/components/feedback/HubSnackbar.tsx");
+    let status_banner = read_crate_file("web/src/components/feedback/HubStatusBanner.tsx");
+    let empty_state = read_crate_file("web/src/components/data/EmptyStateBlock.tsx");
+    let dialog = read_crate_file("web/src/components/overlays/HubDialog.tsx");
+    let popover = read_crate_file("web/src/components/overlays/HubPopover.tsx");
+    let source_engine_popover =
+        read_crate_file("web/src/components/overlays/SourceEnginePopover.tsx");
+    let user_menu = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
+    let top_bar = read_crate_file("web/src/components/shell/TopBar.tsx");
+
+    assert_contains_all(
+        &app,
+        &[
+            "HubSnackbar",
+            "state.taskSummary.running || state.taskSummary.tone !== \"neutral\" || state.taskSummary.recovery",
+            "setSnackbarOpen(true)",
+            "label: shellText.actionFailed",
+            "tone: \"error\"",
+            "recovery: shellText.checkActionTarget",
+            "operation: shellText.actionFailed",
+            "taskStatus: current.taskStatus.map",
+        ],
+        "App",
+    );
+    assert_contains_all(
+        &snackbar,
+        &[
+            "import { Alert, Box, Snackbar, Typography } from \"@mui/material\";",
+            "task.tone === \"neutral\" || task.tone === \"running\" ? \"info\" : task.tone",
+            "autoHideDuration={4200}",
+            "anchorOrigin={{ vertical: \"bottom\", horizontal: \"right\" }}",
+            "variant=\"filled\"",
+            "<Typography variant=\"subtitle2\">{task.label}</Typography>",
+            "<Typography variant=\"body2\">{task.detail}</Typography>",
+            "{task.recovery ? (",
+            "{task.recovery}",
+        ],
+        "HubSnackbar",
+    );
+    assert_contains_all(
+        &status_banner,
+        &[
+            "import { Alert, Box, LinearProgress, Typography } from \"@mui/material\";",
+            "task.tone === \"neutral\" || task.tone === \"running\" ? \"info\" : task.tone",
+            "variant=\"outlined\"",
+            "const shouldShowProgress = task.running || task.progressPercent > 0;",
+            "variant=\"determinate\"",
+            "value={task.progressPercent}",
+            "{task.operation}",
+            "{task.recovery}",
+        ],
+        "HubStatusBanner",
+    );
+    assert_contains_all(
+        &empty_state,
+        &[
+            "minHeight: 148",
+            "placeItems: \"center\"",
+            "border: `1px dashed ${hubTokens.colors.lineStrong}`",
+            "Typography variant=\"body2\"",
+            "Typography variant=\"caption\"",
+        ],
+        "EmptyStateBlock",
+    );
+    assert_contains_all(
+        &dialog,
+        &[
+            "import { Dialog, DialogActions, DialogContent, DialogTitle } from \"@mui/material\";",
+            "open={open}",
+            "onClose={onClose}",
+            "maxWidth=\"sm\"",
+            "fullWidth",
+            "DialogTitle",
+            "DialogContent",
+            "DialogActions",
+        ],
+        "HubDialog",
+    );
+    assert_contains_all(
+        &popover,
+        &[
+            "import { Box, Popover } from \"@mui/material\";",
+            "anchorEl={anchorEl}",
+            "open={open}",
+            "onClose={onClose}",
+            "width = 340",
+            "maxWidth: \"calc(100vw - 32px)\"",
+            "backgroundColor: \"rgba(25,29,29,0.98)\"",
+        ],
+        "HubPopover",
+    );
+    assert_contains_all(
+        &source_engine_popover,
+        &[
+            "HubPopover anchorEl={anchorEl} open={open} width={388}",
+            "{text.activeEngine}",
+            "{text.readyFallback}",
+            "{text.localDefaults}",
+            "{text.noSourceEngineRegistered}",
+            "{text.noFallbackEngineConfigured}",
+            "{text.manageEngines}",
+            "StatusBadge label={activeLabel} tone=\"success\"",
+            "onSelect(engine.id)",
+        ],
+        "SourceEnginePopover",
+    );
+    assert_contains_all(
+        &user_menu,
+        &[
+            "HubPopover anchorEl={anchorEl} open={open} width={284} align=\"right\"",
+            "{ id: \"account\", label: text.userAccount",
+            "{ id: \"preferences\", label: text.preferences",
+            "{ id: \"documentation\", label: text.documentation",
+            "{ id: \"sign-out\", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
+            "const isDisabled = Boolean(disabled);",
+            "disabled={isDisabled}",
+            "if (isDisabled) {",
+            "onAction(id);",
+            "onClose();",
+        ],
+        "UserMenuPopover",
+    );
+    assert_contains_all(
+        &top_bar,
+        &[
+            "SourceEnginePopover",
+            "UserMenuPopover",
+            "setEngineAnchor(event.currentTarget)",
+            "setUserAnchor(event.currentTarget)",
+            "void onAction(HUB_ACTION.selectEngine, engineId);",
+            "void onAction(HUB_ACTION.showPage, \"settings\");",
+            "void onAction(HUB_ACTION.showPage, \"learn\");",
+            "void onAction(HUB_ACTION.showPage, \"team\");",
+        ],
+        "TopBar",
+    );
+}
+
+#[test]
+fn pages_stay_composition_surfaces_instead_of_redeclaring_low_level_controls() {
+    let pages = [
+        "ProjectsDashboard",
+        "ProjectBrowserPage",
+        "ProjectDetailPage",
+        "EditorPage",
+        "BuildsPage",
+        "CatalogPage",
+        "CloudPage",
+        "TeamPage",
+        "SettingsPage",
+        "WorkspacePage",
+    ];
+
+    for page in pages {
+        let source = page_source(page);
+        assert_contains_all(
+            &source,
+            &[
+                "import { Box",
+                "from \"@mui/material\";",
+                "from \"../components/data\"",
+                "from \"../theme/tokens\"",
+                "import type",
+                "export interface",
+                &format!("export function {page}"),
+                "HubShellState",
+                "@media (max-width:",
+            ],
+            page,
+        );
+        assert_not_contains_any(
+            &source,
+            &[
+                "from \"../data/hubData\"",
+                "import { Dialog",
+                "import { Popover",
+                "import { Snackbar",
+                "import { Menu",
+                "function Local",
+                "const styles =",
+            ],
+            page,
+        );
+    }
+}
+
+#[test]
+fn page_surface_contract_is_cut_over_to_react_sources() {
+    let source = read_crate_file("tests/ui_page_surface_coverage_contract.rs");
+    let obsolete_ui_suffix = [".", "slint"].concat();
+    let obsolete_reader = ["read", "_ui", "_file"].concat();
+    let obsolete_root_reader = ["ui", "_dir"].concat();
+    let obsolete_app_path = ["src", "app"].join("/");
+
+    for obsolete in [
+        obsolete_ui_suffix.as_str(),
+        obsolete_reader.as_str(),
+        obsolete_root_reader.as_str(),
+        obsolete_app_path.as_str(),
+    ] {
+        assert!(
+            !source.contains(obsolete),
+            "page-surface contract must not inspect removed UI-file or app-module surfaces: {obsolete}"
+        );
     }
 
-    let app = read_ui_file("app.slint");
-    assert!(
-        app.contains("has-selected-project: root.project-detail.selected;"),
-        "app.slint must pass selected-project state into catalog/workspace pages that surface scoped copy"
+    assert_contains_all(
+        &source,
+        &[
+            "web/src/pages/",
+            "HubWindow.tsx",
+            "NavigationDrawer.tsx",
+            "HubSnackbar.tsx",
+            "HubStatusBanner.tsx",
+            "HubDialog.tsx",
+            "HubPopover.tsx",
+            "SourceEnginePopover.tsx",
+            "UserMenuPopover.tsx",
+            "EmptyStateBlock.tsx",
+            "ProjectsDashboard",
+            "ProjectBrowserPage",
+            "ProjectDetailPage",
+            "SettingsPage",
+            "BuildsPage",
+            "CatalogPage",
+            "CloudPage",
+            "TeamPage",
+            "EditorPage",
+            "WorkspacePage",
+        ],
+        "page-surface contract",
     );
 }

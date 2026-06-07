@@ -58,7 +58,7 @@ key = "sound.channel_layout"
 display_name = "Channel Layout"
 value_type = "enum"
 default_value = "stereo"
-enum_values = ["mono", "stereo", "surround_5_1", "surround_7_1"]
+enum_values = ["mono", "stereo", "quad", "surround_5_0", "surround_5_1", "surround_5_1_side", "surround_7_0", "surround_7_1"]
 
 [[options]]
 key = "sound.global_volume_gain"

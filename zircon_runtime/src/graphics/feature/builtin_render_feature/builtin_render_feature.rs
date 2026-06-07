@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BuiltinRenderFeature {
     Mesh,
+    MeshLod,
     Sprite,
     DeferredGeometry,
     DeferredLighting,
@@ -23,6 +24,7 @@ pub enum BuiltinRenderFeature {
     SparseTexture,
     Terrain,
     Tree,
+    Decal,
     Projector,
     Halo,
     LensFlare,

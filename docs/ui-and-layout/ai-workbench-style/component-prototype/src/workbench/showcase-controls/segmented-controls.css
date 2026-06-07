@@ -1,0 +1,31 @@
+.zr-showcase-col:nth-child(2) > .zr-col-title:first-child {
+  margin-bottom: 4px;
+}
+
+.zr-showcase-col:nth-child(2) .zr-icon-grid + .zr-col-title {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.zr-showcase-col:nth-child(2) .zr-segment {
+  width: 150px;
+  border-color: #354047;
+  background: #1d2327;
+  transform: translateY(1px);
+}
+
+.zr-showcase-col:nth-child(2) .zr-segment-item {
+  width: 50px;
+  min-width: 50px;
+  padding: 0;
+}
+
+.zr-showcase-col:nth-child(2) .zr-segment-item:not(.is-active) {
+  color: #aab5ba;
+}
+
+.zr-showcase-col:nth-child(2) .zr-segment-item.is-active {
+  background: linear-gradient(180deg, rgba(17, 70, 77, 0.55), rgba(10, 45, 50, 0.82));
+  box-shadow: inset 0 -1px rgba(50, 211, 222, 0.48);
+}

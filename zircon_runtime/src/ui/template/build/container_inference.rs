@@ -13,6 +13,7 @@ pub(super) fn infer_container(
 ) -> UiContainerKind {
     match component {
         "Container" => UiContainerKind::Container,
+        "Block" | "BlockBox" => UiContainerKind::BlockBox,
         "Overlay" => UiContainerKind::Overlay,
         "Space" => UiContainerKind::Space,
         "HorizontalBox" | "HorizontalGroup" => UiContainerKind::HorizontalBox(Default::default()),
@@ -28,7 +29,7 @@ pub(super) fn infer_container(
         }
         "Stack" => mui_stack_container(attributes),
         "Masonry" | "MasonryBox" => UiContainerKind::MasonryBox(mui_masonry_config(attributes)),
-        "CanvasBox" => UiContainerKind::Free,
+        "Canvas" | "CanvasBox" => UiContainerKind::Canvas,
         "SizeBox" => UiContainerKind::SizeBox(Default::default()),
         _ => UiContainerKind::Free,
     }

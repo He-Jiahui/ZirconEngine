@@ -18,6 +18,8 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) alpha_mask_draw_count: usize,
     pub(crate) transparent_draw_count: usize,
     pub(crate) early_z_draw_count: usize,
+    pub(crate) shadow_caster_draw_count: usize,
+    pub(crate) alpha_mask_shadow_caster_draw_count: usize,
     pub(crate) prepared_geometry_draw_count: usize,
     pub(crate) dynamic_geometry_draw_count: usize,
     pub(crate) indirect_draw_count: usize,
@@ -27,6 +29,8 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) dynamic_batch_candidate_draw_count: usize,
     pub(crate) gpu_instancing_candidate_group_count: usize,
     pub(crate) gpu_instancing_candidate_draw_count: usize,
+    pub(crate) previous_motion_vector_transform_draw_count: usize,
+    pub(crate) missing_motion_vector_transform_draw_count: usize,
 }
 
 pub(crate) fn prepare_mesh_queue(draws: &[MeshDraw]) -> PreparedMeshQueue<'_> {
@@ -34,11 +38,14 @@ pub(crate) fn prepare_mesh_queue(draws: &[MeshDraw]) -> PreparedMeshQueue<'_> {
         .iter()
         .filter(|draw| draw.queue_profile().early_z_eligible())
         .collect::<Vec<_>>();
-    let stats = summarize_prepared_mesh_queue_items::<MeshDrawBatchKey>(
-        draws
-            .iter()
-            .map(|draw| (draw.queue_profile(), draw.batch_key())),
-    );
+    let stats = summarize_prepared_mesh_queue_items::<MeshDrawBatchKey>(draws.iter().map(|draw| {
+        (
+            draw.queue_profile(),
+            draw.casts_shadow(),
+            draw.has_previous_motion_vector_transform(),
+            draw.batch_key(),
+        )
+    }));
 
     PreparedMeshQueue {
         early_z_draws,
@@ -57,7 +64,7 @@ impl<'a> PreparedMeshQueue<'a> {
 }
 
 pub(crate) fn summarize_prepared_mesh_queue_items<K>(
-    items: impl IntoIterator<Item = (MeshDrawQueueProfile, K)>,
+    items: impl IntoIterator<Item = (MeshDrawQueueProfile, bool, bool, K)>,
 ) -> PreparedMeshQueueStats
 where
     K: Clone + Eq + Hash,
@@ -67,12 +74,19 @@ where
     let mut dynamic_batch_groups = HashMap::<K, usize>::new();
     let mut gpu_instancing_groups = HashMap::<K, usize>::new();
 
-    for (profile, key) in items {
+    for (profile, casts_shadow, has_previous_motion_vector_transform, key) in items {
         stats.draw_count += 1;
-        match profile.phase() {
+        let phase = profile.phase();
+        match phase {
             MeshDrawQueuePhase::Opaque => stats.opaque_draw_count += 1,
             MeshDrawQueuePhase::AlphaMask => stats.alpha_mask_draw_count += 1,
             MeshDrawQueuePhase::Transparent => stats.transparent_draw_count += 1,
+        }
+        if casts_shadow {
+            stats.shadow_caster_draw_count += 1;
+            if matches!(phase, MeshDrawQueuePhase::AlphaMask) {
+                stats.alpha_mask_shadow_caster_draw_count += 1;
+            }
         }
         if profile.early_z_eligible() {
             stats.early_z_draw_count += 1;
@@ -83,6 +97,13 @@ where
         }
         if profile.uses_indirect_draw() {
             stats.indirect_draw_count += 1;
+        }
+        if profile.motion_vector_history_eligible() {
+            if has_previous_motion_vector_transform {
+                stats.previous_motion_vector_transform_draw_count += 1;
+            } else {
+                stats.missing_motion_vector_transform_draw_count += 1;
+            }
         }
         if profile.static_batch_eligible() {
             *static_batch_groups.entry(key.clone()).or_default() += 1;
@@ -123,31 +144,37 @@ mod tests {
     #[test]
     fn prepared_queue_stats_allow_early_z_only_for_opaque_and_alpha_mask() {
         let stats = summarize_prepared_mesh_queue_items([
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                true,
+                false,
                 1_u8,
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::AlphaMask,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                true,
+                false,
                 2,
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Transparent,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                false,
+                false,
                 3,
             ),
         ]);
@@ -157,72 +184,141 @@ mod tests {
         assert_eq!(stats.alpha_mask_draw_count, 1);
         assert_eq!(stats.transparent_draw_count, 1);
         assert_eq!(stats.early_z_draw_count, 2);
+        assert_eq!(stats.shadow_caster_draw_count, 2);
+        assert_eq!(stats.alpha_mask_shadow_caster_draw_count, 1);
+    }
+
+    #[test]
+    fn prepared_queue_stats_filter_material_shadow_casters_without_changing_phase_counts() {
+        let stats = summarize_prepared_mesh_queue_items([
+            item(
+                profile(
+                    MeshDrawQueuePhase::Opaque,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Static,
+                    false,
+                ),
+                true,
+                false,
+                1_u8,
+            ),
+            item(
+                profile(
+                    MeshDrawQueuePhase::Opaque,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Static,
+                    false,
+                ),
+                false,
+                false,
+                2,
+            ),
+            item(
+                profile(
+                    MeshDrawQueuePhase::AlphaMask,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Static,
+                    false,
+                ),
+                false,
+                false,
+                3,
+            ),
+        ]);
+
+        assert_eq!(stats.draw_count, 3);
+        assert_eq!(stats.opaque_draw_count, 2);
+        assert_eq!(stats.alpha_mask_draw_count, 1);
+        assert_eq!(stats.early_z_draw_count, 3);
+        assert_eq!(stats.shadow_caster_draw_count, 1);
+        assert_eq!(stats.alpha_mask_shadow_caster_draw_count, 0);
+    }
+
+    #[test]
+    fn shadow_caster_phase_matches_early_z_phase_policy() {
+        assert!(MeshDrawQueuePhase::Opaque.casts_shadow());
+        assert!(MeshDrawQueuePhase::AlphaMask.casts_shadow());
+        assert!(!MeshDrawQueuePhase::Transparent.casts_shadow());
     }
 
     #[test]
     fn prepared_queue_stats_require_repeated_direct_prepared_keys_for_batching() {
         let stats = summarize_prepared_mesh_queue_items([
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                true,
+                false,
                 "static-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                true,
+                false,
                 "static-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Dynamic,
                     false,
                 ),
+                true,
+                false,
                 "dynamic-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Dynamic,
                     false,
                 ),
+                true,
+                false,
                 "dynamic-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Dynamic,
                     Mobility::Dynamic,
                     false,
                 ),
+                true,
+                false,
                 "dynamic-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Opaque,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     true,
                 ),
+                true,
+                false,
                 "static-a",
             ),
-            (
+            item(
                 profile(
                     MeshDrawQueuePhase::Transparent,
                     MeshDrawGeometrySource::Prepared,
                     Mobility::Static,
                     false,
                 ),
+                false,
+                false,
                 "static-a",
             ),
         ]);
@@ -236,6 +332,73 @@ mod tests {
         assert_eq!(stats.dynamic_batch_candidate_draw_count, 2);
         assert_eq!(stats.gpu_instancing_candidate_group_count, 2);
         assert_eq!(stats.gpu_instancing_candidate_draw_count, 4);
+    }
+
+    #[test]
+    fn prepared_queue_stats_count_dynamic_motion_vector_history_readiness() {
+        let stats = summarize_prepared_mesh_queue_items([
+            item(
+                profile(
+                    MeshDrawQueuePhase::Opaque,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Static,
+                    false,
+                ),
+                true,
+                true,
+                "static-with-history",
+            ),
+            item(
+                profile(
+                    MeshDrawQueuePhase::Opaque,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Dynamic,
+                    false,
+                ),
+                true,
+                true,
+                "dynamic-opaque-ready",
+            ),
+            item(
+                profile(
+                    MeshDrawQueuePhase::AlphaMask,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Dynamic,
+                    false,
+                ),
+                true,
+                false,
+                "dynamic-alpha-missing",
+            ),
+            item(
+                profile(
+                    MeshDrawQueuePhase::Transparent,
+                    MeshDrawGeometrySource::Prepared,
+                    Mobility::Dynamic,
+                    false,
+                ),
+                false,
+                true,
+                "dynamic-transparent-ready",
+            ),
+        ]);
+
+        assert_eq!(stats.previous_motion_vector_transform_draw_count, 2);
+        assert_eq!(stats.missing_motion_vector_transform_draw_count, 1);
+    }
+
+    fn item<K>(
+        profile: MeshDrawQueueProfile,
+        casts_shadow: bool,
+        has_previous_motion_vector_transform: bool,
+        key: K,
+    ) -> (MeshDrawQueueProfile, bool, bool, K) {
+        (
+            profile,
+            casts_shadow,
+            has_previous_motion_vector_transform,
+            key,
+        )
     }
 
     fn profile(

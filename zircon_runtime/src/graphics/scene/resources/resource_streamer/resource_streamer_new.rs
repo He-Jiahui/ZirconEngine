@@ -5,7 +5,7 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::RenderMaterialPropertyUniformPayload;
 
 use super::super::fallback::create_fallback_texture;
-use super::super::GpuMaterialUniformResource;
+use super::super::{GpuMaterialUniformResource, OutputTargetWritebackConverter};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -23,6 +23,7 @@ impl ResourceStreamer {
             meshes: HashMap::new(),
             materials: HashMap::new(),
             textures: HashMap::new(),
+            output_target_textures: HashMap::new(),
             post_process_lut_textures: HashMap::new(),
             shaders: HashMap::new(),
             fallback_texture: Arc::new(create_fallback_texture(device, queue, texture_layout)),
@@ -31,6 +32,7 @@ impl ResourceStreamer {
                 material_layout,
                 &RenderMaterialPropertyUniformPayload::default(),
             )),
+            output_target_writeback_converter: OutputTargetWritebackConverter::new(device),
             last_material_count: 0,
             last_material_ready_count: 0,
             last_material_fallback_count: 0,
@@ -45,6 +47,8 @@ impl ResourceStreamer {
             last_post_process_lut_2d_strip_ready_count: 0,
             last_post_process_lut_3d_request_count: 0,
             last_post_process_lut_unsupported_shape_count: 0,
+            last_output_target_graph_import_report: Default::default(),
+            last_output_target_writeback_report: Default::default(),
         }
     }
 

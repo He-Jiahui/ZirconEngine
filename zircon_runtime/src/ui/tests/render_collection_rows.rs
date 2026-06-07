@@ -1,4 +1,4 @@
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
@@ -57,6 +57,24 @@ background_color = "#0d4149"
             ..UiStateFlags::default()
         },
     );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(5),
+        "TreeRow",
+        UiFrame::new(12.0, 124.0, 240.0, 24.0),
+        r##"
+label = "RuntimeFolder"
+expanded = false
+icon = "folder"
+"##,
+        visible_state(),
+    );
+    assert!(surface
+        .component_states
+        .set_expanded(UiNodeId::new(5), true));
+    surface
+        .mark_component_state_render_dirty(UiNodeId::new(5))
+        .unwrap();
 
     surface.rebuild();
 
@@ -120,6 +138,18 @@ background_color = "#0d4149"
             && command.text.as_deref() == Some("Asset_01")
             && command.style.painter_family == UiPainterFamily::TableRow
             && command.style.painter_state == UiPainterResolvedState::Pressed
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(5)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
+            && command.style.painter_family == UiPainterFamily::TreeRow
+            && command.style.painter_state == UiPainterResolvedState::Normal
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(5)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-right".to_string()))
     }));
     assert_eq!(
         commands

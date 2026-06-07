@@ -2,74 +2,56 @@
 related_code:
   - zircon_hub/Cargo.toml
   - zircon_hub/build.rs
-  - zircon_hub/ui/components.slint
-  - zircon_hub/ui/button_components.slint
-  - zircon_hub/ui/icon_button_components.slint
-  - zircon_hub/ui/button_state_sample_components.slint
-  - zircon_hub/ui/compact_page_components.slint
-  - zircon_hub/ui/tokens.slint
-  - zircon_hub/ui/material_bridge.slint
-  - zircon_hub/ui/theme.slint
-  - zircon_hub/ui/layout.slint
-  - zircon_hub/ui/surfaces.slint
-  - zircon_hub/ui/inputs.slint
-  - zircon_hub/ui/text_input_components.slint
-  - zircon_hub/ui/input_state_components.slint
-  - zircon_hub/ui/shell_header_components.slint
-  - zircon_hub/ui/shell_header_popup_components.slint
-  - zircon_hub/ui/shell_layout_components.slint
-  - zircon_hub/ui/shell_sidebar_components.slint
-  - zircon_hub/ui/shell_page_components.slint
-  - zircon_hub/ui/navigation.slint
-  - zircon_hub/ui/row_slot_components.slint
-  - zircon_hub/ui/data_display.slint
-  - zircon_hub/ui/list_container_components.slint
-  - zircon_hub/ui/table_view_components.slint
-  - zircon_hub/ui/tree_view_components.slint
-  - zircon_hub/ui/operation_timeline_components.slint
-  - zircon_hub/ui/overlays.slint
-  - zircon_hub/ui/dropdown_components.slint
-  - zircon_hub/ui/drawer_window_components.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_dashboard_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/editor.slint
-  - zircon_hub/ui/editor_page_components.slint
-  - zircon_hub/ui/builds.slint
-  - zircon_hub/ui/builds_page_components.slint
-  - zircon_hub/ui/assets.slint
-  - zircon_hub/ui/catalog_page_components.slint
-  - zircon_hub/ui/catalog_detail_components.slint
-  - zircon_hub/ui/cloud.slint
-  - zircon_hub/ui/cloud_page_components.slint
-  - zircon_hub/ui/learn.slint
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/team.slint
-  - zircon_hub/ui/team_page_components.slint
-  - zircon_hub/ui/settings.slint
-  - zircon_hub/ui/settings_page_components.slint
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/root_paths.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/source_engine_paths.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/media.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/team.rs
+  - zircon_hub/hub.toml
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/learn_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/output_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/settings_actions.rs
+  - zircon_hub/capabilities/default.json
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/action_history.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/tauri_app/view_model/project_templates.rs
+  - zircon_hub/src/tauri_app/view_model/settings_dto.rs
+  - zircon_hub/src/tauri_app/view_model/ui_text.rs
+  - zircon_hub/src/process/folder_picker.rs
+  - zircon_hub/src/state/hub_snapshot.rs
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/tauri/hubApi.ts
+  - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/data/hubData.ts
+  - zircon_hub/web/src/settings/options.ts
+  - zircon_hub/web/src/types/hub.ts
+  - zircon_hub/web/src/components/inputs/HubCheckbox.tsx
+  - zircon_hub/web/src/components/inputs/HubSwitch.tsx
+  - zircon_hub/web/src/components/data/HubList.tsx
+  - zircon_hub/web/src/components/data/HubTreeView.tsx
+  - zircon_hub/web/src/components/data/ProjectTable.tsx
+  - zircon_hub/web/src/components/data/SourceEngineList.tsx
+  - zircon_hub/web/src/components/overlays/HubPopover.tsx
+  - zircon_hub/web/src/components/overlays/SourceEnginePopover.tsx
+  - zircon_hub/web/src/components/overlays/UserMenuPopover.tsx
+  - zircon_hub/web/src/components/shell/TopBar.tsx
+  - zircon_hub/web/src/components/shell/HubWindow.tsx
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/TeamPage.tsx
+  - zircon_hub/web/src/pages/SettingsPage.tsx
+  - zircon_hub/web/src/pages/WorkspacePage.tsx
+  - zircon_hub/tests/tauri_react_shell_contract.rs
   - zircon_hub/src/assets/catalog.rs
   - zircon_hub/src/learn/catalog.rs
   - zircon_hub/src/plugins/catalog.rs
@@ -78,12 +60,12 @@ related_code:
   - zircon_hub/src/projects/metadata.rs
   - zircon_hub/src/state/hub_snapshot.rs
   - zircon_hub/src/team/local_git.rs
-  - zircon_hub/src/app/localization.rs
   - zircon_hub/tests/project_management_contract.rs
   - zircon_hub/tests/project_workflow_contract.rs
   - zircon_hub/tests/project_path_scope_contract.rs
   - zircon_hub/tests/project_source_engine_contract.rs
   - zircon_hub/tests/project_page_copy_contract.rs
+  - zircon_hub/tests/project_cloud_local_delivery_contract.rs
   - zircon_hub/tests/project_quick_actions_contract.rs
   - zircon_hub/tests/ui_contract.rs
   - zircon_hub/tests/ui_global_rules_contract.rs
@@ -139,80 +121,62 @@ related_code:
   - docs/ui-and-layout/hub-web-reference/validate-interactions.mjs
   - docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/SKILL.md
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1
   - dev/material-rust-template/README.md
   - dev/material-rust-template/material-1.0/material.slint
 implementation_files:
   - zircon_hub/Cargo.toml
   - zircon_hub/build.rs
-  - zircon_hub/ui/components.slint
-  - zircon_hub/ui/button_components.slint
-  - zircon_hub/ui/icon_button_components.slint
-  - zircon_hub/ui/button_state_sample_components.slint
-  - zircon_hub/ui/compact_page_components.slint
-  - zircon_hub/ui/tokens.slint
-  - zircon_hub/ui/material_bridge.slint
-  - zircon_hub/ui/theme.slint
-  - zircon_hub/ui/layout.slint
-  - zircon_hub/ui/surfaces.slint
-  - zircon_hub/ui/inputs.slint
-  - zircon_hub/ui/text_input_components.slint
-  - zircon_hub/ui/input_state_components.slint
-  - zircon_hub/ui/shell_header_components.slint
-  - zircon_hub/ui/shell_header_popup_components.slint
-  - zircon_hub/ui/shell_layout_components.slint
-  - zircon_hub/ui/shell_sidebar_components.slint
-  - zircon_hub/ui/shell_page_components.slint
-  - zircon_hub/ui/navigation.slint
-  - zircon_hub/ui/row_slot_components.slint
-  - zircon_hub/ui/data_display.slint
-  - zircon_hub/ui/list_container_components.slint
-  - zircon_hub/ui/table_view_components.slint
-  - zircon_hub/ui/tree_view_components.slint
-  - zircon_hub/ui/operation_timeline_components.slint
-  - zircon_hub/ui/overlays.slint
-  - zircon_hub/ui/dropdown_components.slint
-  - zircon_hub/ui/drawer_window_components.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_dashboard_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/editor.slint
-  - zircon_hub/ui/editor_page_components.slint
-  - zircon_hub/ui/builds.slint
-  - zircon_hub/ui/builds_page_components.slint
-  - zircon_hub/ui/assets.slint
-  - zircon_hub/ui/cloud.slint
-  - zircon_hub/ui/cloud_page_components.slint
-  - zircon_hub/ui/catalog_page_components.slint
-  - zircon_hub/ui/catalog_detail_components.slint
-  - zircon_hub/ui/learn.slint
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/team.slint
-  - zircon_hub/ui/team_page_components.slint
-  - zircon_hub/ui/settings.slint
-  - zircon_hub/ui/settings_page_components.slint
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/root_paths.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/source_engine_paths.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/media.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/team.rs
+  - zircon_hub/hub.toml
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/learn_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/output_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/settings_actions.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/action_history.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/tauri_app/view_model/project_templates.rs
+  - zircon_hub/src/tauri_app/view_model/settings_dto.rs
+  - zircon_hub/src/tauri_app/view_model/ui_text.rs
+  - zircon_hub/src/process/folder_picker.rs
+  - zircon_hub/src/state/hub_snapshot.rs
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/tauri/hubApi.ts
+  - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/settings/options.ts
+  - zircon_hub/web/src/types/hub.ts
+  - zircon_hub/web/src/components/inputs/HubCheckbox.tsx
+  - zircon_hub/web/src/components/inputs/HubSwitch.tsx
+  - zircon_hub/web/src/components/data/HubList.tsx
+  - zircon_hub/web/src/components/data/HubTreeView.tsx
+  - zircon_hub/web/src/components/data/ProjectTable.tsx
+  - zircon_hub/web/src/components/data/SourceEngineList.tsx
+  - zircon_hub/web/src/components/overlays/HubPopover.tsx
+  - zircon_hub/web/src/components/overlays/SourceEnginePopover.tsx
+  - zircon_hub/web/src/components/overlays/UserMenuPopover.tsx
+  - zircon_hub/web/src/components/shell/TopBar.tsx
+  - zircon_hub/web/src/components/shell/HubWindow.tsx
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/TeamPage.tsx
+  - zircon_hub/web/src/pages/SettingsPage.tsx
+  - zircon_hub/web/src/pages/WorkspacePage.tsx
   - zircon_hub/src/assets/catalog.rs
   - zircon_hub/src/learn/catalog.rs
   - zircon_hub/src/plugins/catalog.rs
@@ -221,12 +185,12 @@ implementation_files:
   - zircon_hub/src/projects/metadata.rs
   - zircon_hub/src/state/hub_snapshot.rs
   - zircon_hub/src/team/local_git.rs
-  - zircon_hub/src/app/localization.rs
   - zircon_hub/tests/project_management_contract.rs
   - zircon_hub/tests/project_workflow_contract.rs
   - zircon_hub/tests/project_path_scope_contract.rs
   - zircon_hub/tests/project_source_engine_contract.rs
   - zircon_hub/tests/project_page_copy_contract.rs
+  - zircon_hub/tests/project_cloud_local_delivery_contract.rs
   - zircon_hub/tests/project_quick_actions_contract.rs
   - zircon_hub/tests/ui_contract.rs
   - zircon_hub/tests/ui_global_rules_contract.rs
@@ -282,7 +246,10 @@ implementation_files:
   - docs/ui-and-layout/hub-web-reference/validate-interactions.mjs
   - docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/SKILL.md
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1
 plan_sources:
   - user: 2026-05-19 implement Zircon Hub responsive componentization plan
   - user: 2026-05-19 directly introduce the Slint Material UI template instead of designing a custom clone
@@ -323,6 +290,7 @@ plan_sources:
   - .opencode/workflows/20260528_231820_026_优化hub[image Zircon Hub 响应式组件化重构计划.md]/hub-docs-contract-refresh/review-surface.md
 tests:
   - cargo test -p zircon_hub --test ui_foundation_contract --locked -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml team_overview_ -- --nocapture
   - cargo test -p zircon_hub --test ui_global_rules_contract --locked -- --nocapture
   - cargo test -p zircon_hub --test ui_material_usage_contract --locked -- --nocapture
   - cargo test -p zircon_hub --test ui_typography_contract --locked -- --nocapture
@@ -341,8 +309,33 @@ tests:
   - node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs
   - cargo test --manifest-path zircon_hub\Cargo.toml --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-hub-visual-standard-0529 --test ui_visual_standard_contract --message-format short --color never
   - cargo test -p zircon_hub --test project_workflow_contract --locked --jobs 1 -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test project_cloud_local_delivery_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml settings_draft_folder_changes_wait_for_save_settings
+  - cargo test --manifest-path zircon_hub/Cargo.toml save_settings_refreshes_source_scoped_catalogs_in_returned_view_model -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml keeps_first_source_engine_root_before_fallback_limit -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml settings_health_includes_rustup_path_status -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml import_project_folder_picker_title_uses_current_language -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml import_project_missing_manifest_failure_localizes_task_summary -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml open_output_folder_missing_target_failure_localizes_task_summary -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml open_output_folder_missing_directory_failure_localizes_task_summary -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml open_resource_missing_catalog_file_failure_localizes_task_summary -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml project_view_action_status_localizes_in_chinese_view_model -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml chinese_bundle_localizes_page_and_status_copy -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml action_history_row_localizes_open_output_success_detail -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml editor_launch_missing_executable_failure_localizes_task_summary -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml editor_launch_completion_localizes_task_summary_and_history -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml package_completion_localizes_success_summary_and_history -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml install_completion_localizes_success_summary_and_history -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml background_build
+  - cargo test --manifest-path zircon_hub/Cargo.toml background_actions_queue_while_worker_is_active_and_dequeue_fifo -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml background_editor_launch
+  - cargo test --manifest-path zircon_hub/Cargo.toml background_package
+  - cargo test --manifest-path zircon_hub/Cargo.toml background_install
+  - cargo test --manifest-path zircon_hub/Cargo.toml ui_text_defaults_to_chinese_shell_and_project_copy
   - cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_hub --test ui_selected_project_catalog_contract --locked --jobs 1 -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test tauri_react_shell_contract react_shell_routes_project_and_workspace_pages_through_shared_state
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_foundation_contract backend_commands_and_view_model_keep_rust_state_as_source_of_truth
   - zircon_hub/tests/hub_docs_contract.rs
   - cargo test -p zircon_hub --test hub_docs_contract --locked --jobs 1 -- --nocapture
   - cargo fmt --manifest-path zircon_hub\Cargo.toml --check
@@ -353,7 +346,6 @@ tests:
   - cargo test --manifest-path zircon_hub\Cargo.toml --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-hub-e2e-0528 --test ui_project_layout_contract --test ui_panel_slot_contract --test ui_inputs_contract --test ui_material_usage_contract --test ui_page_surface_coverage_contract --test ui_typography_contract --test ui_project_navigation_contract --test ui_global_rules_contract --message-format short --color never
   - cargo build --manifest-path zircon_hub\Cargo.toml --bin zircon_hub --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-hub-e2e-0528 --message-format short --color never
   - cargo check --manifest-path zircon_hub\Cargo.toml --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-hub-e2e-0528 --message-format short --color never
-  - git diff --check -- zircon_hub\ui\project_dashboard.slint zircon_hub\ui\project_dashboard_components.slint zircon_hub\ui\project_new_page.slint zircon_hub\ui\project_browser_page.slint zircon_hub\ui\project_detail_page.slint zircon_hub\ui\project_page_components.slint zircon_hub\ui\project_browser_components.slint zircon_hub\ui\project_detail_components.slint zircon_hub\tests\ui_project_layout_contract.rs docs\zircon_hub\ui\responsive-component-system.md .codex\sessions\20260529-0106-hub-projects-responsive.md
   - cargo fmt --manifest-path zircon_hub\Cargo.toml --check
   - rustfmt --edition 2021 --check zircon_hub\tests\ui_foundation_contract.rs
   - cargo test --manifest-path zircon_hub\Cargo.toml --locked --offline --jobs 1 --test ui_foundation_contract --message-format short --color never
@@ -423,7 +415,6 @@ tests:
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_shell_contract.rs -o target\hub-material-check\ui_shell_contract_0524.exe; target\hub-material-check\ui_shell_contract_0524.exe --nocapture
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-material-check\ui_contract_shell_split_0524.exe; target\hub-material-check\ui_contract_shell_split_0524.exe --nocapture
   - git diff --check -- zircon_hub\tests\ui_contract.rs zircon_hub\tests\ui_shell_contract.rs docs\zircon_hub\index.md docs\zircon_hub\ui\responsive-component-system.md .codex\sessions\20260522-0348-hub-pageslot-editor-height.md
-  - git diff --check -- zircon_hub/ui/inputs.slint zircon_hub/tests/ui_contract.rs docs/zircon_hub/ui/responsive-component-system.md
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-toolbar-select-chevron-0524.exe; target\hub-toolbar-select-chevron-0524.exe --nocapture
   - rustfmt --edition 2021 --check zircon_hub\tests\ui_contract.rs
   - cargo build --manifest-path zircon_hub\Cargo.toml --bin zircon_hub --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-hub-detail-delete-0524-c --message-format short --color never
@@ -431,13 +422,11 @@ tests:
   - target/hub-visual-check/hub-projects-toolbar-chevron-1280x900-0524/hub-projects-{browser,browser-filter-menu,browser-sort-menu}.png
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1 -BinaryPath D:\cargo-targets\zircon-hub-detail-delete-0524-c\debug\zircon_hub.exe -WindowWidth 1600 -WindowHeight 1024 -OutputDir target\hub-visual-check\hub-projects-toolbar-chevron-1600x1024-0524 -CaptureBrowserMenus
   - target/hub-visual-check/hub-projects-toolbar-chevron-1600x1024-0524/hub-projects-{dashboard,new-project,browser,detail,browser-filter-menu,browser-sort-menu}.png
-  - git diff --check -- zircon_hub/ui/project_pages.slint zircon_hub/tests/ui_contract.rs .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1 .codex/skills/zircon-project-skills/capture-hub-window-screenshot/SKILL.md docs/zircon_hub/ui/responsive-component-system.md
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-delete-confirm-0524\ui_contract_delete_confirm.exe; target\hub-delete-confirm-0524\ui_contract_delete_confirm.exe --nocapture
   - cargo build -p zircon_hub --bin zircon_hub --locked --offline --jobs 1 --message-format short --color never
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1 -WindowWidth 1600 -WindowHeight 1024 -OutputDir target/hub-visual-check/hub-projects-1600x1024-delete-confirm -CapturePendingDelete
   - target/hub-visual-check/hub-projects-1600x1024-delete-confirm/hub-projects-{dashboard,new-project,browser,detail,detail-delete-confirm}.png
   - cargo fmt -p zircon_hub --check
-  - git diff --check -- zircon_hub/ui/surfaces.slint zircon_hub/ui/project_pages.slint zircon_hub/tests/ui_contract.rs docs/zircon_hub/ui/responsive-component-system.md
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-compact-delete-0524\ui_contract_compact_delete.exe; target\hub-compact-delete-0524\ui_contract_compact_delete.exe --nocapture
   - cargo build -p zircon_hub --bin zircon_hub --locked --offline --jobs 1 --message-format short --color never
   - cargo test -p zircon_hub --locked --offline --jobs 1 --message-format short --color never
@@ -446,13 +435,11 @@ tests:
   - target/hub-visual-check/hub-projects-1024x720-statusbanner-final-0524/hub-projects-{dashboard,new-project,browser,detail,detail-delete-ready,detail-delete-confirm}.png
   - target/hub-visual-check/hub-projects-1600x1024-statusbanner-final-0524/hub-projects-{dashboard,new-project,browser,detail,detail-delete-confirm}.png
   - cargo fmt -p zircon_hub --check
-  - git diff --check -- zircon_hub/ui/app.slint zircon_hub/tests/ui_contract.rs docs/zircon_hub/ui/responsive-component-system.md
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-subpage-header-0524\ui_contract_subpage_header.exe; target\hub-subpage-header-0524\ui_contract_subpage_header.exe --nocapture
   - cargo build -p zircon_hub --bin zircon_hub --locked --offline --jobs 1 --message-format short --color never
   - target/hub-visual-check/hub-projects-1024x720-subpage-header-hidden/hub-projects-{dashboard,new-project,browser,detail}.png
   - target/hub-visual-check/hub-projects-1280x900-subpage-header-hidden/hub-projects-{dashboard,new-project,browser,detail}.png
   - cargo fmt -p zircon_hub --check
-  - git diff --check -- zircon_hub/ui/app.slint zircon_hub/tests/ui_contract.rs docs/zircon_hub/ui/responsive-component-system.md
   - CARGO_MANIFEST_DIR=E:\Git\ZirconEngine\zircon_hub rustc --edition=2021 --test zircon_hub\tests\ui_contract.rs -o target\hub-project-actions-0524\ui_contract_project_actions.exe; target\hub-project-actions-0524\ui_contract_project_actions.exe --nocapture
   - cargo build -p zircon_hub --bin zircon_hub --locked --offline --jobs 1 --message-format short --color never
   - target/hub-visual-check/hub-projects-1024x720-project-actions-hidden/hub-projects-{dashboard,new-project,browser,detail}.png
@@ -676,6 +663,9 @@ tests:
   - cargo test -p zircon_hub --test ui_workspace_layout_contract --locked
   - cargo test -p zircon_hub --test ui_taffy_layout_contract --locked
   - cargo check -p zircon_hub --locked
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1 -OutputDir target/hub-visual-check/tauri-project-pages-full-matrix -CapturePendingDelete -CaptureBrowserMenus
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1
 doc_type: module-detail
 ---
 
@@ -693,7 +683,7 @@ Foundation primitives must expose semantic state instead of page-local visual fo
 
 Acceptance for this milestone is the focused command set recorded in the document header: `ui_foundation_contract`, `ui_global_rules_contract`, `ui_material_usage_contract`, `ui_typography_contract`, `ui_inputs_contract`, `ui_navigation_contract`, `ui_data_display_contract`, `ui_panel_slot_contract`, and `cargo check -p zircon_hub --locked`. Downstream shell/page polish may consume these token and primitive contracts, but should not rename or bypass them without updating the same owner files and contract tests.
 
-`docs/ui-and-layout/hub.png` is the Projects Dashboard pixel reference. `HubVisualSpec` in `zircon_hub/ui/tokens.slint` defines the shared reference canvas, radius, density, panel, outline, and state-color tokens that pages must consume through shared Hub components.
+`docs/ui-and-layout/hub.png` is the Projects Dashboard pixel reference. The React/MUI theme tokens in `zircon_hub/web/src/theme/tokens.ts` define the shared reference canvas, radius, density, panel, outline, and state-color values that pages consume through shared Hub components.
 
 The companion `1568x1003` design PNG set under `docs/ui-and-layout/` is now AI-directed, HTML/CSS-finalized. `docs/ui-and-layout/hub-ai-reference-manifest.json` records `docs/ui-and-layout/hub.png` as the source reference, the prompt family, selected page draft role, AI structure-layout direction drafts, and final export filenames. `docs/ui-and-layout/hub-ai-reference-manifest.schema.json` is the manifest schema contract, and `docs/ui-and-layout/hub-web-reference/validate-visuals.mjs` runs schema subset validation plus negative schema self-tests for extra fields, missing reference output, short reference inventory, malformed AI draft paths, and canvas drift. Those AI drafts are for reviewing the overall interaction structure first: navigation, page regions, toolbars, card/table grids, side panels, dropdowns, modals, and state overlays. local functional-content callouts are secondary and only clarify page intent. `docs/ui-and-layout/hub-web-reference/export-pages.mjs` captures the static web reference with Playwright/Edge, so the final reference text, icons, spacing, menus, overlays, and state panels are authored in HTML/CSS. The exporter starts on port `5198` by default, falls back to a free local port when the default is occupied, and keeps explicit `ZIRCON_HUB_WEB_REFERENCE_PORT` strict. `docs/ui-and-layout/hub-web-reference/validate-interactions.mjs` then locks browser-openable page selection: it rejects unknown `data-route` and `href="?page=..."` targets, verifies exported PNG filename replay, verifies every `EXPORTS.md` replay path, and checks representative header, project, toolbar, and Quick Actions click routes. AI drafts are design direction only and are not acceptance evidence; real Hub captures remain runtime evidence and must still be collected with the Hub screenshot scripts before claiming runtime visual acceptance.
 
@@ -782,7 +772,7 @@ Cloud and Team top summary cards now share `OverviewPanel` from `surfaces.slint`
 
 The UI contract now blocks the specific unsafe dashboard card path as well: `ProjectFlow` must not reintroduce `available-content`, `card-height-token`, or dashboard card-height/basis properties sourced from page geometry and then consumed by the repeated card delegate. Card flow responsiveness stays with tokenized min/preferred widths plus the surrounding `Flow` layout.
 
-The `hub-responsive-baseline` milestone also records the standalone launcher boundary as part of the responsive baseline, not as a separate product decision. `zircon_hub` remains the only root package with the real Slint desktop Hub dependency, `build.rs` compiles `zircon_hub/ui/app.slint` with Slint 1.16.1 experimental flexbox and the local Material template bridge, and the Hub manifest must not depend on `zircon_runtime`, `zircon_editor`, `libloading`, WebView, HTML, or CSS stacks. Editor integration is deliberately process-oriented: `EditorLaunchCommand` builds `--project` and `--create-project` command lines and `launch_editor` spawns `zircon_editor` as a child process. Hub runtime code may orchestrate configs, recent projects, source engines, builds, package/install actions, and child-process status, but it must not register runtime lifecycle modules, dynamically load runtime libraries, or route Hub UI ownership into editor-owned Slint paths. `ui_foundation_contract.rs` now locks that boundary together with the component-system foundation contracts so future responsive work cannot accidentally solve layout issues by moving Hub into an editor/runtime/WebView surface.
+The historical `hub-responsive-baseline` milestone recorded the standalone launcher boundary before the Tauri cutover. The current boundary is different: `zircon_hub` owns a Tauri v2 desktop shell, `build.rs` delegates to `tauri_build`, and `tauri.conf.json` points the window at the Vite React frontend. Editor integration remains process-oriented: `EditorLaunchCommand` builds `--project` and `--create-project` command lines and `launch_editor` spawns `zircon_editor` as a child process. Hub runtime code may orchestrate configs, recent projects, source engines, builds, package/install actions, and child-process status, but it must not register runtime lifecycle modules, dynamically load runtime libraries, or route Hub UI ownership into editor-owned paths. `ui_foundation_contract.rs` now locks that boundary together with the React/MUI component-system foundation contracts.
 
 ## Runtime-State Data Flow
 
@@ -790,7 +780,7 @@ The runtime-state integration split is the UI data contract for selected-project
 
 `shared.slint` remains the DTO boundary. It can expose fields such as `has-selected-project`, `selected-project-label`, `source-engine-label`, `can-build`, disabled-reason copy, and row source labels. It cannot introduce callback-local filesystem scanning or selected-project lookup. Page roots and component wrappers forward those fields into shared wrappers such as `DashboardQuickActionsPanel`, `BuildControlsPanel`, `CatalogPage`, `CloudPackageActionsPanel`, `TeamMembersPanel`, `ProjectDetailPage`, and `OperationTimelinePanel`.
 
-Runtime owners for the flow are intentionally narrow. `HubSnapshot::scope()` resolves project and Source Engine state; `source_scoped_views.rs` owns Assets/Plugins/Learn/Team catalog roots; command handlers record success/failure through `record_action_and_persist()`; and restart-visible state lives in `HubConfig.runtime`. Dashboard Quick Actions are the only visible surface that may use latest-recent fallback when no selected project exists. Builds, Project Detail, catalog pages, and source-engine scoped panels consume selected-project or active-engine DTO copy from the snapshot instead of querying config or recent lists directly.
+Runtime owners for the flow are intentionally narrow. `HubSnapshot::scope()` resolves project and Source Engine state; `src/tauri_app/runtime_state/scoped_views.rs` owns Assets/Plugins/Learn/Team catalog roots; command handlers record success/failure through `record_action_and_persist()`; and restart-visible state lives in `HubConfig.runtime`. Dashboard Quick Actions are the only visible surface that may use latest-recent fallback when no selected project exists. Builds, Project Detail, catalog pages, and source-engine scoped panels consume selected-project or active-engine DTO copy from the snapshot instead of querying config or recent lists directly.
 
 The consolidation gate for this data flow is `hub-runtime-state-integration-contract-docs`. It ties `ui_selected_project_runtime_contract.rs`, `ui_selected_project_catalog_contract.rs`, `project_quick_actions_contract.rs`, `project_workflow_contract.rs`, `project_source_engine_contract.rs`, and `project_path_scope_contract.rs` together so the responsive component system can stay visual/layout-focused while the Rust contracts protect scope ownership.
 
@@ -838,7 +828,7 @@ Projects secondary pages use content-relative breakpoints rather than a single s
 
 Learn now follows the same selected-project snapshot contract as Assets, Plugins, and Team: project selection refreshes selected-project documentation before projection, while Source Engine changes still rebuild the source-scoped documentation set. The Learn row metadata carries Selected Project or Source Engine source labels, and the page title plus empty-state detail switch based on whether a project is selected.
 
-Quick-action fallback is part of the responsive workflow contract. When Package, Install, or Open Editor promotes the latest recent project because no project is selected, the runtime refreshes selected-project scoped Assets, Plugins, and Team data before projecting the next Hub snapshot; if that action activates a different bound Source Engine, it refreshes the full Assets/Learn/Plugins/Team source-scoped set. If `selected_project_path` is set but no longer resolves to a recent project, Quick Action projection and runtime helpers show selected-project-unavailable copy and treat it as no usable project target instead of promoting the newest recent project. Build can use the same selected/newest-recent target, but it is enabled only when that project has a Hub metadata binding to an installed Source Engine. Build target copy distinguishes a project with no binding from a stale binding whose Source Engine record is unavailable. Normal project selection uses the stricter selected-project path: when Hub metadata binds that project to a Source Engine, selection makes the bound engine current and refreshes project/engine scoped views before Builds, Cloud, Assets, Plugins, Team, Learn, or shell context render again. New Project uses the same engine-validity rule: create readiness requires the selected Source Engine id to resolve to an installed engine, runtime creation revalidates the id before activating the engine or launching the Editor, and the default engine tracks the active Source context only when the current default is empty, invalid, or was following the previous active engine. A valid explicit New Project engine choice remains stable across unrelated active-engine switches. Existing-project open only remembers the recent/selected project path; it does not write the current active Source Engine into Hub metadata, so unbound and stale binding states remain visible until New Project creation or an explicit Project Detail Source Engine choice updates them. The opened/created project remember path uses the same bound-engine activation before persisting the new `last_project_path`, so newly created project bindings are current in the next projected snapshot. Startup uses the Editor session's `last_project_path` only when it still matches a merged recent project, then restores `selected_project_path` before the first scoped catalogs are refreshed. Runtime selection, Quick Action target resolution, Quick Action visible target labels, Project Detail projection, remove-from-Hub, pending-delete cleanup, and selected-project scoped refresh change detection all use the shared `project_paths_match` rule, which reuses Hub project metadata key normalization instead of direct `PathBuf` equality and treats Windows drive-letter paths case-insensitively even when those persisted strings are validated on non-Windows hosts. Assets, Plugins, Learn, and Team scanner de-duplication use `project_filesystem_path_key`, which canonicalizes existing roots/manifests and then applies the same metadata-key rule; Source Engine registration now hashes and de-duplicates source checkout paths through that same filesystem key before migrating existing engine metadata. Startup, settings save, Source Engine selection/removal, build startup after registering settings, project actions that activate a bound engine, and Source/output folder browsing all call `source_scoped_views.rs` for the full Assets/Learn/Plugins/Team refresh set, so page data follows one source-scoped refresh contract instead of callback-local four-call chains. Team repository-scope projection falls back to `project_metadata_key` for non-canonical string comparisons. Project card, browser row, and detail projections also use only that per-project metadata for the visible engine/version binding; an unbound project stays localized as `Unbound`/`No Source Engine` even when Hub has another active Source Engine, while a stale stored engine id stays visible as metadata but renders localized `Source Engine unavailable`/`Unavailable` instead of a valid engine version. Project Detail status is localized as `Missing`, `Ready`, or `Invalid` from the same Rust projection before Builds and Projects pages render it. Builds page Build, Open Editor, Package, and Install rows route through selected-project-only callbacks that reuse the same build/package/install helpers without allowing the Dashboard quick-action fallback; Open Editor, Package, and Install stay disabled until `ProjectDetailData` has an actual selected project, while Build consumes the separate row/detail `can_build` flag so an openable but unbound or stale-bound project can still be opened, packaged, or installed without showing Build as available. Runtime also re-checks the valid bound Source Engine before building and refreshes source-scoped page data before projecting the building snapshot, so the Builds workflow cannot silently build or display stale context from the previously active engine. Removing or confirming deletion of the selected project clears those scoped views through the same refresh path; the shared remove helper also clears pending-delete state for the removed path after normalized matching. Confirm Delete waits for the Windows Recycle Bin command to finish successfully before removing Hub recent and project metadata, so a PowerShell/FileSystem deletion failure leaves the Hub entry intact and reports the command error instead of silently removing the project from Hub. Project-scoped actions also activate the project's bound Source Engine when Hub metadata has one, while `ProjectDetailData` remains an explicit no-selection row until `selected_project_path` is set.
+Quick-action fallback is part of the responsive workflow contract. When Package, Install, or Open Editor promotes the latest recent project because no project is selected, the Tauri runtime refreshes selected-project scoped Assets, Plugins, and Team data before projecting the next Hub snapshot; if that action activates a different bound Source Engine, it refreshes the full Assets/Learn/Plugins/Team source-scoped set. If `selected_project_path` is set but no longer resolves to a recent project, Quick Action projection and runtime helpers show selected-project-unavailable copy and treat it as no usable project target instead of promoting the newest recent project. Build can use the same selected/newest-recent target, but it is enabled only when that project has a Hub metadata binding to an installed Source Engine. Build target copy distinguishes a project with no binding from a stale binding whose Source Engine record is unavailable. Normal project selection uses the stricter selected-project path: when Hub metadata binds that project to a Source Engine, selection makes the bound engine current and refreshes project/engine scoped views before Builds, Cloud, Assets, Plugins, Team, Learn, or shell context render again. New Project uses the same engine-validity rule: create readiness requires the selected Source Engine id to resolve to an installed engine, runtime creation revalidates the id before activating the engine or launching the Editor, and the default engine tracks the active Source context only when the current default is empty, invalid, or was following the previous active engine. A valid explicit New Project engine choice remains stable across unrelated active-engine switches. Existing-project open only remembers the recent/selected project path; it does not write the current active Source Engine into Hub metadata, so unbound and stale binding states remain visible until New Project creation or an explicit Project Detail Source Engine choice updates them. The opened/created project remember path uses the same bound-engine activation before persisting the new `last_project_path`, so newly created project bindings are current in the next projected snapshot. Startup uses the Editor session's `last_project_path` only when it still matches a merged recent project, then restores `selected_project_path` before the first scoped catalogs are refreshed. Runtime selection, Quick Action target resolution, Quick Action visible target labels, Project Detail projection, remove-from-Hub, pending-delete cleanup, and selected-project scoped refresh change detection all use the shared `project_paths_match` rule, which reuses Hub project metadata key normalization instead of direct `PathBuf` equality and treats Windows drive-letter paths case-insensitively even when those persisted strings are validated on non-Windows hosts. Assets, Plugins, Learn, and Team scanner de-duplication use `project_filesystem_path_key`, which canonicalizes existing roots/manifests and then applies the same metadata-key rule; Source Engine registration now hashes and de-duplicates source checkout paths through that same filesystem key before migrating existing engine metadata. Startup, settings save, Source Engine selection/removal, build startup after registering settings, project actions that activate a bound engine, and Source/output folder browsing all call `src/tauri_app/runtime_state/scoped_views.rs` for the full Assets/Learn/Plugins/Team refresh set, so page data follows one source-scoped refresh contract instead of callback-local four-call chains. Team Git discovery now has behavior tests that create local project and Source Engine repositories: `scoped_views.rs` proves the selected project repository is preferred and the Source Engine repository is used when no project is selected. Project card, browser row, and detail projections also use only that per-project metadata for the visible engine/version binding; an unbound project stays localized as `Unbound`/`No Source Engine` even when Hub has another active Source Engine, while a stale stored engine id stays visible as metadata but renders localized `Source Engine unavailable`/`Unavailable` instead of a valid engine version. Project Detail status is localized as `Missing`, `Ready`, or `Invalid` from the same Rust projection before Builds and Projects pages render it. Builds page Build, Open Editor, Package, and Install rows route through selected-project-only callbacks that reuse the same build/package/install helpers without allowing the Dashboard quick-action fallback; Open Editor, Package, and Install stay disabled until `ProjectDetailData` has an actual selected project, while Build consumes the separate row/detail `can_build` flag so an openable but unbound or stale-bound project can still be opened, packaged, or installed without showing Build as available. Runtime also re-checks the valid bound Source Engine before building and refreshes source-scoped page data before projecting the building snapshot, so the Builds workflow cannot silently build or display stale context from the previously active engine. Removing or confirming deletion of the selected project clears those scoped views through the same refresh path; the shared remove helper also clears pending-delete state for the removed path after normalized matching. Confirm Delete waits for the Windows Recycle Bin command to finish successfully before removing Hub recent and project metadata, so a PowerShell/FileSystem deletion failure leaves the Hub entry intact and reports the command error instead of silently removing the project from Hub. Project-scoped actions also activate the project's bound Source Engine when Hub metadata has one, while `ProjectDetailData` remains an explicit no-selection row until `selected_project_path` is set.
 
 Plugins follows that same scoped snapshot rule: selected-project plugin manifests keep Project scope, engine manifests keep Source Engine scope, and the final `PluginData` projection repeats the Project-before-Engine ordering before rows reach Slint. Plugin manifest de-duplication now uses the same canonicalized filesystem path key as selected-project asset roots and Team Git root discovery, so scoped catalog rows keep one project/engine classification even when the same root is reached through an alias.
 
@@ -1202,8 +1192,98 @@ The text-input module split hard-cuts `SearchBox`, `HubTextField`, and `HubPathF
 
 ## Tauri React Shell Cutover
 
-The 2026-06-05 Hub shell cutover starts moving the runtime window from the compiled Slint tree to Tauri v2 plus React and real Material UI. `zircon_hub::tauri_app::run()` is now the binary entrypoint, `build.rs` delegates to `tauri_build::build()`, `tauri.conf.json` owns the fixed `1568x1003` undecorated desktop window, and Vite serves the React frontend from `zircon_hub/web` on port 1420.
+The 2026-06-05 Hub shell cutover starts moving the runtime window from the compiled Slint tree to Tauri v2 plus React and real Material UI. `zircon_hub::tauri_app::run()` is now the binary entrypoint, `build.rs` delegates to `tauri_build::build()`, `tauri.conf.json` owns the fixed `1568x1003` undecorated desktop window, `capabilities/default.json` binds the local `main` window to `core:default` plus the explicit minimize/toggle-maximize/close window permissions, and Vite serves the React frontend from `zircon_hub/web` on port 1420.
 
-The first React/MUI layer mirrors the existing bottom-up taxonomy instead of page-local pixel edits: `web/src/theme` owns tokens and MUI overrides, `components/inputs` owns low-level controls, `components/data` owns cards/tables/lists/status atoms, `components/overlays` owns menus, `components/shell` owns drawer/topbar/window composition, and `pages/ProjectsDashboard.tsx` only composes those families. `docs/zircon_hub/ui/tauri-react-shell.md` records the current implementation files and the new `tauri_react_shell_contract.rs` validation surface.
+The first React/MUI layer mirrors the existing bottom-up taxonomy instead of page-local pixel edits: `web/src/theme` owns tokens and MUI overrides, `components/inputs` owns low-level controls, `components/data` owns cards/tables/lists/status atoms, `components/overlays` owns menus/popovers, `components/shell` owns drawer/topbar/window composition, and `web/src/pages` only composes those families. `ProjectsDashboard.tsx` now owns the dashboard/New Project surface and routes project subpages to `ProjectBrowserPage.tsx` and `ProjectDetailPage.tsx`; those subpages reuse `ProjectTable`, `MetricCard`, `HubList`, `HubTreeView`, `SourceEngineList`, `StatusBadge`, and `QuickActions` instead of declaring page-local row or panel primitives. `EditorPage.tsx`, `BuildsPage.tsx`, and `CloudPage.tsx` now own the remaining top-level workspace routes with the same shared component family: editor launch/readiness panels, build/package/install progress and history panels, and local package/install/service-slot panels. `SettingsPage.tsx` owns the settings-specific composition and reuses the same input/data/feedback components for build defaults, path defaults, Source Engine selection, health rows, and advanced path trees. `docs/zircon_hub/ui/tauri-react-shell.md` records the current implementation files and the new `tauri_react_shell_contract.rs` validation surface.
 
-The old Slint files are retained only as historical static reference during this slice. They are no longer compiled into the Hub binary, and page-level Slint contracts must be migrated to React/MUI contracts before the old `zircon_hub/ui` tree can be deleted.
+The Tauri boundary is now folder-backed rather than a static one-file demo. `src/tauri_app/mod.rs` owns the launcher wrapper, `commands.rs` owns shared command state and `hub-state-changed` event emission, `runtime_state.rs` reuses Hub config, editor recent-project sync, source-engine registry repair, catalog discovery, and persistence, `runtime_state/build_actions.rs` owns editor/runtime build preparation and completion, `runtime_state/editor_launch_actions.rs` owns open-editor preparation and completion, `runtime_state/project_actions.rs` owns project create/import/lifecycle actions including the localized Import Project folder-picker title, `runtime_state/project_delivery_actions.rs` owns package/install preparation and completion, `runtime_state/quick_actions.rs` owns shared action-history helpers, and `view_model.rs` converts `HubSnapshot` into React JSON. That projection includes `browserProjects` for the full filtered table, `selectedProject` for Project Detail metadata, localized project modified-time/status strings, localized New Project template option labels and selected-project `templateLabel` values from `src/tauri_app/view_model/project_templates.rs`, localized `comingSoon` title/detail/status/meta entries for disabled asset/plugin/local-delivery/team capabilities, Settings option DTOs for build profile plus language choices, shell-popup/user-menu/fallback-workspace text, localized task status labels/details/recovery and known internal operation targets, localized project filter/sort/view-all feedback, localized package/install success details, delivery log excerpts, failure details, localized action-history action/status/detail/log-excerpt/recovery display text, and localized Source Engine active/registered statuses, so React pages do not infer selected path, pinned status, Source Engine binding, template display labels, missing-path state, option labels, Import Project or Settings folder-picker task feedback, popup labels, empty-state copy, history labels, project row status, workflow feedback, or "敬请期待" business copy from display rows. Settings keeps `debug`, `release`, `Chinese`, and `English` as stable payload values but derives metric, switch, checkbox, and tree text from localized option DTO labels before rendering. The React window passes one `onAction` dispatcher down through the top bar, drawer, Projects dashboard, browser page, detail page, Catalog Learn surface, Settings page, Source Engine popup, and user menu so navigation, search, filters, sort, view mode, project selection, detail transitions, Learn resource open requests, user menu navigation, and source-engine selection refresh the same composed state tree. Frontend action errors now stay on the current backend state and replace task feedback with an error summary instead of returning to fallback demo data.
+
+`src/tauri_app/view_model/coming_soon.rs` is the focused owner for disabled future-capability rows. The DTO keeps `category` as the stable routing key and exposes localized `categoryLabel` plus `meta` as visible text, letting Catalog, Cloud, Editor, Team, and fallback data render "敬请期待" rows with clear future capability categories while keeping filters independent from display language and page-local punctuation.
+
+The 2026-06-05 quick-action continuation moves build behavior into `src/tauri_app/runtime_state/build_actions.rs`, open-editor behavior into `src/tauri_app/runtime_state/editor_launch_actions.rs`, and package/install behavior into `src/tauri_app/runtime_state/project_delivery_actions.rs` instead of keeping command placeholders in the React shell. Build, open-editor, package, and install now prepare under the Hub-state lock, emit a running `HubViewModel`, release the lock while `tools/zircon_build.py`, editor process launch, or project package/device-install file copies run, then reacquire the lock to record action history and emit the final state. `src/tauri_app/runtime_state/action_tasks.rs` also owns the in-process FIFO background-action queue, so follow-up workflow clicks wait behind the active worker and `commands.rs` starts the next queued request only after the current completion/error state is emitted.
+
+The same Tauri/React migration now expands the MUI component stack to cover the lower-level and mid-level controls named in the target plan. `components/inputs` owns checkbox, switch, tabs, text field, combo box, select, toggle, button, icon-button, and search-field wrappers; `components/data` owns list, tree-view, metric-card, empty-state, card, table, panel, source-engine-list, quick-action-list, and badge wrappers; `components/feedback` owns snackbar/status-banner wrappers; and `components/overlays` owns dialog/menu/popover wrappers plus the Source Engine and user-menu popup compositions. `TopBar`, `ProjectsDashboard`, `ProjectBrowserPage`, `ProjectDetailPage`, `EditorPage`, `BuildsPage`, `CatalogPage`, `CloudPage`, `TeamPage`, `SettingsPage`, `WorkspacePage`, and `App` consume these shared components directly, so the new files are part of the assembled Hub surface instead of unused style samples. Source Engine popup headings/default labels, user-menu item labels/details, SourceEngineList empty states, and fallback Workspace page metrics/tabs/panels all flow through `state.ui.shell`, `state.ui.common`, or Settings text DTOs rather than local English strings. Workspace fallback page labels use Rust-projected navigation labels instead of stable route ids, and the fallback Workspace header button routes to Settings instead of saving without a draft. The `fallbackShellState` in `web/src/data/hubData.ts` is also kept on the Chinese-default path: when Tauri is unavailable or `hub_state` cannot load yet, visible sample project names, Source Engine status, asset kinds/sources, plugin display rows, Learn resource summaries, action-history targets, and Settings health rows render as Chinese, while ids, paths, command tokens, and packaging values remain stable machine data. The fallback health rows mirror the Rust DTO's editable toolchain coverage by including Python, Cargo, and Rustup before the project/source/build/device path rows, so first-paint Settings health is not missing an editable executable field. The first launch language stays Chinese by both Rust default and bundled `hub.toml`, so a missing user config and the checked-in developer config project the same default language. `CatalogPage` reuses the same catalog composition for Assets, Plugins, and Learn by switching row projection and tab filters from backend DTOs; Learn rows expose a localized `Open Resource` command that sends `{ resourceId, path }` through `HUB_ACTION.openResource`, while the Rust action validates the path against the current catalog before shell handoff and localizes missing catalog-file task/history failures before React renders them. `EditorPage` and `BuildsPage` reuse selected-project/source-engine/action-history DTOs for launch and workflow surfaces; action-history rows carry stable `kind` values such as `build-editor-runtime`, `open-editor`, `package-project`, and `install-project`, so Editor, Builds, and Cloud filter activity by DTO kind rather than by localized display labels. Builds history detail renders the stable target, localized finished time, output directory, recovery hint, command line, and localized log excerpt from the same DTO row, keeping workflow recovery data visible without page-local language fallback. Builds output-root/device-install folder rows, Cloud package-target output rows, and the Editor active Source Engine output button dispatch `open-output-folder` with typed `{ outputDir }` from the Settings or Source Engine DTO path fields instead of passing visible `HubList` detail text or generic visible-path payloads as the path; the React payload type now exposes only `outputDir` and `historyId`, while Rust resolves typed `outputDir` before the legacy `path` compatibility field for older callers. Cloud local package/install history rows render localized action detail plus the recorded `outputDir` field from the same action-history DTO, falling back only to localized `common.noOutputDirectory`; this keeps the local delivery handoff visible before the row opens its output folder without depending on detail-row ordering. `EditorPage` filters `comingSoon` plugin entries into a disabled reserved-operation panel for install/enable/marketplace actions, `CloudPage` reuses settings/action-history/`comingSoon` DTOs for local package, install, and reserved-service slots, and `TeamPage` uses the same list/tree/status/metric family for Git identity, contributor rows, disabled collaboration rows, and action-history detail. Cloud Reserved Services counts and lists only disabled `local-delivery` `comingSoon` entries, so local package/install rows stay out of the reserved-service count and remain in their concrete local workflow panels.
+
+The old Slint files have now been deleted from `zircon_hub/ui` after the page-level contracts moved to React/MUI source assertions. Runtime visuals now come from React components, theme tokens, and Hub runtime assets rather than historical `.slint` files.
+
+The hard-cutover now also removes the historical `zircon_hub/src/app` helper tree, including the old compiled Slint module root that contained `slint::include_modules!()`. The active Rust entry, command state, runtime session, build action owner, editor launch owner, project delivery owner, quick-action helper owner, and DTO projection live under `src/tauri_app`, while page and component contracts inspect `web/src` React/MUI sources directly.
+
+The Material usage contract migration is the first old UI contract slice rewritten against the React/MUI component stack. `ui_material_usage_contract.rs` now checks `package.json`, the repository-local `dev/material-ui` reference, `web/src/theme/tokens.ts`, `web/src/theme/muiTheme.ts`, input wrappers, data containers, feedback wrappers, overlays, shell composition, and routed page assembly. It no longer reads the old `zircon_hub/ui` component files or old `src/app` binding path, so this slice can follow the Tauri/React hard cut without preserving Slint-era Material assertions as a compatibility layer.
+
+The data-container contract migration follows the same hard-cut pattern for the list/tree/table layer. `ui_data_container_primitives_contract.rs` now checks the React `components/data` barrel, MUI-backed list, tree-view, table, panel, project-card, cover, metric, badge, empty-state, source-engine, and quick-action components, plus the backend TypeScript DTOs that feed those components. It also checks that page files assemble shared data components instead of importing raw Material data primitives from `@mui/material`, keeping pages as composition surfaces while the data component family owns rows, cards, tables, lists, and status atoms. The old dashboard button-state reference sample is explicitly absent from the data barrel and Projects product page.
+
+The data-display contract migration extends that React/MUI cutover from container ownership into row and display behavior. `ui_data_display_contract.rs` no longer reads the historical UI component files; it checks shared display atoms such as `StatusBadge`, `EmptyStateBlock`, `MetricCard`, `ProjectCover`, `ProjectCard`, and `ProjectTable`, row-like display components such as `HubList`, `HubTreeView`, `QuickActions`, and `SourceEngineList`, and page composition across Projects, Browser, Detail, Catalog, Editor, Builds, Cloud, Team, Settings, and fallback Workspace. `SourceEngineList` receives localized empty-state copy from its caller so the shared row component does not own business language. The contract keeps page files on the shared data barrel and TypeScript DTOs instead of allowing page-local Material table/list/card primitives to become a second data-display implementation.
+
+The input contract migration now applies the same React/MUI hard-cut pattern to low-level controls. `ui_inputs_contract.rs` checks the React `components/inputs` barrel, Material-backed buttons, icon buttons, search/text fields, select/combo boxes, checkbox, switch, toggle-button group, and tabs, plus the MUI theme overrides and Hub tokens that keep input height, radius, color, and typography shared. It also checks that page files consume these wrappers instead of importing raw Material input primitives from `@mui/material`, so pages remain assembly surfaces while input chrome and state handling stay in the bottom layer.
+
+The foundation contract migration moves the broadest Hub static contract onto the new stack. `ui_foundation_contract.rs` now checks Tauri launcher wiring, Vite configuration, the local capability file, React root installation, Material theme tokens, component-family barrels, shell/window/drawer/topbar composition, routed page assembly, backend command state, quick-action routing, view-model DTOs, TypeScript state types, and runtime image assets from the React/MUI implementation. It also asserts that the removed compiled app module and one-file launcher path stay absent, so the foundation contract no longer preserves the historical UI tree as a live contract surface.
+
+The page-surface coverage contract now follows the same React/MUI hard-cut pattern. `ui_page_surface_coverage_contract.rs` checks `HubWindow` routing, `NavigationDrawer` page actions, Projects dashboard/browser/detail/new-project dialog coverage, Editor/Builds/Catalog/Cloud/Team/Settings/fallback workspace pages, and the shared feedback, popup, empty-state, loading, and responsive surfaces that those pages compose. It also rejects page-local low-level dialog, popover, snackbar, menu, or sample-style control ownership so routed pages stay as assembly surfaces over the bottom-up component families.
+
+The React/MUI visual standard now lives in `ui_visual_standard_contract.rs`. It checks tokens, MUI theme overrides, global CSS, shell chrome, drawer/topbar, shared data/input components, responsive page density, runtime image assets, and the visual artifact matrix. The design reference PNGs, AI drafts, and web-reference exporters remain comparison assets rather than runtime UI, so React renders from MUI components and runtime cover/brand assets while the reference artifacts stay available for visual QA.
+
+The Tauri real-window state matrix now captures Editor, Assets, Builds, Plugins, Cloud, Team, Learn, Settings, Source Engine popup, user menu, Project Browser empty state, loading/running feedback, and error feedback with `.codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1`. That script runs isolated Hub profiles, requires a window titled `Zircon Hub`, validates native window bounds, and captures pixels through WebView2 DevTools after the native window gate because desktop copying can return a black WebView2 composition surface in automation. It rejects mostly white or low-accent captures before accepting screenshots. Loading and error states use `ZIRCON_HUB_VISUAL_TASK_STATE` only as a diagnostic state seed, while the rendered UI remains the shared React/MUI `HubStatusBanner`, `HubSnackbar`, and backend `hub_state` projection.
+
+The matrix seeds English runtime config and every captured state now has a required WebView text gate. Editor waits for `Launch Target`, Assets for `Assets Catalog`, Builds for `Build Workflow`, Plugins for `Plugins Catalog`, Cloud for `Package Outputs`, Team for `Team Members`, Learn for `Learn Catalog`, Settings for `Build Defaults`, the empty Project Browser for `No projects found`, loading for `Loading Hub state`, and error for `Visual verification error state`. The capture script refuses any state without such a gate, preventing the Chinese fallback first paint from being accepted as a later backend-routed page.
+
+Source Engine popup, user menu, Project Detail, and delete-confirm state capture now use text-gated WebView actions where coordinates were too fragile. The popup captures click `Zircon Engine 1.8.2` and `He-Jiahui`, then require popup body text such as `Manage engines`/`管理引擎` and `Preferences`/`偏好设置`; Project Detail and delete confirmation open and operate on the seeded Elysium project through visible project/delete text. The same scripts still keep screenshot-difference checks, so a focused topbar control, stale Browser page, or scroll-only movement cannot pass as the named state.
+
+The real-window reference comparison now lives in `.codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1`. It keeps the visual acceptance path component-oriented: shared capture scripts produce Dashboard plus all exported page/menu/state screenshots, then the comparison script checks window size, blank/low-range failure modes, AI draft inventory, and mean/RMS/change-ratio similarity against the HTML/CSS-finalized `docs/ui-and-layout` references. The latest accepted comparison output is `target/hub-visual-check/tauri-reference-comparison/hub-tauri-reference-comparison.md`, covering 20 real Tauri screenshots with no fatal failures or similarity warnings at sample step 4 on 2026-06-06.
+
+The React/MUI shell composition contract now lives in `ui_shell_composition_contract.rs`. It checks HubWindow, TopBar, NavigationDrawer, SourceEnginePopover, UserMenuPopover, the shell barrel, overlay barrel, and `HubShellState` as the active window contract. `App.tsx` keeps backend state loading, live `hub-state-changed` subscription cleanup, snackbar feedback, and one `onAction` dispatcher, while `HubWindow` owns the page router and shell slots and the topbar/drawer/popup components receive the same dispatcher without reintroducing local state loading or old shell paint.
+
+The React/MUI shell navigation chrome now lives in `ui_shell_navigation_contract.rs`. It checks the permanent drawer page list, status panel, collapse affordance, HubWindow routing, and Tauri show-page action. Drawer rows map Rust `HubPage` ids through `HUB_ACTION.showPage`, while primary labels, status copy, update-reservation copy, and collapsed/expanded text come from Rust-projected `HubShellText` instead of drawer-local English strings. The drawer collapse affordance is a local React UI state toggle with localized Collapse/Expand labels and icon direction changes, while the status-card update check remains a disabled local-v1 remote-update-service reservation with explanatory tooltip text.
+
+The React/MUI page chrome and routed page surfaces now live in `ui_shell_page_contract.rs`. It checks localized Rust page title/subtitle projection, HubWindow routing, shared status feedback, and routed page header surfaces. `HubPage` keeps stable route ids, `HubTextBundle` projects the display copy, routed pages consume DTO fields, and status feedback is shared through HubStatusBanner and HubSnackbar while the viewport-level main slot stays in HubWindow.
+
+The React/MUI shell header chrome now lives in `ui_shell_header_contract.rs`. It checks brand, engine selector, status badges, user menu, settings/help tools, disabled local-v1 notification-service reservation, and window controls in `TopBar`. `StatusBadge`, `HubIconButton`, and `hubData.ts` own reusable header status, icon-button, tooltip, disabled-state, and brand/fallback-state behavior so the header stays a composition surface over shared components. The Help icon routes through the shared action dispatcher to Learn, while the Notifications icon remains disabled and uses localized tooltip copy to explain that notification center is a future local-v1 service reservation. The self-drawn window controls call Tauri's current-window minimize, toggle-maximize, and close APIs directly with a non-Tauri preview guard instead of dispatching Hub business actions. The user-menu sign-out row stays a disabled local-v1 account-service reservation with localized detail text and a click guard, matching the Cloud reserved account service rather than dispatching an unsupported account action. `ui_foundation_contract.rs` additionally guards the fallback state against old English business fixture copy, keeping fallback first paint and backend-failure recovery aligned with the Hub's Chinese default language.
+
+The React/MUI shell window layout now lives in `ui_shell_window_contract.rs`. It checks Tauri window config, explicit self-drawn window-control permissions, shared window tokens, HubWindow viewport shell slots, and Tauri launcher entry. The fixed `1568x1003` webview geometry is centralized in `tauri.conf.json` and `hubTokens.window`, while `HubWindow` owns only the topbar, drawer, main page router, and viewport overflow boundary.
+
+The React/MUI typography system now lives in `ui_typography_contract.rs`. It checks the shared MUI theme scale, global CSS font inheritance, data/input/overlay/shell Typography variants, and routed page title/subtitle usage. Pages keep page title/subtitle text on `Typography` and delegate dense row, card, table, status, and popup text to shared components instead of owning a second text system.
+
+The React/MUI panel composition now lives in `ui_panel_slot_contract.rs`. It checks the shared HubPanel shell, empty-state and metric/card atoms, responsive page grids, and the rule that pages do not import raw Material panel containers such as Card, Paper, Table, list-row, or drawer shells. Pages own only section ordering, responsive grid proportions, and state-specific branching while reusable panel chrome stays in `components/data`.
+
+The React/MUI metric section system now lives in `ui_metric_section_contract.rs`. It checks the shared MetricCard tone/icon/text atom, four-card Project Detail metrics and three-card workspace metric grids. Metric values and counts stay in page projections while card chrome, icon lane, tone colors, and dense text treatment stay in `components/data/MetricCard.tsx`.
+
+The React/MUI input primitive system now lives in `ui_input_primitives_contract.rs`. It checks button, icon-button, search, text field, select, combo box, checkbox, switch, tabs, and toggle wrappers under `components/inputs`, plus the rule that pages consume the shared input wrappers instead of importing raw Material controls. This keeps low-level density, selected/disabled states, labels, helper text, and icon affordances in one component family while pages only decide placement and action wiring. `HubCheckbox` and `HubSwitch` treat a missing `onChange` callback as a read-only contract by deriving `isDisabled = disabled || !onChange`, preserving label readability while removing hover/edit affordances.
+
+The React/MUI input/navigation API now lives in `ui_input_navigation_api_contract.rs`. It checks that TypeScript props replace Slint exported input structs, and that NavigationDrawer, TopBar, HubWindow, App, and hubApi keep one action dispatcher plus the shared Tauri state-event listener. Search, select, combo box, checkbox, switch, tabs, toggle, buttons, drawer items, topbar menus, and routed page controls all expose explicit callback props instead of page-local adapter APIs.
+
+The React/MUI overlay primitives now live in `ui_overlay_primitives_contract.rs`. It checks Dialog, Menu, Popover, SourceEnginePopover, and UserMenuPopover as the shared overlay family, and verifies that TopBar and ProjectsDashboard consume shared overlay wrappers. Popup anchors, close behavior, source-engine selection, enabled user-menu navigation actions, the disabled sign-out account-service reservation, and the New Project dialog stay in overlay components instead of being rebuilt inside page or shell layouts.
+
+The React/MUI Projects layout now lives in `ui_project_layout_contract.rs`. It checks the dashboard/browser/detail route split, dashboard toolbar and card/table/dialog surfaces, Browser table and sidebar panels, Detail metric/tab/media/list/tree/sidebar panels, and the project DTO fields that feed those layouts. Projects pages keep the responsive grid proportions while shared project card, table, metric, tree, list, quick-action, source-engine, and dialog components own repeated chrome. The dashboard card rail is a first-viewport component, not a full project browser: it renders the first four visible project cards to preserve the reference 1568x1003 composition, while the full collection remains visible in the recent-project table and Project Browser.
+
+The React/MUI project scope projection now lives in `ui_project_scope_contract.rs`. It checks Rust scope/metadata ownership, Tauri project DTO projection, and the rule that project cards, detail surfaces, quick actions, and workspace workflows consume DTOs instead of recomputing scope. This keeps selected-project, pinned/template metadata, localized template display labels, engine binding, missing-path status, and quick-action target handling in runtime state while React components focus on layout and dispatch. Project management, Project Detail, Editor, Catalog QuickActions, and all routed QuickActions pass the selected project as a typed `{ projectId, projectPath }` payload through `projectTargetPayload(project)`, while Builds and Cloud main workflow routes use `workflowProjectTargetPayload(state)` to prefer the selected project before the latest recent fallback; Rust target resolution prefers the path before the legacy id.
+
+The React/MUI project management state and registry repair now live in `project_management_contract.rs`. Project metadata keys, create-project request validation, enabled templates, recycle-bin command construction, editor-recent isolation, HubConfig registry repair, and HubRuntimeSession persistence stay in Rust, while React consumes the repaired project DTOs and does not own metadata pruning or editor recent JSON writes.
+
+The React/MUI Source Engine registration and selection now live in `project_source_engine_contract.rs`. Source checkout IDs and de-duplication use the shared project filesystem path key in `src/engines/source_engine_paths.rs`, registry/validation/build-history behavior stays in `src/engines`, `src/tauri_app/runtime_state.rs` owns active-engine and New Project default synchronization, `view_model.rs` localizes active/registered status labels, Source Engine build-history DTOs localize status/detail/log-excerpt/finished-time plus `secondaryDetail` before `EditorPage` renders them, and Editor's Source Engine history rows now show the recorded command line and localized log excerpt from backend/fallback DTO data alongside the output directory. Opening one of those rows dispatches `open-output-folder` with typed `{ outputDir }` from the matched Source Engine history DTO instead of reusing visible row detail text as a path. The active Source Engine output button dispatches the same typed `outputDir` field from `activeSourceEngine.outputPath`, keeping Editor folder-open routes on explicit DTO paths; React's `OpenOutputFolderPayload` type does not expose the legacy visible `path` field. React renders Source Engine rows through `SourceEngineList` with caller-supplied localized empty-state text. `SourceEngineList` treats a missing `onSelect` callback as read-only by disabling the row ButtonBase while preserving opacity, status badge readability, and the localized empty state.
+
+The React/MUI project path scope and path display now live in `project_path_scope_contract.rs`. It checks that Rust path keys and validation own normalization while React displays path DTO strings: shared project path keys, scoped root de-duplication, selected-project path persistence, and React path displays stay in `src/projects`, `src/tauri_app/runtime_state.rs`, `src/tauri_app/runtime_state/scoped_views.rs`, `src/tauri_app/view_model.rs`, and the shared project table/detail/list page components instead of being reimplemented in page-local React helpers.
+
+The React/MUI scope-derived quick-action DTOs now live in `project_quick_actions_contract.rs`. `src/tauri_app/view_model.rs` derives selected/latest/stale/empty target copy plus enabled quick-action DTO state from `HubScope`, `src/tauri_app/runtime_state/build_actions.rs` executes build preparation/completion, `src/tauri_app/runtime_state/editor_launch_actions.rs` executes open-editor preparation/completion, `src/tauri_app/runtime_state/project_delivery_actions.rs` executes package/install preparation and completion, `src/tauri_app/runtime_state/quick_actions.rs` owns shared action-history helpers, and `web/src/components/data/QuickActions.tsx` renders disabled Material action rows from DTO state without page-local project fallback logic. Builds and Cloud main workflow buttons and target panels use `workflowProjectTargetPayload`, with selected project first and the latest recent project second, so their visible target matches the payload sent to Tauri. Project Detail, Editor, Catalog, and all QuickActions panels keep the stricter selected-project payload path, so disabled quick-action DTO rows do not invent a React-side latest-project fallback.
+
+The React/MUI project workflow routing now lives in `project_workflow_contract.rs`. `src/tauri_app/runtime_state.rs` owns the page/project/filter/sort/view/selection/detail/settings/workflow action router, `src/tauri_app/runtime_state/build_actions.rs` owns build command preparation/completion, `src/tauri_app/runtime_state/editor_launch_actions.rs` owns open-editor preparation/completion, `src/tauri_app/runtime_state/project_actions.rs` owns project create/import/lifecycle actions and localizes the Import Project native folder-picker title from the current Hub language, `src/tauri_app/runtime_state/project_delivery_actions.rs` owns package/install preparation/completion, `src/tauri_app/runtime_state/settings_actions.rs` owns `browse-settings-folder` folder-picker updates and localizes native picker titles from `settingsDraft.language`, `src/tauri_app/view_model/settings_dto.rs` owns Settings Configuration Health rows for Python, Cargo, Rustup, and path defaults, `src/tauri_app/view_model/action_history.rs` owns stable action-history row ids and `kind` projection from `HubActionKind::id()` while localizing display action/status/detail/log-excerpt/recovery through `HubTextBundle`, `src/tauri_app/commands.rs` plus `web/src/tauri/hubApi.ts` keep IPC on one request shape, and Projects Dashboard, Browser, Detail, Builds, Cloud, and Settings pages use a single action dispatcher and refreshed HubViewModel rather than page-local runtime state. `search-projects` sends typed `{ query }` payloads from Projects dashboard and browser search fields; Project Detail, Editor, QuickActions, and project-management actions send typed `{ projectId, projectPath }` payloads from the selected project; Builds and Cloud build/package/install workflows send typed payloads from the selected project or latest recent fallback; and Rust keeps target-id parsing only as a compatibility fallback. `SettingsPage` renders path defaults with shared text fields plus icon browse buttons, sends typed `{ field, initialDir, settings }` payloads, reads `settingsDraft` from the Rust DTO after picker selection, and persists that draft only through `save-settings`. Saving settings registers or updates the active Source Engine, refreshes source-scoped Assets, Plugins, Learn, and Team views, and returns the refreshed HubViewModel instead of requiring a second state load before catalog pages see the new Source root.
+
+The React/MUI Hub page copy and runtime labels now live in `project_page_copy_contract.rs`. It checks `HubTextBundle`, runtime labels, import-cancel task labels, project filter/sort/view-all feedback labels, dynamic task-detail localization such as disabled project templates, import validation path errors, Source Engine validation and binding errors, build success payload details, project lifecycle action-history prefixes, action-history log excerpts, Builds command-line history detail, open-output target/path/history details, Learn open-resource missing-file details, editor-launch executable/process details, Editor no-project copy that allows choosing a project or opening an empty editor, package/install file-count suffixes, localized delivery log excerpts, and delivery failure details, and task operation targets such as output folder and Hub settings, Catalog search placeholder prefix/separator/suffix text from `HubCatalogText`, Settings tab labels, Settings option labels, shared Settings option-label display across Settings/Builds/Cloud/Workspace pages, the fallback Workspace localized UI checkbox using `Chinese` as the checked saved-language state, Workspace fallback page labels from Rust-projected navigation labels instead of stable route ids, New Project template option labels and selected-project template labels from `src/tauri_app/view_model/project_templates.rs`, and that Projects dashboard no longer renders the button-state reference sample strip, while pages own layout placement and dispatch only. It also records that action-history `detailRows` render stable target, localized finished time, output directory, recovery hint, command line, and localized log excerpt before Builds and Team display those rows, while Cloud local package/install history rows render localized action detail plus the backend `outputDir` field. This preserves screenshot-facing Hub copy through DTOs without retaining historical native localization DTO files as the active contract surface.
+
+The React shell keeps the same localized-copy rule even for frontend-synthesized failure states. When live `hub-state-changed` subscription setup or `hub_action` dispatch fails, `App.tsx` keeps the current backend state and fills task `label`, `recovery`, and visible `operation` from `HubShellText`, so banners and snackbars do not expose raw event names or action ids.
+
+The React/MUI Project Browser table now lives in `ui_project_browser_table_contract.rs`. It checks the ProjectTable column model, row selection, detail icon action, ProjectBrowserPage filters, ProjectsDashboard table rows, and `browserProjects`/`recentProjects` DTOs. The shared table component owns Material table cells, cover/name rendering, body text, selected state, and trailing detail action while the browser and dashboard pages own only toolbar filters, responsive panel placement, and row selection dispatch. Dashboard card summaries can keep their localized card-specific modified labels, but dashboard tables now consume the backend row DTOs directly instead of stripping an English `Modified` prefix or rebuilding locations from card rows.
+
+The React/MUI table/list/tree view system now lives in `ui_table_view_contract.rs`. It checks the shared ProjectTable column model, HubList row model, and HubTreeView recursive tree model, then verifies that routed pages consume shared table/list/tree components instead of rebuilding raw Material table or list rows. This keeps table columns, compact list rows, disclosure tree recursion, selection, metadata, detail actions, and responsive page placement separated into component-family responsibilities. `HubList` derives row disabled state from row DTOs plus `onSelect` presence, and `HubTreeView` only exposes pointer/hover affordances for expandable branches or callers with a real leaf-selection handler, so read-only detail rows, action-history rows, output trees, and settings health rows remain readable without advertising empty clicks.
+
+The React/MUI workspace layout now lives in `ui_workspace_layout_contract.rs`. It checks the shared page shell, metric row, tabs, main/sidebar grid, and HubPanel composition across Editor, Builds, Catalog, Cloud, Team, Settings, and fallback Workspace pages. Each page owns only its state projection, tab branching, and action wiring while shared data/input/feedback components own rows, trees, empty states, status badges, quick actions, readiness controls, and source-engine panels.
+
+The React/MUI workspace main/sidebar split geometry now lives in `ui_workspace_split_contract.rs`. It checks shared main/sidebar split grids, responsive collapse rule, and support-panel grouping across Projects Dashboard, Project Browser, Project Detail, Editor, Builds, Catalog, Cloud, Team, Settings, and fallback Workspace pages. This keeps the old split-state idea expressed as reusable grid proportions and side-panel groupings in React rather than as a separate runtime layout object.
+
+The React/MUI global guardrails now live in `ui_global_rules_contract.rs`. It checks raw Material primitive ownership, proves pages remain composition surfaces, verifies that absolute positioning stays out of page layouts, and verifies that theme, typography, global CSS, shell routing, and runtime visual assets stay centralized in their owning React modules.
+
+The React/MUI navigation system now lives in `ui_navigation_contract.rs`. It checks drawer, topbar, page router, tabs, toggle, source-engine popup, and user-menu navigation as one action-dispatch system. Primary page labels come from Rust-projected `text.navItems`, topbar and popup copy comes from `HubShellText`, primary page changes flow through `NavigationDrawer` and `HubWindow`, secondary tab/view changes flow through `HubTabs` and `HubToggle`, and backend navigation state updates flow through the single `hub_action` command wrapper.
+
+The React/MUI Projects navigation now lives in `ui_project_navigation_contract.rs`. It checks dashboard, browser, detail, and new-project subpage routing, shared project table row selection and detail icon navigation, project-card open behavior, detail-page project actions, and Tauri project action dispatch. Projects pages keep navigation intent in `onAction` calls while `ProjectTable`, `ProjectCard`, `hubApi.ts`, and the Rust Tauri runtime session own the repeated interaction and state-transition rules. The project-card corner action opens Project Detail instead of an empty menu, so the card's visible secondary affordance reaches the existing local project-management surface.
+
+The React/MUI selected-project catalog scope now lives in `ui_selected_project_catalog_contract.rs`. It checks selected project and Source Engine catalog discovery in `src/tauri_app/runtime_state/scoped_views.rs`, CatalogPage mode projection and scope filtering for Assets, Plugins, and Learn, Learn `open-resource` typed payload dispatch, Catalog QuickActions forward the selected-project target payload, and Team, Cloud, and Builds selected-project-aware surfaces. The page layer consumes `assets`, `plugins`, `learnResources`, `team`, `selectedProject`, and `actionHistory` DTOs while Rust discovery modules keep selected-project entries ahead of Source Engine entries, Team Git discovery prefers the selected project repository before Source Engine fallback, and the Learn action owner rejects resources outside the current catalog. Builds and Cloud workflow buttons and target panels use `workflowProjectTargetPayload`, so their visible project name/path matches the selected-project-first/latest-recent payload sent to Tauri; QuickActions panels keep the selected-project-only payload path. Assets and Learn carry an internal root rank through discovery so a configured or scope-bound Source root is sorted ahead of fallback current-directory and compiled-repository roots before catalog limits truncate rows, while that rank stays out of public catalog DTOs. The asset row detail is projected by Rust/fallback DTOs instead of page-local punctuation, with `src/tauri_app/view_model/catalog.rs` owning the localized kind/path separator before CatalogPage renders `asset.detail`. Source Engine asset roots such as `Editor` and `Runtime` keep those display source labels, but their `sourceKey` is normalized to `engine` so the Assets page Engine tab filters them through stable DTO data instead of display copy. Editor plugin scope is a stable `editorScoped` DTO flag derived from manifest metadata rather than localized copy, so EditorPage filters plugin rows without parsing descriptions or display scopes. `src/tauri_app/runtime_state/learn_actions.rs` also treats the typed payload as an ordered candidate set, so a stale row id can fall back to the supplied catalog path without allowing arbitrary documents outside the current Learn catalog.
+
+The React/MUI selected-project runtime scope now lives in `ui_selected_project_runtime_contract.rs`. It checks the canonical HubScope resolver, Tauri runtime selected-project persistence, React selectedProject DTOs, and passive page consumption across Projects, Browser, Detail, Editor, Builds, and Cloud. This keeps selected-project meaning in Rust state and DTO projection while pages only branch on `state.selectedProject`, `state.selectedProjectId`, and shared action dispatch.

@@ -9,6 +9,46 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
 use super::support::*;
 
 #[test]
+fn material_component_prototypes_are_grouped_by_functional_domain_folder() {
+    let root = editor_asset("assets/ui/editor/material_components");
+    let entries = fs::read_dir(&root)
+        .unwrap_or_else(|error| panic!("{} should be readable: {error}", root.display()))
+        .map(|entry| {
+            entry
+                .expect("material component dir entry should be readable")
+                .path()
+        })
+        .collect::<Vec<_>>();
+
+    let flat_prototypes = entries
+        .iter()
+        .filter_map(|path| path.file_name().and_then(|name| name.to_str()))
+        .filter(|name| name.starts_with("material_") && name.ends_with(".zui"))
+        .collect::<Vec<_>>();
+
+    assert!(
+        flat_prototypes.is_empty(),
+        "Material component prototypes must live in functional domain folders, not directly under material_components/: {:?}",
+        flat_prototypes
+    );
+
+    let actual_domains = entries
+        .iter()
+        .filter(|path| path.is_dir())
+        .filter_map(|path| path.file_name().and_then(|name| name.to_str()))
+        .collect::<BTreeSet<_>>();
+    let expected_domains = MATERIAL_COMPONENT_DOMAINS
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(
+        actual_domains, expected_domains,
+        "material_components should be grouped by the Material Lab functional sections"
+    );
+}
+
+#[test]
 fn material_component_lab_view_loads_and_imports_every_component_prototype() {
     let lab_path = editor_asset("assets/ui/editor/material_component_lab.v2.ui.toml");
     let lab = UiV2AssetLoader::load_toml_file(&lab_path).unwrap_or_else(|error| {
@@ -33,7 +73,6 @@ fn material_component_lab_view_loads_and_imports_every_component_prototype() {
         "lab should import every material_*.zui prototype exactly once"
     );
     for path in &prototype_files {
-        let source_name = path.file_name().unwrap().to_string_lossy();
         let source = fs::read_to_string(path)
             .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
         let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -43,7 +82,7 @@ fn material_component_lab_view_loads_and_imports_every_component_prototype() {
             .keys()
             .next()
             .expect("prototype declares one component");
-        let import = format!("res://ui/editor/material_components/{source_name}#{component_name}");
+        let import = material_prototype_res_path(path, component_name);
         assert!(
             imports.contains(import.as_str()),
             "lab should import `{import}`"
@@ -238,7 +277,7 @@ fn material_component_prototypes_are_single_component_zui_with_state_and_routes(
                         event
                             .route
                             .as_deref()
-                            .is_some_and(|route| route.starts_with("MaterialLab."))
+                            .is_some_and(|route| route.starts_with("material_lab."))
                     })
                 }),
                 "{} should define an interaction feedback route",

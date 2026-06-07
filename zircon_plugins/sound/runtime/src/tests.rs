@@ -17,10 +17,10 @@ use zircon_runtime::core::framework::sound::{
     SoundRayTracingQuality, SoundReverbEffect, SoundRuntimeSettingsManager, SoundSidechainInput,
     SoundSourceDescriptor, SoundSourceFinishReason, SoundSourceId, SoundSourceInput,
     SoundSourceManager, SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,
-    SoundTimelineAutomationTrack, SoundTimelineSequence, SoundTimelineSequenceId,
-    SoundTrackDescriptor, SoundTrackId, SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId,
-    SoundVolumeShape, SoundWaveShaperEffect, AUDIO_LISTENER_COMPONENT_TYPE,
-    AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
+    SoundSpeakerChannel, SoundTimelineAutomationTrack, SoundTimelineSequence,
+    SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
+    SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape, SoundWaveShaperEffect,
+    AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 

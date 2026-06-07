@@ -25,7 +25,7 @@ component = "Button"
 control_id = "ApplyDraft"
 props = { text = "Apply Draft", button_variant = "secondary" }
 layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { min = 27.2, preferred = 27.2, max = 27.2, stretch = "Fixed" } }
-events = [{ id = "InspectorPaneBody/ApplyDraft", event = "Click", route = "DraftCommand.SetInspectorField" }]
+events = [{ id = "InspectorPaneBody/ApplyDraft", event = "Click", route = "workbench.draft.set_inspector_field" }]
 
 [nodes.body]
 component = "Container"

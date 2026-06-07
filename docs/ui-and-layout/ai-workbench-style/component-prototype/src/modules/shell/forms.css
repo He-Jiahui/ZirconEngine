@@ -1,0 +1,12 @@
+.zr-module-left .zr-search,
+.zr-module-right .zr-search,
+.zr-module-filterbar .zr-search {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.zr-module-left .zr-input,
+.zr-module-right .zr-input,
+.zr-module-filterbar .zr-input {
+  height: 30px;
+}

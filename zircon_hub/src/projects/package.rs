@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::error::HubError;
 
+use super::local_paths::reject_inside_root;
 use super::now_unix_ms;
 
 const PACKAGE_ROOT_DIR: &str = "packages";
@@ -61,8 +62,8 @@ pub fn package_project(request: &ProjectPackageRequest) -> Result<ProjectPackage
         return Err(HubError::message("Package output root is required"));
     }
 
-    fs::create_dir_all(&request.output_root)?;
     reject_output_inside_project(&request.project_root, &request.output_root)?;
+    fs::create_dir_all(&request.output_root)?;
 
     let package_dir = unique_package_dir(request);
     let project_dir = package_dir.join(PACKAGE_PROJECT_DIR);
@@ -79,14 +80,11 @@ pub fn package_project(request: &ProjectPackageRequest) -> Result<ProjectPackage
 }
 
 fn reject_output_inside_project(project_root: &Path, output_root: &Path) -> Result<(), HubError> {
-    let project_root = project_root.canonicalize()?;
-    let output_root = output_root.canonicalize()?;
-    if output_root.starts_with(&project_root) {
-        return Err(HubError::message(
-            "Package output root must be outside the project directory",
-        ));
-    }
-    Ok(())
+    reject_inside_root(
+        project_root,
+        output_root,
+        "Package output root must be outside the project directory",
+    )
 }
 
 fn unique_package_dir(request: &ProjectPackageRequest) -> PathBuf {
@@ -221,6 +219,23 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
 
         assert!(error.to_string().contains("outside the project directory"));
+    }
+
+    #[test]
+    fn package_project_rejects_missing_output_inside_project_without_creating_directory() {
+        let root = temp_dir("package-source-inside-missing");
+        let output = root.join("build-output").join("nested");
+        let request = ProjectPackageRequest::new("Demo", root.clone(), output.clone());
+
+        let error = package_project(&request).unwrap_err();
+
+        assert!(error.to_string().contains("outside the project directory"));
+        assert!(
+            !output.exists(),
+            "rejected package output roots inside the project must not be created"
+        );
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     fn temp_dir(label: &str) -> PathBuf {

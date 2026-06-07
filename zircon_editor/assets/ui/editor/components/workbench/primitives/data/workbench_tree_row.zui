@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui"
+version = 2
+display_name = "Workbench Tree Row"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchTreeRow]
+root = "root"
+default_classes = ["workbench-tree-item", "workbench-tree-row", "workbench-primitive"]
+
+[nodes.root]
+component = "TreeRow"
+control_id = "WorkbenchTreeRowRoot"
+classes = ["workbench-tree-item", "workbench-tree-row"]
+props = { text = "Tree item", expanded = true, tree_depth = 0, tree_indent_px = 18.0, selected = false, focused = false, hovered = false, pressed = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }

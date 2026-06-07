@@ -24,6 +24,11 @@ pub struct AssetCatalogEntry {
     pub path: PathBuf,
 }
 
+struct RankedAssetCatalogEntry {
+    root_rank: usize,
+    entry: AssetCatalogEntry,
+}
+
 pub fn discover_asset_catalog<P, R>(
     project_roots: P,
     repo_roots: R,
@@ -51,50 +56,56 @@ where
         collect_project_asset_roots(
             SELECTED_PROJECT_ASSET_SOURCE,
             &project_root,
+            0,
             &mut visited_roots,
             &mut entries,
         )?;
     }
 
+    let mut project_root_rank = 0;
     for project_root in project_roots {
         collect_project_asset_roots(
             PROJECT_ASSET_SOURCE,
             &project_root,
+            project_root_rank,
             &mut visited_roots,
             &mut entries,
         )?;
+        project_root_rank += 1;
     }
 
-    for repo_root in repo_roots {
+    for (root_rank, repo_root) in repo_roots.into_iter().enumerate() {
         for (label, segments) in ENGINE_ASSET_ROOTS {
             let root = segments
                 .iter()
                 .fold(repo_root.clone(), |path, segment| path.join(segment));
-            collect_asset_root(label, &root, &mut visited_roots, &mut entries)?;
+            collect_asset_root(label, &root, root_rank, &mut visited_roots, &mut entries)?;
         }
     }
 
     entries.sort_by(|left, right| {
-        source_priority(&left.source)
-            .cmp(&source_priority(&right.source))
-            .then_with(|| left.source.cmp(&right.source))
-            .then_with(|| left.kind.cmp(&right.kind))
-            .then_with(|| left.name.cmp(&right.name))
-            .then_with(|| left.path.cmp(&right.path))
+        source_priority(&left.entry.source)
+            .cmp(&source_priority(&right.entry.source))
+            .then_with(|| left.root_rank.cmp(&right.root_rank))
+            .then_with(|| left.entry.source.cmp(&right.entry.source))
+            .then_with(|| left.entry.kind.cmp(&right.entry.kind))
+            .then_with(|| left.entry.name.cmp(&right.entry.name))
+            .then_with(|| left.entry.path.cmp(&right.entry.path))
     });
     entries.truncate(ASSET_CATALOG_LIMIT);
-    Ok(entries)
+    Ok(entries.into_iter().map(|ranked| ranked.entry).collect())
 }
 
 fn collect_project_asset_roots(
     source: &str,
     project_root: &Path,
+    root_rank: usize,
     visited_roots: &mut HashSet<String>,
-    entries: &mut Vec<AssetCatalogEntry>,
+    entries: &mut Vec<RankedAssetCatalogEntry>,
 ) -> Result<(), HubError> {
     for asset_dir in PROJECT_ASSET_DIRS {
         let root = project_root.join(asset_dir);
-        collect_asset_root(source, &root, visited_roots, entries)?;
+        collect_asset_root(source, &root, root_rank, visited_roots, entries)?;
     }
     Ok(())
 }
@@ -110,8 +121,9 @@ fn source_priority(source: &str) -> u8 {
 fn collect_asset_root(
     source: &str,
     root: &Path,
+    root_rank: usize,
     visited_roots: &mut HashSet<String>,
-    entries: &mut Vec<AssetCatalogEntry>,
+    entries: &mut Vec<RankedAssetCatalogEntry>,
 ) -> Result<(), HubError> {
     if !root.is_dir() {
         return Ok(());
@@ -120,13 +132,14 @@ fn collect_asset_root(
     if !visited_roots.insert(root_key) {
         return Ok(());
     }
-    collect_asset_files(source, root, entries)
+    collect_asset_files(source, root, root_rank, entries)
 }
 
 fn collect_asset_files(
     source: &str,
     directory: &Path,
-    entries: &mut Vec<AssetCatalogEntry>,
+    root_rank: usize,
+    entries: &mut Vec<RankedAssetCatalogEntry>,
 ) -> Result<(), HubError> {
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
@@ -136,19 +149,22 @@ fn collect_asset_files(
             if should_skip_directory(&entry.file_name().to_string_lossy()) {
                 continue;
             }
-            collect_asset_files(source, &path, entries)?;
+            collect_asset_files(source, &path, root_rank, entries)?;
         } else if file_type.is_file() {
             let metadata = entry.metadata()?;
-            entries.push(AssetCatalogEntry {
-                name: path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .unwrap_or("asset")
-                    .to_string(),
-                kind: asset_kind(&path),
-                source: source.to_string(),
-                size_bytes: metadata.len(),
-                path,
+            entries.push(RankedAssetCatalogEntry {
+                root_rank,
+                entry: AssetCatalogEntry {
+                    name: path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or("asset")
+                        .to_string(),
+                    kind: asset_kind(&path),
+                    source: source.to_string(),
+                    size_bytes: metadata.len(),
+                    path,
+                },
             });
         }
     }
@@ -327,6 +343,48 @@ mod tests {
         assert!(entries[2..]
             .iter()
             .all(|entry| entry.source != SELECTED_PROJECT_ASSET_SOURCE));
+    }
+
+    #[test]
+    fn discover_asset_catalog_keeps_first_source_engine_root_before_fallback_limit() {
+        let preferred_root = temp_dir("asset-preferred-engine");
+        let fallback_root = temp_dir("asset-fallback-engine");
+        fs::create_dir_all(
+            preferred_root
+                .join("zircon_editor")
+                .join("assets")
+                .join("icons"),
+        )
+        .unwrap();
+        fs::write(
+            preferred_root
+                .join("zircon_editor")
+                .join("assets")
+                .join("icons")
+                .join("source-settings-tool.svg"),
+            "svg",
+        )
+        .unwrap();
+        let fallback_assets = fallback_root
+            .join("zircon_editor")
+            .join("assets")
+            .join("icons");
+        fs::create_dir_all(&fallback_assets).unwrap();
+        for index in 0..ASSET_CATALOG_LIMIT {
+            fs::write(fallback_assets.join(format!("aaa-{index:03}.svg")), "svg").unwrap();
+        }
+
+        let entries = discover_asset_catalog(
+            Vec::<PathBuf>::new(),
+            [preferred_root.clone(), fallback_root.clone()],
+        )
+        .unwrap();
+        fs::remove_dir_all(preferred_root).unwrap();
+        fs::remove_dir_all(fallback_root).unwrap();
+
+        assert!(entries
+            .iter()
+            .any(|entry| entry.name == "source-settings-tool.svg" && entry.source == "Editor"));
     }
 
     fn temp_dir(label: &str) -> PathBuf {

@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetError, NetEvent, NetWebSocketCloseReason,
-    NetWebSocketFrame,
+    NetConnectionId, NetConnectionState, NetError, NetEvent, NetTransportKind,
+    NetWebSocketCloseReason, NetWebSocketFrame,
 };
 
 use crate::websocket::ManagedWebSocketConnection;
@@ -35,8 +35,10 @@ impl DefaultNetManager {
                 entry.set_state(NetConnectionState::Closed);
             }
         }
-        self.state
-            .push_event(NetEvent::ConnectionClosed { connection });
+        self.state.push_event(NetEvent::ConnectionClosed {
+            connection,
+            transport: NetTransportKind::WebSocket,
+        });
         Ok(())
     }
 }

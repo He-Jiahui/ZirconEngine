@@ -8,7 +8,6 @@ use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
-use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,

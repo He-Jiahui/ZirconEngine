@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::layout::{compute_incremental_layout_tree, compute_layout_tree};
 use crate::ui::surface::{
-    build_arranged_tree, extract_ui_render_tree_from_arranged, render::UiSurfaceRenderCacheStats,
+    build_arranged_tree,
+    render::{
+        extract_ui_render_tree_from_arranged_with_component_states, UiSurfaceRenderCacheStats,
+    },
 };
 use zircon_runtime_interface::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerDispatchResult},
@@ -315,7 +318,11 @@ impl UiSurface {
         if force_rebuild {
             self.render_cache = Default::default();
         }
-        let extract = extract_ui_render_tree_from_arranged(&self.tree, &self.arranged_tree);
+        let extract = extract_ui_render_tree_from_arranged_with_component_states(
+            &self.tree,
+            &self.arranged_tree,
+            Some(&self.component_states),
+        );
         let update = self.render_cache.update(extract, force_rebuild);
         self.render_extract = update.extract;
         update.stats

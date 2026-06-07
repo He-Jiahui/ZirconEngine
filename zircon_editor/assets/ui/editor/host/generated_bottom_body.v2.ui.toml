@@ -9,7 +9,7 @@ node = "root"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
+  "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
 ]
 styles = []
 

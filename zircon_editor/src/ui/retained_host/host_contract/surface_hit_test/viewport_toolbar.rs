@@ -33,7 +33,7 @@ pub(crate) fn hit_test_viewport_toolbar(
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+    use zircon_runtime::ui::surface::UiSurface;
     use zircon_runtime_interface::ui::{
         event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
         layout::UiFrame,

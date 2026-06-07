@@ -1,0 +1,25 @@
+.zr-selection-edge {
+  position: absolute;
+  pointer-events: none;
+  background: #22c1cb;
+  box-shadow: 0 0 8px rgba(34, 193, 203, 0.24);
+}
+
+.zr-selection-edge.top,
+.zr-selection-edge.bottom {
+  left: -6px;
+  width: 124px;
+  height: 2px;
+}
+
+.zr-selection-edge.top { top: -24px; }
+.zr-selection-edge.bottom { bottom: -2px; }
+.zr-selection-edge.left,
+.zr-selection-edge.right {
+  top: -24px;
+  width: 2px;
+  height: 98px;
+}
+
+.zr-selection-edge.left { left: -6px; }
+.zr-selection-edge.right { right: -6px; }

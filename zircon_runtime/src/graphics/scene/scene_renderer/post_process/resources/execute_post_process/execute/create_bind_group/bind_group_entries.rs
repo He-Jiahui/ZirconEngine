@@ -6,16 +6,26 @@ pub(super) fn bind_group_entries<'a>(
     resources: &'a ScenePostProcessResources,
     scene_color_view: &'a wgpu::TextureView,
     scene_depth_view: &'a wgpu::TextureView,
+    motion_vector_neighbor_max_view: &'a wgpu::TextureView,
     scene_normal_view: &'a wgpu::TextureView,
     scene_material_view: Option<&'a wgpu::TextureView>,
     ao_view: &'a wgpu::TextureView,
     previous_scene_color_view: Option<&'a wgpu::TextureView>,
     previous_global_illumination_view: Option<&'a wgpu::TextureView>,
+    previous_screen_space_reflection_history_view: Option<&'a wgpu::TextureView>,
+    resolved_screen_space_reflection_history_view: Option<&'a wgpu::TextureView>,
+    screen_space_reflection_specular_occlusion_view: Option<&'a wgpu::TextureView>,
+    screen_space_reflection_depth_pyramid_view: Option<&'a wgpu::TextureView>,
+    screen_space_reflection_reflection_pyramid_view: Option<&'a wgpu::TextureView>,
+    screen_space_reflection_depth_pyramid_coarse_view: Option<&'a wgpu::TextureView>,
+    screen_space_reflection_reflection_pyramid_coarse_view: Option<&'a wgpu::TextureView>,
     bloom_view: &'a wgpu::TextureView,
+    depth_of_field_coc_view: &'a wgpu::TextureView,
+    depth_of_field_bokeh_view: &'a wgpu::TextureView,
     effect_lut_view: &'a wgpu::TextureView,
     effect_lut_3d_view: &'a wgpu::TextureView,
     cluster_buffer: &'a wgpu::Buffer,
-) -> [wgpu::BindGroupEntry<'a>; 17] {
+) -> [wgpu::BindGroupEntry<'a>; 27] {
     let scene_depth_binding_view = match resources.depth_sampling_mode {
         PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
         PostProcessDepthSamplingMode::ViewportDepthFallback => &resources.black_texture_view,
@@ -94,6 +104,66 @@ pub(super) fn bind_group_entries<'a>(
             binding: 16,
             resource: wgpu::BindingResource::TextureView(
                 scene_material_view.unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 17,
+            resource: wgpu::BindingResource::TextureView(depth_of_field_coc_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 18,
+            resource: wgpu::BindingResource::TextureView(depth_of_field_bokeh_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 19,
+            resource: wgpu::BindingResource::TextureView(motion_vector_neighbor_max_view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 20,
+            resource: wgpu::BindingResource::TextureView(
+                previous_screen_space_reflection_history_view
+                    .unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 21,
+            resource: wgpu::BindingResource::TextureView(
+                resolved_screen_space_reflection_history_view
+                    .unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 22,
+            resource: wgpu::BindingResource::TextureView(
+                screen_space_reflection_specular_occlusion_view
+                    .unwrap_or(&resources.white_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 23,
+            resource: wgpu::BindingResource::TextureView(
+                screen_space_reflection_depth_pyramid_view.unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 24,
+            resource: wgpu::BindingResource::TextureView(
+                screen_space_reflection_reflection_pyramid_view
+                    .unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 25,
+            resource: wgpu::BindingResource::TextureView(
+                screen_space_reflection_depth_pyramid_coarse_view
+                    .unwrap_or(&resources.black_texture_view),
+            ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 26,
+            resource: wgpu::BindingResource::TextureView(
+                screen_space_reflection_reflection_pyramid_coarse_view
+                    .unwrap_or(&resources.black_texture_view),
             ),
         },
     ]

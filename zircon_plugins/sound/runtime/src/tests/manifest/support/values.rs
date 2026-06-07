@@ -1,65 +1,13 @@
-pub(super) fn string_array_values(value: &str) -> Vec<String> {
-    value
-        .split(',')
-        .map(str::trim)
-        .filter_map(|entry| entry.strip_prefix('"')?.strip_suffix('"'))
-        .map(str::to_string)
-        .collect()
-}
+mod array;
+mod boolean;
+mod capability_status;
+mod maturity;
+mod module_kind;
+mod target_mode;
 
-pub(super) fn bool_from_plugin_toml(value: &str) -> bool {
-    match value {
-        "true" => true,
-        "false" => false,
-        _ => panic!("unknown sound boolean value {value}"),
-    }
-}
-
-pub(super) fn maturity_from_plugin_toml(value: &str) -> zircon_runtime::plugin::PluginMaturity {
-    match value {
-        "core" => zircon_runtime::plugin::PluginMaturity::Core,
-        "stable" => zircon_runtime::plugin::PluginMaturity::Stable,
-        "beta" => zircon_runtime::plugin::PluginMaturity::Beta,
-        "experimental" => zircon_runtime::plugin::PluginMaturity::Experimental,
-        "externalized" => zircon_runtime::plugin::PluginMaturity::Externalized,
-        "stub" => zircon_runtime::plugin::PluginMaturity::Stub,
-        "deprecated" => zircon_runtime::plugin::PluginMaturity::Deprecated,
-        _ => panic!("unknown sound plugin maturity {value}"),
-    }
-}
-
-pub(super) fn plugin_module_kind_from_plugin_toml(
-    value: &str,
-) -> zircon_runtime::plugin::PluginModuleKind {
-    match value {
-        "runtime" => zircon_runtime::plugin::PluginModuleKind::Runtime,
-        "editor" => zircon_runtime::plugin::PluginModuleKind::Editor,
-        "native" => zircon_runtime::plugin::PluginModuleKind::Native,
-        "vm" => zircon_runtime::plugin::PluginModuleKind::Vm,
-        _ => panic!("unknown sound module kind {value}"),
-    }
-}
-
-pub(super) fn runtime_target_mode_from_plugin_toml(
-    value: &str,
-) -> zircon_runtime::RuntimeTargetMode {
-    match value {
-        "client_runtime" => zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        "editor_host" => zircon_runtime::RuntimeTargetMode::EditorHost,
-        "server_runtime" => zircon_runtime::RuntimeTargetMode::ServerRuntime,
-        _ => panic!("unknown sound module target mode {value}"),
-    }
-}
-
-pub(super) fn capability_status_from_plugin_toml(
-    value: &str,
-) -> zircon_runtime::plugin::CapabilityStatus {
-    match value {
-        "complete" => zircon_runtime::plugin::CapabilityStatus::Complete,
-        "partial" => zircon_runtime::plugin::CapabilityStatus::Partial,
-        "stub" => zircon_runtime::plugin::CapabilityStatus::Stub,
-        "externalized" => zircon_runtime::plugin::CapabilityStatus::Externalized,
-        "unsupported" => zircon_runtime::plugin::CapabilityStatus::Unsupported,
-        _ => panic!("unknown sound capability status {value}"),
-    }
-}
+pub(super) use array::string_array_values;
+pub(super) use boolean::bool_from_plugin_toml;
+pub(super) use capability_status::capability_status_from_plugin_toml;
+pub(super) use maturity::maturity_from_plugin_toml;
+pub(super) use module_kind::plugin_module_kind_from_plugin_toml;
+pub(super) use target_mode::runtime_target_mode_from_plugin_toml;

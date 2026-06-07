@@ -17,6 +17,8 @@ use super::{
 };
 
 const MATERIAL_LIGHTING_MODEL_PROPERTY: &str = "lighting_model";
+const MATERIAL_CAST_SHADOWS_PROPERTY: &str = "cast_shadows";
+const MATERIAL_RECEIVE_SHADOWS_PROPERTY: &str = "receive_shadows";
 
 /// Asset-level material summary that does not require renderer preparation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -222,6 +224,8 @@ impl MaterialAsset {
     pub fn validation_errors(&self) -> Vec<RenderMaterialValidationError> {
         let mut errors = validate_alpha_mode(&self.alpha_mode);
         errors.extend(self.lighting_model_validation_errors());
+        errors.extend(self.cast_shadows_validation_errors());
+        errors.extend(self.receive_shadows_validation_errors());
         errors
     }
 
@@ -349,6 +353,8 @@ impl MaterialAsset {
             lighting_model,
             unlit,
             double_sided: self.double_sided,
+            cast_shadows: self.cast_shadows(),
+            receive_shadows: self.receive_shadows(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
     }
@@ -414,6 +420,14 @@ impl MaterialAsset {
 
     pub fn lighting_model(&self) -> RenderMaterialLightingModel {
         self.lighting_model_from_property().unwrap_or_default()
+    }
+
+    pub fn cast_shadows(&self) -> bool {
+        self.cast_shadows_from_property().unwrap_or(true)
+    }
+
+    pub fn receive_shadows(&self) -> bool {
+        self.receive_shadows_from_property().unwrap_or(true)
     }
 
     pub fn all_texture_slots(&self) -> Vec<(String, &AssetReference)> {
@@ -503,6 +517,42 @@ impl MaterialAsset {
         } else {
             overrides.remove("double_sided");
         }
+        match self.cast_shadows_from_property() {
+            Some(false) => {
+                overrides.insert(
+                    MATERIAL_CAST_SHADOWS_PROPERTY.to_string(),
+                    toml::Value::Boolean(false),
+                );
+            }
+            Some(true) => {
+                overrides.remove(MATERIAL_CAST_SHADOWS_PROPERTY);
+            }
+            None if !self
+                .property_values
+                .contains_key(MATERIAL_CAST_SHADOWS_PROPERTY) =>
+            {
+                overrides.remove(MATERIAL_CAST_SHADOWS_PROPERTY);
+            }
+            None => {}
+        }
+        match self.receive_shadows_from_property() {
+            Some(false) => {
+                overrides.insert(
+                    MATERIAL_RECEIVE_SHADOWS_PROPERTY.to_string(),
+                    toml::Value::Boolean(false),
+                );
+            }
+            Some(true) => {
+                overrides.remove(MATERIAL_RECEIVE_SHADOWS_PROPERTY);
+            }
+            None if !self
+                .property_values
+                .contains_key(MATERIAL_RECEIVE_SHADOWS_PROPERTY) =>
+            {
+                overrides.remove(MATERIAL_RECEIVE_SHADOWS_PROPERTY);
+            }
+            None => {}
+        }
         overrides
     }
 }
@@ -513,6 +563,14 @@ impl MaterialAsset {
         value
             .as_str()
             .and_then(|value| value.parse::<RenderMaterialLightingModel>().ok())
+    }
+
+    fn cast_shadows_from_property(&self) -> Option<bool> {
+        override_bool(&self.property_values, MATERIAL_CAST_SHADOWS_PROPERTY)
+    }
+
+    fn receive_shadows_from_property(&self) -> Option<bool> {
+        override_bool(&self.property_values, MATERIAL_RECEIVE_SHADOWS_PROPERTY)
     }
 
     fn lighting_model_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
@@ -532,6 +590,42 @@ impl MaterialAsset {
                 path: format!("overrides.{MATERIAL_LIGHTING_MODEL_PROPERTY}"),
                 value: token.to_string(),
             }]
+        }
+    }
+
+    fn cast_shadows_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
+        let Some(value) = self.property_values.get(MATERIAL_CAST_SHADOWS_PROPERTY) else {
+            return Vec::new();
+        };
+        if value.as_bool().is_some() {
+            Vec::new()
+        } else {
+            vec![
+                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+                    source: RenderMaterialDiagnosticSource::MaterialOverride,
+                    path: format!("overrides.{MATERIAL_CAST_SHADOWS_PROPERTY}"),
+                    name: MATERIAL_CAST_SHADOWS_PROPERTY.to_string(),
+                    expected: "bool".to_string(),
+                },
+            ]
+        }
+    }
+
+    fn receive_shadows_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
+        let Some(value) = self.property_values.get(MATERIAL_RECEIVE_SHADOWS_PROPERTY) else {
+            return Vec::new();
+        };
+        if value.as_bool().is_some() {
+            Vec::new()
+        } else {
+            vec![
+                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+                    source: RenderMaterialDiagnosticSource::MaterialOverride,
+                    path: format!("overrides.{MATERIAL_RECEIVE_SHADOWS_PROPERTY}"),
+                    name: MATERIAL_RECEIVE_SHADOWS_PROPERTY.to_string(),
+                    expected: "bool".to_string(),
+                },
+            ]
         }
     }
 
@@ -646,7 +740,12 @@ impl MaterialAsset {
 }
 
 fn is_material_owned_property(name: &str) -> bool {
-    name == MATERIAL_LIGHTING_MODEL_PROPERTY
+    matches!(
+        name,
+        MATERIAL_LIGHTING_MODEL_PROPERTY
+            | MATERIAL_CAST_SHADOWS_PROPERTY
+            | MATERIAL_RECEIVE_SHADOWS_PROPERTY
+    )
 }
 
 fn is_standard_texture_slot_alias(slot: &str) -> bool {

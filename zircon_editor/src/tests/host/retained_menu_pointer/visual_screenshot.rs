@@ -637,14 +637,14 @@ fn nested_menu_chrome_for_visual_artifact() -> HostMenuChromeData {
                     children: crate::ui::layouts::common::model_rc(vec![
                         HostMenuChromeItemData {
                             label: "Refresh Clouds".into(),
-                            action_id: "Weather.CloudLayer.Refresh".into(),
+                            action_id: "weather.cloud_layer.refresh".into(),
                             shortcut: "Ctrl+Alt+R".into(),
                             enabled: true,
                             ..HostMenuChromeItemData::default()
                         },
                         HostMenuChromeItemData {
                             label: "Bake Probe Preview".into(),
-                            action_id: "Weather.Probe.BakePreview".into(),
+                            action_id: "weather.probe.bake_preview".into(),
                             enabled: true,
                             ..HostMenuChromeItemData::default()
                         },
@@ -653,7 +653,7 @@ fn nested_menu_chrome_for_visual_artifact() -> HostMenuChromeData {
                 },
                 HostMenuChromeItemData {
                     label: "Diagnostics".into(),
-                    action_id: "Tools.Diagnostics.Open".into(),
+                    action_id: "tools.diagnostics.open".into(),
                     shortcut: "Ctrl+Shift+D".into(),
                     enabled: true,
                     ..HostMenuChromeItemData::default()

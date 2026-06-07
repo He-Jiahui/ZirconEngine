@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     RenderFrameExtract, RenderPreparedRuntimeSidebands, RenderSceneSnapshot,
-    RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryDebugSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -12,6 +12,10 @@ pub struct ViewportRenderFrame {
     pub viewport_size: UVec2,
     /// Screen-space runtime UI payload selected for this viewport target.
     pub ui: Option<UiRenderExtract>,
+    pub(crate) output_target: super::ViewportRenderOutputTarget,
+    pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+    pub(crate) previous_motion_vector_object_history:
+        Option<super::ViewportMotionVectorObjectHistory>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
 }
@@ -21,8 +25,29 @@ impl ViewportRenderFrame {
         &self.prepared_runtime_sidebands
     }
 
+    pub(crate) fn output_target(&self) -> super::ViewportRenderOutputTarget {
+        self.output_target
+    }
+
+    pub(crate) fn texture_writeback_plan(
+        &self,
+        target_format: Option<&str>,
+    ) -> super::ViewportTextureWritebackPlan {
+        self.output_target.writeback_plan(target_format)
+    }
+
     pub(crate) fn camera(&self) -> &crate::core::framework::render::ViewportCameraSnapshot {
         &self.extract.view.camera
+    }
+
+    pub(crate) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
+        self.previous_motion_vector_camera.as_ref()
+    }
+
+    pub(crate) fn previous_motion_vector_object_history(
+        &self,
+    ) -> Option<&super::ViewportMotionVectorObjectHistory> {
+        self.previous_motion_vector_object_history.as_ref()
     }
 
     pub(crate) fn meshes(&self) -> &[crate::core::framework::render::RenderMeshSnapshot] {

@@ -1,5 +1,6 @@
 mod completion;
 mod controls;
+mod multichannel;
 mod range;
 mod settings;
 mod source_completion;

@@ -2,6 +2,8 @@ mod capture;
 mod descriptor;
 mod generation;
 mod history;
+mod motion_vector_camera;
+mod motion_vector_object_history;
 mod new;
 mod pipeline;
 mod quality_profile;

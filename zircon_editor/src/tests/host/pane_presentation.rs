@@ -22,8 +22,9 @@ use zircon_runtime_interface::ui::{
         UiLayoutEngineSelection, UiLayoutEngineSelectionReport,
     },
     surface::{
-        UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiRenderDebugStats,
-        UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot, UiWidgetReflectorNode,
+        UiCanvasLayerGroup, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
+        UiRenderDebugStats, UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot,
+        UiWidgetReflectorNode,
     },
     tree::{UiInputPolicy, UiVisibility},
 };
@@ -151,7 +152,7 @@ fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
                 drawer_data_root: Some(
                     "inspector.plugin_components.weather.Component.CloudLayer".to_string(),
                 ),
-                drawer_bindings: vec!["Weather.CloudLayer.Refresh".to_string()],
+                drawer_bindings: vec!["weather.cloud_layer.refresh".to_string()],
                 diagnostic: None,
                 properties: Vec::new(),
             });
@@ -314,6 +315,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
                 hoverable: false,
                 focusable: false,
                 control_id: Some("RuntimeDiagnosticsRoot".to_string()),
+                slot: None,
                 render_command_count: 1,
                 hit_entry_count: 0,
                 hit_cell_count: 0,
@@ -334,6 +336,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
                 hoverable: true,
                 focusable: true,
                 control_id: Some("LiveDebugButton".to_string()),
+                slot: None,
                 render_command_count: 2,
                 hit_entry_count: 1,
                 hit_cell_count: 1,
@@ -345,6 +348,12 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
             ..UiRenderDebugStats::default()
         },
         layout_engine_report: layout_engine_report_fixture(),
+        canvas_layers: vec![UiCanvasLayerGroup {
+            parent_id: UiNodeId::new(1),
+            layer_index: 0,
+            z_order: 1,
+            child_ids: vec![UiNodeId::new(2)],
+        }],
         overlay_primitives: vec![UiDebugOverlayPrimitive {
             kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
             node_id: Some(UiNodeId::new(2)),
@@ -357,7 +366,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
 }
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let zircon = UiLayoutEngineCapability::legacy_zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
@@ -705,6 +714,14 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
     assert!(payload
         .ui_debug_reflector_sections
         .iter()
+        .any(|line| line == "Canvas Layers:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "  parent=1 layer=0 z=1 children=[2]"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
         .any(|line| line == "Pipeline:"));
     assert!(payload
         .ui_debug_reflector_sections
@@ -761,7 +778,7 @@ fn inspector_payload_preserves_component_drawer_template_metadata() {
         component.drawer_template_id.as_deref(),
         Some("weather.cloud_layer.inspector")
     );
-    assert_eq!(component.drawer_bindings, ["Weather.CloudLayer.Refresh"]);
+    assert_eq!(component.drawer_bindings, ["weather.cloud_layer.refresh"]);
 }
 
 #[test]

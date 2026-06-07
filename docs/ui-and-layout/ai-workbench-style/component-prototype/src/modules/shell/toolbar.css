@@ -1,0 +1,25 @@
+.zr-module-toolbar {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 44vw;
+  min-width: 0;
+  overflow: auto hidden;
+}
+
+.zr-module-toolbar .zr-button {
+  flex: 0 0 auto;
+  height: 34px;
+  min-width: auto;
+  color: #c7d0d4;
+  border-color: #263035;
+  background: linear-gradient(180deg, #1e2428, #14191c);
+}
+
+.zr-module-toolbar .zr-button.is-active,
+.zr-module-action.is-active {
+  color: #efffff;
+  border-color: rgba(53, 199, 208, 0.55);
+  background: linear-gradient(180deg, rgba(39, 104, 112, 0.78), rgba(17, 61, 67, 0.9));
+}

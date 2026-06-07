@@ -1,6 +1,7 @@
 mod accessibility_contracts;
 mod boundary;
 mod contracts;
+mod dispatch_reply_contracts;
 mod layout_engine_contracts;
 mod pipeline_contracts;
 mod reflect_contracts;

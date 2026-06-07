@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
@@ -18,7 +18,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
@@ -37,7 +37,7 @@ tests:
   - cargo test -p zircon_runtime --lib repeat_declaration --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after repeat validation/metadata constants: timed out after 604 seconds while building/linking test binary; no compiler diagnostic returned)
   - cargo test -p zircon_editor --lib componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01 after repeat declaration integration: timed out after 605 seconds during zircon_runtime test binary link; no compiler diagnostic returned)
   - rustfmt --edition 2021 --check over the touched repeat/runtime/editor Rust files (2026-06-01 after repeat declaration integration: passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui (2026-06-01 after repeat declaration integration: passed, repeat table present and 10 authored scene-tree children)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui (2026-06-01 after repeat declaration integration: passed, repeat table present and 10 authored scene-tree children)
 doc_type: module-detail
 ---
 

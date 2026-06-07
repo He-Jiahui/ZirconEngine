@@ -1,0 +1,29 @@
+.zr-map-path {
+  position: absolute;
+  height: 1px;
+  border-top: 1px dashed rgba(53, 199, 208, 0.58);
+  pointer-events: none;
+  transform-origin: left center;
+}
+
+.zr-map-path.is-1 {
+  left: 36%;
+  top: 24%;
+  width: 32%;
+  transform: rotate(19deg);
+}
+
+.zr-map-path.is-2 {
+  left: 44%;
+  bottom: 26%;
+  width: 30%;
+  transform: rotate(-24deg);
+}
+
+.zr-map-path.is-3 {
+  left: 27%;
+  top: 49%;
+  width: 46%;
+  border-color: rgba(242, 160, 65, 0.68);
+  transform: rotate(30deg);
+}

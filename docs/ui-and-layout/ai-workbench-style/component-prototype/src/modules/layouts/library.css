@@ -1,0 +1,16 @@
+.zr-module-editor-grid.is-library {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+  grid-template-rows: minmax(0, 1fr) minmax(160px, 0.38fr);
+}
+
+.zr-module-editor-grid.is-library .zr-module-card:first-child {
+  grid-row: 1 / span 2;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.zr-module-editor-grid.is-library .zr-module-card:first-child .zr-module-card-body {
+  min-height: 0;
+  overflow: hidden;
+}

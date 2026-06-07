@@ -57,7 +57,10 @@ impl QueryAccess {
     }
 
     pub fn conflicts_with(&self, other: &Self) -> bool {
-        !self.conflicting_components_with(other).is_empty()
+        !self.has_disjoint_filter(other)
+            && (sorted_component_slices_intersect(&self.writes, &other.reads)
+                || sorted_component_slices_intersect(&self.reads, &other.writes)
+                || sorted_component_slices_intersect(&self.writes, &other.writes))
     }
 
     pub fn conflicting_components_with(&self, other: &Self) -> Vec<ComponentId> {
@@ -66,9 +69,9 @@ impl QueryAccess {
         }
 
         let mut conflicts = Vec::new();
-        push_intersections(&mut conflicts, &self.writes, &other.reads);
-        push_intersections(&mut conflicts, &self.reads, &other.writes);
-        push_intersections(&mut conflicts, &self.writes, &other.writes);
+        push_sorted_component_intersections(&mut conflicts, &self.writes, &other.reads);
+        push_sorted_component_intersections(&mut conflicts, &self.reads, &other.writes);
+        push_sorted_component_intersections(&mut conflicts, &self.writes, &other.writes);
         conflicts
     }
 
@@ -86,22 +89,34 @@ impl QueryAccess {
     }
 }
 
-fn push_intersections(
+fn push_sorted_component_intersections(
     conflicts: &mut Vec<ComponentId>,
     left: &[ComponentId],
     right: &[ComponentId],
 ) {
-    for component_id in left {
-        if contains_id(right, *component_id) {
-            insert_id(conflicts, *component_id);
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while let (Some(left_value), Some(right_value)) = (left.get(left_index), right.get(right_index))
+    {
+        if left_value == right_value {
+            insert_sorted_component_id(conflicts, *left_value);
+            left_index += 1;
+            right_index += 1;
+        } else if left_value < right_value {
+            left_index += 1;
+        } else {
+            right_index += 1;
         }
     }
 }
 
 fn insert_id(ids: &mut Vec<ComponentId>, component_id: ComponentId) {
-    if !contains_id(ids, component_id) {
-        ids.push(component_id);
-        ids.sort_unstable();
+    insert_sorted_component_id(ids, component_id);
+}
+
+fn insert_sorted_component_id(ids: &mut Vec<ComponentId>, component_id: ComponentId) {
+    if let Err(index) = ids.binary_search(&component_id) {
+        ids.insert(index, component_id);
     }
 }
 
@@ -110,6 +125,22 @@ fn contains_id(ids: &[ComponentId], component_id: ComponentId) -> bool {
 }
 
 fn intersects(left: &[ComponentId], right: &[ComponentId]) -> bool {
-    left.iter()
-        .any(|component_id| contains_id(right, *component_id))
+    sorted_component_slices_intersect(left, right)
+}
+
+fn sorted_component_slices_intersect(left: &[ComponentId], right: &[ComponentId]) -> bool {
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while let (Some(left_value), Some(right_value)) = (left.get(left_index), right.get(right_index))
+    {
+        if left_value == right_value {
+            return true;
+        }
+        if left_value < right_value {
+            left_index += 1;
+        } else {
+            right_index += 1;
+        }
+    }
+    false
 }

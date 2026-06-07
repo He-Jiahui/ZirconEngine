@@ -180,6 +180,25 @@ impl<'a> RenderPassExecutionContext<'a> {
             })
             .and_then(|resource| resource.attachment_ops)
     }
+
+    pub fn reads_texture(&self, resource_name: &str) -> bool {
+        self.resources.iter().any(|resource| {
+            resource.name == resource_name
+                && resource.access == RenderGraphResourceAccessKind::Read
+                && matches!(
+                    resource.kind,
+                    RenderGraphResourceKind::TransientTexture | RenderGraphResourceKind::External
+                )
+        })
+    }
+
+    pub fn reads_transient_texture(&self, resource_name: &str) -> bool {
+        self.resources.iter().any(|resource| {
+            resource.name == resource_name
+                && resource.access == RenderGraphResourceAccessKind::Read
+                && resource.kind == RenderGraphResourceKind::TransientTexture
+        })
+    }
 }
 
 #[cfg(test)]
@@ -233,5 +252,52 @@ mod tests {
             Some(RenderGraphAttachmentOps::load_store())
         );
         assert_eq!(context.attachment_ops_for_write("scene-depth"), None);
+    }
+
+    #[test]
+    fn metadata_context_reports_declared_texture_reads() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "opaque-mesh",
+            RenderPassExecutorId::new("mesh.opaque"),
+            QueueLane::Graphics,
+            Default::default(),
+            vec![
+                RenderGraphPassResourceAccess {
+                    name: "shadow-map".to_string(),
+                    kind: RenderGraphResourceKind::TransientTexture,
+                    access: RenderGraphResourceAccessKind::Read,
+                    attachment_ops: None,
+                },
+                RenderGraphPassResourceAccess {
+                    name: "scene-color".to_string(),
+                    kind: RenderGraphResourceKind::TransientTexture,
+                    access: RenderGraphResourceAccessKind::Write,
+                    attachment_ops: Some(RenderGraphAttachmentOps::load_store()),
+                },
+            ],
+        );
+
+        assert!(context.reads_texture("shadow-map"));
+        assert!(context.reads_transient_texture("shadow-map"));
+        assert!(!context.reads_texture("scene-color"));
+    }
+
+    #[test]
+    fn metadata_context_keeps_external_reads_out_of_transient_texture_reads() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "opaque-mesh",
+            RenderPassExecutorId::new("mesh.opaque"),
+            QueueLane::Graphics,
+            Default::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: "shadow-map".to_string(),
+                kind: RenderGraphResourceKind::External,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert!(context.reads_texture("shadow-map"));
+        assert!(!context.reads_transient_texture("shadow-map"));
     }
 }

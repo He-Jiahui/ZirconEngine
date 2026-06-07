@@ -7,6 +7,7 @@ use crate::scene::ecs::{
 use crate::scene::EntityId;
 use crate::scene::World;
 
+use super::super::cached_query_iter::cached_query_component_locations;
 use super::super::unique_entities::first_duplicate_entity;
 use super::helpers::collect_many_query_items;
 use super::QueryState;
@@ -59,11 +60,11 @@ where
         )
     }
 
-    pub fn iter_many_mut<'world, EntityList>(
-        &mut self,
+    pub fn iter_many_mut<'world, 'state, EntityList>(
+        &'state mut self,
         world: &'world mut World,
         entities: EntityList,
-    ) -> QueryManyMutIter<'world, D, F, EntityList::IntoIter>
+    ) -> QueryManyMutIter<'world, 'state, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
@@ -75,11 +76,11 @@ where
         )
     }
 
-    pub fn iter_many_unique_mut<'world, const N: usize>(
-        &mut self,
+    pub fn iter_many_unique_mut<'world, 'state, const N: usize>(
+        &'state mut self,
         world: &'world mut World,
         entities: UniqueEntityArray<N>,
-    ) -> QueryManyUniqueMutIter<'world, D, F, array::IntoIter<EntityId, N>> {
+    ) -> QueryManyUniqueMutIter<'world, 'state, D, F, array::IntoIter<EntityId, N>> {
         self.iter_many_unique_mut_with_ticks(
             world,
             entities,
@@ -87,10 +88,10 @@ where
         )
     }
 
-    pub fn iter_combinations_mut<'world, const K: usize>(
-        &mut self,
+    pub fn iter_combinations_mut<'world, 'state, const K: usize>(
+        &'state mut self,
         world: &'world mut World,
-    ) -> QueryCombinationMutIter<'world, D, F, K> {
+    ) -> QueryCombinationMutIter<'world, 'state, D, F, K> {
         self.iter_combinations_mut_with_ticks(
             world,
             ChangeTickWindow::all(world.read_change_tick()),
@@ -121,8 +122,15 @@ where
     ) -> Result<D::Item<'world>, QuerySingleError> {
         self.update_cache(world);
         let mut matched = None;
-        for entity in self.cached_entities.iter().copied() {
-            if D::matches_data(world, entity) && F::matches(world, entity, ticks) {
+        for (index, entity) in self.cached_entities.iter().copied().enumerate() {
+            let Some(component_locations) = cached_query_component_locations(
+                &self.cached_component_locations,
+                &self.cached_component_location_offsets,
+                index,
+            ) else {
+                continue;
+            };
+            if F::matches_component_locations(world, entity, component_locations, ticks) {
                 if matched.replace(entity).is_some() {
                     return Err(QuerySingleError::MultipleEntities);
                 }
@@ -165,37 +173,57 @@ where
         self.get_many_mut_with_ticks(world, entities.into_inner(), ticks)
     }
 
-    pub(crate) fn iter_many_mut_with_ticks<'world, EntityList>(
-        &mut self,
+    pub(crate) fn iter_many_mut_with_ticks<'world, 'state, EntityList>(
+        &'state mut self,
         world: &'world mut World,
         entities: EntityList,
         ticks: ChangeTickWindow,
-    ) -> QueryManyMutIter<'world, D, F, EntityList::IntoIter>
+    ) -> QueryManyMutIter<'world, 'state, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
     {
         self.update_cache(world);
-        QueryManyMutIter::new(world, self.cached_entities.clone(), entities, ticks)
+        QueryManyMutIter::new(
+            world,
+            &self.cached_entity_indices,
+            &self.cached_component_locations,
+            &self.cached_component_location_offsets,
+            entities,
+            ticks,
+        )
     }
 
-    pub(crate) fn iter_many_unique_mut_with_ticks<'world, const N: usize>(
-        &mut self,
+    pub(crate) fn iter_many_unique_mut_with_ticks<'world, 'state, const N: usize>(
+        &'state mut self,
         world: &'world mut World,
         entities: UniqueEntityArray<N>,
         ticks: ChangeTickWindow,
-    ) -> QueryManyUniqueMutIter<'world, D, F, array::IntoIter<EntityId, N>> {
+    ) -> QueryManyUniqueMutIter<'world, 'state, D, F, array::IntoIter<EntityId, N>> {
         self.update_cache(world);
-        QueryManyUniqueMutIter::new(world, self.cached_entities.clone(), entities, ticks)
+        QueryManyUniqueMutIter::new(
+            world,
+            &self.cached_entity_indices,
+            &self.cached_component_locations,
+            &self.cached_component_location_offsets,
+            entities,
+            ticks,
+        )
     }
 
-    pub(crate) fn iter_combinations_mut_with_ticks<'world, const K: usize>(
-        &mut self,
+    pub(crate) fn iter_combinations_mut_with_ticks<'world, 'state, const K: usize>(
+        &'state mut self,
         world: &'world mut World,
         ticks: ChangeTickWindow,
-    ) -> QueryCombinationMutIter<'world, D, F, K> {
+    ) -> QueryCombinationMutIter<'world, 'state, D, F, K> {
         self.update_cache(world);
-        QueryCombinationMutIter::new(world, self.cached_entities.iter().copied(), ticks)
+        QueryCombinationMutIter::new_from_cached_entities(
+            world,
+            &self.cached_entities,
+            &self.cached_component_locations,
+            &self.cached_component_location_offsets,
+            ticks,
+        )
     }
 
     pub(crate) fn for_each_mut_with_ticks(
@@ -205,9 +233,15 @@ where
         mut f: impl FnMut(D::Item<'_>),
     ) {
         self.update_cache(world);
-        let entities = self.cached_entities.clone();
-        for entity in entities {
-            if F::matches(world, entity, ticks) {
+        for (index, entity) in self.cached_entities.iter().copied().enumerate() {
+            let Some(component_locations) = cached_query_component_locations(
+                &self.cached_component_locations,
+                &self.cached_component_location_offsets,
+                index,
+            ) else {
+                continue;
+            };
+            if F::matches_component_locations(world, entity, component_locations, ticks) {
                 if let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) {
                     f(item);
                 }
@@ -224,10 +258,10 @@ where
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        if self.cached_entity_index(entity).is_none()
-            || !D::matches_data(world, entity)
-            || !F::matches(world, entity, ticks)
-        {
+        let Some((_, component_locations)) = self.cached_entity_location(entity) else {
+            return Err(QueryEntityError::QueryDoesNotMatch(entity));
+        };
+        if !F::matches_component_locations(world, entity, component_locations, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         Ok(())

@@ -9,7 +9,7 @@ default_project_dir = 'C:\Users\HeJiahui\ZirconProjects'
 default_source_dir = "E:/missing/ZirconEngine"
 default_build_output_dir = 'C:\Users\HeJiahui\ZirconBuilds'
 default_device_install_dir = 'C:\Users\HeJiahui\ZirconDevices\LocalDevice'
-language = "English"
+language = "Chinese"
 build_profile = "Debug"
 jobs = 1
 

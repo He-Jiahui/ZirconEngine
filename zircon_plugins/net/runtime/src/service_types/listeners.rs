@@ -1,4 +1,6 @@
-use zircon_runtime::core::framework::net::{NetEndpoint, NetError, NetListenerId};
+use zircon_runtime::core::framework::net::{
+    NetEndpoint, NetError, NetEvent, NetListenerId, NetTransportKind,
+};
 
 use super::DefaultNetManager;
 
@@ -50,6 +52,10 @@ impl DefaultNetManager {
             .remove(&listener)
             .is_some()
         {
+            self.state.push_event(NetEvent::ListenerClosed {
+                listener,
+                transport: NetTransportKind::Tcp,
+            });
             return Ok(());
         }
 
@@ -66,15 +72,28 @@ impl DefaultNetManager {
             })
             .is_some()
         {
+            self.state.push_event(NetEvent::ListenerClosed {
+                listener,
+                transport: NetTransportKind::Http,
+            });
             return Ok(());
         }
 
-        self.state
+        if self
+            .state
             .websocket_listeners
             .lock()
             .expect("net WebSocket listeners mutex poisoned")
             .remove(&listener)
-            .map(|_| ())
-            .ok_or(NetError::UnknownListener { listener })
+            .is_some()
+        {
+            self.state.push_event(NetEvent::ListenerClosed {
+                listener,
+                transport: NetTransportKind::WebSocket,
+            });
+            return Ok(());
+        }
+
+        Err(NetError::UnknownListener { listener })
     }
 }

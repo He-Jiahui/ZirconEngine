@@ -528,7 +528,8 @@ where
     T: Component,
 {
     let component_id = world.registered_component_id::<T>()?;
-    component_locations
-        .iter()
-        .find(|location| location.component_id == component_id)
+    let index = component_locations
+        .binary_search_by_key(&component_id, |location| location.component_id)
+        .ok()?;
+    component_locations.get(index)
 }

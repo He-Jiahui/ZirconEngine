@@ -119,7 +119,7 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
 
     let harness =
         EventRuntimeHarness::new("zircon_retained_menu_pointer_editor_operation_dispatch");
-    let operation_path = EditorOperationPath::parse("View.Weather.Open").unwrap();
+    let operation_path = EditorOperationPath::parse("view.weather.open").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_operation(
@@ -170,7 +170,7 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 0,
-            action_id: "View.Weather.Open".to_string(),
+            action_id: "view.weather.open".to_string(),
         })
     );
     let effects = dispatched
@@ -181,7 +181,7 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
     let stack = harness.runtime.operation_stack();
     assert_eq!(
         stack.undo_stack().last().map(|entry| entry.operation_id.as_str()),
-        Some("View.Weather.Open"),
+        Some("view.weather.open"),
         "menu dispatch should invoke the EditorOperation id instead of parsing it as a legacy MenuAction"
     );
 }
@@ -192,7 +192,7 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
 
     let harness =
         EventRuntimeHarness::new("zircon_retained_menu_pointer_nested_operation_dispatch");
-    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_operation(
@@ -282,7 +282,7 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 1,
-            action_id: "Weather.CloudLayer.Refresh".to_string(),
+            action_id: "weather.cloud_layer.refresh".to_string(),
         })
     );
     let effects = dispatched
@@ -297,6 +297,6 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
             .undo_stack()
             .last()
             .map(|entry| entry.operation_id.as_str()),
-        Some("Weather.CloudLayer.Refresh")
+        Some("weather.cloud_layer.refresh")
     );
 }

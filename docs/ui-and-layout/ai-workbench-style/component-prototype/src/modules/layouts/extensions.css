@@ -1,0 +1,55 @@
+.zr-module-editor-grid.is-extension {
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.38fr);
+  grid-template-rows: minmax(0, 1fr) minmax(116px, 0.34fr);
+}
+
+.zr-module-editor-grid.is-extension .zr-module-card:first-child {
+  grid-row: 1 / span 2;
+}
+
+.zr-module-editor-grid.is-extension.is-extension-animation,
+.zr-module-editor-grid.is-extension.is-extension-rendering {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.34fr);
+  grid-template-rows: minmax(0, 1fr) minmax(116px, 0.3fr);
+}
+
+.zr-module-editor-grid.is-extension.is-extension-animation .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-rendering .zr-module-card:first-child {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.zr-module-editor-grid.is-extension.is-extension-world,
+.zr-module-editor-grid.is-extension.is-extension-gameplay,
+.zr-module-editor-grid.is-extension.is-extension-simulation {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.32fr);
+  grid-template-rows: minmax(0, 1fr) minmax(128px, 0.34fr);
+}
+
+.zr-module-editor-grid.is-extension.is-extension-ui,
+.zr-module-editor-grid.is-extension.is-extension-online,
+.zr-module-editor-grid.is-extension.is-extension-data,
+.zr-module-editor-grid.is-extension.is-extension-runtime {
+  grid-template-columns: minmax(0, 0.62fr) minmax(240px, 0.38fr);
+  grid-template-rows: minmax(0, 1fr) minmax(118px, 0.34fr);
+}
+
+.zr-module-editor-grid.is-extension.is-extension-ui .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-online .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-data .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-runtime .zr-module-card:first-child {
+  grid-row: 1 / span 2;
+}
+
+.zr-module-editor-grid.is-extension.is-extension-production,
+.zr-module-editor-grid.is-extension.is-extension-diagnostics,
+.zr-module-editor-grid.is-extension.is-extension-vfx {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto minmax(110px, 0.28fr);
+}
+
+.zr-module-editor-grid.is-extension.is-extension-production .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-diagnostics .zr-module-card:first-child,
+.zr-module-editor-grid.is-extension.is-extension-vfx .zr-module-card:first-child {
+  grid-row: auto;
+}

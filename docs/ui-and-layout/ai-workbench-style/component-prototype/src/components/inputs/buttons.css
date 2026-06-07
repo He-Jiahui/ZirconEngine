@@ -1,0 +1,71 @@
+.zr-button,
+.zr-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.zr-button:hover,
+.zr-icon-button:hover {
+  background: linear-gradient(180deg, #22282d, #171c20);
+  border-color: #3a444b;
+}
+
+.zr-button.is-primary {
+  min-width: 80px;
+  color: white;
+  border-color: #219daa;
+  background: linear-gradient(180deg, #31b2c0, #1f8f9e);
+}
+
+.zr-button.is-secondary {
+  min-width: 82px;
+}
+
+.zr-button.is-tertiary {
+  min-width: 80px;
+  background: #15191d;
+}
+
+.zr-button.is-outline {
+  min-width: 82px;
+  background: transparent;
+}
+
+.zr-button.is-danger,
+.zr-icon-button.is-danger {
+  color: var(--red);
+  border-color: rgba(239, 106, 90, 0.28);
+  background: rgba(239, 106, 90, 0.1);
+}
+
+.zr-button:disabled {
+  color: var(--text-dim);
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: #202326;
+}
+
+.zr-icon-button {
+  width: var(--control-h);
+  min-width: var(--control-h);
+  padding: 0;
+}
+
+.zr-icon-button.is-lg {
+  width: var(--control-lg);
+  min-width: var(--control-lg);
+  height: var(--control-lg);
+  border-radius: var(--radius-md);
+}
+
+.zr-icon-button.is-active {
+  color: var(--accent);
+  border-color: var(--accent-2);
+  background: linear-gradient(180deg, rgba(29, 81, 87, 0.68), rgba(12, 45, 49, 0.94));
+  box-shadow: inset 0 0 0 1px rgba(53, 199, 208, 0.15), 0 0 18px rgba(53, 199, 208, 0.1);
+}

@@ -6,9 +6,11 @@ related_code:
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
+  - zircon_runtime_interface/src/ui/component/state.rs
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/ecs.rs
   - zircon_runtime_interface/src/ui/ecs/compute.rs
@@ -20,6 +22,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/picking.rs
   - zircon_runtime_interface/src/ui/text.rs
@@ -62,18 +65,22 @@ related_code:
   - zircon_editor/src/ui/asset_editor/document_diff.rs
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
   - zircon_runtime_interface/src/tests/mod.rs
+  - zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/ui_ecs_projection_contracts.rs
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+  - zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/binding/mod.rs
   - zircon_runtime_interface/src/ui/binding/model/update.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
+  - zircon_runtime_interface/src/ui/component/state.rs
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/ecs.rs
   - zircon_runtime_interface/src/ui/ecs/compute.rs
@@ -85,6 +92,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/picking.rs
   - zircon_runtime_interface/src/ui/text.rs
@@ -121,18 +129,29 @@ implementation_files:
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/ui/asset_editor/document_diff.rs
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
+  - zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
   - zircon_runtime_interface/src/tests/ui_ecs_projection_contracts.rs
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
 plan_sources:
   - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
   - .codex/plans/ZirconEngine UITextInputA11y 缺口收束计划.md
+  - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
   - user: 2026-05-08 continue M1 Contract Spine implementation
   - user: 2026-05-08 include M3 tab/directional navigation in M2 focus milestone
+  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/Reply.h
+  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/ReplyBase.h
+  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElements.h
+  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Styling/SlateWidgetStyle.h
+  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
 tests:
   - zircon_runtime_interface/src/tests/mod.rs
+  - zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
@@ -204,6 +223,8 @@ The projection DTOs also expose unified derived-field freshness helpers. `derive
 
 `ui::layout::engine` defines the neutral layout backend route report used by runtime and editor diagnostics. `UiLayoutEngineSelectionReport` records per-container Taffy/Zircon selection, fallback and unsupported counts, fallback-reason summaries, and default-compatible Taffy tree-build metrics (`UiLayoutEngineTaffyTreeBuildStats`) so M2 can measure the current transient tree pass before replacing it with a surface-level cache.
 
+`ui::dispatch::input::UiDispatchReply`, `UiDispatchReplyStep`, and `UiDispatchReplyMergeReport` model Slate-style per-route replies without moving event routing into the interface crate. `merge_route(...)` records phase, target, handler, disposition, effect range, and propagation-stop diagnostics for each route step. In merged routes, `Unhandled` is trace-only and contributes no effects, `Passthrough` is the explicit continue-and-apply state, and `Handled` or `Blocked` contribute their effects and stop propagation.
+
 `ui::dispatch::input::UiInputDispatchResult`, `ui::dispatch::pointer::UiPointerDispatchResult`, and `ui::dispatch::navigation::UiNavigationDispatchResult` carry defaulted `binding_reports` next to component events, host requests, and legacy route results. This keeps the result DTOs backward-compatible while allowing runtime dispatch paths such as accessibility SetValue and default widget reducers to return binding update evidence without string-only diagnostics. `UiPointerComponentEvent`, `UiComponentEventReport`, and `UiInputDispatchResult` also carry optional defaulted `UiDragMetrics` payloads so pointer-owned component events and selection-only input routes can report drag phase, start/current points, delta, and distance without changing the existing `UiComponentEvent` variants. Popup and tooltip input/effect DTOs also carry a defaulted optional owner id so runtime can validate explicit popup/tooltip owners without making old serialized host events invalid.
 
 `ui::accessibility` defines neutral a11y roles, states, text-selection state, actions, nodes, diagnostics, `UiAccessibilityTreeSnapshot`, and `UiAccessibilityContract`. The snapshot is AccessKit-independent: runtime M9 may map it to AccessKit, but the shared contract stores node ids, paths, role/name/description, bounds, state, TextInput caret/selection offsets, actions, label links, tooltip text, focused node, and diagnostics such as missing accessible names. The action vocabulary keeps whole-field `SetValue`, selected-range `ReplaceSelectedText`, selection-only `SetTextSelection`, explicit open-state `Expand`/`Collapse`, popup/dialog/tooltip `Dismiss`, and scroll-offset `ScrollTo` payloads separate, so platform bridges can preserve text-edit, popup/disclosure, cancel, and scroll requests without leaking AccessKit types into the interface crate.
@@ -212,9 +233,11 @@ The projection DTOs also expose unified derived-field freshness helpers. `derive
 
 `ui::component::drag` defines both drag/drop payload provenance and pointer-drag metrics. `UiDragPhase` plus `UiDragMetrics` are neutral DTOs shared by Range, ScrollbarThumb, TextInput pointer selection, and future editor drag affordances: component events still own semantic value changes when such events exist, while input-result drag metrics describe selection-only pointer gestures that do not have a component event to decorate.
 
+`ui::component::state` defines the retained component-state envelope shared by runtime reducers, v2 runtime style selectors, render extraction, and binding reports. `UiComponentFlags` carries interaction flags such as hover/focus/press, drag/drop target facts, selected/checked/open/expanded/disabled, and semantic loading state so a host or runtime callback can change visual state without mutating authored `.ui.toml/.zui` metadata.
+
 `ui::text` defines `UiTextEdit` and `UiTextCursorStyle` around the existing `UiEditableTextState` and `UiTextEditAction` render-surface text DTOs. It records the edit source and before/after state while leaving actual editing behavior and shaping to later runtime text milestones.
 
-`ui::style` defines shared typed style values that must cross runtime/editor boundaries without Rust trait objects or host-local string enums. The first covered family is Material Button style: `ButtonVariant`, `ButtonColor`, `ButtonSize`, `ButtonIconPlacement`, `ButtonInteractionState`, `UiStyleColor`, `StyleDimension`, `UiResolvedElementStyle`, and `ResolvedButtonStyle`. These DTOs let runtime style resolution and editor retained painting agree on Button/IconButton variant, tone, size, icon placement, state, disabled/loading flags, and resolved element colors/border/radius while keeping authored `.ui.toml/.zui` values as the source input.
+`ui::style` defines shared typed style values that must cross runtime/editor boundaries without Rust trait objects or host-local string enums. The first covered family is Material Button style: `ButtonVariant`, `ButtonColor`, `ButtonSize`, `ButtonIconPlacement`, `ButtonInteractionState`, `UiStyleColor`, `StyleDimension`, `UiResolvedElementStyle`, and `ResolvedButtonStyle`. These DTOs let runtime style resolution and editor retained painting agree on Button/IconButton variant, tone, size, icon placement, state, disabled/loading flags, and resolved element colors/border/radius while keeping authored `.ui.toml/.zui` values as the source input. `UiPainterState`, `UiPainterFamily`, `UiPainterResolvedState`, and `UiPainterStyleSelector` form the Slate-inspired state-to-paint contract: widget behavior and replies produce semantic state first, then runtime render extraction and retained native painters resolve the family-specific visual priority through one selector instead of duplicating hovered/pressed/focused/open/drag/drop/loading branches.
 
 `ui::surface::render` now exposes `UiRenderExtractKind` and `UiRenderStats` beside the existing `UiRenderExtract`. The existing extract shape remains compatible with legacy `{ tree_id, list }` JSON because the new classification and stats DTOs are separate rather than required fields.
 
@@ -223,6 +246,8 @@ The projection DTOs also expose unified derived-field freshness helpers. `derive
 `ui::template::UiTemplateNode` has defaulted `focus`, `navigation`, `picking`, `a11y`, and `widget` sections. `ui::template::asset::UiNodeDefinition` mirrors those sections as optional source-authoring tables so old `.ui.toml` files continue to deserialize with no authored contract sections, while new source assets can opt into structured M1 contracts with `[root.focus]`, `[root.navigation]`, `[root.picking]`, `[root.a11y]`, and `[root.widget]` tables. Runtime asset compilation copies native-node sections into compiled `UiTemplateNode` defaults and treats component-instance sections as explicit root contract overrides. Legacy-template migration only emits optional source sections when the old compiled template node had a non-default contract value, preventing default migrated instance nodes from erasing component-root contracts.
 
 `ui::tree::UiTreeNode` now carries defaulted `focus: UiFocusContract` and `navigation: UiNavigationContract` fields in the retained runtime tree. These fields are the runtime consumption point for compiled template contract sections, avoiding a second focus/navigation schema under `zircon_runtime`.
+
+`ui::tree::UiTree` owns the base retained-tree construction and access contract directly: `new`, `insert_root`, `insert_child`, `node`, and `node_mut`. Runtime no longer exposes a separate `UiRuntimeTreeAccessExt` just to build or query tree structure; runtime tree helpers are reserved for behavior such as focus, routing, layout, render ordering, interaction, and scroll semantics.
 
 `ui::surface::UiFocusState` now stores runtime focus facts that need to be visible to hosts and tests: previous focus, pending autofocus, focus-visible policy, focus-change events, and focused-input route records. `captured`, `pressed`, and `hovered` remain on the same state object so cleanup can clear focus/capture/hover coherently when nodes are hidden, disabled, or despawned.
 
@@ -247,6 +272,12 @@ Editor code may consume these DTOs for authoring and presentation, but it must n
 The M3 binding-update contract slice is covered by `ui_binding_update_contract_represents_attribute_state_and_ecs_domains`, which roundtrips `UiBindingUpdate`, verifies retained-attribute, runtime-state, component-state, accessibility-action, widget-alias, and runtime-ECS source or target kinds, checks report dirty-domain aggregation, and verifies `UiInputDispatchResult`, `UiPointerDispatchResult`, and `UiNavigationDispatchResult` binding reports roundtrip while legacy results default the field to empty.
 
 `zircon_runtime_interface/src/tests/contracts.rs` covers the popup/tooltip owner extension by constructing owner-bearing `UiPopupInputEvent`, `UiTooltipTimerInputEvent`, `UiDispatchEffect::Popup`, and `UiDispatchEffect::Tooltip` payloads, then deserializing legacy JSON with the `owner` field removed and verifying the field defaults to `None`. It also covers pointer drag metrics by roundtripping a `UiPointerComponentEvent`, `UiInputDispatchResult`, and `UiComponentEventReport` with `UiDragMetrics`, then removing the `drag` field from JSON and verifying legacy payloads default to `None`.
+
+`zircon_runtime_interface/src/tests/contracts.rs` also pins the retained `UiTree` base access contract. `ui_tree_contract_owns_base_construction_insertion_and_access` verifies interface-owned root/child insertion, parent-child links, paint-order assignment, mutable node access, duplicate-node errors, and missing-parent errors without importing runtime tree extension traits.
+
+`zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs` covers route reply merging directly. It pins that unhandled route steps remain diagnostic-only even if a malformed step carries effects, passthrough steps preserve effect-carrying continuation, and handled steps stop propagation with stable effect ranges.
+
+`zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs` covers the shared painter selector contract directly. It pins the family table for Button, IconButton, Toggle, Checkbox, Radio, Slider, Dropdown, PopupRow, Alert, Tooltip, TextField, ListRow, TreeRow, TableRow, Tab, Toast, and Generic, verifies disabled dominates every family, verifies loading is honored only by Button and the generic interactive families, and checks that the `UiPainterState` convenience helpers remain thin wrappers over `UiPainterStyleSelector`.
 
 `zircon_runtime_interface/src/tests/layout_engine_contracts.rs` covers the layout route report contract. It verifies Taffy/Zircon backend family selection, fallback and unsupported aggregation, deserialization recomputation from `selections`, and `UiLayoutEngineTaffyTreeBuildStats` roundtrip/default behavior for the tree-build baseline used by runtime M2 diagnostics.
 

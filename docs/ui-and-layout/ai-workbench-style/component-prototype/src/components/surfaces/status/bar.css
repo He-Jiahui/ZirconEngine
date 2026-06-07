@@ -1,0 +1,13 @@
+.zr-statusbar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--bottom-h);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px 0 24px;
+  border: 1px solid #2a3034;
+  border-top-color: #07090a;
+  background: linear-gradient(180deg, #1a1f22, #151a1d);
+}

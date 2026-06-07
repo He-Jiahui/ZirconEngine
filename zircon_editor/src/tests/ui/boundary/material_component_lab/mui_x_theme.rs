@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, fs};
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
-use super::support::{editor_asset, MUI_X_PROTOTYPES};
+use super::support::{editor_asset, material_prototype_path, MUI_X_PROTOTYPES};
 
 const MUI_X_THEME_SELECTORS: &[&str] = &[
     ".MuiDataGrid-root",
@@ -584,10 +584,7 @@ fn material_component_lab_mui_x_state_props_have_themed_feedback_selectors() {
     let selectors = theme_selectors(&source);
 
     for contract in MUI_X_SAMPLE_STATE_SELECTORS {
-        let path = editor_asset(&format!(
-            "assets/ui/editor/material_components/material_{}.zui",
-            contract.prototype_key
-        ));
+        let path = material_prototype_path(contract.prototype_key);
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
         let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -672,9 +669,7 @@ fn material_component_lab_mui_x_samples_only_use_themed_utility_classes() {
     let selectors = theme_selectors(&source);
 
     for prototype_key in MUI_X_PROTOTYPES {
-        let path = editor_asset(&format!(
-            "assets/ui/editor/material_components/material_{prototype_key}.zui"
-        ));
+        let path = material_prototype_path(prototype_key);
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
         let document = UiZuiAssetLoader::load_zui_str(&source)

@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDragDropInputEventKind, UiInputDispatchResult, UiInputEvent, UiInputRoutePolicy,
-        UiInputRouteTrace,
+        UiDispatchEffect, UiDragDropInputEventKind, UiInputDispatchResult, UiInputEvent,
+        UiInputRoutePolicy, UiInputRouteTrace, UiPointerInputEvent,
     },
     event_ui::UiNodeId,
     surface::{UiNavigationRoute, UiPointerEventKind, UiPointerRoute},
@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
-use super::{super::surface::UiSurface, state::UiSurfaceInputState};
+use super::{super::arranged_focus_path, super::surface::UiSurface, state::UiSurfaceInputState};
 
 pub(super) fn route_policy_for_input_event(
     input: &UiSurfaceInputState,
@@ -17,25 +17,16 @@ pub(super) fn route_policy_for_input_event(
 ) -> UiInputRoutePolicy {
     match event {
         UiInputEvent::Pointer(pointer) => match pointer.event.kind {
-            UiPointerEventKind::Up
-                if input.captured_pointer_id.is_some()
-                    && input.captured_pointer_id == pointer.metadata.pointer_id =>
-            {
+            UiPointerEventKind::Up if pointer_event_has_capture(input, pointer) => {
                 UiInputRoutePolicy::PointerCapture
             }
             UiPointerEventKind::Down | UiPointerEventKind::Up | UiPointerEventKind::Scroll => {
                 UiInputRoutePolicy::Bubble
             }
-            UiPointerEventKind::Move
-                if input.captured_pointer_id.is_some()
-                    && input.captured_pointer_id == pointer.metadata.pointer_id =>
-            {
+            UiPointerEventKind::Move if pointer_event_has_capture(input, pointer) => {
                 UiInputRoutePolicy::PointerCapture
             }
-            UiPointerEventKind::Cancel
-                if input.captured_pointer_id.is_some()
-                    && input.captured_pointer_id == pointer.metadata.pointer_id =>
-            {
+            UiPointerEventKind::Cancel if pointer_event_has_capture(input, pointer) => {
                 UiInputRoutePolicy::PointerCapture
             }
             UiPointerEventKind::Move | UiPointerEventKind::Cancel => UiInputRoutePolicy::Direct,
@@ -45,6 +36,7 @@ pub(super) fn route_policy_for_input_event(
         }
         UiInputEvent::Navigation(_) => UiInputRoutePolicy::FocusPath,
         UiInputEvent::Analog(_) => UiInputRoutePolicy::FocusPath,
+        UiInputEvent::MouseMotion(_) => UiInputRoutePolicy::Unrouted,
         UiInputEvent::DragDrop(drag_drop) => match drag_drop.kind {
             UiDragDropInputEventKind::Begin => UiInputRoutePolicy::Direct,
             UiDragDropInputEventKind::Enter
@@ -64,8 +56,13 @@ pub(super) fn annotate_route_policy(
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
-    result.diagnostics.route_policy = route_policy_for_input_event(&surface.input, event);
-    populate_generic_route_trace(surface, event, result);
+    let released_capture_target = pointer_capture_release_target(event, result);
+    result.diagnostics.route_policy = if released_capture_target.is_some() {
+        UiInputRoutePolicy::PointerCapture
+    } else {
+        route_policy_for_input_event(&surface.input, event)
+    };
+    populate_generic_route_trace(surface, event, result, released_capture_target);
     if let UiInputEvent::Pointer(pointer) = event {
         result.diagnostics.notes.push(format!(
             "pointer_source={:?}",
@@ -129,6 +126,7 @@ fn populate_generic_route_trace(
     surface: &UiSurface,
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
+    capture_override: Option<UiNodeId>,
 ) {
     let target = event_owner(event).or(result.diagnostics.route_target);
     let bubble_path = target
@@ -140,7 +138,7 @@ fn populate_generic_route_trace(
     } else {
         bubble_path.clone()
     };
-    let capture_target = surface.focus.captured;
+    let capture_target = capture_target_for_event(surface, event, capture_override);
     result.diagnostics.route_trace = UiInputRouteTrace {
         preview_tunnel: preview_tunnel_for_bubble(&route_path),
         direct_target: direct_target_for_policy(
@@ -159,6 +157,58 @@ fn populate_generic_route_trace(
         },
         popup_stack: popup_stack(surface),
     };
+}
+
+fn pointer_event_has_capture(input: &UiSurfaceInputState, pointer: &UiPointerInputEvent) -> bool {
+    pointer
+        .metadata
+        .pointer_id
+        .is_some_and(|pointer_id| input.pointer_capture_owner(pointer_id).is_some())
+        || (input.captured_pointer_id.is_some()
+            && input.captured_pointer_id == pointer.metadata.pointer_id)
+}
+
+fn pointer_capture_release_target(
+    event: &UiInputEvent,
+    result: &UiInputDispatchResult,
+) -> Option<UiNodeId> {
+    let UiInputEvent::Pointer(pointer) = event else {
+        return None;
+    };
+    if !matches!(
+        pointer.event.kind,
+        UiPointerEventKind::Up | UiPointerEventKind::Cancel
+    ) {
+        return None;
+    }
+    let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
+    result
+        .applied_effects
+        .iter()
+        .find_map(|applied| match &applied.effect {
+            UiDispatchEffect::ReleasePointerCapture {
+                target,
+                pointer_id: released_pointer_id,
+                ..
+            } if *released_pointer_id == pointer_id => Some(*target),
+            _ => None,
+        })
+}
+
+fn capture_target_for_event(
+    surface: &UiSurface,
+    event: &UiInputEvent,
+    capture_override: Option<UiNodeId>,
+) -> Option<UiNodeId> {
+    capture_override
+        .or_else(|| match event {
+            UiInputEvent::Pointer(pointer) => pointer
+                .metadata
+                .pointer_id
+                .and_then(|pointer_id| surface.input.pointer_capture_owner(pointer_id)),
+            _ => None,
+        })
+        .or(surface.focus.captured)
 }
 
 fn event_owner(event: &UiInputEvent) -> Option<UiNodeId> {
@@ -197,10 +247,7 @@ fn preview_tunnel_for_bubble(bubble_path: &[UiNodeId]) -> Vec<UiNodeId> {
 }
 
 fn focused_route(surface: &UiSurface, focused: Option<UiNodeId>) -> Vec<UiNodeId> {
-    focused
-        .or(surface.focus.focused)
-        .and_then(|focused| surface.tree.bubble_route(focused).ok())
-        .unwrap_or_default()
+    arranged_focus_path(&surface.arranged_tree, focused.or(surface.focus.focused)).bubble_route
 }
 
 fn popup_stack(surface: &UiSurface) -> Vec<String> {

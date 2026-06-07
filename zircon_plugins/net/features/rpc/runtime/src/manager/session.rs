@@ -78,7 +78,7 @@ impl NetRpcRuntimeManager {
         let mut closed = Vec::new();
         for event in events {
             match event {
-                NetEvent::ConnectionClosed { connection }
+                NetEvent::ConnectionClosed { connection, .. }
                 | NetEvent::ConnectionStateChanged {
                     connection,
                     state: NetConnectionState::Closed | NetConnectionState::Failed,

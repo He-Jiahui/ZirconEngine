@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui"
+version = 2
+display_name = "Workbench Extension Collision Proxy Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionCollisionProxyWorkspace]
+root = "collision_proxy_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.collision_proxy_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionCollisionProxyWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_rail_gap" }, { node = "collision_proxy_left" }, { node = "collision_proxy_center" }, { node = "collision_proxy_right" }]
+
+[nodes.collision_proxy_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionCollisionProxyRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.collision_proxy_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionCollisionProxyLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_title" }, { node = "collision_proxy_proxy_tab" }, { node = "collision_proxy_channels_tab" }, { node = "collision_proxy_contacts_tab" }, { node = "collision_proxy_rock_cliff_row" }, { node = "collision_proxy_hull_proxy_a_row" }, { node = "collision_proxy_channel_player_row" }]
+
+[nodes.collision_proxy_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionCollisionProxyTitle"
+props = { text = "Collision Proxy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.collision_proxy_proxy_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionCollisionProxyProxyTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Proxy", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyProxyTab", event = "Click", route = "workbench.extension.collision_proxy.proxy" }]
+
+[nodes.collision_proxy_channels_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionCollisionProxyChannelsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Channels", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyChannelsTab", event = "Click", route = "workbench.extension.collision_proxy.channels" }]
+
+[nodes.collision_proxy_contacts_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionCollisionProxyContactsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Contacts", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyContactsTab", event = "Click", route = "workbench.extension.collision_proxy.contacts" }]
+
+[nodes.collision_proxy_rock_cliff_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionCollisionProxyRockCliffRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Proxy_RockCliff", icon = "cube", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyRockCliffRow", event = "Click", route = "workbench.extension.collision_proxy.proxy.rock_cliff" }]
+
+[nodes.collision_proxy_hull_proxy_a_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionCollisionProxyHullProxyARow"
+classes = ["workbench-list-row"]
+props = { text = "Hull_Proxy_A", icon = "cube", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyHullProxyARow", event = "Click", route = "workbench.extension.collision_proxy.proxy.hull_a" }]
+
+[nodes.collision_proxy_channel_player_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionCollisionProxyChannelPlayerRow"
+classes = ["workbench-list-row"]
+props = { text = "Channel_Player", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyChannelPlayerRow", event = "Click", route = "workbench.extension.collision_proxy.channel.player" }]
+
+[nodes.collision_proxy_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionCollisionProxyCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_center_header" }, { node = "collision_proxy_stack_table" }, { node = "collision_proxy_output" }]
+
+[nodes.collision_proxy_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionCollisionProxyCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "collision_proxy_center_title" }, { node = "collision_proxy_header_fill" }, { node = "collision_proxy_bake_button" }, { node = "collision_proxy_test_contacts_button" }]
+
+[nodes.collision_proxy_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionCollisionProxyCenterTitle"
+props = { text = "Collision Proxy Stack" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.collision_proxy_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionCollisionProxyHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.collision_proxy_bake_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionCollisionProxyBakeButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Bake Proxy", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 104.0, preferred = 104.0, max = 116.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyBake", event = "Click", route = "workbench.extension.collision_proxy.bake" }]
+
+[nodes.collision_proxy_test_contacts_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionCollisionProxyTestContactsButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Test Contacts", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 116.0, preferred = 116.0, max = 128.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyTestContacts", event = "Click", route = "workbench.extension.collision_proxy.test_contacts" }]
+
+[nodes.collision_proxy_stack_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionCollisionProxyStackTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_source_mesh_table_row" }, { node = "collision_proxy_decimator_table_row" }, { node = "collision_proxy_hull_merge_table_row" }, { node = "collision_proxy_channel_mask_table_row" }]
+
+[nodes.collision_proxy_source_mesh_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionCollisionProxySourceMeshTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Source Mesh", value_text = "SM_RockCliff   18K tris" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxySourceMeshTableRow", event = "Click", route = "workbench.extension.collision_proxy.stack.source_mesh" }]
+
+[nodes.collision_proxy_decimator_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionCollisionProxyDecimatorTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Decimator", value_text = "Proxy   42 percent   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyDecimatorTableRow", event = "Click", route = "workbench.extension.collision_proxy.stack.decimator" }]
+
+[nodes.collision_proxy_hull_merge_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionCollisionProxyHullMergeTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Hull Merge", value_text = "Convex   6 hulls" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyHullMergeTableRow", event = "Click", route = "workbench.extension.collision_proxy.stack.hull_merge" }]
+
+[nodes.collision_proxy_channel_mask_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionCollisionProxyChannelMaskTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Channel Mask", value_text = "WorldStatic   Player block" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyChannelMaskTableRow", event = "Click", route = "workbench.extension.collision_proxy.stack.channel_mask" }]
+
+[nodes.collision_proxy_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionCollisionProxyOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Proxy Bake", value_text = "18 proxies   9 channels   2 invalid" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/CollisionProxyOutput", event = "Click", route = "workbench.extension.collision_proxy.output" }]
+
+[nodes.collision_proxy_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionCollisionProxyRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "collision_proxy_details_title" }, { node = "collision_proxy_proxy_dropdown" }, { node = "collision_proxy_channel_dropdown" }, { node = "collision_proxy_lod_field" }]
+
+[nodes.collision_proxy_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionCollisionProxyDetailsTitle"
+props = { text = "Proxy Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.collision_proxy_proxy_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionCollisionProxyProxyDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Proxy_RockCliff", value = "Proxy_RockCliff", options = ["Proxy_RockCliff", "Proxy_Vehicle", "Proxy_Door", "Proxy_Debug"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/CollisionProxyProxyEdit", event = "Change", route = "workbench.extension.collision_proxy.proxy.edit" },
+  { id = "WorkbenchExtension/CollisionProxyProxyCommit", event = "Submit", route = "workbench.extension.collision_proxy.proxy.commit" },
+]
+
+[nodes.collision_proxy_channel_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionCollisionProxyChannelDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "WorldStatic", value = "WorldStatic", options = ["WorldStatic", "WorldDynamic", "Pawn", "Vehicle"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/CollisionProxyChannelEdit", event = "Change", route = "workbench.extension.collision_proxy.channel.edit" },
+  { id = "WorkbenchExtension/CollisionProxyChannelCommit", event = "Submit", route = "workbench.extension.collision_proxy.channel.commit" },
+]
+
+[nodes.collision_proxy_lod_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionCollisionProxyLodField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "LOD", value = "LOD1" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/CollisionProxyLodEdit", event = "Change", route = "workbench.extension.collision_proxy.lod.edit" },
+  { id = "WorkbenchExtension/CollisionProxyLodCommit", event = "Submit", route = "workbench.extension.collision_proxy.lod.commit" },
+]

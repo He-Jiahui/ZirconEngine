@@ -13,15 +13,18 @@ impl WorldDriver {
         level: &LevelSystem,
         delta_seconds: Real,
     ) -> Result<(), CoreError> {
-        let (stages, systems) = level.with_world(|world| {
-            (
-                world.schedule().stages.clone(),
-                world.schedule().systems().to_vec(),
-            )
-        });
-        let hooks = core.scene_runtime_hooks_snapshot();
-        for stage in stages {
-            SceneScheduleRunner::run_stage(core, level, stage, delta_seconds, &systems, &hooks)?;
+        let schedule = level.with_world(|world| world.schedule().stage_plan());
+        let hooks = core.scene_runtime_hook_stage_plan_snapshot();
+        for stage in schedule.stages() {
+            SceneScheduleRunner::run_stage(
+                core,
+                level,
+                *stage,
+                delta_seconds,
+                schedule.internal_systems_for_stage(*stage),
+                schedule.native_steps_for_stage(*stage),
+                hooks.hooks_for_stage(*stage),
+            )?;
         }
 
         Ok(())

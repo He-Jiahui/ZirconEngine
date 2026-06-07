@@ -1,4 +1,4 @@
-use crate::ui::{layout::virtual_window_for_scrollable_box, tree::UiRuntimeTreeAccessExt};
+use crate::ui::{layout::virtual_window_for_scrollable_box};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
@@ -52,7 +52,10 @@ pub(crate) fn arrange_node(
     };
 
     match container {
-        UiContainerKind::Free | UiContainerKind::Container | UiContainerKind::Overlay => {
+        UiContainerKind::Free
+        | UiContainerKind::Canvas
+        | UiContainerKind::Container
+        | UiContainerKind::Overlay => {
             record_zircon_owned_container(engine_context, node_id, container, &children);
             let children = ordered_children_for_container(tree, node_id, &children, container);
             for child_id in children {
@@ -61,6 +64,18 @@ pub(crate) fn arrange_node(
                     free_child_frame(tree, child_id, frame, slot)?
                 };
                 arrange_node(tree, child_id, child_frame, next_clip, engine_context)?;
+            }
+        }
+        UiContainerKind::BlockBox => {
+            if !try_arrange_taffy_owned_children(
+                tree,
+                node_id,
+                &children,
+                frame,
+                next_clip,
+                engine_context,
+            )? {
+                arrange_block_children(tree, node_id, &children, frame, next_clip, engine_context)?;
             }
         }
         UiContainerKind::Space => {
@@ -239,6 +254,45 @@ fn arrange_size_box_children(
         };
         arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
     }
+    Ok(())
+}
+
+fn arrange_block_children(
+    tree: &mut UiTree,
+    parent_id: UiNodeId,
+    children: &[UiNodeId],
+    frame: UiFrame,
+    inherited_clip: Option<UiFrame>,
+    engine_context: &mut UiLayoutPassEngineContext,
+) -> Result<(), UiTreeError> {
+    let container = UiContainerKind::BlockBox;
+    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let mut cursor = 0.0;
+
+    for child_id in children {
+        let Some(node) = tree.node(child_id) else {
+            return Err(UiTreeError::MissingNode(child_id));
+        };
+        if !node.effective_visibility().occupies_layout() {
+            hide_subtree_layout(tree, child_id)?;
+            continue;
+        }
+
+        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let main_extent = block_child_outer_height(tree, child_id, slot)?;
+        let child_frame = linear_child_frame(
+            tree,
+            child_id,
+            frame,
+            UiAxis::Vertical,
+            cursor,
+            main_extent,
+            slot,
+        )?;
+        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        cursor += main_extent;
+    }
+
     Ok(())
 }
 
@@ -613,6 +667,17 @@ fn wrap_item_outer_size_from_desired(
 }
 
 fn masonry_child_outer_height(
+    tree: &UiTree,
+    child_id: UiNodeId,
+    slot: Option<&zircon_runtime_interface::ui::layout::UiSlot>,
+) -> Result<f32, UiTreeError> {
+    let node = tree
+        .node(child_id)
+        .ok_or(UiTreeError::MissingNode(child_id))?;
+    Ok((node.layout_cache.desired_size.height + slot_padding(slot).vertical()).max(0.0))
+}
+
+fn block_child_outer_height(
     tree: &UiTree,
     child_id: UiNodeId,
     slot: Option<&zircon_runtime_interface::ui::layout::UiSlot>,

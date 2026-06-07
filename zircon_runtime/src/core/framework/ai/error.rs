@@ -18,6 +18,53 @@ pub enum AiManagerError {
         node_id: String,
         child_id: String,
     },
+    InvalidBehaviorNodeChildCount {
+        tree_id: String,
+        node_id: String,
+        expected: &'static str,
+        actual: usize,
+    },
+    InvalidBehaviorTreeTopology {
+        tree_id: String,
+        node_id: String,
+        reason: &'static str,
+    },
+    DuplicateBehaviorNodeParameter {
+        tree_id: String,
+        node_id: String,
+        key: String,
+    },
+    NonFiniteBehaviorNodeParameter {
+        tree_id: String,
+        node_id: String,
+        key: String,
+    },
+    InvalidBehaviorNodeParameter {
+        tree_id: String,
+        node_id: String,
+        key: String,
+        expected: &'static str,
+        actual: &'static str,
+    },
+    InvalidBehaviorNodeParameterOwner {
+        tree_id: String,
+        node_id: String,
+        key: String,
+        expected: &'static str,
+    },
+    InvalidBehaviorNodeParameterValue {
+        tree_id: String,
+        node_id: String,
+        key: String,
+        expected: &'static str,
+        actual: String,
+    },
+    InvalidBehaviorSubtreeTarget {
+        tree_id: String,
+        node_id: String,
+        target_tree: String,
+        reason: &'static str,
+    },
     UnknownBehaviorTree {
         id: u64,
     },
@@ -79,6 +126,77 @@ impl fmt::Display for AiManagerError {
             } => write!(
                 f,
                 "AI behavior tree `{tree_id}` node `{node_id}` references missing child `{child_id}`"
+            ),
+            Self::InvalidBehaviorNodeChildCount {
+                tree_id,
+                node_id,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` expected {expected} child nodes but received `{actual}`"
+            ),
+            Self::InvalidBehaviorTreeTopology {
+                tree_id,
+                node_id,
+                reason,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` has invalid topology: {reason}"
+            ),
+            Self::DuplicateBehaviorNodeParameter {
+                tree_id,
+                node_id,
+                key,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` declares duplicate parameter `{key}`"
+            ),
+            Self::NonFiniteBehaviorNodeParameter {
+                tree_id,
+                node_id,
+                key,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` parameter `{key}` contains a non-finite value"
+            ),
+            Self::InvalidBehaviorNodeParameter {
+                tree_id,
+                node_id,
+                key,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` parameter `{key}` expected `{expected}` but received `{actual}`"
+            ),
+            Self::InvalidBehaviorNodeParameterOwner {
+                tree_id,
+                node_id,
+                key,
+                expected,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` parameter `{key}` can only be declared by {expected}"
+            ),
+            Self::InvalidBehaviorNodeParameterValue {
+                tree_id,
+                node_id,
+                key,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` parameter `{key}` expected {expected} but received `{actual}`"
+            ),
+            Self::InvalidBehaviorSubtreeTarget {
+                tree_id,
+                node_id,
+                target_tree,
+                reason,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` subtree node `{node_id}` target `{target_tree}` is invalid: {reason}"
             ),
             Self::UnknownBehaviorTree { id } => {
                 write!(f, "AI behavior tree handle `{id}` is not registered")

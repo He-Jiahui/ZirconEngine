@@ -27,11 +27,7 @@ fn stop_source_reports_cleanup_intent_for_any_input() {
     sound
         .submit_external_source_block(
             external.clone(),
-            SoundExternalSourceBlock {
-                sample_rate_hz: 10,
-                channel_count: 1,
-                samples: vec![0.25],
-            },
+            SoundExternalSourceBlock::new(10, SoundChannelLayout::mono(), vec![0.25]),
         )
         .unwrap();
     let mut external_source = SoundSourceDescriptor::clip(clip);

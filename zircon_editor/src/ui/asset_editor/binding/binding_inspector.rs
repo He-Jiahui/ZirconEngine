@@ -946,28 +946,28 @@ fn binding_route_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) ->
     let mut suggestions = Vec::new();
     let keywords = binding_keywords(node);
     if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
-        suggestions.push("MenuAction.workbench.project.save".to_string());
+        suggestions.push("menu_action.workbench.project.save".to_string());
     }
     match binding.event {
         UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
-            suggestions.push("MenuAction.workbench.project.open".to_string());
-            suggestions.push("MenuAction.workbench.layout.save".to_string());
-            suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
+            suggestions.push("menu_action.workbench.project.open".to_string());
+            suggestions.push("menu_action.workbench.layout.save".to_string());
+            suggestions.push(format!("route.{}", binding_route_slug(node, binding)));
         }
         UiEventKind::Change => {
-            suggestions.push("Route.Selection.Changed".to_string());
-            suggestions.push("Route.Form.ValueChanged".to_string());
+            suggestions.push("route.selection.changed".to_string());
+            suggestions.push("route.form.value_changed".to_string());
         }
         UiEventKind::Toggle => {
-            suggestions.push("Route.Toggle.Changed".to_string());
-            suggestions.push("Route.Panel.VisibilityChanged".to_string());
+            suggestions.push("route.toggle.changed".to_string());
+            suggestions.push("route.panel.visibility_changed".to_string());
         }
         UiEventKind::Drop => {
-            suggestions.push("Route.Reference.Dropped".to_string());
-            suggestions.push("Route.Asset.AcceptDrop".to_string());
+            suggestions.push("route.reference.dropped".to_string());
+            suggestions.push("route.asset.accept_drop".to_string());
         }
         _ => {
-            suggestions.push(format!("Route.{}", binding_route_slug(node, binding)));
+            suggestions.push(format!("route.{}", binding_route_slug(node, binding)));
         }
     }
     dedupe_suggestions(suggestions)
@@ -977,28 +977,28 @@ fn binding_action_suggestions(node: &UiNodeDefinition, binding: &UiBindingRef) -
     let mut suggestions = Vec::new();
     let keywords = binding_keywords(node);
     if binding_event_supports_keyword_shortcuts(binding.event) && is_save_like(&keywords) {
-        suggestions.push("EditorAction.workbench.project.save".to_string());
+        suggestions.push("editor_action.workbench.project.save".to_string());
     }
     match binding.event {
         UiEventKind::Click | UiEventKind::DoubleClick | UiEventKind::Submit => {
-            suggestions.push("EditorAction.workbench.asset_browser.open".to_string());
-            suggestions.push("EditorAction.workbench.selection.focus".to_string());
+            suggestions.push("editor_action.workbench.asset_browser.open".to_string());
+            suggestions.push("editor_action.workbench.selection.focus".to_string());
         }
         UiEventKind::Change => {
-            suggestions.push("EditorAction.workbench.preview.refresh".to_string());
-            suggestions.push("EditorAction.workbench.inspector.apply".to_string());
+            suggestions.push("editor_action.workbench.preview.refresh".to_string());
+            suggestions.push("editor_action.workbench.inspector.apply".to_string());
         }
         UiEventKind::Toggle => {
-            suggestions.push("EditorAction.workbench.visibility.toggle".to_string());
-            suggestions.push("EditorAction.workbench.selection_state.toggle".to_string());
+            suggestions.push("editor_action.workbench.visibility.toggle".to_string());
+            suggestions.push("editor_action.workbench.selection_state.toggle".to_string());
         }
         UiEventKind::Drop => {
-            suggestions.push("EditorAction.workbench.asset_drop.accept".to_string());
-            suggestions.push("EditorAction.workbench.reference.assign".to_string());
+            suggestions.push("editor_action.workbench.asset_drop.accept".to_string());
+            suggestions.push("editor_action.workbench.reference.assign".to_string());
         }
         _ => {
             suggestions.push(format!(
-                "EditorAction.workbench.custom.{}",
+                "editor_action.workbench.custom.{}",
                 binding_action_path_slug(node, binding)
             ));
         }

@@ -4,4 +4,4 @@ mod ids;
 mod registration;
 mod submission;
 
-pub(super) use fixture::{report_fixture, ReportFixture};
+pub(super) use fixture::report_fixture;

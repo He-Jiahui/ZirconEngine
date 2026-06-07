@@ -5,6 +5,8 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
+use super::cached_query_iter::cached_query_component_locations;
+
 pub struct QueryIter<'world, 'entities, D, F = ()>
 where
     D: QueryData,
@@ -13,7 +15,8 @@ where
     world: &'world World,
     entities: &'entities [EntityId],
     locations: Option<&'entities [StableEntityLocation]>,
-    component_locations: Option<&'entities [Vec<ComponentStorageLocation>]>,
+    component_locations: Option<&'entities [ComponentStorageLocation]>,
+    component_location_offsets: Option<&'entities [usize]>,
     index: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
@@ -34,6 +37,7 @@ where
             entities,
             locations: None,
             component_locations: None,
+            component_location_offsets: None,
             index: 0,
             ticks,
             _marker: PhantomData,
@@ -44,7 +48,8 @@ where
         world: &'world World,
         entities: &'entities [EntityId],
         locations: &'entities [StableEntityLocation],
-        component_locations: &'entities [Vec<ComponentStorageLocation>],
+        component_locations: &'entities [ComponentStorageLocation],
+        component_location_offsets: &'entities [usize],
         ticks: ChangeTickWindow,
     ) -> Self {
         Self {
@@ -52,6 +57,7 @@ where
             entities,
             locations: Some(locations),
             component_locations: Some(component_locations),
+            component_location_offsets: Some(component_location_offsets),
             index: 0,
             ticks,
             _marker: PhantomData,
@@ -60,7 +66,9 @@ where
 
     #[cfg(test)]
     pub(crate) fn uses_cached_component_locations(&self) -> bool {
-        self.locations.is_some() && self.component_locations.is_some()
+        self.locations.is_some()
+            && self.component_locations.is_some()
+            && self.component_location_offsets.is_some()
     }
 }
 
@@ -75,20 +83,23 @@ where
         while let Some(entity) = self.entities.get(self.index).copied() {
             let index = self.index;
             self.index += 1;
-            if let (Some(locations), Some(component_locations)) =
-                (self.locations, self.component_locations)
-            {
+            if let (Some(locations), Some(component_locations), Some(component_location_offsets)) = (
+                self.locations,
+                self.component_locations,
+                self.component_location_offsets,
+            ) {
                 let stable_location = locations.get(index).copied()?;
-                let component_locations = component_locations
-                    .get(index)
-                    .map_or(&[][..], Vec::as_slice);
+                let component_locations = cached_query_component_locations(
+                    component_locations,
+                    component_location_offsets,
+                    index,
+                )?;
                 if F::matches_component_locations(
                     self.world,
                     entity,
                     component_locations,
                     self.ticks,
-                ) && D::matches_component_locations(self.world, entity, component_locations)
-                {
+                ) {
                     if let Some(item) = D::fetch_with_component_locations(
                         self.world,
                         entity,

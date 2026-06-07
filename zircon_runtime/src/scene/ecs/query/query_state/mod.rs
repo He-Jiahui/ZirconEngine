@@ -2,6 +2,7 @@ mod cached_direct;
 mod helpers;
 mod mutable;
 mod read_only;
+mod read_only_cached;
 mod system_param;
 
 use std::marker::PhantomData;
@@ -13,7 +14,7 @@ use crate::scene::ecs::{
 use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::cached_query_iter::cached_query_entity_index;
+use super::cached_query_iter::{cached_query_component_locations, cached_query_entity_index};
 
 #[derive(Clone, Debug)]
 pub struct QueryState<D, F = ()> {
@@ -23,7 +24,8 @@ pub struct QueryState<D, F = ()> {
     cached_entities: Vec<EntityId>,
     cached_entity_indices: Vec<(EntityId, usize)>,
     cached_locations: Vec<StableEntityLocation>,
-    cached_component_locations: Vec<Vec<ComponentStorageLocation>>,
+    cached_component_locations: Vec<ComponentStorageLocation>,
+    cached_component_location_offsets: Vec<usize>,
     cached_revision: u64,
     cache_rebuilds: u64,
     _marker: PhantomData<fn() -> (D, F)>,
@@ -50,6 +52,7 @@ where
             cached_entity_indices: Vec::new(),
             cached_locations: Vec::new(),
             cached_component_locations: Vec::new(),
+            cached_component_location_offsets: Vec::new(),
             cached_revision: u64::MAX,
             cache_rebuilds: 0,
             _marker: PhantomData,
@@ -75,26 +78,29 @@ where
         self.cached_entity_indices.clear();
         self.cached_locations.clear();
         self.cached_component_locations.clear();
-        let mut cached_component_ids = self.access.reads().to_vec();
-        for component_id in self.access.writes().iter().copied() {
-            if !cached_component_ids.contains(&component_id) {
-                cached_component_ids.push(component_id);
-            }
-        }
+        self.cached_component_location_offsets.clear();
+        self.cached_component_location_offsets.push(0);
         let (matched_archetypes, candidate_locations) =
             world.entity_locations_matching_query_archetypes(&self.access);
         self.cached_archetypes = matched_archetypes;
         self.cached_archetype_generation = world.archetype_generation();
+        let mut component_locations = Vec::with_capacity(self.access.reads().len());
         for location in candidate_locations {
-            let component_locations = world
-                .component_storage_locations_for_internal(location.internal, &cached_component_ids);
+            world.component_storage_locations_for_internal(
+                location.internal,
+                self.access.reads(),
+                &mut component_locations,
+            );
             if D::matches_component_locations(world, location.stable_id, &component_locations) {
                 let cache_index = self.cached_entities.len();
                 self.cached_entities.push(location.stable_id);
                 self.cached_entity_indices
                     .push((location.stable_id, cache_index));
                 self.cached_locations.push(location);
-                self.cached_component_locations.push(component_locations);
+                self.cached_component_locations
+                    .extend(component_locations.iter().copied());
+                self.cached_component_location_offsets
+                    .push(self.cached_component_locations.len());
             }
         }
         self.cached_entity_indices
@@ -115,8 +121,26 @@ where
         self.cached_entities.len()
     }
 
+    pub(crate) fn cached_entities(&self) -> &[EntityId] {
+        &self.cached_entities
+    }
+
     pub(crate) fn cached_entity_index(&self, entity: EntityId) -> Option<usize> {
         cached_query_entity_index(&self.cached_entity_indices, entity)
+    }
+
+    pub(crate) fn cached_entity_location(
+        &self,
+        entity: EntityId,
+    ) -> Option<(StableEntityLocation, &[ComponentStorageLocation])> {
+        let index = self.cached_entity_index(entity)?;
+        let stable_location = self.cached_locations.get(index).copied()?;
+        let component_locations = cached_query_component_locations(
+            &self.cached_component_locations,
+            &self.cached_component_location_offsets,
+            index,
+        )?;
+        Some((stable_location, component_locations))
     }
 
     pub fn cached_location_count(&self) -> usize {
@@ -127,8 +151,12 @@ where
         &self.cached_locations
     }
 
-    pub fn cached_component_locations(&self) -> &[Vec<ComponentStorageLocation>] {
+    pub fn cached_component_locations(&self) -> &[ComponentStorageLocation] {
         &self.cached_component_locations
+    }
+
+    pub fn cached_component_location_offsets(&self) -> &[usize] {
+        &self.cached_component_location_offsets
     }
 
     pub fn cached_revision(&self) -> u64 {

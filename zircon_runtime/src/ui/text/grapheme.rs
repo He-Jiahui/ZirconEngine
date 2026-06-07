@@ -57,6 +57,20 @@ pub(crate) fn next_word_boundary(text: &str, offset: usize) -> Option<usize> {
     None
 }
 
+pub(crate) fn word_range_at(text: &str, offset: usize) -> Option<(usize, usize)> {
+    let offset = clamp_utf8_boundary(text, offset);
+    for (start, segment) in text.split_word_bound_indices() {
+        let end = start + segment.len();
+        if start > offset {
+            return None;
+        }
+        if start <= offset && offset <= end && is_word_segment(segment) {
+            return Some((start, end));
+        }
+    }
+    None
+}
+
 pub(crate) fn line_start_boundary(text: &str, offset: usize) -> usize {
     let offset = clamp_utf8_boundary(text, offset);
     text[..offset]

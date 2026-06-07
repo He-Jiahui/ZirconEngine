@@ -22,38 +22,38 @@ related_code:
   - docs/zircon_runtime/ui/surface/render.md
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_checkbox.zui
-  - zircon_editor/assets/ui/editor/components/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_popup_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_radio.zui
-  - zircon_editor/assets/ui/editor/components/workbench_rail_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench_slider.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toast.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tooltip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toggle.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_checkbox.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_chip.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_icon_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_list_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_property_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_rail_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_section_title.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_segmented_control.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_slider.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_status_item.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_tab.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_table_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_toast.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_tooltip.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_toggle.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_tree_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_viewport_panel.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.v2.ui.toml
   - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
@@ -176,38 +176,38 @@ implementation_files:
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-pixel-audit.ps1
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_checkbox.zui
-  - zircon_editor/assets/ui/editor/components/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_popup_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_radio.zui
-  - zircon_editor/assets/ui/editor/components/workbench_rail_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench_slider.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toast.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tooltip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toggle.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_checkbox.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_chip.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_icon_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_list_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_property_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_rail_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_section_title.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_segmented_control.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_slider.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_status_item.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_tab.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_table_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_toast.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_tooltip.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_toggle.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_tree_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_viewport_panel.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.v2.ui.toml
   - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs

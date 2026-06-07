@@ -16,6 +16,8 @@ impl ViewportRecord {
             virtual_geometry_runtime: None,
             last_capture: None,
             history: None,
+            motion_vector_camera: None,
+            motion_vector_object_history: None,
             surface: None,
         }
     }

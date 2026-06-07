@@ -1,6 +1,5 @@
-use zircon_runtime::asset::SoundAsset;
-
 use crate::SoundConfig;
+use zircon_runtime::asset::SoundAsset;
 
 use super::super::super::state::ActivePlayback;
 use super::super::sampling::{
@@ -25,7 +24,6 @@ pub(in crate::engine::render) fn mix_clip_playback(
         return true;
     }
     let step = resample_step(clip.sample_rate_hz, config.sample_rate_hz) * playback.speed as f64;
-
     for frame_index in 0..frames {
         let Some(source_frame_position) = next_clip_source_frame_position(
             &mut playback.cursor_position,
@@ -44,12 +42,13 @@ pub(in crate::engine::render) fn mix_clip_playback(
             let mut sample = interpolated_source_sample(
                 &clip.samples,
                 clip_channels,
+                &clip.channel_layout,
                 frame_count,
                 playback.range_start_frame,
                 playback.range_end_frame,
                 source_frame_position,
                 channel,
-                output_channels,
+                &config.channel_layout,
                 playback.looped,
             );
             sample *= playback.gain;

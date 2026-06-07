@@ -143,6 +143,7 @@ fn rpc_feature_manager_closes_sessions_from_transport_events() {
     let closed = rpc.apply_transport_events([
         NetEvent::ConnectionClosed {
             connection: closed_connection,
+            transport: NetTransportKind::WebSocket,
         },
         NetEvent::ConnectionStateChanged {
             connection: failed_connection,

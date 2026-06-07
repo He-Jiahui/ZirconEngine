@@ -1,0 +1,49 @@
+.zr-scene-shadow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.zr-scene-shadow.top-bay {
+  left: 144px;
+  top: 58px;
+  width: 270px;
+  height: 116px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.22), transparent);
+  filter: blur(8px);
+}
+
+.zr-scene-shadow.ceiling-left {
+  left: 72px;
+  top: 4px;
+  width: 220px;
+  height: 78px;
+  background: radial-gradient(ellipse at 52% 44%, rgba(0, 0, 0, 0.47), transparent 66%);
+  filter: blur(10px);
+}
+
+.zr-scene-shadow.ceiling-mid {
+  left: 248px;
+  top: 4px;
+  width: 142px;
+  height: 84px;
+  background: radial-gradient(ellipse at 52% 42%, rgba(0, 0, 0, 0.34), transparent 66%);
+  filter: blur(11px);
+}
+
+.zr-scene-shadow.left-floor {
+  left: 88px;
+  bottom: 94px;
+  width: 226px;
+  height: 92px;
+  background: radial-gradient(ellipse at 42% 52%, rgba(0, 0, 0, 0.24), transparent 62%);
+  filter: blur(11px);
+}
+
+.zr-scene-shadow.right-floor {
+  right: 0;
+  bottom: -8px;
+  width: 360px;
+  height: 170px;
+  background: radial-gradient(ellipse at 70% 70%, rgba(0, 0, 0, 0.46), transparent 66%);
+  filter: blur(12px);
+}

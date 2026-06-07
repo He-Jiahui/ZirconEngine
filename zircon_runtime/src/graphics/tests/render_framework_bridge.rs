@@ -4,16 +4,18 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
     AdvancedRenderFeature, FrameHistoryHandle, FrameHistoryInvalidationReason, RenderBloomSettings,
+    RenderCameraOrderAmbiguity, RenderCameraOrderReport, RenderCameraTargetOrderKey,
     RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
     RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
-    RenderDepthOfFieldSettings, RenderDynamicResolutionSettings, RenderFrameExtract,
-    RenderFramework, RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource,
-    RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderPipelineHandle,
-    RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
-    RenderPostProcessVolumeStack, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
+    RenderDepthOfFieldSettings, RenderDitherSettings, RenderDynamicResolutionSettings,
+    RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
+    RenderHybridGiTraceRegion, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
+    RenderPostProcessVolume, RenderPostProcessVolumeProfile, RenderPostProcessVolumeStack,
+    RenderQualityProfile, RenderScreenSpaceReflectionSettings, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SortedRenderCamera,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
@@ -74,6 +76,44 @@ fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
     assert!(!stats.capabilities.supports_surface);
     assert!(stats.capabilities.supports_offscreen);
     assert!(!stats.capabilities.acceleration_structures_supported);
+}
+
+#[test]
+fn render_framework_stats_report_scene_camera_ordering_metadata() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.view.scene_camera_order_report = Some(RenderCameraOrderReport {
+        cameras: vec![
+            SortedRenderCamera {
+                entity: 10,
+                order: 0,
+                target: RenderCameraTargetOrderKey::PrimarySurface,
+                hdr: false,
+                sorted_camera_index_for_target: 0,
+            },
+            SortedRenderCamera {
+                entity: 11,
+                order: 0,
+                target: RenderCameraTargetOrderKey::PrimarySurface,
+                hdr: false,
+                sorted_camera_index_for_target: 1,
+            },
+        ],
+        ambiguities: vec![RenderCameraOrderAmbiguity {
+            order: 0,
+            target: RenderCameraTargetOrderKey::PrimarySurface,
+        }],
+    });
+
+    server.submit_frame_extract(viewport, extract).unwrap();
+
+    let stats = server.query_stats().unwrap();
+    assert_eq!(stats.last_scene_camera_scheduled_count, 2);
+    assert_eq!(stats.last_scene_camera_order_ambiguity_count, 1);
 }
 
 #[test]
@@ -300,8 +340,20 @@ fn render_framework_stats_report_effect_stack_product_node_when_authored() {
             intensity: 0.4,
             ..Default::default()
         },
+        grain: RenderFilmGrainSettings {
+            intensity: 0.1,
+            ..Default::default()
+        },
+        dither: RenderDitherSettings {
+            intensity: 0.05,
+            ..Default::default()
+        },
         chromatic_aberration: RenderChromaticAberrationSettings {
             intensity: 0.2,
+            ..Default::default()
+        },
+        fog: RenderFogSettings {
+            density: 0.08,
             ..Default::default()
         },
         ..Default::default()
@@ -335,7 +387,10 @@ fn render_framework_stats_report_effect_stack_product_node_when_authored() {
             "depth-of-field".to_string(),
             "screen-space-reflection".to_string(),
             "vignette".to_string(),
+            "film-grain".to_string(),
+            "dither".to_string(),
             "chromatic-aberration".to_string(),
+            "fog".to_string(),
         ]
     );
     assert_eq!(

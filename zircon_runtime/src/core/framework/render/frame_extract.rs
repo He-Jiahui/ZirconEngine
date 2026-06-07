@@ -8,7 +8,7 @@ use super::{
     build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CorePipelineKind,
     DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
     PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-    RenderBakedLightingExtract, RenderBloomSettings, RenderCameraTarget,
+    RenderBakedLightingExtract, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
     RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
     RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPhaseQueue,
@@ -57,6 +57,8 @@ pub trait RenderExtractProducer {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
+    pub scene_camera_entity: Option<EntityId>,
+    pub scene_camera_order_report: Option<RenderCameraOrderReport>,
     pub core_pipeline: CorePipelineKind,
     pub anti_alias: AntiAliasSettings,
     pub target_size: Option<UVec2>,
@@ -69,10 +71,22 @@ impl RenderViewExtract {
         let target_size = camera_target_size(&camera);
         Self {
             camera,
+            scene_camera_entity: None,
+            scene_camera_order_report: None,
             core_pipeline,
             anti_alias,
             target_size,
         }
+    }
+
+    pub fn with_scene_camera_order_report(
+        mut self,
+        scene_camera_entity: EntityId,
+        camera_order_report: RenderCameraOrderReport,
+    ) -> Self {
+        self.scene_camera_entity = Some(scene_camera_entity);
+        self.scene_camera_order_report = Some(camera_order_report);
+        self
     }
 
     pub fn apply_target_size(&mut self, target_size: UVec2) {

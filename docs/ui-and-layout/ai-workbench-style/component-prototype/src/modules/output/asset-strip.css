@@ -1,0 +1,41 @@
+.zr-module-asset-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.zr-module-asset {
+  min-height: 86px;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  padding: 8px;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background: #12181b;
+  color: #c4cdd1;
+  cursor: pointer;
+}
+
+.zr-module-asset > span {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  background: radial-gradient(circle at 42% 36%, #b4c0b6, #3a413c 62%, #171c1f);
+}
+
+.zr-module-asset > span.is-1 {
+  background: radial-gradient(circle at 52% 44%, #d5faff, #17869a 32%, #0e1c21 70%);
+}
+
+.zr-module-asset > span.is-2 {
+  background: radial-gradient(circle at 45% 34%, #f0f0e6, #81827a 56%, #222424);
+}
+
+.zr-module-asset > span.is-3 {
+  background: radial-gradient(circle at 40% 38%, #ffffff, #6f7275 54%, #252628);
+}
+
+.zr-module-asset small {
+  color: #8d989e;
+}

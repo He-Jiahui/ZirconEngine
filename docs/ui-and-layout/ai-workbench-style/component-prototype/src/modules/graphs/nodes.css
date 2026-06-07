@@ -1,0 +1,52 @@
+.zr-module-node {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  min-width: 114px;
+  min-height: 50px;
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(55, 83, 100, 0.95), rgba(24, 35, 41, 0.95));
+  color: #ecf7fa;
+  text-align: center;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+}
+
+.zr-module-node small {
+  color: rgba(235, 245, 248, 0.78);
+}
+
+.zr-module-node.is-cyan {
+  border-color: rgba(53, 199, 208, 0.72);
+  background: linear-gradient(180deg, #1c7d89, #164c55);
+}
+
+.zr-module-node.is-blue {
+  border-color: rgba(62, 145, 232, 0.56);
+  background: linear-gradient(180deg, #275996, #19355f);
+}
+
+.zr-module-node.is-green {
+  border-color: rgba(103, 212, 125, 0.48);
+  background: linear-gradient(180deg, #325b29, #203719);
+}
+
+.zr-module-node.is-orange {
+  border-color: rgba(242, 160, 65, 0.58);
+  background: linear-gradient(180deg, #7b4b22, #432817);
+}
+
+.zr-module-node.is-purple {
+  border-color: rgba(177, 121, 255, 0.62);
+  background: linear-gradient(180deg, #594090, #35245d);
+}
+
+.zr-module-node.is-neutral {
+  background: linear-gradient(180deg, #30363b, #1d2327);
+}

@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui"
+version = 2
+display_name = "Workbench Extension Blend Space Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionBlendSpaceWorkspace]
+root = "blend_space_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.blend_space_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionBlendSpaceWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_rail_gap" }, { node = "blend_space_left" }, { node = "blend_space_center" }, { node = "blend_space_right" }]
+
+[nodes.blend_space_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionBlendSpaceRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.blend_space_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBlendSpaceLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_title" }, { node = "blend_space_samples_tab" }, { node = "blend_space_axes_tab" }, { node = "blend_space_preview_tab" }, { node = "blend_space_idle_run_row" }, { node = "blend_space_strafe_row" }, { node = "blend_space_sprint_row" }]
+
+[nodes.blend_space_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionBlendSpaceTitle"
+props = { text = "Blend Space" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.blend_space_samples_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionBlendSpaceSamplesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Samples", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceSamplesTab", event = "Click", route = "workbench.extension.blend_space.samples" }]
+
+[nodes.blend_space_axes_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionBlendSpaceAxesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Axes", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceAxesTab", event = "Click", route = "workbench.extension.blend_space.axes" }]
+
+[nodes.blend_space_preview_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionBlendSpacePreviewTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Preview", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpacePreviewTab", event = "Click", route = "workbench.extension.blend_space.preview_tab" }]
+
+[nodes.blend_space_idle_run_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionBlendSpaceIdleRunRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Idle / Run", icon = "play", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceIdleRunRow", event = "Click", route = "workbench.extension.blend_space.asset.idle_run" }]
+
+[nodes.blend_space_strafe_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionBlendSpaceStrafeRow"
+classes = ["workbench-list-row"]
+props = { text = "Strafe Grid", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceStrafeRow", event = "Click", route = "workbench.extension.blend_space.asset.strafe" }]
+
+[nodes.blend_space_sprint_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionBlendSpaceSprintRow"
+classes = ["workbench-list-row"]
+props = { text = "Sprint Lean", icon = "history", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceSprintRow", event = "Click", route = "workbench.extension.blend_space.asset.sprint" }]
+
+[nodes.blend_space_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBlendSpaceCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_center_header" }, { node = "blend_space_grid_table" }, { node = "blend_space_output" }]
+
+[nodes.blend_space_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionBlendSpaceCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "blend_space_center_title" }, { node = "blend_space_header_fill" }, { node = "blend_space_preview_button" }, { node = "blend_space_apply_button" }]
+
+[nodes.blend_space_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionBlendSpaceCenterTitle"
+props = { text = "Sample Grid" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.blend_space_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionBlendSpaceHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.blend_space_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionBlendSpacePreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary", background_color = "#1a1f23", border_color = "#303840" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpacePreview", event = "Click", route = "workbench.extension.blend_space.preview" }]
+
+[nodes.blend_space_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionBlendSpaceApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true }
+layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceApply", event = "Click", route = "workbench.extension.blend_space.apply" }]
+
+[nodes.blend_space_grid_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBlendSpaceGridTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_idle_sample_table_row" }, { node = "blend_space_walk_sample_table_row" }, { node = "blend_space_run_sample_table_row" }, { node = "blend_space_diagonal_sample_table_row" }]
+
+[nodes.blend_space_idle_sample_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionBlendSpaceIdleSampleTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Idle Sample", value_text = "Speed 0   Direction 0   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceIdleSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.idle" }]
+
+[nodes.blend_space_walk_sample_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionBlendSpaceWalkSampleTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Walk Sample", value_text = "Speed 240   Direction 0   Linear" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceWalkSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.walk" }]
+
+[nodes.blend_space_run_sample_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionBlendSpaceRunSampleTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Run Sample", value_text = "Speed 620   Direction 0   Linear" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceRunSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.run" }]
+
+[nodes.blend_space_diagonal_sample_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionBlendSpaceDiagonalSampleTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Diagonal Sample", value_text = "Speed 480   Direction 45   Missing mirror" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceDiagonalSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.diagonal" }]
+
+[nodes.blend_space_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionBlendSpaceOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Blend Space", value_text = "BS_Locomotion   8 samples   2 axes" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceOutput", event = "Click", route = "workbench.extension.blend_space.output" }]
+
+[nodes.blend_space_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBlendSpaceRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_details_title" }, { node = "blend_space_asset_dropdown" }, { node = "blend_space_x_axis_field" }, { node = "blend_space_interpolation_dropdown" }]
+
+[nodes.blend_space_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionBlendSpaceDetailsTitle"
+props = { text = "Blend Settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.blend_space_asset_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionBlendSpaceAssetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "BS_Locomotion", value = "BS_Locomotion", options = ["BS_Locomotion", "BS_Strafe", "BS_SprintLean"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/BlendSpaceAssetEdit", event = "Change", route = "workbench.extension.blend_space.asset.edit" },
+  { id = "WorkbenchExtension/BlendSpaceAssetCommit", event = "Submit", route = "workbench.extension.blend_space.asset.commit" },
+]
+
+[nodes.blend_space_x_axis_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionBlendSpaceXAxisField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "X Axis: Speed 0-620" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/BlendSpaceXAxisEdit", event = "Change", route = "workbench.extension.blend_space.x_axis.edit" },
+  { id = "WorkbenchExtension/BlendSpaceXAxisCommit", event = "Submit", route = "workbench.extension.blend_space.x_axis.commit" },
+]
+
+[nodes.blend_space_interpolation_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionBlendSpaceInterpolationDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Triangulated", value = "Triangulated", options = ["Triangulated", "Grid", "Weighted"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/BlendSpaceInterpolationEdit", event = "Change", route = "workbench.extension.blend_space.interpolation.edit" },
+  { id = "WorkbenchExtension/BlendSpaceInterpolationCommit", event = "Submit", route = "workbench.extension.blend_space.interpolation.commit" },
+]

@@ -1,0 +1,70 @@
+.zr-extension-card {
+  min-width: 0;
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px;
+  border: 1px solid #273039;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, #1b2025, #12171b);
+  color: #d6e2e7;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zr-extension-card:hover,
+.zr-extension-card:focus-visible {
+  border-color: #2f6f78;
+  background: linear-gradient(180deg, #202b30, #151f23);
+}
+
+.zr-extension-card-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #26383e;
+  border-radius: var(--radius-sm);
+  background: #11191d;
+  color: var(--accent);
+}
+
+.zr-extension-card-icon .zr-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.zr-extension-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.zr-extension-card-copy strong,
+.zr-extension-card-copy small,
+.zr-extension-card-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zr-extension-card-copy strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.zr-extension-card-copy small,
+.zr-extension-card-status {
+  color: #8d9aa1;
+  font-size: 11px;
+}
+
+.zr-extension-card-status {
+  grid-column: 1 / -1;
+  padding-top: 4px;
+  border-top: 1px solid #222a30;
+}

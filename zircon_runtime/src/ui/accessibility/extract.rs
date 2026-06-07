@@ -13,10 +13,7 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
-use crate::ui::{
-    surface::{ui_surface_effective_disabled, UiSurface},
-    tree::UiRuntimeTreeAccessExt,
-};
+use crate::ui::surface::{ui_surface_effective_disabled, UiSurface};
 
 use super::{diagnostics::validate_snapshot, name};
 

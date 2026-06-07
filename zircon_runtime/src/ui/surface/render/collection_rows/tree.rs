@@ -3,8 +3,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    bool_attribute, color_attribute, icon_command, line_height, number_attribute, quad_command,
-    row_label, string_attribute, text_command, RowRenderState, ACCENT, FONT_SIZE, SURFACE_HOVER,
+    color_attribute, icon_command, line_height, number_attribute, quad_command, row_label,
+    string_attribute, text_command, RowRenderState, ACCENT, FONT_SIZE, SURFACE_HOVER,
     SURFACE_PRESSED, SURFACE_SELECTED, TEXT_DISABLED, TEXT_MUTED, TEXT_SELECTED,
 };
 
@@ -18,7 +18,6 @@ const RIGHT_INSET: f32 = 12.0;
 const GUIDE_STEP: f32 = 18.0;
 const RADIUS: f32 = 5.0;
 const GUIDE: &str = "#2a3740";
-const OBJECT_BLUE: &str = "#5294f0";
 
 pub(super) fn tree_row_commands(
     node_id: UiNodeId,
@@ -69,7 +68,7 @@ pub(super) fn tree_row_commands(
         disclosure,
         clip_frame,
         z_index.saturating_add(3),
-        if bool_attribute(metadata, "expanded").unwrap_or(false) {
+        if state.expanded() {
             "chevron-down"
         } else {
             "chevron-right"

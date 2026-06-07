@@ -1,4 +1,4 @@
-use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiFrame};
 
 use super::control_ids::{

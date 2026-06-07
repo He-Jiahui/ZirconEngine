@@ -9,7 +9,10 @@ mod perception;
 mod snapshot;
 mod tick;
 
-pub use behavior_tree::{AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor};
+pub use behavior_tree::{
+    AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorNodeParameter,
+    AiBehaviorNodeParameterValue, AiBehaviorTreeDescriptor,
+};
 pub use blackboard::{
     AiBlackboardEntry, AiBlackboardKeyDescriptor, AiBlackboardSchemaDescriptor, AiBlackboardValue,
     AiBlackboardValueType,

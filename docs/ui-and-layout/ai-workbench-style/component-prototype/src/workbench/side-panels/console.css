@@ -1,0 +1,18 @@
+.zr-console-panel {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.zr-console-row {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 14, 16, 0.42);
+  color: var(--text);
+}

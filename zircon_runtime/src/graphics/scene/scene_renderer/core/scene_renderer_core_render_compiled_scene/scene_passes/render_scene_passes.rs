@@ -52,6 +52,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Deferred,
                 None,
+                None,
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -85,6 +86,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Opaque3d,
                 None,
+                Some(&self.shadow_map_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -117,6 +119,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::AlphaMask3d,
                 None,
+                Some(&self.shadow_map_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -149,6 +152,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Transparent3d,
                 Some(&self.particle_renderer),
+                Some(&self.shadow_map_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -192,6 +196,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Lighting,
                 Some(post_process_stack),
+                Some(&self.shadow_map_renderer),
             );
             pop_group(encoder);
             deferred_lighting_result?;
@@ -210,6 +215,7 @@ impl SceneRendererCore {
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Transparent3d,
                 Some(&self.particle_renderer),
+                Some(&self.shadow_map_renderer),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -265,6 +271,7 @@ fn execute_mesh_graph_stage(
     screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
     particle_renderer: Option<&ParticleRenderer>,
+    shadow_map_renderer: Option<&crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer>,
 ) -> Result<(), GraphicsError> {
     push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
     let result = execute_graph_stage(
@@ -287,6 +294,7 @@ fn execute_mesh_graph_stage(
         Some(streamer),
         Some(mesh_pipelines),
         Some(mesh_draw_lists),
+        shadow_map_renderer,
         graph_execution,
     );
     pop_group(encoder);
@@ -308,6 +316,7 @@ fn execute_deferred_graph_stage(
     screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
+    shadow_map_renderer: Option<&crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer>,
 ) -> Result<(), GraphicsError> {
     let pushes_main_scene_group = matches!(stage, RenderPassStage::Deferred);
     if pushes_main_scene_group {
@@ -333,6 +342,7 @@ fn execute_deferred_graph_stage(
         None,
         None,
         Some(mesh_draw_lists),
+        shadow_map_renderer,
         graph_execution,
     );
     if pushes_main_scene_group {
@@ -375,6 +385,7 @@ fn execute_sprite_graph_stage(
         None,
         Some(renderer),
         Some(streamer),
+        None,
         None,
         None,
         graph_execution,

@@ -1,4 +1,5 @@
 use crate::core::framework::render::{PostProcessEffectKind, PostProcessGraphResourceNames};
+use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassExecutionContext;
 
@@ -107,6 +108,86 @@ pub(super) fn bloom_extract_executor(
     )
 }
 
+pub(super) fn motion_vector_clear_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_motion_vector_clear_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        RenderGraphAttachmentOps::clear_store(),
+    )
+}
+
+pub(super) fn motion_vector_camera_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_motion_vector_camera_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        RenderGraphAttachmentOps::load_store(),
+    )
+}
+
+pub(super) fn motion_vector_mesh_object_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
+        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_mesh_motion_vectors_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        attachment_ops,
+    )
+}
+
+pub(super) fn motion_vector_tile_max_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_motion_vector_tile_max_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+        RenderGraphAttachmentOps::clear_store(),
+    )
+}
+
+pub(super) fn motion_vector_tile_max_coarse_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_motion_vector_tile_max_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+        RenderGraphAttachmentOps::clear_store(),
+    )
+}
+
+pub(super) fn motion_vector_neighbor_max_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_motion_vector_neighbor_max_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+        RenderGraphAttachmentOps::clear_store(),
+    )
+}
+
 pub(super) fn depth_of_field_prepare_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -114,9 +195,123 @@ pub(super) fn depth_of_field_prepare_executor(
     let gpu = context.require_gpu()?;
     gpu.record_depth_of_field_prepare_to_resources(
         &pass_name,
+        PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+    )
+}
+
+pub(super) fn screen_space_reflection_resolve_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_resolve_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+        attachment_ops,
+    )
+}
+
+pub(super) fn screen_space_reflection_depth_pyramid_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        )
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_depth_pyramid_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        attachment_ops,
+    )
+}
+
+pub(super) fn screen_space_reflection_depth_pyramid_coarse_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        )
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_depth_pyramid_coarse_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        attachment_ops,
+    )
+}
+
+pub(super) fn screen_space_reflection_reflection_pyramid_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        )
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_reflection_pyramid_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        attachment_ops,
+    )
+}
+
+pub(super) fn screen_space_reflection_reflection_pyramid_coarse_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        )
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_reflection_pyramid_coarse_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        attachment_ops,
+    )
+}
+
+pub(super) fn screen_space_reflection_specular_occlusion_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        )
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let pass_name = context.pass_name.clone();
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_reflection_specular_occlusion_to_resource(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        attachment_ops,
     )
 }
 

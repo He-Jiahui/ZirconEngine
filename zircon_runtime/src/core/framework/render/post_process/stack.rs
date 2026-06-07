@@ -12,6 +12,12 @@ pub struct PostProcessGraphResourceNames;
 impl PostProcessGraphResourceNames {
     pub const SCENE_COLOR: &'static str = "scene-color";
     pub const SCENE_DEPTH: &'static str = "scene-depth";
+    pub const SHADOW_MAP: &'static str = "shadow-map";
+    pub const SCENE_MOTION_VECTOR: &'static str = "scene-motion-vector";
+    pub const MOTION_VECTOR_TILE_MAX: &'static str = "postprocess.motion-vector.tile-max";
+    pub const MOTION_VECTOR_TILE_MAX_COARSE: &'static str =
+        "postprocess.motion-vector.tile-max.coarse";
+    pub const MOTION_VECTOR_NEIGHBOR_MAX: &'static str = "postprocess.motion-vector.neighbor-max";
     pub const GBUFFER_ALBEDO: &'static str = "gbuffer-albedo";
     pub const GBUFFER_NORMAL: &'static str = "gbuffer-normal";
     pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
@@ -20,6 +26,8 @@ impl PostProcessGraphResourceNames {
     pub const LIGHT_LIST: &'static str = "light-list";
     // Temporal resources use distinct names so a pass cannot silently read and overwrite the same history slot.
     pub const HISTORY_PREVIOUS_SCENE_COLOR: &'static str = "history.previous.scene-color";
+    pub const HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION: &'static str =
+        "history.previous.screen-space-reflection";
     pub const HISTORY_CURRENT_SCENE_COLOR: &'static str = "history.current.scene-color";
     pub const HISTORY_OUTPUT_SCENE_COLOR: &'static str = "postprocess.history-resolved";
     pub const BLOOM: &'static str = "bloom-texture";
@@ -27,6 +35,18 @@ impl PostProcessGraphResourceNames {
     pub const EFFECT_STACKED: &'static str = "postprocess.effect-stacked";
     pub const DEPTH_OF_FIELD_COC: &'static str = "postprocess.depth-of-field.coc";
     pub const DEPTH_OF_FIELD_BOKEH: &'static str = "postprocess.depth-of-field.bokeh";
+    pub const SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID: &'static str =
+        "postprocess.screen-space-reflection.depth-pyramid";
+    pub const SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE: &'static str =
+        "postprocess.screen-space-reflection.depth-pyramid.coarse";
+    pub const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID: &'static str =
+        "postprocess.screen-space-reflection.reflection-pyramid";
+    pub const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE: &'static str =
+        "postprocess.screen-space-reflection.reflection-pyramid.coarse";
+    pub const SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION: &'static str =
+        "postprocess.screen-space-reflection.specular-occlusion";
+    pub const SCREEN_SPACE_REFLECTION_HISTORY: &'static str =
+        "postprocess.screen-space-reflection.history";
     pub const FINAL_COMPOSITED: &'static str = "postprocess.final-composited";
     pub const FINAL_COLOR: &'static str = "final-color";
     pub const VIEWPORT_OUTPUT: &'static str = "viewport-output";
@@ -95,6 +115,9 @@ impl PostProcessStackDescriptor {
         let effect_stack_enabled = effect_stack.is_enabled();
         let history_enabled = history_resolve_enabled && history_available;
         let fxaa_enabled = anti_alias.mode == AntiAliasMode::Fxaa;
+        let ssr_enabled = effect_stack.screen_space_reflection.is_enabled();
+        let ssr_temporal_enabled = ssr_enabled && history_enabled;
+        let motion_vector_effects_enabled = effect_stack.motion_blur.is_enabled() || ssr_enabled;
         let mut initial_resources = vec![
             PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
             PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
@@ -103,9 +126,24 @@ impl PostProcessStackDescriptor {
             initial_resources
                 .push(PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string());
         }
-        if effect_stack.screen_space_reflection.is_enabled() {
+        if ssr_temporal_enabled {
+            initial_resources.push(
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string(),
+            );
+        }
+        if ssr_enabled {
             initial_resources.push(PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string());
             initial_resources.push(PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string());
+            initial_resources.push(PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string());
+        }
+        if motion_vector_effects_enabled {
+            initial_resources.push(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string());
+            initial_resources
+                .push(PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string());
+            initial_resources
+                .push(PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE.to_string());
+            initial_resources
+                .push(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string());
         }
 
         let mut final_inputs = vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()];
@@ -131,24 +169,23 @@ impl PostProcessStackDescriptor {
         {
             effect_stack_inputs.push(PostProcessGraphResourceNames::SCENE_DEPTH.to_string());
         }
-        if effect_stack.screen_space_reflection.is_enabled()
-            && !effect_stack_inputs
-                .iter()
-                .any(|resource| resource.as_str() == PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        {
-            effect_stack_inputs.push(PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string());
-        }
-        if effect_stack.screen_space_reflection.is_enabled()
+        if effect_stack.motion_blur.is_enabled()
             && !effect_stack_inputs.iter().any(|resource| {
-                resource.as_str() == PostProcessGraphResourceNames::GBUFFER_MATERIAL
+                resource.as_str() == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
             })
         {
-            effect_stack_inputs.push(PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string());
+            effect_stack_inputs
+                .push(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string());
         }
         let effect_stack_after = final_after.clone();
         if effect_stack_enabled {
             final_inputs = vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()];
             final_after = vec![PostProcessEffectKind::EffectStack];
+        }
+        if ssr_enabled {
+            final_inputs
+                .push(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string());
+            final_after.push(PostProcessEffectKind::ScreenSpaceReflectionResolve);
         }
         let final_composite_output = if fxaa_enabled {
             PostProcessGraphResourceNames::FINAL_COMPOSITED
@@ -192,7 +229,75 @@ impl PostProcessStackDescriptor {
                 PostProcessEffectSettings::new(PostProcessEffectKind::EffectStack)
                     .with_required_inputs(effect_stack_inputs)
                     .with_produced_outputs(effect_stack_outputs(effect_stack))
-                    .with_after(effect_stack_after),
+                    .with_after(effect_stack_after.clone()),
+            );
+        }
+        if ssr_enabled {
+            effects.push(
+                PostProcessEffectSettings::new(
+                    PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid,
+                )
+                .with_required_inputs(screen_space_reflection_depth_pyramid_inputs())
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+                ])
+                .with_after(effect_stack_after.clone()),
+            );
+            effects.push(
+                PostProcessEffectSettings::new(
+                    PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid,
+                )
+                .with_required_inputs(screen_space_reflection_reflection_pyramid_inputs())
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+                ])
+                .with_after(effect_stack_after.clone()),
+            );
+            effects.push(
+                PostProcessEffectSettings::new(
+                    PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse,
+                )
+                .with_required_inputs(screen_space_reflection_depth_pyramid_coarse_inputs())
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+                ])
+                .with_after([PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid]),
+            );
+            effects.push(
+                PostProcessEffectSettings::new(
+                    PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse,
+                )
+                .with_required_inputs(screen_space_reflection_reflection_pyramid_coarse_inputs())
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+                ])
+                .with_after([PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid]),
+            );
+            effects.push(
+                PostProcessEffectSettings::new(
+                    PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion,
+                )
+                .with_required_inputs(screen_space_reflection_specular_occlusion_inputs())
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+                ])
+                .with_after(effect_stack_after.clone()),
+            );
+            let mut resolve_after = effect_stack_after.clone();
+            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid);
+            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid);
+            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse);
+            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse);
+            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion);
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::ScreenSpaceReflectionResolve)
+                    .with_required_inputs(screen_space_reflection_resolve_inputs(
+                        ssr_temporal_enabled,
+                    ))
+                    .with_produced_outputs([
+                        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+                    ])
+                    .with_after(resolve_after),
             );
         }
         effects.push(
@@ -226,6 +331,8 @@ impl PostProcessStackDescriptor {
         let mut stack = self.clone();
         stack.initial_resources.retain(|resource| {
             resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR
+                && resource
+                    != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
                 && resource != PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR
         });
         for effect in &mut stack.effects {
@@ -234,6 +341,8 @@ impl PostProcessStackDescriptor {
             }
             effect.required_inputs.retain(|resource| {
                 resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR
+                    && resource
+                        != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
                     && resource != PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR
                     && resource != PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR
             });
@@ -251,7 +360,7 @@ impl PostProcessStackDescriptor {
 
 fn effect_stack_requires_scene_depth(effect_stack: &RenderPostProcessEffectStackSettings) -> bool {
     effect_stack.depth_of_field.is_enabled()
-        || effect_stack.screen_space_reflection.is_enabled()
+        || effect_stack.motion_blur.is_enabled()
         || effect_stack.fog.density > 0.0
 }
 
@@ -264,17 +373,60 @@ fn effect_stack_outputs(effect_stack: &RenderPostProcessEffectStackSettings) -> 
     outputs
 }
 
+fn screen_space_reflection_specular_occlusion_inputs() -> Vec<&'static str> {
+    vec![
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+    ]
+}
+
+fn screen_space_reflection_depth_pyramid_inputs() -> Vec<&'static str> {
+    vec![PostProcessGraphResourceNames::SCENE_DEPTH]
+}
+
+fn screen_space_reflection_reflection_pyramid_inputs() -> Vec<&'static str> {
+    vec![PostProcessGraphResourceNames::SCENE_COLOR]
+}
+
+fn screen_space_reflection_depth_pyramid_coarse_inputs() -> Vec<&'static str> {
+    vec![PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID]
+}
+
+fn screen_space_reflection_reflection_pyramid_coarse_inputs() -> Vec<&'static str> {
+    vec![PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID]
+}
+
+fn screen_space_reflection_resolve_inputs(ssr_temporal_enabled: bool) -> Vec<&'static str> {
+    let mut inputs = vec![
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+    ];
+    if ssr_temporal_enabled {
+        inputs.push(PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION);
+    }
+    inputs
+}
+
 #[cfg(test)]
 mod tests {
     use super::{PostProcessGraphResourceNames, PostProcessStackDescriptor};
     use crate::core::framework::render::{
         AntiAliasSettings, PostProcessEffectKind, RenderDepthOfFieldSettings,
-        RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
-        RenderVignetteSettings,
+        RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
+        RenderScreenSpaceReflectionSettings, RenderVignetteSettings,
     };
 
     #[test]
-    fn effect_stack_ssr_declares_depth_normal_and_material_inputs() {
+    fn screen_space_reflection_declares_specular_occlusion_and_resolve_inputs() {
         let stack =
             PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
                 &Default::default(),
@@ -292,21 +444,230 @@ mod tests {
                 &AntiAliasSettings::off(),
             );
 
+        let specular_occlusion = stack
+            .effects
+            .iter()
+            .find(|effect| {
+                effect.kind == PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion
+            })
+            .expect("SSR should enable the screen-space reflection specular occlusion node");
+
+        assert!(specular_occlusion
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert!(specular_occlusion
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string()));
+        assert!(specular_occlusion
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string()));
+        assert!(specular_occlusion.produced_outputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION.to_string()
+        ));
+
+        let depth_pyramid = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid)
+            .expect("SSR should enable the screen-space reflection depth pyramid node");
+
+        assert!(depth_pyramid
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert!(depth_pyramid.produced_outputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
+        ));
+
+        let reflection_pyramid = stack
+            .effects
+            .iter()
+            .find(|effect| {
+                effect.kind == PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid
+            })
+            .expect("SSR should enable the screen-space reflection reflection pyramid node");
+
+        assert!(reflection_pyramid
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+        assert!(reflection_pyramid.produced_outputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
+        ));
+
+        let depth_pyramid_coarse = stack
+            .effects
+            .iter()
+            .find(|effect| {
+                effect.kind == PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse
+            })
+            .expect("SSR should enable the coarse screen-space reflection depth pyramid node");
+
+        assert!(depth_pyramid_coarse.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
+        ));
+        assert!(depth_pyramid_coarse.produced_outputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+                .to_string()
+        ));
+        assert!(depth_pyramid_coarse
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
+
+        let reflection_pyramid_coarse = stack
+            .effects
+            .iter()
+            .find(|effect| {
+                effect.kind == PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse
+            })
+            .expect("SSR should enable the coarse screen-space reflection reflection pyramid node");
+
+        assert!(reflection_pyramid_coarse.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
+        ));
+        assert!(reflection_pyramid_coarse.produced_outputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+                .to_string()
+        ));
+        assert!(reflection_pyramid_coarse
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
+
+        let resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ScreenSpaceReflectionResolve)
+            .expect("SSR should enable the screen-space reflection resolve node");
+
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+                .to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+                .to_string()
+        ));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string()));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION.to_string()
+        ));
+        assert!(!resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string()));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion));
+
         let effect_stack = stack
             .effects
             .iter()
             .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
-            .expect("SSR should enable the effect stack node");
-
-        assert!(effect_stack
-            .required_inputs
-            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-        assert!(effect_stack
+            .expect("SSR should keep an effect-stack color node");
+        assert!(!effect_stack
             .required_inputs
             .contains(&PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()));
-        assert!(effect_stack
+        assert!(!effect_stack
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
+    }
+
+    #[test]
+    fn screen_space_reflection_resolve_temporal_declares_history_and_motion_vector_inputs() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    screen_space_reflection: RenderScreenSpaceReflectionSettings {
+                        intensity: 0.5,
+                        max_steps: 32,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                true,
+                true,
+                &AntiAliasSettings::off(),
+            );
+
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
+        assert!(stack.initial_resources.contains(
+            &PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string()
+        ));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+
+        let resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ScreenSpaceReflectionResolve)
+            .expect("temporal SSR should enable the screen-space reflection resolve node");
+
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string()
+        ));
+        assert!(resolve
             .required_inputs
-            .contains(&PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string()));
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION.to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+                .to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
+        ));
+        assert!(resolve.required_inputs.contains(
+            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+                .to_string()
+        ));
     }
 
     #[test]
@@ -361,6 +722,148 @@ mod tests {
         assert!(graph_effect_stack
             .produced_outputs
             .contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH.to_string()));
+    }
+
+    #[test]
+    fn screen_space_reflection_resolve_produces_history_for_final_composite() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    screen_space_reflection: RenderScreenSpaceReflectionSettings {
+                        intensity: 0.5,
+                        max_steps: 32,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+
+        let resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ScreenSpaceReflectionResolve)
+            .expect("SSR should enable the screen-space reflection resolve node");
+
+        assert!(resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion));
+
+        let final_composite = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::FinalComposite)
+            .expect("SSR should keep final composite node");
+        assert!(final_composite
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
+        assert!(final_composite
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionResolve));
+
+        let graph = stack.validated_graph();
+        let graph_resolve = graph
+            .nodes
+            .iter()
+            .find(|node| node.kind == PostProcessEffectKind::ScreenSpaceReflectionResolve)
+            .expect("validated graph should keep the SSR resolve node");
+        assert!(graph_resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
+        assert!(graph_resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
+        assert!(graph_resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
+        assert!(graph_resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
+        assert!(graph_resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));
+        assert!(graph_resolve
+            .after
+            .contains(&PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion));
+
+        let graph_final = graph
+            .nodes
+            .iter()
+            .find(|node| node.kind == PostProcessEffectKind::FinalComposite)
+            .expect("validated graph should keep the final composite node");
+        assert!(graph_final
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
+    }
+
+    #[test]
+    fn effect_stack_motion_blur_declares_depth_and_reconstructed_motion_vector_inputs() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    motion_blur: RenderMotionBlurSettings {
+                        shutter_angle: 0.5,
+                        samples: 2,
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+        let effect_stack = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .expect("motion blur should enable the effect stack node");
+
+        assert!(effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert!(effect_stack
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+        assert_eq!(
+            effect_stack.produced_outputs,
+            [PostProcessGraphResourceNames::EFFECT_STACKED]
+                .into_iter()
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]

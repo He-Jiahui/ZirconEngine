@@ -10,10 +10,11 @@ pub use effect::{PostProcessEffectKind, PostProcessEffectSettings};
 pub use effect_stack_settings::{
     RenderBlurSettings, RenderChromaticAberrationSettings, RenderColorLookupSettings,
     RenderColorLookupTextureLayout, RenderDepthOfFieldSettings, RenderDitherSettings,
-    RenderFilmGrainSettings, RenderFogSettings, RenderPostProcessEffectStackReport,
-    RenderPostProcessEffectStackResourceStatus, RenderPostProcessEffectStackSettings,
-    RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
-    RenderVignetteSettings, MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
+    RenderFilmGrainSettings, RenderFogSettings, RenderMotionBlurSettings,
+    RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
+    RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
+    RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
+    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
 };
 pub use pass_graph::PostProcessPassGraph;
 pub use pass_node::PostProcessPassNode;

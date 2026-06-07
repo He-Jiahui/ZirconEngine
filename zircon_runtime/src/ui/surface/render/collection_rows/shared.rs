@@ -1,11 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::super::painter_state::UiRenderPainterStateSource;
 
 pub(super) const FONT_SIZE: f32 = 12.0;
 pub(super) const TABLE_FONT_SIZE: f32 = 11.0;
@@ -32,6 +35,7 @@ pub(super) struct RowRenderState {
     visual_state: UiPainterResolvedState,
     selected: bool,
     checked: bool,
+    expanded: bool,
 }
 
 impl RowRenderState {
@@ -39,30 +43,23 @@ impl RowRenderState {
         kind: CollectionRowKind,
         metadata: &UiTemplateNodeMetadata,
         state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
     ) -> Self {
-        let selected = bool_attribute(metadata, "selected").unwrap_or(false);
-        let checked = state_flags.checked
+        let component_flags = component_state.map(|state| &state.flags);
+        let selected = component_flags.is_some_and(|flags| flags.selected)
+            || bool_attribute(metadata, "selected").unwrap_or(false);
+        let checked = component_flags.is_some_and(|flags| flags.checked)
+            || state_flags.checked
             || bool_attribute(metadata, "checked")
                 .or_else(|| bool_attribute(metadata, "value"))
                 .unwrap_or(false);
-        let disabled =
-            !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false);
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled,
-            checked,
-            selected,
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-        };
+        let expanded = component_flags.is_some_and(|flags| flags.expanded)
+            || bool_attribute(metadata, "expanded").unwrap_or(false);
+        let mut painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state_with_value_checked();
+        painter_state.checked = checked;
+        painter_state.selected = selected;
         let family = match kind {
             CollectionRowKind::List => UiPainterFamily::ListRow,
             CollectionRowKind::Tree => UiPainterFamily::TreeRow,
@@ -73,11 +70,16 @@ impl RowRenderState {
             visual_state: painter_state.resolved_state_for_family(family),
             selected,
             checked,
+            expanded,
         }
     }
 
     pub(super) fn marked(self) -> bool {
         self.selected || self.checked
+    }
+
+    pub(super) fn expanded(self) -> bool {
+        self.expanded
     }
 
     pub(super) fn disabled(self) -> bool {

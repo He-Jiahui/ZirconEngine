@@ -16,7 +16,7 @@ pub(super) fn classify_runtime_system_descriptor(
             .with_maturity(PluginMaturity::Experimental)
             .with_capability_status(
                 capability_status("runtime.plugin.ai", CapabilityStatus::Partial).with_note(
-                    "Foundational AI runtime package; behavior-tree execution is intentionally staged behind manager contracts.",
+                    "Foundational AI runtime package; deterministic selector/sequence/task execution and blackboard decorators are available while advanced node families remain partial.",
                 ),
             )
             .with_capability_status(capability_status(

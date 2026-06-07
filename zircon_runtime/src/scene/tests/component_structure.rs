@@ -188,6 +188,304 @@ fn scene_ecs_does_not_reintroduce_late_update_stage_or_compatibility_path() {
     }
 }
 
+#[test]
+fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let get_with_ticks_at_location_start = storage_source
+        .find("pub fn get_with_ticks_at_location<T>")
+        .expect("component storage get_with_ticks_at_location body should exist");
+    let get_with_ticks_at_location_end = storage_source[get_with_ticks_at_location_start..]
+        .find("\n    pub fn mark_changed(")
+        .map(|offset| get_with_ticks_at_location_start + offset)
+        .expect("component storage get_with_ticks_at_location body should end before mark_changed");
+    let get_with_ticks_at_location_body =
+        &storage_source[get_with_ticks_at_location_start..get_with_ticks_at_location_end];
+
+    assert!(get_with_ticks_at_location_body.contains("self.sparse_components"));
+    assert!(get_with_ticks_at_location_body.contains(".get(&location.component_id)?"));
+    assert!(get_with_ticks_at_location_body.contains(".get_with_ticks(location.entity)"));
+    assert!(!get_with_ticks_at_location_body
+        .contains("let value = self.get::<T>(location.component_id, location.entity)?;"));
+    assert!(!get_with_ticks_at_location_body
+        .contains("let ticks = self.ticks(location.component_id, location.entity)?;"));
+
+    let sparse_get_with_ticks_start = storage_source
+        .find("impl SparseComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn get_with_ticks<T>")
+                .map(|offset| start + offset)
+        })
+        .expect("sparse component get_with_ticks body should exist");
+    let sparse_get_with_ticks_end = storage_source[sparse_get_with_ticks_start..]
+        .find("\n    fn get_mut<T>")
+        .map(|offset| sparse_get_with_ticks_start + offset)
+        .expect("sparse component get_with_ticks body should end before get_mut");
+    let sparse_get_with_ticks_body =
+        &storage_source[sparse_get_with_ticks_start..sparse_get_with_ticks_end];
+
+    assert!(sparse_get_with_ticks_body.contains("let entry = self.entries.get(&entity)?;"));
+    assert!(sparse_get_with_ticks_body.contains("let value = entry.value.downcast_ref::<T>()?;"));
+    assert!(sparse_get_with_ticks_body.contains("Some((value, entry.ticks))"));
+}
+
+#[test]
+fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let get_mut_at_tick_start = storage_source
+        .find("pub fn get_mut_at_tick<T>")
+        .expect("component storage get_mut_at_tick body should exist");
+    let get_mut_at_tick_end = storage_source[get_mut_at_tick_start..]
+        .find("\n    pub fn remove<T>")
+        .map(|offset| get_mut_at_tick_start + offset)
+        .expect("component storage get_mut_at_tick body should end before remove");
+    let get_mut_at_tick_body = &storage_source[get_mut_at_tick_start..get_mut_at_tick_end];
+
+    assert!(get_mut_at_tick_body.contains("match self.storage_types.get(&component_id).copied()?"));
+    assert!(get_mut_at_tick_body
+        .contains("let storage = self.table_components.get_mut(&component_id)?;"));
+    assert!(get_mut_at_tick_body
+        .contains("let storage = self.sparse_components.get_mut(&component_id)?;"));
+    assert!(get_mut_at_tick_body.contains("storage.get_mut_at_tick(entity, tick)"));
+    assert!(!get_mut_at_tick_body.contains("self.mark_changed(component_id, entity, tick);"));
+    assert!(!get_mut_at_tick_body.contains("self.get_mut(component_id, entity)"));
+
+    let table_get_mut_at_tick_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn get_mut_at_tick<T>")
+                .map(|offset| start + offset)
+        })
+        .expect("table component get_mut_at_tick body should exist");
+    let table_get_mut_at_tick_end = storage_source[table_get_mut_at_tick_start..]
+        .find("\n    fn remove(")
+        .map(|offset| table_get_mut_at_tick_start + offset)
+        .expect("table component get_mut_at_tick body should end before remove");
+    let table_get_mut_at_tick_body =
+        &storage_source[table_get_mut_at_tick_start..table_get_mut_at_tick_end];
+
+    assert!(table_get_mut_at_tick_body.contains("let row = self.rows.get(&entity).copied()?;"));
+    assert!(table_get_mut_at_tick_body.contains("let entry = &mut self.entries[row];"));
+    assert!(table_get_mut_at_tick_body.contains("entry.ticks.set_changed(tick);"));
+    assert!(table_get_mut_at_tick_body.contains("entry.value.downcast_mut::<T>()"));
+
+    let sparse_get_mut_at_tick_start = storage_source
+        .find("impl SparseComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn get_mut_at_tick<T>")
+                .map(|offset| start + offset)
+        })
+        .expect("sparse component get_mut_at_tick body should exist");
+    let sparse_get_mut_at_tick_end = storage_source[sparse_get_mut_at_tick_start..]
+        .find("\n    fn remove(")
+        .map(|offset| sparse_get_mut_at_tick_start + offset)
+        .expect("sparse component get_mut_at_tick body should end before remove");
+    let sparse_get_mut_at_tick_body =
+        &storage_source[sparse_get_mut_at_tick_start..sparse_get_mut_at_tick_end];
+
+    assert!(sparse_get_mut_at_tick_body.contains("let entry = self.entries.get_mut(&entity)?;"));
+    assert!(sparse_get_mut_at_tick_body.contains("entry.ticks.set_changed(tick);"));
+    assert!(sparse_get_mut_at_tick_body.contains("entry.value.downcast_mut::<T>()"));
+}
+
+#[test]
+fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+
+    assert!(storage_source.contains("fn component_storage_count(&self) -> usize"));
+    assert!(storage_source.contains("self.table_components.len() + self.sparse_components.len()"));
+    assert!(storage_source
+        .contains("let mut removed = Vec::with_capacity(self.component_storage_count());"));
+    assert!(storage_source
+        .contains("let mut component_ids = Vec::with_capacity(self.component_storage_count());"));
+    assert!(!storage_source.contains("let mut removed = Vec::new();"));
+    assert!(!storage_source.contains("let mut component_ids = Vec::new();"));
+}
+
+#[test]
+fn component_storage_type_guards_use_entry_lookup() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+
+    assert!(storage_source.contains("use std::collections::hash_map::Entry;"));
+    assert!(storage_source.contains("match self.storage_types.entry(component_id)"));
+    assert!(storage_source.contains("match self.component_types.entry(component_id)"));
+    assert!(storage_source.contains("Entry::Occupied(entry)"));
+    assert!(storage_source.contains("Entry::Vacant(entry)"));
+    assert!(!storage_source
+        .contains("if let Some(existing) = self.storage_types.get(&component_id).copied()"));
+    assert!(!storage_source
+        .contains("if let Some(existing) = self.component_types.get(&component_id).copied()"));
+}
+
+#[test]
+fn table_component_insert_uses_entry_lookup_for_row_index() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let insert_body_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn insert(")
+                .map(|offset| start + offset)
+        })
+        .expect("table component insert body should exist");
+    let insert_body_end = storage_source[insert_body_start..]
+        .find("\n    fn get<T>")
+        .map(|offset| insert_body_start + offset)
+        .expect("table component insert body should end before get<T>");
+    let insert_body = &storage_source[insert_body_start..insert_body_end];
+
+    assert!(insert_body.contains("match self.rows.entry(entity)"));
+    assert!(insert_body.contains("let row = *entry.get();"));
+    assert!(insert_body.contains("entry.insert(row);"));
+    assert!(!insert_body.contains("if let Some(row) = self.rows.get(&entity).copied()"));
+    assert!(!insert_body.contains("self.rows.insert(entity, row);"));
+}
+
+#[test]
+fn table_component_get_uses_row_index_directly() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let get_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn get<T>")
+                .map(|offset| start + offset)
+        })
+        .expect("table component get body should exist");
+    let get_end = storage_source[get_start..]
+        .find("\n    fn get_mut<T>")
+        .map(|offset| get_start + offset)
+        .expect("table component get body should end before get_mut");
+    let get_body = &storage_source[get_start..get_end];
+
+    assert!(get_body.contains("let row = *self.rows.get(&entity)?;"));
+    assert!(get_body.contains("self.entries[row].value.downcast_ref::<T>()"));
+    assert!(!get_body.contains("self.entries.get(*row)"));
+}
+
+#[test]
+fn sparse_component_insert_uses_entry_lookup_for_replacement() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let insert_body_start = storage_source
+        .find("impl SparseComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn insert(")
+                .map(|offset| start + offset)
+        })
+        .expect("sparse component insert body should exist");
+    let insert_body_end = storage_source[insert_body_start..]
+        .find("\n    fn get<T>")
+        .map(|offset| insert_body_start + offset)
+        .expect("sparse component insert body should end before get<T>");
+    let insert_body = &storage_source[insert_body_start..insert_body_end];
+
+    assert!(insert_body.contains("match self.entries.entry(entity)"));
+    assert!(insert_body.contains("let entry = occupied.get_mut();"));
+    assert!(insert_body.contains("std::mem::replace(&mut entry.value, value)"));
+    assert!(insert_body.contains("vacant.insert(SparseEntry"));
+    assert!(!insert_body.contains("self.entries.insert("));
+    assert!(!insert_body.contains("self.entries.get_mut(&entity)"));
+}
+
+#[test]
+fn table_component_ticks_uses_row_index_directly() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let ticks_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn ticks(")
+                .map(|offset| start + offset)
+        })
+        .expect("table component ticks body should exist");
+    let ticks_end = storage_source[ticks_start..]
+        .find("\n    fn mark_changed(")
+        .map(|offset| ticks_start + offset)
+        .expect("table component ticks body should end before mark_changed");
+    let ticks_body = &storage_source[ticks_start..ticks_end];
+
+    assert!(ticks_body.contains("let row = *self.rows.get(&entity)?;"));
+    assert!(ticks_body.contains("Some(self.entries[row].ticks)"));
+    assert!(!ticks_body.contains("self.entries.get(*row)"));
+}
+
+#[test]
+fn table_component_mark_changed_uses_row_index_directly() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let mark_changed_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn mark_changed(")
+                .map(|offset| start + offset)
+        })
+        .expect("table component mark_changed body should exist");
+    let mark_changed_end = storage_source[mark_changed_start..]
+        .find("\n    fn len(")
+        .map(|offset| mark_changed_start + offset)
+        .expect("table component mark_changed body should end before len");
+    let mark_changed_body = &storage_source[mark_changed_start..mark_changed_end];
+
+    assert!(mark_changed_body.contains("self.entries[row].ticks.set_changed(tick);"));
+    assert!(mark_changed_body.contains("let Some(row) = self.rows.get(&entity).copied() else"));
+    assert!(!mark_changed_body.contains("self.entries.get_mut(row)"));
+}
+
+#[test]
+fn table_component_get_mut_uses_row_index_directly() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let storage_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
+            .unwrap();
+    let get_mut_start = storage_source
+        .find("impl TableComponentStorage")
+        .and_then(|start| {
+            storage_source[start..]
+                .find("fn get_mut<T>")
+                .map(|offset| start + offset)
+        })
+        .expect("table component get_mut body should exist");
+    let get_mut_end = storage_source[get_mut_start..]
+        .find("\n    fn remove(")
+        .map(|offset| get_mut_start + offset)
+        .expect("table component get_mut body should end before remove");
+    let get_mut_body = &storage_source[get_mut_start..get_mut_end];
+
+    assert!(get_mut_body.contains("let row = self.rows.get(&entity).copied()?;"));
+    assert!(get_mut_body.contains("self.entries[row].value.downcast_mut::<T>()"));
+    assert!(!get_mut_body.contains("self.entries.get_mut(row)"));
+}
+
 fn assert_no_legacy_late_update_name(root: &std::path::Path) {
     for entry in std::fs::read_dir(root).unwrap() {
         let entry = entry.unwrap();

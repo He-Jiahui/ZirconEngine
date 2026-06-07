@@ -54,6 +54,9 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/framework/navigation/tests.rs
   - off_mesh_bridge_descriptor_is_a_first_class_navigation_contract
+  - automatic_agent_tick_does_not_cross_manual_off_mesh_links
+  - automatic_agent_tick_respects_auto_traverse_links_opt_out
+  - explicit_path_query_can_still_cross_manual_off_mesh_links
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/navigation/*.rs (2026-06-04 navigation boundary split: passed)
   - git diff --check -- zircon_runtime/src/core/framework/navigation docs/zircon_runtime/core/framework/navigation.md .codex/sessions/20260603-2304-plugin-ecosystem-continuation.md (2026-06-04 navigation boundary split: passed with expected LF-to-CRLF warnings)
   - cargo test -p zircon_runtime --lib navigation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-framework-split --message-format short --color never (planned for current navigation boundary split)
@@ -97,7 +100,7 @@ The framework defines six fixed dynamic component type ids:
 
 The default humanoid agent matches the plan values: radius `0.5`, height `2.0`, climb `0.4`, slope `45`, speed `3.5`, acceleration `8.0`, angular speed `360`, and stopping distance `0.1`. Areas reserve `0` for `not_walkable`, `1` for `walkable`, `2` for `jump`, and `3..63` for custom areas.
 
-Off-mesh links model a single traversal edge. Off-mesh bridges are a related authoring contract for wider multi-lane crossings: they keep the same endpoint, area, cost, bidirectionality, activation, agent-type, and traversal-mode semantics, then add `lane_count` so the runtime plugin can expand one bridge descriptor into bounded per-lane baked links. `MAX_OFF_MESH_BRIDGE_LANES` caps expansion at `32` lanes, keeping editor-authored bridge values from producing unbounded bake artifacts.
+Off-mesh links model a single traversal edge. Off-mesh bridges are a related authoring contract for wider multi-lane crossings: they keep the same endpoint, area, cost, bidirectionality, activation, agent-type, and traversal-mode semantics, then add `lane_count` so the runtime plugin can expand one bridge descriptor into bounded per-lane baked links. `MAX_OFF_MESH_BRIDGE_LANES` caps expansion at `32` lanes, keeping editor-authored bridge values from producing unbounded bake artifacts. `NavLinkTraversalMode` and `NavMeshAgentDescriptor::auto_traverse_links` are neutral policy inputs only: the framework preserves them in components and baked assets, while the active navigation runtime decides whether automatic movement may consume those links.
 
 `NavMeshAsset` stores deterministic baked data: vertices, indices, polygons, tiles, off-mesh links, agent type, a stable settings hash, and per-area cost/walkability records. It can be constructed from a simple quad or from triangle input with per-triangle area ids, which lets the runtime bake collector preserve `NavMeshModifier` area overrides in the resulting polygons. It also exposes `debug_triangles()` so editor overlays can draw NavMesh area/tile triangles without understanding the serialized polygon layout, and `to_bytes()` / `from_bytes()` so `.znavmesh` artifacts round-trip through a binary payload instead of pretty JSON.
 
@@ -108,6 +111,8 @@ Off-mesh links model a single traversal edge. Off-mesh bridges are a related aut
 ## Design and Rationale
 
 The runtime framework deliberately stays backend-neutral. Recast/Detour concepts appear as general DTOs, not as C++ handles or plugin-owned memory. This lets the runtime asset manager, editor UI, scripting layer, and plugin loader share the same language without forcing `zircon_runtime` to link a native navigation library.
+
+`NavMeshAgentDescriptor` is intentionally limited to authoring and configuration fields such as speed, acceleration, angular speed, stopping distance, avoidance flags, link traversal preference, and destination. Concrete per-entity velocity, acceleration integration, arrival braking, rotation interpolation, and automatic off-mesh traversal filtering are owned by the active navigation runtime plugin. This keeps serialized dynamic components and framework DTOs stable while allowing DetourCrowd-style, custom ECS steering, or gameplay-scripted manual-link backends to maintain their own simulation state.
 
 The folder layout follows three reference-engine signals. Godot separates navigation agents, links, obstacles, and regions as distinct scene components; Unreal separates `NavigationSystem`, `NavMesh`, and `NavLink` families; Fyrox keeps navigational mesh runtime data as a dedicated scene subsystem instead of merging it into generic scene nodes. Zircon keeps the same domain split but lands it in the runtime framework contract layer so plugins and editor tooling share stable Rust DTOs.
 
@@ -130,3 +135,7 @@ Historical navigation validation: `cargo check -p zircon_runtime --locked --jobs
 Current boundary split static validation passed: scoped rustfmt over `zircon_runtime/src/core/framework/navigation/*.rs`, a conflict-marker scan, and `git diff --check` over the touched navigation/doc/session files. The focused `cargo test -p zircon_runtime --lib navigation` run is still pending until active Cargo lanes from other sessions have enough capacity.
 
 2026-06-04 plugin runtime follow-up split `zircon_plugins/navigation/runtime/src/manager/bake.rs` into a structural bake facade plus `manager/bake/{asset,diagnostics,filter,geometry,modifier,surface}.rs`. This did not change the framework DTOs; it keeps plugin-owned scene scans, Recast/simple fallback dispatch, off-mesh embedding, and bake diagnostics out of the neutral `zircon_runtime::core::framework::navigation` contract layer. Focused plugin Cargo validation is still pending while active Cargo lanes from other sessions are running.
+
+2026-06-07 plugin runtime follow-up added manager-private agent motion state and focused acceleration/auto-braking coverage in `zircon_plugins/navigation/runtime/src/tests/manager.rs`. The framework contract did not change; this document records the boundary that runtime velocity is plugin-owned state, not a new serialized `NavMeshAgentDescriptor` field.
+
+2026-06-07 plugin runtime traversal follow-up added automatic off-mesh traversal filtering in `zircon_plugins/navigation/runtime/src/manager/traversal.rs`. The framework contract still did not change: manual links remain serialized asset/component data and explicit path queries can still plan across them, while automatic agent ticks are the plugin-owned policy surface that filters manual links and `auto_traverse_links = false` paths.

@@ -1,5 +1,5 @@
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+    dispatch::UiPointerDispatcher, surface::UiSurface,
 };
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,

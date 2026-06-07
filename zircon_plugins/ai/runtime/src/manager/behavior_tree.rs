@@ -10,8 +10,6 @@ pub(super) fn register(
     manager: &DefaultAiManager,
     descriptor: AiBehaviorTreeDescriptor,
 ) -> Result<AiBehaviorTreeId, AiManagerError> {
-    validate_behavior_tree_descriptor(&descriptor)?;
-
     let mut state = manager
         .state
         .lock()
@@ -22,6 +20,14 @@ pub(super) fn register(
         .any(|entry| entry.descriptor.id == descriptor.id)
     {
         return Err(AiManagerError::DuplicateId { id: descriptor.id });
+    }
+    {
+        let registered_tree_ids = state
+            .behavior_trees
+            .iter()
+            .map(|entry| entry.descriptor.id.as_str())
+            .collect::<Vec<_>>();
+        validate_behavior_tree_descriptor(&descriptor, &registered_tree_ids)?;
     }
 
     state.next_behavior_tree_id += 1;

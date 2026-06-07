@@ -6,7 +6,7 @@ use crate::ui::workbench::reference::{
     EditorWorkbenchReferenceMetrics, EditorWorkbenchReferenceSurface,
     EditorWorkbenchTemplateControlIds,
 };
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::dispatch::UiPointerDispatcher;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     dispatch::UiPointerEvent,

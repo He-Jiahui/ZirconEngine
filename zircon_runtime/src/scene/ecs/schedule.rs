@@ -1,15 +1,26 @@
-use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+use std::sync::Arc;
 
+use serde::{Deserialize, Deserializer, Serialize};
+
+#[cfg(test)]
+use super::ScheduledSceneStep;
 use super::{
-    BoxedSceneSystem, IntoSceneSystem, SceneSystem, SceneSystemDescriptor, SceneSystemRegistry,
-    ScheduleConflictGraph, ScheduleError, ScheduledSceneStep, SystemParam, SystemStage,
+    BoxedSceneSystem, IntoSceneSystem, SceneScheduleStagePlan, SceneSystem, SceneSystemDescriptor,
+    SceneSystemRegistry, ScheduleConflictGraph, ScheduleError, SystemParam, SystemStage,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct Schedule {
-    pub stages: Vec<SystemStage>,
-    #[serde(default = "default_system_registry")]
+    stages: Vec<SystemStage>,
     systems: SceneSystemRegistry,
+    // Executor-facing cache rebuilt only when the schedule definition changes.
+    #[serde(skip)]
+    executor_plan: Arc<SceneScheduleStagePlan>,
+    #[serde(skip)]
+    executor_plan_dirty: bool,
+    #[serde(skip)]
+    taken_native_system_ids: BTreeSet<String>,
 }
 
 impl Schedule {
@@ -17,7 +28,10 @@ impl Schedule {
         &mut self,
         descriptor: SceneSystemDescriptor,
     ) -> Result<(), ScheduleError> {
-        self.systems.register_system(descriptor)
+        self.ensure_id_not_taken(&descriptor.id)?;
+        self.systems.register_system(descriptor)?;
+        self.refresh_or_defer_executor_plan();
+        Ok(())
     }
 
     pub fn register_native_system<P, S>(
@@ -33,8 +47,16 @@ impl Schedule {
         P::State: Send,
         S: IntoSceneSystem<P>,
     {
+        let id = id.into();
+        self.ensure_id_not_taken(&id)?;
         self.systems
-            .register_native_system::<P, S>(id, stage, order, world, system)
+            .register_native_system::<P, S>(id, stage, order, world, system)?;
+        self.refresh_or_defer_executor_plan();
+        Ok(())
+    }
+
+    pub fn stages(&self) -> &[SystemStage] {
+        &self.stages
     }
 
     pub fn system_registry(&self) -> &SceneSystemRegistry {
@@ -66,6 +88,7 @@ impl Schedule {
         self.systems.native_system_conflict_graph_for_stage(stage)
     }
 
+    #[cfg(test)]
     pub(crate) fn native_system_steps_for_stage(
         &self,
         stage: SystemStage,
@@ -73,34 +96,100 @@ impl Schedule {
         self.systems.native_system_steps_for_stage(stage)
     }
 
+    pub(crate) fn stage_plan(&self) -> Arc<SceneScheduleStagePlan> {
+        Arc::clone(&self.executor_plan)
+    }
+
     pub(crate) fn take_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
-        self.systems.take_native_system(id)
+        let system = self.systems.take_native_system(id)?;
+        self.taken_native_system_ids.insert(system.id().to_string());
+        Some(system)
     }
 
     pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem) {
+        let system_id = system.id().to_string();
         self.systems.restore_native_system(system);
+        self.taken_native_system_ids.remove(&system_id);
+        if self.taken_native_system_ids.is_empty() && self.executor_plan_dirty {
+            self.refresh_executor_plan();
+        }
+    }
+
+    fn from_parts(stages: Vec<SystemStage>, systems: SceneSystemRegistry) -> Self {
+        let executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(&stages, &systems));
+        Self {
+            stages,
+            systems,
+            executor_plan,
+            executor_plan_dirty: false,
+            taken_native_system_ids: BTreeSet::new(),
+        }
+    }
+
+    fn refresh_or_defer_executor_plan(&mut self) {
+        if self.taken_native_system_ids.is_empty() {
+            self.refresh_executor_plan();
+        } else {
+            self.executor_plan_dirty = true;
+        }
+    }
+
+    fn refresh_executor_plan(&mut self) {
+        self.executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(
+            &self.stages,
+            &self.systems,
+        ));
+        self.executor_plan_dirty = false;
+    }
+
+    fn ensure_id_not_taken(&self, id: &str) -> Result<(), ScheduleError> {
+        if self.taken_native_system_ids.contains(id) {
+            return Err(ScheduleError::DuplicateSystem(id.to_string()));
+        }
+        Ok(())
     }
 }
 
 impl Default for Schedule {
     fn default() -> Self {
-        Self {
-            stages: default_stage_order(),
-            systems: default_system_registry(),
+        Self::from_parts(default_stage_order(), default_system_registry())
+    }
+}
+
+impl Clone for Schedule {
+    fn clone(&self) -> Self {
+        Self::from_parts(self.stages.clone(), self.systems.clone())
+    }
+}
+
+impl PartialEq for Schedule {
+    fn eq(&self, other: &Self) -> bool {
+        self.stages == other.stages && self.systems == other.systems
+    }
+}
+
+impl Eq for Schedule {}
+
+impl<'de> Deserialize<'de> for Schedule {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ScheduleDocument {
+            #[serde(default = "default_stage_order")]
+            stages: Vec<SystemStage>,
+            #[serde(default = "default_system_registry")]
+            systems: SceneSystemRegistry,
         }
+
+        let document = ScheduleDocument::deserialize(deserializer)?;
+        Ok(Schedule::from_parts(document.stages, document.systems))
     }
 }
 
 pub fn default_stage_order() -> Vec<SystemStage> {
-    vec![
-        SystemStage::First,
-        SystemStage::PreUpdate,
-        SystemStage::FixedUpdate,
-        SystemStage::Update,
-        SystemStage::PostUpdate,
-        SystemStage::Last,
-        SystemStage::RenderExtract,
-    ]
+    SystemStage::ORDER.to_vec()
 }
 
 fn default_system_registry() -> SceneSystemRegistry {

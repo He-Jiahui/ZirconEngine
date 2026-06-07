@@ -1,3 +1,4 @@
+#[cfg(feature = "cpal-backend")]
 use super::super::super::*;
 
 #[cfg(feature = "cpal-backend")]

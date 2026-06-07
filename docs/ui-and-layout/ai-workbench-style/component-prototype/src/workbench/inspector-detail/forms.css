@@ -1,0 +1,42 @@
+.zr-inspector .zr-select {
+  height: 28px;
+  border-color: #242b30;
+  background: linear-gradient(180deg, #1a1f23, #15191d);
+}
+
+.zr-inspector .zr-form-row {
+  grid-template-columns: 34px 146px 43px minmax(0, 1fr);
+  gap: 9px;
+  transform: translateY(1px);
+}
+
+.zr-inspector .zr-form-row .zr-select {
+  color: #b6c0c5;
+  border-color: #283037;
+  background: linear-gradient(180deg, #1d2227, #171c20);
+}
+
+.zr-inspector .zr-object-header {
+  color: #d0d8dc;
+  transform: translateY(1px);
+}
+
+.zr-inspector .zr-checkbox:not(.is-checked) .zr-check-box {
+  border-color: #30383e;
+  background: #14191d;
+}
+
+.zr-inspector .zr-resource-row .zr-select,
+.zr-inspector .zr-value-box {
+  border-color: #252d32;
+  background: linear-gradient(180deg, #161b1f, #111619);
+}
+
+.zr-inspector .zr-resource-row .zr-select {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.zr-inspector .zr-resource-row .zr-select .zr-icon:last-child {
+  margin-left: auto;
+}

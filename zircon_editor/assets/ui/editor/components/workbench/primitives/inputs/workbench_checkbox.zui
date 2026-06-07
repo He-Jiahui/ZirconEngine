@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui"
+version = 2
+display_name = "Workbench Checkbox"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchCheckbox]
+root = "root"
+default_classes = ["workbench-check", "workbench-primitive"]
+
+[nodes.root]
+component = "Checkbox"
+control_id = "WorkbenchCheckboxRoot"
+classes = ["workbench-check"]
+props = { text = "Checkbox", value = false, checked = false, label_color = "#828c93", layout_spacing = 9.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }

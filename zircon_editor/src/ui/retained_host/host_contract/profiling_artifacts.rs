@@ -826,7 +826,7 @@ mod tests {
     use super::*;
     use crate::ui::retained_host::primitives::VecModel;
     use std::rc::Rc;
-    use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+    use zircon_runtime::ui::surface::UiSurface;
     use zircon_runtime_interface::ui::{
         event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
         layout::UiFrame,

@@ -1,7 +1,6 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
-    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
     accessibility::{UiA11yCheckedState, UiA11yRole, UiAccessibilityAction},

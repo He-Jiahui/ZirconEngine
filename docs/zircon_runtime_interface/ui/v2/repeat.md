@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
 implementation_files:
@@ -19,7 +19,7 @@ implementation_files:
   - zircon_runtime/src/ui/v2/compiler.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
 plan_sources:
@@ -38,7 +38,7 @@ tests:
   - cargo test -p zircon_runtime --lib ui_v2_repeat_declaration_is_preserved_in_compiled_surface_metadata --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01: timed out after 604 seconds during zircon_runtime test binary link; no compiler diagnostic returned)
   - cargo test -p zircon_editor --lib componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01: timed out after 605 seconds during zircon_runtime test binary link; no compiler diagnostic returned)
   - rustfmt --edition 2021 --check over the touched repeat/runtime/editor Rust files (2026-06-01: passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui (2026-06-01: passed, repeat table present and 10 authored scene-tree children)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui (2026-06-01: passed, repeat table present and 10 authored scene-tree children)
 doc_type: module-detail
 ---
 

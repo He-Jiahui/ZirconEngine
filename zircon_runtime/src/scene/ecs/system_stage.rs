@@ -12,6 +12,17 @@ pub enum SystemStage {
 }
 
 impl SystemStage {
+    pub const COUNT: usize = 7;
+    pub const ORDER: [Self; Self::COUNT] = [
+        Self::First,
+        Self::PreUpdate,
+        Self::FixedUpdate,
+        Self::Update,
+        Self::PostUpdate,
+        Self::Last,
+        Self::RenderExtract,
+    ];
+
     pub const fn rank(self) -> usize {
         match self {
             Self::First => 0,

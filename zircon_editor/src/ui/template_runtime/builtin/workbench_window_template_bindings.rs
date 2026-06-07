@@ -222,37 +222,37 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "ComponentLab",
         "Primary",
-        EditorUiBindingPayload::editor_operation("ComponentLab.Primary"),
+        EditorUiBindingPayload::menu_action("component_lab.button.primary"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "Secondary",
-        EditorUiBindingPayload::editor_operation("ComponentLab.Secondary"),
+        EditorUiBindingPayload::menu_action("component_lab.button.secondary"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "Tertiary",
-        EditorUiBindingPayload::editor_operation("ComponentLab.Tertiary"),
+        EditorUiBindingPayload::menu_action("component_lab.button.tertiary"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "Outline",
-        EditorUiBindingPayload::editor_operation("ComponentLab.Outline"),
+        EditorUiBindingPayload::menu_action("component_lab.button.outline"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "IconButton",
-        EditorUiBindingPayload::editor_operation("ComponentLab.IconButton"),
+        EditorUiBindingPayload::menu_action("component_lab.button.icon"),
     );
     insert_click(
         &mut bindings,
         "ComponentLab",
         "DeleteButton",
-        EditorUiBindingPayload::editor_operation("ComponentLab.DeleteButton"),
+        EditorUiBindingPayload::menu_action("component_lab.button.delete"),
     );
     insert_click(
         &mut bindings,
@@ -264,7 +264,7 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "ComponentLab",
         "ButtonDropdownSelect",
-        EditorUiBindingPayload::menu_action("component_lab.button_dropdown_option.select"),
+        EditorUiBindingPayload::menu_action("component_lab.button_dropdown.select"),
     );
     insert_change(
         &mut bindings,
@@ -300,7 +300,7 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "ComponentLab",
         "InputDropdownSelect",
-        EditorUiBindingPayload::menu_action("component_lab.input_dropdown_option.select"),
+        EditorUiBindingPayload::menu_action("component_lab.input_dropdown.select"),
     );
     insert_change(
         &mut bindings,

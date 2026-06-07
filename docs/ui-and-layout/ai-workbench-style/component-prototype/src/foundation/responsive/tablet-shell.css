@@ -1,0 +1,41 @@
+@media (max-width: 1040px) {
+  :root {
+    --topbar-h: 56px;
+    --rail-w: 54px;
+    --left-w: 280px;
+    --right-w: 320px;
+    --bottom-h: 44px;
+  }
+
+  body {
+    overflow: auto;
+  }
+
+  .zr-app {
+    min-height: 760px;
+    overflow: auto;
+  }
+
+  .zr-window {
+    min-width: 900px;
+    min-height: 760px;
+  }
+
+  .zr-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+  }
+
+  .zr-topbar-tools {
+    overflow: auto;
+    justify-self: stretch;
+    margin-left: 0;
+    padding-bottom: 2px;
+  }
+
+  .zr-statusbar {
+    position: fixed;
+    z-index: 14;
+  }
+}

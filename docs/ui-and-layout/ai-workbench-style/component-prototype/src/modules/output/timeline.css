@@ -1,0 +1,46 @@
+.zr-module-timeline {
+  position: relative;
+  min-height: 128px;
+  overflow: hidden;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background: #101519;
+}
+
+.zr-timeline-ruler {
+  height: 26px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+  padding: 0 10px;
+  color: #9ba6ab;
+  border-bottom: 1px solid #273036;
+}
+
+.zr-timeline-track {
+  height: 22px;
+  margin: 10px;
+  border-radius: 3px;
+}
+
+.zr-timeline-track.is-green {
+  background: repeating-linear-gradient(90deg, #5cb85d 0 4px, #315f32 4px 12px);
+}
+
+.zr-timeline-track.is-blue {
+  background: linear-gradient(90deg, #234e84, #2f91cf, #285173);
+}
+
+.zr-timeline-track.is-orange {
+  background: repeating-linear-gradient(90deg, #9d5a22 0 10px, #9d5a22 22px, transparent 22px, transparent 42px);
+}
+
+.zr-timeline-playhead {
+  position: absolute;
+  left: 45%;
+  top: 25px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(53, 199, 208, 0.22);
+}

@@ -7,9 +7,13 @@ use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, NavigationError,
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
-use zircon_runtime::core::math::{Quat, Real, Transform, Vec3};
+use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::World;
 
+use super::agent_motion::{
+    agent_displacement, next_agent_velocity, realized_velocity, rotate_toward_movement,
+};
+use super::traversal::automatic_agent_query_asset;
 use super::DefaultNavigationManager;
 
 pub(super) fn tick_world_agents(
@@ -24,16 +28,21 @@ pub(super) fn tick_world_agents(
 
     let agents = collect_agents(world);
     report.scanned_agents = agents.len();
+    let active_agent_ids = agents.iter().map(|(entity, _)| *entity).collect::<Vec<_>>();
+    manager.retain_agent_motion_for(&active_agent_ids);
     let agent_positions = agent_positions(world, &agents);
     let obstacles = collect_runtime_obstacles(world);
     for (entity, agent) in agents {
         let Some(destination) = agent.destination else {
+            manager.clear_agent_velocity(entity);
             continue;
         };
         if !agent.update_position {
+            manager.clear_agent_velocity(entity);
             continue;
         }
         let Some(transform) = world.world_transform(entity) else {
+            manager.clear_agent_velocity(entity);
             report.blocked_agents += 1;
             report
                 .diagnostics
@@ -44,7 +53,7 @@ pub(super) fn tick_world_agents(
         let destination = Vec3::from_array(destination);
         let movement_target = match manager.selected_asset(None) {
             Ok(asset) => match manager.backend.find_path_with_obstacles(
-                &asset,
+                automatic_agent_query_asset(&asset, &agent).as_ref(),
                 &NavPathQuery {
                     nav_mesh: None,
                     start: current.to_array(),
@@ -61,6 +70,7 @@ pub(super) fn tick_world_agents(
                     .map(|point| Vec3::from_array(point.position))
                     .unwrap_or(destination),
                 Ok(_) => {
+                    manager.clear_agent_velocity(entity);
                     report.blocked_agents += 1;
                     report
                         .diagnostics
@@ -68,6 +78,7 @@ pub(super) fn tick_world_agents(
                     continue;
                 }
                 Err(error) => {
+                    manager.clear_agent_velocity(entity);
                     report.blocked_agents += 1;
                     report
                         .diagnostics
@@ -88,24 +99,43 @@ pub(super) fn tick_world_agents(
         let delta = movement_target - current;
         let distance = delta.length();
         if distance <= agent.stopping_distance {
+            manager.clear_agent_velocity(entity);
             continue;
         }
-        let step = (agent.speed.max(0.0) * dt_seconds).min(distance);
-        let direction = delta.normalize_or_zero();
-        let next = current + direction * step;
+        let velocity = next_agent_velocity(
+            manager.agent_velocity(entity),
+            current,
+            movement_target,
+            &agent,
+            dt_seconds,
+        );
+        let displacement =
+            agent_displacement(velocity, current, movement_target, &agent, dt_seconds);
+        if displacement.length_squared() <= Real::EPSILON {
+            manager.clear_agent_velocity(entity);
+            continue;
+        }
+        let direction = displacement.normalize_or_zero();
+        let next = current + displacement;
         let updated = Transform {
             translation: next,
             rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
-                Quat::from_rotation_y(direction.x.atan2(-direction.z))
+                rotate_toward_movement(transform.rotation, direction, &agent, dt_seconds)
             } else {
                 transform.rotation
             },
             ..transform
         };
         match world.update_transform(entity, updated) {
-            Ok(true) => report.moved_agents += 1,
-            Ok(false) => {}
+            Ok(true) => {
+                manager.record_agent_velocity(entity, realized_velocity(displacement, dt_seconds));
+                report.moved_agents += 1;
+            }
+            Ok(false) => {
+                manager.record_agent_velocity(entity, realized_velocity(displacement, dt_seconds))
+            }
             Err(error) => {
+                manager.clear_agent_velocity(entity);
                 report.blocked_agents += 1;
                 report
                     .diagnostics

@@ -32,6 +32,7 @@ pub(in crate::engine::source_environment) fn strongest_volume_influence(
             a.descriptor
                 .priority
                 .cmp(&b.descriptor.priority)
+                .then_with(|| a.weight.total_cmp(&b.weight))
                 .then_with(|| b.descriptor.id.raw().cmp(&a.descriptor.id.raw()))
         })
 }

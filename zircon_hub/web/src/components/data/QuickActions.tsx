@@ -27,7 +27,12 @@ export function QuickActions({ actions, onAction }: QuickActionsProps) {
         return (
           <ButtonBase
             key={action.id}
-            onClick={() => onAction?.(action)}
+            disabled={!action.enabled}
+            onClick={() => {
+              if (action.enabled) {
+                onAction?.(action);
+              }
+            }}
             sx={{
               minWidth: 0,
               minHeight: 55,
@@ -45,6 +50,11 @@ export function QuickActions({ actions, onAction }: QuickActionsProps) {
               "&:hover": {
                 backgroundColor: "rgba(40,40,40,0.82)",
                 borderColor: "rgba(45,212,207,0.26)",
+              },
+              "&.Mui-disabled": {
+                opacity: 0.48,
+                color: hubTokens.colors.textMuted,
+                cursor: "not-allowed",
               },
             }}
           >

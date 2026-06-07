@@ -124,6 +124,113 @@ fn unified_keyboard_escape_popup_dismiss_reports_focus_route_steps_and_close_eve
     assert_eq!(popup_open(&surface), Some(false));
 }
 
+#[test]
+fn unified_keyboard_virtual_back_routes_to_popup_dismiss_from_focused_path() {
+    let mut surface = keyboard_popup_route_surface();
+    surface.focus_node(UiNodeId::new(3)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_popup_event("Virtual_Back", 0),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(3)));
+    match &result.event {
+        UiInputEvent::Keyboard(keyboard) => {
+            assert_eq!(keyboard.logical_key, "Virtual_Back");
+            assert_eq!(keyboard.key_code, 0);
+        }
+        other => panic!("expected original keyboard input event, got {other:?}"),
+    }
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.popup_dismiss")
+    );
+    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(3)));
+    assert!(result.diagnostics.route_trace.popup_stack.is_empty());
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ClosePopup
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(3))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+    assert!(surface.input.popup_stack.is_empty());
+    assert_eq!(popup_open(&surface), Some(false));
+}
+
+#[test]
+fn modified_virtual_back_still_routes_to_popup_dismissal() {
+    let mut surface = keyboard_popup_route_surface();
+    surface.focus_node(UiNodeId::new(3)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            modified_keyboard_popup_event("Virtual_Back", 0),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(3)));
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.popup_dismiss")
+    );
+    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(3)));
+    match &result.event {
+        UiInputEvent::Keyboard(keyboard) => {
+            assert_eq!(keyboard.logical_key, "Virtual_Back");
+            assert!(keyboard.metadata.modifiers.shift);
+        }
+        other => panic!("expected original keyboard input event, got {other:?}"),
+    }
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ClosePopup
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(3))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        Vec::<&str>::new()
+    );
+    assert_eq!(popup_open(&surface), Some(false));
+}
+
 fn keyboard_popup_route_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input.reply_route.popup_keyboard"));
     surface.tree.insert_root(
@@ -181,8 +288,22 @@ fn keyboard_popup_route_surface() -> UiSurface {
 }
 
 fn keyboard_popup_event(logical_key: &str, key_code: u32) -> UiInputEvent {
+    keyboard_popup_event_with_metadata(input_metadata(), logical_key, key_code)
+}
+
+fn modified_keyboard_popup_event(logical_key: &str, key_code: u32) -> UiInputEvent {
+    let mut metadata = input_metadata();
+    metadata.modifiers.shift = true;
+    keyboard_popup_event_with_metadata(metadata, logical_key, key_code)
+}
+
+fn keyboard_popup_event_with_metadata(
+    metadata: UiInputEventMetadata,
+    logical_key: &str,
+    key_code: u32,
+) -> UiInputEvent {
     UiInputEvent::Keyboard(UiKeyboardInputEvent {
-        metadata: input_metadata(),
+        metadata,
         state: UiKeyboardInputState::Pressed,
         key_code,
         scan_code: None,

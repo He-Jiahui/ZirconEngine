@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::net::{
-    NetConnectionState, NetEndpoint, NetManager, NetRuntimeMode,
+    NetConnectionState, NetEndpoint, NetEvent, NetManager, NetRuntimeMode,
 };
 
 use crate::DefaultNetManager;
@@ -14,6 +14,16 @@ fn net_runtime_manager_accepts_tcp_client_and_echoes_payloads() {
 
     let client = net.connect_tcp(&endpoint).unwrap();
     let server = accept_until_connection(&net, listener);
+    let events = net.drain_events(16);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionAccepted {
+            listener: accepted_listener,
+            connection,
+            transport,
+            ..
+        } if *accepted_listener == listener && *connection == server && transport.is_tcp()
+    )));
 
     assert_eq!(
         net.connection_state(client).unwrap(),
@@ -31,4 +41,19 @@ fn net_runtime_manager_accepts_tcp_client_and_echoes_payloads() {
 
     net.close_connection(client).unwrap();
     net.close_connection(server).unwrap();
+    let events = net.drain_events(16);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionClosed {
+            connection,
+            transport,
+        } if *connection == client && transport.is_tcp()
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionClosed {
+            connection,
+            transport,
+        } if *connection == server && transport.is_tcp()
+    )));
 }

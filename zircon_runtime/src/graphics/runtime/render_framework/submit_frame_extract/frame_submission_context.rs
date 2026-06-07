@@ -1,15 +1,17 @@
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport,
     FrameHistoryInvalidationReason, PostProcessPassGraph, PostProcessStackDescriptor,
-    RenderAmbientLightSnapshot, RenderBloomSettings, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiPayloadSource,
-    RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
-    RenderPostProcessEffectStackSettings, RenderRectLightSnapshot, RenderSpotLightSnapshot,
-    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, SolariRuntimeReport,
+    RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderReport,
+    RenderCameraTargetResolutionReport, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
+    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
+    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
+    RenderSpotLightSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
+    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPayloadSource, SolariRuntimeReport, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
+use crate::graphics::{ViewportMotionVectorObjectHistory, ViewportRenderOutputTarget};
 
 use crate::{
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
@@ -35,8 +37,13 @@ pub(super) struct FrameSubmissionContext {
     quality_profile: Option<String>,
     compiled_pipeline: CompiledRenderPipeline,
     visibility_context: VisibilityContext,
+    previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+    previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
     history_validation_key: FrameHistoryValidationKey,
     history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
+    output_target: ViewportRenderOutputTarget,
+    camera_target_resolution: RenderCameraTargetResolutionReport,
+    scene_camera_order_report: Option<RenderCameraOrderReport>,
     ui_stats: UiSubmissionStats,
     post_process_bloom: RenderBloomSettings,
     post_process_color_grading: RenderColorGradingSettings,
@@ -78,8 +85,13 @@ impl FrameSubmissionContext {
         quality_profile: Option<String>,
         compiled_pipeline: CompiledRenderPipeline,
         visibility_context: VisibilityContext,
+        previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+        previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
         history_validation_key: FrameHistoryValidationKey,
         history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
+        output_target: ViewportRenderOutputTarget,
+        camera_target_resolution: RenderCameraTargetResolutionReport,
+        scene_camera_order_report: Option<RenderCameraOrderReport>,
         ui_stats: UiSubmissionStats,
         post_process_bloom: RenderBloomSettings,
         post_process_color_grading: RenderColorGradingSettings,
@@ -154,8 +166,13 @@ impl FrameSubmissionContext {
             quality_profile,
             compiled_pipeline,
             visibility_context,
+            previous_motion_vector_camera,
+            previous_motion_vector_object_history,
             history_validation_key,
             history_invalidation_reason,
+            output_target,
+            camera_target_resolution,
+            scene_camera_order_report,
             ui_stats,
             post_process_bloom,
             post_process_color_grading,
@@ -215,12 +232,34 @@ impl FrameSubmissionContext {
         &self.visibility_context
     }
 
+    pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
+        self.previous_motion_vector_camera.as_ref()
+    }
+
+    pub(super) fn previous_motion_vector_object_history(
+        &self,
+    ) -> Option<&ViewportMotionVectorObjectHistory> {
+        self.previous_motion_vector_object_history.as_ref()
+    }
+
     pub(super) fn history_validation_key(&self) -> &FrameHistoryValidationKey {
         &self.history_validation_key
     }
 
     pub(super) fn history_invalidation_reason(&self) -> Option<FrameHistoryInvalidationReason> {
         self.history_invalidation_reason
+    }
+
+    pub(super) fn output_target(&self) -> ViewportRenderOutputTarget {
+        self.output_target
+    }
+
+    pub(super) fn camera_target_resolution(&self) -> RenderCameraTargetResolutionReport {
+        self.camera_target_resolution
+    }
+
+    pub(super) fn scene_camera_order_report(&self) -> Option<&RenderCameraOrderReport> {
+        self.scene_camera_order_report.as_ref()
     }
 
     pub(super) fn ui_stats(&self) -> &UiSubmissionStats {
@@ -568,6 +607,11 @@ mod tests {
             None,
             empty_pipeline(),
             VisibilityContext::from_extract(&extract),
+            None,
+            None,
+            Default::default(),
+            None,
+            ViewportRenderOutputTarget::PrimarySurface,
             Default::default(),
             None,
             Default::default(),

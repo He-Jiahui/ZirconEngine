@@ -1,0 +1,65 @@
+.zr-topbar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--topbar-h);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px;
+  border: 1px solid #252a2e;
+  border-bottom-color: #07090a;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: linear-gradient(180deg, #181b1e, #101316);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.zr-topbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zr-topbar-tools {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 236px;
+}
+
+.zr-topbar .zr-icon-button {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.zr-topbar .zr-icon-button:not(.is-active):hover {
+  border-color: #2b3338;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.zr-topbar .zr-icon-button.is-active {
+  width: 50px;
+  min-width: 50px;
+  height: 40px;
+  border-color: var(--accent-2);
+}
+
+.zr-topbar .zr-icon-button.is-lg:not(.is-active) {
+  width: 42px;
+  min-width: 42px;
+  height: 40px;
+  border-color: #2a3035;
+  background: linear-gradient(180deg, #171c20, #111519);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.zr-divider {
+  width: 1px;
+  height: 32px;
+  background: #252b30;
+}

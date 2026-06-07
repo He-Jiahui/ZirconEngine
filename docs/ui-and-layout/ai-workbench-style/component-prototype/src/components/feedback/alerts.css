@@ -1,0 +1,79 @@
+.zr-alert-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.zr-alert {
+  height: 29px;
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr) 22px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.zr-alert-status {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #081114;
+}
+
+.zr-alert-status .zr-icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.4;
+}
+
+.zr-alert-status > span {
+  color: #091114;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.zr-alert.is-info {
+  color: #6aa8e4;
+  border-color: rgba(62, 145, 232, 0.38);
+  background: rgba(26, 76, 126, 0.2);
+}
+
+.zr-alert.is-success {
+  color: #72d183;
+  border-color: rgba(103, 212, 125, 0.38);
+  background: rgba(42, 103, 51, 0.22);
+}
+
+.zr-alert.is-warning {
+  color: #deb556;
+  border-color: rgba(242, 195, 86, 0.4);
+  background: rgba(118, 78, 19, 0.24);
+}
+
+.zr-alert.is-error {
+  color: #e77063;
+  border-color: rgba(239, 106, 90, 0.4);
+  background: rgba(98, 31, 28, 0.24);
+}
+
+.zr-alert.is-info .zr-alert-status {
+  background: #4d9ceb;
+}
+
+.zr-alert.is-success .zr-alert-status {
+  background: #70d980;
+}
+
+.zr-alert.is-warning .zr-alert-status {
+  background: #f2c356;
+}
+
+.zr-alert.is-error .zr-alert-status {
+  background: #ef6a5a;
+}
+

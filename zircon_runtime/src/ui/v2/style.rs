@@ -481,6 +481,18 @@ fn collect_runtime_pseudo_states(
         collect_bool_state("expanded", component_state.flags.expanded, &mut states);
         collect_bool_state("popup_open", component_state.flags.popup_open, &mut states);
         collect_bool_state("selected", component_state.flags.selected, &mut states);
+        collect_bool_state("dragging", component_state.flags.dragging, &mut states);
+        collect_bool_state(
+            "drop_hovered",
+            component_state.flags.drop_hovered,
+            &mut states,
+        );
+        collect_bool_state(
+            "active_drag_target",
+            component_state.flags.active_drag_target,
+            &mut states,
+        );
+        collect_bool_state("loading", component_state.flags.loading, &mut states);
     }
     collect_bool_state("pressed", node.state_flags.pressed, &mut states);
     collect_bool_state("checked", node.state_flags.checked, &mut states);
@@ -540,6 +552,10 @@ fn is_retained_runtime_state(name: &str) -> bool {
             | "popup_open"
             | "open"
             | "selected"
+            | "dragging"
+            | "drop_hovered"
+            | "active_drag_target"
+            | "loading"
     )
 }
 
@@ -574,6 +590,10 @@ fn apply_retained_runtime_state_attributes(
         "popup_open",
         "open",
         "selected",
+        "dragging",
+        "drop_hovered",
+        "active_drag_target",
+        "loading",
     ];
     for key in retained_keys {
         attributes.remove(key);
@@ -587,6 +607,10 @@ fn apply_retained_runtime_state_attributes(
         "expanded",
         "popup_open",
         "selected",
+        "dragging",
+        "drop_hovered",
+        "active_drag_target",
+        "loading",
     ] {
         if active_states.iter().any(|active| active == state) {
             attributes.insert(state.to_string(), Value::Boolean(true));

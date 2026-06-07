@@ -1,22 +1,26 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
-    tree::UiRuntimeTreeAccessExt,
+};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 use zircon_runtime_interface::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     binding::UiEventKind,
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiAccessibilityInputEvent, UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase,
-        UiDispatchReply, UiDispatchReplyStep, UiDragDropInputEvent, UiDragDropInputEventKind,
-        UiDragSessionId, UiFocusEffectReason, UiImeInputEvent, UiImeInputEventKind,
-        UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputRoutePolicy,
-        UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
-        UiNavigationInputEvent, UiPointerCaptureReason, UiPointerEvent, UiPointerId,
-        UiPointerInputEvent, UiPointerSource, UiPopupEffectKind, UiPopupInputEvent,
-        UiPopupInputEventKind, UiPreciseScrollDelta, UiTextInputEvent, UiTooltipEffectKind,
-        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiAccessibilityInputEvent, UiAnalogInputEvent, UiDispatchDisposition, UiDispatchEffect,
+        UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDispatchReplyStep,
+        UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
+        UiImeInputEvent, UiImeInputEventKind, UiInputDispatchResult, UiInputEvent,
+        UiInputEventMetadata, UiInputRoutePolicy, UiInputSequence, UiInputTimestamp,
+        UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent,
+        UiNavigationInputEvent, UiPointerCaptureReason, UiPointerDispatchEffect, UiPointerEvent,
+        UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind,
+        UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiTextInputEvent,
+        UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusedInputKind,
@@ -29,11 +33,17 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
+mod analog_navigation_routes;
+mod drag_drop_routes;
+mod gamepad_navigation_routes;
 mod keyboard_activation_routes;
 mod keyboard_navigation_routes;
 mod keyboard_popup_routes;
+mod pointer_capture_routes;
 mod pointer_hover_routes;
 mod pointer_popup_routes;
+mod popup_routes;
+mod tooltip_timer_routes;
 mod touch_pointer_routes;
 
 #[test]
@@ -110,6 +120,39 @@ fn direct_dispatch_reply_populates_focus_route_trace_after_effects() {
     assert_eq!(result.diagnostics.route_steps[2].effect_start, 0);
     assert_eq!(result.diagnostics.route_steps[2].effect_count, 1);
     assert!(result.diagnostics.route_steps[2].stopped);
+}
+
+#[test]
+fn raw_mouse_motion_is_unrouted_by_surface_hit_testing() {
+    let mut surface = route_surface();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            raw_mouse_motion_event(-3.5, 2.25),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::Unrouted
+    );
+    assert_eq!(result.diagnostics.routed, false);
+    assert_eq!(result.diagnostics.route_target, None);
+    assert_eq!(result.diagnostics.route_trace.target, None);
+    assert!(result.diagnostics.route_steps.is_empty());
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "raw_mouse_motion"));
+    assert!(matches!(
+        result.event,
+        UiInputEvent::MouseMotion(motion)
+            if motion.delta_x == -3.5 && motion.delta_y == 2.25
+    ));
 }
 
 #[test]
@@ -274,6 +317,66 @@ fn unified_pointer_dispatch_reports_phase_route_steps() {
         result.diagnostics.route_steps[3].disposition,
         UiDispatchDisposition::Passthrough
     );
+}
+
+#[test]
+fn pointer_preview_tunnel_handler_stops_before_target_and_bubble_handlers() {
+    let mut surface = route_surface();
+    let target_calls = Arc::new(AtomicUsize::new(0));
+    let mut dispatcher = UiPointerDispatcher::default();
+    dispatcher.register_phase(
+        UiNodeId::new(1),
+        UiPointerEventKind::Down,
+        UiDispatchPhase::PreviewTunnel,
+        |context| {
+            assert_eq!(context.node_id, UiNodeId::new(1));
+            assert_eq!(context.phase, UiDispatchPhase::PreviewTunnel);
+            assert_eq!(context.route.target, Some(UiNodeId::new(2)));
+            UiPointerDispatchEffect::handled()
+        },
+    );
+    let target_calls_for_handler = Arc::clone(&target_calls);
+    dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Down, move |_| {
+        target_calls_for_handler.fetch_add(1, Ordering::SeqCst);
+        UiPointerDispatchEffect::handled()
+    });
+
+    let result = surface
+        .dispatch_input_event(
+            &dispatcher,
+            &UiNavigationDispatcher::default(),
+            pointer_event(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0)),
+        )
+        .unwrap();
+
+    assert_eq!(target_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(1)));
+    assert_eq!(result.reply.phase, Some(UiDispatchPhase::PreviewTunnel));
+    assert_eq!(result.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
+    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(
+        result.diagnostics.route_trace.preview_tunnel,
+        vec![UiNodeId::new(1), UiNodeId::new(2)]
+    );
+    assert_eq!(result.diagnostics.route_steps.len(), 1);
+    assert_eq!(
+        result.diagnostics.route_steps[0].phase,
+        UiDispatchPhase::PreviewTunnel
+    );
+    assert_eq!(
+        result.diagnostics.route_steps[0].target,
+        Some(UiNodeId::new(1))
+    );
+    assert_eq!(
+        result.diagnostics.route_steps[0].handler,
+        Some(UiNodeId::new(1))
+    );
+    assert_eq!(
+        result.diagnostics.route_steps[0].disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert!(result.diagnostics.route_steps[0].stopped);
 }
 
 #[test]
@@ -946,363 +1049,6 @@ fn captured_pointer_up_preserves_capture_route_trace_after_release() {
 }
 
 #[test]
-fn drag_drop_over_trace_uses_drop_target_path_and_preserves_capture_source() {
-    let mut surface = route_surface();
-    let session_id = UiDragSessionId::new(42);
-
-    let begin = surface
-        .dispatch_input_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            drag_drop_event(
-                UiDragDropInputEventKind::Begin,
-                Some(session_id),
-                UiPoint::new(20.0, 20.0),
-            ),
-        )
-        .unwrap();
-
-    assert!(begin.rejected_effects.is_empty());
-    assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(begin.diagnostics.route_policy, UiInputRoutePolicy::Direct);
-    assert_eq!(
-        begin.diagnostics.route_trace.direct_target,
-        Some(UiNodeId::new(2))
-    );
-
-    let over = surface
-        .dispatch_input_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            drag_drop_event(
-                UiDragDropInputEventKind::Over,
-                Some(session_id),
-                UiPoint::new(20.0, 60.0),
-            ),
-        )
-        .unwrap();
-
-    assert!(over.rejected_effects.is_empty());
-    assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(over.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
-    assert_eq!(over.diagnostics.route_target, Some(UiNodeId::new(3)));
-    assert_eq!(over.diagnostics.route_trace.target, Some(UiNodeId::new(3)));
-    assert_eq!(over.diagnostics.route_trace.direct_target, None);
-    assert_eq!(
-        over.diagnostics.route_trace.capture_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        over.diagnostics.route_trace.bubble_path,
-        vec![UiNodeId::new(3), UiNodeId::new(1)]
-    );
-    assert_eq!(
-        over.diagnostics.route_trace.preview_tunnel,
-        vec![UiNodeId::new(1), UiNodeId::new(3)]
-    );
-    assert_eq!(over.diagnostics.route_steps.len(), 3);
-    assert_eq!(
-        over.diagnostics.route_steps[0].phase,
-        UiDispatchPhase::PreviewTunnel
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[0].target,
-        Some(UiNodeId::new(1))
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[1].phase,
-        UiDispatchPhase::PreviewTunnel
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[1].target,
-        Some(UiNodeId::new(3))
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[2].phase,
-        UiDispatchPhase::Target
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[2].target,
-        Some(UiNodeId::new(3))
-    );
-    assert_eq!(
-        over.diagnostics.route_steps[2].handler,
-        Some(UiNodeId::new(3))
-    );
-
-    let dropped = surface
-        .dispatch_input_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            drag_drop_event(
-                UiDragDropInputEventKind::Drop,
-                Some(session_id),
-                UiPoint::new(20.0, 60.0),
-            ),
-        )
-        .unwrap();
-
-    assert!(dropped.rejected_effects.is_empty());
-    assert_eq!(dropped.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
-    assert_eq!(
-        dropped.diagnostics.route_trace.target,
-        Some(UiNodeId::new(3))
-    );
-    assert_eq!(
-        dropped.diagnostics.route_trace.capture_target,
-        Some(UiNodeId::new(2))
-    );
-
-    let ended = surface
-        .dispatch_input_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            drag_drop_event(
-                UiDragDropInputEventKind::End,
-                Some(session_id),
-                UiPoint::new(20.0, 60.0),
-            ),
-        )
-        .unwrap();
-
-    assert!(ended.rejected_effects.is_empty());
-    assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
-    assert_eq!(
-        ended.diagnostics.route_policy,
-        UiInputRoutePolicy::PointerCapture
-    );
-    assert_eq!(ended.diagnostics.route_trace.target, Some(UiNodeId::new(3)));
-    assert_eq!(
-        ended.diagnostics.route_trace.direct_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        ended.diagnostics.route_trace.capture_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(ended.diagnostics.route_steps.len(), 1);
-    assert_eq!(
-        ended.diagnostics.route_steps[0].phase,
-        UiDispatchPhase::Direct
-    );
-    assert_eq!(
-        ended.diagnostics.route_steps[0].target,
-        Some(UiNodeId::new(2))
-    );
-}
-
-#[test]
-fn popup_dispatch_reply_trace_includes_capture_and_updated_popup_stack() {
-    let mut surface = route_surface();
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
-
-    let result = surface.apply_dispatch_reply(
-        popup_event(UiPopupInputEventKind::OpenRequested, "menu.file"),
-        UiDispatchReply::handled()
-            .in_phase(UiDispatchPhase::DefaultAction)
-            .with_effect(UiDispatchEffect::Popup {
-                kind: UiPopupEffectKind::Open,
-                popup_id: "menu.file".to_string(),
-                owner: Some(UiNodeId::new(2)),
-                anchor: Some(UiPoint::new(8.0, 12.0)),
-            }),
-    );
-
-    assert!(result.rejected_effects.is_empty());
-    assert_eq!(
-        surface
-            .input
-            .popup_stack
-            .iter()
-            .map(|popup| popup.popup_id.as_str())
-            .collect::<Vec<_>>(),
-        vec!["menu.file"]
-    );
-    assert_eq!(
-        result.diagnostics.route_policy,
-        UiInputRoutePolicy::DefaultAction
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.direct_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.capture_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.popup_stack,
-        vec!["menu.file".to_string()]
-    );
-}
-
-#[test]
-fn popup_close_reply_uses_open_popup_owner_for_route_trace() {
-    let mut surface = route_surface();
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
-
-    surface.apply_dispatch_reply(
-        popup_event(UiPopupInputEventKind::OpenRequested, "menu.file"),
-        UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
-            kind: UiPopupEffectKind::Open,
-            popup_id: "menu.file".to_string(),
-            owner: Some(UiNodeId::new(2)),
-            anchor: Some(UiPoint::new(8.0, 12.0)),
-        }),
-    );
-
-    let result = surface.apply_dispatch_reply(
-        popup_event_without_owner(UiPopupInputEventKind::CloseRequested, "menu.file"),
-        UiDispatchReply::handled()
-            .in_phase(UiDispatchPhase::DefaultAction)
-            .with_effect(UiDispatchEffect::Popup {
-                kind: UiPopupEffectKind::Close,
-                popup_id: "menu.file".to_string(),
-                owner: None,
-                anchor: None,
-            }),
-    );
-
-    assert!(result.rejected_effects.is_empty());
-    assert!(surface.input.popup_stack.is_empty());
-    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
-    assert_eq!(
-        result.diagnostics.route_trace.target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.bubble_path,
-        vec![UiNodeId::new(2), UiNodeId::new(1)]
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.preview_tunnel,
-        vec![UiNodeId::new(1), UiNodeId::new(2)]
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.capture_target,
-        Some(UiNodeId::new(2))
-    );
-}
-
-#[test]
-fn tooltip_cancel_reply_uses_armed_tooltip_owner_for_route_trace() {
-    let mut surface = route_surface();
-
-    surface.apply_dispatch_reply(
-        tooltip_event(
-            UiTooltipTimerInputEventKind::Armed,
-            "status.hint",
-            Some(UiNodeId::new(2)),
-        ),
-        UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
-            kind: UiTooltipEffectKind::Arm,
-            tooltip_id: "status.hint".to_string(),
-            owner: Some(UiNodeId::new(2)),
-        }),
-    );
-
-    let result = surface.apply_dispatch_reply(
-        tooltip_event(UiTooltipTimerInputEventKind::Canceled, "status.hint", None),
-        UiDispatchReply::handled()
-            .in_phase(UiDispatchPhase::DefaultAction)
-            .with_effect(UiDispatchEffect::Tooltip {
-                kind: UiTooltipEffectKind::Cancel,
-                tooltip_id: "status.hint".to_string(),
-                owner: None,
-            }),
-    );
-
-    assert!(result.rejected_effects.is_empty());
-    assert_eq!(surface.input.tooltip, None);
-    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
-    assert_eq!(
-        result.diagnostics.route_trace.target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.bubble_path,
-        vec![UiNodeId::new(2), UiNodeId::new(1)]
-    );
-}
-
-#[test]
-fn tooltip_timer_elapsed_dispatch_reports_owner_default_action_route() {
-    let mut surface = route_surface();
-
-    let result = surface
-        .dispatch_input_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            tooltip_event(
-                UiTooltipTimerInputEventKind::Elapsed,
-                "status.hint",
-                Some(UiNodeId::new(2)),
-            ),
-        )
-        .unwrap();
-
-    assert!(result.rejected_effects.is_empty());
-    assert_eq!(
-        surface
-            .input
-            .tooltip
-            .as_ref()
-            .map(|tooltip| (tooltip.owner, tooltip.visible)),
-        Some((Some(UiNodeId::new(2)), true))
-    );
-    assert_eq!(result.host_requests.len(), 1);
-    assert!(matches!(
-        result.host_requests[0].request,
-        zircon_runtime_interface::ui::dispatch::UiDispatchHostRequestKind::Tooltip {
-            kind: UiTooltipEffectKind::Show,
-            ref tooltip_id,
-        } if tooltip_id == "status.hint"
-    ));
-    assert_eq!(
-        result.diagnostics.route_policy,
-        UiInputRoutePolicy::DefaultAction
-    );
-    assert_eq!(
-        result.diagnostics.handled_phase.as_deref(),
-        Some("tooltip.effect")
-    );
-    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
-    assert_eq!(
-        result.diagnostics.route_trace.target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.direct_target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_trace.bubble_path,
-        vec![UiNodeId::new(2), UiNodeId::new(1)]
-    );
-    assert_eq!(result.diagnostics.route_steps.len(), 1);
-    assert_eq!(
-        result.diagnostics.route_steps[0].phase,
-        UiDispatchPhase::DefaultAction
-    );
-    assert_eq!(
-        result.diagnostics.route_steps[0].target,
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        result.diagnostics.route_steps[0].disposition,
-        UiDispatchDisposition::Handled
-    );
-    assert_eq!(result.diagnostics.route_steps[0].effect_count, 1);
-}
-
-#[test]
 fn accessibility_activate_dispatch_reports_owner_default_action_route_steps() {
     let mut surface = route_surface();
 
@@ -1627,6 +1373,14 @@ fn navigation_event(kind: UiNavigationEventKind) -> UiInputEvent {
     UiInputEvent::Navigation(UiNavigationInputEvent {
         metadata: input_metadata(),
         kind,
+    })
+}
+
+fn raw_mouse_motion_event(delta_x: f32, delta_y: f32) -> UiInputEvent {
+    UiInputEvent::MouseMotion(UiMouseMotionInputEvent {
+        metadata: input_metadata(),
+        delta_x,
+        delta_y,
     })
 }
 

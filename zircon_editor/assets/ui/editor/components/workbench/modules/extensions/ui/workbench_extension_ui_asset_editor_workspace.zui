@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension UI Asset Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionUiAssetEditorWorkspace]
+root = "ui_asset_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.ui_asset_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_rail_gap" }, { node = "ui_asset_editor_left" }, { node = "ui_asset_editor_center" }, { node = "ui_asset_editor_right" }]
+
+[nodes.ui_asset_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionUiAssetEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_asset_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_title" }, { node = "ui_asset_editor_hierarchy_tab" }, { node = "ui_asset_editor_states_tab" }, { node = "ui_asset_editor_bindings_tab" }, { node = "ui_asset_editor_inventory_row" }, { node = "ui_asset_editor_panel_root_row" }, { node = "ui_asset_editor_equip_button_row" }]
+
+[nodes.ui_asset_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiAssetEditorTitle"
+props = { text = "UI Asset Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.ui_asset_editor_hierarchy_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiAssetEditorHierarchyTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Hierarchy", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorHierarchyTab", event = "Click", route = "workbench.extension.ui_asset_editor.hierarchy" }]
+
+[nodes.ui_asset_editor_states_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiAssetEditorStatesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "States", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorStatesTab", event = "Click", route = "workbench.extension.ui_asset_editor.states" }]
+
+[nodes.ui_asset_editor_bindings_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionUiAssetEditorBindingsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Bindings", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorBindingsTab", event = "Click", route = "workbench.extension.ui_asset_editor.bindings" }]
+
+[nodes.ui_asset_editor_inventory_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiAssetEditorInventoryRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "WBP_Inventory", icon = "image", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorInventoryRow", event = "Click", route = "workbench.extension.ui_asset_editor.asset.inventory" }]
+
+[nodes.ui_asset_editor_panel_root_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiAssetEditorPanelRootRow"
+classes = ["workbench-list-row"]
+props = { text = "Panel_Root", icon = "layout", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorPanelRootRow", event = "Click", route = "workbench.extension.ui_asset_editor.asset.panel_root" }]
+
+[nodes.ui_asset_editor_equip_button_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionUiAssetEditorEquipButtonRow"
+classes = ["workbench-list-row"]
+props = { text = "Button_Equip", icon = "button", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorEquipButtonRow", event = "Click", route = "workbench.extension.ui_asset_editor.asset.equip_button" }]
+
+[nodes.ui_asset_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_center_header" }, { node = "ui_asset_editor_table" }, { node = "ui_asset_editor_output" }]
+
+[nodes.ui_asset_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "ui_asset_editor_center_title" }, { node = "ui_asset_editor_header_fill" }, { node = "ui_asset_editor_preview_button" }, { node = "ui_asset_editor_validate_button" }]
+
+[nodes.ui_asset_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiAssetEditorCenterTitle"
+props = { text = "UI Asset Layout Map" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_asset_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionUiAssetEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.ui_asset_editor_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionUiAssetEditorPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorPreview", event = "Click", route = "workbench.extension.ui_asset_editor.preview" }]
+
+[nodes.ui_asset_editor_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionUiAssetEditorValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorValidate", event = "Click", route = "workbench.extension.ui_asset_editor.validate" }]
+
+[nodes.ui_asset_editor_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_root_panel_row" }, { node = "ui_asset_editor_inventory_grid_row" }, { node = "ui_asset_editor_selected_button_row" }, { node = "ui_asset_editor_binding_row" }]
+
+[nodes.ui_asset_editor_root_panel_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiAssetEditorRootPanelRow"
+classes = ["workbench-table-row"]
+props = { text = "Root Panel", value_text = "Container   desktop   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorRootPanelRow", event = "Click", route = "workbench.extension.ui_asset_editor.row.root_panel" }]
+
+[nodes.ui_asset_editor_inventory_grid_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiAssetEditorInventoryGridRow"
+classes = ["workbench-table-row"]
+props = { text = "Inventory Grid", value_text = "List   responsive   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorInventoryGridRow", event = "Click", route = "workbench.extension.ui_asset_editor.row.inventory_grid" }]
+
+[nodes.ui_asset_editor_selected_button_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiAssetEditorSelectedButtonRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Equip Button", value_text = "Selected   hover state   bound" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorSelectedButtonRow", event = "Click", route = "workbench.extension.ui_asset_editor.row.selected_button" }]
+
+[nodes.ui_asset_editor_binding_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiAssetEditorBindingRow"
+classes = ["workbench-table-row"]
+props = { text = "Binding", value_text = "Inventory.SelectedItem   OK" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorBindingRow", event = "Click", route = "workbench.extension.ui_asset_editor.row.binding" }]
+
+[nodes.ui_asset_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionUiAssetEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "UI Asset", value_text = "WBP_Inventory   42 widgets   3 issues" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/UiAssetEditorOutput", event = "Click", route = "workbench.extension.ui_asset_editor.output" }]
+
+[nodes.ui_asset_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionUiAssetEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ui_asset_editor_details_title" }, { node = "ui_asset_editor_widget_dropdown" }, { node = "ui_asset_editor_breakpoint_dropdown" }, { node = "ui_asset_editor_theme_field" }]
+
+[nodes.ui_asset_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionUiAssetEditorDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.ui_asset_editor_widget_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionUiAssetEditorWidgetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Button_Equip", value = "Button_Equip", options = ["Panel_Root", "Inventory_Grid", "Button_Equip"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiAssetEditorWidgetEdit", event = "Change", route = "workbench.extension.ui_asset_editor.widget.edit" },
+  { id = "WorkbenchExtension/UiAssetEditorWidgetCommit", event = "Submit", route = "workbench.extension.ui_asset_editor.widget.commit" },
+]
+
+[nodes.ui_asset_editor_breakpoint_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionUiAssetEditorBreakpointDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Desktop", value = "Desktop", options = ["Desktop", "Tablet", "Compact"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiAssetEditorBreakpointEdit", event = "Change", route = "workbench.extension.ui_asset_editor.breakpoint.edit" },
+  { id = "WorkbenchExtension/UiAssetEditorBreakpointCommit", event = "Submit", route = "workbench.extension.ui_asset_editor.breakpoint.commit" },
+]
+
+[nodes.ui_asset_editor_theme_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionUiAssetEditorThemeField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Workbench Dark" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/UiAssetEditorThemeEdit", event = "Change", route = "workbench.extension.ui_asset_editor.theme.edit" },
+  { id = "WorkbenchExtension/UiAssetEditorThemeCommit", event = "Submit", route = "workbench.extension.ui_asset_editor.theme.commit" },
+]

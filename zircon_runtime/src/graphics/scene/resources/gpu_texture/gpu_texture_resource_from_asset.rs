@@ -3,7 +3,8 @@ use crate::asset::assets::{
     TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
-    RenderImageColorSpace, RenderImageDimension, RenderSamplerAddressMode, RenderSamplerFilter,
+    RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageUsage,
+    RenderSamplerAddressMode, RenderSamplerFilter,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
@@ -53,6 +54,7 @@ impl GpuTextureResource {
         let descriptor = payload.render_image_descriptor();
         let mip_level_count = descriptor.mip_count.max(1);
         let layer_count = descriptor.depth_or_array_layers.max(1);
+        let format = rgba8_wgpu_format(&plan.format);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-texture"),
             size: wgpu::Extent3d {
@@ -63,8 +65,8 @@ impl GpuTextureResource {
             mip_level_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: rgba8_wgpu_format(&plan.format),
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            format,
+            usage: wgpu_texture_usages(&descriptor, format, true),
             view_formats: &[],
         });
         for upload in rgba8_mip_uploads(payload.width, payload.height, mip_level_count, layer_count)
@@ -195,7 +197,7 @@ impl GpuTextureResource {
             sample_count: 1,
             dimension: wgpu_dimension(descriptor.dimension),
             format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu_texture_usages(&descriptor, format, true),
             view_formats: &[],
         });
         queue.write_texture(
@@ -237,6 +239,53 @@ impl GpuTextureResource {
             bind_group,
         })
     }
+}
+
+fn wgpu_texture_usages(
+    descriptor: &RenderImageDescriptor,
+    format: wgpu::TextureFormat,
+    requires_upload_dst: bool,
+) -> wgpu::TextureUsages {
+    let mut usages = wgpu::TextureUsages::empty();
+    for usage in &descriptor.usage {
+        match usage {
+            RenderImageUsage::Sampled => usages |= wgpu::TextureUsages::TEXTURE_BINDING,
+            RenderImageUsage::Storage if supports_storage_binding_usage(format) => {
+                usages |= wgpu::TextureUsages::STORAGE_BINDING;
+            }
+            RenderImageUsage::Storage => {}
+            RenderImageUsage::RenderTarget if supports_render_attachment_usage(format) => {
+                usages |= wgpu::TextureUsages::RENDER_ATTACHMENT;
+            }
+            RenderImageUsage::RenderTarget => {}
+            RenderImageUsage::CopySrc => usages |= wgpu::TextureUsages::COPY_SRC,
+            RenderImageUsage::CopyDst => usages |= wgpu::TextureUsages::COPY_DST,
+        }
+    }
+    if requires_upload_dst {
+        usages |= wgpu::TextureUsages::COPY_DST;
+    }
+    usages
+}
+
+fn supports_render_attachment_usage(format: wgpu::TextureFormat) -> bool {
+    matches!(
+        format,
+        wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb
+    )
+}
+
+fn supports_storage_binding_usage(format: wgpu::TextureFormat) -> bool {
+    matches!(
+        format,
+        wgpu::TextureFormat::R8Unorm
+            | wgpu::TextureFormat::R16Float
+            | wgpu::TextureFormat::R32Float
+            | wgpu::TextureFormat::Rg16Float
+            | wgpu::TextureFormat::Rgba8Unorm
+            | wgpu::TextureFormat::Rgba16Float
+            | wgpu::TextureFormat::Rgba32Float
+    )
 }
 
 pub(crate) fn texture_upload_support_from_device(device: &wgpu::Device) -> TextureUploadSupport {
@@ -572,7 +621,8 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+        RenderImageAssetUsage, RenderImageFallbackKind, RenderSamplerAddressMode,
+        RenderSamplerDescriptor, RenderSamplerFilter,
     };
 
     #[test]
@@ -675,6 +725,66 @@ mod tests {
     }
 
     #[test]
+    fn wgpu_texture_usages_maps_render_image_usage_for_asset_residency() {
+        let descriptor = test_descriptor(vec![
+            RenderImageUsage::RenderTarget,
+            RenderImageUsage::Sampled,
+            RenderImageUsage::Storage,
+            RenderImageUsage::CopySrc,
+        ]);
+
+        let usages = wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8Unorm, true);
+
+        assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
+        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+        assert!(usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
+        assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
+        assert!(
+            usages.contains(wgpu::TextureUsages::COPY_DST),
+            "asset residency uploads CPU/container payload bytes even when the asset metadata does not expose copy-dst"
+        );
+    }
+
+    #[test]
+    fn wgpu_texture_usages_does_not_add_upload_dst_when_not_required() {
+        let descriptor = test_descriptor(vec![RenderImageUsage::RenderTarget]);
+
+        let usages = wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8Unorm, false);
+
+        assert_eq!(usages, wgpu::TextureUsages::RENDER_ATTACHMENT);
+    }
+
+    #[test]
+    fn wgpu_texture_usages_skips_storage_for_non_storage_formats() {
+        let descriptor = test_descriptor(vec![
+            RenderImageUsage::Sampled,
+            RenderImageUsage::Storage,
+            RenderImageUsage::CopyDst,
+        ]);
+
+        let usages = wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8UnormSrgb, false);
+
+        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+        assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
+        assert!(!usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
+    }
+
+    #[test]
+    fn wgpu_texture_usages_skips_render_attachment_for_non_renderable_formats() {
+        let descriptor = test_descriptor(vec![
+            RenderImageUsage::RenderTarget,
+            RenderImageUsage::Sampled,
+            RenderImageUsage::CopyDst,
+        ]);
+
+        let usages = wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Bc1RgbaUnorm, false);
+
+        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+        assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
+        assert!(!usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
+    }
+
+    #[test]
     fn sampler_descriptor_maps_texture_asset_sampler_settings() {
         let descriptor = RenderSamplerDescriptor {
             address_mode_u: RenderSamplerAddressMode::Repeat,
@@ -693,5 +803,25 @@ mod tests {
         assert_eq!(sampler.mag_filter, wgpu::FilterMode::Nearest);
         assert_eq!(sampler.min_filter, wgpu::FilterMode::Linear);
         assert_eq!(sampler.mipmap_filter, wgpu::MipmapFilterMode::Nearest);
+    }
+
+    fn test_descriptor(usage: Vec<RenderImageUsage>) -> RenderImageDescriptor {
+        RenderImageDescriptor {
+            width: 4,
+            height: 4,
+            depth_or_array_layers: 1,
+            dimension: RenderImageDimension::D2,
+            format: RGBA8_UNORM_FORMAT.to_string(),
+            color_space: RenderImageColorSpace::Linear,
+            sampler: RenderSamplerDescriptor::default(),
+            usage,
+            asset_usage: vec![
+                RenderImageAssetUsage::MainWorld,
+                RenderImageAssetUsage::RenderWorld,
+            ],
+            mip_count: 1,
+            array_layer_count: 1,
+            fallback: RenderImageFallbackKind::MissingImage,
+        }
     }
 }

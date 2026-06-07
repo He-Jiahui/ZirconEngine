@@ -1,0 +1,12 @@
+{
+  "name": "zircon-workbench-component-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./scripts/serve-static.mjs",
+    "dev": "node ./scripts/serve-static.mjs",
+    "serve": "node ./scripts/serve-static.mjs",
+    "check": "node verify-interaction-contract.mjs && node verify-action-naming-contract.mjs && node validate-control-routes.mjs && node validate-responsive.mjs"
+  }
+}

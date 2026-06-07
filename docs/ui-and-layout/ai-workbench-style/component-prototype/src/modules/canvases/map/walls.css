@@ -1,0 +1,33 @@
+.zr-map-wall {
+  position: absolute;
+  border: 1px solid rgba(152, 166, 171, 0.18);
+  background: linear-gradient(180deg, rgba(95, 101, 101, 0.28), rgba(45, 49, 50, 0.32));
+}
+
+.zr-map-wall.is-1 {
+  left: 6%;
+  top: 10%;
+  width: 24%;
+  height: 12%;
+}
+
+.zr-map-wall.is-2 {
+  left: 18%;
+  bottom: 8%;
+  width: 28%;
+  height: 14%;
+}
+
+.zr-map-wall.is-3 {
+  right: 14%;
+  top: 12%;
+  width: 18%;
+  height: 38%;
+}
+
+.zr-map-wall.is-4 {
+  right: 30%;
+  bottom: 18%;
+  width: 12%;
+  height: 36%;
+}

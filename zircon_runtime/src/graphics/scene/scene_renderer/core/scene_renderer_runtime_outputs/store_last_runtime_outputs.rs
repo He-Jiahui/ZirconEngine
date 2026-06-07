@@ -12,6 +12,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         render_graph_execution,
         prepared_mesh_queue_stats,
         prepared_sprite_queue_stats,
+        output_target_graph_import_report,
     ) = runtime_outputs.into_parts();
     renderer.last_render_graph_execution = render_graph_execution;
     renderer.last_prepared_mesh_queue_stats = prepared_mesh_queue_stats;
@@ -20,6 +21,11 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
         &renderer.backend.device,
         &mut renderer.advanced_plugin_outputs,
     )?;
+    if let Some(report) = output_target_graph_import_report {
+        renderer
+            .streamer
+            .set_last_output_target_graph_import_report(report);
+    }
 
     Ok(())
 }

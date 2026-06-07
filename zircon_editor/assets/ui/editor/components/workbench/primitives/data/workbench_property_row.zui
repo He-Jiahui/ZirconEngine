@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui"
+version = 2
+display_name = "Workbench Property Row"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchPropertyRow]
+root = "root"
+default_classes = ["workbench-property-row", "workbench-primitive"]
+
+[nodes.root]
+component = "PropertyRow"
+control_id = "WorkbenchPropertyRowRoot"
+classes = ["workbench-property-row"]
+props = { text = "Property", value = "Value" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }

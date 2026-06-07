@@ -201,7 +201,7 @@ M4 menu overflow keeps this same pointer boundary. `menu_pointer/popup_layout.rs
 M3.2 now has focused interaction gates:
 
 - `native_host_generic_template_text_field_routes_commit_binding_on_enter` proves text input keeps edit binding on text insertion and switches to the commit binding on Enter.
-- `shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbench_model` builds a nested `MenuItemModel::branch`, flattens the leaf through the shared menu pointer layout, clicks the leaf row, and verifies the EditorOperation runtime receives `Weather.CloudLayer.Refresh`.
+- `shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbench_model` builds a nested `MenuItemModel::branch`, flattens the leaf through the shared menu pointer layout, clicks the leaf row, and verifies the EditorOperation runtime receives `weather.cloud_layer.refresh`.
 - `shared_menu_pointer_bridge_clamps_popup_hit_frames_to_tiny_shell` proves the shared popup hit surface caps width and height to a tiny shell instead of leaving hit frames outside the host bounds.
 - `shared_menu_pointer_bridge_routes_multi_column_popup_items_after_right_edge_clamp` opens a small-shell right-edge popup in `MenuOverflowMode::MultiColumn`, clicks the first row in the second column, and verifies the shared pointer route keeps absolute item index `9` after horizontal clamp.
 - `builtin_host_activity_toggle_*` covers drawer close and reopen through the template bridge. These tests use global harness state and must be batched with `--test-threads=1`.

@@ -60,8 +60,10 @@ pub use scene::{
 };
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
 pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
-pub(crate) use types::ViewportRenderFrame;
 pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
+pub(crate) use types::{
+    ViewportMotionVectorObjectHistory, ViewportRenderFrame, ViewportRenderOutputTarget,
+};
 pub use virtual_geometry_runtime_provider::{
     VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,

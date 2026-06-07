@@ -9,8 +9,15 @@ use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, clustered_lighting_executor,
     color_grading_postprocess_executor, depth_of_field_prepare_executor,
     effect_stack_postprocess_executor, final_composite_postprocess_executor,
-    fxaa_postprocess_executor, history_resolve_postprocess_executor, post_stack_executor,
-    ssao_executor,
+    fxaa_postprocess_executor, history_resolve_postprocess_executor, motion_vector_camera_executor,
+    motion_vector_clear_executor, motion_vector_mesh_object_executor,
+    motion_vector_neighbor_max_executor, motion_vector_tile_max_coarse_executor,
+    motion_vector_tile_max_executor, post_stack_executor,
+    screen_space_reflection_depth_pyramid_coarse_executor,
+    screen_space_reflection_depth_pyramid_executor,
+    screen_space_reflection_reflection_pyramid_coarse_executor,
+    screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
+    screen_space_reflection_specular_occlusion_executor, ssao_executor,
 };
 use super::builtin_scene_executors::{
     deferred_gbuffer_executor, deferred_lighting_executor, depth_prepass_executor, mesh_executor,
@@ -82,8 +89,56 @@ impl RenderPassExecutorRegistry {
         );
         registry.register("post.bloom-extract".into(), bloom_extract_executor);
         registry.register(
+            "post.motion-vector-clear".into(),
+            motion_vector_clear_executor,
+        );
+        registry.register(
+            "post.motion-vector-camera".into(),
+            motion_vector_camera_executor,
+        );
+        registry.register(
+            "post.motion-vector-object".into(),
+            motion_vector_mesh_object_executor,
+        );
+        registry.register(
+            "post.motion-vector-tile-max".into(),
+            motion_vector_tile_max_executor,
+        );
+        registry.register(
+            "post.motion-vector-tile-max-coarse".into(),
+            motion_vector_tile_max_coarse_executor,
+        );
+        registry.register(
+            "post.motion-vector-neighbor-max".into(),
+            motion_vector_neighbor_max_executor,
+        );
+        registry.register(
             "post.depth-of-field-prepare".into(),
             depth_of_field_prepare_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-depth-pyramid".into(),
+            screen_space_reflection_depth_pyramid_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-depth-pyramid-coarse".into(),
+            screen_space_reflection_depth_pyramid_coarse_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-reflection-pyramid".into(),
+            screen_space_reflection_reflection_pyramid_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-reflection-pyramid-coarse".into(),
+            screen_space_reflection_reflection_pyramid_coarse_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-resolve".into(),
+            screen_space_reflection_resolve_executor,
+        );
+        registry.register(
+            "post.screen-space-reflection-specular-occlusion".into(),
+            screen_space_reflection_specular_occlusion_executor,
         );
         registry.register("post.stack".into(), post_stack_executor);
         registry.register("ui.screen-space".into(), screen_space_ui_executor);

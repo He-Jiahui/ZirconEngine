@@ -32,6 +32,7 @@ mod schedule_conflict_graph;
 mod schedule_error;
 mod schedule_parallel_executor;
 mod schedule_runner;
+mod schedule_stage_plan;
 mod stable_entity_location;
 mod storage;
 mod storage_type;
@@ -62,9 +63,9 @@ pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
     QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
-    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter, QueryManyIter,
-    QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError,
-    QueryState, UniqueEntityArray, With, Without,
+    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
+    QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
+    QueryMutIter, QuerySingleError, QueryState, UniqueEntityArray, With, Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
@@ -99,4 +100,5 @@ pub use system_stage::SystemStage;
 
 pub(crate) use query::single_from_iter;
 pub(crate) use schedule_runner::SceneScheduleRunner;
-pub(crate) use system::ScheduledSceneStep;
+pub(crate) use schedule_stage_plan::SceneScheduleStagePlan;
+pub(crate) use system::{ScheduledSceneStep, ScheduledSceneStepRef};

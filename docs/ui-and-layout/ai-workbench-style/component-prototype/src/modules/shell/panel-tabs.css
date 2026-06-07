@@ -1,0 +1,29 @@
+.zr-module-right .zr-panel-view {
+  min-height: 0;
+  overflow: auto;
+}
+
+.zr-module-right .zr-module-panel-tabs {
+  overflow: auto hidden;
+}
+
+.zr-module-right .zr-module-panel-tabs .zr-panel-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 10px;
+}
+
+.zr-module-panel-tabs {
+  height: 42px;
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  background: linear-gradient(180deg, #171d20, #121619);
+}
+
+.zr-module-panel-tabs .zr-panel-tab {
+  height: 42px;
+  min-width: 112px;
+  padding: 0 16px;
+  border-right: 1px solid #252d32;
+}

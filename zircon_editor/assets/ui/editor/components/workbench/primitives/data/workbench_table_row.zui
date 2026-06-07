@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+version = 2
+display_name = "Workbench Table Row"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchTableRow]
+root = "root"
+default_classes = ["workbench-table-row", "workbench-primitive"]
+
+[nodes.root]
+component = "Table"
+control_id = "WorkbenchTableRowRoot"
+classes = ["workbench-table-row"]
+props = { text = "Item_01        Mesh        2.4 MB        2m ago", value = "row", options = ["Item_01", "Mesh", "2.4 MB", "2m ago"], selected = false, focused = false, hovered = false, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 28.0, layout_first_cell_offset_x = 4.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }

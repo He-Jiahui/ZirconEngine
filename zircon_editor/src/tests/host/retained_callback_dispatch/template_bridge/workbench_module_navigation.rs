@@ -11,80 +11,80 @@ const DECLARED_WORKBENCH_MODULE_EVENT_COUNT: usize = 188;
 
 const WORKBENCH_MODULE_EVENT_SOURCES: &[(&str, &str)] = &[
     (
-        "workbench_top_toolbar.zui",
+        "workbench/shell/workbench_top_toolbar.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_top_toolbar.zui"
+            "/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui"
         )),
     ),
     (
-        "workbench_effect_workspace.zui",
+        "workbench/modules/core/gameplay/workbench_effect_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_effect_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui"
         )),
     ),
     (
-        "workbench_material_workspace.zui",
+        "workbench/modules/core/rendering/workbench_material_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_material_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui"
         )),
     ),
     (
-        "workbench_behavior_workspace.zui",
+        "workbench/modules/core/ai/workbench_behavior_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_behavior_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui"
         )),
     ),
     (
-        "workbench_assets_workspace.zui",
+        "workbench/modules/core/assets/workbench_assets_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_assets_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui"
         )),
     ),
     (
-        "workbench_vfx_workspace.zui",
+        "workbench/modules/core/rendering/workbench_vfx_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_vfx_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui"
         )),
     ),
     (
-        "workbench_ability_workspace.zui",
+        "workbench/modules/core/gameplay/workbench_ability_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_ability_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
         )),
     ),
     (
-        "workbench_tags_workspace.zui",
+        "workbench/modules/core/gameplay/workbench_tags_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_tags_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui"
         )),
     ),
     (
-        "workbench_perception_workspace.zui",
+        "workbench/modules/core/ai/workbench_perception_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_perception_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui"
         )),
     ),
     (
-        "workbench_render_workspace.zui",
+        "workbench/modules/core/rendering/workbench_render_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_render_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui"
         )),
     ),
     (
-        "workbench_hud_workspace.zui",
+        "workbench/modules/core/ui/workbench_hud_workspace.zui",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/workbench_hud_workspace.zui"
+            "/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"
         )),
     ),
 ];

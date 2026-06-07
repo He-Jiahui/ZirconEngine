@@ -1,4 +1,4 @@
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, StretchMode, UiSize},

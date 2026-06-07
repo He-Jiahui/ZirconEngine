@@ -8,8 +8,9 @@ use crate::core::math::{Real, Vec3};
 use super::{
     RenderBlurSettings, RenderChromaticAberrationSettings, RenderColorLookupSettings,
     RenderDepthOfFieldSettings, RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
-    RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
-    RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
+    RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
+    RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
+    RenderVignetteSettings,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -259,6 +260,14 @@ fn blend_effect_stack(
         blur: RenderBlurSettings {
             radius: lerp(from.blur.radius, to.blur.radius, weight),
         },
+        motion_blur: RenderMotionBlurSettings {
+            shutter_angle: lerp(
+                from.motion_blur.shutter_angle,
+                to.motion_blur.shutter_angle,
+                weight,
+            ),
+            samples: blend_discrete(from.motion_blur.samples, to.motion_blur.samples, weight),
+        },
         depth_of_field: RenderDepthOfFieldSettings {
             focus_distance: lerp(
                 from.depth_of_field.focus_distance,
@@ -315,6 +324,16 @@ fn blend_effect_stack(
             max_steps: blend_discrete(
                 from.screen_space_reflection.max_steps,
                 to.screen_space_reflection.max_steps,
+                weight,
+            ),
+            temporal_blend_factor: lerp(
+                from.screen_space_reflection.temporal_blend_factor,
+                to.screen_space_reflection.temporal_blend_factor,
+                weight,
+            ),
+            roughness_mip_bias: lerp(
+                from.screen_space_reflection.roughness_mip_bias,
+                to.screen_space_reflection.roughness_mip_bias,
                 weight,
             ),
         },
@@ -382,10 +401,11 @@ fn lerp_vec3(from: Vec3, to: Vec3, weight: Real) -> Vec3 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderBloomSettings, RenderColorGradingSettings, RenderDepthOfFieldSettings,
-        RenderDitherSettings, RenderLayerSet, RenderPostProcessEffectStackSettings,
-        RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
-        RenderVignetteSettings,
+        RenderBloomSettings, RenderBlurSettings, RenderChromaticAberrationSettings,
+        RenderColorGradingSettings, RenderDepthOfFieldSettings, RenderDitherSettings,
+        RenderFilmGrainSettings, RenderFogSettings, RenderLayerSet, RenderMotionBlurSettings,
+        RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
+        RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
     };
     use crate::core::math::{Real, Vec3};
 
@@ -475,6 +495,96 @@ mod tests {
     }
 
     #[test]
+    fn volume_stack_ignores_inactive_and_zero_influence_volumes() {
+        let mut inactive = RenderPostProcessVolume::global(
+            0.0,
+            RenderPostProcessVolumeProfile::default().with_bloom(RenderBloomSettings {
+                intensity: 1.0,
+                ..RenderBloomSettings::default()
+            }),
+        );
+        inactive.active = false;
+        let zero_weight = RenderPostProcessVolume::global(
+            1.0,
+            RenderPostProcessVolumeProfile::default().with_color_grading(
+                RenderColorGradingSettings {
+                    exposure: 2.0,
+                    ..RenderColorGradingSettings::default()
+                },
+            ),
+        )
+        .with_weight(0.0);
+        let zero_local_blend = RenderPostProcessVolume::local(
+            2.0,
+            1.0,
+            0.0,
+            RenderPostProcessVolumeProfile::default().with_effect_stack(
+                RenderPostProcessEffectStackSettings {
+                    blur: RenderBlurSettings { radius: 8.0 },
+                    ..RenderPostProcessEffectStackSettings::default()
+                },
+            ),
+        );
+
+        let resolved =
+            RenderPostProcessVolumeStack::from_volumes([inactive, zero_weight, zero_local_blend])
+                .resolve(
+                    &RenderLayerSet::default(),
+                    RenderBloomSettings::default(),
+                    RenderColorGradingSettings::default(),
+                    RenderPostProcessEffectStackSettings::default(),
+                );
+
+        assert_eq!(resolved.bloom, RenderBloomSettings::default());
+        assert_eq!(
+            resolved.color_grading,
+            RenderColorGradingSettings::default()
+        );
+        assert_eq!(
+            resolved.effect_stack,
+            RenderPostProcessEffectStackSettings::default()
+        );
+    }
+
+    #[test]
+    fn volume_stack_saturates_weight_and_local_blend() {
+        let over_weighted = RenderPostProcessVolume::global(
+            0.0,
+            RenderPostProcessVolumeProfile::default().with_bloom(RenderBloomSettings {
+                intensity: 1.0,
+                radius: 1.0,
+                ..RenderBloomSettings::default()
+            }),
+        )
+        .with_weight(2.0);
+        let over_local_blend = RenderPostProcessVolume::local(
+            1.0,
+            0.5,
+            2.0,
+            RenderPostProcessVolumeProfile::default().with_color_grading(
+                RenderColorGradingSettings {
+                    exposure: 3.0,
+                    tint: Vec3::new(0.0, 0.5, 1.0),
+                    ..RenderColorGradingSettings::default()
+                },
+            ),
+        );
+
+        let resolved =
+            RenderPostProcessVolumeStack::from_volumes([over_weighted, over_local_blend]).resolve(
+                &RenderLayerSet::default(),
+                RenderBloomSettings::default(),
+                RenderColorGradingSettings::default(),
+                RenderPostProcessEffectStackSettings::default(),
+            );
+
+        assert_near(resolved.bloom.intensity, 1.0);
+        assert_near(resolved.bloom.radius, 1.0);
+        assert_near(resolved.color_grading.exposure, 1.5);
+        assert_eq!(resolved.color_grading.tint, Vec3::new(0.5, 0.75, 1.0));
+    }
+
+    #[test]
     fn volume_stack_resolves_extended_effect_stack_settings() {
         let resolved =
             RenderPostProcessVolumeStack::from_volumes([RenderPostProcessVolume::global(
@@ -495,14 +605,36 @@ mod tests {
                             bokeh_rotation_radians: 0.25,
                             ..Default::default()
                         },
+                        motion_blur: RenderMotionBlurSettings {
+                            shutter_angle: 0.5,
+                            samples: 3,
+                        },
                         screen_space_reflection: RenderScreenSpaceReflectionSettings {
                             intensity: 0.6,
                             max_steps: 48,
                             ..Default::default()
                         },
+                        vignette: RenderVignetteSettings {
+                            intensity: 0.3,
+                            smoothness: 0.7,
+                            roundness: 0.8,
+                        },
+                        grain: RenderFilmGrainSettings {
+                            intensity: 0.12,
+                            response: 0.6,
+                        },
                         dither: RenderDitherSettings {
                             intensity: 0.2,
                             scale: 2.0,
+                        },
+                        chromatic_aberration: RenderChromaticAberrationSettings {
+                            intensity: 0.18,
+                            sample_spread: 1.5,
+                        },
+                        fog: RenderFogSettings {
+                            density: 0.25,
+                            height_falloff: 0.4,
+                            color: Vec3::new(0.2, 0.3, 0.4),
                         },
                         ..Default::default()
                     },
@@ -528,8 +660,24 @@ mod tests {
             resolved.effect_stack.depth_of_field.bokeh_rotation_radians,
             0.25,
         );
+        assert_near(resolved.effect_stack.motion_blur.shutter_angle, 0.5);
+        assert_eq!(resolved.effect_stack.motion_blur.samples, 3);
         assert_eq!(resolved.effect_stack.screen_space_reflection.max_steps, 48);
+        assert_near(resolved.effect_stack.vignette.intensity, 0.3);
+        assert_near(resolved.effect_stack.vignette.smoothness, 0.7);
+        assert_near(resolved.effect_stack.vignette.roundness, 0.8);
+        assert_near(resolved.effect_stack.grain.intensity, 0.12);
+        assert_near(resolved.effect_stack.grain.response, 0.6);
         assert_near(resolved.effect_stack.dither.intensity, 0.2);
+        assert_near(resolved.effect_stack.dither.scale, 2.0);
+        assert_near(resolved.effect_stack.chromatic_aberration.intensity, 0.18);
+        assert_near(
+            resolved.effect_stack.chromatic_aberration.sample_spread,
+            1.5,
+        );
+        assert_near(resolved.effect_stack.fog.density, 0.25);
+        assert_near(resolved.effect_stack.fog.height_falloff, 0.4);
+        assert_eq!(resolved.effect_stack.fog.color, Vec3::new(0.2, 0.3, 0.4));
     }
 
     fn assert_near(actual: Real, expected: Real) {

@@ -317,7 +317,7 @@ fn editor_mui_web_parity_registers_local_material_icon_resolver() {
 fn mui_web_parity_tracks_explicit_retained_mui_x_targets() {
     for key in EXPECTED_RETAINED_MUI_X_TARGETS {
         let prototype = editor_path(format!(
-            "assets/ui/editor/material_components/material_{key}.zui"
+            "assets/ui/editor/material_components/mui_x/material_{key}.zui"
         ));
         assert!(
             prototype.exists(),

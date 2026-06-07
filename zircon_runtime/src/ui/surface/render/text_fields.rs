@@ -1,13 +1,15 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
     widget::UiWidgetBehavior,
 };
 
+use super::painter_state::UiRenderPainterStateSource;
 use crate::ui::text::layout_text;
 
 const DEFAULT_PADDING_X: f32 = 10.0;
@@ -35,6 +37,7 @@ pub(super) fn text_field_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -50,7 +53,7 @@ pub(super) fn text_field_render_commands(
         return Vec::new();
     }
 
-    let state = TextFieldRenderState::resolve(metadata, state_flags);
+    let state = TextFieldRenderState::resolve(metadata, state_flags, component_state);
     let mut commands = vec![surface_command(
         node_id, metadata, &state, frame, clip_frame, z_index, opacity,
     )];
@@ -78,23 +81,14 @@ struct TextFieldRenderState {
 }
 
 impl TextFieldRenderState {
-    fn resolve(metadata: &UiTemplateNodeMetadata, state_flags: &UiStateFlags) -> Self {
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            selected: bool_attribute(metadata, "selected").unwrap_or(false),
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-            ..UiPainterState::normal()
-        };
+    fn resolve(
+        metadata: &UiTemplateNodeMetadata,
+        state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
+    ) -> Self {
+        let painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
         let family = UiPainterFamily::TextField;
         Self {
             family,
@@ -298,10 +292,6 @@ fn corner_radius(metadata: &UiTemplateNodeMetadata) -> f32 {
         .or_else(|| number_attribute(metadata, "radius"))
         .unwrap_or(4.0)
         .max(0.0)
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
-    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

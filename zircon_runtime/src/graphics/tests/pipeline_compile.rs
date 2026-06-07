@@ -5,9 +5,6 @@ use crate::core::framework::render::{
     ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
-use crate::graphics::tests::plugin_render_feature_fixtures::{
-    hybrid_gi_render_feature_descriptor, virtual_geometry_render_feature_descriptor,
-};
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
     RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
@@ -21,47 +18,6 @@ use crate::{
     RenderFeatureResourceWriteMode, RenderPassStage, RenderPipelineAsset,
     RenderPipelineCompileOptions, RendererFeatureAsset,
 };
-
-const ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(
-    BuiltinRenderFeature,
-    &str,
-    RenderFeatureCapabilityRequirement,
-)] = &[(
-    BuiltinRenderFeature::SparseTexture,
-    "sparse_texture",
-    RenderFeatureCapabilityRequirement::SparseTexture,
-)];
-
-const ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(BuiltinRenderFeature, &str, &str)] = &[
-    (BuiltinRenderFeature::Particle, "particle", "particles"),
-    (BuiltinRenderFeature::Terrain, "terrain", "terrain"),
-    (BuiltinRenderFeature::Tree, "tree", "tree"),
-    (BuiltinRenderFeature::Projector, "projector", "projector"),
-    (BuiltinRenderFeature::Halo, "halo", "halo"),
-    (BuiltinRenderFeature::LensFlare, "lens_flare", "lens_flare"),
-    (BuiltinRenderFeature::Trail, "trail", "trail"),
-    (BuiltinRenderFeature::Billboard, "billboard", "billboard"),
-    (BuiltinRenderFeature::Tilemap, "tilemap", "tilemap"),
-    (
-        BuiltinRenderFeature::TextShaping,
-        "text_shaping",
-        "text_shaping",
-    ),
-    (BuiltinRenderFeature::Skybox, "skybox", "skybox"),
-    (BuiltinRenderFeature::Cubemap, "cubemap", "cubemap"),
-    (
-        BuiltinRenderFeature::Texture2dArray,
-        "texture_2d_array",
-        "texture_2d_array",
-    ),
-    (BuiltinRenderFeature::NormalMap, "normal_map", "normal_map"),
-    (BuiltinRenderFeature::Mipmap, "mipmap", "mipmap"),
-    (
-        BuiltinRenderFeature::ColorSpace,
-        "color_space",
-        "color_space",
-    ),
-];
 
 #[test]
 fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
@@ -96,12 +52,23 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "motion-vector-clear",
             "shadow-map",
             "clustered-light-culling",
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
+            "motion-vector-camera",
+            "motion-vector-tile-max",
+            "motion-vector-tile-max-coarse",
+            "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "screen-space-reflection-depth-pyramid",
+            "screen-space-reflection-reflection-pyramid",
+            "screen-space-reflection-depth-pyramid-coarse",
+            "screen-space-reflection-reflection-pyramid-coarse",
+            "screen-space-reflection-specular-occlusion",
+            "screen-space-reflection-resolve",
             "post-process",
             "bloom-extract",
             "color-grade",
@@ -121,6 +88,22 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         "depth-prepass",
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-clear",
+            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "depth-of-field-prepare",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        RenderGraphResourceAccessKind::Read,
     );
     pass_resource_access(
         &compiled,
@@ -147,6 +130,264 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         )
         .attachment_ops,
         Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-depth-pyramid",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "screen-space-reflection-depth-pyramid",
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-reflection-pyramid",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "screen-space-reflection-reflection-pyramid",
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-depth-pyramid-coarse",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "screen-space-reflection-depth-pyramid-coarse",
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-reflection-pyramid-coarse",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "screen-space-reflection-reflection-pyramid-coarse",
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-camera",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-camera",
+            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::load_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-tile-max",
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-tile-max",
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-tile-max-coarse",
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-tile-max-coarse",
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-neighbor-max",
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-neighbor-max",
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-specular-occlusion",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-specular-occlusion",
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-specular-occlusion",
+        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "screen-space-reflection-specular-occlusion",
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+        RenderGraphResourceAccessKind::Read,
+    );
+    let screen_space_reflection_history_write = pass_resource_access(
+        &compiled,
+        "screen-space-reflection-resolve",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+        RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        screen_space_reflection_history_write.kind,
+        RenderGraphResourceKind::TransientTexture
+    );
+    assert_eq!(
+        screen_space_reflection_history_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "post-process",
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "post-process",
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "post-process",
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    let screen_space_reflection_history_read = pass_resource_access(
+        &compiled,
+        "post-process",
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        screen_space_reflection_history_read.kind,
+        RenderGraphResourceKind::TransientTexture
     );
     assert_eq!(
         compiled.required_extract_sections,
@@ -196,12 +437,23 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "motion-vector-clear",
             "shadow-map",
             "gbuffer-mesh",
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
+            "motion-vector-camera",
+            "motion-vector-tile-max",
+            "motion-vector-tile-max-coarse",
+            "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "screen-space-reflection-depth-pyramid",
+            "screen-space-reflection-reflection-pyramid",
+            "screen-space-reflection-depth-pyramid-coarse",
+            "screen-space-reflection-reflection-pyramid-coarse",
+            "screen-space-reflection-specular-occlusion",
+            "screen-space-reflection-resolve",
             "post-process",
             "bloom-extract",
             "color-grade",
@@ -221,6 +473,80 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
         "depth-prepass",
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-clear",
+            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-camera",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-camera",
+            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::load_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-tile-max",
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-tile-max",
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-tile-max-coarse",
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-tile-max-coarse",
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "motion-vector-neighbor-max",
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "motion-vector-neighbor-max",
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
     );
     pass_resource_access(
         &compiled,
@@ -391,9 +717,46 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("opaque-sprite", Some("sprite.opaque")),
             ("alpha-mask-sprite", Some("sprite.alpha-mask")),
             ("transparent-sprite", Some("sprite.transparent")),
+            ("motion-vector-camera", Some("post.motion-vector-camera")),
+            (
+                "motion-vector-tile-max",
+                Some("post.motion-vector-tile-max"),
+            ),
+            (
+                "motion-vector-tile-max-coarse",
+                Some("post.motion-vector-tile-max-coarse"),
+            ),
+            (
+                "motion-vector-neighbor-max",
+                Some("post.motion-vector-neighbor-max"),
+            ),
             (
                 "depth-of-field-prepare",
                 Some("post.depth-of-field-prepare"),
+            ),
+            (
+                "screen-space-reflection-depth-pyramid",
+                Some("post.screen-space-reflection-depth-pyramid"),
+            ),
+            (
+                "screen-space-reflection-reflection-pyramid",
+                Some("post.screen-space-reflection-reflection-pyramid"),
+            ),
+            (
+                "screen-space-reflection-depth-pyramid-coarse",
+                Some("post.screen-space-reflection-depth-pyramid-coarse"),
+            ),
+            (
+                "screen-space-reflection-reflection-pyramid-coarse",
+                Some("post.screen-space-reflection-reflection-pyramid-coarse"),
+            ),
+            (
+                "screen-space-reflection-specular-occlusion",
+                Some("post.screen-space-reflection-specular-occlusion"),
+            ),
+            (
+                "screen-space-reflection-resolve",
+                Some("post.screen-space-reflection-resolve"),
             ),
             ("post-process", Some("post.stack")),
             ("runtime-ui", Some("ui.screen-space")),
@@ -415,95 +778,6 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
 }
 
 #[test]
-fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
-    for pipeline in [
-        RenderPipelineAsset::default_forward_plus(),
-        RenderPipelineAsset::default_deferred(),
-    ] {
-        for feature in [
-            BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
-            BuiltinRenderFeature::ReflectionProbes,
-            BuiltinRenderFeature::BakedLighting,
-        ] {
-            assert!(
-                !pipeline
-                    .renderer
-                    .features
-                    .iter()
-                    .any(|asset| asset.is_builtin(feature)),
-                "{} should receive {:?} from rendering plugin descriptors",
-                pipeline.name,
-                feature
-            );
-        }
-        for feature in [
-            BuiltinRenderFeature::PostProcess,
-            BuiltinRenderFeature::AntiAlias,
-            BuiltinRenderFeature::Ui,
-        ] {
-            assert!(
-                pipeline
-                    .renderer
-                    .features
-                    .iter()
-                    .any(|asset| asset.is_builtin(feature)),
-                "{} should keep {:?} in the product render graph",
-                pipeline.name,
-                feature
-            );
-        }
-        assert!(
-            !pipeline
-                .renderer
-                .features
-                .iter()
-                .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry)),
-            "{} should receive virtual geometry from plugin descriptors",
-            pipeline.name
-        );
-        assert!(
-            !pipeline
-                .renderer
-                .features
-                .iter()
-                .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination)),
-            "{} should receive hybrid GI from plugin descriptors",
-            pipeline.name
-        );
-        assert!(
-            !pipeline
-                .renderer
-                .features
-                .iter()
-                .any(|feature| feature.is_builtin(BuiltinRenderFeature::Particle)),
-            "{} should receive particles from plugin descriptors",
-            pipeline.name
-        );
-        assert!(
-            !pipeline
-                .renderer
-                .features
-                .iter()
-                .any(|feature| feature.is_builtin(BuiltinRenderFeature::NeuralCompute)),
-            "{} should receive neural compute work from plugin descriptors",
-            pipeline.name
-        );
-        for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-            assert!(
-                !pipeline
-                    .renderer
-                    .features
-                    .iter()
-                    .any(|asset| asset.is_builtin(*feature)),
-                "{} should receive {:?} from later render feature plans",
-                pipeline.name,
-                feature
-            );
-        }
-    }
-}
-
-#[test]
 fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
     let pipeline = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features(default_rendering_feature_descriptors());
@@ -519,6 +793,7 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "motion-vector-clear",
             "shadow-map",
             "ssao-evaluate",
             "clustered-light-culling",
@@ -528,7 +803,17 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
+            "motion-vector-camera",
+            "motion-vector-tile-max",
+            "motion-vector-tile-max-coarse",
+            "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "screen-space-reflection-depth-pyramid",
+            "screen-space-reflection-reflection-pyramid",
+            "screen-space-reflection-depth-pyramid-coarse",
+            "screen-space-reflection-reflection-pyramid-coarse",
+            "screen-space-reflection-specular-occlusion",
+            "screen-space-reflection-resolve",
             "post-process",
             "color-grade",
             "fxaa",
@@ -560,6 +845,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "motion-vector-clear",
             "shadow-map",
             "gbuffer-mesh",
             "ssao-evaluate",
@@ -569,7 +855,17 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
+            "motion-vector-camera",
+            "motion-vector-tile-max",
+            "motion-vector-tile-max-coarse",
+            "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "screen-space-reflection-depth-pyramid",
+            "screen-space-reflection-reflection-pyramid",
+            "screen-space-reflection-depth-pyramid-coarse",
+            "screen-space-reflection-reflection-pyramid-coarse",
+            "screen-space-reflection-specular-occlusion",
+            "screen-space-reflection-resolve",
             "post-process",
             "color-grade",
             "fxaa",
@@ -809,56 +1105,6 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
 }
 
 #[test]
-fn particle_plugin_render_feature_adds_transparent_pass_to_default_pipeline() {
-    let pipeline = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([particle_render_feature_descriptor()]);
-    let compiled = pipeline.compile(&test_extract()).unwrap();
-    let pass_names = compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(pass_names.contains(&"particle-render"));
-    assert!(compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
-    let particle_feature = compiled
-        .enabled_features
-        .iter()
-        .find(|feature| feature.feature_name() == "particle")
-        .expect("particle plugin feature should remain in compiled pipeline");
-    assert!(
-        particle_feature.builtin_feature().is_none(),
-        "particle plugin feature should not reintroduce built-in feature identity"
-    );
-}
-
-#[test]
-fn compile_options_can_disable_particle_plugin_feature_by_name() {
-    let pipeline = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([particle_render_feature_descriptor()]);
-    let compiled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default().with_plugin_feature_disabled("particle"),
-        )
-        .unwrap();
-    let pass_names = compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(!pass_names.contains(&"particle-render"));
-    assert!(!compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
-}
-
-#[test]
 fn forward_plus_pipeline_compilation_is_deterministic() {
     let pipeline = RenderPipelineAsset::default_forward_plus();
     let extract = test_extract();
@@ -923,336 +1169,6 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
         .contains(&FrameHistoryBinding::read_write(
             FrameHistorySlot::AmbientOcclusion
         )));
-}
-
-#[test]
-fn flagship_feature_descriptors_declare_backend_capability_requirements() {
-    assert_eq!(
-        BuiltinRenderFeature::VirtualGeometry
-            .descriptor()
-            .capability_requirements,
-        vec![RenderFeatureCapabilityRequirement::VirtualGeometry]
-    );
-    assert_eq!(
-        BuiltinRenderFeature::GlobalIllumination
-            .descriptor()
-            .capability_requirements,
-        vec![RenderFeatureCapabilityRequirement::HybridGlobalIllumination]
-    );
-    assert_eq!(
-        BuiltinRenderFeature::RayTracing
-            .descriptor()
-            .capability_requirements,
-        vec![
-            RenderFeatureCapabilityRequirement::AccelerationStructures,
-            RenderFeatureCapabilityRequirement::RayTracingPipeline,
-        ]
-    );
-    assert_eq!(
-        BuiltinRenderFeature::NeuralCompute
-            .descriptor()
-            .capability_requirements,
-        vec![RenderFeatureCapabilityRequirement::NeuralCompute]
-    );
-    assert_eq!(
-        BuiltinRenderFeature::SparseTexture
-            .descriptor()
-            .capability_requirements,
-        vec![RenderFeatureCapabilityRequirement::SparseTexture]
-    );
-}
-
-#[test]
-fn advanced_followup_feature_slots_reserve_extract_sections_without_runtime_passes() {
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
-        let descriptor = feature.descriptor();
-        assert_eq!(descriptor.name, *extract_section);
-        assert_eq!(
-            descriptor.required_extract_sections,
-            vec![extract_section.to_string()]
-        );
-        assert_eq!(descriptor.capability_requirements, vec![*requirement]);
-        assert!(descriptor.history_bindings.is_empty());
-        assert!(
-            descriptor.stage_passes.is_empty(),
-            "{feature:?} should stay descriptor-only until its dedicated render plan registers passes"
-        );
-    }
-
-    for (feature, descriptor_name, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        let descriptor = feature.descriptor();
-        assert_eq!(descriptor.name, *descriptor_name);
-        assert_eq!(
-            descriptor.required_extract_sections,
-            vec![extract_section.to_string()]
-        );
-        assert!(descriptor.capability_requirements.is_empty());
-        assert!(descriptor.history_bindings.is_empty());
-        assert!(
-            descriptor.stage_passes.is_empty(),
-            "{feature:?} should stay descriptor-only until its dedicated render plan registers passes"
-        );
-    }
-}
-
-#[test]
-fn neural_compute_builtin_slot_compiles_only_with_explicit_feature_opt_in() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::NeuralCompute,
-        ));
-
-    let default_compiled = pipeline.compile(&test_extract()).unwrap();
-    assert!(
-        !default_compiled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::NeuralCompute),
-        "neural compute should not declare backend requirements until the slot is opted in"
-    );
-
-    let enabled_compiled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::NeuralCompute),
-        )
-        .unwrap();
-
-    assert!(enabled_compiled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::NeuralCompute));
-    assert!(
-        !enabled_compiled
-            .graph
-            .passes()
-            .iter()
-            .any(|pass| pass.name.contains("neural")),
-        "the runtime slot should only declare the capability; plugin descriptors own executable neural passes"
-    );
-}
-
-#[test]
-fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    for (feature, _, _) in ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        pipeline
-            .renderer
-            .features
-            .push(RendererFeatureAsset::builtin(*feature));
-    }
-    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        pipeline
-            .renderer
-            .features
-            .push(RendererFeatureAsset::builtin(*feature));
-    }
-
-    let default_compiled = pipeline.compile(&test_extract()).unwrap();
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
-        assert!(
-            !default_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should not compile until explicitly opted in"
-        );
-        assert!(
-            !default_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should not request extract data until explicitly opted in"
-        );
-        assert!(
-            !default_compiled
-                .capability_requirements
-                .contains(requirement),
-            "{feature:?} should not require backend capability until explicitly opted in"
-        );
-    }
-    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        assert!(
-            !default_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should not compile until explicitly opted in"
-        );
-        assert!(
-            !default_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should not request extract data until explicitly opted in"
-        );
-    }
-
-    let mut options = RenderPipelineCompileOptions::default();
-    for (feature, _, requirement) in ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        options = options
-            .with_feature_enabled(*feature)
-            .with_capability_enabled(*requirement);
-    }
-    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        options = options.with_feature_enabled(*feature);
-    }
-    let enabled_compiled = pipeline
-        .compile_with_options(&test_extract(), &options)
-        .unwrap();
-
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
-        assert!(
-            enabled_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should compile when explicitly opted in"
-        );
-        assert!(
-            enabled_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should reserve its neutral extract section"
-        );
-        assert!(
-            enabled_compiled
-                .capability_requirements
-                .contains(requirement),
-            "{feature:?} should declare its backend capability requirement"
-        );
-    }
-    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        assert!(
-            enabled_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should compile when explicitly opted in"
-        );
-        assert!(
-            enabled_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should reserve its neutral extract section"
-        );
-    }
-    assert_eq!(
-        enabled_compiled
-            .graph
-            .passes()
-            .iter()
-            .map(|pass| pass.name.as_str())
-            .collect::<Vec<_>>(),
-        default_compiled
-            .graph
-            .passes()
-            .iter()
-            .map(|pass| pass.name.as_str())
-            .collect::<Vec<_>>(),
-        "descriptor-only slots must not add executable graph passes"
-    );
-    let added_requirements = enabled_compiled
-        .capability_requirements
-        .iter()
-        .filter(|requirement| {
-            !default_compiled
-                .capability_requirements
-                .contains(requirement)
-        })
-        .copied()
-        .collect::<Vec<_>>();
-    assert_eq!(
-        added_requirements,
-        vec![RenderFeatureCapabilityRequirement::SparseTexture],
-        "only sparse texture should add a backend capability requirement in this follow-up slot set"
-    );
-}
-
-#[test]
-fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::SparseTexture,
-        ));
-
-    let feature_only = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::SparseTexture),
-        )
-        .unwrap();
-    assert!(
-        !feature_only
-            .enabled_features
-            .iter()
-            .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)),
-        "feature opt-in without the sparse texture capability should keep the slot out of the graph"
-    );
-    assert!(!feature_only
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::SparseTexture));
-
-    let capability_enabled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::SparseTexture)
-                .with_capability_enabled(RenderFeatureCapabilityRequirement::SparseTexture),
-        )
-        .unwrap();
-    assert!(capability_enabled
-        .enabled_features
-        .iter()
-        .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)));
-    assert!(capability_enabled
-        .required_extract_sections
-        .contains(&"sparse_texture".to_string()));
-    assert!(capability_enabled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::SparseTexture));
-    assert!(
-        !capability_enabled
-            .graph
-            .passes()
-            .iter()
-            .any(|pass| pass.name.contains("sparse")),
-        "the runtime slot should only reserve extract/capability; executable sparse passes are follow-up work"
-    );
-}
-
-#[test]
-fn compiled_pipeline_collects_enabled_plugin_feature_capability_requirements() {
-    let pipeline = RenderPipelineAsset::default_forward_plus().with_plugin_render_features([
-        virtual_geometry_render_feature_descriptor(),
-        hybrid_gi_render_feature_descriptor(),
-    ]);
-    let options = RenderPipelineCompileOptions::default()
-        .with_feature_disabled(BuiltinRenderFeature::AntiAlias)
-        .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
-        .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
-
-    let compiled = pipeline
-        .compile_with_options(&test_extract(), &options)
-        .unwrap();
-
-    assert_eq!(
-        compiled.capability_requirements,
-        vec![
-            RenderFeatureCapabilityRequirement::VirtualGeometry,
-            RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
-        ]
-    );
 }
 
 #[test]
@@ -1350,6 +1266,157 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         "preview sky should initialize scene depth through the render graph"
     );
 
+    let motion_vector_clear_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-vector-clear")
+        .expect("default forward pipeline should include motion vector target clear");
+    assert_eq!(
+        motion_vector_clear_pass.executor_id.as_deref(),
+        Some("post.motion-vector-clear")
+    );
+    assert!(
+        motion_vector_clear_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+                && resource.kind == RenderGraphResourceKind::TransientTexture
+                && resource.access == RenderGraphResourceAccessKind::Write
+                && resource.attachment_ops == Some(RenderGraphAttachmentOps::clear_store())
+        }),
+        "motion vector clear should initialize the graph-owned motion-vector target"
+    );
+
+    let motion_vector_camera_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-vector-camera")
+        .expect("default forward pipeline should include camera motion-vector pass");
+    assert_eq!(
+        motion_vector_camera_pass.executor_id.as_deref(),
+        Some("post.motion-vector-camera")
+    );
+    assert!(
+        motion_vector_camera_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+                && resource.access == RenderGraphResourceAccessKind::Read
+        }),
+        "camera motion-vector pass should read scene depth for per-pixel reconstruction"
+    );
+    assert!(
+        motion_vector_camera_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+                && resource.kind == RenderGraphResourceKind::TransientTexture
+                && resource.access == RenderGraphResourceAccessKind::Write
+                && resource.attachment_ops == Some(RenderGraphAttachmentOps::load_store())
+        }),
+        "camera motion-vector pass should load the cleared target before writing camera velocity"
+    );
+
+    let motion_vector_tile_max_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-vector-tile-max")
+        .expect("default forward pipeline should include motion-vector tile reconstruction pass");
+    assert_eq!(
+        motion_vector_tile_max_pass.executor_id.as_deref(),
+        Some("post.motion-vector-tile-max")
+    );
+    assert!(
+        motion_vector_tile_max_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Read
+            }),
+        "motion-vector tile reconstruction should read the raw scene motion-vector target"
+    );
+    assert!(
+        motion_vector_tile_max_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Write
+                    && resource.attachment_ops == Some(RenderGraphAttachmentOps::clear_store())
+            }),
+        "motion-vector tile reconstruction should write the graph-owned tile-max target"
+    );
+
+    let motion_vector_tile_max_coarse_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-vector-tile-max-coarse")
+        .expect(
+            "default forward pipeline should include coarse motion-vector tile reconstruction pass",
+        );
+    assert_eq!(
+        motion_vector_tile_max_coarse_pass.executor_id.as_deref(),
+        Some("post.motion-vector-tile-max-coarse")
+    );
+    assert!(
+        motion_vector_tile_max_coarse_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Read
+            }),
+        "coarse motion-vector tile reconstruction should read the first tile-max target"
+    );
+    assert!(
+        motion_vector_tile_max_coarse_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Write
+                    && resource.attachment_ops == Some(RenderGraphAttachmentOps::clear_store())
+            }),
+        "coarse motion-vector tile reconstruction should write the graph-owned coarse tile-max target"
+    );
+
+    let motion_vector_neighbor_max_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-vector-neighbor-max")
+        .expect("default forward pipeline should include motion-vector reconstruction pass");
+    assert_eq!(
+        motion_vector_neighbor_max_pass.executor_id.as_deref(),
+        Some("post.motion-vector-neighbor-max")
+    );
+    assert!(
+        motion_vector_neighbor_max_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Read
+            }),
+        "motion-vector reconstruction should read the coarse tile-max motion-vector target"
+    );
+    assert!(
+        motion_vector_neighbor_max_pass
+            .resources
+            .iter()
+            .any(|resource| {
+                resource.name == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+                    && resource.kind == RenderGraphResourceKind::TransientTexture
+                    && resource.access == RenderGraphResourceAccessKind::Write
+                    && resource.attachment_ops == Some(RenderGraphAttachmentOps::clear_store())
+            }),
+        "motion-vector reconstruction should write the graph-owned neighbor-max target"
+    );
+
     let opaque_pass = compiled
         .graph
         .passes()
@@ -1377,6 +1444,26 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     }));
     assert!(lifetimes.iter().any(|lifetime| {
         lifetime.name == "scene-color" && lifetime.kind == RenderGraphResourceKind::TransientTexture
+    }));
+    assert!(lifetimes.iter().any(|lifetime| {
+        lifetime.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+            && lifetime.kind == RenderGraphResourceKind::TransientTexture
+    }));
+    assert!(lifetimes.iter().any(|lifetime| {
+        lifetime.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+            && lifetime.kind == RenderGraphResourceKind::TransientTexture
+    }));
+    assert!(lifetimes.iter().any(|lifetime| {
+        lifetime.name == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+            && lifetime.kind == RenderGraphResourceKind::TransientTexture
+    }));
+    assert!(lifetimes.iter().any(|lifetime| {
+        lifetime.name == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+            && lifetime.kind == RenderGraphResourceKind::TransientTexture
+    }));
+    assert!(lifetimes.iter().any(|lifetime| {
+        lifetime.name == PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
+            && lifetime.kind == RenderGraphResourceKind::TransientTexture
     }));
     assert!(lifetimes.iter().any(|lifetime| {
         lifetime.name == "viewport-output" && lifetime.kind == RenderGraphResourceKind::External
@@ -1426,365 +1513,61 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
                 && desc.format == TextureFormat::Depth32Float
                 && desc.sample_count == 4
     ));
-}
 
-#[test]
-fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
-    let pipeline = RenderPipelineAsset::default_forward_plus().with_plugin_render_features([
-        virtual_geometry_render_feature_descriptor(),
-        hybrid_gi_render_feature_descriptor(),
-    ]);
-    let disabled = pipeline.compile(&test_extract()).unwrap();
-    let disabled_pass_names = disabled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-    assert!(!disabled_pass_names.contains(&"hybrid-gi-resolve"));
-    assert!(!disabled_pass_names.contains(&"virtual-geometry-node-cluster-cull"));
-
-    let options = RenderPipelineCompileOptions::default()
-        .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
-        .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry);
-    let enabled = pipeline
-        .compile_with_options(&test_extract(), &options)
-        .unwrap();
-    let enabled_pass_names = enabled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    for pass_name in [
-        "hybrid-gi-scene-prepare",
-        "hybrid-gi-trace-schedule",
-        "hybrid-gi-resolve",
-        "hybrid-gi-history",
-        "virtual-geometry-prepare",
-        "virtual-geometry-node-cluster-cull",
-        "virtual-geometry-page-feedback",
-        "virtual-geometry-visbuffer",
-        "virtual-geometry-debug-overlay",
+    for (resource_name, expected_width, expected_height, expected_format) in [
+        (
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+            1280,
+            720,
+            TextureFormat::Rgba8UnormSrgb,
+        ),
+        (
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+            640,
+            360,
+            TextureFormat::Rgba16Float,
+        ),
+        (
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+            320,
+            180,
+            TextureFormat::Rgba16Float,
+        ),
+        (
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            1280,
+            720,
+            TextureFormat::Rgba16Float,
+        ),
+        (
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+            640,
+            360,
+            TextureFormat::Rgba16Float,
+        ),
+        (
+            PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+            320,
+            180,
+            TextureFormat::Rgba16Float,
+        ),
+        (
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            1280,
+            720,
+            TextureFormat::Rgba8Unorm,
+        ),
     ] {
-        assert!(
-            enabled_pass_names.contains(&pass_name),
-            "enabled graph should contain {pass_name}"
-        );
+        let lifetime = graph_resource_lifetime(&compiled, resource_name);
+        assert!(matches!(
+            &lifetime.desc,
+            RenderGraphResourceDesc::Texture(desc)
+                if desc.width == expected_width
+                    && desc.height == expected_height
+                    && desc.format == expected_format
+                    && desc.sample_count == 1
+        ));
     }
-    assert!(enabled
-        .history_bindings
-        .contains(&FrameHistoryBinding::read_write(
-            FrameHistorySlot::GlobalIllumination
-        )));
-}
-
-#[test]
-fn plugin_render_feature_asset_compiles_descriptor_without_builtin_feature_identity() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::plugin(
-            plugin_virtual_geometry_descriptor(),
-        ));
-
-    let compiled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry),
-        )
-        .unwrap();
-    let pass_names = compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(
-        pass_names.contains(&"plugin-virtual-geometry-prepare"),
-        "plugin descriptor pass should be compiled into the render graph"
-    );
-    let plugin_feature = compiled
-        .enabled_features
-        .iter()
-        .find(|feature| feature.feature_name() == "plugin.virtual_geometry")
-        .expect("compiled pipeline should retain the plugin feature name");
-    assert!(
-        plugin_feature.builtin_feature().is_none(),
-        "plugin renderer feature should not masquerade as a built-in feature"
-    );
-    assert!(compiled
-        .required_extract_sections
-        .contains(&"plugin_virtual_geometry".to_string()));
-    assert!(compiled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry));
-}
-
-#[test]
-fn plugin_render_feature_asset_respects_capability_opt_in_gate() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::plugin(
-            plugin_virtual_geometry_descriptor(),
-        ));
-
-    let compiled = pipeline.compile(&test_extract()).unwrap();
-    let pass_names = compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(
-        !pass_names.contains(&"plugin-virtual-geometry-prepare"),
-        "advanced plugin descriptor passes should not compile until their capability is enabled"
-    );
-    assert!(
-        !compiled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::VirtualGeometry),
-        "disabled plugin descriptors should not add runtime capability requirements"
-    );
-}
-
-#[test]
-fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::plugin(
-            plugin_neural_compute_descriptor(),
-        ));
-
-    let disabled = pipeline.compile(&test_extract()).unwrap();
-    assert!(
-        !disabled
-            .graph
-            .passes()
-            .iter()
-            .any(|pass| pass.name == "plugin-neural-inference"),
-        "neural compute plugin passes should not compile until the capability is enabled"
-    );
-    assert!(
-        !disabled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::NeuralCompute),
-        "disabled neural plugin descriptors should not add runtime capability requirements"
-    );
-
-    let enabled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_capability_enabled(RenderFeatureCapabilityRequirement::NeuralCompute),
-        )
-        .unwrap();
-
-    let neural_pass = enabled
-        .graph
-        .passes()
-        .iter()
-        .find(|pass| pass.name == "plugin-neural-inference")
-        .expect("enabled neural compute plugin pass should compile into the render graph");
-    assert_eq!(neural_pass.queue, QueueLane::AsyncCompute);
-    assert!(enabled
-        .required_extract_sections
-        .contains(&"plugin_neural_compute".to_string()));
-    assert!(enabled
-        .capability_requirements
-        .contains(&RenderFeatureCapabilityRequirement::NeuralCompute));
-}
-
-#[test]
-fn plugin_render_feature_descriptors_replace_advanced_builtin_slots() {
-    let pipeline = legacy_advanced_builtin_pipeline().with_plugin_render_features([
-        replacement_virtual_geometry_descriptor(),
-        replacement_hybrid_gi_descriptor(),
-    ]);
-
-    assert!(!pipeline
-        .renderer
-        .features
-        .iter()
-        .any(|feature| feature.is_builtin(BuiltinRenderFeature::VirtualGeometry)));
-    assert!(!pipeline
-        .renderer
-        .features
-        .iter()
-        .any(|feature| feature.is_builtin(BuiltinRenderFeature::GlobalIllumination)));
-    assert!(pipeline.renderer.features.iter().any(|feature| {
-        feature.feature_name() == "virtual_geometry" && feature.builtin_feature().is_none()
-    }));
-    assert!(pipeline.renderer.features.iter().any(|feature| {
-        feature.feature_name() == "hybrid_gi" && feature.builtin_feature().is_none()
-    }));
-
-    let compiled = pipeline
-        .compile_with_options(
-            &test_extract(),
-            &RenderPipelineCompileOptions::default()
-                .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
-                .with_capability_enabled(
-                    RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
-                ),
-        )
-        .unwrap();
-    let pass_names = compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(pass_names.contains(&"plugin-virtual-geometry-replacement"));
-    assert!(pass_names.contains(&"plugin-hybrid-gi-replacement"));
-    assert!(
-        !pass_names.contains(&"virtual-geometry-prepare"),
-        "built-in virtual geometry pass should be removed when plugin descriptor replaces the capability"
-    );
-    assert!(
-        !pass_names.contains(&"hybrid-gi-resolve"),
-        "built-in hybrid GI pass should be removed when plugin descriptor replaces the capability"
-    );
-}
-
-#[test]
-fn pipeline_compile_rejects_duplicate_plugin_render_feature_names() {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-            "plugin.duplicate_feature",
-            Vec::new(),
-            Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Overlay,
-                "plugin-duplicate-feature-a",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("plugin.duplicate.a")
-            .with_side_effects()],
-        )));
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-            "plugin.duplicate_feature",
-            Vec::new(),
-            Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Overlay,
-                "plugin-duplicate-feature-b",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("plugin.duplicate.b")
-            .with_side_effects()],
-        )));
-
-    let error = pipeline.compile(&test_extract()).unwrap_err();
-
-    assert!(
-        error.contains("duplicate feature `plugin.duplicate_feature`"),
-        "unexpected error: {error}"
-    );
-}
-
-fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "plugin.virtual_geometry",
-        vec!["plugin_virtual_geometry".to_string()],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::DepthPrepass,
-            "plugin-virtual-geometry-prepare",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.virtual-geometry.prepare")
-        .write_buffer("plugin-virtual-geometry-page-requests")],
-    )
-    .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
-}
-
-fn plugin_neural_compute_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "plugin.neural_compute",
-        vec!["plugin_neural_compute".to_string()],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "plugin-neural-inference",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("plugin.neural.inference")
-        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .write_buffer("plugin-neural-output")],
-    )
-    .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute)
-}
-
-fn replacement_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "virtual_geometry",
-        Vec::new(),
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::DepthPrepass,
-            "plugin-virtual-geometry-replacement",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.virtual-geometry.replacement")
-        .write_buffer("plugin-virtual-geometry-replacement")],
-    )
-    .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
-}
-
-fn replacement_hybrid_gi_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "hybrid_gi",
-        Vec::new(),
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::GlobalIllumination,
-        )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "plugin-hybrid-gi-replacement",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("plugin.hybrid-gi.replacement")
-        .write_texture("plugin-hybrid-gi-lighting")],
-    )
-    .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
-}
-
-fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "particle",
-        vec![
-            "view".to_string(),
-            "particles".to_string(),
-            "visibility".to_string(),
-        ],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent3d,
-            "particle-render",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.transparent")
-        .read_texture("scene-depth")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
-    )
 }
 
 fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescriptor> {
@@ -1862,18 +1645,154 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "motion-vector-clear",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-vector-clear")
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "motion-vector-camera",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-vector-camera")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+                RenderGraphAttachmentOps::load_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "motion-vector-tile-max",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-vector-tile-max")
+            .read_texture(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "motion-vector-tile-max-coarse",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-vector-tile-max-coarse")
+            .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "motion-vector-neighbor-max",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-vector-neighbor-max")
+            .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "depth-of-field-prepare",
                 QueueLane::Graphics,
             )
             .with_executor_id("post.depth-of-field-prepare")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_external_with_ops(
+            .write_texture_with_ops(
                 PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
                 RenderGraphAttachmentOps::clear_store(),
             )
-            .write_external_with_ops(
+            .write_texture_with_ops(
                 PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-depth-pyramid",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-depth-pyramid")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-reflection-pyramid",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-reflection-pyramid")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-depth-pyramid-coarse",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-depth-pyramid-coarse")
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-reflection-pyramid-coarse",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-reflection-pyramid-coarse")
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-specular-occlusion",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-specular-occlusion")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "screen-space-reflection-resolve",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.screen-space-reflection-resolve")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
+            .read_texture(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+            )
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
+            .read_texture(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+            )
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION)
+            .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
                 RenderGraphAttachmentOps::clear_store(),
             ),
             RenderFeaturePassDescriptor::new(
@@ -1884,30 +1803,17 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .with_executor_id("post.stack")
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
             .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
             .read_external(PostProcessGraphResourceNames::BLOOM)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
             .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
             .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
             .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
         ],
     )
-}
-
-fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::VirtualGeometry,
-        ));
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::GlobalIllumination,
-        ));
-    pipeline
 }
 
 #[test]
@@ -1993,6 +1899,50 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
     assert!(
         !pass_names.contains(&"depth-of-field-prepare"),
         "DoF scratch preparation should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-depth-pyramid"),
+        "screen-space reflection depth pyramid should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-reflection-pyramid"),
+        "screen-space reflection reflection pyramid should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-depth-pyramid-coarse"),
+        "screen-space reflection coarse depth pyramid should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-reflection-pyramid-coarse"),
+        "screen-space reflection coarse reflection pyramid should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-resolve"),
+        "screen-space reflection resolve should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"screen-space-reflection-specular-occlusion"),
+        "screen-space reflection specular occlusion should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"motion-vector-clear"),
+        "motion-vector target initialization should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"motion-vector-camera"),
+        "motion-vector camera producer should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"motion-vector-tile-max"),
+        "motion-vector tile reconstruction should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"motion-vector-tile-max-coarse"),
+        "coarse motion-vector tile reconstruction should be removed with the post-process feature"
+    );
+    assert!(
+        !pass_names.contains(&"motion-vector-neighbor-max"),
+        "motion-vector reconstruction should be removed with the post-process feature"
     );
     assert!(
         pass_names.contains(&"overlay-gizmo"),

@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 use crate::error::HubError;
 
+use super::local_paths::reject_inside_root;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInstallRequest {
     pub package_dir: PathBuf,
@@ -34,8 +36,8 @@ pub fn install_package_to_device(
         return Err(HubError::message("Device install directory is required"));
     }
 
-    fs::create_dir_all(&request.device_root)?;
     reject_device_inside_package(&request.package_dir, &request.device_root)?;
+    fs::create_dir_all(&request.device_root)?;
 
     let install_dir = request
         .device_root
@@ -56,14 +58,11 @@ pub fn install_package_to_device(
 }
 
 fn reject_device_inside_package(package_dir: &Path, device_root: &Path) -> Result<(), HubError> {
-    let package_dir = package_dir.canonicalize()?;
-    let device_root = device_root.canonicalize()?;
-    if device_root.starts_with(&package_dir) {
-        return Err(HubError::message(
-            "Device install directory must be outside the package directory",
-        ));
-    }
-    Ok(())
+    reject_inside_root(
+        package_dir,
+        device_root,
+        "Device install directory must be outside the package directory",
+    )
 }
 
 fn package_install_name(package_dir: &Path) -> String {
@@ -136,6 +135,24 @@ mod tests {
         fs::remove_dir_all(package).unwrap();
 
         assert!(error.to_string().contains("outside the package directory"));
+    }
+
+    #[test]
+    fn install_package_to_device_rejects_missing_device_root_inside_package_without_creating_directory(
+    ) {
+        let package = temp_dir("device-package-inside-missing");
+        let device = package.join("device").join("nested");
+
+        let error =
+            install_package_to_device(&DeviceInstallRequest::new(&package, &device)).unwrap_err();
+
+        assert!(error.to_string().contains("outside the package directory"));
+        assert!(
+            !device.exists(),
+            "rejected device install roots inside the package must not be created"
+        );
+
+        fs::remove_dir_all(package).unwrap();
     }
 
     fn temp_dir(label: &str) -> PathBuf {

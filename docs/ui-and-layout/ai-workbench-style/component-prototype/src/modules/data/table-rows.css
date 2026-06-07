@@ -1,0 +1,46 @@
+.zr-module-table {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background: rgba(10, 13, 15, 0.7);
+}
+
+.zr-module-table-row {
+  width: 100%;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: var(--module-table-cols);
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  background: transparent;
+  color: #c4ced2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zr-module-table-row.is-head {
+  min-height: 32px;
+  color: #aab5ba;
+  background: linear-gradient(180deg, #1c2226, #171c20);
+  cursor: default;
+}
+
+.zr-module-table-row.is-selected {
+  color: #e9ffff;
+  background: linear-gradient(90deg, rgba(23, 113, 124, 0.82), rgba(19, 71, 78, 0.76));
+}
+
+.zr-module-table-row:last-child {
+  border-bottom: 0;
+}
+
+.zr-module-table-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

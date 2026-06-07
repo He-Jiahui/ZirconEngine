@@ -1,0 +1,63 @@
+.zr-module-left {
+  left: var(--rail-w);
+  top: var(--topbar-h);
+  width: var(--left-w);
+  bottom: calc(var(--bottom-h) + var(--showcase-h));
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: minmax(0, auto);
+  gap: 8px;
+  padding: 8px;
+  overflow: auto;
+  background: linear-gradient(180deg, #171d20, #111619);
+}
+
+.zr-module-left .zr-tabs {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.zr-module-left .zr-tab {
+  min-width: 0;
+  flex: 1 1 0;
+  padding-inline: 8px;
+}
+
+.zr-module-main {
+  bottom: calc(var(--bottom-h) + var(--showcase-h));
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 42px minmax(0, 1fr);
+  padding: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1%, transparent 1% 2px, transparent 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1%, transparent 1%, transparent 100%),
+    #101519;
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+.zr-module-right {
+  right: 0;
+  top: var(--topbar-h);
+  width: var(--right-w);
+  bottom: calc(var(--bottom-h) + var(--showcase-h));
+  min-height: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: linear-gradient(180deg, #171d20, #111619);
+}
+
+.zr-module-bottom {
+  left: var(--rail-w);
+  right: 0;
+  bottom: var(--bottom-h);
+  height: var(--showcase-h);
+  display: grid;
+  grid-template-rows: 42px minmax(0, 1fr);
+  font-size: 12px;
+  background: linear-gradient(180deg, #171c20, #111619);
+}

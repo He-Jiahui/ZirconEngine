@@ -19,6 +19,7 @@ use super::sdf_atlas::{ScreenSpaceUiSdfAtlas, SdfAtlasCacheReport};
 use super::sdf_render::{ScreenSpaceUiSdfPrepareReport, ScreenSpaceUiSdfRenderer};
 #[cfg(test)]
 use super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadReport};
+use crate::ui::text::shaper::resolve_text_render_mode;
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 
@@ -408,14 +409,10 @@ fn effective_text_render_mode(
     requested_mode: UiTextRenderMode,
     font_asset: Option<&LoadedUiFontAsset>,
 ) -> UiTextRenderMode {
-    match requested_mode {
-        UiTextRenderMode::Native => UiTextRenderMode::Native,
-        UiTextRenderMode::Sdf => UiTextRenderMode::Sdf,
-        UiTextRenderMode::Auto => font_asset
-            .and_then(|asset| asset.render_mode)
-            .filter(|mode| !matches!(mode, UiTextRenderMode::Auto))
-            .unwrap_or(UiTextRenderMode::Native),
-    }
+    resolve_text_render_mode(
+        requested_mode,
+        font_asset.and_then(|asset| asset.render_mode),
+    )
 }
 
 fn load_font_asset_record(

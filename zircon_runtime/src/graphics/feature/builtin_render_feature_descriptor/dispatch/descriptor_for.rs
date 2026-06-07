@@ -11,6 +11,7 @@ use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDescriptor {
     match feature {
         BuiltinRenderFeature::Mesh => mesh::descriptor(),
+        BuiltinRenderFeature::MeshLod => advanced_slot::descriptor("mesh_lod", "mesh_lod"),
         BuiltinRenderFeature::Sprite => sprite::descriptor(),
         BuiltinRenderFeature::DeferredGeometry => deferred_geometry::descriptor(),
         BuiltinRenderFeature::DeferredLighting => deferred_lighting::descriptor(),
@@ -40,6 +41,7 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         }
         BuiltinRenderFeature::Terrain => advanced_slot::descriptor("terrain", "terrain"),
         BuiltinRenderFeature::Tree => advanced_slot::descriptor("tree", "tree"),
+        BuiltinRenderFeature::Decal => advanced_slot::descriptor("decals", "decals"),
         BuiltinRenderFeature::Projector => advanced_slot::descriptor("projector", "projector"),
         BuiltinRenderFeature::Halo => advanced_slot::descriptor("halo", "halo"),
         BuiltinRenderFeature::LensFlare => advanced_slot::descriptor("lens_flare", "lens_flare"),

@@ -1,5 +1,7 @@
-use super::super::descriptors::{DependencySpec, PluginFactory, RegistryName, ServiceFactory};
-use crate::core::lifecycle::{LifecycleState, ServiceKind, StartupMode};
+use std::sync::Arc;
+
+use super::super::descriptors::{PluginFactory, RegistryName, ServiceFactory};
+use crate::core::lifecycle::{LifecycleState, StartupMode};
 use crate::core::types::ServiceObject;
 
 #[derive(Clone)]
@@ -9,11 +11,10 @@ pub(crate) enum ServiceEntryFactory {
 }
 
 pub(crate) struct ServiceEntry {
-    pub(crate) name: RegistryName,
-    pub(crate) owner_module: String,
-    pub(crate) kind: ServiceKind,
     pub(crate) startup_mode: StartupMode,
-    pub(crate) dependencies: Vec<DependencySpec>,
+    // Dependencies are immutable after registration; sharing the canonical name
+    // slice keeps resolution from rebuilding a Vec while holding the service lock.
+    pub(crate) dependencies: Arc<[RegistryName]>,
     pub(crate) factory: ServiceEntryFactory,
     pub(crate) lifecycle: LifecycleState,
     pub(crate) instance: Option<ServiceObject>,

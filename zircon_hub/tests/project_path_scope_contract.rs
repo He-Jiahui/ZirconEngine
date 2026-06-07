@@ -1,44 +1,127 @@
-//! Static contracts for Hub selected-project path scope and refresh wiring.
+//! Static contracts for React/MUI Hub project path scope and path display.
 
-use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{fs, path::PathBuf};
 
 fn crate_dir() -> PathBuf {
-    PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .to_string_lossy()
-            .into_owned()
-    }))
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
+}
+
+fn normalize_newlines(source: String) -> String {
+    source.replace("\r\n", "\n")
 }
 
 fn read_crate_file(path: &str) -> String {
-    fs::read_to_string(crate_dir().join(path))
-        .map(|source| source.replace("\r\n", "\n"))
-        .unwrap_or_else(|error| panic!("failed to read {path}: {error}"))
+    normalize_newlines(
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
+    )
+}
+
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
+
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            source.contains(snippet),
+            "{source_name} should contain project-path-scope snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete project-path-scope snippet {snippet:?}"
+        );
+    }
 }
 
 #[test]
-fn selected_project_workflow_reuses_shared_path_keys() {
+fn project_modules_expose_one_shared_path_key_and_validation_surface() {
     let metadata = read_crate_file("src/projects/metadata.rs");
-    for snippet in [
-        "pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String",
-        ".canonicalize()",
-        "project_metadata_key(resolved)",
-        "looks_like_windows_drive_path(&text)",
-    ] {
-        assert!(
-            metadata.contains(snippet),
-            "project metadata must expose one shared path-key rule for persisted and filesystem paths; missing {snippet}"
-        );
-    }
-
     let projects_mod = read_crate_file("src/projects/mod.rs");
-    assert!(
-        projects_mod.contains("project_filesystem_path_key"),
-        "projects/mod.rs must re-export project_filesystem_path_key for Hub scoped catalogs"
-    );
+    let validation = read_crate_file("src/projects/validation.rs");
+    let create_request = read_crate_file("src/projects/create_project_request.rs");
+    let editor_recent_sync = read_crate_file("src/projects/editor_recent_sync.rs");
 
+    assert_contains_all(
+        "metadata.rs",
+        &metadata,
+        &[
+            "pub fn project_metadata_key(path: impl AsRef<Path>) -> String",
+            "let mut text = path.as_ref().to_string_lossy().replace('\\\\', \"/\");",
+            "looks_like_windows_drive_path(&text)",
+            "pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String",
+            ".canonicalize()",
+            "project_metadata_key(resolved)",
+            "pub fn project_paths_match(left: impl AsRef<Path>, right: impl AsRef<Path>) -> bool",
+            "metadata_key_normalizes_separators_and_trailing_slashes",
+            "project_paths_match_uses_metadata_key_normalization",
+            "filesystem_path_key_canonicalizes_when_possible",
+        ],
+    );
+    assert_contains_all(
+        "projects/mod.rs",
+        &projects_mod,
+        &[
+            "project_filesystem_path_key",
+            "project_metadata_key",
+            "project_paths_match",
+            "validate_project_root",
+            "ProjectValidation",
+        ],
+    );
+    assert_contains_all(
+        "validation.rs",
+        &validation,
+        &[
+            "pub enum ProjectValidation",
+            "Valid",
+            "MissingRoot",
+            "MissingManifest",
+            "pub fn validate_project_root(path: impl AsRef<Path>) -> ProjectValidation",
+            "path.join(\"zircon-project.toml\").is_file()",
+        ],
+    );
+    assert_contains_all(
+        "create_project_request.rs",
+        &create_request,
+        &[
+            "pub location: PathBuf",
+            "pub fn validate_launch_fields(&self) -> Result<(), &'static str>",
+            "Project location is required",
+            "pub fn target_root(&self) -> PathBuf",
+            "self.location.join(&self.project_name)",
+            "create_request_trims_name_and_validates_launch_fields",
+        ],
+    );
+    assert_contains_all(
+        "editor_recent_sync.rs",
+        &editor_recent_sync,
+        &[
+            "use super::metadata::{project_metadata_key, project_paths_match};",
+            "pub last_project_path: Option<PathBuf>",
+            ".any(|project| project_paths_match(&project.path, Path::new(path)))",
+            "let key = project_metadata_key(&entry.path);",
+        ],
+    );
+}
+
+#[test]
+fn catalogs_team_and_runtime_roots_share_filesystem_path_keys() {
     for (label, file) in [
         ("Assets catalog", "src/assets/catalog.rs"),
         ("Plugins catalog", "src/plugins/catalog.rs"),
@@ -46,238 +129,363 @@ fn selected_project_workflow_reuses_shared_path_keys() {
         ("Team Git discovery", "src/team/local_git.rs"),
     ] {
         let source = read_crate_file(file);
-        assert!(
-            source.contains("use crate::projects::project_filesystem_path_key;"),
-            "{label} must use the shared filesystem path key instead of a local slash/case helper"
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "use crate::projects::project_filesystem_path_key;",
+                "project_filesystem_path_key(",
+            ],
         );
-        assert!(
-            source.contains("project_filesystem_path_key("),
-            "{label} must apply the shared filesystem path key before deduplicating scanned roots"
+        assert_not_contains_any(
+            label,
+            &source,
+            &["fn normalized_path_key", "fn looks_like_windows_path"],
         );
-        assert!(
-            !source.contains("fn normalized_path_key"),
-            "{label} must not keep a private normalized_path_key helper that can drift from selected-project matching"
+    }
+
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let scoped_views = read_crate_file("src/tauri_app/runtime_state/scoped_views.rs");
+    assert_contains_all(
+        "runtime_state.rs",
+        &runtime_state,
+        &[
+            "use crate::projects::{",
+            "project_metadata_key",
+            "project_paths_match",
+            "mod scoped_views;",
+            "fn refresh_project_context_views(",
+            "self.refresh_source_scoped_views()",
+            "self.refresh_selected_project_scoped_views()",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/scoped_views.rs",
+        &scoped_views,
+        &[
+            "use crate::projects::project_filesystem_path_key;",
+            "discover_asset_catalog_for_scope",
+            "discover_learn_catalog_for_scope",
+            "discover_plugin_catalog_with_project_roots",
+            "discover_team_overview",
+            "fn selected_project_catalog_root(&self) -> Option<PathBuf>",
+            ".selected_project()",
+            "fn source_engine_catalog_roots(&self) -> Vec<PathBuf>",
+            "push_development_roots(&mut roots, engine.source_dir.clone());",
+            "fn push_unique_root(roots: &mut Vec<PathBuf>, path: PathBuf)",
+            "let candidate_key = project_filesystem_path_key(&path);",
+            "project_filesystem_path_key(root) == candidate_key",
+            "fn push_development_roots(roots: &mut Vec<PathBuf>, source_dir: PathBuf)",
+            "fn compiled_repo_root() -> Option<PathBuf>",
+        ],
+    );
+}
+
+#[test]
+fn tauri_runtime_selected_project_paths_use_shared_matching() {
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let quick_actions = read_crate_file("src/tauri_app/runtime_state/quick_actions.rs");
+    let editor_launch = read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
+    let delivery_actions =
+        read_crate_file("src/tauri_app/runtime_state/project_delivery_actions.rs");
+
+    assert_contains_all(
+        "runtime_state.rs",
+        &runtime_state,
+        &[
+            "fn selected_recent_project(&mut self) -> Option<RecentProject>",
+            "let selected_path = self.selected_project_path.clone()?;",
+            ".find(|project| project_paths_match(&project.path, &selected_path))",
+            "self.selected_project_path = Some(project.path.clone());",
+            "self.selected_project_path = None;",
+            "fn find_recent_project(&self, target: &str) -> Option<RecentProject>",
+            "let target_key = project_metadata_key(target);",
+            "project_paths_match(&project.path, target)",
+            "project_metadata_key(&project.path) == target_key",
+            "fn startup_selected_project_path(",
+            ".find(|project| project_paths_match(&project.path, path))",
+            ".find(|project| project_paths_match(&project.path, last_project_path))",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/quick_actions.rs",
+        &quick_actions,
+        &[
+            "action_target_for_project_failure",
+            "\"Project\".to_string()",
+        ],
+    );
+    assert_not_contains_any(
+        "runtime_state/quick_actions.rs",
+        &quick_actions,
+        &["self.selected_project_path != selected_before"],
+    );
+    assert_contains_all(
+        "runtime_state/editor_launch_actions.rs",
+        &editor_launch,
+        &[
+            "self.activate_project_engine_for_path(&project.path);",
+            "selected_project_path_changed(",
+            "fn selected_project_path_changed(before: Option<&Path>, after: Option<&Path>) -> bool",
+            "(Some(before), Some(after)) => !project_paths_match(before, after)",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/project_delivery_actions.rs",
+        &delivery_actions,
+        &[
+            "selected_or_latest_recent_project_for_named_action",
+            "validate_project_root(&project.path)",
+            "Project root is not valid",
+        ],
+    );
+}
+
+#[test]
+fn view_model_and_types_project_paths_as_display_dtos() {
+    let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let display = read_crate_file("src/tauri_app/view_model/display.rs");
+    let action_history = read_crate_file("src/tauri_app/view_model/action_history.rs");
+    let settings_dto = read_crate_file("src/tauri_app/view_model/settings_dto.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "view_model.rs",
+        &view_model,
+        &[
+            "pub path: String",
+            "pub location: String",
+            "pub source_path: String",
+            "pub output_path: String",
+            "path: path_text(&project.path, language)",
+            "location: summary.path",
+            "path: path_text(path, snapshot.settings.language)",
+            "source_path: path_text(&engine.source_dir, snapshot.settings.language)",
+            "output_path: path_text(&engine.output_dir, snapshot.settings.language)",
+            "repository_path: path_text(&team.repository_path, language)",
+            "repository_available: !team.repository_path.as_os_str().is_empty()",
+        ],
+    );
+    assert_contains_all(
+        "view_model/display.rs",
+        &display,
+        &[
+            "pub(crate) fn path_text(path: &Path, language: HubLanguage) -> String",
+            ".pair(\"Not configured\", \"未配置\")",
+            "pub(crate) fn path_text_en(path: &Path) -> String",
+        ],
+    );
+    assert_contains_all(
+        "action_history.rs",
+        &action_history,
+        &[
+            "let output_dir = record.output_dir.as_deref().map(path_text_en);",
+            "output_dir,",
+        ],
+    );
+    assert_contains_all(
+        "settings_dto.rs",
+        &settings_dto,
+        &[
+            "pub default_project_dir: String",
+            "pub default_build_output_dir: String",
+            "pub default_device_install_dir: String",
+            "default_project_dir: path_text(&settings.default_project_dir, settings.language)",
+            "default_build_output_dir: path_text(",
+            "default_device_install_dir: path_text(",
+        ],
+    );
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "path: string;",
+            "location: string;",
+            "sourcePath: string;",
+            "outputPath: string;",
+            "repositoryPath: string;",
+            "repositoryAvailable: boolean;",
+            "outputDir?: string | null;",
+            "defaultProjectDir: string;",
+            "defaultBuildOutputDir: string;",
+            "defaultDeviceInstallDir: string;",
+        ],
+    );
+}
+
+#[test]
+fn react_components_display_paths_from_dtos_without_path_normalization_helpers() {
+    let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
+    let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
+    let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
+    let project_table = read_crate_file("web/src/components/data/ProjectTable.tsx");
+    let source_engine_list = read_crate_file("web/src/components/data/SourceEngineList.tsx");
+
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &dashboard,
+        &[
+            "const [projectLocation, setProjectLocation] = useState(state.settings.defaultProjectDir);",
+            "setProjectLocation(state.settings.defaultProjectDir);",
+            "const tableProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;",
+            "return tableProjects.filter((project) => `${project.name} ${project.location}`.toLowerCase().includes(query));",
+            "projects={visibleRows}",
+            "HubTextField label={text.location} value={projectLocation}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectBrowserPage.tsx",
+        &browser,
+        &["`${project.name} ${project.location}`.toLowerCase().includes(query)"],
+    );
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "title: text.location, detail: project.path",
+            "{ id: \"project-id\", title: text.projectId, detail: project.id }",
+            "detail: project.path",
+            "{project?.path ?? state.pageSubtitle}",
+            "detail={project.exists ? text.ready : text.pathUnavailable}",
+        ],
+    );
+    assert_contains_all(
+        "BuildsPage.tsx",
+        &builds,
+        &[
+            "meta: state.settings.defaultBuildOutputDir",
+            "meta: state.settings.defaultDeviceInstallDir",
+            "{ id: \"project\", title: workflowProject.name, detail: workflowProjectPath(workflowProject), meta: \"status\" in workflowProject ? workflowProject.status : workflowProject.modified }",
+            "{ id: \"output\", title: common.output, detail: state.settings.defaultBuildOutputDir }",
+            "<HubList items={action.detailRows} />",
+        ],
+    );
+    assert_contains_all(
+        "CloudPage.tsx",
+        &cloud,
+        &[
+            "secondaryDetail: action.outputDir ?? common.noOutputDirectory,",
+            "{ id: \"package-root\", label: text.packageOutput, detail: state.settings.defaultBuildOutputDir }",
+            "{ id: \"device-root\", label: text.deviceInstall, detail: state.settings.defaultDeviceInstallDir }",
+            "{ id: \"project-path\", title: common.path, detail: workflowProject ? workflowProjectPath(workflowProject) : common.noProjectSelected }",
+            "detail={workflowProject ? workflowProjectPath(workflowProject) : common.noProjectSelected}",
+            "detail={state.settings.defaultDeviceInstallDir}",
+        ],
+    );
+    assert_contains_all(
+        "SettingsPage.tsx",
+        &settings,
+        &[
+            "{ id: \"projects\", label: labels.defaultProjectDir, detail: draft.defaultProjectDir }",
+            "label={labels.defaultProjectDir}",
+            "label={labels.defaultBuildOutputDir}",
+            "label={labels.defaultDeviceInstallDir}",
+        ],
+    );
+    assert_contains_all("ProjectCard.tsx", &project_card, &["{project.path}"]);
+    assert_contains_all(
+        "ProjectTable.tsx",
+        &project_table,
+        &[
+            "<HeaderCell>{labels.location}</HeaderCell>",
+            "<BodyCell>{project.location}</BodyCell>",
+        ],
+    );
+    assert_contains_all(
+        "SourceEngineList.tsx",
+        &source_engine_list,
+        &["{engine.sourcePath}", "{engine.outputPath}"],
+    );
+
+    for (name, source) in [
+        ("ProjectsDashboard.tsx", &dashboard),
+        ("ProjectBrowserPage.tsx", &browser),
+        ("ProjectDetailPage.tsx", &detail),
+        ("BuildsPage.tsx", &builds),
+        ("CloudPage.tsx", &cloud),
+        ("SettingsPage.tsx", &settings),
+    ] {
+        assert_not_contains_any(
+            name,
+            source,
+            &[
+                "project_metadata_key",
+                "project_paths_match",
+                "project_filesystem_path_key",
+            ],
         );
     }
 }
 
 #[test]
-fn team_projection_uses_project_metadata_key_for_repository_scope() {
-    let team = read_crate_file("src/app/view_model/team.rs");
+fn project_path_scope_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
 
-    assert!(
-        team.contains("use crate::projects::project_metadata_key;"),
-        "Team projection must use the same selected-project metadata key as runtime/project views"
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/project_path_scope_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test project_path_scope_contract",
+            "## Project Path Scope Contract Cutover",
+            "React/MUI project path scope and path display",
+            "src/projects/metadata.rs",
+            "src/projects/validation.rs",
+            "src/tauri_app/runtime_state.rs",
+            "src/tauri_app/view_model.rs",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectTable.tsx",
+        ],
     );
-    for snippet in [
-        "let project_key = project_metadata_key(project_path);",
-        "let repository_key = project_metadata_key(repository_path);",
-        "project_key.starts_with(&format!(\"{repository_key}/\"))",
-        "repository_key.starts_with(&format!(\"{project_key}/\"))",
-        "Selected project repository unavailable; showing Source Engine repository",
-        "\"Source Engine repository\"",
-        "fn team_summary_labels_source_engine_fallback_for_missing_selected_project_repository()",
-    ] {
-        assert!(
-            team.contains(snippet),
-            "Team selected-project repository matching must use shared metadata keys; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "fn normalized_path_key",
-        "fn looks_like_windows_path",
-        "\"Source engine repository\"",
-    ] {
-        assert!(
-            !team.contains(forbidden),
-            "Team projection should not keep local path-normalization helpers after shared key convergence: {forbidden}"
-        );
-    }
-}
-
-#[test]
-fn runtime_scoped_roots_share_project_filesystem_path_key() {
-    let root_paths = read_crate_file("src/app/runtime/root_paths.rs");
-    for snippet in [
-        "use crate::projects::project_filesystem_path_key;",
-        "pub(super) fn push_unique_root",
-        "pub(super) fn push_development_roots",
-        "let candidate_key = project_filesystem_path_key(&path);",
-        "project_filesystem_path_key(root) == candidate_key",
-        "fn compiled_repo_root() -> Option<PathBuf>",
-    ] {
-        assert!(
-            root_paths.contains(snippet),
-            "runtime root collection must share canonical project filesystem path keys; missing {snippet}"
-        );
-    }
-
-    let runtime = read_crate_file("src/app/runtime.rs");
-    assert!(
-        runtime.contains("mod root_paths;"),
-        "runtime.rs must register the focused root_paths module instead of keeping root-list helpers in page refresh modules"
-    );
-
-    let scoped_views = read_crate_file("src/app/runtime/source_scoped_views.rs");
-    for snippet in [
-        "use super::{root_paths::push_development_roots, HubRuntime};",
-        "pub(super) fn selected_project_catalog_root(&self) -> Option<std::path::PathBuf>",
-        "pub(super) fn source_engine_catalog_roots(&self) -> Vec<std::path::PathBuf>",
-        "push_development_roots(&mut roots, engine.source_dir.clone());",
-    ] {
-        assert!(
-            scoped_views.contains(snippet),
-            "Scoped view roots should collect source/current/compiled roots once through shared runtime root logic; missing {snippet}"
-        );
-    }
-
-    for (label, file) in [
-        ("Asset refresh", "src/app/runtime/asset_catalog.rs"),
-        ("Learn refresh", "src/app/runtime/learn_catalog.rs"),
-        ("Plugin refresh", "src/app/runtime/plugin_catalog.rs"),
-    ] {
-        let source = read_crate_file(file);
-        assert!(
-            source.contains("self.source_engine_catalog_roots()"),
-            "{label} should consume scope-derived engine roots instead of rebuilding development root fallback locally"
-        );
-        assert!(
-            !source.contains("fn push_non_empty")
-                && !source.contains("fn compiled_repo_root")
-                && !source.contains("push_development_roots(")
-                && !source.contains("roots.iter().any(|root| root == &path)"),
-            "{label} must not keep direct PathBuf equality root de-duplication after root_paths convergence"
-        );
-    }
-
-    let team = read_crate_file("src/app/runtime/team_overview.rs");
-    for snippet in [
-        "push_unique_root(&mut roots, project_root);",
-        "for source_root in self.source_engine_catalog_roots()",
-        "push_unique_root(&mut roots, source_root);",
-    ] {
-        assert!(
-            team.contains(snippet),
-            "Team refresh should keep selected project first while sharing runtime root key logic; missing {snippet}"
-        );
-    }
-    assert!(
-        !team.contains("fn push_non_empty")
-            && !team.contains("fn compiled_repo_root")
-            && !team.contains("roots.iter().any(|root| root == &path)"),
-        "Team refresh must not keep direct PathBuf equality root de-duplication after root_paths convergence"
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`project_path_scope_contract.rs`",
+            "React/MUI project path scope and path display",
+            "Rust path keys and validation own normalization while React displays path DTO strings",
+        ],
     );
 }
 
 #[test]
-fn source_engine_refreshes_use_one_scoped_view_helper() {
-    let runtime = read_crate_file("src/app/runtime.rs");
-    assert!(
-        runtime.contains("mod source_scoped_views;"),
-        "runtime.rs must register a focused helper for Source Engine scoped page refreshes"
+fn project_path_scope_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/project_path_scope_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "project_path_scope_contract.rs",
+        &contract,
+        &[
+            "src/projects/metadata.rs",
+            "src/projects/validation.rs",
+            "src/projects/create_project_request.rs",
+            "src/tauri_app/runtime_state.rs",
+            "src/tauri_app/view_model.rs",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectTable.tsx",
+        ],
     );
-
-    let scoped_views = read_crate_file("src/app/runtime/source_scoped_views.rs");
-    for snippet in [
-        "pub(super) fn refresh_source_scoped_views(&mut self) -> Result<(), HubError>",
-        "self.refresh_asset_catalog()?;",
-        "self.refresh_learn_catalog()?;",
-        "self.refresh_plugin_catalog()?;",
-        "self.refresh_team_overview()",
-    ] {
-        assert!(
-            scoped_views.contains(snippet),
-            "Source Engine scoped refreshes should stay centralized; missing {snippet}"
-        );
-    }
-
-    let repeated_refresh_chain = concat!(
-        "self.refresh_asset_catalog()?;\n",
-        "        self.refresh_learn_catalog()?;\n",
-        "        self.refresh_plugin_catalog()?;\n",
-        "        self.refresh_team_overview()?"
-    );
-    assert!(
-        !runtime.contains(repeated_refresh_chain),
-        "runtime.rs should call refresh_source_scoped_views instead of repeating the full refresh chain"
-    );
-    for snippet in ["self.refresh_source_scoped_views()?;"] {
-        assert!(
-            runtime.contains(snippet),
-            "runtime.rs must use the shared Source Engine scoped refresh helper; missing {snippet}"
-        );
-    }
-
-    let folder_picker = read_crate_file("src/app/runtime/folder_picker.rs");
-    let source_browse = folder_picker
-        .split("\"source\" => {")
-        .nth(1)
-        .and_then(|source| source.split("\"output\" => {").next())
-        .expect("folder_picker.rs must declare source folder branch before output branch");
-    let output_browse = folder_picker
-        .split("\"output\" => {")
-        .nth(1)
-        .and_then(|source| source.split("\"device-install\" => {").next())
-        .expect("folder_picker.rs must declare output folder branch before device-install branch");
-    for (label, branch) in [
-        ("Source folder selection", source_browse),
-        ("Output folder selection", output_browse),
-    ] {
-        for snippet in [
-            "self.register_source_engine_from_settings();",
-            "self.refresh_source_scoped_views()?;",
-        ] {
-            assert!(
-                branch.contains(snippet),
-                "{label} should register the Source Engine and refresh scoped views through the shared helper; missing {snippet}"
-            );
-        }
-    }
-    assert!(
-        !folder_picker.contains(repeated_refresh_chain),
-        "folder_picker.rs should not repeat the full Source Engine scoped refresh chain"
-    );
-
-    assert!(
-        runtime.contains(
-            "self.register_source_engine_from_settings();\n        self.refresh_source_scoped_views()?;"
-        ) && runtime.contains(
-            "self.validate_active_source_engine_for_build(command_line.clone())?;"
-        ),
-        "Build should refresh Source Engine scoped views after registering settings and before validating/projecting the building snapshot"
-    );
-
-    let workspace = read_crate_file("src/app/runtime/project_workspace.rs");
-    for snippet in [
-        "fn refresh_project_context_views(",
-        "selected_project_changed: bool,",
-        "active_engine_changed: bool,",
-        "if active_engine_changed {\n            self.refresh_source_scoped_views()",
-        "} else if selected_project_changed {\n            self.refresh_selected_project_scoped_views()",
-        "self.refresh_project_context_views(\n            selected_project_changed,\n            self.config.active_engine_id != active_engine_before,\n        )?;",
-    ] {
-        assert!(
-            workspace.contains(snippet),
-            "Project actions should refresh Learn plus project-scoped views when their bound Source Engine changes; missing {snippet}"
-        );
-    }
-}
-
-#[test]
-fn selected_project_refresh_detection_uses_normalized_paths() {
-    let workspace = read_crate_file("src/app/runtime/project_workspace.rs");
-    for snippet in [
-        "fn selected_project_path_changed(before: Option<&Path>, after: Option<&Path>) -> bool",
-        "(Some(before), Some(after)) => !project_paths_match(before, after)",
-        "selected_project_path_changed(\n            selected_before.as_deref(),\n            self.selected_project_path.as_deref(),\n        )",
-    ] {
-        assert!(
-            workspace.contains(snippet),
-            "selected-project scoped refresh detection must use normalized project path matching; missing {snippet}"
-        );
-    }
-    assert!(
-        !workspace.contains("self.selected_project_path != selected_before"),
-        "selected-project scoped refresh detection must not use direct Option<PathBuf> equality after path-key convergence"
+    assert_not_contains_any(
+        "project_path_scope_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
     );
 }

@@ -8,6 +8,14 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/dispatch/descriptor_for.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
+  - zircon_runtime/src/graphics/tests/advanced_followup_slots.rs
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
@@ -42,6 +50,11 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/dispatch/descriptor_for.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/editor/src/lib.rs
@@ -69,6 +82,9 @@ plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
 tests:
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
+  - zircon_runtime/src/graphics/tests/advanced_followup_slots.rs
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
@@ -144,10 +160,20 @@ lighting keep their post-process composite slots, and post process keeps
 features directly; applying the default rendering feature descriptors restores
 the legacy pass order.
 
+The runtime built-in `Decal` feature is deliberately narrower than the
+`rendering.decals` plugin. It is a descriptor-only advanced slot for renderer-data
+sources, quality gates, and profile opt-in; enabling it only reserves the
+`decals` extract section and does not register a graph pass, executor, history
+binding, or backend capability requirement.
+
 ## V1 feature surfaces
 
-`decals` registers a `rendering.Component.DecalProjector` descriptor plus a
-screen/deferred-compatible composite pass.
+`decals` registers a `rendering.Component.DecalProjector` descriptor plus the
+`decal-projector-composite` screen/deferred-compatible composite pass and the
+explicit `decals.projector-composite` executor. That plugin remains the owner of
+executable projector decal rendering; the runtime `Decal` token only gives
+renderer data and quality profiles a stable built-in feature name before a
+dedicated built-in decal renderer exists.
 
 `ray_tracing_policy` provides a policy report over acceleration structure,
 inline ray query, and ray pipeline gates. It does not implement a hardware ray
@@ -163,9 +189,13 @@ async simulation pass, and a transparent render pass.
 
 The module split follows Unreal's separation between `Renderer`, `RenderCore`,
 and `RHI`, plus the plugin-shaped examples in
-`PostProcessMaterialChainGraph`, `GPULightmass`, and `Niagara`. Unity Graphics
-is the secondary reference for SRP `ScriptableRendererFeature`, RenderGraph,
-ShaderGraph, VFX Graph, decals, SSAO, and post-process pass organization.
+`PostProcessMaterialChainGraph`, `GPULightmass`, and `Niagara`. Unreal decal
+actor metadata and sort-order handling inform the plugin-owned projector surface.
+Unity Graphics is the secondary reference for SRP `ScriptableRendererFeature`,
+RenderGraph, ShaderGraph, VFX Graph, Decal Projector authoring, SSAO, and
+post-process pass organization. Bevy's clustered decal path is the local
+WGPU-oriented reminder that real decal execution needs explicit clustered/storage
+resources rather than a descriptor-only slot.
 
 ## Validation
 

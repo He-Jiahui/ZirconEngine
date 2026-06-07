@@ -4,7 +4,6 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::ui_surface_effective_disabled;
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::UiSurface;
 

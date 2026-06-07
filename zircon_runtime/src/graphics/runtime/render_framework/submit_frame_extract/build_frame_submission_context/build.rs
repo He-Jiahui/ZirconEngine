@@ -1,10 +1,12 @@
 use crate::core::framework::render::{
     AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessStackDescriptor,
-    RenderBloomSettings, RenderColorGradingSettings, RenderFrameExtract, RenderFrameworkError,
-    RenderHybridGiPayloadSource, RenderPostProcessEffectStackSettings, RenderViewportHandle,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
+    RenderBloomSettings, RenderCameraTargetResolutionReport, RenderColorGradingSettings,
+    RenderFrameExtract, RenderFrameworkError, RenderHybridGiPayloadSource,
+    RenderPostProcessEffectStackSettings, RenderViewportHandle, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPayloadSource,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
+use crate::graphics::ViewportRenderOutputTarget;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
@@ -26,12 +28,32 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
     let mut viewport_state = resolve_viewport_record_state(server, viewport, extract)?;
-    let submission_size =
-        resolve_camera_target_size(viewport_state.size(), &extract.view.camera.target)?;
+    let primary_target_size = viewport_state.size();
+    let asset_manager = {
+        let state = server.lock_state();
+        state.renderer.asset_manager_for_runtime_extract()
+    };
+    let submission_size = resolve_camera_target_size(
+        primary_target_size,
+        &extract.view.camera.target,
+        asset_manager.as_ref(),
+    )?;
     let mut sized_extract = extract.clone();
     sized_extract.apply_viewport_size(submission_size);
     let extract = &sized_extract;
+    let effective_view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
+    let camera_target_resolution = RenderCameraTargetResolutionReport::new(
+        extract.view.camera.target.kind(),
+        primary_target_size,
+        submission_size,
+        effective_view_size,
+        render_size,
+    );
+    let output_target = ViewportRenderOutputTarget::from_camera_target(
+        &extract.view.camera.target,
+        submission_size,
+    );
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
@@ -169,8 +191,15 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.take_quality_profile(),
         compiled_pipeline,
         visibility_context,
+        viewport_state.previous_motion_vector_camera().cloned(),
+        viewport_state
+            .previous_motion_vector_object_history()
+            .cloned(),
         history_validation_key,
         history_invalidation_reason,
+        output_target,
+        camera_target_resolution,
+        extract.view.scene_camera_order_report.clone(),
         ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),

@@ -5,18 +5,51 @@ import HelpOutlinedIcon from "@mui/icons-material/HelpOutlined";
 import MinimizeIcon from "@mui/icons-material/Minimize";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Avatar, Box, Divider, Typography } from "@mui/material";
+import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
+import { Avatar, Box, ButtonBase, Divider, Typography } from "@mui/material";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useState } from "react";
 import { brandMark } from "../../data/hubData";
 import { hubTokens } from "../../theme/tokens";
-import type { HubShellState } from "../../types/hub";
+import type { HubActionHandler, HubShellState } from "../../types/hub";
+import { HUB_ACTION } from "../../types/hub";
 import { StatusBadge } from "../data";
-import { HubIconButton, HubSelect } from "../inputs";
+import { HubIconButton } from "../inputs";
+import { SourceEnginePopover, UserMenuPopover } from "../overlays";
 
 export interface TopBarProps {
   state: HubShellState;
+  onAction: HubActionHandler;
 }
 
-export function TopBar({ state }: TopBarProps) {
+export function TopBar({ state, onAction }: TopBarProps) {
+  const [engineAnchor, setEngineAnchor] = useState<HTMLElement | null>(null);
+  const [userAnchor, setUserAnchor] = useState<HTMLElement | null>(null);
+  const activeEngine =
+    state.sourceEngines.find((engine) => engine.id === state.activeSourceEngineId) ??
+    state.sourceEngines.find((engine) => engine.active);
+  const engineLabel = activeEngine?.name ?? state.engineVersion;
+  const userName = state.team.identityName || state.ui.common.notConfigured;
+  const userInitials = initialsFromName(userName);
+  const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());
+  const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());
+  const handleClose = () => runWindowAction((appWindow) => appWindow.close());
+
+  const handleUserAction = (actionId: string) => {
+    if (actionId === "preferences") {
+      void onAction(HUB_ACTION.showPage, "settings");
+      return;
+    }
+    if (actionId === "documentation") {
+      void onAction(HUB_ACTION.showPage, "learn");
+      return;
+    }
+    if (actionId === "account") {
+      void onAction(HUB_ACTION.showPage, "team");
+      return;
+    }
+  };
+
   return (
     <Box
       component="header"
@@ -39,18 +72,40 @@ export function TopBar({ state }: TopBarProps) {
             {state.productName}
           </Typography>
           <Typography variant="body2" noWrap color="text.secondary" sx={{ mt: 0.3 }}>
-            Game Engine
+            {state.ui.shell.productCategory}
           </Typography>
         </Box>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, minWidth: 0, overflow: "hidden" }}>
-        <HubSelect
-          value={state.engineVersion}
-          minWidth={176}
-          options={[{ value: state.engineVersion, label: state.engineVersion }]}
-          onChange={() => undefined}
-        />
+        <ButtonBase
+          onClick={(event) => setEngineAnchor(event.currentTarget)}
+          sx={{
+            width: 190,
+            minWidth: 160,
+            height: 38,
+            display: "grid",
+            gridTemplateColumns: "24px minmax(0, 1fr) 20px",
+            alignItems: "center",
+            gap: 0.8,
+            px: 1.2,
+            color: hubTokens.colors.text,
+            border: `1px solid ${engineAnchor ? "rgba(45,212,207,0.48)" : hubTokens.colors.lineStrong}`,
+            borderRadius: `${hubTokens.radius.compact}px`,
+            backgroundColor: engineAnchor ? "rgba(18,82,80,0.38)" : "rgba(31,31,31,0.78)",
+            textAlign: "left",
+            "&:hover": {
+              borderColor: "rgba(45,212,207,0.36)",
+              backgroundColor: "rgba(38,38,38,0.86)",
+            },
+          }}
+        >
+          <StorageOutlinedIcon sx={{ color: hubTokens.colors.accent, fontSize: 20 }} />
+          <Typography variant="body2" noWrap>
+            {engineLabel}
+          </Typography>
+          <ExpandMoreIcon sx={{ color: hubTokens.colors.textSoft, fontSize: 18 }} />
+        </ButtonBase>
         <Box
           sx={{
             display: "flex",
@@ -68,39 +123,102 @@ export function TopBar({ state }: TopBarProps) {
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1.4 }}>
         <Box sx={{ display: "flex", gap: 0.5, "@media (max-width: 1180px)": { display: "none" } }}>
-          <HubIconButton label="Notifications" sx={topIconSx}>
+          <HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled sx={topIconSx}>
             <NotificationsNoneIcon />
           </HubIconButton>
-          <HubIconButton label="Help" sx={topIconSx}>
+          <HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, "learn")} sx={topIconSx}>
             <HelpOutlinedIcon />
           </HubIconButton>
-          <HubIconButton label="Settings" sx={topIconSx}>
+          <HubIconButton label={state.ui.shell.settings} onClick={() => void onAction(HUB_ACTION.showPage, "settings")} sx={topIconSx}>
             <SettingsIcon />
           </HubIconButton>
         </Box>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.7, borderColor: hubTokens.colors.line }} />
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.9, minWidth: 0 }}>
-          <Avatar sx={{ width: 36, height: 36, bgcolor: "#4b4f52", fontSize: 14 }}>AD</Avatar>
+        <ButtonBase
+          onClick={(event) => setUserAnchor(event.currentTarget)}
+          sx={{
+            height: 42,
+            display: "flex",
+            alignItems: "center",
+            gap: 0.9,
+            minWidth: 0,
+            px: 0.6,
+            borderRadius: `${hubTokens.radius.compact}px`,
+            color: hubTokens.colors.text,
+            border: `1px solid ${userAnchor ? "rgba(45,212,207,0.48)" : "transparent"}`,
+            "&:hover": { backgroundColor: "rgba(255,255,255,0.045)" },
+          }}
+        >
+          <Avatar sx={{ width: 36, height: 36, bgcolor: "#4b4f52", fontSize: 14 }}>{userInitials}</Avatar>
           <Typography variant="body2" noWrap sx={{ maxWidth: 126, "@media (max-width: 1180px)": { display: "none" } }}>
-            Alex Developer
+            {userName}
           </Typography>
           <ExpandMoreIcon sx={{ fontSize: 18, color: hubTokens.colors.textSoft }} />
-        </Box>
+        </ButtonBase>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.7, borderColor: hubTokens.colors.line }} />
         <Box sx={{ display: "flex", gap: 0.2 }}>
-          <HubIconButton label="Minimize" sx={windowIconSx}>
+          <HubIconButton label={state.ui.shell.minimize} onClick={handleMinimize} sx={windowIconSx}>
             <MinimizeIcon fontSize="small" />
           </HubIconButton>
-          <HubIconButton label="Maximize" sx={windowIconSx}>
+          <HubIconButton label={state.ui.shell.maximize} onClick={handleToggleMaximize} sx={windowIconSx}>
             <CropSquareIcon fontSize="small" />
           </HubIconButton>
-          <HubIconButton label="Close" sx={windowIconSx}>
+          <HubIconButton label={state.ui.shell.close} onClick={handleClose} sx={windowIconSx}>
             <CloseIcon fontSize="small" />
           </HubIconButton>
         </Box>
       </Box>
+      <SourceEnginePopover
+        anchorEl={engineAnchor}
+        open={Boolean(engineAnchor)}
+        engines={state.sourceEngines}
+        activeEngineId={state.activeSourceEngineId}
+        settings={state.settings}
+        text={state.ui.shell}
+        onClose={() => setEngineAnchor(null)}
+        onSelect={(engineId) => {
+          setEngineAnchor(null);
+          void onAction(HUB_ACTION.selectEngine, engineId);
+        }}
+        onManage={() => {
+          setEngineAnchor(null);
+          void onAction(HUB_ACTION.showPage, "settings");
+        }}
+      />
+      <UserMenuPopover
+        anchorEl={userAnchor}
+        open={Boolean(userAnchor)}
+        initials={userInitials}
+        userName={userName}
+        text={state.ui.shell}
+        onClose={() => setUserAnchor(null)}
+        onAction={handleUserAction}
+      />
     </Box>
   );
+}
+
+function initialsFromName(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return initials || "ZH";
+}
+
+type TauriWindow = ReturnType<typeof getCurrentWindow>;
+
+function runWindowAction(action: (appWindow: TauriWindow) => Promise<void>) {
+  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+    return;
+  }
+
+  void action(getCurrentWindow());
 }
 
 const topIconSx = {
@@ -109,6 +227,11 @@ const topIconSx = {
   backgroundColor: "transparent",
   borderColor: "transparent",
   color: hubTokens.colors.textSoft,
+  "&.Mui-disabled": {
+    color: hubTokens.colors.textMuted,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+  },
 };
 
 const windowIconSx = {

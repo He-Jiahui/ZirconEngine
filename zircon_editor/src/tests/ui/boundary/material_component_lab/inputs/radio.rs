@@ -7,7 +7,7 @@ use super::{assert_non_dispatchable_child, string_array_prop};
 
 #[test]
 fn material_radio_group_sample_covers_exclusive_disabled_and_error_states() {
-    let path = editor_asset("assets/ui/editor/material_components/material_radio_buttons.zui");
+    let path = editor_asset("assets/ui/editor/material_components/inputs/material_radio_buttons.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

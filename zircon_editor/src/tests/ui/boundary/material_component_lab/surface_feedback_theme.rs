@@ -40,7 +40,7 @@ const ALERT_THEME_SELECTORS: &[&str] = &[
 
 #[test]
 fn material_component_lab_paper_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let document = load_zui("assets/ui/editor/material_components/material_paper.zui");
+    let document = load_zui("assets/ui/editor/material_components/surfaces/material_paper.zui");
     let sample = node(&document, "sample");
 
     assert_component(&document, "sample", "Paper");
@@ -64,7 +64,7 @@ fn material_component_lab_paper_sample_uses_runtime_descriptor_and_theme_selecto
 
 #[test]
 fn material_component_lab_alert_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let document = load_zui("assets/ui/editor/material_components/material_alert.zui");
+    let document = load_zui("assets/ui/editor/material_components/feedback/material_alert.zui");
     let sample = node(&document, "sample");
 
     assert_component(&document, "sample", "Alert");

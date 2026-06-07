@@ -435,6 +435,62 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.project_overview.publish.invoke",
     ),
     click(
+        "PluginManagerOpen",
+        "workbench.extension.plugin_manager.open",
+    ),
+    click(
+        "PluginManagerInstalledTab",
+        "workbench.extension.plugin_manager.installed_tab.select",
+    ),
+    click(
+        "PluginManagerDependenciesTab",
+        "workbench.extension.plugin_manager.dependencies_tab.select",
+    ),
+    click(
+        "PluginManagerUpdatesTab",
+        "workbench.extension.plugin_manager.updates_tab.select",
+    ),
+    click(
+        "PluginManagerAudioRow",
+        "workbench.extension.plugin_manager.audio_row.select",
+    ),
+    click(
+        "PluginManagerRenderdocRow",
+        "workbench.extension.plugin_manager.renderdoc_row.select",
+    ),
+    click(
+        "PluginManagerGameplayRow",
+        "workbench.extension.plugin_manager.gameplay_row.select",
+    ),
+    click(
+        "PluginManagerAudioRuntimeTableRow",
+        "workbench.extension.plugin_manager.audio_runtime_table_row.select",
+    ),
+    click(
+        "PluginManagerRenderdocBridgeTableRow",
+        "workbench.extension.plugin_manager.renderdoc_bridge_table_row.select",
+    ),
+    click(
+        "PluginManagerGameplayPackTableRow",
+        "workbench.extension.plugin_manager.gameplay_pack_table_row.select",
+    ),
+    click(
+        "PluginManagerVersionWarningTableRow",
+        "workbench.extension.plugin_manager.version_warning_table_row.select",
+    ),
+    click(
+        "PluginManagerOutput",
+        "workbench.extension.plugin_manager.output.select",
+    ),
+    click(
+        "PluginManagerHotReload",
+        "workbench.extension.plugin_manager.hot_reload.invoke",
+    ),
+    click(
+        "PluginManagerValidate",
+        "workbench.extension.plugin_manager.validate.invoke",
+    ),
+    click(
         "ParticleLibraryOpen",
         "workbench.extension.particle_library.open",
     ),
@@ -681,6 +737,30 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
     submit(
         "ProjectOverviewHealthCommit",
         "workbench.extension.project_overview.health.commit",
+    ),
+    change(
+        "PluginManagerPluginEdit",
+        "workbench.extension.plugin_manager.plugin.edit",
+    ),
+    submit(
+        "PluginManagerPluginCommit",
+        "workbench.extension.plugin_manager.plugin.commit",
+    ),
+    change(
+        "PluginManagerChannelEdit",
+        "workbench.extension.plugin_manager.channel.edit",
+    ),
+    submit(
+        "PluginManagerChannelCommit",
+        "workbench.extension.plugin_manager.channel.commit",
+    ),
+    change(
+        "PluginManagerVersionEdit",
+        "workbench.extension.plugin_manager.version.edit",
+    ),
+    submit(
+        "PluginManagerVersionCommit",
+        "workbench.extension.plugin_manager.version.commit",
     ),
     change(
         "ParticleLibraryEmitterEdit",

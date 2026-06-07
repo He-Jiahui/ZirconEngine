@@ -42,6 +42,14 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         history_handle,
         previous_handle,
         history_status,
+        record
+            .last_capture()
+            .map(|capture| capture.capture_report)
+            .unwrap_or_else(|| {
+                crate::core::framework::render::RenderCaptureReport::not_captured(
+                    context.output_target().kind(),
+                )
+            }),
         hybrid_gi_stats,
         particle_stats,
         virtual_geometry_stats,

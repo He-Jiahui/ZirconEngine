@@ -1,0 +1,5 @@
+@import "./map/base.css";
+@import "./map/walls.css";
+@import "./map/points.css";
+@import "./map/cones.css";
+@import "./map/paths.css";

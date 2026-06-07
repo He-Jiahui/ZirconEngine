@@ -37,6 +37,10 @@ impl fmt::Display for EditorOperationPath {
 const MIN_OPERATION_PATH_SEGMENTS: usize = 3;
 
 fn operation_path_char(value: char) -> bool {
+    value.is_ascii_lowercase() || value.is_ascii_digit() || value == '_'
+}
+
+fn payload_schema_id_char(value: char) -> bool {
     value.is_ascii_alphanumeric() || value == '_' || value == '-'
 }
 
@@ -428,7 +432,7 @@ fn validate_operation_payload_schema_id(
         let segments = schema_id.split('.').collect::<Vec<_>>();
         let valid = segments
             .iter()
-            .all(|segment| !segment.is_empty() && segment.chars().all(operation_path_char));
+            .all(|segment| !segment.is_empty() && segment.chars().all(payload_schema_id_char));
         if !valid || segments.len() < MIN_OPERATION_PATH_SEGMENTS {
             return Err(
                 EditorOperationRegistryError::InvalidOperationPayloadSchemaId(
@@ -445,118 +449,118 @@ const MIN_MENU_PATH_SEGMENTS: usize = 2;
 fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
     let mut operations = vec![
         operation(
-            "File.Project.Open",
+            "file.project.open",
             "Open Project",
             "File/Open Project",
             EditorEvent::WorkbenchMenu(MenuAction::OpenProject),
         ),
         operation(
-            "File.Project.Save",
+            "file.project.save",
             "Save Project",
             "File/Save Project",
             EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
         ),
         operation(
-            "Window.Layout.Save",
+            "window.layout.save",
             "Save Layout",
             "Window/Save Layout",
             EditorEvent::WorkbenchMenu(MenuAction::SaveLayout),
         ),
         operation(
-            "Window.Layout.Reset",
+            "window.layout.reset",
             "Reset Layout",
             "Window/Reset Layout",
             EditorEvent::WorkbenchMenu(MenuAction::ResetLayout),
         )
         .with_undoable(UndoableEditorOperation::new("Reset Layout")),
         operation(
-            "Scene.Node.CreateCube",
+            "scene.node.create_cube",
             "Create Cube",
             "GameObject/3D Object/Cube",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Cube)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Cube")),
         operation(
-            "Scene.Node.CreateCamera",
+            "scene.node.create_camera",
             "Create Camera",
             "GameObject/Camera",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Camera)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Camera")),
         operation(
-            "Scene.Node.CreateAmbientLight",
+            "scene.node.create_ambient_light",
             "Create Ambient Light",
             "GameObject/Light/Ambient Light",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::AmbientLight)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Ambient Light")),
         operation(
-            "Scene.Node.CreateDirectionalLight",
+            "scene.node.create_directional_light",
             "Create Directional Light",
             "GameObject/Light/Directional Light",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::DirectionalLight)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Directional Light")),
         operation(
-            "Scene.Node.CreatePointLight",
+            "scene.node.create_point_light",
             "Create Point Light",
             "GameObject/Light/Point Light",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::PointLight)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Point Light")),
         operation(
-            "Scene.Node.CreateRectLight",
+            "scene.node.create_rect_light",
             "Create Rect Light",
             "GameObject/Light/Rect Light",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::RectLight)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Rect Light")),
         operation(
-            "Scene.Node.CreateSpotLight",
+            "scene.node.create_spot_light",
             "Create Spot Light",
             "GameObject/Light/Spot Light",
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::SpotLight)),
         )
         .with_undoable(UndoableEditorOperation::new("Create Spot Light")),
         operation(
-            "Scene.Node.DeleteSelected",
+            "scene.node.delete_selected",
             "Delete Selected",
             "Edit/Delete",
             EditorEvent::WorkbenchMenu(MenuAction::DeleteSelected),
         )
         .with_undoable(UndoableEditorOperation::new("Delete Selected")),
         operation(
-            "Edit.History.Undo",
+            "edit.history.undo",
             "Undo",
             "Edit/Undo",
             EditorEvent::WorkbenchMenu(MenuAction::Undo),
         ),
         operation(
-            "Edit.History.Redo",
+            "edit.history.redo",
             "Redo",
             "Edit/Redo",
             EditorEvent::WorkbenchMenu(MenuAction::Redo),
         ),
         operation(
-            "Runtime.PlayMode.Enter",
+            "runtime.play_mode.enter",
             "Enter Play Mode",
             "Play/Enter Play Mode",
             EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
         ),
         operation(
-            "Runtime.PlayMode.Exit",
+            "runtime.play_mode.exit",
             "Exit Play Mode",
             "Play/Exit Play Mode",
             EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
         ),
         operation(
-            "Window.Layout.Default",
+            "window.layout.default",
             "Load Default Layout",
             "Window/Layout/Default",
             EditorEvent::Layout(LayoutCommand::ResetToDefault),
         ),
         EditorOperationDescriptor::new(
-            EditorOperationPath::parse("Inspector.Field.ApplyBatch")
+            EditorOperationPath::parse("inspector.field.apply_batch")
                 .expect("valid built-in operation path"),
             "Apply Inspector Changes",
         )
@@ -571,139 +575,139 @@ fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
 fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
     [
         (
-            "View.Project.Open",
+            "view.project.open",
             "Open Project View",
             "View/Project",
             "editor.project",
         ),
         (
-            "View.Hierarchy.Open",
+            "view.hierarchy.open",
             "Open Hierarchy View",
             "View/Hierarchy",
             "editor.hierarchy",
         ),
         (
-            "View.Inspector.Open",
+            "view.inspector.open",
             "Open Inspector View",
             "View/Inspector",
             "editor.inspector",
         ),
         (
-            "View.Scene.Open",
+            "view.scene.open",
             "Open Scene View",
             "View/Scene",
             "editor.scene",
         ),
         (
-            "View.Game.Open",
+            "view.game.open",
             "Open Game View",
             "View/Game",
             "editor.game",
         ),
         (
-            "View.Assets.Open",
+            "view.assets.open",
             "Open Assets View",
             "View/Assets",
             "editor.assets",
         ),
         (
-            "View.Console.Open",
+            "view.console.open",
             "Open Console View",
             "View/Console",
             "editor.console",
         ),
         (
-            "View.RuntimeDiagnostics.Open",
+            "view.runtime_diagnostics.open",
             "Open Runtime Diagnostics View",
             "View/Runtime Diagnostics",
             "editor.runtime_diagnostics",
         ),
         (
-            "View.PerformanceTimeline.Open",
+            "view.performance_timeline.open",
             "Open Performance Timeline View",
             "View/Performance Timeline",
             "editor.performance_timeline",
         ),
         (
-            "Window.DebugObservatory.Open",
+            "window.debug_observatory.open",
             "Open Debug Observatory",
             "Window/Debug Observatory",
             "editor.debug_observatory",
         ),
         (
-            "View.PluginManager.Open",
+            "view.plugin_manager.open",
             "Open Plugin Manager",
             "View/Plugin Manager",
             "editor.module_plugins",
         ),
         (
-            "View.BuildExport.Open",
+            "view.build_export.open",
             "Open Desktop Export",
             "View/Desktop Export",
             "editor.build_export_desktop",
         ),
         (
-            "View.Prefab.Open",
+            "view.prefab.open",
             "Open Prefab Editor",
             "View/Prefab Editor",
             "editor.prefab",
         ),
         (
-            "View.AssetBrowser.Open",
+            "view.asset_browser.open",
             "Open Asset Browser",
             "View/Asset Browser",
             "editor.asset_browser",
         ),
         (
-            "Window.PrefabEditor.Open",
+            "window.prefab_editor.open",
             "Open Prefab Editor Window",
             "Window/Prefab Editor",
             "editor.prefab_editor_window",
         ),
         (
-            "Window.MaterialEditor.Open",
+            "window.material_editor.open",
             "Open Material Editor",
             "Window/Material Editor",
             "editor.material_editor_window",
         ),
         (
-            "Window.UiComponentShowcase.Open",
+            "window.ui_component_showcase.open",
             "Open UI Component Showcase",
             "Window/UI Component Showcase",
             "editor.ui_component_showcase",
         ),
         (
-            "Window.MaterialDemo.Open",
+            "window.material_demo.open",
             "Open Material Demo",
             "Window/Material Demo",
             "editor.material_demo_window",
         ),
         (
-            "Window.MaterialComponentLab.Open",
+            "window.material_component_lab.open",
             "Open Material Component Lab",
             "Window/Material Component Lab",
             "editor.material_component_lab",
         ),
         (
-            "Window.UiAssetEditor.Open",
+            "window.ui_asset_editor.open",
             "Open UI Asset Editor",
             "Window/UI Asset Editor",
             "editor.ui_asset_editor_window",
         ),
         (
-            "Window.AnimationEditor.Open",
+            "window.animation_editor.open",
             "Open Animation Editor",
             "Window/Animation Editor",
             "editor.animation_editor_window",
         ),
         (
-            "Window.AssetBrowser.Open",
+            "window.asset_browser.open",
             "Open Asset Browser Window",
             "Window/Asset Browser",
             "editor.asset_browser_window",
         ),
         (
-            "Window.Diagnostics.Open",
+            "window.diagnostics.open",
             "Open Diagnostics Window",
             "Window/Diagnostics",
             "editor.diagnostics_window",

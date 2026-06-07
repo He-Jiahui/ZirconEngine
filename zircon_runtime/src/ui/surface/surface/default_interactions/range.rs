@@ -13,7 +13,6 @@ use zircon_runtime_interface::ui::{
 use crate::ui::surface::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface,
 };
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::{is_default_range_behavior, UiDefaultRangePointerActionReport};
 

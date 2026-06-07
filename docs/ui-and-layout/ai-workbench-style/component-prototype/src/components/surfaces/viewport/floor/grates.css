@@ -1,0 +1,22 @@
+.zr-floor-grate {
+  position: absolute;
+  width: 42px;
+  height: 122px;
+  border-left: 2px solid rgba(10, 11, 12, 0.65);
+  border-right: 1px solid rgba(180, 186, 180, 0.12);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.55) 0 2px,
+      rgba(112, 96, 78, 0.18) 2px 5px,
+      rgba(0, 0, 0, 0.52) 5px 8px
+    );
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
+  opacity: 0.62;
+  transform: skewX(-10deg);
+}
+
+.zr-floor-grate.right {
+  left: 59%;
+  top: 82px;
+}

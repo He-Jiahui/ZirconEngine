@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::dispatch::UiInputEvent;
 
-use super::UiWindowEvent;
+use super::{UiWindowEvent, UiWindowPlatformInputEvent};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiWindowInputPumpEvent {
@@ -37,5 +37,9 @@ impl UiWindowInputPumpBatch {
             return;
         }
         self.push(event);
+    }
+
+    pub fn push_platform_input(&mut self, event: UiWindowPlatformInputEvent) {
+        self.push(UiWindowInputPumpEvent::Input(event.normalize()));
     }
 }

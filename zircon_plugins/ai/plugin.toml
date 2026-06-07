@@ -12,7 +12,7 @@ default_packaging = ["source_template", "library_embed"]
 [[capability_statuses]]
 capability = "runtime.plugin.ai"
 status = "partial"
-note = "Foundational AI runtime package; behavior-tree execution is intentionally staged behind manager contracts."
+note = "Foundational AI runtime package; deterministic selector/sequence/task execution and blackboard decorators are available while advanced node families remain partial."
 
 [[capability_statuses]]
 capability = "runtime.feature.ai.behavior_tree"

@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { nativeModules } from "./modules.js";
+import { nativeModules } from "./src/modules/modules.js";
 
 const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const nativeActionSourceExtensions = new Set([".rs", ".toml", ".zui"]);
@@ -10,56 +10,56 @@ const nativeActionSourceRoots = [
 
 const nativeEventSources = [
   [
-    "workbench_top_toolbar.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui",
+    "workbench/shell/workbench_top_toolbar.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui",
   ],
   [
-    "workbench_module_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui",
+    "workbench/modules/core/index/workbench_module_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui",
   ],
   [
-    "workbench_effect_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_effect_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui",
   ],
   [
-    "workbench_material_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui",
+    "workbench/modules/core/rendering/workbench_material_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
   ],
   [
-    "workbench_behavior_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui",
+    "workbench/modules/core/ai/workbench_behavior_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui",
   ],
   [
-    "workbench_assets_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui",
+    "workbench/modules/core/assets/workbench_assets_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
   ],
   [
-    "workbench_vfx_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui",
+    "workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
   ],
   [
-    "workbench_additional_module_workspaces.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui",
+    "workbench/modules/core/index/workbench_additional_module_workspaces.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui",
   ],
   [
-    "workbench_ability_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_ability_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui",
   ],
   [
-    "workbench_tags_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_tags_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui",
   ],
   [
-    "workbench_perception_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui",
+    "workbench/modules/core/ai/workbench_perception_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui",
   ],
   [
-    "workbench_render_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui",
+    "workbench/modules/core/rendering/workbench_render_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui",
   ],
   [
-    "workbench_hud_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui",
+    "workbench/modules/core/ui/workbench_hud_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
   ],
 ];
 
@@ -185,85 +185,85 @@ const nativeCompileFeedbackSamples = [
 
 const nativeModuleWorkspaceSources = [
   [
-    "workbench_main_band.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_main_band.zui",
+    "workbench/shell/workbench_main_band.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui",
   ],
   [
-    "workbench_scene_tree_panel.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui",
+    "workbench/shell/workbench_scene_tree_panel.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui",
   ],
   [
-    "workbench_viewport_panel.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui",
+    "workbench/shell/workbench_viewport_panel.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui",
   ],
   [
-    "workbench_module_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui",
+    "workbench/modules/core/index/workbench_module_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui",
   ],
   [
-    "workbench_effect_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_effect_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui",
   ],
   [
-    "workbench_material_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui",
+    "workbench/modules/core/rendering/workbench_material_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
   ],
   [
-    "workbench_behavior_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui",
+    "workbench/modules/core/ai/workbench_behavior_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui",
   ],
   [
-    "workbench_assets_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui",
+    "workbench/modules/core/assets/workbench_assets_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
   ],
   [
-    "workbench_vfx_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui",
+    "workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
   ],
   [
-    "workbench_additional_module_workspaces.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui",
+    "workbench/modules/core/index/workbench_additional_module_workspaces.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui",
   ],
   [
-    "workbench_ability_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_ability_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui",
   ],
   [
-    "workbench_tags_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui",
+    "workbench/modules/core/gameplay/workbench_tags_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui",
   ],
   [
-    "workbench_perception_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui",
+    "workbench/modules/core/ai/workbench_perception_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui",
   ],
   [
-    "workbench_render_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui",
+    "workbench/modules/core/rendering/workbench_render_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui",
   ],
   [
-    "workbench_hud_workspace.zui",
-    "../../../../zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui",
+    "workbench/modules/core/ui/workbench_hud_workspace.zui",
+    "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
   ],
 ];
 
 const nativeModuleWorkspaceContracts = [
-  ["Effect", "effect", "workbench_effect_workspace.zui"],
-  ["Ability", "ability", "workbench_ability_workspace.zui"],
-  ["Tags", "tags", "workbench_tags_workspace.zui"],
-  ["Perception", "perception", "workbench_perception_workspace.zui"],
-  ["Material", "material", "workbench_material_workspace.zui"],
-  ["Behavior", "behavior", "workbench_behavior_workspace.zui"],
-  ["Render", "render", "workbench_render_workspace.zui"],
-  ["Assets", "assets", "workbench_assets_workspace.zui"],
-  ["Vfx", "vfx", "workbench_vfx_workspace.zui"],
-  ["Hud", "hud", "workbench_hud_workspace.zui"],
+  ["Effect", "effect", "workbench/modules/core/gameplay/workbench_effect_workspace.zui"],
+  ["Ability", "ability", "workbench/modules/core/gameplay/workbench_ability_workspace.zui"],
+  ["Tags", "tags", "workbench/modules/core/gameplay/workbench_tags_workspace.zui"],
+  ["Perception", "perception", "workbench/modules/core/ai/workbench_perception_workspace.zui"],
+  ["Material", "material", "workbench/modules/core/rendering/workbench_material_workspace.zui"],
+  ["Behavior", "behavior", "workbench/modules/core/ai/workbench_behavior_workspace.zui"],
+  ["Render", "render", "workbench/modules/core/rendering/workbench_render_workspace.zui"],
+  ["Assets", "assets", "workbench/modules/core/assets/workbench_assets_workspace.zui"],
+  ["Vfx", "vfx", "workbench/modules/core/rendering/workbench_vfx_workspace.zui"],
+  ["Hud", "hud", "workbench/modules/core/ui/workbench_hud_workspace.zui"],
 ];
 
 const nativeSceneShellWorkspace = {
   moduleId: "Scene",
-  mainBandSource: "workbench_main_band.zui",
-  sceneTreeSource: "workbench_scene_tree_panel.zui",
-  viewportSource: "workbench_viewport_panel.zui",
+  mainBandSource: "workbench/shell/workbench_main_band.zui",
+  sceneTreeSource: "workbench/shell/workbench_scene_tree_panel.zui",
+  viewportSource: "workbench/shell/workbench_viewport_panel.zui",
 };
 const nativePendingModuleWorkspaceIds = new Set([]);
 const requiredWorkspaceComponents = [
@@ -364,6 +364,21 @@ function normalizeActionId(actionId) {
 
 function isPartialActionTemplate(actionId) {
   return actionId.endsWith(".");
+}
+
+function routeSegment(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function workbenchModuleRoutePrefix(moduleId) {
+  return `workbench.module.${routeSegment(moduleId)}.`;
 }
 
 function validateNativeActionIds(failures) {
@@ -625,10 +640,10 @@ function assertSceneShellWorkspaceContract(failures) {
 }
 
 function assertSplitModuleWorkspaceHosts(failures) {
-  const moduleWorkspaceSource = workspaceSources.get("workbench_module_workspace.zui");
-  const moduleWorkspaceNodes = workspaceNodeMaps.get("workbench_module_workspace.zui");
-  const additionalModuleWorkspacesSource = workspaceSources.get("workbench_additional_module_workspaces.zui");
-  const additionalModuleWorkspaceNodes = workspaceNodeMaps.get("workbench_additional_module_workspaces.zui");
+  const moduleWorkspaceSource = workspaceSources.get("workbench/modules/core/index/workbench_module_workspace.zui");
+  const moduleWorkspaceNodes = workspaceNodeMaps.get("workbench/modules/core/index/workbench_module_workspace.zui");
+  const additionalModuleWorkspacesSource = workspaceSources.get("workbench/modules/core/index/workbench_additional_module_workspaces.zui");
+  const additionalModuleWorkspaceNodes = workspaceNodeMaps.get("workbench/modules/core/index/workbench_additional_module_workspaces.zui");
   if (!moduleWorkspaceSource || !moduleWorkspaceNodes) {
     failures.push("Workbench module workspace host source was not loaded");
     return;
@@ -642,35 +657,35 @@ function assertSplitModuleWorkspaceHosts(failures) {
 
   for (const splitHost of [
     {
-      importId: "workbench_effect_workspace.zui#WorkbenchEffectWorkspace",
+      importId: "workbench/modules/core/gameplay/workbench_effect_workspace.zui#WorkbenchEffectWorkspace",
       hostNode: "effect_workspace_host",
       bodyNode: "effect_workspace_body",
       component: "WorkbenchEffectWorkspace",
       controlId: "WorkbenchEffectWorkspaceHost",
     },
     {
-      importId: "workbench_material_workspace.zui#WorkbenchMaterialWorkspace",
+      importId: "workbench/modules/core/rendering/workbench_material_workspace.zui#WorkbenchMaterialWorkspace",
       hostNode: "material_workspace_host",
       bodyNode: "material_workspace_body",
       component: "WorkbenchMaterialWorkspace",
       controlId: "WorkbenchMaterialWorkspaceHost",
     },
     {
-      importId: "workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace",
+      importId: "workbench/modules/core/ai/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace",
       hostNode: "behavior_workspace_host",
       bodyNode: "behavior_workspace_body",
       component: "WorkbenchBehaviorWorkspace",
       controlId: "WorkbenchBehaviorWorkspaceHost",
     },
     {
-      importId: "workbench_assets_workspace.zui#WorkbenchAssetsWorkspace",
+      importId: "workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace",
       hostNode: "assets_workspace_host",
       bodyNode: "assets_workspace_body",
       component: "WorkbenchAssetsWorkspace",
       controlId: "WorkbenchAssetsWorkspaceHost",
     },
     {
-      importId: "workbench_vfx_workspace.zui#WorkbenchVfxWorkspace",
+      importId: "workbench/modules/core/rendering/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace",
       hostNode: "vfx_workspace_host",
       bodyNode: "vfx_workspace_body",
       component: "WorkbenchVfxWorkspace",
@@ -720,35 +735,35 @@ function assertSplitModuleWorkspaceHosts(failures) {
 
   for (const splitHost of [
     {
-      importId: "workbench_ability_workspace.zui#WorkbenchAbilityWorkspace",
+      importId: "workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace",
       hostNode: "ability_workspace_host",
       bodyNode: "ability_workspace_body",
       component: "WorkbenchAbilityWorkspace",
       controlId: "WorkbenchAbilityWorkspaceHost",
     },
     {
-      importId: "workbench_tags_workspace.zui#WorkbenchTagsWorkspace",
+      importId: "workbench/modules/core/gameplay/workbench_tags_workspace.zui#WorkbenchTagsWorkspace",
       hostNode: "tags_workspace_host",
       bodyNode: "tags_workspace_body",
       component: "WorkbenchTagsWorkspace",
       controlId: "WorkbenchTagsWorkspaceHost",
     },
     {
-      importId: "workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace",
+      importId: "workbench/modules/core/ai/workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace",
       hostNode: "perception_workspace_host",
       bodyNode: "perception_workspace_body",
       component: "WorkbenchPerceptionWorkspace",
       controlId: "WorkbenchPerceptionWorkspaceHost",
     },
     {
-      importId: "workbench_render_workspace.zui#WorkbenchRenderWorkspace",
+      importId: "workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace",
       hostNode: "render_workspace_host",
       bodyNode: "render_workspace_body",
       component: "WorkbenchRenderWorkspace",
       controlId: "WorkbenchRenderWorkspaceHost",
     },
     {
-      importId: "workbench_hud_workspace.zui#WorkbenchHudWorkspace",
+      importId: "workbench/modules/core/ui/workbench_hud_workspace.zui#WorkbenchHudWorkspace",
       hostNode: "hud_workspace_host",
       bodyNode: "hud_workspace_body",
       component: "WorkbenchHudWorkspace",
@@ -805,7 +820,14 @@ const previewActions = previewActionsFromRust(
     readRelative("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs"),
   ].join("\n"),
 );
-const routesSource = readRelative("./routes.js");
+const routesSource = [
+  "./src/routing/routes.js",
+  "./src/routing/commands/module-targets.js",
+  "./src/routing/commands/scoped-targets.js",
+  "./src/routing/commands/panel-targets.js",
+  "./src/routing/commands/extension-targets.js",
+  "./src/routing/commands/route-for-command.js",
+].map(readRelative).join("\n");
 const webRouteCommands = routeCommandIdsFromSource(routesSource);
 const webScopedRouteKeys = routeScopedKeysFromSource(routesSource);
 const moduleFeedbackSource = readRelative(
@@ -993,9 +1015,10 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
     if (!event.bindingId.startsWith(`WorkbenchModule/${moduleId}`)) {
       failures.push(`${moduleId} workspace event ${event.bindingId} does not use the ${moduleId} namespace`);
     }
-    if (!event.route.startsWith(`WorkbenchModule.${moduleId}.`)) {
+    const expectedRoutePrefix = workbenchModuleRoutePrefix(moduleId);
+    if (!event.route.startsWith(expectedRoutePrefix)) {
       failures.push(
-        `${moduleId} workspace event ${event.bindingId} route ${event.route} does not use the WorkbenchModule.${moduleId} route namespace`,
+        `${moduleId} workspace event ${event.bindingId} route ${event.route} does not use the ${expectedRoutePrefix} route namespace`,
       );
     }
     if (!declaredBindingIds.has(event.bindingId)) {
@@ -1033,9 +1056,9 @@ for (const event of moduleEvents) {
   }
   if (!event.route) {
     failures.push(`${event.sourceName}:${event.nodeName} ${event.bindingId} has no route`);
-  } else if (!event.route.startsWith("WorkbenchModule.")) {
+  } else if (!event.route.startsWith("workbench.module.")) {
     failures.push(
-      `${event.sourceName}:${event.nodeName} ${event.bindingId} route ${event.route} is outside WorkbenchModule.*`,
+      `${event.sourceName}:${event.nodeName} ${event.bindingId} route ${event.route} is outside workbench.module.*`,
     );
   }
   if (seenBindingIds.has(event.bindingId)) {

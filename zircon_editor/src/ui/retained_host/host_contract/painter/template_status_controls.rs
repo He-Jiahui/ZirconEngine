@@ -1,6 +1,17 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
+use super::style_selector::{
+    select_workbench_status_chip_style, select_workbench_status_icon_button_style,
+    select_workbench_status_signal_style, WorkbenchStatusSignalKind as StatusSignalKind,
+    WorkbenchStatusSignalStyle,
+};
+#[cfg(test)]
+use super::style_selector::{
+    WORKBENCH_STATUS_NO_ERRORS_FILL as STATUS_NO_ERRORS_FILL,
+    WORKBENCH_STATUS_RIGHT_BORDER as STATUS_RIGHT_BORDER,
+};
 use super::template_node_labels::template_node_label;
+#[cfg(test)]
 use super::theme::PALETTE;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -14,11 +25,6 @@ const STATUS_CHIP_RIGHT_RESERVE: f32 = 24.0;
 const STATUS_CHIP_RADIUS: f32 = 6.0;
 const STATUS_ICON_GLYPH_SIZE: f32 = 16.0;
 const STATUS_ICON_BUTTON_RADIUS: f32 = 5.0;
-const STATUS_ICON_COLOR: [u8; 4] = [149, 164, 172, 255];
-const STATUS_ICON_MUTED: [u8; 4] = [105, 121, 130, 255];
-const STATUS_RIGHT_BORDER: [u8; 4] = [36, 44, 50, 255];
-const STATUS_NO_ERRORS_FILL: [u8; 4] = [88, 184, 102, 255];
-const STATUS_MARK_ON_LIGHT: [u8; 4] = [8, 18, 18, 255];
 
 pub(super) fn push_status_control_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -53,14 +59,6 @@ enum StatusControlKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum StatusSignalKind {
-    Ready,
-    Success,
-    Warning,
-    Info,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum StatusIconKind {
     Snap,
     World,
@@ -92,9 +90,20 @@ fn push_status_signal_item(
     kind: StatusSignalKind,
     opacity: f32,
 ) {
+    let style = select_workbench_status_signal_style(node, kind);
+    let mark_width = status_signal_mark_width(node);
     let icon = status_signal_icon_rect(node, rect, kind);
     let icon_paint = status_signal_icon_paint_rect(node, &icon, kind);
-    push_status_signal_icon(commands, node, &icon_paint, clip, order, kind, opacity);
+    push_status_signal_icon(
+        commands,
+        &icon_paint,
+        clip,
+        order,
+        kind,
+        style,
+        mark_width,
+        opacity,
+    );
     let label = template_node_label(node, None);
     if label.trim().is_empty() {
         return;
@@ -111,7 +120,7 @@ fn push_status_signal_item(
         Some(clip.clone()),
         order + 2,
         label,
-        status_signal_text_color(node, kind),
+        style.text,
         STATUS_FONT_SIZE,
         line_height,
         UiTextRunPaintStyle::default(),
@@ -128,12 +137,13 @@ fn push_status_chip(
     opacity: f32,
 ) {
     let rect = status_control_offset_rect(node, rect);
+    let style = select_workbench_status_chip_style(node);
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(status_chip_background(node)),
-        Some(status_chip_border(node)),
+        Some(style.background),
+        Some(style.border),
         1.0,
         STATUS_CHIP_RADIUS,
         opacity,
@@ -152,7 +162,7 @@ fn push_status_chip(
             Some(clip.clone()),
             order + 2,
             label,
-            status_chip_text_color(node),
+            style.text,
             STATUS_FONT_SIZE,
             line_height,
             UiTextRunPaintStyle::default(),
@@ -166,14 +176,7 @@ fn push_status_chip(
         width: 12.0,
         height: 12.0,
     };
-    push_down_chevron(
-        commands,
-        &chevron,
-        clip,
-        order + 3,
-        status_chip_text_color(node),
-        opacity,
-    );
+    push_down_chevron(commands, &chevron, clip, order + 3, style.text, opacity);
 }
 
 fn status_control_offset_rect(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRect {
@@ -195,12 +198,13 @@ fn push_status_icon_button(
     opacity: f32,
 ) {
     let rect = status_control_offset_rect(node, rect);
+    let style = select_workbench_status_icon_button_style(node);
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(status_icon_button_background(node)),
-        Some(status_icon_button_border(node)),
+        Some(style.background),
+        Some(style.border),
         1.0,
         STATUS_ICON_BUTTON_RADIUS,
         opacity,
@@ -212,7 +216,7 @@ fn push_status_icon_button(
         clip,
         order + 2,
         kind,
-        status_icon_glyph_color(node),
+        style.glyph,
         opacity,
     );
 }
@@ -247,11 +251,12 @@ fn status_signal_icon_paint_rect(
 
 fn push_status_signal_icon(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
     kind: StatusSignalKind,
+    style: WorkbenchStatusSignalStyle,
+    mark_width: f32,
     opacity: f32,
 ) {
     match kind {
@@ -259,7 +264,7 @@ fn push_status_signal_icon(
             rect.clone(),
             Some(clip.clone()),
             order,
-            Some(status_signal_icon_fill(node, kind)),
+            Some(style.icon_fill),
             None,
             0.0,
             rect.height * 0.5,
@@ -270,20 +275,13 @@ fn push_status_signal_icon(
                 rect.clone(),
                 Some(clip.clone()),
                 order,
-                Some(status_signal_icon_fill(node, kind)),
+                Some(style.icon_fill),
                 None,
                 0.0,
                 rect.height * 0.5,
                 opacity,
             ));
-            push_check_mark(
-                commands,
-                rect,
-                clip,
-                order + 1,
-                status_signal_mark_color(node),
-                opacity,
-            );
+            push_check_mark(commands, rect, clip, order + 1, style.mark, opacity);
         }
         StatusSignalKind::Warning => {
             push_warning_triangle(
@@ -291,9 +289,9 @@ fn push_status_signal_icon(
                 rect,
                 clip,
                 order,
-                status_signal_icon_fill(node, kind),
-                status_signal_mark_color(node),
-                status_signal_mark_width(node),
+                style.icon_fill,
+                style.mark,
+                mark_width,
                 opacity,
             );
         }
@@ -302,7 +300,7 @@ fn push_status_signal_icon(
                 rect.clone(),
                 Some(clip.clone()),
                 order,
-                Some(status_signal_icon_fill(node, kind)),
+                Some(style.icon_fill),
                 None,
                 0.0,
                 rect.height * 0.5,
@@ -312,7 +310,7 @@ fn push_status_signal_icon(
                 commands,
                 clip,
                 order + 1,
-                status_signal_mark_color(node),
+                style.mark,
                 opacity,
                 &[
                     local_rect_scaled(rect, 6.0, 3.0, 2.0, 2.0, STATUS_ITEM_ICON_SIZE),
@@ -619,35 +617,27 @@ fn status_signal_text_gap(node: &TemplatePaneNodeData) -> f32 {
     }
 }
 
+#[cfg(test)]
+fn status_signal_style(
+    node: &TemplatePaneNodeData,
+    kind: StatusSignalKind,
+) -> WorkbenchStatusSignalStyle {
+    select_workbench_status_signal_style(node, kind)
+}
+
+#[cfg(test)]
 fn status_signal_icon_fill(node: &TemplatePaneNodeData, kind: StatusSignalKind) -> [u8; 4] {
-    if let Some(color) = declared_color(node.label_color) {
-        return color;
-    }
-    match kind {
-        StatusSignalKind::Ready => PALETTE.success,
-        StatusSignalKind::Success => STATUS_NO_ERRORS_FILL,
-        StatusSignalKind::Warning => PALETTE.warning,
-        StatusSignalKind::Info => PALETTE.info,
-    }
+    status_signal_style(node, kind).icon_fill
 }
 
+#[cfg(test)]
 fn status_signal_text_color(node: &TemplatePaneNodeData, kind: StatusSignalKind) -> [u8; 4] {
-    if node.disabled {
-        return PALETTE.text_disabled;
-    }
-    if let Some(color) = declared_color(node.value_color) {
-        return color;
-    }
-    match kind {
-        StatusSignalKind::Ready => PALETTE.text,
-        StatusSignalKind::Success | StatusSignalKind::Warning | StatusSignalKind::Info => {
-            PALETTE.text_muted
-        }
-    }
+    status_signal_style(node, kind).text
 }
 
+#[cfg(test)]
 fn status_signal_mark_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    declared_color(node.icon_color).unwrap_or(STATUS_MARK_ON_LIGHT)
+    status_signal_style(node, StatusSignalKind::Ready).mark
 }
 
 fn status_signal_mark_width(node: &TemplatePaneNodeData) -> f32 {
@@ -662,76 +652,9 @@ fn normalized_status_mark_width(width: f32) -> f32 {
     }
 }
 
-fn declared_color(color: crate::ui::retained_host::primitives::Color) -> Option<[u8; 4]> {
-    (color.a > 0).then_some([color.r, color.g, color.b, color.a])
-}
-
-fn status_chip_background(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.surface_disabled
-    } else if node.pressed {
-        PALETTE.surface_pressed
-    } else if node.hovered || node.focused {
-        PALETTE.surface_hover
-    } else {
-        PALETTE.surface_inset
-    }
-}
-
-fn status_chip_border(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.border_disabled
-    } else if node.focused || node.pressed {
-        PALETTE.focus_ring
-    } else {
-        STATUS_RIGHT_BORDER
-    }
-}
-
+#[cfg(test)]
 fn status_chip_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if let Some(color) = declared_color(node.value_color) {
-        color
-    } else {
-        PALETTE.text_muted
-    }
-}
-
-fn status_icon_button_background(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.surface_disabled
-    } else if node.checked || node.selected {
-        PALETTE.surface_selected
-    } else if node.pressed {
-        PALETTE.surface_pressed
-    } else if node.hovered || node.focused {
-        PALETTE.surface_hover
-    } else {
-        PALETTE.surface_inset
-    }
-}
-
-fn status_icon_button_border(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.border_disabled
-    } else if node.checked || node.selected || node.focused || node.pressed {
-        PALETTE.focus_ring
-    } else {
-        STATUS_RIGHT_BORDER
-    }
-}
-
-fn status_icon_glyph_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
-        PALETTE.text_disabled
-    } else if node.checked || node.selected || node.focused || node.pressed {
-        PALETTE.focus_ring
-    } else if node.hovered {
-        STATUS_ICON_COLOR
-    } else {
-        STATUS_ICON_MUTED
-    }
+    select_workbench_status_chip_style(node).text
 }
 
 #[cfg(test)]
@@ -979,6 +902,35 @@ mod tests {
     }
 
     #[test]
+    fn status_chip_uses_shared_painter_state_priority() {
+        let mut node = status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm");
+        node.hovered = true;
+        node.selected = true;
+        let hovered = select_workbench_status_chip_style(&node);
+        assert_eq!(
+            hovered.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Hovered
+        );
+        assert_eq!(hovered.background, PALETTE.surface_hover);
+
+        node.pressed = true;
+        let pressed = select_workbench_status_chip_style(&node);
+        assert_eq!(
+            pressed.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Pressed
+        );
+        assert_eq!(pressed.border, PALETTE.focus_ring);
+
+        node.disabled = true;
+        let disabled = select_workbench_status_chip_style(&node);
+        assert_eq!(
+            disabled.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Disabled
+        );
+        assert_eq!(disabled.background, PALETTE.surface_disabled);
+    }
+
+    #[test]
     fn status_icon_button_paints_target_glyph() {
         let bytes = paint_template_nodes_for_test(
             48,
@@ -1007,6 +959,33 @@ mod tests {
         );
 
         assert!((rect.y - 4.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn status_icon_button_uses_shared_icon_button_state_priority() {
+        let mut node = status_icon_node("WorkbenchStatusTarget");
+        node.checked = true;
+        let checked = select_workbench_status_icon_button_style(&node);
+        assert_eq!(
+            checked.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Checked
+        );
+        assert_eq!(checked.glyph, PALETTE.focus_ring);
+
+        node.hovered = true;
+        let hovered = select_workbench_status_icon_button_style(&node);
+        assert_eq!(
+            hovered.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Hovered
+        );
+
+        node.pressed = true;
+        let pressed = select_workbench_status_icon_button_style(&node);
+        assert_eq!(
+            pressed.state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Pressed
+        );
+        assert_eq!(pressed.background, PALETTE.surface_pressed);
     }
 
     fn status_node(control_id: &str, text: &str, width: f32, height: f32) -> TemplatePaneNodeData {

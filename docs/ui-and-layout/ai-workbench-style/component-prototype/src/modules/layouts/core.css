@@ -1,0 +1,60 @@
+.zr-module-editor-grid.is-gameplay {
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 0.95fr);
+  grid-template-rows: minmax(118px, 0.46fr) minmax(0, 1fr);
+}
+
+.zr-module-editor-grid.is-gameplay .zr-module-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.zr-module-editor-grid.is-ability,
+.zr-module-editor-grid.is-render {
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.36fr);
+  grid-template-rows: minmax(0, 1fr) minmax(128px, 0.42fr);
+}
+
+.zr-module-editor-grid.is-ability .zr-module-card:first-child,
+.zr-module-editor-grid.is-render .zr-module-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.zr-module-editor-grid.is-material,
+.zr-module-editor-grid.is-behavior,
+.zr-module-editor-grid.is-assets,
+.zr-module-editor-grid.is-tags {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.zr-module-editor-grid.is-perception,
+.zr-module-editor-grid.is-hud {
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.zr-module-editor-grid.is-perception .zr-module-card:first-child,
+.zr-module-editor-grid.is-hud .zr-module-card:first-child {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-row: 1 / span 2;
+}
+
+.zr-module-editor-grid.is-perception .zr-module-card:first-child .zr-module-card-body,
+.zr-module-editor-grid.is-hud .zr-module-card:first-child .zr-module-card-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zr-module-editor-grid.is-vfx {
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 0.58fr);
+  grid-template-rows: minmax(0, 1fr) minmax(120px, 0.54fr);
+}
+
+.zr-module-editor-grid.is-vfx .zr-module-card:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.zr-module-editor-grid.is-scene {
+  grid-template-columns: minmax(0, 1fr) 220px;
+}

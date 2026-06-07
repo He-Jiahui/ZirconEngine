@@ -56,6 +56,12 @@ pub(crate) fn validate_output_device_descriptor(
             descriptor.channel_layout.name, descriptor.channel_count
         )));
     }
+    if !descriptor.channel_layout.is_valid_contract_layout() {
+        return Err(SoundError::InvalidParameter(format!(
+            "output channel layout `{}` must use canonical speaker metadata",
+            descriptor.channel_layout.name
+        )));
+    }
     if descriptor.block_size_frames == 0 {
         return Err(SoundError::InvalidParameter(
             "output block size must be non-zero".to_string(),

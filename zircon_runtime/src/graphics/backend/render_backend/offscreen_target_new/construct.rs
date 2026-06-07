@@ -9,8 +9,6 @@ use super::super::offscreen_target::OffscreenTarget;
 use super::create_cluster_buffer::create_cluster_buffer;
 use super::create_texture_bundle::create_texture_bundle;
 
-const DEPTH_OF_FIELD_COC_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
-
 impl OffscreenTarget {
     pub(crate) fn new(device: &wgpu::Device, size: UVec2) -> Self {
         let final_color = create_texture_bundle(
@@ -43,24 +41,6 @@ impl OffscreenTarget {
         let bloom = create_texture_bundle(
             device,
             "zircon-offscreen-bloom",
-            size,
-            OFFSCREEN_FORMAT,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_SRC,
-        );
-        let depth_of_field_coc = create_texture_bundle(
-            device,
-            "zircon-offscreen-depth-of-field-coc",
-            size,
-            DEPTH_OF_FIELD_COC_FORMAT,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_SRC,
-        );
-        let depth_of_field_bokeh = create_texture_bundle(
-            device,
-            "zircon-offscreen-depth-of-field-bokeh",
             size,
             OFFSCREEN_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
@@ -114,10 +94,6 @@ impl OffscreenTarget {
             scene_color_view: scene_color.view,
             bloom: bloom.texture,
             bloom_view: bloom.view,
-            depth_of_field_coc: depth_of_field_coc.texture,
-            depth_of_field_coc_view: depth_of_field_coc.view,
-            depth_of_field_bokeh: depth_of_field_bokeh.texture,
-            depth_of_field_bokeh_view: depth_of_field_bokeh.view,
             gbuffer_albedo: gbuffer_albedo.texture,
             gbuffer_albedo_view: gbuffer_albedo.view,
             gbuffer_material: gbuffer_material.texture,

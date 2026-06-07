@@ -1,0 +1,534 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui"
+version = 2
+display_name = "Workbench Generated Bottom Panel"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchGeneratedBottomPanel]
+root = "generated_bottom_panel"
+default_classes = ["workbench-generated-bottom-panel", "workbench-panel"]
+
+[nodes.generated_bottom_panel]
+component = "VerticalGroup"
+control_id = "WorkbenchGeneratedBottomPanel"
+classes = ["workbench-generated-bottom-panel", "workbench-panel"]
+props = { visibility = "visible" }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_header" }, { node = "generated_bottom_modes" }, { node = "generated_bottom_filter_bar" }, { node = "generated_bottom_body" }]
+
+[nodes.generated_bottom_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchGeneratedBottomHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "generated_bottom_title" }, { node = "generated_bottom_header_fill" }, { node = "generated_bottom_open_button" }, { node = "generated_bottom_pin_button" }]
+
+[nodes.generated_bottom_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchGeneratedBottomTitle"
+props = { text = "Generated Bottom Panels" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.generated_bottom_header_fill]
+component = "Container"
+control_id = "WorkbenchGeneratedBottomHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.generated_bottom_open_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchGeneratedBottomOpenButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Open", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 76.0, preferred = 76.0, max = 86.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/OpenPanel", event = "Click", route = "workbench.generated_bottom.command.open" }]
+
+[nodes.generated_bottom_pin_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchGeneratedBottomPinButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Pin", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 78.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/PinPanel", event = "Click", route = "workbench.generated_bottom.command.pin" }]
+
+[nodes.generated_bottom_modes]
+component = "HorizontalGroup"
+control_id = "WorkbenchGeneratedBottomModes"
+classes = ["workbench-panel-tabs"]
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "generated_bottom_mode_output" }, { node = "generated_bottom_mode_build" }, { node = "generated_bottom_mode_validation" }, { node = "generated_bottom_mode_runtime" }, { node = "generated_bottom_mode_review" }]
+
+[nodes.generated_bottom_mode_output]
+component = "WorkbenchTab"
+control_id = "WorkbenchGeneratedBottomModeOutput"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Output", checked = true, selected = true, value = true }
+layout = { width = { min = 94.0, preferred = 94.0, max = 112.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchGeneratedBottom/ModeOutput", event = "Click", route = "workbench.generated_bottom.mode.output" }]
+
+[nodes.generated_bottom_mode_build]
+component = "WorkbenchTab"
+control_id = "WorkbenchGeneratedBottomModeBuild"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Build", checked = false, selected = false, value = false }
+layout = { width = { min = 88.0, preferred = 88.0, max = 106.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchGeneratedBottom/ModeBuild", event = "Click", route = "workbench.generated_bottom.mode.build" }]
+
+[nodes.generated_bottom_mode_validation]
+component = "WorkbenchTab"
+control_id = "WorkbenchGeneratedBottomModeValidation"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { min = 118.0, preferred = 118.0, max = 140.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchGeneratedBottom/ModeValidation", event = "Click", route = "workbench.generated_bottom.mode.validation" }]
+
+[nodes.generated_bottom_mode_runtime]
+component = "WorkbenchTab"
+control_id = "WorkbenchGeneratedBottomModeRuntime"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Runtime", checked = false, selected = false, value = false }
+layout = { width = { min = 104.0, preferred = 104.0, max = 124.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchGeneratedBottom/ModeRuntime", event = "Click", route = "workbench.generated_bottom.mode.runtime" }]
+
+[nodes.generated_bottom_mode_review]
+component = "WorkbenchTab"
+control_id = "WorkbenchGeneratedBottomModeReview"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Review", checked = false, selected = false, value = false }
+layout = { width = { min = 96.0, preferred = 96.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchGeneratedBottom/ModeReview", event = "Click", route = "workbench.generated_bottom.mode.review" }]
+
+[nodes.generated_bottom_filter_bar]
+component = "HorizontalGroup"
+control_id = "WorkbenchGeneratedBottomFilterBar"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "generated_bottom_filter_field" }, { node = "generated_bottom_mode_dropdown" }, { node = "generated_bottom_selected_route" }]
+
+[nodes.generated_bottom_filter_field]
+component = "WorkbenchField"
+control_id = "WorkbenchGeneratedBottomFilterField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "", placeholder = "Filter generated panel routes" }
+layout = { width = { min = 260.0, preferred = 260.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "WorkbenchGeneratedBottom/FilterEdit", event = "Change", route = "workbench.generated_bottom.filter.edit" },
+  { id = "WorkbenchGeneratedBottom/FilterCommit", event = "Submit", route = "workbench.generated_bottom.filter.commit" },
+]
+
+[nodes.generated_bottom_mode_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchGeneratedBottomModeDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Output", value = "Output", options = ["Output", "Build", "Validation", "Runtime", "Review"] }
+layout = { width = { min = 160.0, preferred = 160.0, max = 190.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "WorkbenchGeneratedBottom/ModeEdit", event = "Change", route = "workbench.generated_bottom.mode.edit" },
+  { id = "WorkbenchGeneratedBottom/ModeCommit", event = "Submit", route = "workbench.generated_bottom.mode.commit" },
+]
+
+[nodes.generated_bottom_selected_route]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSelectedRoute"
+classes = ["workbench-table-row"]
+props = { text = "Selected Route", value_text = "module-bottom-scene:console" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.generated_bottom_body]
+component = "HorizontalGroup"
+control_id = "WorkbenchGeneratedBottomBody"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_route_table" }, { node = "generated_bottom_detail_panel" }]
+
+[nodes.generated_bottom_route_table]
+component = "VerticalGroup"
+control_id = "WorkbenchGeneratedBottomRouteTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "generated_bottom_scene_console" },
+  { node = "generated_bottom_scene_validation" },
+  { node = "generated_bottom_gameplay_effect_attribute_delta" },
+  { node = "generated_bottom_gameplay_effect_validation" },
+  { node = "generated_bottom_gameplay_effect_compile_log" },
+  { node = "generated_bottom_gameplay_ability_compile_log" },
+  { node = "generated_bottom_gameplay_ability_gameplay_event_log" },
+  { node = "generated_bottom_gameplay_ability_simulation_console" },
+  { node = "generated_bottom_gameplay_tags_reference_scan" },
+  { node = "generated_bottom_gameplay_tags_migration_preview" },
+  { node = "generated_bottom_gameplay_tags_compile_log" },
+  { node = "generated_bottom_ai_perception_debug_log" },
+  { node = "generated_bottom_ai_perception_query_output" },
+  { node = "generated_bottom_ai_perception_validation" },
+  { node = "generated_bottom_ai_perception_compile_log" },
+  { node = "generated_bottom_material_preview_variants" },
+  { node = "generated_bottom_material_warnings" },
+  { node = "generated_bottom_behavior_tree_runtime_trace" },
+  { node = "generated_bottom_behavior_tree_breakpoint_output" },
+  { node = "generated_bottom_behavior_tree_validation_issues" },
+  { node = "generated_bottom_render_pipeline_compile_output" },
+  { node = "generated_bottom_render_pipeline_resource_transitions" },
+  { node = "generated_bottom_render_pipeline_warnings" },
+  { node = "generated_bottom_render_pipeline_errors" },
+  { node = "generated_bottom_render_pipeline_compile_log" },
+  { node = "generated_bottom_asset_browser_output" },
+  { node = "generated_bottom_asset_browser_validation" },
+  { node = "generated_bottom_asset_browser_cook" },
+  { node = "generated_bottom_asset_browser_package" },
+  { node = "generated_bottom_vfx_curves" },
+  { node = "generated_bottom_vfx_niagara_log" },
+  { node = "generated_bottom_vfx_compile_output" },
+  { node = "generated_bottom_vfx_event_log" },
+  { node = "generated_bottom_hud_editor_binding_errors" },
+  { node = "generated_bottom_hud_editor_preview_log" },
+  { node = "generated_bottom_hud_editor_performance" },
+  { node = "generated_bottom_hud_editor_compile_log" },
+]
+
+[nodes.generated_bottom_detail_panel]
+component = "VerticalGroup"
+control_id = "WorkbenchGeneratedBottomDetailPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 340.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "generated_bottom_detail_title" }, { node = "generated_bottom_selected_module" }, { node = "generated_bottom_selected_panel" }, { node = "generated_bottom_selected_mode" }, { node = "generated_bottom_selected_panel_row" }]
+
+[nodes.generated_bottom_detail_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchGeneratedBottomDetailTitle"
+props = { text = "Route Detail" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.generated_bottom_selected_module]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSelectedModule"
+classes = ["workbench-table-row"]
+props = { text = "Module", value_text = "Scene" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.generated_bottom_selected_panel]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSelectedPanel"
+classes = ["workbench-table-row"]
+props = { text = "Panel", value_text = "Console" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.generated_bottom_selected_mode]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSelectedMode"
+classes = ["workbench-table-row"]
+props = { text = "Mode", value_text = "Runtime" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.generated_bottom_selected_panel_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSelectedPanelRow"
+classes = ["workbench-table-row"]
+props = { text = "Native Target", value_text = "Retained/Taffy bottom panel content evidence" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.generated_bottom_scene_console]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSceneConsoleRow"
+classes = ["workbench-table-row", "workbench-row-selected", "workbench-generated-bottom-route-row"]
+props = { text = "Scene / Console", value_text = "Runtime   module-bottom-scene:console" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/SceneConsole", event = "Click", route = "workbench.generated_bottom.route.scene_console" }]
+
+[nodes.generated_bottom_scene_validation]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomSceneValidationRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Scene / Validation", value_text = "Validation   module-bottom-scene:validation" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/SceneValidation", event = "Click", route = "workbench.generated_bottom.route.scene_validation" }]
+
+[nodes.generated_bottom_gameplay_effect_attribute_delta]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayEffectAttributeDeltaRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Effect / Attribute Delta", value_text = "Output   module-bottom-gameplay-effect:attribute-delta" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayEffectAttributeDelta", event = "Click", route = "workbench.generated_bottom.route.gameplay_effect_attribute_delta" }]
+
+[nodes.generated_bottom_gameplay_effect_validation]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayEffectValidationRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Effect / Validation", value_text = "Validation   module-bottom-gameplay-effect:validation" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayEffectValidation", event = "Click", route = "workbench.generated_bottom.route.gameplay_effect_validation" }]
+
+[nodes.generated_bottom_gameplay_effect_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayEffectCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Effect / Compile Log", value_text = "Build   module-bottom-gameplay-effect:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayEffectCompileLog", event = "Click", route = "workbench.generated_bottom.route.gameplay_effect_compile_log" }]
+
+[nodes.generated_bottom_gameplay_ability_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayAbilityCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Ability / Compile Log", value_text = "Build   module-bottom-gameplay-ability:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayAbilityCompileLog", event = "Click", route = "workbench.generated_bottom.route.gameplay_ability_compile_log" }]
+
+[nodes.generated_bottom_gameplay_ability_gameplay_event_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayAbilityGameplayEventLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Ability / Gameplay Event Log", value_text = "Runtime   module-bottom-gameplay-ability:gameplay-event-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayAbilityGameplayEventLog", event = "Click", route = "workbench.generated_bottom.route.gameplay_ability_gameplay_event_log" }]
+
+[nodes.generated_bottom_gameplay_ability_simulation_console]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayAbilitySimulationConsoleRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Ability / Simulation Console", value_text = "Runtime   module-bottom-gameplay-ability:simulation-console" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayAbilitySimulationConsole", event = "Click", route = "workbench.generated_bottom.route.gameplay_ability_simulation_console" }]
+
+[nodes.generated_bottom_gameplay_tags_reference_scan]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayTagsReferenceScanRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Tags / Reference Scan", value_text = "Review   module-bottom-gameplay-tags:reference-scan" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayTagsReferenceScan", event = "Click", route = "workbench.generated_bottom.route.gameplay_tags_reference_scan" }]
+
+[nodes.generated_bottom_gameplay_tags_migration_preview]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayTagsMigrationPreviewRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Tags / Migration Preview", value_text = "Validation   module-bottom-gameplay-tags:migration-preview" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayTagsMigrationPreview", event = "Click", route = "workbench.generated_bottom.route.gameplay_tags_migration_preview" }]
+
+[nodes.generated_bottom_gameplay_tags_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomGameplayTagsCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Gameplay Tags / Compile Log", value_text = "Build   module-bottom-gameplay-tags:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/GameplayTagsCompileLog", event = "Click", route = "workbench.generated_bottom.route.gameplay_tags_compile_log" }]
+
+[nodes.generated_bottom_ai_perception_debug_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAiPerceptionDebugLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "AI Perception / Debug Log", value_text = "Runtime   module-bottom-ai-perception:debug-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AiPerceptionDebugLog", event = "Click", route = "workbench.generated_bottom.route.ai_perception_debug_log" }]
+
+[nodes.generated_bottom_ai_perception_query_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAiPerceptionQueryOutputRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "AI Perception / Query Output", value_text = "Output   module-bottom-ai-perception:query-output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AiPerceptionQueryOutput", event = "Click", route = "workbench.generated_bottom.route.ai_perception_query_output" }]
+
+[nodes.generated_bottom_ai_perception_validation]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAiPerceptionValidationRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "AI Perception / Validation", value_text = "Validation   module-bottom-ai-perception:validation" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AiPerceptionValidation", event = "Click", route = "workbench.generated_bottom.route.ai_perception_validation" }]
+
+[nodes.generated_bottom_ai_perception_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAiPerceptionCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "AI Perception / Compile Log", value_text = "Build   module-bottom-ai-perception:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AiPerceptionCompileLog", event = "Click", route = "workbench.generated_bottom.route.ai_perception_compile_log" }]
+
+[nodes.generated_bottom_material_preview_variants]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomMaterialPreviewVariantsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Material / Preview Variants", value_text = "Review   module-bottom-material:preview-variants" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/MaterialPreviewVariants", event = "Click", route = "workbench.generated_bottom.route.material_preview_variants" }]
+
+[nodes.generated_bottom_material_warnings]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomMaterialWarningsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Material / Warnings", value_text = "Build   module-bottom-material:warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/MaterialWarnings", event = "Click", route = "workbench.generated_bottom.route.material_warnings" }]
+
+[nodes.generated_bottom_behavior_tree_runtime_trace]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomBehaviorTreeRuntimeTraceRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Behavior Tree / Runtime Trace", value_text = "Runtime   module-bottom-behavior-tree:runtime-trace" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/BehaviorTreeRuntimeTrace", event = "Click", route = "workbench.generated_bottom.route.behavior_tree_runtime_trace" }]
+
+[nodes.generated_bottom_behavior_tree_breakpoint_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomBehaviorTreeBreakpointOutputRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Behavior Tree / Breakpoint Output", value_text = "Output   module-bottom-behavior-tree:breakpoint-output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/BehaviorTreeBreakpointOutput", event = "Click", route = "workbench.generated_bottom.route.behavior_tree_breakpoint_output" }]
+
+[nodes.generated_bottom_behavior_tree_validation_issues]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomBehaviorTreeValidationIssuesRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Behavior Tree / Validation Issues", value_text = "Validation   module-bottom-behavior-tree:validation-issues" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/BehaviorTreeValidationIssues", event = "Click", route = "workbench.generated_bottom.route.behavior_tree_validation_issues" }]
+
+[nodes.generated_bottom_render_pipeline_compile_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomRenderPipelineCompileOutputRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Render Pipeline / Compile Output", value_text = "Build   module-bottom-render-pipeline:compile-output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/RenderPipelineCompileOutput", event = "Click", route = "workbench.generated_bottom.route.render_pipeline_compile_output" }]
+
+[nodes.generated_bottom_render_pipeline_resource_transitions]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomRenderPipelineResourceTransitionsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Render Pipeline / Resource Transitions", value_text = "Review   module-bottom-render-pipeline:resource-transitions" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/RenderPipelineResourceTransitions", event = "Click", route = "workbench.generated_bottom.route.render_pipeline_resource_transitions" }]
+
+[nodes.generated_bottom_render_pipeline_warnings]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomRenderPipelineWarningsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Render Pipeline / Warnings", value_text = "Build   module-bottom-render-pipeline:warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/RenderPipelineWarnings", event = "Click", route = "workbench.generated_bottom.route.render_pipeline_warnings" }]
+
+[nodes.generated_bottom_render_pipeline_errors]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomRenderPipelineErrorsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Render Pipeline / Errors", value_text = "Build   module-bottom-render-pipeline:errors" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/RenderPipelineErrors", event = "Click", route = "workbench.generated_bottom.route.render_pipeline_errors" }]
+
+[nodes.generated_bottom_render_pipeline_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomRenderPipelineCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Render Pipeline / Compile Log", value_text = "Build   module-bottom-render-pipeline:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/RenderPipelineCompileLog", event = "Click", route = "workbench.generated_bottom.route.render_pipeline_compile_log" }]
+
+[nodes.generated_bottom_asset_browser_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAssetBrowserOutputRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Asset Browser / Output", value_text = "Output   module-bottom-asset-browser:output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AssetBrowserOutput", event = "Click", route = "workbench.generated_bottom.route.asset_browser_output" }]
+
+[nodes.generated_bottom_asset_browser_validation]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAssetBrowserValidationRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Asset Browser / Validation", value_text = "Validation   module-bottom-asset-browser:validation" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AssetBrowserValidation", event = "Click", route = "workbench.generated_bottom.route.asset_browser_validation" }]
+
+[nodes.generated_bottom_asset_browser_cook]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAssetBrowserCookRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Asset Browser / Cook", value_text = "Build   module-bottom-asset-browser:cook" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AssetBrowserCook", event = "Click", route = "workbench.generated_bottom.route.asset_browser_cook" }]
+
+[nodes.generated_bottom_asset_browser_package]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomAssetBrowserPackageRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "Asset Browser / Package", value_text = "Build   module-bottom-asset-browser:package" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/AssetBrowserPackage", event = "Click", route = "workbench.generated_bottom.route.asset_browser_package" }]
+
+[nodes.generated_bottom_vfx_curves]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomVfxCurvesRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "VFX / Curves", value_text = "Output   module-bottom-vfx:curves" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/VfxCurves", event = "Click", route = "workbench.generated_bottom.route.vfx_curves" }]
+
+[nodes.generated_bottom_vfx_niagara_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomVfxNiagaraLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "VFX / Niagara Log", value_text = "Output   module-bottom-vfx:niagara-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/VfxNiagaraLog", event = "Click", route = "workbench.generated_bottom.route.vfx_niagara_log" }]
+
+[nodes.generated_bottom_vfx_compile_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomVfxCompileOutputRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "VFX / Compile Output", value_text = "Build   module-bottom-vfx:compile-output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/VfxCompileOutput", event = "Click", route = "workbench.generated_bottom.route.vfx_compile_output" }]
+
+[nodes.generated_bottom_vfx_event_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomVfxEventLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "VFX / Event Log", value_text = "Runtime   module-bottom-vfx:event-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/VfxEventLog", event = "Click", route = "workbench.generated_bottom.route.vfx_event_log" }]
+
+[nodes.generated_bottom_hud_editor_binding_errors]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomHudEditorBindingErrorsRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "HUD Editor / Binding Errors", value_text = "Validation   module-bottom-hud-editor:binding-errors" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/HudEditorBindingErrors", event = "Click", route = "workbench.generated_bottom.route.hud_editor_binding_errors" }]
+
+[nodes.generated_bottom_hud_editor_preview_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomHudEditorPreviewLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "HUD Editor / Preview Log", value_text = "Review   module-bottom-hud-editor:preview-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/HudEditorPreviewLog", event = "Click", route = "workbench.generated_bottom.route.hud_editor_preview_log" }]
+
+[nodes.generated_bottom_hud_editor_performance]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomHudEditorPerformanceRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "HUD Editor / Performance", value_text = "Output   module-bottom-hud-editor:performance" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/HudEditorPerformance", event = "Click", route = "workbench.generated_bottom.route.hud_editor_performance" }]
+
+[nodes.generated_bottom_hud_editor_compile_log]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchGeneratedBottomHudEditorCompileLogRow"
+classes = ["workbench-table-row", "workbench-generated-bottom-route-row"]
+props = { text = "HUD Editor / Compile Log", value_text = "Build   module-bottom-hud-editor:compile-log" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchGeneratedBottom/HudEditorCompileLog", event = "Click", route = "workbench.generated_bottom.route.hud_editor_compile_log" }]

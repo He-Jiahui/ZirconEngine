@@ -72,7 +72,7 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 
 #[test]
 fn shared_menu_pointer_layout_keeps_editor_operation_actions_for_extension_leaves() {
-    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let menu_bar = MenuBarModel {
         menus: vec![MenuModel {
             label: "Tools".to_string(),
@@ -107,7 +107,7 @@ fn shared_menu_pointer_layout_keeps_editor_operation_actions_for_extension_leave
 
     assert_eq!(
         layout.menus[0][0].children[0].action_id.as_deref(),
-        Some("Weather.CloudLayer.Refresh"),
+        Some("weather.cloud_layer.refresh"),
         "extension menu leaves carry EditorOperation payloads through the tree layout and must stay clickable in the shared pointer layout"
     );
 }

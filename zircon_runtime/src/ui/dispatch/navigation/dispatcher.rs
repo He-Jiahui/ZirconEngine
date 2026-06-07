@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::dispatch::{
     UiNavigationDispatchContext, UiNavigationDispatchEffect, UiNavigationDispatchInvocation,
     UiNavigationDispatchResult,

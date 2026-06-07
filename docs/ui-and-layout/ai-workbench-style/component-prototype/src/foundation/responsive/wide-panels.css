@@ -1,0 +1,35 @@
+@media (max-width: 1360px) {
+  .zr-showcase-grid {
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    overflow: auto;
+    height: 220px;
+  }
+
+  .zr-inspector-body {
+    padding-inline: 14px;
+  }
+
+  .zr-vector-row {
+    grid-template-columns: 64px 12px minmax(0, 56px) 12px minmax(0, 56px) 12px minmax(0, 56px);
+    gap: 5px;
+  }
+
+  .zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) {
+    grid-template-columns: 64px 12px minmax(0, 56px) 12px minmax(0, 56px) 12px minmax(0, 56px);
+  }
+
+  .zr-inspector .zr-form-row {
+    grid-template-columns: 32px minmax(96px, 1fr) 38px minmax(96px, 1fr);
+    gap: 7px;
+  }
+
+  .zr-lower-demo {
+    grid-template-columns: minmax(320px, 1fr) minmax(260px, 360px);
+    gap: 20px;
+  }
+
+  .zr-lower-demo .zr-tooltip,
+  .zr-lower-demo .zr-toast {
+    display: none;
+  }
+}

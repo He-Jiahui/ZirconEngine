@@ -21,8 +21,8 @@ use zircon_runtime_interface::ui::{
         UiLayoutEngineSelection, UiLayoutEngineSelectionReport,
     },
     surface::{
-        UiRenderDebugStats, UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot,
-        UiWidgetReflectorNode,
+        UiCanvasLayerGroup, UiRenderDebugStats, UiSurfaceDebugCaptureContext,
+        UiSurfaceDebugSnapshot, UiWidgetReflectorNode,
     },
     tree::{UiInputPolicy, UiVisibility},
 };
@@ -35,7 +35,13 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, BuildExportPaneViewData, ModulePluginsPaneViewData,
     PanePayloadBuildContext,
 };
-use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::template_runtime::{
+    builtin::{
+        PANE_CONSOLE_BODY_DOCUMENT_ID, PANE_INSPECTOR_BODY_DOCUMENT_ID,
+        PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID, PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
+    },
+    EditorUiHostRuntime,
+};
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, InspectorSnapshot, ProjectOverviewSnapshot,
@@ -244,6 +250,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
                 hoverable: false,
                 focusable: false,
                 control_id: Some("RuntimeDiagnosticsProjectionRoot".to_string()),
+                slot: None,
                 render_command_count: 1,
                 hit_entry_count: 0,
                 hit_cell_count: 0,
@@ -264,6 +271,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
                 hoverable: true,
                 focusable: false,
                 control_id: Some("LiveProjectionLabel".to_string()),
+                slot: None,
                 render_command_count: 1,
                 hit_entry_count: 1,
                 hit_cell_count: 1,
@@ -275,12 +283,18 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
             ..UiRenderDebugStats::default()
         },
         layout_engine_report: layout_engine_report_fixture(),
+        canvas_layers: vec![UiCanvasLayerGroup {
+            parent_id: UiNodeId::new(1),
+            layer_index: 0,
+            z_order: 1,
+            child_ids: vec![UiNodeId::new(2)],
+        }],
         ..UiSurfaceDebugSnapshot::default()
     }
 }
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let zircon = UiLayoutEngineCapability::legacy_zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
@@ -316,7 +330,14 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
         .with_module_plugins(&module_plugins)
         .with_build_export(&build_export);
     let mut runtime = EditorUiHostRuntime::default();
-    runtime.load_builtin_host_templates().unwrap();
+    runtime
+        .load_builtin_host_templates_for_document_ids(&[
+            PANE_CONSOLE_BODY_DOCUMENT_ID,
+            PANE_INSPECTOR_BODY_DOCUMENT_ID,
+            PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
+            PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID,
+        ])
+        .unwrap();
 
     let console = build_pane_body_presentation(&pane_body_spec("editor.console"), &context);
     let console_projection = runtime.project_pane_body(&console).unwrap();
@@ -419,6 +440,23 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
         .is_some_and(|sections| sections.iter().any(|line| {
             line.as_str()
                 .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections
+            .iter()
+            .any(|line| { line.as_str().is_some_and(|text| text == "Canvas Layers:") })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str()
+                .is_some_and(|text| text == "  parent=1 layer=0 z=1 children=[2]")
         })));
     assert!(diagnostics_projection
         .root

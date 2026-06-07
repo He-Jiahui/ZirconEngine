@@ -1,0 +1,37 @@
+.zr-module-mainbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  border-bottom: 1px solid #252d32;
+  background: linear-gradient(180deg, #1a2024, #12171a);
+}
+
+.zr-module-title {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.zr-module-title strong {
+  color: #e7eff2;
+  font-size: 13px;
+}
+
+.zr-module-title span {
+  min-width: 0;
+  overflow: hidden;
+  color: #8e9aa0;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zr-module-main-actions {
+  min-width: 0;
+  overflow: auto hidden;
+}

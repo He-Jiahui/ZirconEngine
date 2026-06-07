@@ -33,7 +33,9 @@ impl Default for SoundConfig {
 impl SoundConfig {
     pub fn from_plugin_options(options: SoundPluginOptions) -> Self {
         let channel_count = options.channel_count.max(1);
-        let channel_layout = if options.channel_layout.matches_channel_count(channel_count) {
+        let channel_layout = if options.channel_layout.matches_channel_count(channel_count)
+            && options.channel_layout.is_valid_contract_layout()
+        {
             options.channel_layout
         } else {
             SoundChannelLayout::for_channel_count(channel_count)

@@ -1,0 +1,37 @@
+.zr-module-list,
+.zr-module-tree {
+  display: grid;
+  gap: 2px;
+}
+
+.zr-module-list-row,
+.zr-module-tree-row {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #b9c4c8;
+  cursor: pointer;
+}
+
+.zr-module-list-row small,
+.zr-module-tree-row small {
+  color: #94a0a6;
+}
+
+.zr-module-list-row:hover,
+.zr-module-tree-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.zr-module-list-row.is-selected,
+.zr-module-tree-row.is-selected {
+  color: #eaffff;
+  background: linear-gradient(90deg, rgba(30, 111, 120, 0.72), rgba(16, 63, 69, 0.72));
+}
+
+.zr-module-list-row.zr-list-item,
+.zr-module-tree-row.zr-tree-row {
+  margin: 0;
+}

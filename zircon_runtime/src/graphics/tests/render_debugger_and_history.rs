@@ -146,6 +146,7 @@ fn renderdoc_debug_marker_registry_covers_capture_timeline() {
             "zircon::DeferredLighting",
             "zircon::PostProcess",
             "zircon::HistoryCopy",
+            "zircon::TextureWriteback",
             "zircon::Overlay",
             "zircon::UI",
             "zircon::Readback",

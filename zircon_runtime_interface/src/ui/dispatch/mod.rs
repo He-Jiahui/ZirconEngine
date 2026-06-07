@@ -13,12 +13,12 @@ pub use input::{
     UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
     UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputModifiers,
     UiInputRoutePolicy, UiInputRouteTrace, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
-    UiKeyboardInputState, UiNavigationInputEvent, UiNavigationRequestPolicy,
-    UiPointerCaptureReason, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource,
-    UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-    UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId, UiTextByteRange, UiTextInputEvent,
-    UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId,
-    UiWindowId,
+    UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent,
+    UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerId, UiPointerInputEvent,
+    UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind, UiPopupInputEvent,
+    UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit,
+    UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
+    UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
 };
 pub use navigation::{
     UiNavigationDispatchContext, UiNavigationDispatchEffect, UiNavigationDispatchInvocation,

@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{UiContainerKind, UiMargin, UiSlot, UiSlotKind},
+    layout::{UiContainerKind, UiMargin, UiSlot},
     tree::UiTree,
 };
 
@@ -52,17 +52,8 @@ pub(super) fn slot_padding(slot: Option<&UiSlot>) -> UiMargin {
         .unwrap_or_default()
 }
 
-fn slot_kind_for_container(container: UiContainerKind) -> Option<UiSlotKind> {
-    match container {
-        UiContainerKind::Free => Some(UiSlotKind::Free),
-        UiContainerKind::Container | UiContainerKind::SizeBox(_) => Some(UiSlotKind::Container),
-        UiContainerKind::Overlay => Some(UiSlotKind::Overlay),
-        UiContainerKind::Space => None,
-        UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
-            Some(UiSlotKind::Linear)
-        }
-        UiContainerKind::WrapBox(_) | UiContainerKind::MasonryBox(_) => Some(UiSlotKind::Flow),
-        UiContainerKind::GridBox(_) => Some(UiSlotKind::Grid),
-        UiContainerKind::ScrollableBox(_) => Some(UiSlotKind::Scrollable),
-    }
+fn slot_kind_for_container(
+    container: UiContainerKind,
+) -> Option<zircon_runtime_interface::ui::layout::UiSlotKind> {
+    container.child_slot_kind()
 }

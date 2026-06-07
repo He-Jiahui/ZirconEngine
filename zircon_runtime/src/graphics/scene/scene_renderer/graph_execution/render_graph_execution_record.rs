@@ -1,8 +1,14 @@
+use std::collections::BTreeSet;
+
 use crate::core::framework::render::PostProcessPassGraph;
+use crate::core::framework::render::{
+    MotionVectorCameraStatus, RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
+    RenderHistoryCopyReport,
+};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::{
     QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphPassResourceAccess, RenderPassId,
+    RenderGraphPassResourceAccess, RenderGraphResourceAccessKind, RenderPassId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -193,6 +199,9 @@ pub struct RenderGraphExecutionRecord {
     compute_workload_audit: Vec<RenderGraphComputeWorkloadAuditRecord>,
     post_process_graph: Option<PostProcessPassGraph>,
     executed_post_process_nodes: Vec<String>,
+    motion_vector_camera_status: MotionVectorCameraStatus,
+    resource_report: RenderGraphExecutionResourceReport,
+    history_copy_report: RenderHistoryCopyReport,
 }
 
 impl RenderGraphExecutionRecord {
@@ -314,6 +323,18 @@ impl RenderGraphExecutionRecord {
         self.executed_post_process_nodes.push(node_name.into());
     }
 
+    pub fn set_motion_vector_camera_status(&mut self, status: MotionVectorCameraStatus) {
+        self.motion_vector_camera_status = status;
+    }
+
+    pub fn set_resource_report(&mut self, report: RenderGraphExecutionResourceReport) {
+        self.resource_report = report;
+    }
+
+    pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
+        self.history_copy_report = report;
+    }
+
     pub fn push_compute_dispatch(&mut self, dispatch: RenderGraphComputeDispatchRecord) {
         self.compute_dispatches.push(dispatch);
     }
@@ -396,6 +417,54 @@ impl RenderGraphExecutionRecord {
         &self.executed_debug_markers
     }
 
+    pub fn motion_vector_camera_status(&self) -> MotionVectorCameraStatus {
+        self.motion_vector_camera_status
+    }
+
+    pub fn resource_report(&self) -> RenderGraphExecutionResourceReport {
+        self.resource_report
+    }
+
+    pub fn stage_execution_report(&self) -> RenderGraphStageExecutionReport {
+        let mut unique_stages = BTreeSet::new();
+        let mut staged_pass_count = 0;
+        let mut unstaged_pass_count = 0;
+        let mut stage_transition_count = 0;
+        let mut stage_order_violation_count = 0;
+        let mut previous_stage = None;
+
+        for executed_stage in &self.executed_pass_stages {
+            if let Some(stage) = executed_stage {
+                staged_pass_count += 1;
+                unique_stages.insert(*stage);
+                if let Some(previous) = previous_stage {
+                    if previous != *stage {
+                        stage_transition_count += 1;
+                    }
+                    if previous > *stage {
+                        stage_order_violation_count += 1;
+                    }
+                }
+                previous_stage = Some(*stage);
+            } else {
+                unstaged_pass_count += 1;
+                previous_stage = None;
+            }
+        }
+
+        RenderGraphStageExecutionReport::new(
+            staged_pass_count,
+            unstaged_pass_count,
+            unique_stages.len(),
+            stage_transition_count,
+            stage_order_violation_count,
+        )
+    }
+
+    pub fn history_copy_report(&self) -> RenderHistoryCopyReport {
+        self.history_copy_report
+    }
+
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn executed_pass_stages(&self) -> &[Option<RenderPassStage>] {
         &self.executed_pass_stages
@@ -423,6 +492,18 @@ impl RenderGraphExecutionRecord {
 
     pub fn executed_resource_access_count(&self) -> usize {
         self.executed_pass_resources.iter().map(Vec::len).sum()
+    }
+
+    pub fn executed_resource_access_count_for(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> usize {
+        self.executed_pass_resources
+            .iter()
+            .flatten()
+            .filter(|resource| resource.name == resource_name && resource.access == access)
+            .count()
     }
 
     pub fn executed_dependency_count(&self) -> usize {
@@ -512,6 +593,11 @@ impl RenderGraphExecutionRecord {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::{
+        RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
+        RenderHistoryCopyReport,
+    };
+    use crate::core::math::UVec2;
     use crate::graphics::pipeline::RenderPassStage;
     use crate::render_graph::RenderPassId;
     use crate::render_graph::{
@@ -526,6 +612,28 @@ mod tests {
 
     fn dispatch_context() -> RenderGraphComputeWorkloadDispatchContext {
         RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30])
+    }
+
+    #[test]
+    fn execution_record_preserves_resource_binding_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = RenderGraphExecutionResourceReport::new(6, 4, 2, 3);
+
+        record.set_resource_report(report);
+
+        assert_eq!(record.resource_report(), report);
+    }
+
+    #[test]
+    fn execution_record_preserves_history_copy_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report =
+            RenderHistoryCopyReport::new(true, UVec2::new(640, 360), 4, true, true, true, false);
+
+        record.set_history_copy_report(report);
+
+        assert_eq!(record.history_copy_report(), report);
+        assert!(record.history_copy_report().debug_marker_emitted);
     }
 
     #[test]
@@ -613,6 +721,7 @@ mod tests {
     fn execution_record_preserves_renderer_stage_metadata() {
         let mut record = RenderGraphExecutionRecord::default();
 
+        record.push_executed_pass("legacy-overlay", "overlay.legacy", QueueLane::Graphics);
         record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
             Some(RenderPassStage::Transparent3d),
             "particle-render",
@@ -622,16 +731,140 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::Transparent3d),
+            "transparent-mesh",
+            "mesh.transparent",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::PostProcess),
+            "post-stack",
+            "post.stack",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
 
         assert_eq!(
             record.executed_pass_stages(),
-            &[Some(RenderPassStage::Transparent3d)]
+            &[
+                None,
+                Some(RenderPassStage::Transparent3d),
+                Some(RenderPassStage::Transparent3d),
+                Some(RenderPassStage::PostProcess),
+            ]
         );
         assert_eq!(
             record.executed_stage_count(RenderPassStage::Transparent3d),
+            2
+        );
+        assert_eq!(record.executed_stage_count(RenderPassStage::PostProcess), 1);
+        assert_eq!(
+            record.stage_execution_report(),
+            RenderGraphStageExecutionReport::new(3, 1, 2, 1, 0)
+        );
+    }
+
+    #[test]
+    fn execution_record_counts_named_resource_accesses() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let shadow_write = RenderGraphPassResourceAccess {
+            name: "shadow-map".to_string(),
+            kind: crate::render_graph::RenderGraphResourceKind::TransientTexture,
+            access: RenderGraphResourceAccessKind::Write,
+            attachment_ops: None,
+        };
+        let shadow_read = RenderGraphPassResourceAccess {
+            name: "shadow-map".to_string(),
+            kind: crate::render_graph::RenderGraphResourceKind::TransientTexture,
+            access: RenderGraphResourceAccessKind::Read,
+            attachment_ops: None,
+        };
+        let scene_color_read = RenderGraphPassResourceAccess {
+            name: "scene-color".to_string(),
+            kind: crate::render_graph::RenderGraphResourceKind::External,
+            access: RenderGraphResourceAccessKind::Read,
+            attachment_ops: None,
+        };
+
+        record.push_executed_pass_with_resources(
+            "shadow-map",
+            "shadow.map",
+            QueueLane::Graphics,
+            vec![shadow_write],
+        );
+        record.push_executed_pass_with_resources(
+            "opaque-mesh",
+            "mesh.opaque",
+            QueueLane::Graphics,
+            vec![shadow_read, scene_color_read],
+        );
+
+        assert_eq!(
+            record.executed_resource_access_count_for(
+                "shadow-map",
+                RenderGraphResourceAccessKind::Write,
+            ),
             1
         );
-        assert_eq!(record.executed_stage_count(RenderPassStage::PostProcess), 0);
+        assert_eq!(
+            record.executed_resource_access_count_for(
+                "shadow-map",
+                RenderGraphResourceAccessKind::Read
+            ),
+            1
+        );
+        assert_eq!(
+            record.executed_resource_access_count_for(
+                "scene-color",
+                RenderGraphResourceAccessKind::Write,
+            ),
+            0
+        );
+    }
+
+    #[test]
+    fn execution_record_counts_renderer_stage_order_violations() {
+        let mut record = RenderGraphExecutionRecord::default();
+
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::PostProcess),
+            "post-stack",
+            "post.stack",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::Opaque3d),
+            "late-opaque",
+            "mesh.opaque",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+        record.push_executed_pass("legacy-gap", "legacy.gap", QueueLane::Graphics);
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::Shadow),
+            "shadow-map",
+            "shadow.map",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+
+        assert_eq!(
+            record.stage_execution_report(),
+            RenderGraphStageExecutionReport::new(3, 1, 3, 1, 1)
+        );
     }
 
     #[test]

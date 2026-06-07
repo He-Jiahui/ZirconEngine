@@ -136,6 +136,7 @@ fn ui_canvas_slot_placement_contract_round_trips_and_defaults() {
         Pivot::new(1.0, 0.5),
         Position::new(-12.0, 18.0),
     )
+    .with_anchor_max(Anchor::new(1.0, 0.75))
     .with_offset(UiMargin::new(2.0, 4.0, 120.0, 40.0))
     .with_auto_size(true);
     let slot = UiSlot::new(parent_id, child_id, UiSlotKind::Free).with_canvas_placement(placement);
@@ -152,6 +153,11 @@ fn ui_canvas_slot_placement_contract_round_trips_and_defaults() {
     let sparse_placement = sparse_slot.canvas_placement.expect("sparse placement");
     assert_eq!(sparse_slot.kind, UiSlotKind::Free);
     assert_eq!(sparse_placement.anchor, Anchor::new(0.5, 1.0));
+    assert_eq!(sparse_placement.anchor_max, None);
+    assert_eq!(
+        sparse_placement.resolved_anchor_max(),
+        sparse_placement.anchor
+    );
     assert_eq!(sparse_placement.pivot, Pivot::default());
     assert_eq!(sparse_placement.position, Position::new(16.0, -8.0));
     assert_eq!(sparse_placement.offset, UiMargin::default());

@@ -14,14 +14,6 @@ pub(crate) struct OffscreenTarget {
     pub(crate) bloom: wgpu::Texture,
     pub(crate) bloom_view: wgpu::TextureView,
     #[allow(dead_code)]
-    pub(crate) depth_of_field_coc: wgpu::Texture,
-    #[allow(dead_code)]
-    pub(crate) depth_of_field_coc_view: wgpu::TextureView,
-    #[allow(dead_code)]
-    pub(crate) depth_of_field_bokeh: wgpu::Texture,
-    #[allow(dead_code)]
-    pub(crate) depth_of_field_bokeh_view: wgpu::TextureView,
-    #[allow(dead_code)]
     pub(crate) gbuffer_albedo: wgpu::Texture,
     pub(crate) gbuffer_albedo_view: wgpu::TextureView,
     #[allow(dead_code)]

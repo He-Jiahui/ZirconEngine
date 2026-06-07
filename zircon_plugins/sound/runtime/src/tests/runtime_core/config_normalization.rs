@@ -24,4 +24,20 @@ fn sound_config_normalizes_zero_channel_count_and_layout_mismatch() {
         sound.render_mix(1).unwrap().channel_layout,
         SoundChannelLayout::mono()
     );
+
+    let config = SoundConfig::from_plugin_options(SoundPluginOptions {
+        channel_count: 2,
+        channel_layout: SoundChannelLayout {
+            name: "stereo".to_string(),
+            channel_count: 2,
+            speakers: vec![
+                SoundSpeakerChannel::FrontRight,
+                SoundSpeakerChannel::FrontLeft,
+            ],
+        },
+        ..SoundPluginOptions::default()
+    });
+
+    assert_eq!(config.channel_count, 2);
+    assert_eq!(config.channel_layout, SoundChannelLayout::stereo());
 }

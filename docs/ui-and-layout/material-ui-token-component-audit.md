@@ -4,13 +4,13 @@ related_code:
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/material_components/material_masonry.zui
-  - zircon_editor/assets/ui/editor/material_components/material_alert.zui
-  - zircon_editor/assets/ui/editor/material_components/material_paper.zui
-  - zircon_editor/assets/ui/editor/material_components/material_icons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_material_icons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_chips.zui
-  - zircon_editor/assets/ui/editor/material_components/material_skeleton.zui
+  - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
+  - zircon_editor/assets/ui/editor/material_components/feedback/material_alert.zui
+  - zircon_editor/assets/ui/editor/material_components/surfaces/material_paper.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_icons.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_material_icons.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_chips.zui
+  - zircon_editor/assets/ui/editor/material_components/feedback/material_skeleton.zui
   - zircon_editor/src/tests/ui/boundary/material_component_lab/surface_feedback_theme.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/icon_theme.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme.rs
@@ -132,8 +132,15 @@ related_code:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/selection_state.rs
   - zircon_editor/assets/ui/editor/material_component_lab.v2.ui.toml
-  - zircon_editor/assets/ui/editor/material_components/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/material_masonry.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/feedback/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/layout/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
   - zircon_editor/src/tests/ui/boundary/material_component_lab/catalog.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme.rs
@@ -185,10 +192,10 @@ implementation_files:
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/material_components/material_alert.zui
-  - zircon_editor/assets/ui/editor/material_components/material_paper.zui
-  - zircon_editor/assets/ui/editor/material_components/material_icons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_material_icons.zui
+  - zircon_editor/assets/ui/editor/material_components/feedback/material_alert.zui
+  - zircon_editor/assets/ui/editor/material_components/surfaces/material_paper.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_icons.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_material_icons.zui
   - zircon_editor/src/tests/ui/boundary/material_component_lab/surface_feedback_theme.rs
   - docs/ui-and-layout/material-ui-component-design-matrix.md
   - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
@@ -337,26 +344,26 @@ implementation_files:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - zircon_editor/src/ui/template_runtime/builtin/material_lab_template_bindings.rs
-  - zircon_editor/assets/ui/editor/material_components/material_button_group.zui
-  - zircon_editor/assets/ui/editor/material_components/material_floating_action_button.zui
-  - zircon_editor/assets/ui/editor/material_components/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/material_textarea_autosize.zui
-  - zircon_editor/assets/ui/editor/material_components/material_selects.zui
-  - zircon_editor/assets/ui/editor/material_components/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/material_radio_buttons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_agent_chat.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_bar_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_charts.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_chat_composer.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_data_grid.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_date_time_pickers.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_gauge.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_line_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_pie_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_sparkline.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_tree_view.zui
-  - zircon_editor/assets/ui/editor/material_components/material_transfer_list.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_button_group.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_floating_action_button.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_bar_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_charts.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_chat_composer.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_data_grid.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_date_time_pickers.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_gauge.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_line_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_pie_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_sparkline.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_tree_view.zui
+  - zircon_editor/assets/ui/editor/material_components/navigation/material_transfer_list.zui
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/surface/focus.rs

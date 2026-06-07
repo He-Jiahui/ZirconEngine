@@ -20,6 +20,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/scene.rs
@@ -39,6 +41,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs
 plan_sources:
   - user: 2026-05-30 continue model material mesh entity shader flow and asset management
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
@@ -46,17 +50,17 @@ plan_sources:
 tests:
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_toml_roundtrip_preserves_entities_and_bindings
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_toml_roundtrip_preserves_physics_and_animation_components
-  - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_overview_reports_entity_component_and_reference_counts
-  - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_overview_handles_empty_scenes
-  - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_management_record_set_sorts_and_summarizes_records
-  - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_overview_reports_entity_component_and_reference_counts
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_overview_handles_empty_scenes
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records
+  - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
   - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
   - zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties
   - zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track
-  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_gltf_multi_primitive_material_labels
-  - zircon_runtime/src/asset/tests/assets/importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
+  - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_primitive_material_labels
+  - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_scene_labels
   - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_emits_multi_primitive_material_labels
   - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_triangle_gltf_into_model_asset
@@ -67,6 +71,7 @@ tests:
   - cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 scene record set: passed, 11 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 M6 minimal asset-flow sample with typed facade load-state, primitive binding, and aggregate management assertions: passed, 1 passed, 2211 filtered; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 M6 minimal asset-flow sample with glTF morph target/default weight and aggregate management assertions: passed, 1 passed, 2303 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 scene test split and TOML-safe joint constraint: passed, 11 passed; existing zircon_runtime lib-test warnings only)
 doc_type: module-detail
 ---
 
@@ -108,14 +113,16 @@ During resource streaming, `ResourceStreamer::ensure_scene_resources(...)` prepa
 
 ## Test Coverage
 
-`zircon_runtime/src/asset/tests/assets/scene.rs` covers TOML roundtrip for core scene, camera, light, physics, and animation fields. The overview tests lock the new read model for populated scenes with camera, model/direct-mesh/material, collider material, light, physics, animation, terrain, tilemap, and prefab references, plus empty-scene behavior. The record-set regression covers stable scene id sorting, list-level totals across populated and empty scene records, projection from scene records into entity rows, stable `(scene_id, entity)` sorting, and entity-row summary totals.
+`zircon_runtime/src/asset/tests/assets/scene.rs` covers TOML roundtrip for core scene, camera, light, physics, and animation fields. `zircon_runtime/src/asset/tests/assets/scene/management.rs` owns the scene/entity management read-model regressions: populated scenes with camera, model/direct-mesh/material, collider material, light, physics, animation, terrain, tilemap, and prefab references; empty-scene behavior; stable scene id sorting; list-level totals across populated and empty scene records; projection from scene records into entity rows; stable `(scene_id, entity)` sorting; and entity-row summary totals.
 
 `zircon_runtime/src/scene/tests/asset_scene.rs` covers the runtime bridge from scene asset to world component, render extract, and saved scene asset. The direct-mesh test fixture binds `res://meshes/triangle.zmesh` as the optional direct mesh and asserts the world and render snapshot preserve that mesh handle beside the model and material handles. The primitive-binding test constructs a scene with `SceneMeshPrimitiveBindingAsset` and authored morph weights, verifies they become `MeshRenderer.primitives` plus `MeshRenderer.morph_weights`, verifies render extraction emits a direct mesh/material snapshot carrying those weights, and verifies `World::to_scene_asset(...)` preserves both the binding and weight vector.
 
 `zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties` covers the component-property path for `MeshRenderer.morph_weights.N`, including sparse growth and readback. `zircon_plugins/animation/runtime/src/sequence.rs::tests::sequence_applies_mesh_renderer_morph_weight_track` covers the animation sequence path by applying a scalar track to `MeshRenderer.morph_weights.1`.
 
-`zircon_runtime/src/asset/tests/assets/importer.rs`, `zircon_runtime/src/asset/tests/assets/gltf_importer.rs`, and `zircon_plugins/gltf_importer/runtime/src/tests.rs` cover imported glTF scene bindings. Triangle, multi-scene, and two-primitive/two-material fixtures now assert that scene entities carry `Mesh{n}/Primitive{p}` plus `Material{m}` primitive bindings and that scene dependencies include every primitive mesh and material label.
+`zircon_runtime/src/asset/tests/assets/gltf_importer.rs` and `zircon_plugins/gltf_importer/runtime/src/tests.rs` cover imported glTF scene bindings. Triangle, multi-scene, and two-primitive/two-material fixtures now assert that scene entities carry `Mesh{n}/Primitive{p}` plus `Material{m}` primitive bindings and that scene dependencies include every primitive mesh and material label.
 
 `zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` covers the imported glTF scene/entity path in a project scan. It asserts `Scene0` and `Node0` ready records, checks the exact `Scene0 -> Node0/Mesh0/Mesh0/Primitive0/Material0` dependency set, verifies the scene entity carries a primitive binding from `Mesh0/Primitive0` to `Material0`, preserves the glTF mesh default weight as `SceneMeshInstanceAsset.morph_weights`, and verifies the scene plus flattened entity management summaries count one direct primitive mesh reference, one primitive binding, and one morph weight. It also loads `Scene0` as a typed `SceneAsset` through `ProjectAssetManager` and verifies root, direct dependency, and recursive dependency load states are all loaded for the full scene graph.
 
 Broader milestone acceptance still needs the full asset/model/importer and renderer validation from the asset gap plan before the overall model/material/mesh/entity/shader management loop is complete.
+
+Current split-module validation on 2026-06-05 used `D:\cargo-targets\zircon-asset-test-splits-0605` and ran `cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture`. All 11 scene tests passed, including the three `scene/management.rs` regressions and the physics/animation scene TOML round-trip that embeds default joint constraints.

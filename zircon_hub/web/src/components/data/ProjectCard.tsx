@@ -1,4 +1,4 @@
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { Box, Card, CardActionArea, Chip, IconButton, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 import type { HubProjectSummary } from "../../types/hub";
@@ -7,15 +7,17 @@ import { ProjectCover } from "./ProjectCover";
 export interface ProjectCardProps {
   project: HubProjectSummary;
   selected?: boolean;
+  openDetailsLabel: string;
   onOpen?: (project: HubProjectSummary) => void;
 }
 
-export function ProjectCard({ project, selected = false, onOpen }: ProjectCardProps) {
+export function ProjectCard({ project, selected = false, openDetailsLabel, onOpen }: ProjectCardProps) {
   return (
     <Card
       sx={{
         height: 251,
         minWidth: 0,
+        position: "relative",
         borderColor: selected ? "rgba(45,212,207,0.44)" : hubTokens.colors.lineStrong,
         transition: "border-color 140ms ease, transform 140ms ease",
         "&:hover": {
@@ -30,22 +32,6 @@ export function ProjectCard({ project, selected = false, onOpen }: ProjectCardPr
       >
         <Box sx={{ height: 112, borderRadius: "6px", position: "relative", overflow: "hidden" }}>
           <ProjectCover coverId={project.coverId} />
-          <IconButton
-            size="small"
-            aria-label={`${project.name} menu`}
-            sx={{
-              position: "absolute",
-              top: 6,
-              right: 6,
-              width: 30,
-              height: 30,
-              color: hubTokens.colors.textSoft,
-              backgroundColor: "rgba(15,15,15,0.76)",
-              "&:hover": { backgroundColor: "rgba(25,25,25,0.9)" },
-            }}
-          >
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
         </Box>
         <Box sx={{ pt: 1.2, minWidth: 0 }}>
           <Typography variant="h6" noWrap>
@@ -63,6 +49,26 @@ export function ProjectCard({ project, selected = false, onOpen }: ProjectCardPr
           </Box>
         </Box>
       </CardActionArea>
+      <IconButton
+        size="small"
+        aria-label={`${openDetailsLabel}: ${project.name}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen?.(project);
+        }}
+        sx={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          width: 30,
+          height: 30,
+          color: hubTokens.colors.textSoft,
+          backgroundColor: "rgba(15,15,15,0.76)",
+          "&:hover": { backgroundColor: "rgba(25,25,25,0.9)" },
+        }}
+      >
+        <OpenInNewOutlinedIcon fontSize="small" />
+      </IconButton>
     </Card>
   );
 }

@@ -1,4 +1,4 @@
-use super::{SoundSourceInput, SoundTrackId};
+use super::{SoundChannelLayout, SoundSourceInput, SoundTrackId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -6,6 +6,7 @@ pub struct SoundClipInfo {
     pub locator: String,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
+    pub channel_layout: SoundChannelLayout,
     pub frame_count: usize,
     pub duration_seconds: f32,
 }

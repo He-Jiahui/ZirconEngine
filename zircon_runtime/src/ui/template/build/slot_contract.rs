@@ -38,12 +38,12 @@ pub(super) fn infer_slot_contract(
                 slot = slot.with_linear_sizing(linear_sizing);
             }
         }
-        if parent_container == UiContainerKind::Free {
+        if matches!(parent_container, UiContainerKind::Free | UiContainerKind::Canvas) {
             if let Some(placement) = parse_canvas_placement(layout, path)? {
                 slot = slot.with_canvas_placement(placement);
             }
         }
-        if slot.kind == UiSlotKind::Overlay {
+        if matches!(slot.kind, UiSlotKind::Overlay | UiSlotKind::Canvas) {
             slot = slot.with_z_order(
                 parse_i32(layout.get("z_order"), path, "slot.z_order")?.unwrap_or_default(),
             );
@@ -64,6 +64,7 @@ fn parse_canvas_placement(
     node_path: &str,
 ) -> Result<Option<UiCanvasSlotPlacement>, UiTemplateBuildError> {
     let has_placement = layout.contains_key("anchor")
+        || layout.contains_key("anchor_max")
         || layout.contains_key("pivot")
         || layout.contains_key("position")
         || layout.contains_key("offset")
@@ -75,27 +76,34 @@ fn parse_canvas_placement(
     let anchor = parse_point(layout.get("anchor"), node_path, "slot.anchor")?
         .map(|(x, y)| Anchor::new(x, y))
         .unwrap_or_default();
+    let anchor_max = parse_point(layout.get("anchor_max"), node_path, "slot.anchor_max")?
+        .map(|(x, y)| Anchor::new(x, y));
     let pivot = parse_point(layout.get("pivot"), node_path, "slot.pivot")?
         .map(|(x, y)| Pivot::new(x, y))
         .unwrap_or_default();
     let position = parse_point(layout.get("position"), node_path, "slot.position")?
         .map(|(x, y)| Position::new(x, y))
         .unwrap_or_default();
-    Ok(Some(
-        UiCanvasSlotPlacement::new(anchor, pivot, position)
-            .with_offset(parse_margin(
-                layout.get("offset"),
-                node_path,
-                "slot.offset",
-            )?)
-            .with_auto_size(parse_bool(layout.get("auto_size")).unwrap_or(false)),
-    ))
+    let mut placement = UiCanvasSlotPlacement::new(anchor, pivot, position)
+        .with_offset(parse_margin(
+            layout.get("offset"),
+            node_path,
+            "slot.offset",
+        )?)
+        .with_auto_size(parse_bool(layout.get("auto_size")).unwrap_or(false));
+    if let Some(anchor_max) = anchor_max {
+        placement = placement.with_anchor_max(anchor_max);
+    }
+    Ok(Some(placement))
 }
 
 fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
     match parent_container {
         UiContainerKind::Free => UiSlotKind::Free,
-        UiContainerKind::Container | UiContainerKind::SizeBox(_) => UiSlotKind::Container,
+        UiContainerKind::Canvas => UiSlotKind::Canvas,
+        UiContainerKind::Container | UiContainerKind::BlockBox | UiContainerKind::SizeBox(_) => {
+            UiSlotKind::Container
+        }
         UiContainerKind::Overlay => UiSlotKind::Overlay,
         UiContainerKind::Space => UiSlotKind::Free,
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => UiSlotKind::Linear,

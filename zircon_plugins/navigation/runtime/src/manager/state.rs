@@ -3,12 +3,15 @@ use std::collections::HashMap;
 use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{NavMeshHandle, NavigationRuntimeStats};
 
+use super::agent_motion::NavigationAgentMotionState;
+
 #[derive(Debug)]
 pub(super) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
     pub(super) loaded: HashMap<NavMeshHandle, NavMeshAsset>,
     pub(super) settings: NavigationSettingsAsset,
     pub(super) stats: NavigationRuntimeStats,
+    pub(super) agent_motion: HashMap<u64, NavigationAgentMotionState>,
 }
 
 impl Default for NavigationRuntimeState {
@@ -18,6 +21,7 @@ impl Default for NavigationRuntimeState {
             loaded: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
             stats: NavigationRuntimeStats::default(),
+            agent_motion: HashMap::new(),
         }
     }
 }

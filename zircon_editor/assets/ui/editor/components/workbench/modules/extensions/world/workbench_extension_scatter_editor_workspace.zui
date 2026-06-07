@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Scatter Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionScatterEditorWorkspace]
+root = "scatter_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.scatter_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionScatterEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_rail_gap" }, { node = "scatter_editor_left" }, { node = "scatter_editor_center" }, { node = "scatter_editor_right" }]
+
+[nodes.scatter_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionScatterEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scatter_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionScatterEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_title" }, { node = "scatter_editor_rules_tab" }, { node = "scatter_editor_constraints_tab" }, { node = "scatter_editor_output_tab" }, { node = "scatter_editor_set_row" }, { node = "scatter_editor_rocks_rule_row" }, { node = "scatter_editor_ferns_rule_row" }]
+
+[nodes.scatter_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionScatterEditorTitle"
+props = { text = "Scatter Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.scatter_editor_rules_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionScatterEditorRulesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Rules", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorRulesTab", event = "Click", route = "workbench.extension.scatter_editor.rules" }]
+
+[nodes.scatter_editor_constraints_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionScatterEditorConstraintsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Constraints", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorConstraintsTab", event = "Click", route = "workbench.extension.scatter_editor.constraints" }]
+
+[nodes.scatter_editor_output_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionScatterEditorOutputTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Output", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorOutputTab", event = "Click", route = "workbench.extension.scatter_editor.output_tab" }]
+
+[nodes.scatter_editor_set_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionScatterEditorSetRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "SC_Forest", icon = "globe", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorSetRow", event = "Click", route = "workbench.extension.scatter_editor.set" }]
+
+[nodes.scatter_editor_rocks_rule_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionScatterEditorRocksRuleRow"
+classes = ["workbench-list-row"]
+props = { text = "Rule_Rocks", icon = "grid", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorRocksRuleRow", event = "Click", route = "workbench.extension.scatter_editor.rule.rocks" }]
+
+[nodes.scatter_editor_ferns_rule_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionScatterEditorFernsRuleRow"
+classes = ["workbench-list-row"]
+props = { text = "Rule_Ferns", icon = "layers", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorFernsRuleRow", event = "Click", route = "workbench.extension.scatter_editor.rule.ferns" }]
+
+[nodes.scatter_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionScatterEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_center_header" }, { node = "scatter_editor_rule_table" }, { node = "scatter_editor_output" }]
+
+[nodes.scatter_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionScatterEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "scatter_editor_center_title" }, { node = "scatter_editor_header_fill" }, { node = "scatter_editor_generate_button" }, { node = "scatter_editor_validate_button" }]
+
+[nodes.scatter_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionScatterEditorCenterTitle"
+props = { text = "Scatter Rule Graph" }
+layout = { width = { min = 240.0, preferred = 240.0, max = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scatter_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionScatterEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.scatter_editor_generate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionScatterEditorGenerateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Generate", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorGenerate", event = "Click", route = "workbench.extension.scatter_editor.generate" }]
+
+[nodes.scatter_editor_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionScatterEditorValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorValidate", event = "Click", route = "workbench.extension.scatter_editor.validate" }]
+
+[nodes.scatter_editor_rule_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionScatterEditorRuleTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_biome_mask_table_row" }, { node = "scatter_editor_slope_filter_table_row" }, { node = "scatter_editor_spawn_rule_table_row" }, { node = "scatter_editor_collision_test_table_row" }]
+
+[nodes.scatter_editor_biome_mask_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionScatterEditorBiomeMaskTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Biome Mask", value_text = "Input   Forest   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorBiomeMaskTableRow", event = "Click", route = "workbench.extension.scatter_editor.rule.biome_mask" }]
+
+[nodes.scatter_editor_slope_filter_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionScatterEditorSlopeFilterTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Slope Filter", value_text = "Constraint   0-38 deg   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorSlopeFilterTableRow", event = "Click", route = "workbench.extension.scatter_editor.rule.slope_filter" }]
+
+[nodes.scatter_editor_spawn_rule_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionScatterEditorSpawnRuleTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Spawn Rule", value_text = "Rule   Rocks + Ferns   64K" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorSpawnRuleTableRow", event = "Click", route = "workbench.extension.scatter_editor.rule.spawn_rule" }]
+
+[nodes.scatter_editor_collision_test_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionScatterEditorCollisionTestTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Collision Test", value_text = "Validation   1 conflict   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorCollisionTestTableRow", event = "Click", route = "workbench.extension.scatter_editor.rule.collision_test" }]
+
+[nodes.scatter_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionScatterEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Scatter Log", value_text = "18 rules   64K instances   1 conflict" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ScatterEditorOutput", event = "Click", route = "workbench.extension.scatter_editor.output" }]
+
+[nodes.scatter_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionScatterEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "scatter_editor_details_title" }, { node = "scatter_editor_rule_set_dropdown" }, { node = "scatter_editor_seed_field" }, { node = "scatter_editor_density_field" }]
+
+[nodes.scatter_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionScatterEditorDetailsTitle"
+props = { text = "Scatter Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.scatter_editor_rule_set_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionScatterEditorRuleSetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "SC_Forest", value = "SC_Forest", options = ["SC_Forest", "SC_Riverbank", "SC_Cliff", "SC_Meadow"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ScatterEditorRuleSetEdit", event = "Change", route = "workbench.extension.scatter_editor.rule_set.edit" },
+  { id = "WorkbenchExtension/ScatterEditorRuleSetCommit", event = "Submit", route = "workbench.extension.scatter_editor.rule_set.commit" },
+]
+
+[nodes.scatter_editor_seed_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionScatterEditorSeedField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Seed: 2026" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ScatterEditorSeedEdit", event = "Change", route = "workbench.extension.scatter_editor.seed.edit" },
+  { id = "WorkbenchExtension/ScatterEditorSeedCommit", event = "Submit", route = "workbench.extension.scatter_editor.seed.commit" },
+]
+
+[nodes.scatter_editor_density_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionScatterEditorDensityField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Density: 0.64" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ScatterEditorDensityEdit", event = "Change", route = "workbench.extension.scatter_editor.density.edit" },
+  { id = "WorkbenchExtension/ScatterEditorDensityCommit", event = "Submit", route = "workbench.extension.scatter_editor.density.commit" },
+]

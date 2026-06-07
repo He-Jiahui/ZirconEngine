@@ -14,8 +14,8 @@
 
 ### Files
 
-- Modify: `zircon_editor/assets/ui/editor/components/showcase_input_section.zui`
-- Modify: `zircon_editor/assets/ui/editor/material_components/material_buttons.zui`
+- Modify: `zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui`
+- Modify: `zircon_editor/assets/ui/editor/material_components/inputs/material_buttons.zui`
 - Modify: `zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs`
 - Modify: `zircon_editor/src/tests/host/retained_window/native_material_painter.rs`
 - Modify: `zircon_editor/src/tests/host/retained_window/native_host_contract.rs`

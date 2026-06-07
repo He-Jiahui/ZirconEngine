@@ -1,22 +1,27 @@
-use crate::core::framework::render::RenderPluginRendererOutputs;
+use crate::core::framework::render::{
+    RenderCameraTargetGraphImportReport, RenderPluginRendererOutputs,
+};
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
     insert_marker, pop_group, push_group, RENDERDOC_MARKER_FRAME_EXTRACT,
     RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
 };
 use crate::graphics::pipeline::RenderPassStage;
-use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::resources::{OutputTargetTextureResource, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
-    RenderPassPostProcessStackContext,
+    RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
+    RenderPassExecutorRegistry, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::prepare_mesh_queue;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
-use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::types::{
+    GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
+};
 use crate::render_graph::RenderGraphResourceAccessKind;
 use crate::CompiledRenderPipeline;
+use std::sync::Arc;
 
 use super::super::super::scene_renderer_core::{
     merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
@@ -104,17 +109,39 @@ impl SceneRendererCore {
                 alpha_mask: &mesh_draw_partitions.alpha_mask,
                 transparent: &mesh_draw_partitions.transparent,
                 non_transparent: &non_transparent_mesh_draws,
+                shadow_casters: &mesh_draw_partitions.shadow_casters,
             };
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
         let material_gbuffer_valid = pipeline_writes_resource(
             pipeline,
             crate::core::framework::render::PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         );
+        let screen_space_reflection_history_enabled = runtime_features.history_resolve_enabled
+            && frame
+                .extract
+                .post_process
+                .effect_stack
+                .screen_space_reflection
+                .is_enabled()
+            && pipeline_writes_resource(
+                pipeline,
+                crate::core::framework::render::PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+            );
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
-        import_frame_targets(&mut graph_resources, target);
+        let direct_imported_final_target = direct_imported_final_target(streamer, frame);
+        let imported_final_target =
+            direct_imported_final_target
+                .as_ref()
+                .map(|resource| RenderGraphImportedFinalTarget {
+                    view: resource.view(),
+                });
+        import_frame_targets(&mut graph_resources, target, imported_final_target);
+        let direct_import_report = direct_imported_final_target
+            .as_ref()
+            .map(|resource| RenderCameraTargetGraphImportReport::direct_imported(resource.size()));
         if let Some(history_textures) = history_available
             .then(|| history_textures.as_deref())
             .flatten()
@@ -125,11 +152,20 @@ impl SceneRendererCore {
                     .scene_color
                     .create_view(&wgpu::TextureViewDescriptor::default()),
             );
+            if screen_space_reflection_history_enabled {
+                graph_resources.import_texture_view(
+                    crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
+                    history_textures
+                        .screen_space_reflection
+                        .create_view(&wgpu::TextureViewDescriptor::default()),
+                );
+            }
         }
         graph_resources
             .materialize_transient_resources(device, &pipeline.graph)
             .map_err(GraphicsError::Asset)?;
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
+        graph_execution_record.set_resource_report(graph_resources.resource_report());
         let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
         let mut graph_execution = RenderGraphStageExecution::new(
             &mut graph_resources,
@@ -147,6 +183,7 @@ impl SceneRendererCore {
         .with_material_gbuffer_valid(material_gbuffer_valid);
         for stage in EARLY_GRAPH_STAGES {
             let is_depth_prepass = *stage == RenderPassStage::DepthPrepass;
+            let is_shadow = *stage == RenderPassStage::Shadow;
             if is_depth_prepass {
                 push_group(&mut encoder, RENDERDOC_MARKER_PREPASS);
             }
@@ -174,7 +211,8 @@ impl SceneRendererCore {
                 None,
                 None,
                 None,
-                is_depth_prepass.then_some(mesh_draw_lists),
+                (is_depth_prepass || is_shadow).then_some(mesh_draw_lists),
+                is_shadow.then_some(&self.shadow_map_renderer),
                 &mut graph_execution,
             );
             if is_depth_prepass {
@@ -194,6 +232,7 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
+                None,
                 None,
                 None,
                 None,
@@ -258,8 +297,9 @@ impl SceneRendererCore {
             None,
             None,
             None,
-            None,
-            None,
+            Some(streamer),
+            Some(&mut self.mesh_pipelines),
+            Some(mesh_draw_lists),
             None,
             &mut graph_execution,
         )?;
@@ -267,11 +307,22 @@ impl SceneRendererCore {
         let history_copy_required = history_textures.is_some()
             && (runtime_features.history_resolve_enabled
                 || runtime_features.hybrid_global_illumination_enabled
-                || runtime_features.ssao_enabled);
+                || runtime_features.ssao_enabled
+                || screen_space_reflection_history_enabled);
         if history_copy_required {
             insert_marker(&mut encoder, RENDERDOC_MARKER_HISTORY_COPY);
         }
-        self.copy_history_textures(&mut encoder, target, history_textures, runtime_features);
+        let history_copy_report = self.copy_history_textures(
+            &mut encoder,
+            target,
+            &*graph_execution.resources,
+            history_textures,
+            runtime_features,
+            screen_space_reflection_history_enabled,
+        );
+        graph_execution
+            .record
+            .set_history_copy_report(history_copy_report);
         for stage in LATE_GRAPH_STAGES {
             let overlay_stage = matches!(*stage, RenderPassStage::Overlay | RenderPassStage::Debug);
             let overlay_renderer = if overlay_stage {
@@ -300,6 +351,7 @@ impl SceneRendererCore {
                 None,
                 None,
                 None,
+                None,
                 &mut graph_execution,
             )?;
         }
@@ -307,13 +359,29 @@ impl SceneRendererCore {
         queue.submit([encoder.finish()]);
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
-        Ok(SceneRendererCompiledSceneOutputs::new(
+        let outputs = SceneRendererCompiledSceneOutputs::new(
             SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
             graph_execution_record,
             prepared_mesh_queue.stats(),
             prepared_sprite_queue_stats,
-        ))
+        );
+        Ok(match direct_import_report {
+            Some(report) => outputs.with_output_target_graph_import_report(report),
+            None => outputs,
+        })
     }
+}
+
+fn direct_imported_final_target(
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+) -> Option<Arc<OutputTargetTextureResource>> {
+    let texture = frame.output_target().texture_handle()?;
+    let prepared = streamer.output_target_texture_resource(&texture.id())?;
+    let plan = frame
+        .output_target()
+        .graph_import_plan(Some(prepared.descriptor().format.as_str()));
+    (plan.status() == ViewportTextureGraphImportStatus::ReadyForDirectImport).then_some(prepared)
 }
 
 fn active_sprite_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {

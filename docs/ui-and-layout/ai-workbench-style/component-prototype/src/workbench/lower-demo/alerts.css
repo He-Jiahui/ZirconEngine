@@ -1,0 +1,44 @@
+.zr-lower-demo .zr-alert-stack {
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.018);
+  border-radius: var(--radius-sm);
+  transform: translate(-10px, 8px);
+}
+
+.zr-lower-demo .zr-alert-status {
+  width: 17px;
+  height: 17px;
+}
+
+.zr-lower-demo .zr-alert-status .zr-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.zr-lower-demo .zr-alert-status > span {
+  font-size: 12px;
+}
+
+.zr-lower-demo .zr-alert {
+  height: 30px;
+}
+
+.zr-lower-demo .zr-alert-stack {
+  gap: 5px;
+}
+
+.zr-lower-demo .zr-alert.is-info {
+  color: #5891cd;
+}
+
+.zr-lower-demo .zr-alert.is-success {
+  color: #60bd70;
+}
+
+.zr-lower-demo .zr-alert.is-warning {
+  color: #c59f4b;
+}
+
+.zr-lower-demo .zr-alert.is-error {
+  color: #ce5f55;
+}

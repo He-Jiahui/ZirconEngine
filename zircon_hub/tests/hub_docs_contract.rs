@@ -70,6 +70,10 @@ fn hub_docs_record_current_contract_matrix_and_acceptance_handoff() {
         "## Docs/Contracts Refresh Gate",
         "tokens -> layout primitives -> surfaces -> inputs/navigation/data display/overlays",
         "Slint 1.16.1 constraints",
+        "fallback Workspace header button routes to Settings instead of saving without a draft",
+        "HubCheckbox` and `HubSwitch` treat a missing `onChange` callback as a read-only contract",
+        "SourceEngineList` treats a missing `onSelect` callback as read-only",
+        "HubList` derives row disabled state from row DTOs plus `onSelect` presence",
         "ui_global_rules_contract.rs",
         "ui_visual_standard_contract.rs",
         "hub_docs_contract.rs",
@@ -97,6 +101,14 @@ fn hub_docs_record_current_contract_matrix_and_acceptance_handoff() {
     let lifecycle = read_repo_file("docs/zircon_hub/projects/lifecycle-workflows.md");
     for snippet in [
         "## Docs Refresh Handoff",
+        "React/MUI project lifecycle surface",
+        "CreateProjectActionPayload",
+        "create_project_from_payload",
+        "web/src/pages/ProjectsDashboard.tsx",
+        "projectTargetPayload",
+        "request-delete",
+        "confirm-delete",
+        "Recycle Bin",
         "Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists",
         "HubConfig.runtime",
         "ui_project_navigation_contract.rs",
@@ -106,13 +118,32 @@ fn hub_docs_record_current_contract_matrix_and_acceptance_handoff() {
             "Project lifecycle docs must state current project workflow contracts; missing {snippet}"
         );
     }
+    for obsolete in [
+        "Slint page composition",
+        "Slint form state",
+        "project_dashboard.slint",
+        "project_new_page.slint",
+        "project_detail_page.slint",
+        "view_model::projects",
+        "project_workspace.rs",
+        "zircon_hub/src/app/",
+    ] {
+        assert!(
+            !lifecycle.contains(obsolete),
+            "Project lifecycle docs must not reference obsolete Slint/app lifecycle ownership; found {obsolete}"
+        );
+    }
 
     let pages = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
     for snippet in [
         "## Docs Refresh Handoff",
-        "WorkspaceActionReadinessData",
-        "OperationTimelinePanel",
-        "selected-project-only",
+        "React/MUI actionable page surface",
+        "src/tauri_app/runtime_state/build_actions.rs",
+        "web/src/pages/BuildsPage.tsx",
+        "projectTargetPayload",
+        "detailRows",
+        "comingSoon",
+        "settingsDraft",
         "hub_docs_contract.rs",
     ] {
         assert!(
@@ -120,18 +151,52 @@ fn hub_docs_record_current_contract_matrix_and_acceptance_handoff() {
             "Actionable pages docs must state page-scope and timeline contracts; missing {snippet}"
         );
     }
+    for obsolete in [
+        "WorkspaceActionReadinessData",
+        "OperationTimelinePanel",
+        "SettingStatusData",
+        "HubWindow.workspace-action-readiness",
+        "view_model/workspace_actions.rs",
+        "builds.slint",
+        "cloud.slint",
+        "settings.slint",
+        "zircon_hub/src/app/",
+    ] {
+        assert!(
+            !pages.contains(obsolete),
+            "Actionable pages docs must not reference obsolete Slint/app page ownership; found {obsolete}"
+        );
+    }
 
     let settings = read_repo_file("docs/zircon_hub/pages/settings-status.md");
     for snippet in [
         "## Docs Refresh Handoff",
-        "HubSnapshot",
-        "SettingStatusData",
+        "HubSettingsSummary",
+        "settingsDraft",
+        "browse-settings-folder",
         "save-settings",
+        "save_settings_refreshes_source_scoped_catalogs_in_returned_view_model",
+        "keeps_first_source_engine_root_before_fallback_limit",
         "hub_docs_contract.rs",
     ] {
         assert!(
             settings.contains(snippet),
-            "Settings status docs must state snapshot-derived status ownership; missing {snippet}"
+            "Settings status docs must state React/Tauri settings draft ownership; missing {snippet}"
+        );
+    }
+    for obsolete in [
+        "SettingStatusData",
+        "settings.slint",
+        "settings_page_components.slint",
+        "view_model::settings_statuses",
+        "browse-project-location",
+        "browse-output",
+        "browse-device-install",
+        "zircon_hub/src/app/",
+    ] {
+        assert!(
+            !settings.contains(obsolete),
+            "Settings status docs must not reference obsolete Slint/app status ownership; found {obsolete}"
         );
     }
 }

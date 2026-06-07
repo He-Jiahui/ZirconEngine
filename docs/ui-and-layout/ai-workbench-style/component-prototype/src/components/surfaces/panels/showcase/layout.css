@@ -1,0 +1,8 @@
+.zr-showcase {
+  left: var(--rail-w);
+  right: 0;
+  bottom: var(--bottom-h);
+  height: var(--showcase-h);
+  font-size: 11px;
+  background: linear-gradient(180deg, #171b1e, #15191c);
+}

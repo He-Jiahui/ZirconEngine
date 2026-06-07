@@ -20,6 +20,7 @@ pub(super) fn annotate_result_route_steps(result: &mut UiInputDispatchResult) {
             explicit_handler,
             result.reply.disposition,
             result.reply.effects.len(),
+            result.reply.phase,
         ),
         UiInputRoutePolicy::Direct | UiInputRoutePolicy::PointerCapture => direct_route_steps(
             trace
@@ -55,15 +56,29 @@ fn routed_path_steps(
     explicit_handler: Option<UiNodeId>,
     disposition: UiDispatchDisposition,
     effect_count: usize,
+    terminal_phase: Option<UiDispatchPhase>,
 ) -> Vec<UiDispatchReplyStepTrace> {
     let terminal = explicit_handler.or(route_target).or(trace.target);
     let mut steps = Vec::new();
 
     for node_id in &trace.preview_tunnel {
-        steps.push(passthrough_step(
+        steps.push(routed_step(
             UiDispatchPhase::PreviewTunnel,
-            Some(*node_id),
+            *node_id,
+            terminal,
+            terminal_phase,
+            disposition,
+            effect_count,
         ));
+        if should_stop_at(
+            *node_id,
+            terminal,
+            terminal_phase,
+            UiDispatchPhase::PreviewTunnel,
+            disposition,
+        ) {
+            return steps;
+        }
     }
 
     let path = if trace.bubble_path.is_empty() {
@@ -80,10 +95,17 @@ fn routed_path_steps(
         UiDispatchPhase::Target,
         target,
         terminal,
+        terminal_phase,
         disposition,
         effect_count,
     ));
-    if should_stop_at(target, terminal, disposition) {
+    if should_stop_at(
+        target,
+        terminal,
+        terminal_phase,
+        UiDispatchPhase::Target,
+        disposition,
+    ) {
         return steps;
     }
 
@@ -92,10 +114,17 @@ fn routed_path_steps(
             UiDispatchPhase::Bubble,
             *node_id,
             terminal,
+            terminal_phase,
             disposition,
             effect_count,
         ));
-        if should_stop_at(*node_id, terminal, disposition) {
+        if should_stop_at(
+            *node_id,
+            terminal,
+            terminal_phase,
+            UiDispatchPhase::Bubble,
+            disposition,
+        ) {
             break;
         }
     }
@@ -182,10 +211,11 @@ fn routed_step(
     phase: UiDispatchPhase,
     node_id: UiNodeId,
     terminal: Option<UiNodeId>,
+    terminal_phase: Option<UiDispatchPhase>,
     disposition: UiDispatchDisposition,
     effect_count: usize,
 ) -> UiDispatchReplyStepTrace {
-    if Some(node_id) == terminal {
+    if should_stop_at(node_id, terminal, terminal_phase, phase, disposition) {
         terminal_step(phase, node_id, terminal, disposition, effect_count)
     } else {
         passthrough_step(phase, Some(node_id))
@@ -199,6 +229,7 @@ fn terminal_step(
     disposition: UiDispatchDisposition,
     effect_count: usize,
 ) -> UiDispatchReplyStepTrace {
+    let (effect_count, ignored_effect_count) = terminal_effect_counts(disposition, effect_count);
     UiDispatchReplyStepTrace {
         phase,
         target: Some(target),
@@ -206,10 +237,22 @@ fn terminal_step(
         disposition,
         effect_start: 0,
         effect_count,
+        ignored_effect_count,
         stopped: matches!(
             disposition,
             UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked
         ),
+    }
+}
+
+fn terminal_effect_counts(
+    disposition: UiDispatchDisposition,
+    effect_count: usize,
+) -> (usize, usize) {
+    if disposition == UiDispatchDisposition::Unhandled {
+        (0, effect_count)
+    } else {
+        (effect_count, 0)
     }
 }
 
@@ -221,6 +264,7 @@ fn passthrough_step(phase: UiDispatchPhase, target: Option<UiNodeId>) -> UiDispa
         disposition: UiDispatchDisposition::Passthrough,
         effect_start: 0,
         effect_count: 0,
+        ignored_effect_count: 0,
         stopped: false,
     }
 }
@@ -228,9 +272,12 @@ fn passthrough_step(phase: UiDispatchPhase, target: Option<UiNodeId>) -> UiDispa
 fn should_stop_at(
     node_id: UiNodeId,
     terminal: Option<UiNodeId>,
+    terminal_phase: Option<UiDispatchPhase>,
+    phase: UiDispatchPhase,
     disposition: UiDispatchDisposition,
 ) -> bool {
     Some(node_id) == terminal
+        && terminal_phase.is_none_or(|terminal_phase| terminal_phase == phase)
         && matches!(
             disposition,
             UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked

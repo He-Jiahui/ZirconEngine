@@ -80,13 +80,20 @@ impl DefaultNetManager {
         &self,
         route: NetRouteId,
     ) -> Result<(), NetError> {
-        self.state
+        let removed = self
+            .state
             .http_routes
             .lock()
             .expect("net HTTP routes mutex poisoned")
             .remove(&route)
-            .map(|_| ())
-            .ok_or(NetError::UnknownRoute { route })
+            .is_some();
+        if !removed {
+            return Err(NetError::UnknownRoute { route });
+        }
+
+        self.state
+            .push_event(NetEvent::HttpRouteUnregistered { route });
+        Ok(())
     }
 
     pub(in crate::service_types) fn listen_http_impl(

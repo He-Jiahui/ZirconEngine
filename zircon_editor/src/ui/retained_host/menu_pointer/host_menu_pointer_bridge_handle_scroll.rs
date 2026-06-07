@@ -1,4 +1,3 @@
-use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
 };

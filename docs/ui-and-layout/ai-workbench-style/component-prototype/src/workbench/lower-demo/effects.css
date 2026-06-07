@@ -1,0 +1,13 @@
+.zr-lower-demo .zr-table,
+.zr-lower-demo .zr-alert-stack,
+.zr-lower-demo .zr-toast {
+  filter: blur(0.12px);
+}
+
+.zr-lower-demo .zr-table {
+  filter: blur(0.08px);
+}
+
+.zr-lower-demo .zr-alert-stack {
+  filter: saturate(1.28) brightness(1.01);
+}

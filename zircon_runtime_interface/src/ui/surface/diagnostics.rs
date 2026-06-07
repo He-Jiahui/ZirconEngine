@@ -7,7 +7,8 @@ use crate::ui::pipeline::UiPipelineFrameReport;
 use crate::ui::tree::{UiDirtyFlags, UiInputPolicy, UiVisibility};
 
 use super::{
-    UiFocusState, UiHitTestDebugDump, UiHitTestQuery, UiRenderCommandKind, UiRenderDebugSnapshot,
+    UiArrangedSlotSummary, UiCanvasLayerGroup, UiFocusState, UiHitTestDebugDump, UiHitTestQuery,
+    UiRenderCommandKind, UiRenderDebugSnapshot,
 };
 
 pub const UI_SURFACE_DEBUG_SCHEMA_VERSION: u32 = 1;
@@ -67,6 +68,8 @@ pub struct UiSurfaceDebugSnapshot {
     pub tree_id: UiTreeId,
     pub roots: Vec<UiNodeId>,
     pub nodes: Vec<UiWidgetReflectorNode>,
+    #[serde(default)]
+    pub canvas_layers: Vec<UiCanvasLayerGroup>,
     pub rebuild: UiSurfaceRebuildDebugStats,
     #[serde(default)]
     pub layout_engine_report: UiLayoutEngineSelectionReport,
@@ -109,6 +112,8 @@ pub struct UiWidgetReflectorNode {
     pub hoverable: bool,
     pub focusable: bool,
     pub control_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slot: Option<UiArrangedSlotSummary>,
     pub render_command_count: usize,
     pub hit_entry_count: usize,
     pub hit_cell_count: usize,

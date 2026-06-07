@@ -1,4 +1,6 @@
-use crate::ui::surface::{build_arranged_tree, is_arranged_render_visible};
+use crate::ui::surface::{
+    build_arranged_tree, component_state::UiSurfaceComponentStateStore, is_arranged_render_visible,
+};
 use zircon_runtime_interface::ui::surface::UiArrangedTree;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRenderExtract, UiRenderList};
 use zircon_runtime_interface::ui::tree::UiTree;
@@ -37,6 +39,14 @@ pub fn extract_ui_render_tree_from_arranged(
     tree: &UiTree,
     arranged_tree: &UiArrangedTree,
 ) -> UiRenderExtract {
+    extract_ui_render_tree_from_arranged_with_component_states(tree, arranged_tree, None)
+}
+
+pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
+    tree: &UiTree,
+    arranged_tree: &UiArrangedTree,
+    component_states: Option<&UiSurfaceComponentStateStore>,
+) -> UiRenderExtract {
     let commands = arranged_tree
         .draw_order
         .iter()
@@ -49,8 +59,12 @@ pub fn extract_ui_render_tree_from_arranged(
             let Some(arranged_node) = arranged_tree.get(node_id) else {
                 return Vec::new();
             };
-            let visual =
-                UiNodeVisualData::resolve(node.template_metadata.as_ref(), &node.state_flags);
+            let component_state = component_states.and_then(|states| states.get(node_id));
+            let visual = UiNodeVisualData::resolve(
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+            );
             if !is_arranged_render_visible(arranged_tree, node_id).unwrap_or(false) {
                 return Vec::new();
             }
@@ -108,6 +122,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -117,6 +132,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -126,6 +142,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -135,6 +152,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -144,6 +162,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -153,6 +172,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -165,6 +185,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -174,6 +195,7 @@ pub fn extract_ui_render_tree_from_arranged(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
+                component_state,
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,

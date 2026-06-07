@@ -13,7 +13,6 @@ use crate::ui::{
         component_state_value_update, reflected_property_update,
         reflected_property_update_with_source_kind,
     },
-    tree::UiRuntimeTreeAccessExt,
 };
 
 #[derive(Clone, Debug, PartialEq)]

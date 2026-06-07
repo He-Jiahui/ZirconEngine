@@ -15,6 +15,9 @@ impl ViewportRenderFrame {
             extract,
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
             ui: None,
+            output_target: Default::default(),
+            previous_motion_vector_camera: None,
+            previous_motion_vector_object_history: None,
             virtual_geometry_debug_snapshot: None,
             prepared_runtime_sidebands: Default::default(),
         }

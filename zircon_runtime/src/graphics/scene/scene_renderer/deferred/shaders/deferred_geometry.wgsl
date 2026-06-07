@@ -8,6 +8,7 @@ struct SceneUniform {
 struct ModelUniform {
     model: mat4x4<f32>,
     tint: vec4<f32>,
+    shadow_params: vec4<f32>,
 };
 
 struct MaterialPropertyUniform {

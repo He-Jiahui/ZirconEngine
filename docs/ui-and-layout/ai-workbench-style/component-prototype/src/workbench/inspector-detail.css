@@ -1,0 +1,6 @@
+@import "./inspector-detail/base.css";
+@import "./inspector-detail/scene-tree.css";
+@import "./inspector-detail/forms.css";
+@import "./inspector-detail/transform-section.css";
+@import "./inspector-detail/mesh-renderer-section.css";
+

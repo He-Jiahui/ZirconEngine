@@ -7,7 +7,6 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::{
     bool_attribute_value, bool_component_state_value, is_default_radio_behavior,

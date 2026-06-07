@@ -42,10 +42,23 @@ impl SceneFrameHistoryTextures {
         });
         let ambient_occlusion_view =
             ambient_occlusion.create_view(&wgpu::TextureViewDescriptor::default());
+        let screen_space_reflection = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-history-screen-space-reflection"),
+            size: texture_extent(size),
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: super::super::super::core::OFFSCREEN_FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let screen_space_reflection_view =
+            screen_space_reflection.create_view(&wgpu::TextureViewDescriptor::default());
 
         clear_texture(queue, &scene_color, size, &[0, 0, 0, 255]);
         clear_texture(queue, &global_illumination, size, &[0, 0, 0, 255]);
         clear_texture(queue, &ambient_occlusion, size, &[255, 255, 255, 255]);
+        clear_texture(queue, &screen_space_reflection, size, &[0, 0, 0, 0]);
 
         Self {
             size,
@@ -55,6 +68,8 @@ impl SceneFrameHistoryTextures {
             global_illumination_view,
             ambient_occlusion,
             ambient_occlusion_view,
+            screen_space_reflection,
+            screen_space_reflection_view,
         }
     }
 }

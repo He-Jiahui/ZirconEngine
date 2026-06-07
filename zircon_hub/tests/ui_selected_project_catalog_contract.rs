@@ -1,410 +1,559 @@
-//! Static contracts for selected-project catalog/page scope copy.
-use std::{fs, path::PathBuf};
+//! Static contracts for React/MUI selected-project catalog scope.
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
-}
+use std::{fs, path::PathBuf};
 
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-fn read_crate_file(name: &str) -> String {
+fn read_repo_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(crate_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub crate file {name}: {error}");
-        }),
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
     )
 }
 
-fn read_repo_file(name: &str) -> String {
-    normalize_newlines(
-        fs::read_to_string(crate_dir().join("..").join(name)).unwrap_or_else(|error| {
-            panic!("failed to read repo file {name}: {error}");
-        }),
-    )
-}
-
-fn assert_catalog_page_inherits_geometry(page: &str, component: &str, source: &str) {
-    assert!(
-        source.contains(&format!(
-            "export component {component} inherits CatalogPage"
-        )),
-        "{page} must expose its page root by inheriting the shared CatalogPage"
-    );
-    for forbidden in [
-        "export component AssetsPage inherits Rectangle",
-        "export component PluginsPage inherits Rectangle",
-        "export component LearnPage inherits Rectangle",
-        "    CatalogPage {",
-        "list-scroll-y <=> root.list-scroll-y",
-        "width: root.width;",
-        "height: root.height;",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            !source.contains(forbidden),
-            "{page} should let CatalogPage own page geometry and internal list scroll state instead of using {forbidden}"
+            source.contains(snippet),
+            "{source_name} should contain selected-project catalog snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete selected-project catalog snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn page_family_docs_record_contract_gate_and_acceptance_scope() {
-    let docs = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
+fn tauri_runtime_refreshes_catalogs_from_selected_project_and_source_engine_roots() {
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let scoped_views = read_crate_file("src/tauri_app/runtime_state/scoped_views.rs");
 
-    for snippet in [
-        "hub-pages-contracts-docs/plan.md",
-        "hub-pages-contracts-docs/decomposition.md",
-        "## Contracts and validation evidence",
-        "The `hub-pages-contracts-docs` gate is intentionally not another feature implementation branch.",
-        "**Builds and Editor:**",
-        "**Assets, Plugins, and Learn:**",
-        "**Team and Cloud:**",
-        "**Settings:**",
-        "**Cross-page foundations:**",
-        "This gate did not identify a missing page feature requiring a new milestone split.",
-        "cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test ui_selected_project_catalog_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test ui_page_surface_coverage_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test ui_inputs_contract --locked -- --nocapture",
-        "cargo build -p zircon_hub --bin zircon_hub --locked",
-        "cargo check -p zircon_hub --locked",
-    ] {
-        assert!(
-            docs.contains(snippet),
-            "Hub actionable-pages docs must record the page-family contract gate and acceptance scope; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "runtime_state.rs",
+        &runtime_state,
+        &[
+            "mod scoped_views;",
+            "refresh_source_scoped_views",
+            "refresh_selected_project_scoped_views",
+            "refresh_project_context_views",
+            "self.refresh_source_scoped_views()",
+            "self.refresh_selected_project_scoped_views()",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/scoped_views.rs",
+        &scoped_views,
+        &[
+            "discover_asset_catalog_for_scope",
+            "discover_learn_catalog_for_scope",
+            "discover_plugin_catalog_with_project_roots",
+            "fn refresh_asset_catalog(&mut self) -> Result<(), HubError>",
+            "self.asset_catalog = discover_asset_catalog_for_scope(",
+            "self.selected_project_catalog_root()",
+            "self.config",
+            "recent_projects",
+            "fn refresh_learn_catalog(&mut self) -> Result<(), HubError>",
+            "self.learn_catalog = discover_learn_catalog_for_scope(",
+            "fn refresh_plugin_catalog(&mut self) -> Result<(), HubError>",
+            "self.plugin_catalog = discover_plugin_catalog_with_project_roots(",
+            "self.selected_project_catalog_root().into_iter()",
+            "fn refresh_team_overview(&mut self) -> Result<(), HubError>",
+            "if let Some(project_root) = self.selected_project_catalog_root()",
+            "self.source_engine_catalog_roots()",
+            "fn selected_project_catalog_root(&self) -> Option<PathBuf>",
+            ".selected_project()",
+            "fn source_engine_catalog_roots(&self) -> Vec<PathBuf>",
+            "scope.source_engine.engine_id()",
+            "push_development_roots(&mut roots, engine.source_dir.clone());",
+        ],
+    );
 }
 
 #[test]
-fn selected_project_catalog_pages_surface_scope_copy() {
-    let shared = read_ui_file("shared.slint");
-    assert!(
-        shared.contains("scope: string,"),
-        "PluginData must expose project/engine scope for Hub workflow grouping"
+fn discovery_modules_prioritize_selected_project_scope_before_engine_scope() {
+    let assets = read_crate_file("src/assets/catalog.rs");
+    let plugins = read_crate_file("src/plugins/catalog.rs");
+    let learn = read_crate_file("src/learn/catalog.rs");
+
+    assert_contains_all(
+        "assets/catalog.rs",
+        &assets,
+        &[
+            "pub const SELECTED_PROJECT_ASSET_SOURCE: &str = \"Selected Project\";",
+            "pub const PROJECT_ASSET_SOURCE: &str = \"Project\";",
+            "(\"Editor\", &[\"zircon_editor\", \"assets\"])",
+            "(\"Runtime\", &[\"zircon_runtime\", \"assets\"])",
+            "pub fn discover_asset_catalog_for_scope",
+            "collect_project_asset_roots(",
+            "SELECTED_PROJECT_ASSET_SOURCE",
+            "struct RankedAssetCatalogEntry",
+            "root_rank",
+            "source_priority(&left.entry.source)",
+            ".then_with(|| left.root_rank.cmp(&right.root_rank))",
+            "SELECTED_PROJECT_ASSET_SOURCE => 0",
+            "PROJECT_ASSET_SOURCE => 1",
+            "project_filesystem_path_key(root)",
+            "discover_asset_catalog_keeps_first_source_engine_root_before_fallback_limit",
+        ],
     );
-    for snippet in [
-        "asset-catalog-selected: string,",
-        "asset-empty-selected-detail: string,",
-        "asset-empty-global-detail: string,",
-        "plugin-catalog-selected: string,",
-        "plugin-empty-selected-detail: string,",
-        "plugin-empty-global-detail: string,",
-        "learn-library-selected: string,",
-        "learn-empty-selected-detail: string,",
-        "learn-empty-global-detail: string,",
-        "team-workspace-selected: string,",
-        "team-empty-selected-detail: string,",
-        "team-empty-global-detail: string,",
-        "cloud-overview-selected: string,",
-        "cloud-local-selected-detail: string,",
-        "cloud-local-mode: string,",
-        "install-to-device: string,",
-        "select-project-before-building: string,",
-        "select-project-before-opening: string,",
-        "select-project-before-packaging: string,",
-        "select-project-before-installing: string,",
-        "current-project: string,",
-        "active-source-engine: string,",
-        "no-project-selected: string,",
-    ] {
-        assert!(
-            shared.contains(snippet),
-            "UiTextData must expose selected-project-aware Assets/Plugins/Team/Cloud and Builds action copy; missing {snippet}"
-        );
-    }
-    let localization = read_crate_file("src/app/localization.rs");
-    assert!(
-        localization.contains("cloud_local_mode: text(language,"),
-        "Rust localization must initialize UiTextData.cloud-local-mode when shared.slint exposes the field"
+    assert_contains_all(
+        "plugins/catalog.rs",
+        &plugins,
+        &[
+            "pub const PROJECT_PLUGIN_SCOPE: &str = \"Project\";",
+            "pub const ENGINE_PLUGIN_SCOPE: &str = \"Engine\";",
+            "pub fn discover_plugin_catalog_with_project_roots",
+            "collect_project_plugin_manifests",
+            "scope_rank(&left.scope)",
+            "PROJECT_PLUGIN_SCOPE => 0",
+            "ENGINE_PLUGIN_SCOPE => 1",
+            "project_filesystem_path_key(&manifest_path)",
+        ],
     );
-
-    let assets_page = read_ui_file("assets.slint");
-    assert_catalog_page_inherits_geometry("assets.slint", "AssetsPage", &assets_page);
-    for snippet in [
-        "in property <bool> has-selected-project: false;",
-        "root.has-selected-project ? root.ui-text.asset-catalog-selected : root.ui-text.asset-catalog",
-        "root.has-selected-project ? root.ui-text.asset-empty-selected-detail : root.ui-text.asset-empty-global-detail",
-        "empty-detail: root.assets-empty-detail;",
-        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine assets.\" : \"Project and Source Engine asset index.\";",
-        "detail-subtitle: root.detail-summary;",
-        "detail-check-two-detail: \"Source, kind, size, path columns aligned\";",
-        "detail-check-three-detail: root.asset-count == 0 ? root.assets-empty-detail : \"Review paths and source ownership\";",
-    ] {
-        assert!(
-            assets_page.contains(snippet),
-            "AssetsPage must explain whether the list is scoped to the selected project or global local roots; missing {snippet}"
-        );
-    }
-
-    let asset_projection = read_crate_file("src/app/view_model/assets.rs");
-    for snippet in [
-        "asset_source_priority(&left.source)",
-        "SELECTED_PROJECT_ASSET_SOURCE => 0",
-        "PROJECT_ASSET_SOURCE => 1",
-        "Source Engine / {source}",
-    ] {
-        assert!(
-            asset_projection.contains(snippet),
-            "AssetData projection must prioritize selected-project assets and keep source-engine group labels; missing {snippet}"
-        );
-    }
-
-    let asset_catalog = read_crate_file("src/assets/catalog.rs");
-    for snippet in [
-        "source_priority(&left.source)",
-        "SELECTED_PROJECT_ASSET_SOURCE => 0",
-        "PROJECT_ASSET_SOURCE => 1",
-    ] {
-        assert!(
-            asset_catalog.contains(snippet),
-            "Asset catalog discovery must emit selected-project assets before project/engine groups; missing {snippet}"
-        );
-    }
-    let scoped_views = read_crate_file("src/app/runtime/source_scoped_views.rs");
-    for snippet in [
-        "pub(super) fn selected_project_catalog_root(&self)",
-        ".selected_project()",
-        "pub(super) fn source_engine_catalog_roots(&self)",
-        "scope.source_engine.engine_id()",
-        ".find(|engine| engine.id == engine_id)",
-        "push_development_roots(&mut roots, engine.source_dir.clone());",
-        "HubScope::resolve(",
-        "source_engine_catalog_roots_do_not_fallback_for_unbound_selected_project",
-    ] {
-        assert!(
-            scoped_views.contains(snippet),
-            "Runtime scoped scanners must derive selected-project and Source Engine roots from HubScope; missing {snippet}"
-        );
-    }
-
-    let plugins = read_ui_file("plugins.slint");
-    let catalog_components = read_ui_file("catalog_page_components.slint");
-    let plugin_surface = format!("{plugins}\n{catalog_components}");
-    assert_catalog_page_inherits_geometry("plugins.slint", "PluginsPage", &plugins);
-    for snippet in [
-        "metadata: root.plugin.scope;",
-        "tag-text: root.plugin.category;",
-    ] {
-        assert!(
-            plugin_surface.contains(snippet),
-            "PluginsPage rows must split plugin source and category into stable compact columns; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "in property <bool> has-selected-project: false;",
-        "root.has-selected-project ? root.ui-text.plugin-catalog-selected : root.ui-text.plugin-catalog",
-        "root.has-selected-project ? root.ui-text.plugin-empty-selected-detail : root.ui-text.plugin-empty-global-detail",
-        "empty-detail: root.plugins-empty-detail;",
-        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine plugins.\" : \"Source Engine and local plugin roots.\";",
-        "detail-subtitle: root.detail-summary;",
-        "detail-check-two-detail: \"Category, module, path columns aligned\";",
-        "detail-check-three-detail: root.plugin-count == 0 ? root.plugins-empty-detail : \"Review package state before release\";",
-    ] {
-        assert!(
-            plugins.contains(snippet),
-            "PluginsPage must explain whether discovery includes selected-project plugin manifests; missing {snippet}"
-        );
-    }
-
-    let plugin_projection = read_crate_file("src/app/view_model/plugins.rs");
-    for snippet in [
-        "plugin_scope_priority(&left.scope)",
-        "PROJECT_PLUGIN_SCOPE => 0",
-        "ENGINE_PLUGIN_SCOPE => 1",
-        "PROJECT_PLUGIN_SCOPE =>",
-        "ENGINE_PLUGIN_SCOPE =>",
-        "\"Selected Project\"",
-        "\"Source Engine\"",
-    ] {
-        assert!(
-            plugin_projection.contains(snippet),
-            "PluginData projection must prioritize and label selected-project and Source Engine plugin scopes; missing {snippet}"
-        );
-    }
-
-    let learn = read_ui_file("learn.slint");
-    let learn_surface = format!("{learn}\n{catalog_components}");
-    assert_catalog_page_inherits_geometry("learn.slint", "LearnPage", &learn);
-    for snippet in [
-        "source: string,",
-        "in property <bool> has-selected-project: false;",
-        "root.has-selected-project ? root.ui-text.learn-library-selected : root.ui-text.learn-library",
-        "root.has-selected-project ? root.ui-text.learn-empty-selected-detail : root.ui-text.learn-empty-global-detail",
-        "empty-detail: root.resources-empty-detail;",
-        "metadata: root.resource.source;",
-        "tag-text: root.resource.category;",
-        "private property <string> detail-summary: root.has-selected-project ? \"Selected project and Source Engine docs.\" : \"Source Engine and local docs.\";",
-        "detail-subtitle: root.detail-summary;",
-        "detail-check-two-detail: \"Source, category, path columns aligned\";",
-        "detail-check-three-detail: root.resource-count == 0 ? root.resources-empty-detail : \"Open topics from the list\";",
-    ] {
-        assert!(
-            shared.contains(snippet) || learn_surface.contains(snippet),
-            "LearnPage must explain whether documentation includes selected-project docs or Source Engine docs; missing {snippet}"
-        );
-    }
-    let learn_runtime = read_crate_file("src/app/runtime/learn_catalog.rs");
-    for snippet in [
-        "discover_learn_catalog_for_scope(",
-        "self.selected_project_catalog_root()",
-        "self.source_engine_catalog_roots()",
-        "fn learn_resource_path_for_open(&self, resource_path: &str) -> Result<PathBuf, HubError>",
-        "project_filesystem_path_key(&requested_path)",
-        "Learn resource is not in the current catalog",
-        "Learn resource is no longer available",
-    ] {
-        assert!(
-            learn_runtime.contains(snippet),
-            "Learn runtime refresh/open actions must use selected-project scope and only open current catalog files; missing {snippet}"
-        );
-    }
-    let runtime_root = read_crate_file("src/app/runtime.rs");
-    assert!(
-        runtime_root.contains("ui.on_open_learn_resource")
-            && runtime_root.contains("runtime.open_learn_resource(&path)"),
-        "HubWindow must route Learn row open callbacks into the runtime open validator"
+    assert_contains_all(
+        "learn/catalog.rs",
+        &learn,
+        &[
+            "pub const SELECTED_PROJECT_LEARN_SOURCE: &str = \"Selected Project\";",
+            "pub const SOURCE_ENGINE_LEARN_SOURCE: &str = \"Source Engine\";",
+            "pub fn discover_learn_catalog_for_scope",
+            "collect_docs_root(",
+            "SELECTED_PROJECT_LEARN_SOURCE",
+            "struct RankedLearnCatalogEntry",
+            "root_rank",
+            "source_priority(&left.entry.source)",
+            ".then_with(|| left.root_rank.cmp(&right.root_rank))",
+            "SELECTED_PROJECT_LEARN_SOURCE => 0",
+            "SOURCE_ENGINE_LEARN_SOURCE => 1",
+            "project_filesystem_path_key(&docs_root)",
+            "discover_learn_catalog_keeps_first_source_engine_root_before_fallback_limit",
+        ],
     );
-    let learn_catalog = read_crate_file("src/learn/catalog.rs");
-    for snippet in [
-        "pub const SELECTED_PROJECT_LEARN_SOURCE: &str = \"Selected Project\";",
-        "pub const SOURCE_ENGINE_LEARN_SOURCE: &str = \"Source Engine\";",
-        "pub fn discover_learn_catalog_for_scope",
-        "selected_project_root: Option<PathBuf>",
-        "collect_docs_root(",
-        "project_filesystem_path_key(&docs_root)",
-        "source_priority(&left.source)",
-        "SELECTED_PROJECT_LEARN_SOURCE => 0",
-        "SOURCE_ENGINE_LEARN_SOURCE => 1",
-        "source: source.to_string(),",
-    ] {
-        assert!(
-            learn_catalog.contains(snippet),
-            "Learn catalog discovery must scan selected-project docs before source docs and dedupe roots through the shared filesystem key; missing {snippet}"
-        );
-    }
-    let learn_projection = read_crate_file("src/app/view_model/learn.rs");
-    for snippet in [
-        "learn_source_priority(&left.source)",
-        "SELECTED_PROJECT_LEARN_SOURCE => 0",
-        "SOURCE_ENGINE_LEARN_SOURCE => 1",
-        "\"Selected Project\"",
-        "\"Source Engine\"",
-        "learn_items_orders_selected_project_docs_before_engine_docs",
-    ] {
-        assert!(
-            learn_projection.contains(snippet),
-            "Learn view-model projection must prioritize and label selected-project documentation; missing {snippet}"
-        );
-    }
+}
 
-    let team = read_ui_file("team.slint");
-    let team_components = read_ui_file("team_page_components.slint");
-    let team_surface = format!("{team}\n{team_components}");
-    for snippet in [
-        "in property <bool> has-selected-project: false;",
-        "private property <string> members-empty-detail: root.has-selected-project ? root.ui-text.team-empty-selected-detail : root.ui-text.team-empty-global-detail;",
-        "TeamSummarySlot {",
-        "label: root.ui-text.team-repository;",
-        "primary: root.summary.repository-path;",
-        "secondary: root.summary.status;",
-        "members-empty-detail: root.members-empty-detail;",
-        "repository-path: root.summary.repository-path;",
-        "detail: root.members-empty-detail;",
-    ] {
-        assert!(
-            team_surface.contains(snippet),
-            "TeamPage must explain whether local Git data is scoped to the selected project or Source Engine fallback; missing {snippet}"
-        );
-    }
-    let team_projection = read_crate_file("src/app/view_model/team.rs");
-    for snippet in [
-        "paths_share_repository_scope(project_path, &team.repository_path)",
-        "project_path.canonicalize()",
-        "project_metadata_key(project_path)",
-        "project_metadata_key(repository_path)",
-        "project_key.starts_with(&format!(\"{repository_key}/\"))",
-        "\"Selected project repository\"",
-        "\"Selected project repository unavailable; showing Source Engine repository\"",
-        "\"Source Engine repository\"",
-        "fn team_summary_labels_source_engine_fallback_for_missing_selected_project_repository()",
-    ] {
-        assert!(
-            team_projection.contains(snippet),
-            "TeamData projection must use normalized selected-project repository matching before falling back to Source Engine labels; missing {snippet}"
-        );
-    }
+#[test]
+fn tauri_view_model_exposes_catalog_scope_dtos_to_react() {
+    let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let catalog_dto = read_crate_file("src/tauri_app/view_model/catalog.rs");
+    let learn_actions = read_crate_file("src/tauri_app/runtime_state/learn_actions.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
 
-    let cloud_page = read_ui_file("cloud.slint");
-    let cloud_components = read_ui_file("cloud_page_components.slint");
-    for snippet in [
-        "in property <bool> has-selected-project: false;",
-        "callback package-project();",
-        "callback install-device();",
-        "root.has-selected-project ? root.ui-text.cloud-overview-selected : root.ui-text.cloud-overview",
-        "root.has-selected-project ? root.ui-text.cloud-local-selected-detail : root.ui-text.cloud-local-only",
-        "title: root.overview-title;",
-        "subtitle: root.overview-detail;",
-        "action-id: \"package-selected-project\";",
-        "action-title: root.ui-text.cloud-package-action;",
-        "action-detail: root.summary.package-action-detail;",
-        "action-enabled: root.summary.package-action-enabled;",
-        "root.package-project();",
-        "action-id: \"install-selected-project\";",
-        "action-title: root.ui-text.cloud-install-action;",
-        "action-detail: root.summary.install-action-detail;",
-        "action-enabled: root.summary.install-action-enabled;",
-        "root.install-device();",
-    ] {
-        assert!(
-            cloud_page.contains(snippet) || cloud_components.contains(snippet),
-            "CloudPage must make local package/install/output status read as selected-project scoped when a project is selected; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "view_model.rs",
+        &view_model,
+        &[
+            "pub assets: Vec<HubAssetItem>",
+            "pub plugins: Vec<HubPluginItem>",
+            "pub learn_resources: Vec<HubLearnItem>",
+            "pub team: HubTeamSummary",
+            "assets: asset_rows(snapshot)",
+            "plugins: plugin_rows(snapshot)",
+            "learn_resources: learn_rows(snapshot)",
+            "team: team_summary(&snapshot.team, snapshot.settings.language)",
+            "fn team_summary(team: &TeamOverview, language: HubLanguage) -> HubTeamSummary",
+            "pub detail: String",
+            "pub source: String",
+            "pub source_key: String",
+            "pub category_key: String",
+            "pub scope: String",
+            "pub scope_key: String",
+            "pub editor_scoped: bool",
+        ],
+    );
+    assert_contains_all(
+        "view_model/catalog.rs",
+        &catalog_dto,
+        &[
+            "pub(super) fn asset_rows(snapshot: &HubSnapshot) -> Vec<HubAssetItem>",
+            "detail: asset_detail(&asset.kind, &path, language)",
+            "source: localized_catalog_scope(&asset.source, language)",
+            "source_key: catalog_scope_key(&asset.source).to_string()",
+            "pub(super) fn plugin_rows(snapshot: &HubSnapshot) -> Vec<HubPluginItem>",
+            "maturity_tone: plugin_maturity_tone(&plugin.maturity).to_string()",
+            "scope: localized_catalog_scope(&plugin.scope, language)",
+            "scope_key: catalog_scope_key(&plugin.scope).to_string()",
+            "editor_scoped: plugin.editor_scoped",
+            "pub(super) fn learn_rows(snapshot: &HubSnapshot) -> Vec<HubLearnItem>",
+            "source: localized_catalog_scope(&resource.source, language)",
+            "category_key: catalog_category_key(&resource.category).to_string()",
+            "source_key: catalog_scope_key(&resource.source).to_string()",
+            "path_text_en(&asset.path)",
+            "path_text_en(&plugin.manifest_path)",
+            "path_text_en(&resource.path)",
+            "fn asset_detail(kind: &str, path: &str, language: HubLanguage) -> String",
+            "fn localized_catalog_scope(scope: &str, language: HubLanguage) -> String",
+            "fn catalog_scope_key(scope: &str) -> &'static str",
+            "scope == \"Editor\"",
+            "scope == \"Runtime\"",
+            "fn catalog_category_key(category: &str) -> &'static str",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/learn_actions.rs",
+        &learn_actions,
+        &[
+            "fn open_resource_targets(",
+            "push_unique_resource_target(&mut targets",
+            "targets",
+            ".iter()",
+            "path == target.as_str() || resource.title == target.as_str()",
+            "Resource is not present in the current Learn catalog",
+            "open_resource_payload_path_can_identify_catalog_entry_when_resource_id_is_stale",
+        ],
+    );
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "export interface HubAssetItem",
+            "detail: string;",
+            "source: string;",
+            "sourceKey: string;",
+            "path: string;",
+            "export interface HubPluginItem",
+            "maturityTone: StatusTone;",
+            "scope: string;",
+            "scopeKey: string;",
+            "editorScoped: boolean;",
+            "manifestPath: string;",
+            "packageRoot: string;",
+            "export interface HubLearnItem",
+            "source: string;",
+            "sourceKey: string;",
+            "categoryKey: string;",
+            "export interface HubTeamSummary",
+            "repositoryPath: string;",
+            "repositoryAvailable: boolean;",
+        ],
+    );
+}
 
-    let app = read_ui_file("app.slint");
-    for snippet in [
-        "package-project => { root.package-selected-project(); }",
-        "install-device => { root.install-selected-project(); }",
-    ] {
-        assert!(
-            app.contains(snippet),
-            "HubWindow must route Cloud package/install actions through selected-project-only callbacks; missing {snippet}"
-        );
-    }
+#[test]
+fn editor_plugin_page_filters_by_stable_scope_flags_not_localized_copy() {
+    let plugin_catalog = read_crate_file("src/plugins/catalog.rs");
+    let catalog_dto = read_crate_file("src/tauri_app/view_model/catalog.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
+    let data = read_crate_file("web/src/data/hubData.ts");
+    let editor = read_crate_file("web/src/pages/EditorPage.tsx");
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
 
-    let cloud_projection = read_crate_file("src/app/view_model/cloud.rs");
-    for snippet in [
-        "let package_action = selected_project_action_readiness(",
-        "let install_action = selected_project_action_readiness(",
-        "package_action_detail: package_action.detail,",
-        "package_action_enabled: package_action.enabled,",
-        "install_action_detail: install_action.detail,",
-        "install_action_enabled: install_action.enabled,",
-        "fn selected_project_action_readiness(",
-        "let scope = snapshot.scope();",
-        "Select a project before packaging",
-        "Select a project before installing",
-        "Configure package output root before packaging",
-        "Configure device install directory before installing",
-        "Selected project is no longer in the recent-project registry",
-    ] {
-        assert!(
-            cloud_projection.contains(snippet),
-            "CloudSummaryData projection must expose selected-project package/install action readiness; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "plugins/catalog.rs",
+        &plugin_catalog,
+        &[
+            "pub editor_scoped: bool",
+            "supported_targets: Vec<String>",
+            "kind: Option<String>",
+            "target_modes: Vec<String>",
+            "capabilities: Vec<String>",
+            "let editor_scoped = plugin_manifest_is_editor_scoped(&manifest);",
+            "editor_scoped,",
+            "fn plugin_manifest_is_editor_scoped(manifest: &PluginManifest) -> bool",
+            "editor_host",
+            "editor_scoped_manifest_does_not_depend_on_description_copy",
+        ],
+    );
+    assert_contains_all(
+        "view_model/catalog.rs",
+        &catalog_dto,
+        &["editor_scoped: plugin.editor_scoped"],
+    );
+    assert_contains_all("types/hub.ts", &types, &["editorScoped: boolean;"]);
+    assert_contains_all(
+        "hubData.ts",
+        &data,
+        &["editorScoped: true", "editorScoped: false"],
+    );
+    assert_contains_all(
+        "EditorPage.tsx",
+        &editor,
+        &[
+            "state.plugins.filter((plugin) => plugin.editorScoped)",
+            "editorPlugins.map((plugin)",
+        ],
+    );
+    assert_not_contains_any(
+        "EditorPage.tsx",
+        &editor,
+        &[
+            "plugin.defaultPackaging.some((entry) => entry.toLowerCase().includes(\"editor\"))",
+            "plugin.description.toLowerCase().includes(\"editor\")",
+            "plugin.scope.toLowerCase().includes(\"editor\")",
+        ],
+    );
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &["Editor plugin scope is a stable `editorScoped` DTO flag"],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &["Editor plugin scope is a stable `editorScoped` DTO flag"],
+    );
+}
+
+#[test]
+fn catalog_page_unifies_assets_plugins_learn_scope_copy_and_filters() {
+    let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
+
+    assert_contains_all(
+        "CatalogPage.tsx",
+        &catalog,
+        &[
+            "state.activePage === \"plugins\" || state.activePage === \"learn\" ? state.activePage : \"assets\"",
+            "const [selectedRowId, setSelectedRowId] = useState<string | null>(null);",
+            "const rows = useMemo(() => catalogRows(state, mode, text), [mode, state, text]);",
+            "const visibleRows = useMemo(() => filterRows(rows, mode, tab, query), [mode, query, rows, tab]);",
+            "const selectedRow = useMemo(() =>",
+            "const selectedCandidates = visibleRows.length > 0 ? visibleRows : rows;",
+            "return selectedCandidates.find((row) => row.id === selectedRowId) ?? selectedCandidates[0];",
+            "const categoryCount = new Set(rows.map((row) => row.category)).size;",
+            "const scopeCount = new Set(rows.map((row) => row.scope)).size;",
+            "HubSearchField",
+            "MetricCard label={text.scopes}",
+            "HubTabs value={tab}",
+            "HubPanel title={catalogPanelTitle(mode, text)}",
+            "HubPanel title={text.selectedEntry}",
+            "HubPanel title={text.catalogTree}",
+            "HubPanel title={common.quickActions}",
+            "HubPanel title={common.sourceEngines}",
+            "quickActionProjectTargetPayload",
+            "const project = state.selectedProject;",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "HubButton",
+            "state.ui.actions.openResource",
+            "HUB_ACTION.openResource",
+            "onAction(HUB_ACTION.openResource, undefined, { resourceId: row.id, path: row.path })",
+            "selected: selectedRow?.id === row.id",
+            "onSelect={(item) => setSelectedRowId(item.id)}",
+            "state.plugins.map((plugin) => ({",
+            "scope: plugin.scope",
+            "scopeKey: plugin.scopeKey",
+            "path: plugin.manifestPath || plugin.packageRoot",
+            "tone: plugin.maturityTone",
+            "state.learnResources.map((resource) => ({",
+            "scope: resource.source",
+            "categoryKey: resource.categoryKey",
+            "scopeKey: resource.sourceKey",
+            "state.assets.map((asset) => ({",
+            "detail: asset.detail",
+            "scope: asset.source",
+            "scopeKey: asset.sourceKey",
+            "mode === \"learn\"",
+            "row.categoryKey === tab",
+            "row.scopeKey === \"project\"",
+            "row.scopeKey === \"engine\"",
+            "tone: asset.sourceKey === \"project\" ? \"success\" : \"neutral\"",
+        ],
+    );
+    assert_not_contains_any(
+        "CatalogPage.tsx",
+        &catalog,
+        &[
+            "row.scope.toLowerCase().includes(\"project\")",
+            "row.scope.toLowerCase().includes(\"engine\") || row.scope.toLowerCase().includes(\"source\")",
+            "row.category.toLowerCase().includes(tab)",
+            "asset.source.toLowerCase().includes(\"project\")",
+            "detail: `${asset.kind} - ${asset.path}`",
+            "detail: `${asset.kind} — ${asset.path}`",
+            "plugin.maturity.toLowerCase().includes(\"stable\")",
+        ],
+    );
+}
+
+#[test]
+fn team_cloud_and_build_pages_consume_selected_project_scope_data() {
+    let team = read_crate_file("web/src/pages/TeamPage.tsx");
+    let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
+    let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
+
+    assert_contains_all(
+        "TeamPage.tsx",
+        &team,
+        &[
+            "state.team.members.map((member)",
+            "state.actionHistory.map((action)",
+            "detail: state.team.repositoryPath",
+            "children: state.team.members.map((member)",
+            "HubPanel title={text.teamMembers}",
+            "HubPanel title={text.repositoryIdentity}",
+            "HubPanel title={text.teamTree}",
+            "HubPanel title={common.sourceEngines}",
+            "SourceEngineList engines={state.sourceEngines} emptyLabel={state.ui.shell.noSourceEngineRegistered} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)}",
+        ],
+    );
+    assert_contains_all(
+        "CloudPage.tsx",
+        &cloud,
+        &[
+            "const project = state.selectedProject;",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}",
+            "{ id: \"project\", title: common.project, detail: workflowProject?.name ?? common.noProjectSelected }",
+            "{ id: \"project-path\", title: common.path, detail: workflowProject ? workflowProjectPath(workflowProject) : common.noProjectSelected }",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "HubSwitch checked={Boolean(workflowProject && (!(\"exists\" in workflowProject) || workflowProject.exists))} label={state.ui.editor.projectAvailable}",
+            "detail={workflowProject ? workflowProjectPath(workflowProject) : common.noProjectSelected}",
+            "HubCheckbox checked={state.settings.defaultDeviceInstallDir !== common.notConfigured}",
+        ],
+    );
+    assert_not_contains_any(
+        "CloudPage.tsx",
+        &cloud,
+        &[
+            "const projectTarget = projectTargetPayload(project);",
+            "undefined, projectTarget",
+            "project?.path ?? common.noProjectSelected",
+        ],
+    );
+    assert_contains_all(
+        "BuildsPage.tsx",
+        &builds,
+        &[
+            "const project = state.selectedProject;",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}",
+            "meta: workflowProject?.name ?? common.noProjectSelected",
+            "detail: workflowProject?.name ?? common.noSelectedProject",
+            "void onAction(actionId, undefined, workflowProjectTarget);",
+            "workflowProject ? (",
+            "{ id: \"project\", title: workflowProject.name, detail: workflowProjectPath(workflowProject)",
+            "EmptyStateBlock title={common.noProjectSelected} detail={text.noProjectSelectedDetail}",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+        ],
+    );
+    assert_not_contains_any(
+        "BuildsPage.tsx",
+        &builds,
+        &[
+            "const projectTarget = projectTargetPayload(project);",
+            "undefined, projectTarget",
+            "meta: project?.name ?? common.noProjectSelected",
+            "detail: project?.name ?? common.noSelectedProject",
+        ],
+    );
+}
+
+#[test]
+fn selected_project_catalog_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_selected_project_catalog_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_selected_project_catalog_contract",
+            "## Selected Project Catalog Contract Cutover",
+            "React/MUI selected-project catalog scope",
+            "web/src/pages/CatalogPage.tsx",
+            "web/src/pages/TeamPage.tsx",
+            "web/src/pages/CloudPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
+            "src/tauri_app/runtime_state.rs",
+            "src/tauri_app/runtime_state/learn_actions.rs",
+            "src/tauri_app/view_model.rs",
+            "src/assets/catalog.rs",
+            "src/plugins/catalog.rs",
+            "src/learn/catalog.rs",
+            "Source Engine asset roots such as `Editor` and `Runtime`",
+            "`sourceKey` to `engine`",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_selected_project_catalog_contract.rs`",
+            "React/MUI selected-project catalog scope",
+            "selected project and Source Engine catalog discovery",
+            "CatalogPage mode projection and scope filtering",
+            "stale row id can fall back to the supplied catalog path",
+            "asset row detail is projected by Rust/fallback DTOs instead of page-local punctuation",
+            "Team, Cloud, and Builds selected-project-aware surfaces",
+            "Builds and Cloud workflow buttons and target panels use `workflowProjectTargetPayload`",
+            "QuickActions panels keep the selected-project-only payload path",
+            "Catalog QuickActions forward the selected-project target payload",
+            "Source Engine asset roots such as `Editor` and `Runtime`",
+            "`sourceKey` is normalized to `engine`",
+        ],
+    );
+}
+
+#[test]
+fn selected_project_catalog_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_selected_project_catalog_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_selected_project_catalog_contract.rs",
+        &contract,
+        &[
+            "web/src/pages/CatalogPage.tsx",
+            "web/src/pages/TeamPage.tsx",
+            "web/src/pages/CloudPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
+            "web/src/types/hub.ts",
+            "src/tauri_app/runtime_state.rs",
+            "src/tauri_app/runtime_state/learn_actions.rs",
+            "src/tauri_app/view_model.rs",
+            "src/assets/catalog.rs",
+            "src/plugins/catalog.rs",
+            "src/learn/catalog.rs",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_selected_project_catalog_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

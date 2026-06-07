@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui"
+version = 2
+display_name = "Workbench Rail Button"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchRailButton]
+root = "root"
+default_classes = ["workbench-rail-button", "workbench-primitive"]
+
+[nodes.root]
+component = "IconButton"
+control_id = "WorkbenchRailButtonRoot"
+classes = ["workbench-rail-button"]
+props = { icon = "zircon_editor_shell/activity/play.svg", text = "", label = "Activity", button_variant = "text", button_color = "secondary", button_size = "large", button_interaction_state = "normal", icon_placement = "icon_only", selected = false, focused = false, hovered = false, pressed = false, disabled = false, layout_padding_left = 9.0, layout_padding_right = 9.0, layout_padding_top = 9.0, layout_padding_bottom = 9.0, layout_spacing = 0.0, layout_min_width = 44.0, layout_min_height = 44.0, layout_icon_size = 22.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 46.0, preferred = 48.0, max = 50.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 48.0, max = 50.0, stretch = "Fixed" } }

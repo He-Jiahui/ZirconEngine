@@ -4,6 +4,7 @@ use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::sprite::SpriteRenderer;
 use super::super::super::ui::ScreenSpaceUiRenderer;
 use super::SceneRendererAdvancedPluginResources;
@@ -19,6 +20,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) mesh_pipelines: MeshPipelineCache,
     pub(in crate::graphics::scene::scene_renderer::core) normal_prepass: NormalPrepassPipeline,
+    pub(in crate::graphics::scene::scene_renderer::core) shadow_map_renderer: ShadowMapRenderer,
     pub(in crate::graphics::scene::scene_renderer::core) deferred: DeferredSceneResources,
     pub(in crate::graphics::scene::scene_renderer::core) particle_renderer: ParticleRenderer,
     pub(in crate::graphics::scene::scene_renderer::core) sprite_renderer: SpriteRenderer,

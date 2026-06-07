@@ -5,7 +5,7 @@ use crate::test_fixtures::{
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-use zircon_runtime::asset::{AssetUri, ImportedAssetEntry};
+use zircon_runtime::asset::{AssetUri, DataAssetFormat, ImportedAssetEntry};
 
 #[test]
 fn package_declares_gltf_importer() {
@@ -180,14 +180,42 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
         &default_material_entry.asset,
         ImportedAsset::Material(_)
     ));
-    for label in ["Animation0", "Skin0", "Skin0/InverseBindMatrices"] {
-        match &entry_for_label(&outcome, label).asset {
-            ImportedAsset::Data(data) => assert!(
-                data.text.contains("not implemented yet"),
-                "{label} should carry a diagnostic placeholder"
-            ),
-            other => panic!("unexpected {label} asset: {other:?}"),
+    match &entry_for_label(&outcome, "Animation0").asset {
+        ImportedAsset::Data(data) => assert!(
+            data.text.contains("not implemented yet"),
+            "Animation0 should remain a diagnostic placeholder"
+        ),
+        other => panic!("unexpected Animation0 asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, "Skin0").asset {
+        ImportedAsset::Data(data) => {
+            assert_eq!(data.format, DataAssetFormat::Json);
+            assert_eq!(data.canonical_json["kind"], "gltf_skin");
+            assert_eq!(data.canonical_json["skin_index"], 0);
+            assert_eq!(data.canonical_json["joint_count"], 1);
+            assert_eq!(
+                data.canonical_json["joints"][0]["node"],
+                label_uri("Node0").to_string()
+            );
+            assert_eq!(
+                data.canonical_json["inverse_bind_matrices"],
+                label_uri("Skin0/InverseBindMatrices").to_string()
+            );
+            assert_eq!(data.canonical_json["inverse_bind_matrix_count"], 1);
         }
+        other => panic!("unexpected Skin0 asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, "Skin0/InverseBindMatrices").asset {
+        ImportedAsset::Data(data) => {
+            assert_eq!(data.format, DataAssetFormat::Json);
+            assert_eq!(data.canonical_json["kind"], "gltf_inverse_bind_matrices");
+            assert_eq!(data.canonical_json["matrix_count"], 1);
+            assert_eq!(
+                data.canonical_json["matrices"][0],
+                serde_json::json!(identity_bind_matrix())
+            );
+        }
+        other => panic!("unexpected Skin0/InverseBindMatrices asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);

@@ -1,143 +1,500 @@
-//! Static contracts for passive selected-project scope projection.
-//!
-//! This milestone owns Slint DTO shape and view-model copy only. Catalog refresh,
-//! Cloud/package/install status, and command behavior are intentionally outside
-//! this file.
+//! Static contracts for React/MUI project scope projection.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
-}
-
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-fn read_crate_file(name: &str) -> String {
+fn read_repo_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(crate_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub crate file {name}: {error}");
-        }),
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
     )
 }
 
-#[test]
-fn shared_scope_dtos_are_available_to_pages() {
-    let shared = read_ui_file("shared.slint");
-    for snippet in [
-        "export struct ProjectDetailData",
-        "selected: bool,",
-        "missing: bool,",
-        "can-open: bool,",
-        "can-build: bool,",
-        "export struct QuickActionData",
-        "detail: string,",
-        "enabled: bool,",
-        "export struct SourceEngineData",
-        "status: string,",
-        "export struct WorkspaceActionReadinessData",
-        "selected-project-status: string,",
-        "source-engine-status: string,",
-        "build-disabled-reason: string,",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            shared.contains(snippet),
-            "shared.slint must expose passive scope DTO field {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain project-scope snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete project-scope snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn app_forwards_selected_project_and_source_engine_scope_copy() {
-    let app = read_ui_file("app.slint");
-    for snippet in [
-        "project: root.project-detail;",
-        "source-engine: root.source-engine;",
-        "readiness: root.workspace-action-readiness;",
-        "quick-actions: root.quick-actions;",
-        "has-selected-project: root.project-detail.selected;",
-    ] {
-        assert!(
-            app.contains(snippet),
-            "app.slint must forward Rust-projected scope DTOs without recomputing them; missing {snippet}"
-        );
-    }
+fn rust_state_modules_own_project_scope_metadata_and_runtime_persistence() {
+    let scope = read_crate_file("src/state/scope.rs");
+    let snapshot = read_crate_file("src/state/hub_snapshot.rs");
+    let state_mod = read_crate_file("src/state/mod.rs");
+    let config = read_crate_file("src/settings/hub_config.rs");
+    let metadata = read_crate_file("src/projects/metadata.rs");
+
+    assert_contains_all(
+        "scope.rs",
+        &scope,
+        &[
+            "pub struct HubScope",
+            "pub enum ProjectScope",
+            "ProjectScopeProject",
+            "engine_id: Option<String>",
+            "ProjectEngineScopeState",
+            "MissingBinding",
+            "Unavailable",
+            "pub fn selected_project(&self) -> Option<&ProjectScopeProject>",
+            "pub fn selected_or_latest_project(&self) -> Option<&ProjectScopeProject>",
+            "pub fn can_build(&self) -> bool",
+        ],
+    );
+    assert_contains_all(
+        "hub_snapshot.rs",
+        &snapshot,
+        &[
+            "pub selected_project_path: Option<PathBuf>",
+            "pub selected_template_id: String",
+            "pub new_project_engine_id: Option<String>",
+            "pub project_metadata: ProjectMetadataMap",
+            "pub fn scope(&self) -> HubScope",
+            "pub fn filtered_recent_projects(&self) -> Vec<RecentProject>",
+            "project_matches_query(project, &query)",
+        ],
+    );
+    assert_contains_all(
+        "state/mod.rs",
+        &state_mod,
+        &[
+            "pub use scope::{",
+            "HubScope",
+            "ProjectEngineScopeState",
+            "ProjectScope",
+            "SourceEngineScope",
+        ],
+    );
+    assert_contains_all(
+        "hub_config.rs",
+        &config,
+        &[
+            "pub struct HubRuntimeState",
+            "pub selected_project_path: Option<PathBuf>",
+            "pub selected_template_id: String",
+            "pub new_project_engine_id: Option<String>",
+            "pub fn normalize(&mut self)",
+            "self.selected_project_path = None;",
+            "self.selected_template_id = default_selected_template_id();",
+            "runtime_state_normalizes_empty_persisted_inputs",
+        ],
+    );
+    assert_contains_all(
+        "metadata.rs",
+        &metadata,
+        &[
+            "pub type ProjectMetadataMap = BTreeMap<String, ProjectMetadata>;",
+            "pub struct ProjectMetadata",
+            "pub pinned: bool",
+            "pub engine_id: Option<String>",
+            "pub last_selected_template: Option<String>",
+            "pub fn project_metadata_key",
+            "pub fn project_paths_match",
+            "pub fn metadata_for_path",
+            "pub fn metadata_for_path_mut",
+        ],
+    );
 }
 
 #[test]
-fn project_card_and_detail_labels_are_view_model_data() {
-    let shared = read_ui_file("shared.slint");
-    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
-    let project_view_model = read_crate_file("src/app/view_model/projects.rs");
+fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
+    let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
 
-    let project_card_data = shared
-        .split("export struct ProjectCardData")
-        .nth(1)
-        .and_then(|source| source.split("export struct RecentProjectRowData").next())
-        .expect("shared.slint must declare ProjectCardData before RecentProjectRowData");
-    for snippet in [
-        "modified-label: string,",
-        "pinned-label: string,",
-        "missing-label: string,",
-    ] {
-        assert!(
-            project_card_data.contains(snippet),
-            "ProjectCardData must carry card-visible labels from the view model; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "view_model.rs",
+        &view_model,
+        &[
+            "pub projects: Vec<HubProjectSummary>",
+            "pub browser_projects: Vec<HubRecentProject>",
+            "pub recent_projects: Vec<HubRecentProject>",
+            "pub selected_project: Option<HubProjectDetail>",
+            "pub quick_actions: Vec<HubQuickAction>",
+            "pub(crate) struct HubProjectSummary",
+            "pub(crate) struct HubProjectDetail",
+            "pub(crate) struct HubQuickAction",
+            "projects: filtered_projects",
+            "browser_projects: filtered_projects",
+            "recent_projects: filtered_projects",
+            "selected_project: selected_project_detail(snapshot)",
+            "quick_actions: quick_actions(snapshot)",
+            "fn project_summary(",
+            "path: path_text(&project.path, language)",
+            "relative_time(now_unix_ms(), project.last_opened_unix_ms, language)",
+            "cover_id: project_cover_id(&name)",
+            "fn project_detail_from_parts(",
+            "pinned: metadata.is_some_and(|metadata| metadata.pinned)",
+            "engine_id: metadata.and_then(|metadata| metadata.engine_id.clone())",
+            "template_id: metadata.and_then(|metadata| metadata.last_selected_template.clone())",
+            "template_label: project_template_label(",
+            "text.pair(\"Available\", \"可用\")",
+            "text.pair(\"Missing\", \"缺失\")",
+            "fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction>",
+            "\"build-project\"",
+            "\"install-device\"",
+            "\"package-project\"",
+            "\"open-editor\"",
+            "use display::{",
+            "relative_time_uses_compact_labels",
+        ],
+    );
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "export interface HubProjectSummary",
+            "path: string;",
+            "modified: string;",
+            "engineVersion: string;",
+            "platform: string;",
+            "coverId: string;",
+            "export interface HubProjectDetail",
+            "pinned: boolean;",
+            "engineId?: string | null;",
+            "templateId?: string | null;",
+            "templateLabel: string;",
+            "exists: boolean;",
+            "status: string;",
+            "export interface HubQuickAction",
+            "detail: string;",
+            "icon: string;",
+            "enabled: boolean;",
+        ],
+    );
+}
 
-    let project_card = project_card_flow_components
-        .split("export component ProjectCard")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectFlow").next())
-        .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
-    for snippet in [
-        "text: root.visible-modified-label;",
-        "text: root.visible-platform;",
-        "text: root.project.pinned-label;",
-        "text: root.project.missing-label;",
-    ] {
-        assert!(
-            project_card.contains(snippet),
-            "ProjectCard must render localized card labels from ProjectCardData; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "root.ui-text.modified",
-        "root.ui-text.pinned",
-        "root.ui-text.missing",
-        "\"Modified \" +",
-    ] {
-        assert!(
-            !project_card.contains(forbidden),
-            "ProjectCard should not rebuild localized labels inside repeated UI items: {forbidden}"
-        );
-    }
+#[test]
+fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
+    let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
+    let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
 
-    for snippet in [
-        "modified_label: shared(project_card_modified_label(&modified, language)),",
-        "pinned_label: localization::text(language, \"Pinned\", \"置顶\"),",
-        "missing_label: localization::text(language, \"Missing\", \"缺失\"),",
-        "fn project_card_modified_label(modified: &str, language: HubLanguage) -> String",
-        "fn project_detail_status_label(",
-        "fn empty_project_detail(language: HubLanguage) -> ProjectDetailData",
-    ] {
-        assert!(
-            project_view_model.contains(snippet),
-            "Project view-model copy must own visible project labels and detail state; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "ProjectCard.tsx",
+        &project_card,
+        &[
+            "import type { HubProjectSummary } from \"../../types/hub\";",
+            "export interface ProjectCardProps",
+            "project: HubProjectSummary;",
+            "selected?: boolean;",
+            "onOpen?: (project: HubProjectSummary) => void;",
+            "openDetailsLabel: string;",
+            "borderColor: selected ? \"rgba(45,212,207,0.44)\" : hubTokens.colors.lineStrong",
+            "onClick={() => onOpen?.(project)}",
+            "{project.name}",
+            "{project.path}",
+            "{project.modified}",
+            "<Chip label={project.engineVersion}",
+            "<Chip label={project.platform}",
+            "aria-label={`${openDetailsLabel}: ${project.name}`}",
+        ],
+    );
+    assert_not_contains_any(
+        "ProjectCard.tsx",
+        &project_card,
+        &["menuLabel", "projectMenuLabel"],
+    );
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &dashboard,
+        &[
+            "const visibleProjects = useMemo(() => {",
+            "state.projects.filter((project) => `${project.name} ${project.path}`.toLowerCase().includes(query))",
+            "const handleOpenProject = (project: HubProjectSummary) => {",
+            "void onAction(HUB_ACTION.openProjectDetail, project.id);",
+            "const tableProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;",
+            "const visibleRows = useMemo<HubRecentProject[]>(",
+            "return tableProjects;",
+            "return tableProjects.filter((project) => `${project.name} ${project.location}`.toLowerCase().includes(query));",
+            "selected={project.id === state.selectedProjectId}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "const project = state.selectedProject ?? null;",
+            "const statusTone: StatusTone = project?.exists ? \"success\" : \"warning\";",
+            "const boundEngine = project?.engineId",
+            "title: text.location, detail: project.path",
+            "title: text.sourceEngine, detail: boundEngine?.name ?? project.engineVersion",
+            "title: text.template, detail: project.templateLabel",
+            "meta: project.pinned ? text.pinned : undefined",
+            "title: text.platform, detail: project.platform",
+            "detail={project.exists ? text.ready : text.pathUnavailable}",
+            "MetricCard label={text.status} value={project.status}",
+            "HubList items={detailRows}",
+            "HubTreeView nodes={projectTree}",
+        ],
+    );
+    assert_not_contains_any(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "project_metadata_key",
+            "metadata_for_path",
+            "project_paths_match",
+        ],
+    );
+}
+
+#[test]
+fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
+    let quick_actions = read_crate_file("web/src/components/data/QuickActions.tsx");
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let editor = read_crate_file("web/src/pages/EditorPage.tsx");
+    let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
+    let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let quick_action_runtime = read_crate_file("src/tauri_app/runtime_state/quick_actions.rs");
+    let editor_launch_actions =
+        read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
+    let build_actions = read_crate_file("src/tauri_app/runtime_state/build_actions.rs");
+    let project_delivery_actions =
+        read_crate_file("src/tauri_app/runtime_state/project_delivery_actions.rs");
+
+    assert_contains_all(
+        "QuickActions.tsx",
+        &quick_actions,
+        &[
+            "import type { HubQuickAction } from \"../../types/hub\";",
+            "actions: HubQuickAction[];",
+            "onAction?: (action: HubQuickAction) => void;",
+            "const actionIcons = {",
+            "build: BuildIcon",
+            "device: PhoneIphoneIcon",
+            "package: Inventory2Icon",
+            "editor: OpenInNewIcon",
+            "disabled={!action.enabled}",
+            "if (action.enabled) {",
+            "onAction?.(action);",
+            "{action.title}",
+            "{action.detail}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "const projectTarget = projectTargetPayload(project);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.openEditor, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}",
+            "onClick={() => void onAction(project.pinned ? HUB_ACTION.unpinProject : HUB_ACTION.pinProject, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.removeFromHub, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.requestDelete, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.cancelDelete, undefined, projectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.confirmDelete, undefined, projectTarget)}",
+        ],
+    );
+    assert_contains_all(
+        "EditorPage.tsx",
+        &editor,
+        &[
+            "const project = state.selectedProject;",
+            "const projectTarget = projectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.openEditor, undefined, projectTarget)}",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "HubSwitch checked={Boolean(project?.exists)} label={text.projectAvailable}",
+            "title: common.template, detail: project.templateLabel",
+            "detail={project?.path ?? common.noProjectSelected}",
+        ],
+    );
+    assert_contains_all(
+        "BuildsPage.tsx",
+        &builds,
+        &[
+            "const project = state.selectedProject;",
+            "id: HUB_ACTION.buildProject",
+            "id: HUB_ACTION.packageProject",
+            "id: HUB_ACTION.installDevice",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)}",
+            "void onAction(actionId, undefined, workflowProjectTarget);",
+        ],
+    );
+    assert_contains_all(
+        "CloudPage.tsx",
+        &cloud,
+        &[
+            "const project = state.selectedProject;",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state.rs",
+        &runtime_state,
+        &[
+            "HubAction::BuildProject { target_id, payload } =>",
+            "payload.as_ref(),",
+            "\"build-project\",",
+            "self.build_selected_project_engine()?",
+            "HubAction::PackageProject { target_id, payload } =>",
+            "\"package-project\",",
+            "self.package_recent_project()?",
+            "HubAction::InstallDevice { target_id, payload } =>",
+            "\"install-device\",",
+            "self.install_recent_project_to_device()?",
+            "HubAction::OpenEditor { target_id, payload } =>",
+            "\"open-editor\",",
+            "self.open_selected_project_or_editor()?",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/editor_launch_actions.rs",
+        &editor_launch_actions,
+        &[
+            "pub(super) fn open_selected_project_or_editor(&mut self) -> Result<(), HubError>",
+            "fn selected_or_latest_recent_project_for_action(",
+            "self.refresh_project_context_views(",
+            "pub(in crate::tauri_app) fn prepare_background_editor_launch",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/quick_actions.rs",
+        &quick_action_runtime,
+        &["pub(super) fn record_action_and_persist("],
+    );
+    assert_contains_all(
+        "runtime_state/build_actions.rs",
+        &build_actions,
+        &[
+            "pub(super) fn build_selected_project_engine(&mut self) -> Result<(), HubError>",
+            "selected_or_latest_recent_project_with_engine_for_action",
+            "fn require_project_bound_engine(&self, project: &RecentProject) -> Result<(), HubError>",
+            "Project has no bound Source Engine",
+            "Project bound Source Engine is unavailable",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/project_delivery_actions.rs",
+        &project_delivery_actions,
+        &[
+            "pub(super) fn package_recent_project(&mut self) -> Result<(), HubError>",
+            "pub(super) fn install_recent_project_to_device(&mut self) -> Result<(), HubError>",
+            "prepare_background_project_package",
+            "prepare_background_device_install",
+        ],
+    );
+}
+
+#[test]
+fn project_scope_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_project_scope_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_project_scope_contract",
+            "## Project Scope Contract Cutover",
+            "React/MUI project scope projection",
+            "src/state/scope.rs",
+            "src/settings/hub_config.rs",
+            "src/projects/metadata.rs",
+            "src/tauri_app/view_model.rs",
+            "src/tauri_app/runtime_state/quick_actions.rs",
+            "src/tauri_app/runtime_state/editor_launch_actions.rs",
+            "src/tauri_app/runtime_state/build_actions.rs",
+            "src/tauri_app/runtime_state/project_delivery_actions.rs",
+            "web/src/components/data/ProjectCard.tsx",
+            "web/src/components/data/QuickActions.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_project_scope_contract.rs`",
+            "React/MUI project scope projection",
+            "project cards, detail surfaces, quick actions, and workspace workflows consume DTOs instead of recomputing scope",
+        ],
+    );
+}
+
+#[test]
+fn project_scope_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_project_scope_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_project_scope_contract.rs",
+        &contract,
+        &[
+            "src/state/scope.rs",
+            "src/state/hub_snapshot.rs",
+            "src/settings/hub_config.rs",
+            "src/projects/metadata.rs",
+            "src/tauri_app/view_model.rs",
+            "src/tauri_app/runtime_state/quick_actions.rs",
+            "src/tauri_app/runtime_state/editor_launch_actions.rs",
+            "src/tauri_app/runtime_state/build_actions.rs",
+            "src/tauri_app/runtime_state/project_delivery_actions.rs",
+            "web/src/components/data/ProjectCard.tsx",
+            "web/src/components/data/QuickActions.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_project_scope_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

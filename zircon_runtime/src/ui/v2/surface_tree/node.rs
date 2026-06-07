@@ -8,7 +8,6 @@ use zircon_runtime_interface::ui::v2::{
     UI_V2_REPEAT_ATTRIBUTE,
 };
 
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::interaction::infer_interaction;
 use super::layout::{infer_container, infer_layout_contract};

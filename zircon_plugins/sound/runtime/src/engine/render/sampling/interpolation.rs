@@ -1,14 +1,17 @@
+use zircon_runtime::core::framework::sound::SoundChannelLayout;
+
 use super::frame::source_frame_sample;
 
 pub(in crate::engine::render) fn interpolated_source_sample(
     samples: &[f32],
     source_channels: usize,
+    source_layout: &SoundChannelLayout,
     frame_count: usize,
     range_start_frame: usize,
     range_end_frame: Option<usize>,
     frame_position: f64,
     output_channel: usize,
-    output_channel_count: usize,
+    output_layout: &SoundChannelLayout,
     looped: bool,
 ) -> f32 {
     if source_channels == 0 || frame_count == 0 {
@@ -33,16 +36,18 @@ pub(in crate::engine::render) fn interpolated_source_sample(
     let start = source_frame_sample(
         samples,
         source_channels,
+        source_layout,
         base_frame,
         output_channel,
-        output_channel_count,
+        output_layout,
     );
     let end = source_frame_sample(
         samples,
         source_channels,
+        source_layout,
         next_frame,
         output_channel,
-        output_channel_count,
+        output_layout,
     );
     start + (end - start) * blend
 }

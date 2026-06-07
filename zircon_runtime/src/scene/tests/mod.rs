@@ -21,6 +21,7 @@ mod inspection;
 mod physics_animation_components;
 mod property_paths;
 mod render_extract;
+mod render_post_process_extract;
 mod semantics;
 mod support;
 mod world_basics;

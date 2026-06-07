@@ -65,11 +65,11 @@ children = [
 kind = "native"
 type = "IconButton"
 control_id = "OpenProject"
-bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.workbench.project.open" }]
+bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "menu_action.workbench.project.open" }]
 
 [nodes.save_project]
 kind = "native"
 type = "IconButton"
 control_id = "SaveProject"
-bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.workbench.project.save" }]
+bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "menu_action.workbench.project.save" }]
 "##;

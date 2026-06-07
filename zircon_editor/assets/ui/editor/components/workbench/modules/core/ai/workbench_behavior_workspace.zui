@@ -1,0 +1,209 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui"
+version = 2
+display_name = "Workbench Behavior Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchBehaviorWorkspace]
+root = "behavior_workspace"
+default_classes = ["workbench-module-body"]
+
+[nodes.behavior_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchModuleBehaviorWorkspace"
+classes = ["workbench-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_rail_gap" }, { node = "behavior_left" }, { node = "behavior_center" }, { node = "behavior_right" }]
+
+[nodes.behavior_rail_gap]
+component = "Container"
+control_id = "WorkbenchBehaviorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_left]
+component = "VerticalGroup"
+control_id = "WorkbenchBehaviorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_title" }, { node = "behavior_tree_tab" }, { node = "behavior_blackboard_tab" }, { node = "behavior_debug_tab" }, { node = "behavior_selector_row" }, { node = "behavior_attack_row" }]
+
+[nodes.behavior_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchBehaviorTitle"
+classes = ["workbench-section-title"]
+props = { text = "Behavior Tree" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.behavior_tree_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchBehaviorTreeTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Tree", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorTreeTab", event = "Click", route = "workbench.module.behavior.tree" }]
+
+[nodes.behavior_blackboard_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchBehaviorBlackboardTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Blackboard", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorBlackboardTab", event = "Click", route = "workbench.module.behavior.blackboard" }]
+
+[nodes.behavior_debug_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchBehaviorDebugTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Debugger", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorDebugTab", event = "Click", route = "workbench.module.behavior.debug" }]
+
+[nodes.behavior_selector_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchBehaviorSelectorRow"
+classes = ["workbench-list-row"]
+props = { text = "Selector: Combat Root", value = "selector", selected = true, checked = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorSelectorRow", event = "Click", route = "workbench.module.behavior.selector" }]
+
+[nodes.behavior_attack_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchBehaviorAttackRow"
+classes = ["workbench-list-row"]
+props = { text = "Task: Attack Target", value = "attack", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorAttackRow", event = "Click", route = "workbench.module.behavior.attack" }]
+
+[nodes.behavior_center]
+component = "VerticalGroup"
+control_id = "WorkbenchBehaviorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_center_header" }, { node = "behavior_graph_canvas" }, { node = "behavior_output" }]
+
+[nodes.behavior_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchBehaviorCenterHeader"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
+children = [{ node = "behavior_center_title" }, { node = "behavior_header_fill" }, { node = "behavior_validate_button" }]
+
+[nodes.behavior_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchBehaviorCenterTitle"
+classes = ["workbench-section-title"]
+props = { text = "BT_Enemy" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_header_fill]
+component = "Container"
+control_id = "WorkbenchBehaviorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.behavior_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchBehaviorValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorValidate", event = "Click", route = "workbench.module.behavior.validate" }]
+
+[nodes.behavior_graph_canvas]
+component = "VerticalGroup"
+control_id = "WorkbenchBehaviorGraphCanvas"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_node_row_01" }, { node = "behavior_node_row_02" }, { node = "behavior_node_row_03" }]
+
+[nodes.behavior_node_row_01]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchBehaviorNodeRow01"
+classes = ["workbench-table-row"]
+props = { text = "Selector        Success      Running", value = "node_01", options = ["Selector", "Success", "Running", "root"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorNodeSelector", event = "Click", route = "workbench.module.behavior.node.selector" }]
+
+[nodes.behavior_node_row_02]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchBehaviorNodeRow02"
+classes = ["workbench-table-row"]
+props = { text = "Sequence        Attack       Pending", value = "node_02", options = ["Sequence", "Attack", "Pending", "child"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorNodeAttack", event = "Click", route = "workbench.module.behavior.node.attack" }]
+
+[nodes.behavior_node_row_03]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchBehaviorNodeRow03"
+classes = ["workbench-table-row"]
+props = { text = "Decorator       Cooldown     0.8 s", value = "node_03", options = ["Decorator", "Cooldown", "0.8 s", "guard"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorNodeCooldown", event = "Click", route = "workbench.module.behavior.node.cooldown" }]
+
+[nodes.behavior_output]
+component = "WorkbenchListRow"
+control_id = "WorkbenchBehaviorOutputRow"
+classes = ["workbench-list-row"]
+props = { text = "Runtime Trace: branch changed to Attack", value = "behavior_output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/BehaviorOutput", event = "Click", route = "workbench.module.behavior.output" }]
+
+[nodes.behavior_right]
+component = "VerticalGroup"
+control_id = "WorkbenchBehaviorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "behavior_details_title" }, { node = "behavior_blackboard_field" }, { node = "behavior_ai_field" }, { node = "behavior_state_field" }]
+
+[nodes.behavior_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchBehaviorDetailsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.behavior_blackboard_field]
+component = "WorkbenchField"
+control_id = "WorkbenchBehaviorBlackboardField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "BB_Enemy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/BehaviorBlackboardEdit", event = "Change", route = "workbench.module.behavior.blackboard.edit" },
+  { id = "WorkbenchModule/BehaviorBlackboardCommit", event = "Submit", route = "workbench.module.behavior.blackboard.commit" },
+]
+
+[nodes.behavior_ai_field]
+component = "WorkbenchField"
+control_id = "WorkbenchBehaviorAiField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "AIController_Enemy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/BehaviorAiEdit", event = "Change", route = "workbench.module.behavior.ai.edit" },
+  { id = "WorkbenchModule/BehaviorAiCommit", event = "Submit", route = "workbench.module.behavior.ai.commit" },
+]
+
+[nodes.behavior_state_field]
+component = "WorkbenchField"
+control_id = "WorkbenchBehaviorStateField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Preview: Running" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/BehaviorStateEdit", event = "Change", route = "workbench.module.behavior.state.edit" },
+  { id = "WorkbenchModule/BehaviorStateCommit", event = "Submit", route = "workbench.module.behavior.state.commit" },
+]

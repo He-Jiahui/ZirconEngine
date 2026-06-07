@@ -74,6 +74,7 @@ pub enum RetainedUiHostValue {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RetainedUiHostRouteProjection {
     pub binding_id: String,
+    pub action_id: String,
     pub event_kind: UiEventKind,
     pub route_id: Option<UiRouteId>,
 }
@@ -244,6 +245,7 @@ impl RetainedUiHostAdapter {
                             .iter()
                             .map(|binding| RetainedUiHostRouteProjection {
                                 binding_id: binding.binding_id.clone(),
+                                action_id: binding.action_id.clone(),
                                 event_kind: binding.event_kind,
                                 route_id: binding.route_id,
                             })

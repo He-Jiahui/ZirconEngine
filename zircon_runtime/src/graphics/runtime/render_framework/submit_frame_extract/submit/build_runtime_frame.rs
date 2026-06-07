@@ -31,7 +31,12 @@ pub(super) fn build_runtime_frame(
         virtual_geometry_debug_snapshot.as_ref(),
     );
     ViewportRenderFrame::from_extract(extract, context.size())
+        .with_output_target(context.output_target())
         .with_ui(ui)
+        .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
+        .with_previous_motion_vector_object_history(
+            context.previous_motion_vector_object_history().cloned(),
+        )
         .with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
 }
@@ -327,22 +332,42 @@ mod tests {
     use super::*;
     use crate::core::framework::render::{
         AdvancedProfileRuntimePlan, AdvancedProviderAvailability, FallbackSkyboxKind,
-        PreviewEnvironmentExtract, RenderCapabilitySummary, RenderOverlayExtract,
-        RenderPipelineHandle, RenderPluginRendererOutputs, RenderProfileBundle,
+        PreviewEnvironmentExtract, RenderCameraTargetKind, RenderCapabilitySummary,
+        RenderMeshSnapshot, RenderOverlayExtract, RenderPipelineHandle,
+        RenderPluginRendererOutputs, RenderProfileBundle,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
         SceneViewportRenderPacket, ViewportCameraSnapshot,
     };
-    use crate::core::math::UVec2;
-    use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
+    use crate::core::framework::scene::Mobility;
+    use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+    use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+    use crate::graphics::types::{ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL};
+    use crate::graphics::{
+        CompiledRenderPipeline, RenderPassStage, ViewportMotionVectorObjectHistory,
+    };
     use crate::render_graph::RenderGraphBuilder;
     use crate::VisibilityContext;
 
     #[test]
-    fn build_runtime_frame_carries_prepared_sideband_into_viewport_frame() {
+    fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame() {
         let extract = RenderFrameExtract::from_snapshot(
             crate::core::framework::render::RenderWorldSnapshotHandle::new(9),
             empty_scene_snapshot(),
         );
+        let previous_camera = ViewportCameraSnapshot {
+            transform: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
+            ..ViewportCameraSnapshot::default()
+        };
+        let output_texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/runtime-frame/output-target",
+        ));
+        let previous_object_transform = Transform::from_translation(Vec3::new(4.0, 5.0, 6.0));
+        let previous_object_history =
+            ViewportMotionVectorObjectHistory::from_meshes(&[test_mesh(
+                42,
+                Mobility::Dynamic,
+                previous_object_transform,
+            )]);
         let context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
             UVec2::new(640, 480),
@@ -351,6 +376,14 @@ mod tests {
             None,
             empty_pipeline(),
             VisibilityContext::from_extract(&extract),
+            Some(previous_camera.clone()),
+            Some(previous_object_history.clone()),
+            Default::default(),
+            None,
+            crate::graphics::ViewportRenderOutputTarget::Texture {
+                handle: output_texture,
+                size: UVec2::new(640, 480),
+            },
             Default::default(),
             None,
             Default::default(),
@@ -400,6 +433,30 @@ mod tests {
         let frame = build_runtime_frame(extract, None, &context, &prepared);
 
         assert_eq!(frame.viewport_size, UVec2::new(640, 480));
+        assert_eq!(
+            frame.output_target().kind(),
+            RenderCameraTargetKind::Texture
+        );
+        assert_eq!(frame.output_target().texture_handle(), Some(output_texture));
+        assert_eq!(frame.output_target().size(), Some(UVec2::new(640, 480)));
+        assert_eq!(
+            frame
+                .texture_writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL))
+                .status(),
+            ViewportTextureWritebackStatus::ReadyForSrgbCopy
+        );
+        assert_eq!(
+            frame.previous_motion_vector_camera(),
+            Some(&previous_camera)
+        );
+        let object_history = frame
+            .previous_motion_vector_object_history()
+            .expect("previous object-motion history should reach renderer frame");
+        assert_eq!(object_history.len(), 1);
+        assert_eq!(
+            object_history.transform(42),
+            Some(&previous_object_transform)
+        );
         assert_eq!(
             frame
                 .prepared_runtime_sidebands()
@@ -470,6 +527,24 @@ mod tests {
                 clear_color: Vec4::ZERO,
             },
             virtual_geometry_debug: None,
+        }
+    }
+
+    fn test_mesh(
+        node_id: u64,
+        mobility: Mobility,
+        transform: Transform,
+    ) -> RenderMeshSnapshot {
+        RenderMeshSnapshot {
+            node_id,
+            transform,
+            model: ResourceHandle::new(ResourceId::from_stable_label("tests/model")),
+            mesh: None,
+            material: ResourceHandle::new(ResourceId::from_stable_label("tests/material")),
+            morph_weights: Vec::new(),
+            tint: Vec4::ONE,
+            mobility,
+            render_layer_mask: 1,
         }
     }
 }

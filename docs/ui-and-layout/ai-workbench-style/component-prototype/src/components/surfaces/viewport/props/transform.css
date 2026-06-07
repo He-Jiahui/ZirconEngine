@@ -1,0 +1,62 @@
+.zr-transform-axis,
+.zr-transform-origin,
+.zr-transform-label {
+  position: absolute;
+  pointer-events: none;
+}
+
+.zr-transform-origin {
+  left: 42px;
+  top: 48px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c1cb;
+  box-shadow: 0 0 8px rgba(34, 193, 203, 0.3);
+}
+
+.zr-transform-axis {
+  height: 4px;
+  border-radius: 999px;
+  transform-origin: left center;
+}
+
+.zr-transform-axis.axis-x {
+  left: 50px;
+  top: 51px;
+  width: 96px;
+  background: #ef493f;
+}
+
+.zr-transform-axis.axis-y {
+  left: 45px;
+  top: -52px;
+  width: 96px;
+  background: #58d05e;
+  transform: rotate(-90deg);
+}
+
+.zr-transform-axis.axis-z {
+  left: -15px;
+  top: 62px;
+  width: 66px;
+  background: #3990ff;
+  transform: rotate(151deg);
+}
+
+.zr-transform-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.zr-transform-label.label-x {
+  left: 152px;
+  top: 44px;
+  color: #ef493f;
+}
+
+.zr-transform-label.label-y {
+  left: 39px;
+  top: -70px;
+  color: #58d05e;
+}

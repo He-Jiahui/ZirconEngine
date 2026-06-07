@@ -201,9 +201,10 @@ where
     T: Component,
 {
     let component_id = world.registered_component_id::<T>()?;
-    let location = component_locations
-        .iter()
-        .find(|location| location.component_id == component_id)?;
+    let index = component_locations
+        .binary_search_by_key(&component_id, |location| location.component_id)
+        .ok()?;
+    let location = component_locations.get(index)?;
     world
         .component_ref_with_ticks_at_location::<T>(*location)
         .map(|(_, ticks)| ticks)

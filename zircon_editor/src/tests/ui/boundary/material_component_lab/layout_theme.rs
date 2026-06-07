@@ -20,7 +20,7 @@ const MASONRY_THEME_SELECTORS: &[&str] = &[
 
 #[test]
 fn material_component_lab_masonry_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/material_masonry.zui");
+    let path = editor_asset("assets/ui/editor/material_components/layout/material_masonry.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

@@ -1,0 +1,9 @@
+.zr-library-drilldown {
+  min-height: 0;
+  display: grid;
+}
+
+.zr-library-drilldown .zr-panel-tabs {
+  min-width: 0;
+  overflow: auto hidden;
+}

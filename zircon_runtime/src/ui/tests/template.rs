@@ -2,7 +2,6 @@ use crate::ui::template::UiTemplateLoader;
 use crate::ui::template::{
     UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator,
 };
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use toml::Value;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,

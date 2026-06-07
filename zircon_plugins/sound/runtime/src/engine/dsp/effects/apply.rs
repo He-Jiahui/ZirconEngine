@@ -7,14 +7,19 @@ use zircon_runtime::core::framework::sound::{
 use crate::engine::dsp_state::SoundEffectRuntimeState;
 use crate::engine::filter::apply_biquad_filter_block;
 
+mod compressor;
+mod convolution;
+mod modulation;
+
 use super::super::delay::delay_block;
-use super::super::dynamics::{compressor_block, limit};
+use super::super::dynamics::limit;
 use super::super::gain::multiply;
-use super::super::modulation::{modulated_delay, phaser_block};
-use super::super::reverb::{convolve_block, reverb_block};
+use super::super::reverb::reverb_block;
 use super::super::shaper::waveshape;
 use super::super::stereo::pan_stereo;
-use super::sidechain::sidechain_buffer;
+use compressor::apply_compressor_effect;
+use convolution::apply_convolution_reverb_effect;
+use modulation::{apply_chorus_effect, apply_flanger_effect, apply_phaser_effect};
 
 pub(super) fn apply_effect_kind(
     buffer: &mut [f32],
@@ -44,72 +49,27 @@ pub(super) fn apply_effect_kind(
             &mut state.reverb_history,
         ),
         SoundEffectKind::ConvolutionReverb(convolution) => {
-            if let Some(ir) = impulse_responses.get(&convolution.impulse_response) {
-                convolve_block(buffer, channels, ir, &mut state.convolution_history);
-            } else if convolution.fallback_to_algorithmic {
-                reverb_block(
-                    buffer,
-                    channels,
-                    convolution.latency_frames,
-                    convolution.latency_frames.max(8),
-                    0.35,
-                    &mut state.reverb_history,
-                );
-            }
+            apply_convolution_reverb_effect(buffer, channels, convolution, impulse_responses, state)
         }
-        SoundEffectKind::Compressor(compressor) => {
-            let sidechain = compressor.sidechain.and_then(|sidechain| {
-                sidechain_buffer(
-                    sidechain,
-                    pre_effect_sidechain_buffers,
-                    post_effect_sidechain_buffers,
-                )
-            });
-            compressor_block(
-                buffer,
-                channels,
-                sample_rate_hz,
-                compressor.threshold_db,
-                compressor.ratio,
-                compressor.attack_ms,
-                compressor.release_ms,
-                compressor.makeup_gain_db,
-                sidechain,
-                &mut state.compressor_gain,
-            );
-        }
+        SoundEffectKind::Compressor(compressor) => apply_compressor_effect(
+            buffer,
+            channels,
+            sample_rate_hz,
+            compressor,
+            pre_effect_sidechain_buffers,
+            post_effect_sidechain_buffers,
+            state,
+        ),
         SoundEffectKind::WaveShaper(shaper) => waveshape(buffer, shaper.drive),
-        SoundEffectKind::Flanger(flanger) => modulated_delay(
-            buffer,
-            channels,
-            sample_rate_hz,
-            flanger.delay_frames,
-            flanger.depth_frames,
-            flanger.rate_hz,
-            flanger.feedback,
-            &mut state.modulation_history,
-            &mut state.modulated_delay_phase,
-        ),
-        SoundEffectKind::Phaser(phaser) => phaser_block(
-            buffer,
-            channels,
-            sample_rate_hz,
-            phaser.rate_hz,
-            phaser.depth,
-            phaser.phase_offset,
-            &mut state.phaser_phase,
-        ),
-        SoundEffectKind::Chorus(chorus) => modulated_delay(
-            buffer,
-            channels,
-            sample_rate_hz,
-            chorus.delay_frames,
-            chorus.depth_frames.saturating_mul(chorus.voices as usize),
-            chorus.rate_hz,
-            0.0,
-            &mut state.modulation_history,
-            &mut state.modulated_delay_phase,
-        ),
+        SoundEffectKind::Flanger(flanger) => {
+            apply_flanger_effect(buffer, channels, sample_rate_hz, flanger, state)
+        }
+        SoundEffectKind::Phaser(phaser) => {
+            apply_phaser_effect(buffer, channels, sample_rate_hz, phaser, state)
+        }
+        SoundEffectKind::Chorus(chorus) => {
+            apply_chorus_effect(buffer, channels, sample_rate_hz, chorus, state)
+        }
         SoundEffectKind::Delay(delay) => delay_block(
             buffer,
             channels,

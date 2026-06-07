@@ -74,10 +74,12 @@ async fn read_stream<S>(
                 if matches!(frame, NetWebSocketFrame::Close(_)) {
                     *state.lock().expect("net WebSocket state mutex poisoned") =
                         NetConnectionState::Closed;
-                    events
-                        .lock()
-                        .expect("net events mutex poisoned")
-                        .push_back(NetEvent::ConnectionClosed { connection });
+                    events.lock().expect("net events mutex poisoned").push_back(
+                        NetEvent::ConnectionClosed {
+                            connection,
+                            transport: NetTransportKind::WebSocket,
+                        },
+                    );
                     return;
                 }
             }
@@ -106,5 +108,8 @@ async fn read_stream<S>(
     events
         .lock()
         .expect("net events mutex poisoned")
-        .push_back(NetEvent::ConnectionClosed { connection });
+        .push_back(NetEvent::ConnectionClosed {
+            connection,
+            transport: NetTransportKind::WebSocket,
+        });
 }

@@ -16,6 +16,7 @@ pub struct RuntimeDevtoolsModuleSnapshot {
     pub name: String,
     pub description: String,
     pub lifecycle: LifecycleState,
+    pub service_count: usize,
     pub driver_count: usize,
     pub manager_count: usize,
     pub plugin_count: usize,
@@ -104,6 +105,7 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
             name: entry.descriptor.name.clone(),
             description: entry.descriptor.description.clone(),
             lifecycle: entry.lifecycle,
+            service_count: entry.service_names.len(),
             driver_count: entry.descriptor.drivers.len(),
             manager_count: entry.descriptor.managers.len(),
             plugin_count: entry.descriptor.plugins.len(),
@@ -116,17 +118,17 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
 fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSnapshot> {
     let services = core.inner.services.lock().unwrap();
     let mut snapshots = services
-        .values()
-        .map(|entry| RuntimeDevtoolsServiceSnapshot {
-            name: entry.name.to_string(),
-            owner_module: entry.owner_module.clone(),
-            kind: entry.kind,
+        .iter()
+        .map(|(name, entry)| RuntimeDevtoolsServiceSnapshot {
+            name: name.to_string(),
+            owner_module: name.module_name().to_string(),
+            kind: name.service_kind(),
             startup_mode: entry.startup_mode,
             lifecycle: entry.lifecycle,
             dependencies: entry
                 .dependencies
                 .iter()
-                .map(|dependency| dependency.name.to_string())
+                .map(|dependency| dependency.to_string())
                 .collect(),
             active: entry.instance.is_some(),
         })
@@ -138,6 +140,7 @@ fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSna
 fn collect_scene_hook_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsSceneHookSnapshot> {
     let hooks = core.inner.scene_hooks.lock().unwrap();
     let mut snapshots = hooks
+        .ordered()
         .iter()
         .map(|hook| {
             let descriptor = hook.descriptor();
@@ -193,7 +196,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::core::{
-        CoreRuntime, DriverDescriptor, ModuleDescriptor, RegistryName, ServiceObject, StartupMode,
+        CoreRuntime, DriverDescriptor, ModuleDescriptor, RegistryName, ServiceKind, ServiceObject,
+        StartupMode,
     };
 
     use super::collect_runtime_devtools_snapshot;
@@ -216,14 +220,20 @@ mod tests {
 
         let snapshot = collect_runtime_devtools_snapshot(&runtime.handle());
 
-        assert!(snapshot
+        let module = snapshot
             .modules
             .iter()
-            .any(|module| module.name == "diagnostic_test" && module.driver_count == 1));
-        assert!(snapshot
+            .find(|module| module.name == "diagnostic_test")
+            .expect("module snapshot should be projected from the module registry");
+        assert_eq!(module.service_count, 1);
+        assert_eq!(module.driver_count, 1);
+        let service = snapshot
             .services
             .iter()
-            .any(|service| service.name == "diagnostic_test.Driver.Clock"));
+            .find(|service| service.name == "diagnostic_test.Driver.Clock")
+            .expect("service snapshot should be projected from the registry key");
+        assert_eq!(service.owner_module, "diagnostic_test");
+        assert_eq!(service.kind, ServiceKind::Driver);
         assert!(snapshot
             .plugin_catalog
             .iter()

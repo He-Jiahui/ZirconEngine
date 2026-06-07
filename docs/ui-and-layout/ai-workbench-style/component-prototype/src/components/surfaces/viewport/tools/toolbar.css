@@ -1,0 +1,19 @@
+.zr-viewport-tools {
+  position: absolute;
+  inset: 12px 74px auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.zr-viewport-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.zr-viewport .zr-select,
+.zr-viewport .zr-icon-button {
+  background: rgba(20, 24, 28, 0.82);
+  backdrop-filter: blur(8px);
+}

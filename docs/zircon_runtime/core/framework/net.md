@@ -49,9 +49,10 @@ tests:
   - rpc_session_and_handshake_descriptors_are_runtime_mode_agnostic
   - reliable_datagram_and_download_contracts_record_recovery_state
   - sync_descriptors_share_interest_budget_and_delta_contracts
-  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/net/*.rs (planned for this slice)
-  - git diff --check -- zircon_runtime/src/core/framework/net docs/zircon_runtime/core/framework/net.md docs/zircon_plugins/net/runtime.md (planned for this slice)
-  - cargo test -p zircon_runtime --lib net --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-framework-contract --message-format short --color never (pending while active Cargo lanes are busy)
+  - rustfmt --edition 2021 --check over touched Net event/runtime/test files (passed 2026-06-07)
+  - cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime-core-min-check --message-format short --color never (passed 2026-06-07)
+  - cargo test -p zircon_runtime --lib http_and_websocket_descriptors_keep_protocol_state_data_only --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime --message-format short --color never -- --test-threads=1 --nocapture (timed out during test-binary link on 2026-06-07)
+  - cargo test -p zircon_runtime --lib http_and_websocket_descriptors_keep_protocol_state_data_only --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime-core-min --message-format short --color never -- --test-threads=1 --nocapture (timed out during test-binary link on 2026-06-07)
 doc_type: module-detail
 ---
 
@@ -74,7 +75,7 @@ The framework is folder-backed and `mod.rs` is only the re-export surface.
 - `sync.rs` defines replication component schemas, object snapshots, deltas, interest groups, budgets, and schedule reports.
 - `reliable.rs` defines reliable datagram configuration, simulation profiles, fragment packets, ACKs, delivery reports, receive reports, and recovery state.
 - `download.rs` defines chunked content download manifests, range-resume attempts, and progress state.
-- `event.rs` and `diagnostics.rs` expose transport-independent runtime events and copied status counters.
+- `event.rs` and `diagnostics.rs` expose transport-independent runtime events and copied status counters. Lifecycle events include socket bind/close, listener start/close, connection state/accept/close, HTTP route register/unregister, WebSocket pair open, and queued WebSocket frames.
 
 ## Behavior Model
 
@@ -88,6 +89,10 @@ The base transport set is explicit:
 - WebSocket listeners, connections, loopback pairs, frames, close reasons, and queued-frame events use the same connection/listener handle model.
 - Reliable UDP, RPC, replication, and content download are higher-level contracts layered above those transports, not alternate manager traits.
 
+`NetEvent` is the stable copied lifecycle stream for manager-owned handles. Runtime implementations should push start/open events after a handle enters the manager table, and push close/unregister events only after the handle has actually been removed or marked closed. Connection accepted and connection closed events include `NetTransportKind`, so consumers can classify TCP and WebSocket lifecycle changes without re-reading runtime tables after handle removal. This keeps event consumers from inferring lifecycle changes from diagnostics counters alone and lets RPC/session systems ignore non-connection events while still receiving deterministic connection-close notifications.
+
+`NetDiagnostics` is the stable copied snapshot for manager-owned handles. It separates UDP sockets, TCP listeners, HTTP listeners, WebSocket listeners, TCP connections, HTTP routes, WebSocket connections, and queued events so editor tools and export/profile checks can distinguish passive listener exposure from outbound-only or data-only plugin selections.
+
 `NetSecurityPolicy` is also a DTO. It records TLS requirement, certificate pinning, certificate pins, and local development loopback policy. The framework does not open TLS sessions or validate certificates by itself.
 
 ## Reference Alignment
@@ -96,6 +101,8 @@ The Net contract follows local reference-engine evidence rather than a one-off p
 
 - Bevy Remote separates protocol registration from transport startup. `dev/bevy/crates/bevy_remote/src/lib.rs` registers `RemotePlugin` methods without opening transports, while `dev/bevy/crates/bevy_remote/src/http.rs` provides the HTTP transport plugin. Zircon mirrors this by keeping RPC/session/schema DTOs independent from HTTP/WebSocket/TCP execution.
 - Godot keeps low-level peers, HTTP client, UDP packet peers, ENet/multiplayer peer, WebSocket peer, and TCP server concepts as separate engine services under `dev/godot/core/io`. Zircon keeps comparable protocol concepts but routes access through `NetManager` instead of exposing concrete peer objects through runtime framework.
+- Godot's UDP, TCP server, and TCP stream classes expose explicit close/stop/status lifecycle operations, while Bevy Remote keeps protocol method registration separate from the HTTP transport. Zircon translates those precedents into typed manager events instead of exposing socket objects through the framework.
+- Bevy Remote records HTTP transport address and port as app resources and starts its HTTP transport separately from protocol method registration. Zircon translates that transport visibility into neutral diagnostics fields rather than feature-crate-specific inspector state.
 - Fyrox's `dev/Fyrox/fyrox-core/src/net.rs` is a compact Rust-native network abstraction around listeners and streams. Zircon keeps that Rust-friendly service shape for TCP/UDP basics, then adds higher-level engine contracts for RPC, replication, download manifests, and diagnostics.
 
 The deliberate divergence is that Zircon treats gameplay networking and developer remote protocols as profile-gated plugin capabilities. Adding the Net plugin should not make default client profiles listen on a port.
@@ -119,6 +126,6 @@ Data construction is intentionally permissive. Runtime implementations still own
 
 ## Test Coverage
 
-Framework tests now lock endpoint/transport/security DTO behavior, HTTP/WebSocket descriptor defaults and serde, RPC/session/handshake records, reliable datagram recovery/download resume records, and replication interest/budget/delta semantics. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
+Framework tests now lock endpoint/transport/security DTO behavior, `NetDiagnostics` listener-count serde, HTTP/WebSocket descriptor defaults and serde, NetEvent lifecycle serde for close/unregister variants plus transport-qualified accept/close variants, RPC/session/handshake records, reliable datagram recovery/download resume records, and replication interest/budget/delta semantics. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
 
-Cargo validation for the new `net` framework tests is pending while active Cargo lanes are busy. Low-interference validation for this slice should use rustfmt, conflict-marker scans, and path-scoped diff checks before a focused `cargo test -p zircon_runtime --lib net` run.
+Focused validation after adding explicit Net lifecycle events ran on 2026-06-07. `rustfmt --edition 2021 --check` passed over the touched Net Rust files; conflict-marker and trailing-whitespace scans over touched Net/doc/session paths returned empty; and path-scoped `git diff --check` passed with expected LF-to-CRLF warnings only. Focused Net runtime `cargo check` and the three lifecycle runtime tests passed. Direct framework test execution for `http_and_websocket_descriptors_keep_protocol_state_data_only` timed out twice while linking the `zircon_runtime` test binary, once with default features and once with `--no-default-features --features core-min`; no framework test execution pass is claimed. The fallback framework check `cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime-core-min-check --message-format short --color never` passed and type-checks the new `NetEvent` serde coverage.

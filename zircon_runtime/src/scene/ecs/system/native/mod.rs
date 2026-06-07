@@ -9,4 +9,4 @@ pub use into_scene_system::IntoSceneSystem;
 pub use scene_system::{BoxedSceneSystem, SceneSystem};
 pub use scene_system_metadata::SceneSystemMetadata;
 
-pub(crate) use scheduled_scene_step::ScheduledSceneStep;
+pub(crate) use scheduled_scene_step::{ScheduledSceneStep, ScheduledSceneStepRef};

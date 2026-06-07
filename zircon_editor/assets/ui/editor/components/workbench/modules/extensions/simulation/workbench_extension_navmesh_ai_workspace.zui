@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui"
+version = 2
+display_name = "Workbench Extension Navmesh AI Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionNavmeshAiWorkspace]
+root = "navmesh_ai_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.navmesh_ai_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionNavmeshAiWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navmesh_ai_rail_gap" }, { node = "navmesh_ai_left" }, { node = "navmesh_ai_center" }, { node = "navmesh_ai_right" }]
+
+[nodes.navmesh_ai_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionNavmeshAiRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.navmesh_ai_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionNavmeshAiLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navmesh_ai_title" }, { node = "navmesh_ai_tiles_tab" }, { node = "navmesh_ai_agents_tab" }, { node = "navmesh_ai_queries_tab" }, { node = "navmesh_ai_main_navmesh_row" }, { node = "navmesh_ai_humanoid_agent_row" }, { node = "navmesh_ai_patrol_query_row" }]
+
+[nodes.navmesh_ai_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionNavmeshAiTitle"
+props = { text = "Navmesh AI" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.navmesh_ai_tiles_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionNavmeshAiTilesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Tiles", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiTilesTab", event = "Click", route = "workbench.extension.navmesh_ai.tiles" }]
+
+[nodes.navmesh_ai_agents_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionNavmeshAiAgentsTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Agents", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiAgentsTab", event = "Click", route = "workbench.extension.navmesh_ai.agents" }]
+
+[nodes.navmesh_ai_queries_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionNavmeshAiQueriesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Queries", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiQueriesTab", event = "Click", route = "workbench.extension.navmesh_ai.queries" }]
+
+[nodes.navmesh_ai_main_navmesh_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionNavmeshAiMainNavmeshRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "NavMesh_Main", icon = "grid", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiMainNavmeshRow", event = "Click", route = "workbench.extension.navmesh_ai.nav_mesh.main" }]
+
+[nodes.navmesh_ai_humanoid_agent_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionNavmeshAiHumanoidAgentRow"
+classes = ["workbench-list-row"]
+props = { text = "Agent_Humanoid", icon = "user", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiHumanoidAgentRow", event = "Click", route = "workbench.extension.navmesh_ai.agent.humanoid" }]
+
+[nodes.navmesh_ai_patrol_query_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionNavmeshAiPatrolQueryRow"
+classes = ["workbench-list-row"]
+props = { text = "Query_Patrol", icon = "route", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiPatrolQueryRow", event = "Click", route = "workbench.extension.navmesh_ai.query.patrol" }]
+
+[nodes.navmesh_ai_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionNavmeshAiCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navmesh_ai_center_header" }, { node = "navmesh_ai_query_table" }, { node = "navmesh_ai_output" }]
+
+[nodes.navmesh_ai_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionNavmeshAiCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "navmesh_ai_center_title" }, { node = "navmesh_ai_header_fill" }, { node = "navmesh_ai_rebuild_button" }, { node = "navmesh_ai_query_path_button" }]
+
+[nodes.navmesh_ai_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionNavmeshAiCenterTitle"
+props = { text = "Navigation Query" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.navmesh_ai_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionNavmeshAiHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navmesh_ai_rebuild_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionNavmeshAiRebuildButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Rebuild Tiles", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 112.0, preferred = 112.0, max = 124.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiRebuild", event = "Click", route = "workbench.extension.navmesh_ai.rebuild" }]
+
+[nodes.navmesh_ai_query_path_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionNavmeshAiQueryPathButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Query Path", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiQueryPath", event = "Click", route = "workbench.extension.navmesh_ai.query_path" }]
+
+[nodes.navmesh_ai_query_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionNavmeshAiQueryTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navmesh_ai_tile_1208_table_row" }, { node = "navmesh_ai_tile_1209_table_row" }, { node = "navmesh_ai_agent_radius_table_row" }, { node = "navmesh_ai_blocked_link_table_row" }]
+
+[nodes.navmesh_ai_tile_1208_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionNavmeshAiTile1208TableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Tile 12_08", value_text = "green   96 polys   selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiTile1208TableRow", event = "Click", route = "workbench.extension.navmesh_ai.query.tile1208" }]
+
+[nodes.navmesh_ai_tile_1209_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionNavmeshAiTile1209TableRow"
+classes = ["workbench-table-row"]
+props = { text = "Tile 12_09", value_text = "yellow   pending rebuild" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiTile1209TableRow", event = "Click", route = "workbench.extension.navmesh_ai.query.tile1209" }]
+
+[nodes.navmesh_ai_agent_radius_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionNavmeshAiAgentRadiusTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Agent Radius", value_text = "Humanoid   radius 42 cm   height 180 cm" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiAgentRadiusTableRow", event = "Click", route = "workbench.extension.navmesh_ai.query.agent_radius" }]
+
+[nodes.navmesh_ai_blocked_link_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionNavmeshAiBlockedLinkTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Blocked Link", value_text = "Door_A03   offmesh link disabled" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiBlockedLinkTableRow", event = "Click", route = "workbench.extension.navmesh_ai.query.blocked_link" }]
+
+[nodes.navmesh_ai_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionNavmeshAiOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Navmesh Output", value_text = "18 tiles   4 agents   1 blocked link" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/NavmeshAiOutput", event = "Click", route = "workbench.extension.navmesh_ai.output" }]
+
+[nodes.navmesh_ai_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionNavmeshAiRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navmesh_ai_details_title" }, { node = "navmesh_ai_agent_dropdown" }, { node = "navmesh_ai_area_dropdown" }, { node = "navmesh_ai_cost_field" }]
+
+[nodes.navmesh_ai_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionNavmeshAiDetailsTitle"
+props = { text = "Query Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.navmesh_ai_agent_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionNavmeshAiAgentDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Humanoid", value = "Humanoid", options = ["Humanoid", "Crawler", "Vehicle", "Debug"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/NavmeshAiAgentEdit", event = "Change", route = "workbench.extension.navmesh_ai.agent.edit" },
+  { id = "WorkbenchExtension/NavmeshAiAgentCommit", event = "Submit", route = "workbench.extension.navmesh_ai.agent.commit" },
+]
+
+[nodes.navmesh_ai_area_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionNavmeshAiAreaDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Walkable", value = "Walkable", options = ["Walkable", "Jump", "Door", "Water"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/NavmeshAiAreaEdit", event = "Change", route = "workbench.extension.navmesh_ai.area.edit" },
+  { id = "WorkbenchExtension/NavmeshAiAreaCommit", event = "Submit", route = "workbench.extension.navmesh_ai.area.commit" },
+]
+
+[nodes.navmesh_ai_cost_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionNavmeshAiCostField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "Cost", value = "1.25" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/NavmeshAiCostEdit", event = "Change", route = "workbench.extension.navmesh_ai.cost.edit" },
+  { id = "WorkbenchExtension/NavmeshAiCostCommit", event = "Submit", route = "workbench.extension.navmesh_ai.cost.commit" },
+]

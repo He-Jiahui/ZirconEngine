@@ -97,6 +97,7 @@ impl DefaultNetManager {
                     self.state.push_event(NetEvent::ConnectionAccepted {
                         listener,
                         connection,
+                        transport: NetTransportKind::Tcp,
                         remote: remote_endpoint,
                     });
                     self.state.push_event(NetEvent::ConnectionStateChanged {
@@ -201,8 +202,10 @@ impl DefaultNetManager {
         match entry.stream.try_read(&mut payload) {
             Ok(0) => {
                 entry.state = NetConnectionState::Closed;
-                self.state
-                    .push_event(NetEvent::ConnectionClosed { connection });
+                self.state.push_event(NetEvent::ConnectionClosed {
+                    connection,
+                    transport: NetTransportKind::Tcp,
+                });
                 Ok(Vec::new())
             }
             Ok(received) => {

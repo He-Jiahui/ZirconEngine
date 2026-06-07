@@ -30,67 +30,67 @@ component = "IconButton"
 control_id = "SelectFolder"
 props = { label = "Folder", icon = "editor_pages/asset_browser/navigation/folder.svg" }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SelectFolder", event = "Change", route = "AssetCommand.SelectFolder" }]
+events = [{ id = "AssetSurface/SelectFolder", event = "Change", route = "workbench.asset.select_folder" }]
 
 [nodes.select_item]
 component = "IconButton"
 control_id = "SelectItem"
 props = { label = "Asset", icon = "cube-outline" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SelectItem", event = "Change", route = "AssetCommand.SelectItem" }]
+events = [{ id = "AssetSurface/SelectItem", event = "Change", route = "workbench.asset.select_item" }]
 
 [nodes.search]
 component = "InputField"
 control_id = "SearchEdited"
 props = { placeholder = "Search", value_text = "" }
 layout = { width = { min = 120.0, preferred = 180.0, max = 280.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "AssetCommand.SetSearchQuery" }]
+events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workbench.asset.set_search_query" }]
 
 [nodes.kind_filter]
 component = "ComboBox"
 control_id = "SetKindFilter"
 props = { label = "Kind", options = ["all", "scene", "mesh", "material", "ui"] }
 layout = { width = { min = 92.0, preferred = 92.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
 
 [nodes.view_mode]
 component = "IconButton"
 control_id = "SetViewMode"
 props = { label = "View", icon = "list-outline" }
 layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.utility_tab]
 component = "IconButton"
 control_id = "SetUtilityTab"
 props = { label = "Tools", icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "workbench.asset.set_utility_tab" }]
 
 [nodes.activate_reference]
 component = "IconButton"
 control_id = "ActivateReference"
 props = { label = "Use", icon = "editor_pages/asset_browser/references/reference.svg" }
 layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/ActivateReference", event = "Click", route = "AssetCommand.ActivateReference" }]
+events = [{ id = "AssetSurface/ActivateReference", event = "Click", route = "workbench.asset.activate_reference" }]
 
 [nodes.open_browser]
 component = "IconButton"
 control_id = "OpenAssetBrowser"
 props = { label = "Browser", icon = "editor_pages/asset_browser/navigation/folder.svg" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "AssetCommand.OpenAssetBrowser" }]
+events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
 
 [nodes.locate_asset]
 component = "IconButton"
 control_id = "LocateSelectedAsset"
 props = { label = "Locate", icon = "editor_pages/asset_browser/navigation/search.svg" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "AssetCommand.LocateSelectedAsset" }]
+events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "workbench.asset.locate_selected_asset" }]
 
 [nodes.import_model]
 component = "IconButton"
 control_id = "ImportModel"
 props = { label = "Import", icon = "editor_pages/asset_browser/import_pipeline/import.svg" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "AssetCommand.ImportModel" }]
+events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "workbench.asset.import_model" }]

@@ -510,3 +510,106 @@ pub(super) const PROJECT_OVERVIEW_NAVIGATION_SPEC: ExtensionNavigationSpec = spe
     PROJECT_OVERVIEW_COMMAND_ACTIONS,
     PROJECT_OVERVIEW_FIELD_ACTIONS,
 );
+
+const PLUGIN_MANAGER_TAB_CONTROLS: &[&str] = &[
+    "WorkbenchExtensionPluginManagerInstalledTab",
+    "WorkbenchExtensionPluginManagerDependenciesTab",
+    "WorkbenchExtensionPluginManagerUpdatesTab",
+];
+const PLUGIN_MANAGER_TAB_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.plugin_manager.installed_tab.select",
+        "WorkbenchExtensionPluginManagerInstalledTab",
+    ),
+    action(
+        "workbench.extension.plugin_manager.dependencies_tab.select",
+        "WorkbenchExtensionPluginManagerDependenciesTab",
+    ),
+    action(
+        "workbench.extension.plugin_manager.updates_tab.select",
+        "WorkbenchExtensionPluginManagerUpdatesTab",
+    ),
+];
+const PLUGIN_MANAGER_ROW_CONTROLS: &[&str] = &[
+    "WorkbenchExtensionPluginManagerAudioRow",
+    "WorkbenchExtensionPluginManagerRenderdocRow",
+    "WorkbenchExtensionPluginManagerGameplayRow",
+    "WorkbenchExtensionPluginManagerAudioRuntimeTableRow",
+    "WorkbenchExtensionPluginManagerRenderdocBridgeTableRow",
+    "WorkbenchExtensionPluginManagerGameplayPackTableRow",
+    "WorkbenchExtensionPluginManagerVersionWarningTableRow",
+    "WorkbenchExtensionPluginManagerOutputRow",
+];
+const PLUGIN_MANAGER_ROW_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.plugin_manager.audio_row.select",
+        "WorkbenchExtensionPluginManagerAudioRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.renderdoc_row.select",
+        "WorkbenchExtensionPluginManagerRenderdocRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.gameplay_row.select",
+        "WorkbenchExtensionPluginManagerGameplayRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.audio_runtime_table_row.select",
+        "WorkbenchExtensionPluginManagerAudioRuntimeTableRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.renderdoc_bridge_table_row.select",
+        "WorkbenchExtensionPluginManagerRenderdocBridgeTableRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.gameplay_pack_table_row.select",
+        "WorkbenchExtensionPluginManagerGameplayPackTableRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.version_warning_table_row.select",
+        "WorkbenchExtensionPluginManagerVersionWarningTableRow",
+    ),
+    action(
+        "workbench.extension.plugin_manager.output.select",
+        "WorkbenchExtensionPluginManagerOutputRow",
+    ),
+];
+const PLUGIN_MANAGER_COMMAND_CONTROLS: &[&str] = &[
+    "WorkbenchAssetsPluginManagerButton",
+    "WorkbenchExtensionPluginManagerHotReloadButton",
+    "WorkbenchExtensionPluginManagerValidateButton",
+];
+const PLUGIN_MANAGER_COMMAND_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.plugin_manager.open",
+        "WorkbenchAssetsPluginManagerButton",
+    ),
+    action(
+        "workbench.extension.plugin_manager.hot_reload.invoke",
+        "WorkbenchExtensionPluginManagerHotReloadButton",
+    ),
+    action(
+        "workbench.extension.plugin_manager.validate.invoke",
+        "WorkbenchExtensionPluginManagerValidateButton",
+    ),
+];
+const PLUGIN_MANAGER_FIELD_ACTIONS: &[&str] = &[
+    "workbench.extension.plugin_manager.plugin.edit",
+    "workbench.extension.plugin_manager.plugin.commit",
+    "workbench.extension.plugin_manager.channel.edit",
+    "workbench.extension.plugin_manager.channel.commit",
+    "workbench.extension.plugin_manager.version.edit",
+    "workbench.extension.plugin_manager.version.commit",
+];
+
+pub(super) const PLUGIN_MANAGER_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
+    "workbench.extension.plugin_manager.open",
+    "WorkbenchExtensionPluginManagerWorkspace",
+    PLUGIN_MANAGER_TAB_CONTROLS,
+    PLUGIN_MANAGER_TAB_ACTIONS,
+    PLUGIN_MANAGER_ROW_CONTROLS,
+    PLUGIN_MANAGER_ROW_ACTIONS,
+    PLUGIN_MANAGER_COMMAND_CONTROLS,
+    PLUGIN_MANAGER_COMMAND_ACTIONS,
+    PLUGIN_MANAGER_FIELD_ACTIONS,
+);

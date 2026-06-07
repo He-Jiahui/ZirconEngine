@@ -7,7 +7,11 @@ use zircon_runtime::core::framework::sound::{
 };
 
 use super::super::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
-use super::{convolution, hrtf, spatial, volume};
+
+mod convolution_send;
+mod final_mix;
+mod listener;
+mod volume_influence;
 
 pub(crate) fn apply_source_environment(
     buffer: &mut [f32],
@@ -31,78 +35,38 @@ pub(crate) fn apply_source_environment(
     let mut pan = 0.0;
 
     if let Some(listener) = listener {
-        let spatial_scale = source
-            .spatial
-            .spatial_scale
-            .unwrap_or(spatial_scale)
-            .max(0.0);
-        let active_volume = volume::strongest_volume_influence(source.position, volumes);
-        let spatial = spatial::spatial_profile(
+        let listener_projection = listener::apply_listener_environment(
+            buffer,
+            channels,
+            sample_rate_hz,
             source_id,
             source,
             listener,
             spatial_scale,
-            active_volume.as_ref().map(|volume| volume.descriptor.id),
+            volumes,
             ray_traced_impulse_responses,
-        );
-        if !hrtf::apply_loaded_hrtf_profile_for_source(
-            buffer,
-            channels,
-            source_id,
-            listener,
             hrtf_profiles,
             hrtf_states,
-        ) {
-            hrtf::apply_hrtf_preview(
-                buffer,
-                channels,
-                source,
-                listener,
-                sample_rate_hz,
-                source.spatial.spatial_blend.clamp(0.0, 1.0),
-                spatial_scale,
-            );
-        }
-        gain *= spatial.gain;
-        pan = spatial.pan;
-    }
-
-    if let Some(influence) = volume::strongest_volume_influence(source.position, volumes) {
-        gain *= influence.gain();
-        if let Some(cutoff_hz) = influence.descriptor.low_pass_cutoff_hz {
-            volume::low_pass_block(
-                buffer,
-                channels,
-                sample_rate_hz,
-                cutoff_hz,
-                influence.weight,
-            );
-        }
-        if let Some(impulse_response) = influence.descriptor.convolution_send {
-            convolution::add_convolution_send(
-                buffer,
-                channels,
-                impulse_responses.get(&impulse_response).map(Vec::as_slice),
-                influence.descriptor.reverb_send * influence.weight,
-                ray_tracing,
-            );
-        }
-    }
-
-    if let Some(impulse_response) = source.spatial.convolution_send {
-        convolution::add_convolution_send(
-            buffer,
-            channels,
-            impulse_responses.get(&impulse_response).map(Vec::as_slice),
-            source.spatial.spatial_blend.clamp(0.0, 1.0),
-            ray_tracing,
         );
+        gain *= listener_projection.gain;
+        pan = listener_projection.pan;
     }
 
-    if gain != 1.0 {
-        for sample in buffer.iter_mut() {
-            *sample *= gain;
-        }
-    }
-    spatial::apply_source_pan(buffer, channels, pan);
+    gain *= volume_influence::apply_volume_environment(
+        buffer,
+        channels,
+        sample_rate_hz,
+        source,
+        volumes,
+        impulse_responses,
+        ray_tracing,
+    );
+    convolution_send::apply_source_convolution_send(
+        buffer,
+        channels,
+        source,
+        impulse_responses,
+        ray_tracing,
+    );
+    final_mix::apply_final_gain_and_pan(buffer, channels, gain, pan);
 }

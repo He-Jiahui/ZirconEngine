@@ -86,7 +86,7 @@ fn editor_operation_binding_with_arguments_preserves_operation_id_as_native_call
         "MenuView",
         "WeatherRefresh",
         EditorUiEventKind::Click,
-        EditorUiBindingPayload::editor_operation("Weather.CloudLayer.Refresh"),
+        EditorUiBindingPayload::editor_operation("weather.cloud_layer.refresh"),
     );
 
     let rebound = binding
@@ -99,6 +99,6 @@ fn editor_operation_binding_with_arguments_preserves_operation_id_as_native_call
 
     assert_eq!(
         rebound.native_binding(),
-        r#"MenuView/WeatherRefresh:onClick(EditorOperation("Weather.CloudLayer.Refresh","storm",7,true))"#
+        r#"MenuView/WeatherRefresh:onClick(EditorOperation("weather.cloud_layer.refresh","storm",7,true))"#
     );
 }

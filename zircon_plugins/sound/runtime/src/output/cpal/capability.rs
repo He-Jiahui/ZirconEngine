@@ -1,6 +1,7 @@
-use zircon_runtime::core::framework::sound::{
-    SoundBackendCapability, SoundChannelLayout, SoundError,
-};
+use zircon_runtime::core::framework::sound::{SoundBackendCapability, SoundError};
+
+#[cfg(feature = "cpal-backend")]
+use zircon_runtime::core::framework::sound::SoundChannelLayout;
 
 #[cfg(feature = "cpal-backend")]
 use super::CPAL_BACKEND;
@@ -19,7 +20,9 @@ pub(crate) fn cpal_backend_capabilities() -> Vec<SoundBackendCapability> {
         supported_channel_layouts: vec![
             SoundChannelLayout::mono(),
             SoundChannelLayout::stereo(),
+            SoundChannelLayout::quad(),
             SoundChannelLayout::surround_5_1(),
+            SoundChannelLayout::surround_5_1_side(),
             SoundChannelLayout::surround_7_1(),
         ],
         min_block_size_frames: 1,

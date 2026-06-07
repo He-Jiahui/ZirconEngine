@@ -1,6 +1,8 @@
-use super::super::super::values::{
-    plugin_module_kind_from_plugin_toml, runtime_target_mode_from_plugin_toml, string_array_values,
-};
+mod capabilities;
+mod dispatch;
+mod identity;
+mod kind;
+mod targets;
 
 pub(super) fn parse_module_contribution_line(
     line: &str,
@@ -10,41 +12,12 @@ pub(super) fn parse_module_contribution_line(
     target_modes: &mut Vec<zircon_runtime::RuntimeTargetMode>,
     capabilities: &mut Vec<String>,
 ) {
-    if let Some(value) = line
-        .strip_prefix("name = \"")
-        .and_then(|value| value.strip_suffix('"'))
-    {
-        *name = Some(value.to_string());
-        return;
-    }
-    if let Some(value) = line
-        .strip_prefix("kind = \"")
-        .and_then(|value| value.strip_suffix('"'))
-    {
-        *kind = Some(plugin_module_kind_from_plugin_toml(value));
-        return;
-    }
-    if let Some(value) = line
-        .strip_prefix("crate_name = \"")
-        .and_then(|value| value.strip_suffix('"'))
-    {
-        *crate_name = Some(value.to_string());
-        return;
-    }
-    if let Some(value) = line
-        .strip_prefix("target_modes = [")
-        .and_then(|value| value.strip_suffix(']'))
-    {
-        *target_modes = string_array_values(value)
-            .into_iter()
-            .map(|mode| runtime_target_mode_from_plugin_toml(&mode))
-            .collect();
-        return;
-    }
-    if let Some(value) = line
-        .strip_prefix("capabilities = [")
-        .and_then(|value| value.strip_suffix(']'))
-    {
-        *capabilities = string_array_values(value);
-    }
+    dispatch::parse_module_contribution_line(
+        line,
+        name,
+        kind,
+        crate_name,
+        target_modes,
+        capabilities,
+    );
 }

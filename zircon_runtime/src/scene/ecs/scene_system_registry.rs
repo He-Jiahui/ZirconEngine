@@ -96,6 +96,7 @@ impl SceneSystemRegistry {
             .filter(move |system| system.stage() == stage)
     }
 
+    #[cfg(test)]
     pub(crate) fn native_system_steps_for_stage(
         &self,
         stage: SystemStage,
@@ -116,6 +117,29 @@ impl SceneSystemRegistry {
                 std::iter::once(native_step).chain(apply_deferred_step)
             })
             .collect()
+    }
+
+    pub(crate) fn native_system_steps_by_stage(
+        &self,
+    ) -> [Vec<super::ScheduledSceneStep>; SystemStage::COUNT] {
+        let native_step_counts = native_step_counts_by_stage(&self.native_systems);
+        let mut by_stage = native_step_groups_with_capacity(&native_step_counts);
+        for system in &self.native_systems {
+            let steps = &mut by_stage[system.stage().rank()];
+            steps.push(super::ScheduledSceneStep::native(
+                system.id(),
+                system.stage(),
+                system.order(),
+            ));
+            if system.has_deferred_commands() {
+                steps.push(super::ScheduledSceneStep::apply_deferred_after(
+                    system.id(),
+                    system.stage(),
+                    system.order(),
+                ));
+            }
+        }
+        by_stage
     }
 
     pub fn native_system_conflict_graph_for_stage(
@@ -270,4 +294,19 @@ fn sort_native_systems(systems: &mut [BoxedSceneSystem]) {
 
 fn apply_deferred_node_id(system_id: &str) -> String {
     format!("apply_deferred:{system_id}")
+}
+
+fn native_step_counts_by_stage(systems: &[BoxedSceneSystem]) -> [usize; SystemStage::COUNT] {
+    let mut counts = [0_usize; SystemStage::COUNT];
+    for system in systems {
+        let step_count = if system.has_deferred_commands() { 2 } else { 1 };
+        counts[system.stage().rank()] += step_count;
+    }
+    counts
+}
+
+fn native_step_groups_with_capacity(
+    native_step_counts: &[usize; SystemStage::COUNT],
+) -> [Vec<super::ScheduledSceneStep>; SystemStage::COUNT] {
+    std::array::from_fn(|stage_index| Vec::with_capacity(native_step_counts[stage_index]))
 }

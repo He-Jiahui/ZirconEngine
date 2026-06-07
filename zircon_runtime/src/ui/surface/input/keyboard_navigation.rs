@@ -29,11 +29,33 @@ pub(super) fn keyboard_navigation_kind(
 }
 
 fn directional_navigation_kind(keyboard: &UiKeyboardInputEvent) -> Option<UiNavigationEventKind> {
-    match (keyboard.logical_key.as_str(), keyboard.key_code) {
-        ("ArrowLeft", _) | (_, 37) => Some(UiNavigationEventKind::Left),
-        ("ArrowUp", _) | (_, 38) => Some(UiNavigationEventKind::Up),
-        ("ArrowRight", _) | (_, 39) => Some(UiNavigationEventKind::Right),
-        ("ArrowDown", _) | (_, 40) => Some(UiNavigationEventKind::Down),
+    if let Some(kind) = logical_directional_navigation_kind(keyboard.logical_key.as_str()) {
+        return Some(kind);
+    }
+
+    match keyboard.key_code {
+        37 => Some(UiNavigationEventKind::Left),
+        38 => Some(UiNavigationEventKind::Up),
+        39 => Some(UiNavigationEventKind::Right),
+        40 => Some(UiNavigationEventKind::Down),
         _ => None,
     }
+}
+
+fn logical_directional_navigation_kind(logical_key: &str) -> Option<UiNavigationEventKind> {
+    let normalized = normalized_key_name(logical_key);
+    match normalized.as_str() {
+        "arrowleft" | "left" | "gamepaddpadleft" => Some(UiNavigationEventKind::Left),
+        "arrowup" | "up" | "gamepaddpadup" => Some(UiNavigationEventKind::Up),
+        "arrowright" | "right" | "gamepaddpadright" => Some(UiNavigationEventKind::Right),
+        "arrowdown" | "down" | "gamepaddpaddown" => Some(UiNavigationEventKind::Down),
+        _ => None,
+    }
+}
+
+fn normalized_key_name(key: &str) -> String {
+    key.chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
 }

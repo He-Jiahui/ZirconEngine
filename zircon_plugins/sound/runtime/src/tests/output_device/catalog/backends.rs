@@ -18,5 +18,11 @@ fn output_backends_list_deterministic_null_backend() {
         .contains(&SoundChannelLayout::stereo()));
     assert!(backend
         .supported_channel_layouts
+        .contains(&SoundChannelLayout::quad()));
+    assert!(backend
+        .supported_channel_layouts
         .contains(&SoundChannelLayout::surround_5_1()));
+    assert!(backend
+        .supported_channel_layouts
+        .contains(&SoundChannelLayout::surround_5_1_side()));
 }

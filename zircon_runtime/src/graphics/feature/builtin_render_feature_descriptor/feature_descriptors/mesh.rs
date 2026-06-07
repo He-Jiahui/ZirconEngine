@@ -39,25 +39,28 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("mesh.opaque")
-            .read_texture("scene-depth")
-            .write_texture("scene-color"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::AlphaMask3d,
                 "alpha-mask-mesh",
                 QueueLane::Graphics,
             )
             .with_executor_id("mesh.alpha-mask")
-            .read_texture("scene-depth")
-            .write_texture("scene-color"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "transparent-mesh",
                 QueueLane::Graphics,
             )
             .with_executor_id("mesh.transparent")
-            .read_texture("scene-depth")
-            .read_texture("scene-color")
-            .write_texture("scene-color"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
         ],
     )
 }

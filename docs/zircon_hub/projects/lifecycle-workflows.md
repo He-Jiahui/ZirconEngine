@@ -1,136 +1,132 @@
 ---
 related_code:
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/persistence.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/quick_action.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
+  - zircon_hub/src/tauri_app/action_request.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/project_templates.rs
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/projects/create_project.rs
   - zircon_hub/src/projects/create_project_request.rs
+  - zircon_hub/src/projects/editor_recent_sync.rs
   - zircon_hub/src/projects/metadata.rs
   - zircon_hub/src/projects/recent_project.rs
   - zircon_hub/src/projects/recycle_bin.rs
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/process/editor_launch.rs
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_dashboard_components.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/shared.slint
+  - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/types/hub.ts
+  - zircon_hub/tests/hub_docs_contract.rs
+  - zircon_hub/tests/project_management_contract.rs
+  - zircon_hub/tests/project_page_copy_contract.rs
+  - zircon_hub/tests/project_quick_actions_contract.rs
+  - zircon_hub/tests/project_source_engine_contract.rs
+  - zircon_hub/tests/project_workflow_contract.rs
+  - zircon_hub/tests/ui_project_navigation_contract.rs
+  - zircon_hub/tests/ui_selected_project_runtime_contract.rs
 implementation_files:
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/persistence.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/quick_action.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
+  - zircon_hub/src/tauri_app/action_request.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/project_templates.rs
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/projects/create_project.rs
   - zircon_hub/src/projects/create_project_request.rs
+  - zircon_hub/src/projects/editor_recent_sync.rs
   - zircon_hub/src/projects/metadata.rs
   - zircon_hub/src/projects/recent_project.rs
   - zircon_hub/src/projects/recycle_bin.rs
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/process/editor_launch.rs
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_dashboard_components.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/shared.slint
+  - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
 plan_sources:
-  - user: 2026-05-28 继续完善hub / hub-projects milestone
-  - .opencode/workflows/20260528_190023_866_继续完善hub/workflow.xml
-  - .opencode/workflows/20260528_190023_866_继续完善hub/hub-projects/decomposition.md
-  - .opencode/workflows/20260528_190023_866_继续完善hub/hub-projects-actions-model/plan.md
-  - .opencode/workflows/20260528_190023_866_继续完善hub/hub-projects-create-import-templates/plan.md
-  - .opencode/workflows/20260528_190023_866_继续完善hub/hub-projects-dashboard-detail-ui/plan.md
-  - .opencode/workflows/20260528_190023_866_继续完善hub/hub-projects-editor-launch-contracts/plan.md
+  - .codex/plans/Zircon Hub 本地闭环 v1 功能实现设计.md
+  - .codex/plans/Zircon Hub Tauri + ReactMUI 硬切换计划.md
   - .opencode/workflows/20260528_231820_026_优化hub[image Zircon Hub 响应式组件化重构计划.md]/hub-docs-contract-refresh/plan.md
   - .opencode/workflows/20260528_231820_026_优化hub[image Zircon Hub 响应式组件化重构计划.md]/hub-docs-contract-refresh/review-surface.md
 tests:
-  - zircon_hub/src/projects/create_project_request.rs
-  - zircon_hub/tests/project_management_contract.rs
-  - zircon_hub/tests/project_workflow_contract.rs
-  - zircon_hub/tests/project_source_engine_contract.rs
-  - zircon_hub/tests/project_quick_actions_contract.rs
-  - zircon_hub/tests/ui_project_layout_contract.rs
-  - zircon_hub/tests/ui_project_scope_contract.rs
-  - zircon_hub/tests/ui_project_navigation_contract.rs
-  - zircon_hub/tests/ui_selected_project_runtime_contract.rs
-  - cargo test -p zircon_hub projects::create_project_request --locked -- --nocapture
-  - cargo test -p zircon_hub app::runtime::project_workspace --locked -- --nocapture
-  - cargo test -p zircon_hub app::view_model --locked -- --nocapture
-  - cargo test -p zircon_hub --test project_management_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test project_workflow_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test project_source_engine_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test project_quick_actions_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test ui_project_layout_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test ui_project_scope_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test ui_project_navigation_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked -- --nocapture
-  - cargo test -p zircon_hub --locked
-  - cargo build -p zircon_hub --bin zircon_hub --locked
   - zircon_hub/tests/hub_docs_contract.rs
-  - cargo test -p zircon_hub --test hub_docs_contract --locked --jobs 1 -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test hub_docs_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test project_management_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test project_workflow_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test project_source_engine_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test project_quick_actions_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_project_navigation_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_selected_project_runtime_contract -- --nocapture
 doc_type: workflow-detail
 ---
 
 # Hub project lifecycle workflows
 
-This document owns the Hub project lifecycle slice that starts at the Projects page and ends at deterministic Editor launch, package, install, remove, or delete behavior. The lifecycle is deliberately split between runtime mutation, project metadata helpers, view-model projection, Slint page composition, and static contract tests so the Hub can keep acting as a standalone launcher without moving project state into the Editor or runtime crates.
+This document owns the React/MUI project lifecycle surface for local Hub v1. The current lifecycle starts in the Tauri-backed Projects pages, flows through typed `hub_action` payloads, mutates only `zircon_hub` state and project files, then returns a refreshed `HubViewModel` for React to render.
 
-## Canonical project action model
+## Action Model
 
-`HubRuntime` keeps the selected project as an optional path and resolves actions through narrow helpers in `project_workspace.rs`. Selected-project actions such as Build, Package, Install, Project Detail Open, Remove from Hub, and Delete require the selected path to still match a recent project through `project_paths_match`. Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists; a stale selected path is treated as an actionable error instead of silently retargeting another project.
+`HubActionRequest` parses project lifecycle actions at the IPC boundary. `CreateProjectActionPayload` carries `name`, `location`, `template`, and `engineId`; `ImportProjectActionPayload` carries an optional project folder; `ProjectTargetActionPayload` carries `projectId` and `projectPath` for selected-project workflows.
 
-The recent-project registry remains ordered by normalized path de-duplication and last-opened timestamps. `remember_project()` selects the remembered project, activates its bound Source Engine when metadata exists, refreshes selected-project scoped Assets, Plugins, Learn, and Team data, and persists the Editor startup pointer through `persist_with_last_project()`. Pin state lives only in Hub project metadata and changes presentation ordering or badges; it does not become the Editor recent-project ordering source.
+`HubRuntimeSession::apply_action()` is the runtime owner. Project creation routes to `create_project_from_payload`, import routes to `import_project_from_action`, and pin/unpin/remove/delete routes to project lifecycle helpers in `src/tauri_app/runtime_state/project_actions.rs`. Workflow buttons for build, package, install, and open-editor first call the shared target resolver in `action_targets.rs`.
 
-Remove and delete share the same normalized path cleanup helper but have different side effects. Remove from Hub prunes the recent row, project metadata, selected path, and pending-delete state, then persists Hub and Editor recent state without touching project files. Delete is a two-step Windows-only flow: request sets `pending_delete_project_path`, cancel clears it, and confirm calls the Recycle Bin command before removing Hub metadata. If the Recycle Bin command fails, Hub state remains intact.
+React does not infer filesystem identity. `web/src/tauri/projectTarget.ts` exposes `projectTargetPayload(project)` and `quickActionProjectTargetPayload(project)`. Project Detail, Editor, Builds, Catalog, and Cloud pass `{ projectId, projectPath }` when a selected project is visible, while Rust target resolution prefers `projectPath` before the stable id and keeps `targetId` only as compatibility fallback.
 
-## Create, import, and template flow
+Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists. Selected-project actions must keep using selected-path matching and must not retarget a stale selection.
 
-`CreateProjectRequest` owns request-level create validation and Editor argument mapping. It trims project names at construction time, rejects empty names or locations through `validate_launch_fields()`, computes the target root through `target_root()`, and maps enabled templates to the Editor `--template` argument. The catalog keeps disabled template rows visible so the UI can explain future workflow slots, while `ProjectTemplate::from_enabled_id()` accepts only templates that can currently launch through Editor create mode.
+## Create And Import
 
-`create_project()` builds the request from Slint form state and `new_project_engine_id`, validates the request before launch, requires the selected Source Engine to exist, activates that engine, and launches `EditorLaunchRequest::CreateProject`. Only after the child process starts does the runtime write project metadata with the requested engine/template, remember the target root, select it, refresh scoped views, and record a successful Open Editor action. This order prevents action history from claiming a successful create when project metadata or Editor recent persistence failed.
+`CreateProjectRequest` owns request-level validation and target-root derivation. `create_project()` currently enables only the `renderable-empty` template. It validates that the target directory is empty or missing, creates the standard local project layout, writes `zircon-project.toml`, writes the default scene and starter assets, then returns a `CreateProjectReport`.
 
-Import and open flows validate project roots with `validate_project_root()`, remember valid imports as recents, select them, clear pending-delete state, route to Project Detail, refresh selected-project scoped views, and update Editor recents only through the runtime persistence boundary. Folder-picker callbacks keep import project roots, new-project locations, source checkout paths, staged outputs, and local device install paths separate so one browse action cannot overwrite another field.
+`create_project_from_payload` resolves the Source Engine id, rejects disabled templates as localized coming-soon failures, calls `create_project()`, remembers the new project in Hub recent-project metadata, stores the bound engine/template, selects the new project, refreshes selected-project scoped catalogs, records a create-project action-history row, and persists Hub plus Editor recent state.
 
-## Slint projections and page behavior
+Import either uses the typed payload folder or opens the localized native folder picker. It validates `zircon-project.toml`, writes the project to recent-project metadata, binds the requested or active Source Engine when available, selects the imported project, moves Projects to Detail, refreshes scoped catalogs, records an import action-history row, and persists the selected project for Editor startup.
 
-`view_model::projects` projects the canonical runtime state into three surfaces: Dashboard cards, Project Browser rows, and Project Detail data. Rows expose selected, pinned, missing, can-open, can-build, can-delete, engine id, engine label, and unavailable/unbound Source Engine state from the same snapshot. Missing or invalid projects cannot open/build/delete; projects without an available bound Source Engine cannot build selected-engine actions even if a different active Source Engine exists.
+## Project Detail Management
 
-Projects page composition is split by page responsibility. `project_dashboard.slint` owns the Dashboard shell and delegates cards, recent rows, and Quick Actions to `project_dashboard_components.slint`. `project_new_page.slint`, `project_browser_page.slint`, and `project_detail_page.slint` own the secondary page shells, while `project_page_components.slint`, `project_browser_components.slint`, and `project_detail_components.slint` own reusable controls such as template rails, browser rows, source-engine choices, detail status strips, detail info rows, action buttons, and delete-confirmation sections.
+`ProjectDetailPage.tsx` renders the selected project DTO passively. It does not prune metadata, normalize paths, or decide delete state. Pin, unpin, remove-from-hub, request-delete, cancel-delete, and confirm-delete dispatch typed selected-project payloads and wait for the refreshed view model.
 
-Project Detail renders an explicit no-selection state until `selected_project_path` resolves to a recent project. When a project is selected, it renders path, version, Source Engine binding, status, pin state, pending-delete state, and action buttons. The delete confirmation cluster appears only when the selected pending-delete path matches the selected project, with cancel and confirm callbacks kept separate from Remove from Hub.
+Pin and unpin update only Hub project metadata. Remove from Hub prunes the recent project, selected path, pending delete path, and project metadata while leaving files on disk. Delete is a two-step Recycle Bin flow: `request-delete` sets `pending_delete_project_path`, `cancel-delete` clears it, and `confirm-delete` calls the Windows Recycle Bin command before removing Hub metadata. If the Recycle Bin command fails, Hub preserves the selected project and pending delete state so the user can retry or cancel.
 
-## Editor launch contracts
+Project status, template display, missing-path copy, pending-delete state, and action feedback are localized at the Rust DTO boundary through `HubTextBundle`. React renders those fields without reconstructing business copy.
 
-Editor launch command construction stays in `process/editor_launch.rs`. Open-project requests produce `--project <path>`, create-project requests produce `--create-project --project-name <name> --location <dir> --template <template>`, and `EditorLaunchCommand::from_preferred_engine()` prefers a sibling `zircon_editor` beside the Hub executable before falling back to the configured staged engine directory.
+## Workflow Hand Offs
 
-Runtime launch callbacks decide the target before constructing commands. Selected-project launch never uses latest-recent fallback when a selected path is stale; general Open Editor uses selected project, latest recent, or no-project launch in that order; create mode uses the selected New Project Source Engine and enabled template. Each launch success or failure writes a scoped `HubActionRecord` with target, command line, recovery text, output directory, and child process id when available so the operation timeline survives restart.
+Builds, Cloud, and Editor reuse the selected-project payload. Package and install are owned by `src/tauri_app/runtime_state/project_delivery_actions.rs`; package writes `zircon-package.toml`, and install ensures a package before copying to the configured local device install directory. Editor launch is owned by `src/tauri_app/runtime_state/editor_launch_actions.rs` and can launch the selected project or an empty editor.
 
-## Validation ownership
+Editor launch command construction stays in `src/process/editor_launch.rs`. Open-project requests produce `--project <path>`. Empty editor launch omits a project argument. The Hub no longer creates a project by launching the Editor create mode; project creation is local file generation in `src/projects/create_project.rs`.
 
-The project lifecycle gate is covered by a mix of Rust module tests and static contracts. Module tests cover request/template helpers, project metadata normalization, project view-model projection, runtime selected/latest helpers, and editor command arguments. Contract tests lock the cross-file behavior: `project_management_contract.rs` covers metadata, registry repair, template and Recycle Bin contracts; `project_workflow_contract.rs` covers create/open/selected-project action routing; `project_source_engine_contract.rs` covers new-project engine defaults and shared path keys; `project_quick_actions_contract.rs` covers fallback and stale-selection quick actions; and the UI contract tests cover Dashboard, Browser, Detail, selected-project runtime wiring, and Slint callback surfaces.
+Every lifecycle and workflow handoff records action-history data through the Hub runtime state. `HubActionRecord` carries stable kind ids, localized detail/log/recovery fields at projection time, command lines, output directories, and child process ids when available. Builds and Cloud render the DTO `detailRows` or `outputDir` instead of page-local diagnostics.
 
-The final acceptance gate for this milestone is Hub-scoped rather than whole-workspace because the changes are contained to `zircon_hub`. The required evidence is the focused project lifecycle command set plus `cargo test -p zircon_hub --locked` and `cargo build -p zircon_hub --bin zircon_hub --locked`. If local resource contention prevents a command from completing, record the timeout as risk instead of weakening the lifecycle contract.
+## Persistence
+
+`HubConfig.runtime` stores selected page, project subpage, search/filter/sort/view mode, selected project path, selected template id, new-project location, and new-project engine id. Hub project metadata stores pin state, Source Engine binding, and last selected template by normalized project path. Editor recent sync remains isolated to the existing Editor JSON startup session.
+
+Recent projects merge by normalized path key, keep newest entries, and preserve Editor state that is outside Hub ownership. Hub writes Editor recent state only through the runtime persistence boundary after project create/import/open/remove/delete state changes that intentionally affect startup context.
+
+## Validation Ownership
+
+The project lifecycle gate is covered by Rust module tests and static React/Tauri contracts. `project_management_contract.rs` covers metadata, registry repair, template, Recycle Bin, and persistence boundaries. `project_workflow_contract.rs` covers typed action payload parsing, runtime routing, create/import/workflow actions, and the single frontend dispatcher. `project_source_engine_contract.rs` covers Source Engine binding/default behavior. `project_quick_actions_contract.rs` covers quick-action target fallback and selected-project payload forwarding. `ui_project_navigation_contract.rs` protects Dashboard/New/Browser/Detail routing. `ui_selected_project_runtime_contract.rs` protects passive selected-project DTO consumption.
 
 ## Docs Refresh Handoff
 
-`hub-docs-contract-refresh` keeps the project lifecycle rules visible to future page and acceptance work. Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists; selected-project actions must keep using selected-path matching and must not retarget a stale selection. New Project form state now survives restart through `HubConfig.runtime`, while Settings default project location remains only the empty/error fallback.
+`hub-docs-contract-refresh` keeps the project lifecycle rules visible to future page and acceptance work. Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists; selected-project actions must keep using selected-path matching and must not retarget a stale selection. New Project form state survives restart through `HubConfig.runtime`, while Settings default project location remains only the empty/error fallback.
 
-The handoff contract is split by responsibility: `project_workflow_contract.rs` protects create/open/action ordering, `ui_project_navigation_contract.rs` protects Dashboard/New/Browser/Detail routing plus New Project location state, `project_source_engine_contract.rs` protects Source Engine binding/default behavior, and `hub_docs_contract.rs` keeps these documentation links present for the acceptance milestone.
+The handoff contract is split by responsibility: `project_workflow_contract.rs` protects create/import/open/action ordering, `ui_project_navigation_contract.rs` protects Dashboard/New/Browser/Detail routing plus New Project location state, `project_source_engine_contract.rs` protects Source Engine binding/default behavior, and `hub_docs_contract.rs` keeps these documentation links present for the acceptance milestone.

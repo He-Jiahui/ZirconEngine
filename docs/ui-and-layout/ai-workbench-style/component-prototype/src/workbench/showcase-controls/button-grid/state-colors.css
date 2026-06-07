@@ -1,0 +1,16 @@
+.zr-showcase-col:first-child .zr-button:disabled {
+  color: #747f86;
+  border-color: #343d44;
+  background: linear-gradient(180deg, #2d3337, #272c30);
+  opacity: 0.72;
+}
+
+.zr-showcase-col:first-child .zr-button.is-primary {
+  color: #e8fbff;
+  border-color: #1c8798;
+  background: linear-gradient(180deg, #29a4b8, #1c8395);
+}
+
+.zr-showcase-col:first-child .zr-button.is-danger {
+  color: #d05a50;
+}

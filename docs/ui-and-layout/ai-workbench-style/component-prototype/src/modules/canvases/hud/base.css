@@ -1,0 +1,21 @@
+.zr-module-hud-canvas {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(rgba(53, 199, 208, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(53, 199, 208, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 52% 45%, rgba(255, 255, 255, 0.14), transparent 18%),
+    linear-gradient(180deg, #1b262b, #0d1113);
+  background-size: 28px 28px, 28px 28px, auto, auto;
+}
+
+.zr-module-hud-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 22px 34px;
+  border: 1px dashed rgba(53, 199, 208, 0.62);
+}

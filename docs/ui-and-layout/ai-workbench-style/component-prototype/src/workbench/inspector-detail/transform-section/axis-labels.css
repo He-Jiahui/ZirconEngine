@@ -1,0 +1,17 @@
+.zr-inspector .zr-section.is-transform .zr-vector-row > span:nth-child(2),
+.zr-inspector .zr-section.is-transform .zr-vector-row > span:nth-child(4),
+.zr-inspector .zr-section.is-transform .zr-vector-row > span:nth-child(6) {
+  color: #81888c;
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) > span:nth-child(2),
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) > span:nth-child(4),
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) > span:nth-child(6) {
+  color: #566871;
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(4) > span:nth-child(2),
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(4) > span:nth-child(4),
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(4) > span:nth-child(6) {
+  color: #68767e;
+}

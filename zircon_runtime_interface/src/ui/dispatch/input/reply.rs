@@ -132,23 +132,24 @@ impl UiDispatchReply {
                 step.reply.phase = Some(step.phase);
             }
 
-            let effect_start = merged.effects.len();
-            let effect_count = step.reply.effects.len();
-            merged.effects.extend(step.reply.effects);
-
             match step.reply.disposition {
                 UiDispatchDisposition::Unhandled => {
+                    let ignored_effect_count = step.reply.effects.len();
                     routed_steps.push(UiDispatchReplyStepTrace {
                         phase: step.phase,
                         target: step.target,
                         handler: step.reply.handler,
                         disposition: step.reply.disposition,
-                        effect_start,
-                        effect_count,
+                        effect_start: merged.effects.len(),
+                        effect_count: 0,
+                        ignored_effect_count,
                         stopped: false,
                     });
                 }
                 UiDispatchDisposition::Passthrough => {
+                    let effect_start = merged.effects.len();
+                    let effect_count = step.reply.effects.len();
+                    merged.effects.extend(step.reply.effects);
                     if merged.disposition == UiDispatchDisposition::Unhandled {
                         merged.disposition = UiDispatchDisposition::Passthrough;
                         merged.handler = step.reply.handler;
@@ -161,10 +162,14 @@ impl UiDispatchReply {
                         disposition: step.reply.disposition,
                         effect_start,
                         effect_count,
+                        ignored_effect_count: 0,
                         stopped: false,
                     });
                 }
                 UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked => {
+                    let effect_start = merged.effects.len();
+                    let effect_count = step.reply.effects.len();
+                    merged.effects.extend(step.reply.effects);
                     merged.disposition = step.reply.disposition;
                     merged.handler = step.reply.handler;
                     merged.phase = step.reply.phase;
@@ -178,6 +183,7 @@ impl UiDispatchReply {
                         disposition: step.reply.disposition,
                         effect_start,
                         effect_count,
+                        ignored_effect_count: 0,
                         stopped: true,
                     });
                     break;
@@ -237,5 +243,11 @@ pub struct UiDispatchReplyStepTrace {
     pub disposition: UiDispatchDisposition,
     pub effect_start: usize,
     pub effect_count: usize,
+    #[serde(default, skip_serializing_if = "usize_is_zero")]
+    pub ignored_effect_count: usize,
     pub stopped: bool,
+}
+
+fn usize_is_zero(value: &usize) -> bool {
+    *value == 0
 }

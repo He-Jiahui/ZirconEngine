@@ -1,0 +1,8 @@
+.zr-form-row .zr-select,
+.zr-resource-row .zr-select {
+  min-width: 0;
+}
+
+.zr-value-box {
+  min-width: 0;
+}

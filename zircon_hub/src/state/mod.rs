@@ -15,4 +15,7 @@ pub use scope::{
     HubScope, ProjectEngineScopeState, ProjectScope, ProjectScopeProject, SourceEngineScope,
     SourceEngineScopeEngine,
 };
-pub use task_status::{TaskOperationKind, TaskSeverity, TaskStatus};
+pub use task_status::{
+    TaskOperationKind, TaskSeverity, TaskStatus, TASK_PROGRESS_COMPLETE_PERCENT,
+    TASK_PROGRESS_IDLE_PERCENT, TASK_PROGRESS_PREPARED_PERCENT, TASK_PROGRESS_STARTED_PERCENT,
+};

@@ -38,7 +38,7 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     manager
         .set_ui_asset_editor_selected_binding_route(
             &instance_id,
-            "MenuAction.workbench.highlight_save",
+            "menu_action.workbench.highlight_save",
         )
         .expect("set selected binding route");
 
@@ -50,7 +50,7 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     assert_eq!(pane.inspector_binding_event, "onHover");
     assert_eq!(
         pane.inspector_binding_route,
-        "MenuAction.workbench.highlight_save"
+        "menu_action.workbench.highlight_save"
     );
     assert!(pane.source_dirty);
 
@@ -65,7 +65,7 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     assert_eq!(button.bindings[0].event.to_string(), "onHover");
     assert_eq!(
         button.bindings[0].route.as_deref(),
-        Some("MenuAction.workbench.highlight_save")
+        Some("menu_action.workbench.highlight_save")
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -102,7 +102,7 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     manager
         .set_ui_asset_editor_selected_binding_route(
             &instance_id,
-            "EditorAction.workbench.project.save",
+            "editor_action.workbench.project.save",
         )
         .expect("set action target");
     manager
@@ -155,7 +155,7 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     assert_eq!(pane.inspector_binding_action_kind_selected_index, 2);
     assert_eq!(
         pane.inspector_binding_route,
-        "EditorAction.workbench.project.save"
+        "editor_action.workbench.project.save"
     );
     assert_eq!(
         pane.inspector_binding_payload_items,
@@ -180,7 +180,7 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     let action = button.bindings[0].action.as_ref().expect("binding action");
     assert_eq!(
         action.action.as_deref(),
-        Some("EditorAction.workbench.project.save")
+        Some("editor_action.workbench.project.save")
     );
     assert_eq!(
         action.payload.get("mode").and_then(toml::Value::as_str),

@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
@@ -16,12 +17,14 @@ related_code:
   - zircon_runtime_interface/src/ui/pipeline/stage_report.rs
   - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/tests/contracts.rs
 implementation_files:
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
@@ -32,6 +35,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/ecs.rs
   - zircon_runtime_interface/src/ui/ecs/compute.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
 plan_sources:
@@ -55,7 +59,7 @@ Runtime UI surface diagnostics generate the shared debug snapshot consumed by th
 
 ## Snapshot Contract
 
-`zircon_runtime_interface::ui::surface::UiSurfaceDebugSnapshot` is the neutral serde contract. It carries schema version/capture context, widget reflector nodes, layout-engine route reports, UI pipeline reports, UI ECS projection facts, render command records, material batches, `UiRenderDebugSnapshot.render_batches`, hit-grid cell records, pick hit-test dumps, sampled overdraw cells, invalidation and damage reports, event records, and overlay primitives.
+`zircon_runtime_interface::ui::surface::UiSurfaceDebugSnapshot` is the neutral serde contract. It carries schema version/capture context, widget reflector nodes, Canvas layer groups, layout-engine route reports, UI pipeline reports, UI ECS projection facts, render command records, material batches, `UiRenderDebugSnapshot.render_batches`, hit-grid cell records, pick hit-test dumps, sampled overdraw cells, invalidation and damage reports, event records, and overlay primitives.
 
 `pipeline_report` is the Bevy-aligned M7 schedule bridge. `UiSurfaceFrame` and `UiSurfaceDebugSnapshot` both carry the defaulted `UiPipelineFrameReport` so editor diagnostics can display the required `InputCollect -> Focus -> WidgetBehavior -> TextMeasure -> Layout -> PostLayout -> Picking -> A11yExtract -> RenderExtract -> BatchPrepare` order without depending on runtime-private rebuild fields. The current runtime projection is conservative: `UiSurfaceRebuildReport::pipeline_report(...)` fills measured timing/counters for layout, arranged post-layout, picking, and render extract; input/focus/widget/text/a11y/batch remain ordered skipped stages with notes until those owners expose direct timing.
 
@@ -83,6 +87,8 @@ For concrete delta rows, diagnostics should use `change(node_id)`, `changes_by_k
 
 `render_batches` is the replay-friendly render slice for M7 tools. It carries batch/debug rows, cache status, renderer parity rows, and `UiRenderVisualizerSnapshot` paint rows, batch groups, overlays, overdraw regions, resource bindings, text backend/glyph/decorator counters, and cache reuse/rebuild stats. Editor Debug Reflector reads this packet directly; renderer-specific code does not need to expose private draw commands.
 
+`canvas_layers` carries the Slate-style Canvas layer grouping derived from `UiSurfaceFrame.arranged_tree`. Runtime diagnostics do not reinterpret renderer batches from it; they expose the same-z grouped Canvas children so editor tools can see which parent-owned Canvas slot z-order groups are available for future renderer batching or backend `LayerId` consumption.
+
 `UiDebugOverlayPrimitiveKind` covers both surface diagnostics and render visualizer replay. Besides selected frames, clip frames, hit cells, hit paths, rejected bounds, overdraw cells, material batch bounds, and damage regions, it now includes render wireframes, text glyph bounds, text baselines, and resource atlas bounds.
 
 Stable hit-test reject reasons live in `UiHitTestRejectReason`, with a separate human-readable message. Editor tests should assert reason codes instead of string-matching messages.
@@ -102,6 +108,8 @@ Backend render counters are optional until host render backends provide measured
 ## Validation
 
 M7 diagnostics validation on 2026-05-07 used `E:\zircon-build\targets-ui-m7`: `cargo check -p zircon_runtime_interface --tests`, `cargo test -p zircon_runtime --lib diagnostics`, and `cargo test -p zircon_runtime --lib hit_grid`. These passed with existing runtime warning noise.
+
+The 2026-06-07 Canvas layer diagnostics continuation added the snapshot-side `canvas_layers` contract and then verified its editor consumer through `D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607`. The editor-side validation passed `cargo check -p zircon_editor --lib`, `ui_debug_reflector_model_projects_snapshot_rows_and_sections`, `runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available`, and `editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes`, with existing warning noise. The projection test fixture was narrowed to the body documents it projects so this diagnostics check is not blocked by unrelated missing built-in window/component assets.
 
 The 2026-05-20 layout-engine route export check passed:
 

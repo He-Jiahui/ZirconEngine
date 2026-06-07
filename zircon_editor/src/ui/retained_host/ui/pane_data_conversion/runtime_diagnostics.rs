@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{PaneContentSize, PaneData, PanePayload};
 use crate::ui::retained_host as host_contract;
-use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,

@@ -1,4 +1,4 @@
-use crate::ui::{layout::compute_layout_tree, surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::{layout::compute_layout_tree, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
@@ -29,8 +29,8 @@ fn layout_pass_routes_supported_containers_through_taffy_arrange() {
     assert!(taffy_arrange.contains("UiContainerKind::VerticalBox(_)"));
     assert!(taffy_arrange.contains("UiContainerKind::WrapBox(_)"));
     assert!(taffy_arrange.contains("UiContainerKind::GridBox(_)"));
+    assert!(taffy_arrange.contains("UiContainerKind::BlockBox"));
     assert!(!taffy_arrange.contains("template_metadata.is_some()"));
-    assert!(!taffy_arrange.contains("UiLayoutEngineFamily::Block"));
     assert!(!taffy_arrange.contains("Display::Block"));
     assert!(!taffy_arrange.contains("UiContainerKind::Overlay"));
     assert!(!taffy_arrange.contains("UiContainerKind::ScrollableBox"));

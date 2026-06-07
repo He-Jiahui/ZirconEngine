@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::sound::{SoundEffectDescriptor, SoundEffectKind, SoundError};
 
 use super::values::{
+    validate_effect_history_frame_total, validate_effect_history_frames,
     validate_feedback_effect_value, validate_finite_effect_value,
     validate_non_negative_effect_value, validate_pan_value, validate_unit_effect_value,
 };
@@ -30,9 +31,13 @@ pub(crate) fn validate_effect(effect: &SoundEffectDescriptor) -> Result<(), Soun
         }
         SoundEffectKind::Reverb(reverb) => {
             validate_unit_effect_value(effect, "room size", reverb.room_size)?;
-            validate_unit_effect_value(effect, "damping", reverb.damping)
+            validate_unit_effect_value(effect, "damping", reverb.damping)?;
+            validate_effect_history_frames(effect, "pre-delay frames", reverb.pre_delay_frames)?;
+            validate_effect_history_frames(effect, "tail frames", reverb.tail_frames)
         }
-        SoundEffectKind::ConvolutionReverb(_) => Ok(()),
+        SoundEffectKind::ConvolutionReverb(convolution) => {
+            validate_effect_history_frames(effect, "latency frames", convolution.latency_frames)
+        }
         SoundEffectKind::Compressor(compressor) => {
             validate_finite_effect_value(effect, "threshold dB", compressor.threshold_db)?;
             validate_finite_effect_value(effect, "ratio", compressor.ratio)?;
@@ -50,6 +55,11 @@ pub(crate) fn validate_effect(effect: &SoundEffectDescriptor) -> Result<(), Soun
         }
         SoundEffectKind::Flanger(flanger) => {
             validate_non_negative_effect_value(effect, "rate Hz", flanger.rate_hz)?;
+            validate_effect_history_frame_total(
+                effect,
+                "modulation history frames",
+                flanger.delay_frames.checked_add(flanger.depth_frames),
+            )?;
             validate_feedback_effect_value(effect, "feedback", flanger.feedback)
         }
         SoundEffectKind::Phaser(phaser) => {
@@ -64,9 +74,19 @@ pub(crate) fn validate_effect(effect: &SoundEffectDescriptor) -> Result<(), Soun
                     "chorus must have at least one voice".to_string(),
                 ));
             }
+            let modulation_history_frames = chorus
+                .depth_frames
+                .checked_mul(chorus.voices as usize)
+                .and_then(|depth_frames| chorus.delay_frames.checked_add(depth_frames));
+            validate_effect_history_frame_total(
+                effect,
+                "modulation history frames",
+                modulation_history_frames,
+            )?;
             validate_non_negative_effect_value(effect, "rate Hz", chorus.rate_hz)
         }
         SoundEffectKind::Delay(delay) => {
+            validate_effect_history_frames(effect, "delay frames", delay.delay_frames)?;
             validate_feedback_effect_value(effect, "feedback", delay.feedback)
         }
         SoundEffectKind::PanStereo(pan) => {

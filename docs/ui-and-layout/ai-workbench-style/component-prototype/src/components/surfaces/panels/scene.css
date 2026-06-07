@@ -1,0 +1,33 @@
+.zr-scene-panel {
+  left: var(--rail-w);
+  top: var(--topbar-h);
+  width: var(--left-w);
+  height: 428px;
+  background: linear-gradient(180deg, #181b1d, #141719);
+}
+
+.zr-panel-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 9px 12px 4px 16px;
+}
+
+.zr-scene-panel .zr-panel-toolbar {
+  grid-template-columns: minmax(170px, 200px) auto;
+  padding-right: 16px;
+}
+
+.zr-scene-panel .zr-panel-toolbar .zr-topbar-group {
+  gap: 8px;
+}
+
+.zr-scene-panel .zr-panel-toolbar .zr-icon-button:first-child {
+  width: 40px;
+  min-width: 40px;
+}
+
+.zr-scene-panel .zr-panel-toolbar .zr-icon-button:last-child {
+  width: 34px;
+  min-width: 34px;
+}

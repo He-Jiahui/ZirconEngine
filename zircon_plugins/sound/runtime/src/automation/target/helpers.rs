@@ -8,7 +8,7 @@ pub(super) fn non_negative_usize(
     parameter: &SoundParameterId,
     value: f32,
 ) -> Result<usize, SoundError> {
-    if value < 0.0 || value > usize::MAX as f32 {
+    if !value.is_finite() || value < 0.0 || value > usize::MAX as f32 {
         return Err(SoundError::InvalidParameter(format!(
             "parameter {} must be a non-negative frame count",
             parameter.as_str()

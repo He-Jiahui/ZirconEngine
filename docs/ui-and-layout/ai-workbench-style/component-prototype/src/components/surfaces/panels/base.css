@@ -1,0 +1,7 @@
+.zr-panel {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid #050607;
+  background: linear-gradient(180deg, #161a1d, #121619);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.03);
+}

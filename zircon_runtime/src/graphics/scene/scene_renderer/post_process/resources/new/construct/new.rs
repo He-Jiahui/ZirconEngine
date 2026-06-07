@@ -16,6 +16,14 @@ impl ScenePostProcessResources {
         let bloom_bind_group_layout = bind_group_layouts::bloom(device);
         let ssao_bind_group_layout = bind_group_layouts::ssao(device);
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
+        let depth_of_field_prepare_bind_group_layout =
+            bind_group_layouts::depth_of_field_prepare(device, depth_sampling_mode);
+        let motion_vector_camera_bind_group_layout =
+            bind_group_layouts::motion_vector_camera(device, depth_sampling_mode);
+        let motion_vector_tile_max_bind_group_layout =
+            bind_group_layouts::motion_vector_tile_max(device);
+        let motion_vector_neighbor_max_bind_group_layout =
+            bind_group_layouts::motion_vector_neighbor_max(device);
         let post_process_bind_group_layout =
             bind_group_layouts::post_process(device, depth_sampling_mode);
         let pipeline_bundle = create_pipeline_bundle(
@@ -23,6 +31,10 @@ impl ScenePostProcessResources {
             target_format,
             &bloom_bind_group_layout,
             &cluster_bind_group_layout,
+            &depth_of_field_prepare_bind_group_layout,
+            &motion_vector_camera_bind_group_layout,
+            &motion_vector_tile_max_bind_group_layout,
+            &motion_vector_neighbor_max_bind_group_layout,
             &post_process_bind_group_layout,
             depth_sampling_mode,
         );
@@ -34,14 +46,38 @@ impl ScenePostProcessResources {
             bloom_bind_group_layout,
             ssao_bind_group_layout,
             cluster_bind_group_layout,
+            depth_of_field_prepare_bind_group_layout,
+            motion_vector_camera_bind_group_layout,
+            motion_vector_tile_max_bind_group_layout,
+            motion_vector_neighbor_max_bind_group_layout,
             post_process_bind_group_layout,
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
             ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
+            depth_of_field_prepare_pipeline: pipeline_bundle.depth_of_field_prepare_pipeline,
+            motion_vector_camera_pipeline: pipeline_bundle.motion_vector_camera_pipeline,
+            motion_vector_tile_max_pipeline: pipeline_bundle.motion_vector_tile_max_pipeline,
+            motion_vector_neighbor_max_pipeline: pipeline_bundle
+                .motion_vector_neighbor_max_pipeline,
+            screen_space_reflection_depth_pyramid_pipeline: pipeline_bundle
+                .screen_space_reflection_depth_pyramid_pipeline,
+            screen_space_reflection_depth_pyramid_coarse_pipeline: pipeline_bundle
+                .screen_space_reflection_depth_pyramid_coarse_pipeline,
+            screen_space_reflection_reflection_pyramid_pipeline: pipeline_bundle
+                .screen_space_reflection_reflection_pyramid_pipeline,
+            screen_space_reflection_reflection_pyramid_coarse_pipeline: pipeline_bundle
+                .screen_space_reflection_reflection_pyramid_coarse_pipeline,
+            screen_space_reflection_resolve_pipeline: pipeline_bundle
+                .screen_space_reflection_resolve_pipeline,
+            screen_space_reflection_specular_occlusion_pipeline: pipeline_bundle
+                .screen_space_reflection_specular_occlusion_pipeline,
             post_process_pipeline: pipeline_bundle.post_process_pipeline,
             bloom_params_buffer: buffer_bundle.bloom_params_buffer,
             ssao_params_buffer: buffer_bundle.ssao_params_buffer,
             cluster_params_buffer: buffer_bundle.cluster_params_buffer,
+            depth_of_field_prepare_params_buffer: buffer_bundle
+                .depth_of_field_prepare_params_buffer,
+            motion_vector_camera_params_buffer: buffer_bundle.motion_vector_camera_params_buffer,
             post_process_params_buffer: buffer_bundle.post_process_params_buffer,
             light_buffer: buffer_bundle.light_buffer,
             hybrid_gi_probe_buffer: buffer_bundle.hybrid_gi_probe_buffer,

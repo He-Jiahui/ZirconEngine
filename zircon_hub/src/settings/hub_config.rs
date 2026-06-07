@@ -137,6 +137,8 @@ pub struct HubRuntimeState {
     pub search_query: String,
     #[serde(default)]
     pub selected_project_path: Option<PathBuf>,
+    #[serde(default)]
+    pub new_project_name: String,
     #[serde(default = "default_selected_template_id")]
     pub selected_template_id: String,
     #[serde(default = "default_project_dir")]
@@ -154,6 +156,7 @@ impl HubRuntimeState {
         {
             self.selected_project_path = None;
         }
+        self.new_project_name = self.new_project_name.trim().to_string();
         if self.selected_template_id.trim().is_empty() {
             self.selected_template_id = default_selected_template_id();
         }
@@ -180,6 +183,7 @@ impl Default for HubRuntimeState {
             project_view_mode: ProjectViewMode::default(),
             search_query: String::new(),
             selected_project_path: None,
+            new_project_name: String::new(),
             selected_template_id: default_selected_template_id(),
             new_project_location: default_project_dir(),
             new_project_engine_id: None,
@@ -230,8 +234,8 @@ impl Default for HubSettings {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HubLanguage {
-    #[default]
     English,
+    #[default]
     Chinese,
 }
 
@@ -380,6 +384,7 @@ mod tests {
         config.runtime.project_view_mode = ProjectViewMode::List;
         config.runtime.search_query = "elysium".to_string();
         config.runtime.selected_project_path = Some(PathBuf::from("E:/Projects/Game"));
+        config.runtime.new_project_name = "Draft Game".to_string();
         config.runtime.selected_template_id = "renderable-empty".to_string();
         config.runtime.new_project_location = PathBuf::from("E:/Drafts");
         config.runtime.new_project_engine_id = Some("local".to_string());
@@ -428,6 +433,7 @@ mod tests {
             decoded.runtime.selected_project_path,
             Some(PathBuf::from("E:/Projects/Game"))
         );
+        assert_eq!(decoded.runtime.new_project_name, "Draft Game");
         assert_eq!(
             decoded.runtime.new_project_engine_id.as_deref(),
             Some("local")
@@ -439,6 +445,7 @@ mod tests {
     fn runtime_state_normalizes_empty_persisted_inputs() {
         let mut state = HubRuntimeState {
             selected_project_path: Some(PathBuf::new()),
+            new_project_name: "  Draft Game  ".to_string(),
             selected_template_id: String::new(),
             new_project_location: PathBuf::new(),
             new_project_engine_id: Some(String::new()),
@@ -448,6 +455,7 @@ mod tests {
         state.normalize();
 
         assert!(state.selected_project_path.is_none());
+        assert_eq!(state.new_project_name, "Draft Game");
         assert_eq!(
             state.selected_template_id,
             ProjectTemplate::RenderableEmpty.id()

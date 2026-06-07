@@ -9,6 +9,14 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_neighbor_max_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
@@ -17,11 +25,35 @@ pub(crate) struct ScenePostProcessResources {
         std::sync::OnceLock<wgpu::ComputePipeline>,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_neighbor_max_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_depth_pyramid_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_depth_pyramid_coarse_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_reflection_pyramid_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_reflection_pyramid_coarse_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_resolve_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_specular_occlusion_pipeline:
+        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_params_buffer:
         wgpu::Buffer,

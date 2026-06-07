@@ -56,6 +56,10 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert!(!capture.alpha_blend);
     assert_eq!(capture.alpha_cutoff, Some(0.42));
     assert!(!capture.unlit);
+    assert!(capture.cast_shadows);
+    assert!(material.cast_shadows);
+    assert!(capture.receive_shadows);
+    assert!(material.receive_shadows);
     assert!(capture.base_color_texture.is_some());
     assert!(capture.normal_texture.is_some());
     assert!(capture.metallic_roughness_texture.is_some());
@@ -109,6 +113,86 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert_eq!(standard_summary.resolved_count, 5);
     assert_eq!(standard_summary.fallback_count, 0);
     assert!(material.readiness_report.is_ready());
+}
+
+#[test]
+fn render_product_pbr_streamer_projects_receive_shadows_override() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/no-shadow-receiver.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material
+        .property_values
+        .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("material prepares");
+
+    let material = streamer.material(&material_id).expect("runtime material");
+    let capture = material.capture_seed();
+    assert!(!material.receive_shadows);
+    assert!(!capture.receive_shadows);
+    assert!(material.readiness_report.is_ready());
+    assert!(material.readiness_report.validation_errors.is_empty());
+}
+
+#[test]
+fn render_product_pbr_streamer_projects_cast_shadows_override() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/no-shadow-caster.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material
+        .property_values
+        .insert("cast_shadows".to_string(), toml::Value::Boolean(false));
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("material prepares");
+
+    let material = streamer.material(&material_id).expect("runtime material");
+    let capture = material.capture_seed();
+    assert!(!material.cast_shadows);
+    assert!(!capture.cast_shadows);
+    assert!(material.receive_shadows);
+    assert!(capture.receive_shadows);
+    assert!(material.readiness_report.is_ready());
+    assert!(material.readiness_report.validation_errors.is_empty());
 }
 
 #[test]

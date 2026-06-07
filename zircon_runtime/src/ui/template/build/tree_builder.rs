@@ -1,5 +1,4 @@
 use crate::ui::template::UiTemplateInstance;
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::UiScrollState,

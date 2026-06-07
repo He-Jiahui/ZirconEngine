@@ -263,6 +263,140 @@ pub struct UiPainterState {
     pub loading: bool,
 }
 
+/// Shared visual-state priority selector for runtime and native painters.
+///
+/// Widget behavior produces semantic state; this selector is the single contract that turns that
+/// state into a concrete visual state for a painter family.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct UiPainterStyleSelector;
+
+impl UiPainterStyleSelector {
+    pub const fn resolved_state_for_family(
+        state: UiPainterState,
+        family: UiPainterFamily,
+    ) -> UiPainterResolvedState {
+        match family {
+            UiPainterFamily::Button => Self::button_resolved_state(state),
+            UiPainterFamily::Checkbox | UiPainterFamily::Radio | UiPainterFamily::Toggle => {
+                Self::selection_control_resolved_state(state)
+            }
+            UiPainterFamily::Slider => Self::slider_resolved_state(state),
+            UiPainterFamily::Generic
+            | UiPainterFamily::IconButton
+            | UiPainterFamily::Dropdown
+            | UiPainterFamily::PopupRow
+            | UiPainterFamily::Alert
+            | UiPainterFamily::Tooltip
+            | UiPainterFamily::TextField
+            | UiPainterFamily::ListRow
+            | UiPainterFamily::TreeRow
+            | UiPainterFamily::TableRow
+            | UiPainterFamily::Tab
+            | UiPainterFamily::Toast => Self::interactive_resolved_state(state),
+        }
+    }
+
+    pub const fn interactive_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
+        if state.disabled {
+            UiPainterResolvedState::Disabled
+        } else if state.loading {
+            UiPainterResolvedState::Loading
+        } else if state.pressed {
+            UiPainterResolvedState::Pressed
+        } else if state.focused {
+            UiPainterResolvedState::Focused
+        } else if state.open {
+            UiPainterResolvedState::Open
+        } else if state.dragging {
+            UiPainterResolvedState::Dragging
+        } else if state.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if state.hovered {
+            UiPainterResolvedState::Hovered
+        } else if state.selected {
+            UiPainterResolvedState::Selected
+        } else if state.checked {
+            UiPainterResolvedState::Checked
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn selection_control_resolved_state(
+        state: UiPainterState,
+    ) -> UiPainterResolvedState {
+        if state.disabled {
+            UiPainterResolvedState::Disabled
+        } else if state.pressed {
+            UiPainterResolvedState::Pressed
+        } else if state.focused {
+            UiPainterResolvedState::Focused
+        } else if state.dragging {
+            UiPainterResolvedState::Dragging
+        } else if state.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if state.hovered {
+            UiPainterResolvedState::Hovered
+        } else if state.selected {
+            UiPainterResolvedState::Selected
+        } else if state.checked {
+            UiPainterResolvedState::Checked
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn slider_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
+        if state.disabled {
+            UiPainterResolvedState::Disabled
+        } else if state.pressed {
+            UiPainterResolvedState::Pressed
+        } else if state.focused {
+            UiPainterResolvedState::Focused
+        } else if state.dragging {
+            UiPainterResolvedState::Dragging
+        } else if state.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if state.hovered {
+            UiPainterResolvedState::Hovered
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn button_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
+        if state.disabled {
+            UiPainterResolvedState::Disabled
+        } else if state.loading {
+            UiPainterResolvedState::Loading
+        } else if state.pressed {
+            UiPainterResolvedState::Pressed
+        } else if state.is_focus_visible() {
+            UiPainterResolvedState::Focused
+        } else if state.is_pointer_hot() || state.open {
+            UiPainterResolvedState::Hovered
+        } else {
+            UiPainterResolvedState::Normal
+        }
+    }
+
+    pub const fn button_interaction_state(state: UiPainterState) -> ButtonInteractionState {
+        match Self::button_resolved_state(state) {
+            UiPainterResolvedState::Disabled => ButtonInteractionState::Disabled,
+            UiPainterResolvedState::Loading => ButtonInteractionState::Loading,
+            UiPainterResolvedState::Pressed => ButtonInteractionState::Pressed,
+            UiPainterResolvedState::Focused => ButtonInteractionState::Focused,
+            UiPainterResolvedState::Hovered
+            | UiPainterResolvedState::Open
+            | UiPainterResolvedState::Dragging
+            | UiPainterResolvedState::DropHovered => ButtonInteractionState::Hover,
+            UiPainterResolvedState::Normal
+            | UiPainterResolvedState::Checked
+            | UiPainterResolvedState::Selected => ButtonInteractionState::Normal,
+        }
+    }
+}
+
 impl UiPainterState {
     pub const fn normal() -> Self {
         Self {
@@ -295,123 +429,27 @@ impl UiPainterState {
         self,
         family: UiPainterFamily,
     ) -> UiPainterResolvedState {
-        match family {
-            UiPainterFamily::Button => self.button_resolved_state(),
-            UiPainterFamily::Checkbox | UiPainterFamily::Radio | UiPainterFamily::Toggle => {
-                self.selection_control_resolved_state()
-            }
-            UiPainterFamily::Slider => self.slider_resolved_state(),
-            UiPainterFamily::Generic
-            | UiPainterFamily::IconButton
-            | UiPainterFamily::Dropdown
-            | UiPainterFamily::PopupRow
-            | UiPainterFamily::Alert
-            | UiPainterFamily::Tooltip
-            | UiPainterFamily::TextField
-            | UiPainterFamily::ListRow
-            | UiPainterFamily::TreeRow
-            | UiPainterFamily::TableRow
-            | UiPainterFamily::Tab
-            | UiPainterFamily::Toast => self.interactive_resolved_state(),
-        }
+        UiPainterStyleSelector::resolved_state_for_family(self, family)
     }
 
     pub const fn interactive_resolved_state(self) -> UiPainterResolvedState {
-        if self.disabled {
-            UiPainterResolvedState::Disabled
-        } else if self.loading {
-            UiPainterResolvedState::Loading
-        } else if self.pressed {
-            UiPainterResolvedState::Pressed
-        } else if self.focused {
-            UiPainterResolvedState::Focused
-        } else if self.open {
-            UiPainterResolvedState::Open
-        } else if self.dragging {
-            UiPainterResolvedState::Dragging
-        } else if self.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if self.hovered {
-            UiPainterResolvedState::Hovered
-        } else if self.selected {
-            UiPainterResolvedState::Selected
-        } else if self.checked {
-            UiPainterResolvedState::Checked
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        UiPainterStyleSelector::interactive_resolved_state(self)
     }
 
     pub const fn selection_control_resolved_state(self) -> UiPainterResolvedState {
-        if self.disabled {
-            UiPainterResolvedState::Disabled
-        } else if self.pressed {
-            UiPainterResolvedState::Pressed
-        } else if self.focused {
-            UiPainterResolvedState::Focused
-        } else if self.dragging {
-            UiPainterResolvedState::Dragging
-        } else if self.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if self.hovered {
-            UiPainterResolvedState::Hovered
-        } else if self.selected {
-            UiPainterResolvedState::Selected
-        } else if self.checked {
-            UiPainterResolvedState::Checked
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        UiPainterStyleSelector::selection_control_resolved_state(self)
     }
 
     pub const fn slider_resolved_state(self) -> UiPainterResolvedState {
-        if self.disabled {
-            UiPainterResolvedState::Disabled
-        } else if self.pressed {
-            UiPainterResolvedState::Pressed
-        } else if self.focused {
-            UiPainterResolvedState::Focused
-        } else if self.dragging {
-            UiPainterResolvedState::Dragging
-        } else if self.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if self.hovered {
-            UiPainterResolvedState::Hovered
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        UiPainterStyleSelector::slider_resolved_state(self)
     }
 
     pub const fn button_resolved_state(self) -> UiPainterResolvedState {
-        if self.disabled {
-            UiPainterResolvedState::Disabled
-        } else if self.loading {
-            UiPainterResolvedState::Loading
-        } else if self.pressed {
-            UiPainterResolvedState::Pressed
-        } else if self.is_focus_visible() {
-            UiPainterResolvedState::Focused
-        } else if self.is_pointer_hot() || self.open {
-            UiPainterResolvedState::Hovered
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        UiPainterStyleSelector::button_resolved_state(self)
     }
 
     pub const fn button_interaction_state(self) -> ButtonInteractionState {
-        match self.button_resolved_state() {
-            UiPainterResolvedState::Disabled => ButtonInteractionState::Disabled,
-            UiPainterResolvedState::Loading => ButtonInteractionState::Loading,
-            UiPainterResolvedState::Pressed => ButtonInteractionState::Pressed,
-            UiPainterResolvedState::Focused => ButtonInteractionState::Focused,
-            UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Open
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => ButtonInteractionState::Hover,
-            UiPainterResolvedState::Normal
-            | UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Selected => ButtonInteractionState::Normal,
-        }
+        UiPainterStyleSelector::button_interaction_state(self)
     }
 }
 

@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
@@ -8,46 +7,24 @@ use crate::core::framework::render::{
     ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
-use crate::core::{CoreRuntime, JobScheduler};
+use crate::core::CoreRuntime;
 use crate::plugin::{
     RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
     SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
 };
 use crate::scene::components::{CameraComponent, MeshRenderer, Mobility};
 use crate::scene::ecs::{
-    CommandsParam, Component, EventStore, Events, InternalSceneSystem, QueryState, ResMutParam,
-    ResParam, Resource, ResourceStore, SceneSystemDescriptor, Schedule, ScheduleConflictGraph,
-    ScheduleConflictNode, ScheduleParallelExecutor, ScheduleParallelExecutorError,
-    ScheduleParallelTaskRegistry, SystemParamAccess, SystemParamConflictKind, SystemStage,
-    SystemState, With, Without,
+    CommandsParam, Component, EventStore, Events, InternalSceneSystem, ResourceStore,
+    SceneSystemDescriptor, Schedule, SystemStage, SystemState,
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World, SCENE_MODULE_NAME};
+
+mod conflict_graph;
 
 #[derive(Debug, PartialEq, Eq)]
 struct DeferredMarker;
 
 impl Component for DeferredMarker {}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ScheduleHealth(u32);
-
-impl Component for ScheduleHealth {}
-
-#[derive(Debug, PartialEq, Eq)]
-struct SchedulePlayer;
-
-impl Component for SchedulePlayer {}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ScheduleFrameCounter(u32);
-
-impl Resource for ScheduleFrameCounter {}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ScheduleHitEvent;
-
-#[derive(Debug, PartialEq, Eq)]
-struct ScheduleNoticeMessage;
 
 #[test]
 fn resource_store_keeps_resources_by_concrete_type() {
@@ -132,7 +109,7 @@ fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems() {
     let schedule = Schedule::default();
 
     assert_eq!(
-        schedule.stages,
+        schedule.stages(),
         vec![
             SystemStage::First,
             SystemStage::PreUpdate,
@@ -170,6 +147,125 @@ fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems() {
         render_extract,
         vec![InternalSceneSystem::RenderExtractPrepare]
     );
+}
+
+#[test]
+fn schedule_maintains_executor_stage_plan_after_registration_and_load() {
+    let mut schedule = Schedule::default();
+    assert!(schedule
+        .stage_plan()
+        .internal_systems_for_stage(SystemStage::Update)
+        .is_empty());
+
+    schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "zircon.test.cached_update",
+                SystemStage::Update,
+                InternalSceneSystem::NodeCache,
+            )
+            .with_order(7),
+        )
+        .unwrap();
+    assert!(schedule
+        .stage_plan()
+        .internal_systems_for_stage(SystemStage::Update)
+        .iter()
+        .any(|system| system.id == "zircon.test.cached_update"));
+
+    let serialized = serde_json::to_string(&schedule).expect("schedule serializes");
+    let loaded: Schedule = serde_json::from_str(&serialized).expect("schedule deserializes");
+
+    assert!(loaded
+        .stage_plan()
+        .internal_systems_for_stage(SystemStage::Update)
+        .iter()
+        .any(|system| system.id == "zircon.test.cached_update"));
+    assert!(loaded
+        .stage_plan()
+        .native_steps_for_stage(SystemStage::Update)
+        .is_empty());
+}
+
+#[test]
+fn schedule_defers_executor_plan_refresh_while_native_system_is_taken() {
+    let mut world = World::empty();
+    world
+        .register_native_system::<(), _>(
+            "zircon.test.running_native",
+            SystemStage::Update,
+            0,
+            |()| {},
+        )
+        .unwrap();
+
+    let running_system = world
+        .schedule_mut()
+        .take_native_system("zircon.test.running_native")
+        .expect("registered native system can be taken");
+    world
+        .schedule_mut()
+        .register_system(SceneSystemDescriptor::new(
+            "zircon.test.registered_while_native_runs",
+            SystemStage::Update,
+            InternalSceneSystem::NodeCache,
+        ))
+        .unwrap();
+
+    assert!(!world
+        .schedule()
+        .stage_plan()
+        .internal_systems_for_stage(SystemStage::Update)
+        .iter()
+        .any(|system| system.id == "zircon.test.registered_while_native_runs"));
+
+    world.schedule_mut().restore_native_system(running_system);
+
+    let plan = world.schedule().stage_plan();
+    assert!(plan
+        .internal_systems_for_stage(SystemStage::Update)
+        .iter()
+        .any(|system| system.id == "zircon.test.registered_while_native_runs"));
+    assert!(plan
+        .native_steps_for_stage(SystemStage::Update)
+        .iter()
+        .any(|step| match step {
+            crate::scene::ecs::ScheduledSceneStep::Native { id, .. } =>
+                id == "zircon.test.running_native",
+            crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => false,
+        }));
+}
+
+#[test]
+fn schedule_keeps_taken_native_system_ids_reserved() {
+    let mut world = World::empty();
+    world
+        .register_native_system::<(), _>(
+            "zircon.test.reserved_native",
+            SystemStage::Update,
+            0,
+            |()| {},
+        )
+        .unwrap();
+
+    let running_system = world
+        .schedule_mut()
+        .take_native_system("zircon.test.reserved_native")
+        .expect("registered native system can be taken");
+    let duplicate = world
+        .schedule_mut()
+        .register_system(SceneSystemDescriptor::new(
+            "zircon.test.reserved_native",
+            SystemStage::Update,
+            InternalSceneSystem::NodeCache,
+        ))
+        .unwrap_err();
+
+    assert!(duplicate
+        .to_string()
+        .contains("system zircon.test.reserved_native already registered"));
+
+    world.schedule_mut().restore_native_system(running_system);
 }
 
 #[test]
@@ -242,324 +338,6 @@ fn native_system_registration_reports_missing_required_resources() {
 struct MissingScheduleResource;
 
 impl crate::scene::ecs::Resource for MissingScheduleResource {}
-
-#[test]
-fn schedule_conflict_graph_reports_component_write_conflicts_in_same_stage() {
-    let mut world = World::empty();
-    world.spawn((ScheduleHealth(1), SchedulePlayer)).unwrap();
-    let read_health = SystemState::<QueryState<&'static ScheduleHealth>>::new(&mut world).unwrap();
-    let write_health =
-        SystemState::<QueryState<&'static mut ScheduleHealth>>::new(&mut world).unwrap();
-    let health_component = world.component_id::<ScheduleHealth>();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "read.health",
-            SystemStage::Update,
-            read_health.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.health",
-            SystemStage::Update,
-            write_health.access().clone(),
-        ),
-    ]);
-
-    assert_eq!(graph.nodes().len(), 2);
-    assert!(graph.has_conflicts());
-    let edge = &graph.edges()[0];
-    assert_eq!(edge.left_system_id(), "read.health");
-    assert_eq!(edge.right_system_id(), "write.health");
-    assert_eq!(edge.stage(), SystemStage::Update);
-    assert_eq!(
-        edge.conflicts(),
-        &[SystemParamConflictKind::Component(health_component)]
-    );
-    assert_eq!(graph.conflicts_for("read.health").count(), 1);
-}
-
-#[test]
-fn schedule_conflict_graph_respects_disjoint_query_filters() {
-    let mut world = World::empty();
-    type PlayerHealth = QueryState<&'static mut ScheduleHealth, With<SchedulePlayer>>;
-    type NonPlayerHealth = QueryState<&'static mut ScheduleHealth, Without<SchedulePlayer>>;
-    let player_health = SystemState::<PlayerHealth>::new(&mut world).unwrap();
-    let non_player_health = SystemState::<NonPlayerHealth>::new(&mut world).unwrap();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "write.player-health",
-            SystemStage::Update,
-            player_health.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.non-player-health",
-            SystemStage::Update,
-            non_player_health.access().clone(),
-        ),
-    ]);
-
-    assert!(!graph.has_conflicts());
-    assert!(graph.edges().is_empty());
-}
-
-#[test]
-fn schedule_conflict_graph_keeps_different_stages_independent() {
-    let mut world = World::empty();
-    let read_health = SystemState::<QueryState<&'static ScheduleHealth>>::new(&mut world).unwrap();
-    let write_health =
-        SystemState::<QueryState<&'static mut ScheduleHealth>>::new(&mut world).unwrap();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "read.health",
-            SystemStage::PreUpdate,
-            read_health.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.health",
-            SystemStage::PostUpdate,
-            write_health.access().clone(),
-        ),
-    ]);
-
-    assert!(!graph.has_conflicts());
-}
-
-#[test]
-fn schedule_conflict_graph_reports_resource_write_conflicts() {
-    let mut world = World::empty();
-    world.insert_resource(ScheduleFrameCounter(0));
-    let read_counter = SystemState::<ResParam<ScheduleFrameCounter>>::new(&mut world).unwrap();
-    let write_counter = SystemState::<ResMutParam<ScheduleFrameCounter>>::new(&mut world).unwrap();
-    let counter_resource = world.resource_id::<ScheduleFrameCounter>();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "read.frame-counter",
-            SystemStage::Update,
-            read_counter.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.frame-counter",
-            SystemStage::Update,
-            write_counter.access().clone(),
-        ),
-    ]);
-
-    assert!(read_counter.access().conflicts_with(write_counter.access()));
-    let edge = &graph.edges()[0];
-    assert_eq!(
-        edge.conflicts(),
-        &[SystemParamConflictKind::Resource(counter_resource)]
-    );
-}
-
-#[test]
-fn schedule_conflict_graph_reports_event_and_message_write_conflicts() {
-    let mut event_reader = SystemParamAccess::default();
-    event_reader.add_event_read::<ScheduleHitEvent>().unwrap();
-    let mut event_writer = SystemParamAccess::default();
-    event_writer.add_event_write::<ScheduleHitEvent>().unwrap();
-    let mut message_reader = SystemParamAccess::default();
-    message_reader
-        .add_message_read::<ScheduleNoticeMessage>()
-        .unwrap();
-    let mut message_writer = SystemParamAccess::default();
-    message_writer
-        .add_message_write::<ScheduleNoticeMessage>()
-        .unwrap();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new("read.event", SystemStage::Update, event_reader),
-        ScheduleConflictNode::new("write.event", SystemStage::Update, event_writer),
-        ScheduleConflictNode::new("read.message", SystemStage::Update, message_reader),
-        ScheduleConflictNode::new("write.message", SystemStage::Update, message_writer),
-    ]);
-    let event_type = TypeId::of::<ScheduleHitEvent>();
-    let message_type = TypeId::of::<ScheduleNoticeMessage>();
-
-    assert_eq!(graph.edges().len(), 2);
-    assert!(graph.edges().iter().any(|edge| {
-        edge.conflicts()
-            .contains(&SystemParamConflictKind::Event(event_type))
-    }));
-    assert!(graph.edges().iter().any(|edge| {
-        edge.conflicts()
-            .contains(&SystemParamConflictKind::Message(message_type))
-    }));
-}
-
-#[test]
-fn schedule_conflict_graph_builds_conservative_parallel_batches() {
-    let mut world = World::empty();
-    world.spawn((ScheduleHealth(1), SchedulePlayer)).unwrap();
-    world.insert_resource(ScheduleFrameCounter(0));
-    let read_health = SystemState::<QueryState<&'static ScheduleHealth>>::new(&mut world).unwrap();
-    let read_counter = SystemState::<ResParam<ScheduleFrameCounter>>::new(&mut world).unwrap();
-    let write_health =
-        SystemState::<QueryState<&'static mut ScheduleHealth>>::new(&mut world).unwrap();
-
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "read.health",
-            SystemStage::Update,
-            read_health.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "read.counter",
-            SystemStage::Update,
-            read_counter.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.health",
-            SystemStage::Update,
-            write_health.access().clone(),
-        ),
-    ]);
-
-    assert!(graph.systems_conflict("read.health", "write.health"));
-    assert!(!graph.systems_conflict("read.counter", "write.health"));
-
-    let batches = graph.conservative_parallel_batches();
-    assert_eq!(batches.len(), 2);
-    assert_eq!(batches[0].stage(), SystemStage::Update);
-    assert_eq!(
-        batches[0]
-            .system_ids()
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-        vec!["read.health", "read.counter"]
-    );
-    assert_eq!(
-        batches[1]
-            .system_ids()
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-        vec!["write.health"]
-    );
-}
-
-#[test]
-fn schedule_conflict_graph_keeps_parallel_batches_inside_stage_boundaries() {
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "update.a",
-            SystemStage::Update,
-            SystemParamAccess::default(),
-        ),
-        ScheduleConflictNode::new(
-            "post-update.b",
-            SystemStage::PostUpdate,
-            SystemParamAccess::default(),
-        ),
-    ]);
-
-    let batches = graph.conservative_parallel_batches();
-    assert_eq!(batches.len(), 2);
-    assert_eq!(batches[0].stage(), SystemStage::Update);
-    assert_eq!(batches[1].stage(), SystemStage::PostUpdate);
-}
-
-#[test]
-fn schedule_parallel_executor_runs_registered_batches_through_job_scheduler() {
-    let mut world = World::empty();
-    world.spawn((ScheduleHealth(1), SchedulePlayer)).unwrap();
-    world.insert_resource(ScheduleFrameCounter(0));
-    let read_health = SystemState::<QueryState<&'static ScheduleHealth>>::new(&mut world).unwrap();
-    let read_counter = SystemState::<ResParam<ScheduleFrameCounter>>::new(&mut world).unwrap();
-    let write_health =
-        SystemState::<QueryState<&'static mut ScheduleHealth>>::new(&mut world).unwrap();
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new(
-            "read.health",
-            SystemStage::Update,
-            read_health.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "read.counter",
-            SystemStage::Update,
-            read_counter.access().clone(),
-        ),
-        ScheduleConflictNode::new(
-            "write.health",
-            SystemStage::Update,
-            write_health.access().clone(),
-        ),
-    ]);
-    let batches = graph.conservative_parallel_batches();
-    let observed = Arc::new(Mutex::new(Vec::new()));
-    let mut registry = ScheduleParallelTaskRegistry::<&'static str>::new();
-    for system_id in ["read.health", "read.counter", "write.health"] {
-        let observed = observed.clone();
-        registry.register(system_id, move || {
-            observed.lock().unwrap().push(system_id);
-            Ok(())
-        });
-    }
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
-
-    executor.run_batches(&batches, &registry).unwrap();
-
-    assert!(executor.scheduler().parallelism() >= 1);
-    assert!(registry.contains("write.health"));
-    let observed = observed.lock().unwrap();
-    assert_eq!(observed.len(), 3);
-    let mut first_batch = observed[..2].to_vec();
-    first_batch.sort_unstable();
-    assert_eq!(first_batch, vec!["read.counter", "read.health"]);
-    assert_eq!(observed[2], "write.health");
-}
-
-#[test]
-fn schedule_parallel_executor_reports_missing_tasks_before_running_batch() {
-    let graph = ScheduleConflictGraph::from_nodes([ScheduleConflictNode::new(
-        "missing.task",
-        SystemStage::Update,
-        SystemParamAccess::default(),
-    )]);
-    let batches = graph.conservative_parallel_batches();
-    let registry = ScheduleParallelTaskRegistry::<&'static str>::new();
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
-
-    let error = executor.run_batches(&batches, &registry).unwrap_err();
-
-    assert_eq!(
-        error,
-        ScheduleParallelExecutorError::MissingTask {
-            system_id: "missing.task".to_string(),
-        }
-    );
-}
-
-#[test]
-fn schedule_parallel_executor_reports_task_failure_by_batch_order() {
-    let graph = ScheduleConflictGraph::from_nodes([
-        ScheduleConflictNode::new("ok.task", SystemStage::Update, SystemParamAccess::default()),
-        ScheduleConflictNode::new(
-            "fail.task",
-            SystemStage::Update,
-            SystemParamAccess::default(),
-        ),
-    ]);
-    let batches = graph.conservative_parallel_batches();
-    let mut registry = ScheduleParallelTaskRegistry::<&'static str>::new();
-    registry.register("ok.task", || Ok(()));
-    registry.register("fail.task", || Err("boom"));
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
-
-    let error = executor.run_batches(&batches, &registry).unwrap_err();
-
-    assert_eq!(
-        error,
-        ScheduleParallelExecutorError::TaskFailed {
-            system_id: "fail.task".to_string(),
-            error: "boom",
-        }
-    );
-}
 
 #[test]
 fn world_mutations_mark_derived_state_dirty_until_post_update_systems_flush() {

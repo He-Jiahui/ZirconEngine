@@ -1,0 +1,28 @@
+.zr-floor-panel {
+  position: absolute;
+  border: 1px solid rgba(125, 139, 143, 0.08);
+  background: rgba(255, 255, 255, 0.012);
+  transform: skewX(-12deg);
+  opacity: 0.38;
+}
+
+.zr-floor-panel.fp1 {
+  left: 31%;
+  top: 34px;
+  width: 118px;
+  height: 48px;
+}
+
+.zr-floor-panel.fp2 {
+  right: 24%;
+  top: 96px;
+  width: 180px;
+  height: 58px;
+}
+
+.zr-floor-panel.fp3 {
+  left: 45%;
+  bottom: 20px;
+  width: 120px;
+  height: 78px;
+}

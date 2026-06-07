@@ -1,3 +1,4 @@
+mod motion_vector;
 mod support;
 
 use crate::core::CoreRuntime;
@@ -198,6 +199,264 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     );
     assert_render_bool_series(
         &snapshot.store,
+        "render.history.copy.history_target_present",
+        true,
+        &["history", "copy"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.debug_marker_emitted",
+        true,
+        &["history", "copy", "debug_marker"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.history.copy.requested_count",
+        4.0,
+        &["history", "copy"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.history.copy.copied_count",
+        3.0,
+        &["history", "copy"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.history.copy.target_width",
+        960.0,
+        &["history", "copy", "target_size"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.history.copy.target_height",
+        540.0,
+        &["history", "copy", "target_size"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.scene_color_copied",
+        true,
+        &["history", "copy", "scene_color"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.global_illumination_copied",
+        true,
+        &["history", "copy", "global_illumination"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.ambient_occlusion_copied",
+        true,
+        &["history", "copy", "ambient_occlusion"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.screen_space_reflection_copied",
+        false,
+        &["history", "copy", "screen_space_reflection"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.scheduled_count",
+        3.0,
+        &["render", "camera", "ordering"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.order_ambiguity_count",
+        1.0,
+        &["render", "camera", "ordering"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.primary_surface",
+        false,
+        &["render", "camera", "target", "primary_surface"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.headless",
+        true,
+        &["render", "camera", "target", "headless"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.texture",
+        false,
+        &["render", "camera", "target", "texture"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.primary_width",
+        1280.0,
+        &["render", "camera", "target", "primary"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.primary_height",
+        720.0,
+        &["render", "camera", "target", "primary"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.resolved_width",
+        640.0,
+        &["render", "camera", "target", "resolved"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.resolved_height",
+        360.0,
+        &["render", "camera", "target", "resolved"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.effective_view_width",
+        320.0,
+        &["render", "camera", "target", "effective_view"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.effective_view_height",
+        180.0,
+        &["render", "camera", "target", "effective_view"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.effective_render_width",
+        160.0,
+        &["render", "camera", "target", "effective_render"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.effective_render_height",
+        90.0,
+        &["render", "camera", "target", "effective_render"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.not_requested",
+        true,
+        &["render", "camera", "target", "graph_import"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.ready_for_direct_import",
+        false,
+        &["render", "camera", "target", "graph_import", "ready"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.requires_conversion_writeback",
+        false,
+        &["render", "camera", "target", "graph_import", "conversion"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.blocked_format_mismatch",
+        false,
+        &["render", "camera", "target", "graph_import", "blocked"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.direct_import_count",
+        0.0,
+        &["render", "camera", "target", "graph_import"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.graph_import.conversion_writeback_count",
+        0.0,
+        &["render", "camera", "target", "graph_import"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.not_requested",
+        true,
+        &["render", "camera", "target", "writeback"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.copied",
+        false,
+        &["render", "camera", "target", "writeback", "copied"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.ready_for_conversion",
+        false,
+        &["render", "camera", "target", "writeback", "ready"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.converted",
+        false,
+        &["render", "camera", "target", "writeback", "converted"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.blocked_format_mismatch",
+        false,
+        &["render", "camera", "target", "writeback", "blocked"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.writeback.copy_count",
+        0.0,
+        &["render", "camera", "target", "writeback"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.writeback.converted_count",
+        0.0,
+        &["render", "camera", "target", "writeback"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.camera.target.writeback.debug_marker_emitted",
+        false,
+        &["render", "camera", "target", "writeback", "debug_marker"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.writeback.width",
+        0.0,
+        &["render", "camera", "target", "writeback", "extent"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.target.writeback.height",
+        0.0,
+        &["render", "camera", "target", "writeback", "extent"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.capture.source.none",
+        true,
+        &["render", "capture", "source"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.capture.source.framework_offscreen",
+        false,
+        &["render", "capture", "source", "framework_offscreen"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.capture.width",
+        0.0,
+        &["render", "capture", "extent"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.capture.height",
+        0.0,
+        &["render", "capture", "extent"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
         "render.history.invalidated.no_previous_frame",
         false,
         &["history", "invalidation", "no_previous_frame"],
@@ -316,6 +575,102 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.graph.executed_dependency_count",
         8.0,
         &["graph", "dependency"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.texture_view_count",
+        18.0,
+        &["graph", "execution", "resource", "texture"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.external_texture_view_count",
+        14.0,
+        &["graph", "execution", "resource", "texture", "external"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.owned_texture_count",
+        4.0,
+        &["graph", "execution", "resource", "texture", "owned"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.buffer_count",
+        3.0,
+        &["graph", "execution", "resource", "buffer"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.bound_resource_count",
+        21.0,
+        &["graph", "execution", "resource"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.planned_live_pass_count",
+        14.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.executed_pass_count",
+        14.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.matched_planned_pass_count",
+        14.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.missing_planned_pass_count",
+        0.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.unexpected_executed_pass_count",
+        0.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.coverage.duplicate_executed_pass_count",
+        0.0,
+        &["graph", "execution", "coverage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.stage.staged_pass_count",
+        14.0,
+        &["graph", "execution", "stage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.stage.unstaged_pass_count",
+        1.0,
+        &["graph", "execution", "stage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.stage.unique_stage_count",
+        7.0,
+        &["graph", "execution", "stage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.stage.transition_count",
+        6.0,
+        &["graph", "execution", "stage"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.stage.order_violation_count",
+        0.0,
+        &["graph", "execution", "stage", "order"],
     );
     assert_render_count_series(
         &snapshot.store,
@@ -533,6 +888,30 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         0.0,
         &["post_process", "lut", "unsupported_shape"],
     );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.post_process.motion_vector.camera.not_requested",
+        false,
+        &["post_process", "motion_vector", "camera"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.post_process.motion_vector.camera.missing_previous_camera",
+        false,
+        &["post_process", "motion_vector", "camera"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.post_process.motion_vector.camera.cut_or_invalid",
+        false,
+        &["post_process", "motion_vector", "camera"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.post_process.motion_vector.camera.ready",
+        true,
+        &["post_process", "motion_vector", "camera", "ready"],
+    );
     assert_render_count_series(
         &snapshot.store,
         "render.material.count",
@@ -597,6 +976,18 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.mesh.queue.early_z_draw_count",
         8.0,
         &["mesh", "queue", "early_z"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.shadow_caster_draw_count",
+        8.0,
+        &["mesh", "queue", "shadow"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.alpha_mask_shadow_caster_draw_count",
+        2.0,
+        &["mesh", "queue", "shadow", "alpha_mask"],
     );
     assert_render_count_series(
         &snapshot.store,

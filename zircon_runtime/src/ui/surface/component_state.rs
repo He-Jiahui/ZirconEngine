@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
     component::{UiComponentState, UiValue},
     event_ui::UiNodeId,
+    tree::UiTree,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -14,6 +15,121 @@ pub struct UiSurfaceComponentStateStore {
 impl UiSurfaceComponentStateStore {
     pub fn get(&self, node_id: UiNodeId) -> Option<&UiComponentState> {
         self.states.get(&node_id)
+    }
+
+    pub(crate) fn seed_from_tree_metadata(&mut self, tree: &UiTree) {
+        for (node_id, node) in &tree.nodes {
+            if let Some(metadata) = node.template_metadata.as_ref() {
+                if bool_attribute(&metadata.attributes, "hovered")
+                    || bool_attribute(&metadata.attributes, "hover")
+                {
+                    let _ = self.set_hovered(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "focused")
+                    || bool_attribute(&metadata.attributes, "focus")
+                {
+                    let _ = self.set_focused(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "pressed")
+                    || bool_attribute(&metadata.attributes, "active")
+                {
+                    let _ = self.set_pressed(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "dragging") {
+                    let _ = self.set_dragging(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "drop_hovered") {
+                    let _ = self.set_drop_hovered(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "active_drag_target") {
+                    let _ = self.set_active_drag_target(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "checked") {
+                    let _ = self.set_checked(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "disabled") {
+                    let _ = self.set_disabled(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "expanded") {
+                    let _ = self.set_expanded(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "popup_open")
+                    || bool_attribute(&metadata.attributes, "open")
+                {
+                    let _ = self.set_popup_open(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "selected") {
+                    let _ = self.set_selected(*node_id, true);
+                }
+                if bool_attribute(&metadata.attributes, "loading") {
+                    let _ = self.set_loading(*node_id, true);
+                }
+            }
+            if node.state_flags.pressed {
+                let _ = self.set_pressed(*node_id, true);
+            }
+            if node.state_flags.checked {
+                let _ = self.set_checked(*node_id, true);
+            }
+            if !node.state_flags.enabled {
+                let _ = self.set_disabled(*node_id, true);
+            }
+        }
+    }
+
+    pub(crate) fn sync_from_property(
+        &mut self,
+        node_id: UiNodeId,
+        property: &str,
+        value: &UiValue,
+    ) -> bool {
+        let mut changed = self.set_value(node_id, property.to_string(), value.clone());
+        let UiValue::Bool(value) = value else {
+            return changed;
+        };
+        match property {
+            "hover" | "hovered" => {
+                changed |= self.set_hovered(node_id, *value);
+            }
+            "focus" | "focused" => {
+                changed |= self.set_focused(node_id, *value);
+            }
+            "pressed" | "active" => {
+                changed |= self.set_pressed(node_id, *value);
+            }
+            "dragging" => {
+                changed |= self.set_dragging(node_id, *value);
+            }
+            "drop_hovered" => {
+                changed |= self.set_drop_hovered(node_id, *value);
+            }
+            "active_drag_target" => {
+                changed |= self.set_active_drag_target(node_id, *value);
+            }
+            "checked" => {
+                changed |= self.set_checked(node_id, *value);
+            }
+            "enabled" => {
+                changed |= self.set_disabled(node_id, !*value);
+            }
+            "disabled" => {
+                changed |= self.set_disabled(node_id, *value);
+            }
+            "expanded" => {
+                changed |= self.set_expanded(node_id, *value);
+            }
+            "popup_open" | "open" => {
+                changed |= self.set_popup_open(node_id, *value);
+            }
+            "selected" => {
+                changed |= self.set_selected(node_id, *value);
+            }
+            "loading" => {
+                changed |= self.set_loading(node_id, *value);
+            }
+            _ => {}
+        }
+        changed
     }
 
     pub(crate) fn set_hovered(&mut self, node_id: UiNodeId, hovered: bool) -> bool {
@@ -40,6 +156,37 @@ impl UiSurfaceComponentStateStore {
             return false;
         }
         state.flags.pressed = pressed;
+        true
+    }
+
+    pub(crate) fn set_dragging(&mut self, node_id: UiNodeId, dragging: bool) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        if state.flags.dragging == dragging {
+            return false;
+        }
+        state.flags.dragging = dragging;
+        true
+    }
+
+    pub(crate) fn set_drop_hovered(&mut self, node_id: UiNodeId, drop_hovered: bool) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        if state.flags.drop_hovered == drop_hovered {
+            return false;
+        }
+        state.flags.drop_hovered = drop_hovered;
+        true
+    }
+
+    pub(crate) fn set_active_drag_target(
+        &mut self,
+        node_id: UiNodeId,
+        active_drag_target: bool,
+    ) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        if state.flags.active_drag_target == active_drag_target {
+            return false;
+        }
+        state.flags.active_drag_target = active_drag_target;
         true
     }
 
@@ -88,6 +235,15 @@ impl UiSurfaceComponentStateStore {
         true
     }
 
+    pub(crate) fn set_loading(&mut self, node_id: UiNodeId, loading: bool) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        if state.flags.loading == loading {
+            return false;
+        }
+        state.flags.loading = loading;
+        true
+    }
+
     pub(crate) fn set_value(
         &mut self,
         node_id: UiNodeId,
@@ -110,4 +266,31 @@ impl UiSurfaceComponentStateStore {
             self.states.remove(node_id);
         }
     }
+}
+
+pub(crate) fn property_may_affect_runtime_pseudo_state(property: &str) -> bool {
+    matches!(
+        property,
+        "checked"
+            | "selected"
+            | "disabled"
+            | "enabled"
+            | "pressed"
+            | "active"
+            | "dragging"
+            | "drop_hovered"
+            | "active_drag_target"
+            | "expanded"
+            | "popup_open"
+            | "open"
+            | "loading"
+            | "focus"
+            | "focused"
+            | "hover"
+            | "hovered"
+    )
+}
+
+fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key: &str) -> bool {
+    values.get(key).and_then(toml::Value::as_bool) == Some(true)
 }

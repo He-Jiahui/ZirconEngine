@@ -1143,16 +1143,16 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             )
             .expect("primary button binding")
             .payload(),
-        EditorUiBindingPayload::EditorOperation { operation_id, .. }
-            if operation_id == "ComponentLab.Primary"
+        EditorUiBindingPayload::MenuAction { action_id }
+            if action_id == "component_lab.button.primary"
     ));
     assert!(matches!(
         bridge
             .binding_for_control("WorkbenchTertiaryButton", UiEventKind::Click)
             .expect("tertiary button binding")
             .payload(),
-        EditorUiBindingPayload::EditorOperation { operation_id, .. }
-            if operation_id == "ComponentLab.Tertiary"
+        EditorUiBindingPayload::MenuAction { action_id }
+            if action_id == "component_lab.button.tertiary"
     ));
     assert!(matches!(
         bridge
@@ -1168,7 +1168,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .expect("button dropdown select binding")
             .payload(),
         EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "component_lab.button_dropdown_option.select"
+            if action_id == "component_lab.button_dropdown.select"
     ));
     assert!(matches!(
         bridge

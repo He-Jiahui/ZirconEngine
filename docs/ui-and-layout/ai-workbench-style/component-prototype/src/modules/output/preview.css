@@ -1,0 +1,68 @@
+.zr-module-preview {
+  position: relative;
+  min-height: 126px;
+  overflow: hidden;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(68, 104, 125, 0.35), transparent 30%),
+    linear-gradient(180deg, #182026, #0b0f12);
+}
+
+.zr-module-preview.is-vfx {
+  min-height: 204px;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(78, 160, 255, 0.75), transparent 16%),
+    radial-gradient(circle at 44% 45%, rgba(255, 255, 255, 0.9), transparent 4%),
+    linear-gradient(180deg, #0b1320, #070a0d);
+}
+
+.zr-module-preview.is-asset {
+  min-height: 156px;
+  background:
+    radial-gradient(circle at 48% 38%, rgba(87, 120, 65, 0.58), transparent 24%),
+    linear-gradient(180deg, #172018, #0c1010);
+}
+
+.zr-module-preview.is-render {
+  min-height: 128px;
+  background:
+    linear-gradient(135deg, rgba(177, 220, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 64% 32%, rgba(170, 222, 255, 0.34), transparent 20%),
+    linear-gradient(180deg, #1a2427, #0e1215);
+}
+
+.zr-preview-orb {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.45), transparent 18%),
+    radial-gradient(circle at 62% 66%, rgba(22, 26, 24, 0.65), transparent 60%),
+    linear-gradient(135deg, #7b7f72, #2e342f);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+  transform: translate(-50%, -50%);
+}
+
+.zr-module-preview.is-vfx .zr-preview-orb {
+  width: 8px;
+  height: 210px;
+  background:
+    linear-gradient(135deg, transparent 0 42%, #dff8ff 48%, transparent 58%),
+    linear-gradient(25deg, transparent 0 44%, #35a7ff 52%, transparent 70%);
+  border-radius: 14px;
+  filter: drop-shadow(0 0 22px rgba(67, 160, 255, 0.9));
+}
+
+.zr-preview-grid {
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  background: linear-gradient(rgba(255, 255, 255, 0.05) 1%, transparent 30%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 10%, transparent 30%);
+  background-size: 28px 28px;
+  transform: perspective(240px) rotateX(62deg);
+  transform-origin: bottom;
+}

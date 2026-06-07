@@ -1,0 +1,13 @@
+.zr-module-minimap {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  width: 108px;
+  height: 72px;
+  border: 1px solid rgba(53, 199, 208, 0.34);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(90deg, rgba(53, 199, 208, 0.4) 0 14%, transparent 14% 100%),
+    radial-gradient(circle at 28% 50%, rgba(53, 199, 208, 0.68) 0 4%, transparent 42%);
+  opacity: 0.82;
+}

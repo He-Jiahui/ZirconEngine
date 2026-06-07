@@ -5,6 +5,7 @@ mod dropdowns;
 mod extract;
 mod feedback;
 mod node_visual_data;
+mod painter_state;
 mod popup_menu;
 mod popup_options;
 mod popup_rows;
@@ -16,5 +17,6 @@ mod text_fields;
 mod text_measure;
 
 pub use cache::{UiSurfaceRenderCache, UiSurfaceRenderCacheStats};
+pub(crate) use extract::extract_ui_render_tree_from_arranged_with_component_states;
 pub use extract::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
 pub(crate) use text_measure::measure_text;

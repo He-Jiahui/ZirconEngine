@@ -1,7 +1,9 @@
 mod cover;
+mod create_project;
 mod create_project_request;
 mod device_install;
 mod editor_recent_sync;
+mod local_paths;
 mod metadata;
 mod package;
 mod recent_project;
@@ -9,6 +11,7 @@ mod recycle_bin;
 mod validation;
 
 pub use cover::project_cover_path;
+pub use create_project::{create_project, CreateProjectReport};
 pub use create_project_request::{
     project_template_catalog, CreateProjectRequest, ProjectTemplate, ProjectTemplateInfo,
 };

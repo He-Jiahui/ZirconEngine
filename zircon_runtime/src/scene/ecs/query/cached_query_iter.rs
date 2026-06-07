@@ -10,14 +10,6 @@ use crate::scene::{EntityId, World};
 pub trait CachedQueryData: QueryDataAccess {
     type Item<'world>;
 
-    fn matches_cached_data(
-        world: &World,
-        entity: EntityId,
-        component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        Self::matches_component_locations(world, entity, component_locations)
-    }
-
     fn fetch_cached<'world>(
         world: &'world World,
         entity: EntityId,
@@ -44,22 +36,27 @@ where
     world: &'world World,
     entities: &'state [EntityId],
     locations: &'state [StableEntityLocation],
-    component_locations: &'state [Vec<ComponentStorageLocation>],
+    component_locations: &'state [ComponentStorageLocation],
+    component_location_offsets: &'state [usize],
     index: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
 }
 
-pub struct CachedQueryManyIter<'world, 'state, D, F = ()>
+pub struct CachedQueryManyIter<'world, 'state, D, F = (), I = std::vec::IntoIter<EntityId>>
 where
     D: CachedQueryData,
     F: CachedQueryFilter,
+    I: Iterator,
+    I::Item: QueryEntityItem,
 {
     world: &'world World,
-    entities: &'state [EntityId],
+    cached_entities: &'state [EntityId],
     locations: &'state [StableEntityLocation],
-    component_locations: &'state [Vec<ComponentStorageLocation>],
-    indices: std::vec::IntoIter<usize>,
+    component_locations: &'state [ComponentStorageLocation],
+    component_location_offsets: &'state [usize],
+    cached_entity_indices: &'state [(EntityId, usize)],
+    requested_entities: I,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
 }
@@ -73,7 +70,8 @@ where
         world: &'world World,
         entities: &'state [EntityId],
         locations: &'state [StableEntityLocation],
-        component_locations: &'state [Vec<ComponentStorageLocation>],
+        component_locations: &'state [ComponentStorageLocation],
+        component_location_offsets: &'state [usize],
         ticks: ChangeTickWindow,
     ) -> Self {
         Self {
@@ -81,6 +79,7 @@ where
             entities,
             locations,
             component_locations,
+            component_location_offsets,
             index: 0,
             ticks,
             _marker: PhantomData,
@@ -88,25 +87,35 @@ where
     }
 }
 
-impl<'world, 'state, D, F> CachedQueryManyIter<'world, 'state, D, F>
+impl<'world, 'state, D, F, I> CachedQueryManyIter<'world, 'state, D, F, I>
 where
     D: CachedQueryData,
     F: CachedQueryFilter,
+    I: Iterator,
+    I::Item: QueryEntityItem,
 {
-    pub(crate) fn new(
+    pub(crate) fn new<EntityList>(
         world: &'world World,
-        entities: &'state [EntityId],
+        cached_entities: &'state [EntityId],
         locations: &'state [StableEntityLocation],
-        component_locations: &'state [Vec<ComponentStorageLocation>],
-        indices: Vec<usize>,
+        component_locations: &'state [ComponentStorageLocation],
+        component_location_offsets: &'state [usize],
+        cached_entity_indices: &'state [(EntityId, usize)],
+        requested_entities: EntityList,
         ticks: ChangeTickWindow,
-    ) -> Self {
+    ) -> Self
+    where
+        EntityList: IntoIterator<IntoIter = I>,
+        EntityList::Item: QueryEntityItem,
+    {
         Self {
             world,
-            entities,
+            cached_entities,
             locations,
             component_locations,
-            indices: indices.into_iter(),
+            component_location_offsets,
+            cached_entity_indices,
+            requested_entities: requested_entities.into_iter(),
             ticks,
             _marker: PhantomData,
         }
@@ -123,15 +132,14 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(entity) = self.entities.get(self.index).copied() {
             let stable_location = self.locations.get(self.index).copied()?;
-            let component_locations = self
-                .component_locations
-                .get(self.index)
-                .map_or(&[][..], Vec::as_slice);
+            let component_locations = cached_query_component_locations(
+                self.component_locations,
+                self.component_location_offsets,
+                self.index,
+            )?;
             self.index += 1;
 
-            if F::matches_cached(self.world, entity, component_locations, self.ticks)
-                && D::matches_cached_data(self.world, entity, component_locations)
-            {
+            if F::matches_cached(self.world, entity, component_locations, self.ticks) {
                 if let Some(item) = D::fetch_cached(
                     self.world,
                     entity,
@@ -147,25 +155,30 @@ where
     }
 }
 
-impl<'world, 'state, D, F> Iterator for CachedQueryManyIter<'world, 'state, D, F>
+impl<'world, 'state, D, F, I> Iterator for CachedQueryManyIter<'world, 'state, D, F, I>
 where
     D: CachedQueryData,
     F: CachedQueryFilter,
+    I: Iterator,
+    I::Item: QueryEntityItem,
 {
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for index in self.indices.by_ref() {
-            let entity = *self.entities.get(index)?;
+        for entity_item in self.requested_entities.by_ref() {
+            let entity = entity_item.entity_id();
+            let Some(index) = cached_query_entity_index(self.cached_entity_indices, entity) else {
+                continue;
+            };
+            let entity = *self.cached_entities.get(index)?;
             let stable_location = *self.locations.get(index)?;
-            let component_locations = self
-                .component_locations
-                .get(index)
-                .map_or(&[][..], Vec::as_slice);
+            let component_locations = cached_query_component_locations(
+                self.component_locations,
+                self.component_location_offsets,
+                index,
+            )?;
 
-            if F::matches_cached(self.world, entity, component_locations, self.ticks)
-                && D::matches_cached_data(self.world, entity, component_locations)
-            {
+            if F::matches_cached(self.world, entity, component_locations, self.ticks) {
                 if let Some(item) = D::fetch_cached(
                     self.world,
                     entity,
@@ -191,18 +204,14 @@ pub(crate) fn cached_query_entity_index(
     Some(cached_entity_indices[entry].1)
 }
 
-pub(crate) fn cached_query_many_indices<EntityList>(
-    cached_entity_indices: &[(EntityId, usize)],
-    entities: EntityList,
-) -> Vec<usize>
-where
-    EntityList: IntoIterator,
-    EntityList::Item: QueryEntityItem,
-{
-    entities
-        .into_iter()
-        .filter_map(|entity| cached_query_entity_index(cached_entity_indices, entity.entity_id()))
-        .collect()
+pub(crate) fn cached_query_component_locations<'locations>(
+    component_locations: &'locations [ComponentStorageLocation],
+    component_location_offsets: &[usize],
+    index: usize,
+) -> Option<&'locations [ComponentStorageLocation]> {
+    let start = *component_location_offsets.get(index)?;
+    let end = *component_location_offsets.get(index + 1)?;
+    component_locations.get(start..end)
 }
 
 impl<T> CachedQueryFilter for With<T>
@@ -312,18 +321,6 @@ where
 {
     type Item<'world> = &'world T;
 
-    fn matches_cached_data(
-        world: &World,
-        _entity: EntityId,
-        component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        world
-            .registered_component_id::<T>()
-            .is_some_and(|component_id| {
-                component_location(component_locations, component_id).is_some()
-            })
-    }
-
     fn fetch_cached<'world>(
         world: &'world World,
         _entity: EntityId,
@@ -344,18 +341,6 @@ where
     T: Component,
 {
     type Item<'world> = &'world T;
-
-    fn matches_cached_data(
-        world: &World,
-        _entity: EntityId,
-        component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        world
-            .registered_component_id::<T>()
-            .is_some_and(|component_id| {
-                component_location(component_locations, component_id).is_some()
-            })
-    }
 
     fn fetch_cached<'world>(
         world: &'world World,
@@ -378,18 +363,6 @@ where
 {
     type Item<'world> = Ref<'world, T>;
 
-    fn matches_cached_data(
-        world: &World,
-        _entity: EntityId,
-        component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        world
-            .registered_component_id::<T>()
-            .is_some_and(|component_id| {
-                component_location(component_locations, component_id).is_some()
-            })
-    }
-
     fn fetch_cached<'world>(
         world: &'world World,
         _entity: EntityId,
@@ -411,18 +384,6 @@ where
 {
     type Item<'world> = Ref<'world, T>;
 
-    fn matches_cached_data(
-        world: &World,
-        _entity: EntityId,
-        component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        world
-            .registered_component_id::<T>()
-            .is_some_and(|component_id| {
-                component_location(component_locations, component_id).is_some()
-            })
-    }
-
     fn fetch_cached<'world>(
         world: &'world World,
         _entity: EntityId,
@@ -443,14 +404,6 @@ where
     T: Component,
 {
     type Item<'world> = Option<&'world T>;
-
-    fn matches_cached_data(
-        _world: &World,
-        _entity: EntityId,
-        _component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        true
-    }
 
     fn fetch_cached<'world>(
         world: &'world World,
@@ -474,14 +427,6 @@ where
 
 impl CachedQueryData for EntityId {
     type Item<'world> = EntityId;
-
-    fn matches_cached_data(
-        _world: &World,
-        _entity: EntityId,
-        _component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        true
-    }
 
     fn fetch_cached<'world>(
         _world: &'world World,
@@ -511,14 +456,6 @@ impl CachedQueryData for StableEntityLocation {
 impl CachedQueryData for () {
     type Item<'world> = ();
 
-    fn matches_cached_data(
-        _world: &World,
-        _entity: EntityId,
-        _component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        true
-    }
-
     fn fetch_cached<'world>(
         _world: &'world World,
         _entity: EntityId,
@@ -537,15 +474,6 @@ macro_rules! tuple_cached_query_data {
             $($name: CachedQueryData,)*
         {
             type Item<'world> = ($($name::Item<'world>,)*);
-
-            #[allow(non_snake_case)]
-            fn matches_cached_data(
-                world: &World,
-                entity: EntityId,
-                component_locations: &[ComponentStorageLocation],
-            ) -> bool {
-                true $(&& $name::matches_cached_data(world, entity, component_locations))*
-            }
 
             #[allow(non_snake_case)]
             fn fetch_cached<'world>(
@@ -574,9 +502,10 @@ fn component_location(
     component_locations: &[ComponentStorageLocation],
     component_id: ComponentId,
 ) -> Option<&ComponentStorageLocation> {
-    component_locations
-        .iter()
-        .find(|location| location.component_id == component_id)
+    let index = component_locations
+        .binary_search_by_key(&component_id, |location| location.component_id)
+        .ok()?;
+    component_locations.get(index)
 }
 
 fn component_ticks_at_location<T>(

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{DisplayMode, RenderMeshSnapshot};
+use crate::core::framework::scene::EntityId;
 use crate::core::math::{RenderMat4, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
 
@@ -38,6 +39,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     };
     let model_matrix =
         render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
+    let (previous_model_matrix, has_previous_motion_vector_transform) =
+        previous_motion_model_matrix(frame, mesh_instance.node_id, model_matrix);
 
     // Direct mesh snapshots bypass the model-primitive loop, so mirror the same CPU skinning path here.
     if let Some(mesh_handle) = mesh_instance.mesh.as_ref() {
@@ -55,6 +58,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     &dynamic_primitive,
                     instance_tint,
                     model_matrix,
+                    previous_model_matrix,
+                    has_previous_motion_vector_transform,
                 );
             } else {
                 push_prepared_mesh_draws(
@@ -65,6 +70,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     mesh,
                     instance_tint,
                     model_matrix,
+                    previous_model_matrix,
+                    has_previous_motion_vector_transform,
                 );
             }
             return;
@@ -107,6 +114,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 &skinned_primitive,
                 instance_tint,
                 model_matrix,
+                previous_model_matrix,
+                has_previous_motion_vector_transform,
             );
             continue;
         }
@@ -133,7 +142,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     .material(&mesh_instance.material.id())
                     .map(|material| material.pipeline_key.clone())
                     .unwrap_or_else(default_pipeline_key),
+                cast_shadows: material_cast_shadows(streamer, mesh_instance.material),
+                receive_shadows: material_receive_shadows(streamer, mesh_instance.material),
                 model_matrix,
+                previous_model_matrix,
+                has_previous_motion_vector_transform,
                 draw_tint,
                 first_index,
                 draw_index_count,
@@ -141,6 +154,23 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             });
         }
     }
+}
+
+fn previous_motion_model_matrix(
+    frame: &ViewportRenderFrame,
+    entity: EntityId,
+    fallback_model_matrix: [[f32; 4]; 4],
+) -> ([[f32; 4]; 4], bool) {
+    let Some(previous_transform) = frame
+        .previous_motion_vector_object_history()
+        .and_then(|history| history.transform(entity))
+    else {
+        return (fallback_model_matrix, false);
+    };
+    (
+        render_mat4_or(previous_transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d(),
+        true,
+    )
 }
 
 fn material_tinted(
@@ -153,6 +183,26 @@ fn material_tinted(
         .map(|material| material.base_color)
         .unwrap_or(Vec4::ONE);
     instance_tint * material_tint
+}
+
+fn material_receive_shadows(
+    streamer: &ResourceStreamer,
+    material: ResourceHandle<MaterialMarker>,
+) -> bool {
+    streamer
+        .material(&material.id())
+        .map(|material| material.receive_shadows)
+        .unwrap_or(true)
+}
+
+fn material_cast_shadows(
+    streamer: &ResourceStreamer,
+    material: ResourceHandle<MaterialMarker>,
+) -> bool {
+    streamer
+        .material(&material.id())
+        .map(|material| material.cast_shadows)
+        .unwrap_or(true)
 }
 
 fn dynamic_direct_mesh_primitive(
@@ -218,6 +268,8 @@ fn push_dynamic_mesh_draws(
     dynamic_primitive: &ModelPrimitiveAsset,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    previous_model_matrix: [[f32; 4]; 4],
+    has_previous_motion_vector_transform: bool,
 ) {
     let material = streamer.material(&material_id.id());
     let texture = streamer.texture(material.and_then(|material| material.base_color_texture));
@@ -235,7 +287,15 @@ fn push_dynamic_mesh_draws(
             texture: texture.clone(),
             material_uniform: material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),
+            cast_shadows: material
+                .map(|material| material.cast_shadows)
+                .unwrap_or(true),
+            receive_shadows: material
+                .map(|material| material.receive_shadows)
+                .unwrap_or(true),
             model_matrix,
+            previous_model_matrix,
+            has_previous_motion_vector_transform,
             draw_tint,
             first_index,
             draw_index_count,
@@ -308,6 +368,8 @@ fn push_prepared_mesh_draws(
     mesh: &Arc<GpuMeshResource>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    previous_model_matrix: [[f32; 4]; 4],
+    has_previous_motion_vector_transform: bool,
 ) {
     let material = streamer.material(&material_id.id());
     let texture = streamer.texture(material.and_then(|material| material.base_color_texture));
@@ -325,7 +387,15 @@ fn push_prepared_mesh_draws(
             texture: texture.clone(),
             material_uniform: material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),
+            cast_shadows: material
+                .map(|material| material.cast_shadows)
+                .unwrap_or(true),
+            receive_shadows: material
+                .map(|material| material.receive_shadows)
+                .unwrap_or(true),
             model_matrix,
+            previous_model_matrix,
+            has_previous_motion_vector_transform,
             draw_tint,
             first_index,
             draw_index_count,

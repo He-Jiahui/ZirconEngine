@@ -205,3 +205,106 @@ pub(super) const WORLD_STATE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     WORLD_STATE_COMMAND_ACTIONS,
     WORLD_STATE_FIELD_ACTIONS,
 );
+
+const NAVMESH_AI_TAB_CONTROLS: &[&str] = &[
+    "WorkbenchExtensionNavmeshAiTilesTab",
+    "WorkbenchExtensionNavmeshAiAgentsTab",
+    "WorkbenchExtensionNavmeshAiQueriesTab",
+];
+const NAVMESH_AI_TAB_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.navmesh_ai.tiles_tab.select",
+        "WorkbenchExtensionNavmeshAiTilesTab",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.agents_tab.select",
+        "WorkbenchExtensionNavmeshAiAgentsTab",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.queries_tab.select",
+        "WorkbenchExtensionNavmeshAiQueriesTab",
+    ),
+];
+const NAVMESH_AI_ROW_CONTROLS: &[&str] = &[
+    "WorkbenchExtensionNavmeshAiMainNavmeshRow",
+    "WorkbenchExtensionNavmeshAiHumanoidAgentRow",
+    "WorkbenchExtensionNavmeshAiPatrolQueryRow",
+    "WorkbenchExtensionNavmeshAiTile1208TableRow",
+    "WorkbenchExtensionNavmeshAiTile1209TableRow",
+    "WorkbenchExtensionNavmeshAiAgentRadiusTableRow",
+    "WorkbenchExtensionNavmeshAiBlockedLinkTableRow",
+    "WorkbenchExtensionNavmeshAiOutputRow",
+];
+const NAVMESH_AI_ROW_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.navmesh_ai.main_navmesh_row.select",
+        "WorkbenchExtensionNavmeshAiMainNavmeshRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.humanoid_agent_row.select",
+        "WorkbenchExtensionNavmeshAiHumanoidAgentRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.patrol_query_row.select",
+        "WorkbenchExtensionNavmeshAiPatrolQueryRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.tile_1208_table_row.select",
+        "WorkbenchExtensionNavmeshAiTile1208TableRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.tile_1209_table_row.select",
+        "WorkbenchExtensionNavmeshAiTile1209TableRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.agent_radius_table_row.select",
+        "WorkbenchExtensionNavmeshAiAgentRadiusTableRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.blocked_link_table_row.select",
+        "WorkbenchExtensionNavmeshAiBlockedLinkTableRow",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.output.select",
+        "WorkbenchExtensionNavmeshAiOutputRow",
+    ),
+];
+const NAVMESH_AI_COMMAND_CONTROLS: &[&str] = &[
+    "WorkbenchAssetsNavmeshAiButton",
+    "WorkbenchExtensionNavmeshAiRebuildButton",
+    "WorkbenchExtensionNavmeshAiQueryPathButton",
+];
+const NAVMESH_AI_COMMAND_ACTIONS: &[ActionControl] = &[
+    action(
+        "workbench.extension.navmesh_ai.open",
+        "WorkbenchAssetsNavmeshAiButton",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.rebuild.invoke",
+        "WorkbenchExtensionNavmeshAiRebuildButton",
+    ),
+    action(
+        "workbench.extension.navmesh_ai.query_path.invoke",
+        "WorkbenchExtensionNavmeshAiQueryPathButton",
+    ),
+];
+const NAVMESH_AI_FIELD_ACTIONS: &[&str] = &[
+    "workbench.extension.navmesh_ai.agent.edit",
+    "workbench.extension.navmesh_ai.agent.commit",
+    "workbench.extension.navmesh_ai.area.edit",
+    "workbench.extension.navmesh_ai.area.commit",
+    "workbench.extension.navmesh_ai.cost.edit",
+    "workbench.extension.navmesh_ai.cost.commit",
+];
+
+pub(super) const NAVMESH_AI_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
+    "workbench.extension.navmesh_ai.open",
+    "WorkbenchExtensionNavmeshAiWorkspace",
+    NAVMESH_AI_TAB_CONTROLS,
+    NAVMESH_AI_TAB_ACTIONS,
+    NAVMESH_AI_ROW_CONTROLS,
+    NAVMESH_AI_ROW_ACTIONS,
+    NAVMESH_AI_COMMAND_CONTROLS,
+    NAVMESH_AI_COMMAND_ACTIONS,
+    NAVMESH_AI_FIELD_ACTIONS,
+);

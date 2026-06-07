@@ -1,3 +1,6 @@
+mod append;
+mod signature;
+
 use super::super::super::types::PendingOptionalFeatureManifest;
 
 pub(in super::super) fn push_optional_feature_module(
@@ -8,21 +11,10 @@ pub(in super::super) fn push_optional_feature_module(
     target_modes: &mut Vec<zircon_runtime::RuntimeTargetMode>,
     capabilities: &mut Vec<String>,
 ) {
-    let Some(name) = name.take() else {
+    let Some(module) =
+        signature::take_optional_feature_module(name, kind, crate_name, target_modes, capabilities)
+    else {
         return;
     };
-    feature
-        .as_mut()
-        .expect("optional feature module should have a parent feature")
-        .modules
-        .push((
-            name,
-            kind.take()
-                .expect("optional feature module should declare kind"),
-            crate_name
-                .take()
-                .expect("optional feature module should declare crate_name"),
-            std::mem::take(target_modes),
-            std::mem::take(capabilities),
-        ));
+    append::append_optional_feature_module(feature, module);
 }

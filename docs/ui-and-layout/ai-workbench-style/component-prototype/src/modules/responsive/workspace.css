@@ -1,0 +1,14 @@
+@media (max-width: 1360px) {
+  .zr-module-editor-grid.is-gameplay {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .zr-module-output-grid {
+    grid-template-columns: minmax(180px, 0.4fr) minmax(0, 1fr);
+  }
+
+  .zr-module-output-grid > :last-child {
+    display: none;
+  }
+}

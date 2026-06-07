@@ -1,4 +1,4 @@
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     accessibility::{
         UiA11yRole, UiA11yTextSelection, UiAccessibilityAction, UiAccessibilityContract,

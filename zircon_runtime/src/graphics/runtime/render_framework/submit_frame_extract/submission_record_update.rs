@@ -1,4 +1,4 @@
-use crate::core::framework::render::{FrameHistoryHandle, FrameHistoryStatus};
+use crate::core::framework::render::{FrameHistoryHandle, FrameHistoryStatus, RenderCaptureReport};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct HybridGiStatSnapshot {
@@ -42,6 +42,7 @@ pub(super) struct SubmissionRecordUpdate {
     history_handle: FrameHistoryHandle,
     previous_handle: Option<FrameHistoryHandle>,
     history_status: FrameHistoryStatus,
+    capture_report: RenderCaptureReport,
     hybrid_gi_stats: HybridGiStatSnapshot,
     particle_stats: ParticleStatSnapshot,
     virtual_geometry_stats: VirtualGeometryStatSnapshot,
@@ -233,6 +234,7 @@ impl SubmissionRecordUpdate {
         history_handle: FrameHistoryHandle,
         previous_handle: Option<FrameHistoryHandle>,
         history_status: FrameHistoryStatus,
+        capture_report: RenderCaptureReport,
         hybrid_gi_stats: HybridGiStatSnapshot,
         particle_stats: ParticleStatSnapshot,
         virtual_geometry_stats: VirtualGeometryStatSnapshot,
@@ -241,6 +243,7 @@ impl SubmissionRecordUpdate {
             history_handle,
             previous_handle,
             history_status,
+            capture_report,
             hybrid_gi_stats,
             particle_stats,
             virtual_geometry_stats,
@@ -257,6 +260,10 @@ impl SubmissionRecordUpdate {
 
     pub(super) fn history_status(&self) -> FrameHistoryStatus {
         self.history_status
+    }
+
+    pub(super) fn capture_report(&self) -> RenderCaptureReport {
+        self.capture_report
     }
 
     pub(super) fn hybrid_gi_stats(&self) -> &HybridGiStatSnapshot {

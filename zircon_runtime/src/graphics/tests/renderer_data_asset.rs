@@ -164,6 +164,12 @@ name = "advanced-followup-slots"
 stages = ["PostProcess"]
 
 [[features]]
+name = "MeshLod"
+source = "MeshLod"
+enabled = true
+quality_gate = "MeshLod"
+
+[[features]]
 name = "SparseTexture"
 source = "SparseTexture"
 enabled = true
@@ -186,6 +192,12 @@ name = "Tree"
 source = "Tree"
 enabled = true
 quality_gate = "Tree"
+
+[[features]]
+name = "Decal"
+source = "Decal"
+enabled = true
+quality_gate = "Decal"
 
 [[features]]
 name = "Projector"
@@ -271,10 +283,12 @@ quality_gate = "ColorSpace"
     .unwrap();
 
     let expected = [
+        BuiltinRenderFeature::MeshLod,
         BuiltinRenderFeature::SparseTexture,
         BuiltinRenderFeature::Particle,
         BuiltinRenderFeature::Terrain,
         BuiltinRenderFeature::Tree,
+        BuiltinRenderFeature::Decal,
         BuiltinRenderFeature::Projector,
         BuiltinRenderFeature::Halo,
         BuiltinRenderFeature::LensFlare,

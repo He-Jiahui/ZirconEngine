@@ -12,6 +12,7 @@ use crate::asset::{
 use std::sync::Arc;
 
 use crate::core::framework::render::{
+    RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
     RenderColorLookupTextureLayout, RenderMaterialAlphaMode, RenderMaterialIssueState,
     RenderMaterialLightingModel, RenderMaterialManagementIssueIndex,
     RenderMaterialManagementIssueKind, RenderMaterialManagementIssueView,
@@ -32,7 +33,7 @@ use crate::core::resource::ResourceId;
 
 use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
-    MaterialCaptureSeed, MaterialRuntime,
+    MaterialCaptureSeed, MaterialRuntime, OutputTargetTextureResource,
 };
 use super::ResourceStreamer;
 
@@ -584,6 +585,8 @@ impl ResourceStreamer {
                                 descriptor.lighting_model.clone()
                             },
                             unlit: descriptor.unlit || descriptor.lighting_model.is_unlit(),
+                            cast_shadows: descriptor.cast_shadows,
+                            receive_shadows: descriptor.receive_shadows,
                             base_color_texture: self
                                 .resolve_texture_reference(
                                     "base_color_texture",
@@ -728,6 +731,32 @@ impl ResourceStreamer {
 
     pub(crate) fn last_post_process_lut_unsupported_shape_count(&self) -> usize {
         self.last_post_process_lut_unsupported_shape_count
+    }
+
+    pub(in crate::graphics::scene) fn output_target_texture_resource(
+        &self,
+        id: &ResourceId,
+    ) -> Option<Arc<OutputTargetTextureResource>> {
+        self.output_target_textures
+            .get(id)
+            .map(|prepared| prepared.resource.clone())
+    }
+
+    pub(in crate::graphics::scene) fn set_last_output_target_graph_import_report(
+        &mut self,
+        report: RenderCameraTargetGraphImportReport,
+    ) {
+        self.last_output_target_graph_import_report = report;
+    }
+
+    pub(crate) fn last_output_target_writeback_report(&self) -> RenderCameraTargetWritebackReport {
+        self.last_output_target_writeback_report
+    }
+
+    pub(crate) fn last_output_target_graph_import_report(
+        &self,
+    ) -> RenderCameraTargetGraphImportReport {
+        self.last_output_target_graph_import_report
     }
 }
 

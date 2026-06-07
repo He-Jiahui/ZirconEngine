@@ -40,7 +40,7 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
         UiControlResponse::Node(Some(node))
             if node.display_name == "Save Project"
                 && node.properties["operation_path"].reflected_value
-                    == serde_json::json!("File.Project.Save")
+                    == serde_json::json!("file.project.save")
     ));
     let scene = service.handle_request(UiControlRequest::QueryNode {
         node_path: UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1"),
@@ -90,7 +90,7 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
 fn workbench_reflection_model_projects_nested_menu_leaves() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut view_model = WorkbenchViewModel::build(&chrome);
     view_model.menu_bar = MenuBarModel {
         menus: vec![MenuModel {
@@ -114,7 +114,7 @@ fn workbench_reflection_model_projects_nested_menu_leaves() {
     assert_eq!(reflection.menu_items.len(), 1);
     let item = &reflection.menu_items[0];
     assert_eq!(item.menu_id, "tools");
-    assert_eq!(item.control_id, "Weather.CloudLayer.Refresh");
+    assert_eq!(item.control_id, "weather.cloud_layer.refresh");
     assert_eq!(item.label, "Refresh Cloud Layers");
     assert_eq!(
         item.operation_path.as_deref(),

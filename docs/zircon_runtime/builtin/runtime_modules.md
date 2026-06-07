@@ -6,6 +6,8 @@ related_code:
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/extensions.rs
@@ -23,6 +25,8 @@ implementation_files:
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/extensions.rs
@@ -40,6 +44,8 @@ tests:
   - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration.rs
   - rustfmt --edition 2021 zircon_runtime/src/builtin/runtime_modules.rs zircon_runtime/src/builtin/runtime_modules/*.rs zircon_runtime/src/builtin/runtime_modules/tests/*.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration.rs::runtime_module_assembly_keeps_registration_input_aggregation_in_child_owner
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-modules-split-0604 --message-format short --color never
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -64,7 +70,9 @@ This boundary is runtime-owned. `zircon_app` may call the public assembly functi
 - `availability.rs` owns structured runtime plugin availability reports for profiles, targets, manifests, and registration reports.
 - `extensions.rs` owns aggregation of plugin extension registries into runtime-owned asset importer registries.
 - `plugin_modules.rs` owns the current built-in versus externalized plugin-domain mapping.
-- `assembly.rs` owns the orchestration functions that combine profile, manifest, registration reports, feature registration reports, extension registries, and module construction.
+- `assembly.rs` owns the orchestration functions that combine profile, manifest, registration reports, feature registration reports, and module construction.
+- `assembly/registration_inputs.rs` owns active plugin/feature report filtering plus linked-plugin id, render-extension, runtime-provider, and asset-importer aggregation.
+- `assembly/target_modules.rs` owns target/manifest module-list construction, linked-provider checks, built-in/externalized plugin selection, and required-missing diagnostics.
 - `tests/` mirrors the behavior split: manifest baseline behavior, availability reporting, registration/bootstrap behavior, and shared fixtures.
 
 ## Architecture Notes
@@ -75,10 +83,14 @@ The current slice is intentionally a structural cutover rather than a behavior r
 
 The follow-up M2 provider slice moved linked first-party registration into `zircon_first_party_runtime_catalog`. The runtime assembly facade still consumes registration reports and stays independent of concrete plugin crates; the app wrapper only projects config and render-profile selections before delegating provider lookup to the catalog.
 
+The 2026-06-07 M2 registration-input split moved extension registry traversal out of `assembly.rs`. Profile and target assembly now call a private registration-input owner for active plugin reports, active feature reports, linked provider ids, asset importer registration, render feature descriptors, render pass executors, runtime prepare collectors, and runtime provider registrations. This keeps `assembly.rs` as the profile/manifest orchestration boundary while preventing it from regrowing plugin extension aggregation behavior.
+
+The same M2 assembly pass moved target/manifest module selection into `assembly/target_modules.rs`. That child owns `ProjectPluginManifest::enabled_for_target(...)` traversal, linked-provider availability, built-in versus externalized plugin module handoff, and `RuntimeRequiredPluginMissing` construction. `assembly.rs` now composes profile, manifest, plugin registration, and feature dependency flow without owning the target module-selection loop.
+
 ## Invariants
 
 - Root `runtime_modules.rs` must stay structural: child module declarations, curated re-exports, and test module wiring only.
-- Assembly code may orchestrate target/profile/plugin registration flow, but plugin identity parsing belongs in `ids.rs`, availability reports belong in `availability.rs`, manifest defaults belong in `manifest.rs`, and concrete built-in module vector construction belongs in `core_modules.rs`.
+- Assembly code may orchestrate target/profile/plugin registration flow, but plugin identity parsing belongs in `ids.rs`, availability reports belong in `availability.rs`, registration-input aggregation belongs in `assembly/registration_inputs.rs`, target/manifest module selection belongs in `assembly/target_modules.rs`, manifest defaults belong in `manifest.rs`, and concrete built-in module vector construction belongs in `core_modules.rs`.
 - The only built-in plugin module loaded from this boundary remains the optional UI module behind `plugin-ui`; other runtime plugin implementations remain externalized to `zircon_plugins/*`.
 - Generated export code must consume this facade or runtime/plugin catalog APIs; it must not duplicate profile assembly, required-missing diagnostics, plugin-domain mapping, or linked-provider crate fan-out.
 

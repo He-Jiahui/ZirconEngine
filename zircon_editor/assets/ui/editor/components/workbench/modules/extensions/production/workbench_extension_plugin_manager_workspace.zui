@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui"
+version = 2
+display_name = "Workbench Extension Plugin Manager Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionPluginManagerWorkspace]
+root = "plugin_manager_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.plugin_manager_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPluginManagerWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_rail_gap" }, { node = "plugin_manager_left" }, { node = "plugin_manager_center" }, { node = "plugin_manager_right" }]
+
+[nodes.plugin_manager_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionPluginManagerRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.plugin_manager_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPluginManagerLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_title" }, { node = "plugin_manager_installed_tab" }, { node = "plugin_manager_dependencies_tab" }, { node = "plugin_manager_updates_tab" }, { node = "plugin_manager_audio_row" }, { node = "plugin_manager_renderdoc_row" }, { node = "plugin_manager_gameplay_row" }]
+
+[nodes.plugin_manager_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPluginManagerTitle"
+props = { text = "Plugin Manager" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.plugin_manager_installed_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPluginManagerInstalledTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Installed", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerInstalledTab", event = "Click", route = "workbench.extension.plugin_manager.installed" }]
+
+[nodes.plugin_manager_dependencies_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPluginManagerDependenciesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Dependencies", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerDependenciesTab", event = "Click", route = "workbench.extension.plugin_manager.dependencies" }]
+
+[nodes.plugin_manager_updates_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPluginManagerUpdatesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Updates", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerUpdatesTab", event = "Click", route = "workbench.extension.plugin_manager.updates" }]
+
+[nodes.plugin_manager_audio_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPluginManagerAudioRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Plugin_Audio", icon = "speaker", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerAudioRow", event = "Click", route = "workbench.extension.plugin_manager.plugin.audio" }]
+
+[nodes.plugin_manager_renderdoc_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPluginManagerRenderdocRow"
+classes = ["workbench-list-row"]
+props = { text = "Plugin_RenderDoc", icon = "camera", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerRenderdocRow", event = "Click", route = "workbench.extension.plugin_manager.plugin.render_doc" }]
+
+[nodes.plugin_manager_gameplay_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPluginManagerGameplayRow"
+classes = ["workbench-list-row"]
+props = { text = "Plugin_Gameplay", icon = "puzzle", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerGameplayRow", event = "Click", route = "workbench.extension.plugin_manager.plugin.gameplay" }]
+
+[nodes.plugin_manager_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPluginManagerCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_center_header" }, { node = "plugin_manager_dependency_table" }, { node = "plugin_manager_output" }]
+
+[nodes.plugin_manager_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPluginManagerCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "plugin_manager_center_title" }, { node = "plugin_manager_header_fill" }, { node = "plugin_manager_hot_reload_button" }, { node = "plugin_manager_validate_button" }]
+
+[nodes.plugin_manager_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPluginManagerCenterTitle"
+props = { text = "Plugin Dependency Graph" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.plugin_manager_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionPluginManagerHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.plugin_manager_hot_reload_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPluginManagerHotReloadButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Hot Reload", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 98.0, preferred = 98.0, max = 110.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerHotReload", event = "Click", route = "workbench.extension.plugin_manager.hot_reload" }]
+
+[nodes.plugin_manager_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPluginManagerValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate Plugin", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 122.0, preferred = 122.0, max = 134.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerValidate", event = "Click", route = "workbench.extension.plugin_manager.validate" }]
+
+[nodes.plugin_manager_dependency_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPluginManagerDependencyTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_audio_runtime_table_row" }, { node = "plugin_manager_renderdoc_bridge_table_row" }, { node = "plugin_manager_gameplay_pack_table_row" }, { node = "plugin_manager_version_warning_table_row" }]
+
+[nodes.plugin_manager_audio_runtime_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPluginManagerAudioRuntimeTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Audio Runtime", value_text = "enabled   v1.8.2   editor + game", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerAudioRuntimeTableRow", event = "Click", route = "workbench.extension.plugin_manager.dependency.audio_runtime" }]
+
+[nodes.plugin_manager_renderdoc_bridge_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPluginManagerRenderdocBridgeTableRow"
+classes = ["workbench-table-row"]
+props = { text = "RenderDoc Bridge", value_text = "editor only   optional dependency" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerRenderdocBridgeTableRow", event = "Click", route = "workbench.extension.plugin_manager.dependency.renderdoc_bridge" }]
+
+[nodes.plugin_manager_gameplay_pack_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPluginManagerGameplayPackTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Gameplay Pack", value_text = "requires online sessions   hot reloadable" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerGameplayPackTableRow", event = "Click", route = "workbench.extension.plugin_manager.dependency.gameplay_pack" }]
+
+[nodes.plugin_manager_version_warning_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPluginManagerVersionWarningTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Version Warning", value_text = "RenderDoc Bridge requests engine api 0.12" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerVersionWarningTableRow", event = "Click", route = "workbench.extension.plugin_manager.dependency.version_warning" }]
+
+[nodes.plugin_manager_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPluginManagerOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Plugin Output", value_text = "18 installed   3 updates   1 warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PluginManagerOutput", event = "Click", route = "workbench.extension.plugin_manager.output" }]
+
+[nodes.plugin_manager_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPluginManagerRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_details_title" }, { node = "plugin_manager_plugin_dropdown" }, { node = "plugin_manager_channel_dropdown" }, { node = "plugin_manager_version_field" }]
+
+[nodes.plugin_manager_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPluginManagerDetailsTitle"
+props = { text = "Plugin Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.plugin_manager_plugin_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPluginManagerPluginDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Audio Runtime", value = "Audio Runtime", options = ["Audio Runtime", "RenderDoc Bridge", "Gameplay Pack", "Telemetry"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PluginManagerPluginEdit", event = "Change", route = "workbench.extension.plugin_manager.plugin.edit" },
+  { id = "WorkbenchExtension/PluginManagerPluginCommit", event = "Submit", route = "workbench.extension.plugin_manager.plugin.commit" },
+]
+
+[nodes.plugin_manager_channel_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPluginManagerChannelDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Editor", value = "Editor", options = ["Editor", "Runtime", "Tools", "Experimental"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PluginManagerChannelEdit", event = "Change", route = "workbench.extension.plugin_manager.channel.edit" },
+  { id = "WorkbenchExtension/PluginManagerChannelCommit", event = "Submit", route = "workbench.extension.plugin_manager.channel.commit" },
+]
+
+[nodes.plugin_manager_version_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionPluginManagerVersionField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "Version", value = "1.8.2" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PluginManagerVersionEdit", event = "Change", route = "workbench.extension.plugin_manager.version.edit" },
+  { id = "WorkbenchExtension/PluginManagerVersionCommit", event = "Submit", route = "workbench.extension.plugin_manager.version.commit" },
+]

@@ -8,6 +8,9 @@ pub(crate) const RENDERDOC_MARKER_LIGHTING: &str = "zircon::Lighting";
 pub(crate) const RENDERDOC_MARKER_DEFERRED_LIGHTING: &str = "zircon::DeferredLighting";
 pub(crate) const RENDERDOC_MARKER_POST_PROCESS: &str = "zircon::PostProcess";
 pub(crate) const RENDERDOC_MARKER_HISTORY_COPY: &str = "zircon::HistoryCopy";
+pub(crate) const RENDERDOC_MARKER_TEXTURE_WRITEBACK: &str = "zircon::TextureWriteback";
+pub(crate) const RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION: &str =
+    "zircon::TextureWritebackConversion";
 pub(crate) const RENDERDOC_MARKER_OVERLAY: &str = "zircon::Overlay";
 pub(crate) const RENDERDOC_MARKER_UI: &str = "zircon::UI";
 pub(crate) const RENDERDOC_MARKER_READBACK: &str = "zircon::Readback";
@@ -23,6 +26,8 @@ pub(crate) const REQUIRED_RENDERDOC_STAGE_MARKERS: &[&str] = &[
     RENDERDOC_MARKER_DEFERRED_LIGHTING,
     RENDERDOC_MARKER_POST_PROCESS,
     RENDERDOC_MARKER_HISTORY_COPY,
+    RENDERDOC_MARKER_TEXTURE_WRITEBACK,
+    RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
     RENDERDOC_MARKER_OVERLAY,
     RENDERDOC_MARKER_UI,
     RENDERDOC_MARKER_READBACK,

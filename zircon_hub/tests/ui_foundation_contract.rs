@@ -1,1210 +1,946 @@
-//! Static contracts for Zircon Hub Material foundation and layout primitives.
+//! Static contracts for the Zircon Hub Tauri, React, and Material UI foundation.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
-}
-
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub should live below the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
+        fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
+            panic!("failed to read Hub crate file {path}: {error}");
         }),
     )
 }
 
-fn read_crate_file(name: &str) -> String {
-    normalize_newlines(
-        fs::read_to_string(crate_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub crate file {name}: {error}");
-        }),
-    )
+fn read_optional_crate_file(path: &str) -> Option<String> {
+    fs::read_to_string(crate_dir().join(path))
+        .ok()
+        .map(normalize_newlines)
 }
 
-fn count_component_declarations(source: &str) -> usize {
-    source
-        .lines()
-        .filter(|line| {
-            let trimmed = line.trim_start();
-            trimmed.starts_with("export component ") || trimmed.starts_with("component ")
-        })
-        .count()
-}
-
-#[test]
-fn components_entrypoint_stays_thin_and_reexports_new_modules() {
-    let components = read_ui_file("components.slint");
-    let line_count = components.lines().count();
-    assert!(
-        line_count <= 160,
-        "components.slint should remain a re-export entrypoint; found {line_count} lines"
-    );
-
-    for module in [
-        "tokens.slint",
-        "compact_page_components.slint",
-        "layout.slint",
-        "surfaces.slint",
-        "text_input_components.slint",
-        "inputs.slint",
-        "input_state_components.slint",
-        "shell_header_components.slint",
-        "shell_layout_components.slint",
-        "shell_sidebar_components.slint",
-        "shell_page_components.slint",
-        "button_components.slint",
-        "icon_button_components.slint",
-        "button_state_sample_components.slint",
-        "row_slot_components.slint",
-        "navigation.slint",
-        "data_display.slint",
-        "list_container_components.slint",
-        "table_view_components.slint",
-        "tree_view_components.slint",
-        "operation_timeline_components.slint",
-        "project_card_flow_components.slint",
-        "overlays.slint",
-        "dropdown_components.slint",
-        "drawer_window_components.slint",
-        "material_bridge.slint",
-    ] {
+fn assert_contains_all(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
         assert!(
-            components.contains(module),
-            "components.slint must re-export {module}"
+            source.contains(snippet),
+            "{label} must contain foundation snippet: {snippet}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{label} must not keep obsolete foundation snippet: {snippet}"
         );
     }
 }
 
 #[test]
-fn foundation_visual_tokens_include_focus_disabled_and_status_roles() {
-    let tokens = read_ui_file("tokens.slint");
-
-    for snippet in [
-        "in property <length> focus-ring-width: MaterialStyleMetrics.size_2;",
-        "in property <length> focus-ring-offset: MaterialStyleMetrics.size_2;",
-        "in property <color> focus-ring-color: MaterialPalette.primary;",
-        "in property <float> disabled-opacity: MaterialPalette.disable_opacity;",
-        "in property <color> status-neutral-fill: MaterialPalette.surface_container_high;",
-        "in property <color> status-neutral-stroke: MaterialPalette.outline_variant;",
-        "in property <color> status-neutral-foreground: MaterialPalette.on_surface_variant;",
-        "in property <color> status-info-fill: MaterialPalette.secondary_container;",
-        "in property <color> status-info-stroke: MaterialPalette.secondary;",
-        "in property <color> status-info-foreground: MaterialPalette.on_secondary_container;",
-        "in property <color> status-running-fill: rgb(16, 31, 31);",
-        "in property <color> status-running-stroke: rgb(53, 164, 163);",
-        "in property <color> status-running-foreground: rgb(46, 140, 139);",
-        "in property <color> status-success-fill: rgb(24, 32, 21);",
-        "in property <color> status-success-stroke: root.success-stroke;",
-        "in property <color> status-success-foreground: rgb(84, 128, 76);",
-        "in property <color> nav-active-fill: rgb(20, 55, 54);",
-        "in property <color> badge-accent-fill: rgb(28, 56, 56);",
-        "in property <color> badge-accent-stroke: rgb(42, 118, 121);",
-        "in property <color> badge-accent-foreground: MaterialPalette.on_primary_container;",
-        "in property <color> status-warning-fill: root.warning-fill;",
-        "in property <color> status-warning-stroke: root.warning-stroke;",
-        "in property <color> status-warning-foreground: rgb(160, 117, 49);",
-        "in property <color> status-error-fill: root.error-fill;",
-        "in property <color> status-error-stroke: root.error-stroke;",
-        "in property <color> status-error-foreground: rgb(145, 69, 61);",
-    ] {
-        assert!(
-            tokens.contains(snippet),
-            "HubVisualSpec must expose shared focus, disabled, and semantic status design tokens; missing {snippet}"
-        );
-    }
-}
-
-#[test]
-fn app_and_page_entrypoints_stay_structural() {
-    for (file, root_component) in [
-        ("app.slint", "HubWindow"),
-        ("projects.slint", "ProjectsPage"),
-        ("project_dashboard.slint", "ProjectDashboardPage"),
-        ("project_new_page.slint", "ProjectNewPage"),
-        ("project_browser_page.slint", "ProjectBrowserPage"),
-        ("project_detail_page.slint", "ProjectDetailPage"),
-        ("editor.slint", "EditorPage"),
-        ("builds.slint", "BuildsPage"),
-        ("settings.slint", "SettingsPage"),
-        ("cloud.slint", "CloudPage"),
-        ("team.slint", "TeamPage"),
-        ("assets.slint", "AssetsPage"),
-        ("plugins.slint", "PluginsPage"),
-        ("learn.slint", "LearnPage"),
-    ] {
-        let source = read_ui_file(file);
-        assert_eq!(
-            count_component_declarations(&source),
-            1,
-            "{file} should expose only its root {root_component}; helper/component bodies belong in focused owner modules"
-        );
-        assert!(
-            source.contains(&format!("export component {root_component} ")),
-            "{file} must keep {root_component} as its single root component"
-        );
-    }
-
-    let aggregate = read_ui_file("project_pages.slint");
-    let expected_aggregate = [
-        "export { ProjectNewPage } from \"project_new_page.slint\";",
-        "export { ProjectBrowserPage } from \"project_browser_page.slint\";",
-        "export { ProjectDetailPage } from \"project_detail_page.slint\";",
-    ];
-    assert_eq!(
-        aggregate.lines().collect::<Vec<_>>(),
-        expected_aggregate,
-        "project_pages.slint should remain a pure secondary-page aggregate with no implementation body"
-    );
-    assert!(
-        !ui_dir().join("shell.slint").exists(),
-        "shell.slint was a migration-only compatibility note and must stay deleted; shell ownership belongs to focused shell_*_components.slint files"
-    );
-}
-
-#[test]
-fn focused_component_modules_own_page_helpers() {
-    for (file, required_components) in [
-        (
-            "compact_page_components.slint",
-            &[
-                ComponentExport::Public("HubCompactTabStrip"),
-                ComponentExport::Public("HubWorkspaceTabStrip"),
-            ][..],
-        ),
-        (
-            "project_card_flow_components.slint",
-            &[
-                ComponentExport::Public("ProjectCover"),
-                ComponentExport::Public("ProjectCard"),
-                ComponentExport::Public("ProjectFlow"),
-                ComponentExport::Public("DashboardProjectCardsSection"),
-            ][..],
-        ),
-        (
-            "project_dashboard_components.slint",
-            &[
-                ComponentExport::Private("DashboardButtonStatesTitle"),
-                ComponentExport::Private("DashboardButtonStatesSectionLabel"),
-                ComponentExport::Public("DashboardToolbar"),
-                ComponentExport::Public("DashboardRecentProjectsPanel"),
-                ComponentExport::Public("DashboardQuickActionsPanel"),
-            ][..],
-        ),
-        (
-            "project_page_components.slint",
-            &[
-                ComponentExport::Private("PageHeaderTitleStack"),
-                ComponentExport::Public("PageHeader"),
-                ComponentExport::Public("ProjectCreateField"),
-                ComponentExport::Public("ProjectCreateActionRow"),
-                ComponentExport::Public("ProjectEngineChoiceList"),
-                ComponentExport::Private("ProjectCreateSectionLabel"),
-                ComponentExport::Public("ProjectCreateSettingsPanel"),
-                ComponentExport::Public("ProjectSettingSummaryRow"),
-                ComponentExport::Public("ProjectTemplateRailPanel"),
-            ][..],
-        ),
-        (
-            "project_browser_components.slint",
-            &[
-                ComponentExport::Public("ProjectFilterSelect"),
-                ComponentExport::Public("ProjectSortSelect"),
-                ComponentExport::Public("ProjectBrowserTableHeader"),
-                ComponentExport::Private("ProjectBrowserNameCell"),
-                ComponentExport::Public("ProjectBrowserRow"),
-                ComponentExport::Public("ProjectBrowserResultsPanel"),
-            ][..],
-        ),
-        (
-            "project_detail_components.slint",
-            &[
-                ComponentExport::Public("ProjectDetailPinToggleRow"),
-                ComponentExport::Private("ProjectDetailActionNote"),
-                ComponentExport::Public("ProjectDetailActionsSection"),
-                ComponentExport::Public("ProjectDetailStatusStrip"),
-                ComponentExport::Public("ProjectDetailInfoSection"),
-                ComponentExport::Public("ProjectDetailEngineSection"),
-                ComponentExport::Public("ProjectDetailMainPanel"),
-            ][..],
-        ),
-        (
-            "editor_page_components.slint",
-            &[
-                ComponentExport::Public("SourceEngineRow"),
-                ComponentExport::Public("EditorSideListPanel"),
-                ComponentExport::Public("EditorSourceEngineListPanel"),
-                ComponentExport::Public("EditorBuildHistoryPanel"),
-                ComponentExport::Public("EditorActionsPanel"),
-                ComponentExport::Public("EditorSourceSummaryPanel"),
-                ComponentExport::Public("EditorSourceSettingsPanel"),
-            ][..],
-        ),
-        (
-            "builds_page_components.slint",
-            &[
-                ComponentExport::Public("BuildSourceSummaryPanel"),
-                ComponentExport::Public("BuildControlsPanel"),
-                ComponentExport::Public("BuildPipelinePanel"),
-                ComponentExport::Public("BuildTaskHistoryPanel"),
-            ][..],
-        ),
-        (
-            "settings_page_components.slint",
-            &[
-                ComponentExport::Public("SettingsToolchainPanel"),
-                ComponentExport::Public("SettingsBuildDefaultsPanel"),
-                ComponentExport::Public("SettingsDefaultPathsPanel"),
-                ComponentExport::Public("SettingsConfigurationHealthPanel"),
-            ][..],
-        ),
-        (
-            "cloud_page_components.slint",
-            &[
-                ComponentExport::Public("CloudMetricSlot"),
-                ComponentExport::Public("CloudPackageActionsPanel"),
-                ComponentExport::Public("CloudServicesPanel"),
-            ][..],
-        ),
-        (
-            "team_page_components.slint",
-            &[
-                ComponentExport::Public("TeamActionRow"),
-                ComponentExport::Public("TeamIdentityRow"),
-                ComponentExport::Public("TeamSummarySlot"),
-                ComponentExport::Public("TeamMembersPanel"),
-                ComponentExport::Public("TeamActionsPanel"),
-            ][..],
-        ),
-        (
-            "catalog_page_components.slint",
-            &[
-                ComponentExport::Private("CatalogColumnRow"),
-                ComponentExport::Public("AssetRow"),
-                ComponentExport::Public("PluginRow"),
-                ComponentExport::Public("LearnRow"),
-                ComponentExport::Public("CatalogListPanel"),
-                ComponentExport::Public("CatalogPage"),
-            ][..],
-        ),
-        (
-            "catalog_detail_components.slint",
-            &[
-                ComponentExport::Private("CatalogDetailStatCell"),
-                ComponentExport::Private("CatalogDetailCheckRow"),
-                ComponentExport::Private("CatalogDetailPreviewBand"),
-                ComponentExport::Private("CatalogDetailStatGrid"),
-                ComponentExport::Private("CatalogDetailCheckList"),
-                ComponentExport::Public("CatalogDetailPanel"),
-            ][..],
-        ),
-        (
-            "row_slot_components.slint",
-            &[
-                ComponentExport::Public("HubRowLeadingIconSlot"),
-                ComponentExport::Public("HubRowMainSlot"),
-                ComponentExport::Public("HubRowMetaSlot"),
-                ComponentExport::Public("HubRowSelectionSlot"),
-                ComponentExport::Public("HubRowTrailingSlot"),
-            ][..],
-        ),
-        (
-            "button_components.slint",
-            &[
-                ComponentExport::Public("PillButton"),
-                ComponentExport::Private("HubCommandButtonLabel"),
-                ComponentExport::Public("HubCommandButton"),
-                ComponentExport::Public("HubHeaderCommandGroup"),
-                ComponentExport::Public("HubPanelNavigationCommand"),
-                ComponentExport::Public("HubActionCommandButton"),
-                ComponentExport::Public("HubActionStack"),
-                ComponentExport::Public("HubFormActionRow"),
-                ComponentExport::Public("HubDisclosureButton"),
-                ComponentExport::Public("HubPanelHeaderActionButton"),
-                ComponentExport::Private("HubUserMenuAvatarMark"),
-                ComponentExport::Private("HubUserMenuNameText"),
-                ComponentExport::Public("HubUserMenuTriggerButton"),
-                ComponentExport::Private("HubSidebarCollapseButtonLabel"),
-                ComponentExport::Public("HubSidebarCollapseButton"),
-                ComponentExport::Public("WindowButton"),
-            ][..],
-        ),
-        (
-            "icon_button_components.slint",
-            &[
-                ComponentExport::Public("IconButton"),
-                ComponentExport::Public("HubIconButton"),
-                ComponentExport::Public("HubTopbarIconButton"),
-                ComponentExport::Public("HubBackButton"),
-                ComponentExport::Public("HubFlowNextButton"),
-                ComponentExport::Public("HubRowActionButton"),
-                ComponentExport::Public("HubViewToggleButton"),
-                ComponentExport::Public("HubViewToggleGroup"),
-                ComponentExport::Public("HubFloatingIconButton"),
-                ComponentExport::Public("HubMoreMenuButton"),
-            ][..],
-        ),
-        (
-            "button_state_sample_components.slint",
-            &[
-                ComponentExport::Private("HubButtonStateTextSampleLabel"),
-                ComponentExport::Public("HubButtonStateTextSample"),
-                ComponentExport::Public("HubButtonStateIconSample"),
-            ][..],
-        ),
-        (
-            "navigation.slint",
-            &[
-                ComponentExport::Private("NavButtonLabel"),
-                ComponentExport::Public("NavButton"),
-                ComponentExport::Public("NavRail"),
-                ComponentExport::Public("HubTabs"),
-            ][..],
-        ),
-        (
-            "inputs.slint",
-            &[
-                ComponentExport::Private("HubSelectTriggerLabel"),
-                ComponentExport::Public("HubSelectTrigger"),
-                ComponentExport::Public("ToolbarSelect"),
-                ComponentExport::Public("DropDownButton"),
-                ComponentExport::Public("SegmentButton"),
-            ][..],
-        ),
-        (
-            "text_input_components.slint",
-            &[
-                ComponentExport::Private("SearchBoxPlaceholderText"),
-                ComponentExport::Public("SearchBox"),
-                ComponentExport::Public("HubTextField"),
-                ComponentExport::Public("HubPathFieldRow"),
-            ][..],
-        ),
-        (
-            "input_state_components.slint",
-            &[
-                ComponentExport::Public("HubCheckBox"),
-                ComponentExport::Public("HubCheckBoxRow"),
-                ComponentExport::Public("HubSwitch"),
-                ComponentExport::Private("HubToggleRowTextStack"),
-                ComponentExport::Public("HubToggleRow"),
-                ComponentExport::Public("HubComboBox"),
-            ][..],
-        ),
-        (
-            "data_display.slint",
-            &[
-                ComponentExport::Public("HubRowSurface"),
-                ComponentExport::Public("HubInteractiveRowSurface"),
-                ComponentExport::Private("HubMenuRowTrailingText"),
-                ComponentExport::Public("HubMenuRow"),
-                ComponentExport::Public("InfoRow"),
-                ComponentExport::Public("HubKeyValueRow"),
-                ComponentExport::Public("HubBadgeMetaStrip"),
-                ComponentExport::Public("ActionRow"),
-                ComponentExport::Private("MetricCardTextStack"),
-                ComponentExport::Public("MetricCard"),
-                ComponentExport::Public("HubMetricSlot"),
-                ComponentExport::Public("HubMetricSectionState"),
-                ComponentExport::Public("BuildHistoryRow"),
-            ][..],
-        ),
-        (
-            "list_container_components.slint",
-            &[
-                ComponentExport::Public("PanelListViewport"),
-                ComponentExport::Public("HubMenuListViewport"),
-                ComponentExport::Public("HubListView"),
-                ComponentExport::Public("HubListPanelSlot"),
-                ComponentExport::Public("HubTabbedListPanelSlot"),
-            ][..],
-        ),
-        (
-            "table_view_components.slint",
-            &[
-                ComponentExport::Public("TableColumnHeader"),
-                ComponentExport::Public("TableCellText"),
-                ComponentExport::Private("ProjectTableNameCell"),
-                ComponentExport::Public("ProjectTableRow"),
-                ComponentExport::Public("HubTableBody"),
-                ComponentExport::Public("DataTable"),
-                ComponentExport::Public("HubTableView"),
-            ][..],
-        ),
-        (
-            "tree_view_components.slint",
-            &[
-                ComponentExport::Public("HubTreeRow"),
-                ComponentExport::Public("HubTreeView"),
-            ][..],
-        ),
-        (
-            "operation_timeline_components.slint",
-            &[
-                ComponentExport::Public("OperationTimelineRow"),
-                ComponentExport::Public("OperationTimelinePanel"),
-            ][..],
-        ),
-        (
-            "shell_header_components.slint",
-            &[
-                ComponentExport::Public("HubTopHeader"),
-                ComponentExport::Private("WindowDragRegion"),
-                ComponentExport::Private("HeaderControlSlot"),
-                ComponentExport::Private("HeaderBrandTitleStack"),
-            ][..],
-        ),
-        (
-            "shell_header_popup_components.slint",
-            &[
-                ComponentExport::Public("HeaderEngineSelector"),
-                ComponentExport::Private("HeaderEngineOption"),
-                ComponentExport::Private("HeaderEngineOptionsList"),
-            ][..],
-        ),
-        (
-            "shell_layout_components.slint",
-            &[
-                ComponentExport::Public("HubShellRootSurface"),
-                ComponentExport::Public("HubShellStack"),
-                ComponentExport::Public("HubShellBody"),
-                ComponentExport::Public("HubWorkspaceSurface"),
-                ComponentExport::Public("HubPageContentSlot"),
-            ][..],
-        ),
-        (
-            "shell_sidebar_components.slint",
-            &[
-                ComponentExport::Public("HubNavigationDrawer"),
-                ComponentExport::Public("HubNavSidebar"),
-                ComponentExport::Private("NavStatusSummaryStack"),
-                ComponentExport::Private("NavStatusUpdateAction"),
-                ComponentExport::Public("NavStatusPanel"),
-                ComponentExport::Private("HubSidebarCollapseControl"),
-            ][..],
-        ),
-        (
-            "shell_page_components.slint",
-            &[
-                ComponentExport::Private("HubPageHeaderTitleStack"),
-                ComponentExport::Private("HubStatusDetailText"),
-                ComponentExport::Public("HubPageHeader"),
-                ComponentExport::Public("HubStatusBar"),
-            ][..],
-        ),
-    ] {
-        let source = read_ui_file(file);
-        for component in required_components {
-            let declaration = match component {
-                ComponentExport::Public(name) => format!("export component {name} "),
-                ComponentExport::Private(name) => format!("component {name} "),
-            };
-            assert!(
-                source.contains(&declaration),
-                "{file} must own focused page/chrome helper {component:?}"
-            );
-        }
-    }
-}
-
-#[derive(Debug)]
-enum ComponentExport {
-    Public(&'static str),
-    Private(&'static str),
-}
-
-#[test]
-fn hub_directly_declares_react_material_ui_theme_source() {
-    let material_ui_package = crate_dir()
-        .parent()
-        .expect("zircon_hub lives below the repository root")
-        .join("dev/material-ui/package.json");
-    assert!(
-        material_ui_package.is_file(),
-        "Hub must keep the checked-in Material UI reference tree available at {}",
-        material_ui_package.display()
-    );
-
-    let package_json = read_crate_file("package.json");
-    for snippet in [
-        "\"@mui/material\": \"9.0.1\"",
-        "\"@mui/icons-material\": \"9.0.1\"",
-        "\"@emotion/react\": \"latest\"",
-        "\"@emotion/styled\": \"latest\"",
-        "\"react\": \"19.2.7\"",
-    ] {
-        assert!(
-            package_json.contains(snippet),
-            "Zircon Hub React frontend must depend on real Material UI packages; missing {snippet}"
-        );
-    }
-
-    let theme = read_crate_file("web/src/theme/muiTheme.ts");
-    let tokens = read_crate_file("web/src/theme/tokens.ts");
-    for snippet in [
-        "createTheme",
-        "MuiButton",
-        "MuiCard",
-        "MuiIconButton",
-        "MuiOutlinedInput",
-        "hubTokens.colors.accent",
-        "hubTokens.colors.panel",
-    ] {
-        assert!(
-            theme.contains(snippet),
-            "React Material UI theme must own shared component styling instead of page-local paint; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "topBarHeight: 73",
-        "sidebarWidth: 222",
-        "pagePaddingX: 30",
-        "accent: \"#21d5cf\"",
-        "panel: \"#202020\"",
-    ] {
-        assert!(
-            tokens.contains(snippet),
-            "React Material UI tokens must preserve the Hub screenshot density and palette basis; missing {snippet}"
-        );
-    }
-
-    for source_path in [
-        "web/src/components/inputs/HubButton.tsx",
-        "web/src/components/inputs/HubSearchField.tsx",
-        "web/src/components/data/ProjectCard.tsx",
-        "web/src/components/data/ProjectTable.tsx",
-        "web/src/components/shell/NavigationDrawer.tsx",
-        "web/src/components/shell/TopBar.tsx",
-    ] {
-        let source = read_crate_file(source_path);
-        assert!(
-            source.contains("@mui/material") || source.contains("@mui/icons-material"),
-            "{source_path} must compose real Material UI packages, not a local clone"
-        );
-    }
-}
-
-#[test]
-fn hub_applies_zircon_material_theme_to_material_palette() {
-    let app = read_ui_file("app.slint");
-    let drawer_window = read_ui_file("drawer_window_components.slint");
-    for snippet in [
-        "import { ZirconMaterialTheme } from \"theme.slint\";",
-        "HubWindowView,",
-        "export component HubWindow inherits HubWindowView",
-        "ZirconMaterialTheme { }",
-    ] {
-        assert!(
-            app.contains(snippet),
-            "HubWindow must inherit the shared window wrapper and install the Zircon Material theme before rendering controls; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "import {",
-        "MaterialWindow,",
-        "} from \"material_bridge.slint\";",
-        "export component HubWindowView inherits MaterialWindow",
-    ] {
-        assert!(
-            drawer_window.contains(snippet),
-            "HubWindowView must own the imported Slint Material window after window-shell extraction; missing {snippet}"
-        );
-    }
-
-    let theme = read_ui_file("theme.slint");
-    for snippet in [
-        "import { MaterialPalette } from \"material_bridge.slint\";",
-        "export component ZirconMaterialTheme",
-        "MaterialPalette.schemes = {",
-        "primary: rgb(52, 213, 208),",
-        "primaryContainer: rgb(0, 81, 84),",
-        "tertiary: rgb(255, 202, 83),",
-        "background: rgb(13, 17, 20),",
-        "surfaceContainerLow: rgb(22, 27, 30),",
-    ] {
-        assert!(
-            theme.contains(snippet),
-            "Zircon Material theme must keep the Hub palette teal/dark instead of the template default blue; missing {snippet}"
-        );
-    }
-}
-
-#[test]
-fn hub_stays_standalone_tauri_launcher_boundary() {
-    let cargo_toml = read_crate_file("Cargo.toml");
+fn tauri_launcher_and_build_path_are_hard_cut_to_react_shell() {
+    let cargo = read_crate_file("Cargo.toml");
     let build = read_crate_file("build.rs");
     let lib = read_crate_file("src/lib.rs");
     let main = read_crate_file("src/main.rs");
-    let tauri_app = read_crate_file("src/tauri_app.rs");
+    let launcher = read_crate_file("src/tauri_app/mod.rs");
+
+    assert_contains_all(
+        &cargo,
+        &[
+            "autobins = false",
+            "[[bin]]",
+            "name = \"zircon_hub\"",
+            "path = \"src/main.rs\"",
+            "tauri = { version = \"2.11.2\", features = [] }",
+            "tauri-build = { version = \"2.6.2\", features = [] }",
+        ],
+        "Cargo.toml",
+    );
+    assert_not_contains_any(
+        &cargo.to_ascii_lowercase(),
+        &["slint", "i-slint"],
+        "Cargo.toml",
+    );
+
+    assert_contains_all(&build, &["fn main()", "tauri_build::build()"], "build.rs");
+    assert_not_contains_any(
+        &build.to_ascii_lowercase(),
+        &["i_slint_compiler", "include_generated"],
+        "build.rs",
+    );
+
+    assert_contains_all(
+        &lib,
+        &["pub mod tauri_app;", "pub use error::HubError;"],
+        "src/lib.rs",
+    );
+    assert!(
+        !lib.contains(&["pub mod ", "app;"].concat()),
+        "src/lib.rs must not expose the removed compiled UI module"
+    );
+    assert_contains_all(
+        &main,
+        &[
+            "fn main() -> Result<(), zircon_hub::HubError>",
+            "zircon_hub::tauri_app::run()",
+        ],
+        "src/main.rs",
+    );
+    assert_contains_all(
+        &launcher,
+        &[
+            "mod commands;",
+            "mod runtime_state;",
+            "mod view_model;",
+            "#[tauri::command]",
+            "fn hub_state(state: tauri::State<'_, HubCommandState>) -> Result<HubViewModel, String>",
+            "request: HubActionRequest",
+            "tauri::Builder::default()",
+            ".manage(HubCommandState::load()?)",
+            "tauri::generate_handler![hub_state, hub_action]",
+            "tauri::generate_context!()",
+        ],
+        "src/tauri_app/mod.rs",
+    );
+
+    assert!(
+        !crate_dir()
+            .join(["src", "app", "mod.rs"].iter().collect::<PathBuf>())
+            .exists(),
+        "the removed compiled UI module root must stay absent"
+    );
+    assert!(
+        !crate_dir()
+            .join(["src", "tauri_app.rs"].iter().collect::<PathBuf>())
+            .exists(),
+        "the Tauri boundary should stay folder-backed instead of collapsing into a one-file launcher"
+    );
+}
+
+#[test]
+fn tauri_configuration_uses_vite_window_and_capability_boundary() {
     let tauri_config = read_crate_file("tauri.conf.json");
-    let runtime = read_crate_file("src/app/runtime.rs");
-    let editor_launch = read_crate_file("src/process/editor_launch.rs");
+    let capability = read_crate_file("capabilities/default.json");
+    let vite = read_crate_file("vite.config.ts");
+    let package = read_crate_file("package.json");
 
-    for snippet in [
-        "name = \"zircon_hub\"",
-        "Standalone desktop launcher and install hub for ZirconEngine.",
-        "tauri = { version = \"2.11.2\" }",
-        "tauri-build = \"2.6.2\"",
-        "autobins = false",
-    ] {
-        assert!(
-            cargo_toml.contains(snippet),
-            "zircon_hub Cargo manifest must keep the standalone Tauri desktop launcher identity; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        &tauri_config,
+        &[
+            "\"$schema\": \"https://schema.tauri.app/config/2\"",
+            "\"beforeDevCommand\": \"npm run dev\"",
+            "\"beforeBuildCommand\": \"npm run build\"",
+            "\"devUrl\": \"http://localhost:1420\"",
+            "\"frontendDist\": \"web/dist\"",
+            "\"label\": \"main\"",
+            "\"width\": 1568",
+            "\"height\": 1003",
+            "\"minWidth\": 960",
+            "\"minHeight\": 680",
+            "\"decorations\": false",
+            "\"transparent\": true",
+            "\"icon\": [\"icons/icon.ico\"]",
+        ],
+        "tauri.conf.json",
+    );
+    assert_contains_all(
+        &capability,
+        &[
+            "\"$schema\": \"../gen/schemas/desktop-schema.json\"",
+            "\"identifier\": \"default\"",
+            "\"local\": true",
+            "\"windows\": [\"main\"]",
+            "\"core:default\"",
+            "\"core:window:allow-minimize\"",
+            "\"core:window:allow-toggle-maximize\"",
+            "\"core:window:allow-close\"",
+        ],
+        "capabilities/default.json",
+    );
+    assert_contains_all(
+        &vite,
+        &[
+            "import react from \"@vitejs/plugin-react\";",
+            "root: \"web\"",
+            "plugins: [react()]",
+            "port: 1420",
+            "strictPort: true",
+            "envPrefix: [\"VITE_\", \"TAURI_\"]",
+            "outDir: \"dist\"",
+        ],
+        "vite.config.ts",
+    );
+    assert_contains_all(
+        &package,
+        &[
+            "\"dev\": \"vite --host 127.0.0.1 --port 1420\"",
+            "\"build\": \"tsc -b && vite build\"",
+            "\"typecheck\": \"tsc -b\"",
+            "\"tauri:dev\": \"tauri dev\"",
+            "\"tauri:build\": \"tauri build\"",
+            "\"@mui/material\": \"9.0.1\"",
+            "\"@mui/icons-material\": \"9.0.1\"",
+            "\"@tauri-apps/api\": \"2.11.0\"",
+            "\"react\": \"19.2.7\"",
+            "\"@vitejs/plugin-react\": \"6.0.2\"",
+        ],
+        "package.json",
+    );
+}
 
-    let dependencies = cargo_toml
-        .split("[dependencies]")
-        .nth(1)
-        .and_then(|source| source.split("[build-dependencies]").next())
-        .expect("zircon_hub Cargo.toml must contain dependencies before build-dependencies");
-    for forbidden in [
-        "zircon_runtime",
-        "zircon_editor",
-        "zircon_app",
-        "libloading",
-        "webview =",
-        "wry =",
-        "tao =",
-    ] {
-        assert!(
-            !dependencies.contains(forbidden),
-            "zircon_hub runtime dependencies must not pull editor/runtime lifecycle or direct WebView stacks outside Tauri: {forbidden}"
-        );
-    }
+#[test]
+fn react_root_installs_mui_theme_and_backend_state_flow() {
+    let main = read_crate_file("web/src/main.tsx");
+    let app_path = ["web/src", "App.tsx"].join("/");
+    let app = read_crate_file(&app_path);
+    let hub_api = read_crate_file("web/src/tauri/hubApi.ts");
 
-    for snippet in ["tauri_build::build()", "fn main()"] {
-        assert!(
-            build.contains(snippet),
-            "build.rs must delegate desktop resource generation to Tauri; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "zircon_editor/ui",
-        "zircon_runtime/ui",
-        "i_slint_compiler",
-        "SLINT_INCLUDE_GENERATED",
-        "ui/app.slint",
-    ] {
-        assert!(
-            !build.to_ascii_lowercase().contains(forbidden),
-            "build.rs must not keep the old Slint compiler path or route through editor/runtime UI paths: {forbidden}"
-        );
-    }
+    assert_contains_all(
+        &main,
+        &[
+            "import React from \"react\";",
+            "import ReactDOM from \"react-dom/client\";",
+            "import { CssBaseline, ThemeProvider } from \"@mui/material\";",
+            "import { App } from \"./App\";",
+            "import { hubTheme } from \"./theme/muiTheme\";",
+            "ReactDOM.createRoot(document.getElementById(\"root\") as HTMLElement).render(",
+            "<React.StrictMode>",
+            "<ThemeProvider theme={hubTheme}>",
+            "<CssBaseline />",
+            "<App />",
+        ],
+        "web/src/main.tsx",
+    );
+    assert_contains_all(
+        &app,
+        &[
+            "import { HubSnackbar } from \"./components/feedback\";",
+            "import { HubWindow } from \"./components/shell\";",
+            "import { fallbackShellState } from \"./data/hubData\";",
+            "import { dispatchHubAction, loadHubState, subscribeHubStateChanged } from \"./tauri/hubApi\";",
+            "const [state, setState] = useState<HubShellState>(fallbackShellState);",
+            "loadHubState().then((nextState) =>",
+            "subscribeHubStateChanged((nextState) =>",
+            "unlisten?.();",
+            "const handleAction: HubActionHandler = async (actionId, targetId, payload) =>",
+            "const nextState = await dispatchHubAction(actionId, targetId, payload);",
+            "<HubWindow state={state} onAction={handleAction} />",
+            "<HubSnackbar task={state.taskSummary} open={snackbarOpen}",
+        ],
+        app_path.as_str(),
+    );
+    assert_contains_all(
+        &hub_api,
+        &[
+            "import { invoke } from \"@tauri-apps/api/core\";",
+            "import { listen } from \"@tauri-apps/api/event\";",
+            "import type { UnlistenFn } from \"@tauri-apps/api/event\";",
+            "import { fallbackShellState } from \"../data/hubData\";",
+            "import type { HubActionId, HubActionPayload, HubShellState } from \"../types/hub\";",
+            "export async function loadHubState(): Promise<HubShellState>",
+            "return await invoke<HubShellState>(\"hub_state\");",
+            "export async function dispatchHubAction<TActionId extends HubActionId>(",
+            "payload?: HubActionPayload<TActionId>,",
+            "return await invoke<HubShellState>(\"hub_action\",",
+            "request: { actionId, targetId, payload }",
+            "export async function subscribeHubStateChanged",
+            "Promise<UnlistenFn>",
+            "listen<HubShellState>(\"hub-state-changed\"",
+            "function isTauriRuntime()",
+            "\"__TAURI_INTERNALS__\" in window",
+        ],
+        "web/src/tauri/hubApi.ts",
+    );
+}
 
-    assert!(
-        main.contains("zircon_hub::tauri_app::run()") && !main.contains("zircon_editor"),
-        "main.rs should remain a thin Tauri Hub launcher entrypoint without editor-owned UI startup"
+#[test]
+fn theme_tokens_define_window_density_palette_and_mui_overrides() {
+    let tokens = read_crate_file("web/src/theme/tokens.ts");
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let package = read_crate_file("package.json");
+
+    assert_contains_all(
+        &tokens,
+        &[
+            "export const hubTokens =",
+            "width: 1568",
+            "height: 1003",
+            "topBarHeight: 73",
+            "sidebarWidth: 222",
+            "sidebarCollapsedWidth: 78",
+            "pagePaddingX: 30",
+            "pagePaddingY: 28",
+            "compact: 7",
+            "panel: 8",
+            "card: 8",
+            "background: \"#111212\"",
+            "chrome: \"#151515\"",
+            "panel: \"#202020\"",
+            "lineStrong: \"rgba(255,255,255,0.16)\"",
+            "text: \"#eeeeee\"",
+            "accent: \"#21d5cf\"",
+            "success: \"#77d77a\"",
+            "warning: \"#ffc24d\"",
+            "error: \"#ef655e\"",
+            "panel: \"inset 0 0 0 1px rgba(255,255,255,0.04)",
+            "as const",
+        ],
+        "web/src/theme/tokens.ts",
+    );
+    assert_contains_all(
+        &theme,
+        &[
+            "import { createTheme } from \"@mui/material/styles\";",
+            "export const hubTheme = createTheme({",
+            "mode: \"dark\"",
+            "default: hubTokens.colors.background",
+            "paper: hubTokens.colors.panel",
+            "main: hubTokens.colors.accent",
+            "shape:",
+            "borderRadius: hubTokens.radius.compact",
+            "fontFamily: 'Inter, Roboto, \"Segoe UI\", Arial, sans-serif'",
+            "letterSpacing: 0",
+            "textTransform: \"none\"",
+            "MuiButton:",
+            "MuiCard:",
+            "MuiIconButton:",
+            "MuiMenu:",
+            "MuiOutlinedInput:",
+            "MuiSelect:",
+            "MuiTooltip:",
+        ],
+        "web/src/theme/muiTheme.ts",
+    );
+    assert_contains_all(
+        &package,
+        &[
+            "\"@emotion/react\": \"latest\"",
+            "\"@emotion/styled\": \"latest\"",
+            "\"@mui/material\": \"9.0.1\"",
+            "\"@mui/icons-material\": \"9.0.1\"",
+        ],
+        "package.json",
     );
     assert!(
-        lib.contains("pub mod tauri_app;") && !lib.contains("pub mod app;"),
-        "lib.rs must expose the Tauri launcher boundary and stop compiling the old Slint app module"
+        repo_dir()
+            .join("dev/material-ui/packages/mui-material/src")
+            .is_dir(),
+        "the checked-in Material UI reference source must remain available for Hub component taxonomy"
     );
-    for snippet in [
-        "#[tauri::command]",
-        "fn hub_state() -> HubShellState",
-        "fn hub_action(request: HubActionRequest) -> HubShellState",
-        "tauri::generate_handler![hub_state, hub_action]",
-        "tauri::generate_context!()",
-    ] {
-        assert!(
-            tauri_app.contains(snippet),
-            "tauri_app.rs must expose the initial Tauri command boundary for the React shell; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "\"devUrl\": \"http://localhost:1420\"",
-        "\"frontendDist\": \"web/dist\"",
-        "\"beforeDevCommand\": \"npm run dev\"",
-        "\"beforeBuildCommand\": \"npm run build\"",
-        "\"width\": 1568",
-        "\"height\": 1003",
-        "\"decorations\": false",
-        "\"icon\": [\"icons/icon.ico\"]",
-    ] {
-        assert!(
-            tauri_config.contains(snippet),
-            "tauri.conf.json must lock the Hub webview shell contract; missing {snippet}"
-        );
-    }
-    assert!(
-        !tauri_config.contains("slint") && !tauri_app.contains("slint"),
-        "Tauri config and launcher must not keep Slint runtime references"
-    );
-    for forbidden in ["zircon_runtime", "libloading"] {
-        assert!(
-            !lib.contains(forbidden) && !runtime.contains(forbidden),
-            "Hub library/runtime must not register or dynamically load engine/editor lifecycle surfaces: {forbidden}"
-        );
-    }
-    for forbidden in [
-        "use zircon_editor",
-        "zircon_editor::",
-        "extern crate zircon_editor",
-    ] {
-        assert!(
-            !lib.contains(forbidden) && !runtime.contains(forbidden),
-            "Hub library/runtime must not link editor lifecycle APIs directly; editor executable names belong only to child-process launch context: {forbidden}"
-        );
-    }
+}
 
-    for snippet in [
-        "pub enum EditorLaunchRequest",
-        "OpenProject { project_path: PathBuf }",
-        "CreateProject(CreateProjectRequest)",
-        "args.push(\"--project\".to_string());",
-        "args.push(\"--create-project\".to_string());",
-        "pub fn launch_editor(command: &EditorLaunchCommand) -> Result<Child, HubError>",
-        "Command::new(&command.executable)",
+#[test]
+fn component_family_barrels_match_bottom_up_material_layers() {
+    let inputs = read_crate_file("web/src/components/inputs/index.ts");
+    let data = read_crate_file("web/src/components/data/index.ts");
+    let feedback = read_crate_file("web/src/components/feedback/index.ts");
+    let overlays = read_crate_file("web/src/components/overlays/index.ts");
+    let shell = read_crate_file("web/src/components/shell/index.ts");
+
+    assert_contains_all(
+        &inputs,
+        &[
+            "export * from \"./HubButton\";",
+            "export * from \"./HubCheckbox\";",
+            "export * from \"./HubComboBox\";",
+            "export * from \"./HubIconButton\";",
+            "export * from \"./HubSearchField\";",
+            "export * from \"./HubSelect\";",
+            "export * from \"./HubSwitch\";",
+            "export * from \"./HubTabs\";",
+            "export * from \"./HubTextField\";",
+            "export * from \"./HubToggle\";",
+        ],
+        "components/inputs barrel",
+    );
+    assert_contains_all(
+        &data,
+        &[
+            "export * from \"./EmptyStateBlock\";",
+            "export * from \"./HubList\";",
+            "export * from \"./HubPanel\";",
+            "export * from \"./HubTreeView\";",
+            "export * from \"./MetricCard\";",
+            "export * from \"./ProjectCard\";",
+            "export * from \"./ProjectCover\";",
+            "export * from \"./ProjectTable\";",
+            "export * from \"./QuickActions\";",
+            "export * from \"./SourceEngineList\";",
+            "export * from \"./StatusBadge\";",
+        ],
+        "components/data barrel",
+    );
+    assert_not_contains_any(&data, &["ButtonStatesPanel"], "components/data barrel");
+    assert_contains_all(
+        &feedback,
+        &[
+            "export * from \"./HubSnackbar\";",
+            "export * from \"./HubStatusBanner\";",
+        ],
+        "components/feedback barrel",
+    );
+    assert_contains_all(
+        &overlays,
+        &[
+            "export * from \"./HubDialog\";",
+            "export * from \"./HubMenu\";",
+            "export * from \"./HubPopover\";",
+            "export * from \"./SourceEnginePopover\";",
+            "export * from \"./UserMenuPopover\";",
+        ],
+        "components/overlays barrel",
+    );
+    assert_contains_all(
+        &shell,
+        &[
+            "export * from \"./HubWindow\";",
+            "export * from \"./NavigationDrawer\";",
+            "export * from \"./TopBar\";",
+        ],
+        "components/shell barrel",
+    );
+}
+
+#[test]
+fn shell_and_pages_are_structural_composition_surfaces() {
+    let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
+    let top_bar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+
+    assert_contains_all(
+        &hub_window,
+        &[
+            "import { BuildsPage } from \"../../pages/BuildsPage\";",
+            "import { CatalogPage } from \"../../pages/CatalogPage\";",
+            "import { CloudPage } from \"../../pages/CloudPage\";",
+            "import { EditorPage } from \"../../pages/EditorPage\";",
+            "import { ProjectsDashboard } from \"../../pages/ProjectsDashboard\";",
+            "import { SettingsPage } from \"../../pages/SettingsPage\";",
+            "import { TeamPage } from \"../../pages/TeamPage\";",
+            "import { WorkspacePage } from \"../../pages/WorkspacePage\";",
+            "import { NavigationDrawer } from \"./NavigationDrawer\";",
+            "import { TopBar } from \"./TopBar\";",
+            "width: \"100vw\"",
+            "height: \"100vh\"",
+            "height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`",
+            "component=\"main\"",
+            "state.activePage === \"projects\"",
+            "<ProjectsDashboard state={state} onAction={onAction} />",
+            "<WorkspacePage state={state} onAction={onAction} />",
+        ],
+        "HubWindow",
+    );
+    assert_contains_all(
+        &top_bar,
+        &[
+            "import { StatusBadge } from \"../data\";",
+            "import { HubIconButton } from \"../inputs\";",
+            "import { SourceEnginePopover, UserMenuPopover } from \"../overlays\";",
+            "height: hubTokens.window.topBarHeight",
+            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
+            "state.taskStatus.map((status) =>",
+            "void onAction(HUB_ACTION.selectEngine, engineId);",
+            "void onAction(HUB_ACTION.showPage, \"settings\");",
+        ],
+        "TopBar",
+    );
+    assert_contains_all(
+        &drawer,
+        &[
+            "import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Tooltip, Typography } from \"@mui/material\";",
+            "import { useState } from \"react\";",
+            "const [collapsed, setCollapsed] = useState(false);",
+            "const drawerWidth = collapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;",
+            "width: drawerWidth",
+            "transition: \"width 160ms ease\"",
+            "text.navItems.map(({ id, label }) =>",
+            "const Icon = navIcons[id];",
+            "onClick={() => void onAction(HUB_ACTION.showPage, id)}",
+            "{text.engineStatus}",
+            "{text.checkForUpdates}",
+            "{text.checkForUpdatesDetail}",
+            "disabled",
+            "const collapseLabel = collapsed ? text.expand : text.collapse;",
+            "{collapseLabel}",
+            "onClick={() => setCollapsed((current) => !current)}",
+        ],
+        "NavigationDrawer",
+    );
+
+    for page in [
+        "ProjectsDashboard",
+        "ProjectBrowserPage",
+        "ProjectDetailPage",
+        "CatalogPage",
+        "EditorPage",
+        "BuildsPage",
+        "CloudPage",
+        "TeamPage",
+        "SettingsPage",
+        "WorkspacePage",
     ] {
+        let source = read_crate_file(&format!("web/src/pages/{page}.tsx"));
         assert!(
-            editor_launch.contains(snippet),
-            "Hub must launch the editor as a child process with stable CLI context instead of owning editor UI or runtime lifecycle; missing {snippet}"
+            source.contains(&format!("export function {page}(")),
+            "{page} must expose a single named page composition function"
+        );
+        assert!(
+            source.contains("from \"../components/"),
+            "{page} must assemble shared component families instead of becoming a local widget owner"
+        );
+        assert!(
+            source.contains("type {") || source.contains("import type"),
+            "{page} must consume typed backend DTOs"
+        );
+        assert!(
+            source.contains("@media (max-width:"),
+            "{page} must keep responsive layout constraints"
         );
     }
 }
 
 #[test]
-fn layout_primitives_and_tokens_are_declared() {
-    let layout = read_ui_file("layout.slint");
-    for primitive in [
-        "Stack",
-        "Row",
-        "Column",
-        "Flow",
-        "FlowScrollSurface",
-        "Page",
-        "PanelGrid",
-        "WorkspacePanelSection",
-        "ResponsiveSlot",
-        "ResponsiveState",
-        "Fill",
-        "Divider",
-    ] {
-        assert!(
-            layout.contains(&format!("component {primitive}")),
-            "layout.slint must declare {primitive}"
-        );
-    }
-    let fill = layout
-        .split("export component Fill")
-        .nth(1)
-        .and_then(|source| source.split("export component Divider").next())
-        .expect("layout.slint must declare Fill before Divider");
-    for snippet in [
-        "in property <length> fill-spacing: HubTokens.space-0;",
-        "horizontal-stretch: 1;",
-        "vertical-stretch: 1;",
-        "VerticalLayout {",
-        "spacing: root.fill-spacing;",
-        "@children",
-    ] {
-        assert!(
-            fill.contains(snippet),
-            "Fill must own child fill layout so page hosts do not repeat parent geometry bindings; missing {snippet}"
-        );
-    }
+fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
+    let commands = read_crate_file("src/tauri_app/commands.rs");
+    let action_request = read_crate_file("src/tauri_app/action_request.rs");
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let scoped_views = read_crate_file("src/tauri_app/runtime_state/scoped_views.rs");
+    let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
+    let build_actions = read_crate_file("src/tauri_app/runtime_state/build_actions.rs");
+    let editor_launch_actions =
+        read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
+    let project_delivery_actions =
+        read_crate_file("src/tauri_app/runtime_state/project_delivery_actions.rs");
+    let quick_actions = read_crate_file("src/tauri_app/runtime_state/quick_actions.rs");
+    let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let action_history_dto = read_crate_file("src/tauri_app/view_model/action_history.rs");
+    let coming_soon = read_crate_file("src/tauri_app/view_model/coming_soon.rs");
+    let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
+    let data = read_crate_file("web/src/data/hubData.ts");
 
-    let responsive_slot = layout
-        .split("export component ResponsiveSlot")
-        .nth(1)
-        .and_then(|source| source.split("export component ResponsiveState").next())
-        .expect("layout.slint must declare ResponsiveSlot before ResponsiveState");
-    for snippet in [
-        "in property <length> basis: HubTokens.panel-min-md;",
-        "in property <float> grow: 1;",
-        "in property <float> shrink: 1;",
-        "in property <int> order: 0;",
-    ] {
-        assert!(
-            responsive_slot.contains(snippet),
-            "ResponsiveSlot must keep shared Taffy sizing and ordering inputs; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "flex-basis: root.basis;",
-        "flex-grow: root.grow;",
-        "flex-shrink: root.shrink;",
-        "flex-order: root.order;",
-    ] {
-        assert!(
-            !responsive_slot.contains(forbidden),
-            "ResponsiveSlot must not set Slint flex properties inside the component definition; use sites mirror them on direct Flexbox children: {forbidden}"
-        );
-    }
-
-    let tokens = read_ui_file("tokens.slint");
-    for token in [
-        "import { MaterialPalette, MaterialStyleMetrics } from \"material_bridge.slint\";",
-        "space-0",
-        "space-1: MaterialStyleMetrics.spacing_4",
-        "space-2: MaterialStyleMetrics.spacing_8",
-        "space-3: MaterialStyleMetrics.spacing_12",
-        "space-4: MaterialStyleMetrics.spacing_16",
-        "breakpoint-compact: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_200 * 2",
-        "breakpoint-medium: MaterialStyleMetrics.size_640 * 2",
-        "breakpoint-wide: MaterialStyleMetrics.size_640 * 2 + MaterialStyleMetrics.size_256",
-        "page-padding: MaterialStyleMetrics.padding_28 + MaterialStyleMetrics.size_2",
-        "page-padding-compact: MaterialStyleMetrics.padding_16",
-        "panel-gap: MaterialStyleMetrics.spacing_16 - MaterialStyleMetrics.size_1 * 2",
-        "toolbar-gap: MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_1 * 2",
-        "icon-xs: MaterialStyleMetrics.spacing_16",
-        "icon-sm: MaterialStyleMetrics.icon_size_18",
-        "icon-md: MaterialStyleMetrics.size_20",
-        "icon-lg: MaterialStyleMetrics.padding_28",
-        "icon-xl: MaterialStyleMetrics.size_32 + MaterialStyleMetrics.size_1 * 2",
-        "control-sm: MaterialStyleMetrics.size_32 + MaterialStyleMetrics.size_1 * 2",
-        "control-md: MaterialStyleMetrics.size_40 - MaterialStyleMetrics.size_1 * 2",
-        "control-lg: MaterialStyleMetrics.size_40 + MaterialStyleMetrics.size_1 * 2",
-        "input-field: MaterialStyleMetrics.size_56",
-        "table-row: MaterialStyleMetrics.padding_28",
-        "list-row-sm: MaterialStyleMetrics.size_56",
-        "list-row-md: MaterialStyleMetrics.size_72",
-        "list-row-lg: MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_6",
-        "project-dashboard-toolbar-search-ratio: 0.24",
-        "project-dashboard-toolbar-select-ratio: 0.142",
-        "project-dashboard-card-ratio: 0.23125",
-        "project-dashboard-lower-compact-ratio: 0.60",
-        "project-dashboard-lower-regular-ratio: 0.393",
-        "project-dashboard-table-ratio: 0.58",
-        "project-new-main-stack-ratio: 0.60",
-        "project-new-side-stack-ratio: 0.40",
-        "project-browser-toolbar-search-ratio: 0.40",
-        "project-browser-toolbar-select-ratio: 0.125",
-        "project-detail-cover-ratio: 0.25",
-        "project-detail-info-row-ratio: 0.05",
-        "project-detail-version-badge-ratio: 0.10",
-        "project-detail-pin-badge-ratio: 0.0714286",
-        "project-detail-main-panel-ratio: 0.50",
-        "project-detail-action-panel-ratio: 0.25",
-        "project-detail-main-stack-ratio: 0.60",
-        "project-detail-action-stack-ratio: 0.40",
-        "workspace-row-editor-summary: root.control-md + root.list-row-sm * 3 + root.toolbar-gap * 3 + root.space-4 * 2",
-        "workspace-row-editor-config: MaterialStyleMetrics.size_200 * 2 + MaterialStyleMetrics.size_72 + MaterialStyleMetrics.size_4",
-        "workspace-row-build-summary: root.control-md + root.list-row-md * 5 + root.toolbar-gap * 5 + root.space-4 * 2",
-        "workspace-row-build-detail: root.control-md + root.list-row-md * 4 + root.toolbar-gap * 4 + root.space-4 * 2",
-        "workspace-row-settings-controls: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_6",
-        "workspace-row-settings-detail: MaterialStyleMetrics.size_200 * 2 - MaterialStyleMetrics.size_8",
-        "workspace-row-cloud-metrics: root.list-row-lg + root.space-6",
-        "workspace-row-team-summary: root.list-row-lg + root.space-7",
-        "breakpoint-short: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_256 + MaterialStyleMetrics.size_64",
-        "shell-row-min: MaterialStyleMetrics.size_52",
-        "shell-row-max: MaterialStyleMetrics.size_56",
-        "nav-width-collapsed-min: MaterialStyleMetrics.size_80",
-        "nav-width-collapsed-max: MaterialStyleMetrics.size_80",
-        "nav-width-expanded-min: MaterialStyleMetrics.size_200",
-        "window-resize-border: MaterialStyleMetrics.size_6",
-        "window-min-width: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_344",
-        "window-min-height: MaterialStyleMetrics.size_640",
-        "window-preferred-width: root.breakpoint-wide + root.nav-width-collapsed-min",
-        "window-preferred-height: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_360 + MaterialStyleMetrics.size_24",
-        "user-menu-min-width: root.nav-width-collapsed-max + root.control-lg + root.space-1",
-        "user-menu-max-width: root.nav-width-collapsed-max * 2 + root.space-1",
-        "surface-page: MaterialPalette.background",
-        "surface-panel: MaterialPalette.surface_container_low",
-        "accent: MaterialPalette.primary",
-    ] {
-        assert!(tokens.contains(token), "tokens.slint is missing {token}");
-    }
-
-    let panel_grid = layout
-        .split("export component PanelGrid")
-        .nth(1)
-        .and_then(|source| source.split("export component Page").next())
-        .expect("layout.slint must declare PanelGrid before Page");
-    for snippet in [
-        "in property <length> grid-padding: HubTokens.space-0;",
-        "in property <length> grid-padding-left: root.grid-padding;",
-        "in property <length> grid-padding-right: root.grid-padding;",
-        "in property <length> grid-padding-top: root.grid-padding;",
-        "in property <length> grid-padding-bottom: root.grid-padding;",
-        "padding-left: root.grid-padding-left;",
-        "padding-right: root.grid-padding-right;",
-        "padding-top: root.grid-padding-top;",
-        "padding-bottom: root.grid-padding-bottom;",
-    ] {
-        assert!(
-            panel_grid.contains(snippet),
-            "PanelGrid must expose token-backed padding slots without page-local wrapper geometry; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "background: HubVisualSpec",
-        "HubPanel {",
-        "PanelSlot {",
-        "MaterialText {",
-        "ActionRow {",
-        "InfoRow {",
-    ] {
-        assert!(
-            !panel_grid.contains(forbidden),
-            "PanelGrid must remain geometry-only and not absorb surface/display ownership: {forbidden}"
-        );
-    }
-
-    let page = layout
-        .split("export component Page")
-        .nth(1)
-        .and_then(|source| source.split("export component PageScrollSurface").next())
-        .expect("layout.slint must declare Page before PageScrollSurface");
-    for snippet in [
-        "in property <length> page-padding: root.width < HubTokens.breakpoint-compact ? HubTokens.page-padding-compact : HubTokens.page-padding;",
-        "in property <length> page-padding-x: root.page-padding;",
-        "in property <length> page-padding-y: root.page-padding;",
-        "padding-left: root.page-padding-x;",
-        "padding-right: root.page-padding-x;",
-        "padding-top: root.page-padding-y;",
-    ] {
-        assert!(
-            page.contains(snippet),
-            "PageScrollSurface must own compact-aware token padding and derived content geometry; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "PanelHeader {",
-        "HubPanel {",
-        "ActionRow {",
-        "InfoRow {",
-        "StatusBanner {",
-    ] {
-        assert!(
-            !page.contains(forbidden),
-            "PageScrollSurface must stay a scroll/layout primitive and not absorb chrome or row content: {forbidden}"
-        );
-    }
+    assert_contains_all(
+        &commands,
+        &[
+            "pub(super) struct HubCommandState",
+            "session: Arc<Mutex<HubRuntimeSession>>",
+            "HubRuntimeSession::load()",
+            "pub(super) fn hub_state(",
+            "pub(super) fn hub_action(",
+            "HubRuntimeSession::should_run_action_in_background(&request)",
+            "let should_spawn = session.start_background_action_or_record_error(&request)?;",
+            "if should_spawn {",
+            "spawn_background_action(request, session_handle, app.clone());",
+            "run_background_build_action(request, session_handle, app);",
+            "run_background_package_action(request, session_handle, app);",
+            "run_background_install_action(request, session_handle, app);",
+            "run_background_editor_action(request, session_handle, app);",
+            "fn run_background_build_action(",
+            "session.prepare_background_editor_runtime_build()",
+            "run_build_command(pending_build.command())",
+            "session.complete_background_editor_runtime_build(",
+            "fn run_background_package_action(",
+            "session.prepare_background_project_package()",
+            "pending_package.run()",
+            "session.complete_background_project_package(",
+            "fn run_background_install_action(",
+            "session.prepare_background_device_install()",
+            "pending_install.run()",
+            "session.complete_background_device_install(",
+            "fn run_background_editor_action(",
+            "session.prepare_background_editor_launch()",
+            "pending_launch.run()",
+            "session.complete_background_editor_launch(",
+            "app.emit(\"hub-state-changed\", &view_model)",
+        ],
+        "tauri_app/commands.rs",
+    );
+    assert_contains_all(
+        &runtime_state,
+        &[
+            "pub(super) struct HubRuntimeSession",
+            "HubConfig::load(&config_path)?",
+            "load_editor_recent_project_session(&editor_config_path)?",
+            "merge_recent_projects(config.recent_projects, editor_recent.recent_projects)",
+            "mod scoped_views;",
+            "refresh_project_context_views",
+            "self.refresh_source_scoped_views()",
+            "self.refresh_selected_project_scoped_views()",
+            "pub(super) fn view_model(&self) -> HubViewModel",
+            "pub(super) fn apply_action(",
+            "match request.parse()?",
+            "HubAction::ShowPage { target_id }",
+            "HubAction::SearchProjects { query }",
+            "HubAction::SelectEngine { target_id }",
+            "HubAction::BuildProject { target_id, payload }",
+            "HubAction::PackageProject { target_id, payload }",
+            "HubAction::InstallDevice { target_id, payload }",
+            "HubAction::OpenEditor { target_id, payload }",
+            "persist_hub_config",
+        ],
+        "tauri_app/runtime_state.rs",
+    );
+    assert_contains_all(
+        &action_request,
+        &[
+            "pub(crate) struct HubActionRequest",
+            "pub(crate) enum HubAction",
+            "pub(crate) fn parse(&self) -> Result<HubAction, HubError>",
+            "\"show-page\" | \"page\"",
+            "\"search-projects\"",
+            "\"select-engine\"",
+            "\"build-project\"",
+            "\"package-project\"",
+            "\"install-device\"",
+            "\"open-editor\"",
+            "CreateProjectActionPayload",
+            "BrowseSettingsFolderPayload",
+            "OpenResourcePayload",
+            "OpenOutputFolderPayload",
+        ],
+        "tauri_app/action_request.rs",
+    );
+    assert_contains_all(
+        &scoped_views,
+        &[
+            "discover_asset_catalog_for_scope",
+            "discover_learn_catalog_for_scope",
+            "discover_plugin_catalog_with_project_roots",
+            "discover_team_overview",
+            "pub(super) fn refresh_source_scoped_views",
+            "pub(super) fn refresh_selected_project_scoped_views",
+            "fn selected_project_catalog_root(&self) -> Option<PathBuf>",
+            "fn source_engine_catalog_roots(&self) -> Vec<PathBuf>",
+            "push_development_roots(&mut roots, engine.source_dir.clone());",
+        ],
+        "tauri_app/runtime_state/scoped_views.rs",
+    );
+    assert_contains_all(
+        &action_tasks,
+        &[
+            "enum BackgroundHubAction",
+            "\"build-project\" => Some(Self::BuildProject)",
+            "\"package-project\" => Some(Self::PackageProject)",
+            "\"install-device\" => Some(Self::InstallDevice)",
+            "\"open-editor\" => Some(Self::OpenEditor)",
+            "TaskStatus::running_operation(",
+            "record_background_action_error",
+        ],
+        "runtime_state/action_tasks.rs",
+    );
+    assert_contains_all(
+        &build_actions,
+        &[
+            "pub(in crate::tauri_app) struct PendingEditorRuntimeBuild",
+            "pub(in crate::tauri_app) fn prepare_background_editor_runtime_build",
+            "pub(in crate::tauri_app) fn complete_background_editor_runtime_build",
+            "selected_or_latest_recent_project_with_engine_for_action",
+            "record_active_build(",
+        ],
+        "runtime_state/build_actions.rs",
+    );
+    assert_contains_all(
+        &editor_launch_actions,
+        &[
+            "pub(in crate::tauri_app) struct PendingEditorLaunch",
+            "pub(super) fn open_selected_project_or_editor",
+            "pub(in crate::tauri_app) fn prepare_background_editor_launch",
+            "pub(in crate::tauri_app) fn complete_background_editor_launch",
+            "launch_editor(command)?",
+            "Command::new(executable).spawn()?",
+            "record_editor_launch_failure(",
+        ],
+        "runtime_state/editor_launch_actions.rs",
+    );
+    assert_contains_all(
+        &project_delivery_actions,
+        &[
+            "pub(in crate::tauri_app) struct PendingProjectPackage",
+            "pub(in crate::tauri_app) struct PendingDeviceInstall",
+            "pub(super) fn package_recent_project",
+            "pub(super) fn install_recent_project_to_device",
+            "pub(in crate::tauri_app) fn prepare_background_project_package",
+            "pub(in crate::tauri_app) fn complete_background_project_package",
+            "pub(in crate::tauri_app) fn prepare_background_device_install",
+            "pub(in crate::tauri_app) fn complete_background_device_install",
+            "package_project(&self.request)",
+            "install_package_to_device(&install_request)",
+            "record_package_success(",
+        ],
+        "runtime_state/project_delivery_actions.rs",
+    );
+    assert_contains_all(
+        &quick_actions,
+        &["record_action_and_persist"],
+        "runtime_state/quick_actions.rs",
+    );
+    assert_contains_all(
+        &view_model,
+        &[
+            "#[derive(Debug, Clone, Serialize)]",
+            "pub(crate) struct HubViewModel",
+            "pub active_page: String",
+            "pub task_summary: HubTaskSummary",
+            "pub browser_projects: Vec<HubRecentProject>",
+            "pub selected_project: Option<HubProjectDetail>",
+            "pub quick_actions: Vec<HubQuickAction>",
+            "pub source_engines: Vec<HubSourceEngineSummary>",
+            "pub assets: Vec<HubAssetItem>",
+            "pub plugins: Vec<HubPluginItem>",
+            "pub learn_resources: Vec<HubLearnItem>",
+            "pub team: HubTeamSummary",
+            "pub action_history: Vec<HubActionHistoryItem>",
+            "pub coming_soon: Vec<HubComingSoonEntry>",
+            "pub settings: HubSettingsSummary",
+            "pub(crate) fn from_snapshot(snapshot: &HubSnapshot) -> Self",
+            "coming_soon: coming_soon_entries(snapshot.settings.language)",
+            "action_history: action_history_rows(",
+            "snapshot.settings.language",
+            "snapshot.filtered_recent_projects()",
+        ],
+        "tauri_app/view_model.rs",
+    );
+    assert_contains_all(
+        &action_history_dto,
+        &[
+            "pub(crate) struct HubActionHistoryItem",
+            "pub kind: String",
+            "record.action.id()",
+            "kind: record.action.id().to_string()",
+            "let text = HubTextBundle::new(language);",
+            "action: text.action_label(record.action).to_string()",
+            "status: text.action_status_label(record.status).to_string()",
+            "let detail = text.status_detail(&record.detail);",
+            "let log_excerpt = text.status_detail(&record.log_excerpt);",
+            "let detail_rows = action_history_detail_rows(",
+            ".map(|recovery| text.status_detail(recovery))",
+            "command_line: record.command_line.clone()",
+        ],
+        "tauri_app/view_model/action_history.rs",
+    );
+    assert_contains_all(
+        &ui_text,
+        &[
+            "pub(crate) struct HubActionText",
+            "pub open_resource: String",
+            "open_resource: text.pair(\"Open Resource\", \"打开资源\").to_string()",
+        ],
+        "tauri_app/view_model/ui_text.rs",
+    );
+    assert_contains_all(
+        &coming_soon,
+        &[
+            "pub(crate) struct HubComingSoonEntry",
+            "pub(crate) fn coming_soon_entries(language: HubLanguage) -> Vec<HubComingSoonEntry>",
+            "pub category_label: String",
+            "pub meta: String",
+            "\"asset-import\"",
+            "\"plugin-install\"",
+            "\"plugin-toggle\"",
+            "\"marketplace-download\"",
+            "\"remote-sync\"",
+            "\"account-service\"",
+            "\"cloud-repository\"",
+            "\"team-invite\"",
+            "\"team-permissions\"",
+            "\"remote-collaboration\"",
+            "fn coming_soon_category_label",
+            "\"local-delivery\" => text.pair(\"Local Delivery\", \"本地交付\")",
+            "let category_label = coming_soon_category_label(category, text).to_string();",
+            "let status = text.pair(\"Coming Soon\", \"敬请期待\").to_string();",
+            "meta: coming_soon_meta(&category_label, &status, text)",
+            "disabled: true",
+        ],
+        "tauri_app/view_model/coming_soon.rs",
+    );
+    assert_contains_all(
+        &types,
+        &[
+            "export interface HubShellState",
+            "export interface HubComingSoonEntry",
+            "export type HubActionHistoryKind",
+            "kind: HubActionHistoryKind;",
+            "export interface HubSettingsOptionText",
+            "buildProfileOptions: HubSettingsOptionText[];",
+            "languageOptions: HubSettingsOptionText[];",
+            "export interface OpenResourcePayload",
+            "openResource: string;",
+            "[HUB_ACTION.openResource]: OpenResourcePayload;",
+            "taskSummary: HubTaskSummary;",
+            "browserProjects: HubRecentProject[];",
+            "selectedProject?: HubProjectDetail | null;",
+            "sourceEngines: HubSourceEngineSummary[];",
+            "actionHistory: HubActionHistoryItem[];",
+            "comingSoon: HubComingSoonEntry[];",
+        ],
+        "web/src/types/hub.ts",
+    );
+    assert_contains_all(
+        &data,
+        &[
+            "import brandMarkAsset from \"../../../assets/brand/zircon-mark.svg\";",
+            "import elysiumCover from \"../../../assets/covers/reference/project-elysium.png\";",
+            "export const coverById: Record<string, string>",
+            "export const fallbackShellState: HubShellState",
+            "name: \"极乐纪事\"",
+            "status: \"当前\"",
+            "rustupPath: \"rustup\"",
+            "id: \"rustup-path\"",
+            "title: \"Rustup\"",
+            "kind: \"环境\"",
+            "source: \"项目\"",
+            "displayName: \"渲染管线\"",
+            "description: \"编辑器与运行时构建使用的前向和延迟渲染模块。\"",
+            "title: \"入门指南\"",
+            "category: \"指南\"",
+            "category: \"assets\"",
+            "category: \"plugins\"",
+            "category: \"local-delivery\"",
+            "category: \"team\"",
+            "status: \"敬请期待\"",
+            "disabled: true",
+        ],
+        "web/src/data/hubData.ts",
+    );
+    assert_not_contains_any(
+        &data,
+        &[
+            "docs/ui-and-layout/hub.png",
+            "hub-web-reference-1568x1003.png",
+            "hub-ai-drafts",
+            "name: \"Elysium Chronicles\"",
+            "status: \"Active\"",
+            "kind: \"Environment\"",
+            "source: \"Project\"",
+            "displayName: \"Render Pipeline\"",
+            "Forward and deferred renderer modules for editor and runtime builds.",
+            "title: \"Getting Started\"",
+            "category: \"Guide\"",
+        ],
+        "web/src/data/hubData.ts",
+    );
 }
 
 #[test]
-fn hub_surfaces_are_backed_by_material_cards() {
-    let components = read_ui_file("components.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    for snippet in [
-        "MaterialPalette",
-        "MaterialStyleMetrics",
-        "MaterialText",
-        "MaterialTypography",
-        "HubPanelHeaderActionButton",
-        "if root.variant == \"elevated\": ElevatedCard",
-        "if root.variant != \"elevated\": OutlinedCard",
-        "border-radius: HubVisualSpec.panel-radius",
-        "border-color: root.variant == \"danger\" ? HubVisualSpec.error-stroke",
-        "@children",
+fn coming_soon_entries_expose_visible_localized_categories() {
+    let coming_soon = read_optional_crate_file("src/tauri_app/view_model/coming_soon.rs")
+        .unwrap_or_else(|| read_crate_file("src/tauri_app/view_model/ui_text.rs"));
+    let types = read_crate_file("web/src/types/hub.ts");
+    let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
+    let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
+    let editor = read_crate_file("web/src/pages/EditorPage.tsx");
+    let team = read_crate_file("web/src/pages/TeamPage.tsx");
+    let data = read_crate_file("web/src/data/hubData.ts");
+
+    assert_contains_all(
+        &coming_soon,
+        &[
+            "pub category_label: String",
+            "fn coming_soon_category_label",
+            "\"assets\" => text.pair(\"Assets\", \"资产\")",
+            "\"plugins\" => text.pair(\"Plugins\", \"插件\")",
+            "\"local-delivery\" => text.pair(\"Local Delivery\", \"本地交付\")",
+            "\"team\" => text.pair(\"Team\", \"团队\")",
+            "let category_label = coming_soon_category_label(category, text).to_string();",
+            "meta: coming_soon_meta(&category_label, &status, text)",
+            "fn coming_soon_meta",
+        ],
+        "coming soon DTO",
+    );
+    assert_contains_all(
+        &types,
+        &["categoryLabel: string;", "meta: string;"],
+        "web/src/types/hub.ts",
+    );
+    for (label, source) in [
+        ("CatalogPage.tsx", catalog.as_str()),
+        ("CloudPage.tsx", cloud.as_str()),
+        ("EditorPage.tsx", editor.as_str()),
+        ("TeamPage.tsx", team.as_str()),
+    ] {
+        assert_contains_all(source, &["entry.meta"], label);
+        assert_not_contains_any(
+            source,
+            &["`${entry.categoryLabel} / ${entry.status}`"],
+            label,
+        );
+    }
+    assert_contains_all(
+        &data,
+        &[
+            "categoryLabel: \"资产\"",
+            "categoryLabel: \"插件\"",
+            "categoryLabel: \"本地交付\"",
+            "categoryLabel: \"团队\"",
+            "meta: \"资产 / 敬请期待\"",
+            "meta: \"插件 / 敬请期待\"",
+            "meta: \"本地交付 / 敬请期待\"",
+            "meta: \"团队 / 敬请期待\"",
+        ],
+        "web/src/data/hubData.ts",
+    );
+}
+
+#[test]
+fn foundation_contract_is_cut_over_to_react_sources() {
+    let source = read_crate_file("tests/ui_foundation_contract.rs");
+    let obsolete_ui_suffix = [".", "slint"].concat();
+    let obsolete_reader = ["read", "_ui", "_file"].concat();
+    let obsolete_root_reader = ["ui", "_dir"].concat();
+    let obsolete_app_path = ["src", "app"].join("/");
+
+    for obsolete in [
+        obsolete_ui_suffix.as_str(),
+        obsolete_reader.as_str(),
+        obsolete_root_reader.as_str(),
+        obsolete_app_path.as_str(),
     ] {
         assert!(
-            surfaces.contains(snippet),
-            "HubPanel must preserve its Hub API while using Material Card surfaces; missing {snippet}"
+            !source.contains(obsolete),
+            "foundation contract must not inspect the removed UI-file or app-module surfaces: {obsolete}"
         );
     }
 
-    let badge = surfaces
-        .split("export component Badge")
-        .nth(1)
-        .and_then(|source| source.split("export component StatusBadge").next())
-        .expect("surfaces.slint must declare Badge before StatusBadge");
-    for snippet in [
-        "MaterialText {",
-        "text: root.text;",
-        "style: MaterialTypography.label_medium;",
-        "horizontal_alignment: center;",
-        "vertical_alignment: center;",
-    ] {
-        assert!(
-            badge.contains(snippet),
-            "Badge should keep its Hub tone shell while delegating text styling to MaterialText; missing {snippet}"
-        );
-    }
-    assert!(
-        !badge.lines().any(|line| line.trim() == "Text {"),
-        "Badge should not return to a raw Text element for its label"
+    assert_contains_all(
+        &source,
+        &[
+            "web/src/main.tsx",
+            "App.tsx",
+            "web/src/theme/tokens.ts",
+            "web/src/theme/muiTheme.ts",
+            "web/src/components/inputs/index.ts",
+            "web/src/components/data/index.ts",
+            "web/src/components/feedback/index.ts",
+            "web/src/components/overlays/index.ts",
+            "web/src/components/shell/index.ts",
+            "src/tauri_app/mod.rs",
+            "src/tauri_app/commands.rs",
+            "src/tauri_app/runtime_state.rs",
+            "src/tauri_app/runtime_state/action_tasks.rs",
+            "src/tauri_app/runtime_state/quick_actions.rs",
+            "src/tauri_app/runtime_state/editor_launch_actions.rs",
+            "src/tauri_app/runtime_state/project_delivery_actions.rs",
+            "src/tauri_app/view_model/coming_soon.rs",
+            "src/tauri_app/view_model.rs",
+            "tauri.conf.json",
+            "capabilities/default.json",
+            "package.json",
+            "vite.config.ts",
+        ],
+        "foundation contract",
     );
-    for forbidden in [
-        "font-size: MaterialTypography.label_medium.font_size;",
-        "font-weight: MaterialTypography.label_medium.font_weight;",
-    ] {
-        assert!(
-            !badge.contains(forbidden),
-            "Badge should not return to raw Text/font bindings for its label: {forbidden}"
-        );
-    }
-
-    let hub_panel_end = surfaces
-        .find("export component HubCard")
-        .expect("surfaces.slint must declare HubCard after HubPanel");
-    let hub_panel = &surfaces[..hub_panel_end];
-    let children_index = hub_panel
-        .find("@children")
-        .expect("HubPanel must expose @children");
-    assert!(
-        !hub_panel[children_index..].contains("TouchArea"),
-        "HubPanel must not place a panel-level TouchArea above @children; it blocks nested controls"
-    );
-
-    let interactive_card = surfaces
-        .split("export component HubInteractiveCardSurface")
-        .nth(1)
-        .and_then(|source| source.split("export component PanelSlot").next())
-        .expect("surfaces.slint must declare HubInteractiveCardSurface before PanelSlot");
-    for snippet in [
-        "export component HubInteractiveCardSurface inherits HubPanel",
-        "in property <bool> selected: false;",
-        "in property <color> interaction-foreground: MaterialPalette.on_surface;",
-        "callback clicked;",
-        "variant: root.selected ? \"selected\" : \"interactive\";",
-        "StateLayerArea {",
-        "color: root.interaction-foreground;",
-        "border_radius: HubVisualSpec.panel-radius;",
-        "root.clicked();",
-        "@children",
-    ] {
-        assert!(
-            surfaces.contains(snippet) || interactive_card.contains(snippet),
-            "HubInteractiveCardSurface must centralize reusable Material card action state; missing {snippet}"
-        );
-    }
-    assert!(
-        components.contains("HubInteractiveCardSurface,"),
-        "components.slint must re-export HubInteractiveCardSurface for typed card components"
-    );
-    for forbidden in ["TouchArea", "MaterialText {", "Image {"] {
-        assert!(
-            !interactive_card.contains(forbidden),
-            "HubInteractiveCardSurface should own only card chrome/interaction and leave content to typed cards: {forbidden}"
-        );
-    }
-
-    let panel_header = surfaces
-        .split("export component PanelHeader")
-        .nth(1)
-        .and_then(|source| source.split("export component StatusBanner").next())
-        .expect("surfaces.slint must declare PanelHeader before StatusBanner");
-    for snippet in [
-        "if root.show-action: HubPanelHeaderActionButton",
-        "button-width: root.action-width;",
-        "button-height: HubVisualSpec.toolbar-density-height;",
-        "text: root.action-text;",
-        "root.action-clicked();",
-        "MaterialText {",
-        "style: MaterialTypography.title_medium;",
-    ] {
-        assert!(
-            panel_header.contains(snippet),
-            "PanelHeader action should delegate to the shared button-family wrapper; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "panel-action-area",
-        "OutlineButton",
-        "TouchArea",
-        "CenteredIcon",
-    ] {
-        assert!(
-            !panel_header.contains(forbidden),
-            "PanelHeader action should not keep local button internals after delegating to HubPanelHeaderActionButton: {forbidden}"
-        );
-    }
-
-    let status_banner = surfaces
-        .split("export component StatusBanner")
-        .nth(1)
-        .and_then(|source| source.split("export component HubSectionSummary").next())
-        .expect("surfaces.slint must declare StatusBanner before HubSectionSummary");
-    for snippet in [
-        "MaterialText {",
-        "style: MaterialTypography.title_small;",
-        "height: HubTokens.list-row-sm;",
-        "vertical-stretch: 0;",
-    ] {
-        assert!(
-            status_banner.contains(snippet),
-            "StatusBanner title should use MaterialText typography; missing {snippet}"
-        );
-    }
-    let hub_section_summary = surfaces
-        .split("export component HubSectionSummary")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("export component HubSection inherits Rectangle")
-                .next()
-        })
-        .expect("surfaces.slint must declare HubSectionSummary before HubSection");
-    assert!(
-        components.contains("HubSectionSummary,"),
-        "components.slint must re-export HubSectionSummary for section-local summary content"
-    );
-    assert!(
-        surfaces.contains("export component HubSectionSummary inherits Rectangle"),
-        "surfaces.slint must expose HubSectionSummary as a lightweight Rectangle section-summary primitive"
-    );
-    for snippet in [
-        "in property <string> title;",
-        "in property <string> detail;",
-        "in property <bool> prominent: false;",
-        "MaterialText {",
-        "text: root.title;",
-        "style: root.prominent ? MaterialTypography.headline_small : MaterialTypography.title_small;",
-        "if root.detail != \"\": MutedText",
-    ] {
-        assert!(
-            hub_section_summary.contains(snippet),
-            "HubSectionSummary should centralize in-section title/detail typography without adding panel chrome; missing {snippet}"
-        );
-    }
-    let hub_section = surfaces
-        .split("export component HubSection inherits Rectangle")
-        .nth(1)
-        .expect("surfaces.slint must declare HubSection");
-    assert!(
-        surfaces.contains("export component HubSection inherits Rectangle"),
-        "surfaces.slint must expose HubSection as a lightweight Rectangle section primitive"
-    );
-    assert!(
-        surfaces.contains("in property <length> section-height: HubTokens.list-row-lg;")
-            && surfaces.contains("in property <length> section-spacing: HubTokens.toolbar-gap;"),
-        "HubSection must keep its default section height and spacing declarations"
-    );
-    for snippet in [
-        "in property <bool> stretch: false;",
-        "vertical-stretch: root.stretch ? 1 : 0;",
-        "PanelHeader {",
-        "title: root.title;",
-        "subtitle: root.subtitle;",
-        "@children",
-    ] {
-        assert!(
-            hub_section.contains(snippet),
-            "HubSection should centralize in-panel section headers without adding nested panel chrome; missing {snippet}"
-        );
-    }
-    for forbidden in ["HubPanel {", "PanelSlot {"] {
-        assert!(
-            !hub_section.contains(forbidden),
-            "HubSection must stay a lightweight in-panel section and avoid nested panel chrome: {forbidden}"
-        );
-    }
-    for (name, source) in [
-        ("PanelHeader", panel_header),
-        ("StatusBanner", status_banner),
-        ("HubSectionSummary", hub_section_summary),
-        ("HubSection", hub_section),
-    ] {
-        assert!(
-            !source.lines().any(|line| line.trim() == "Text {"),
-            "{name} title typography should not return to a raw Text element"
-        );
-        for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-            assert!(
-                !source.contains(forbidden),
-                "{name} title typography should not return to raw Text font bindings: {forbidden}"
-            );
-        }
-    }
 }

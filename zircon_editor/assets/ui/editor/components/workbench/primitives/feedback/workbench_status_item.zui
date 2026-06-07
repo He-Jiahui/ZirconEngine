@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui"
+version = 2
+display_name = "Workbench Status Item"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchStatusItem]
+root = "root"
+default_classes = ["workbench-status-item", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchStatusItemRoot"
+classes = ["workbench-status-item"]
+props = { text = "Status", font_size = 12.0, text_tone = "primary" }
+layout = { width = { min = 80.0, preferred = 112.0, max = 160.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

@@ -1,3 +1,4 @@
+#[cfg(all(feature = "cpal-backend", target_os = "windows"))]
 use super::super::super::*;
 
 #[cfg(all(feature = "cpal-backend", target_os = "windows"))]

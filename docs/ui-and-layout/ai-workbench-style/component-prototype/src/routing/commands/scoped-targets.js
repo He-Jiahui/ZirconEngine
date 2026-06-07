@@ -1,0 +1,21 @@
+export const moduleScopedRouteMap = new Map([
+  ["scene:preview", { moduleId: "scene", panelTarget: "module-bottom-scene:selection" }],
+  ["gameplay-effect:compile", { moduleId: "gameplay-effect", panelTarget: "module-bottom-gameplay-effect:compile-log" }],
+  ["gameplay-effect:diff", { moduleId: "gameplay-effect", panelTarget: "module-bottom-gameplay-effect:compile-log" }],
+  ["gameplay-effect:simulation", { moduleId: "gameplay-effect", panelTarget: "module-bottom-gameplay-effect:simulation-output" }],
+  ["material:compile", { moduleId: "material", panelTarget: "module-bottom-material:shader-output" }],
+  ["material:preview", { moduleId: "material", panelTarget: "module-bottom-material:preview-variants" }],
+  ["material:build", { moduleId: "material", panelTarget: "module-bottom-material:warnings" }],
+  ["behavior-tree:play", { moduleId: "behavior-tree", panelTarget: "behavior-right:execution" }],
+  ["behavior-tree:debug", { moduleId: "behavior-tree", panelTarget: "module-bottom-behavior-tree:runtime-trace" }],
+  ["behavior-tree:validate", { moduleId: "behavior-tree", panelTarget: "module-bottom-behavior-tree:validation-issues" }],
+  ["asset-browser:validate", { moduleId: "asset-browser", panelTarget: "module-bottom-asset-browser:validation" }],
+  ["asset-browser:build", { moduleId: "asset-browser", panelTarget: "module-bottom-asset-browser:cook" }],
+  ["vfx:simulate", { moduleId: "vfx", panelTarget: "module-bottom-vfx:timeline" }],
+  ["vfx:compile", { moduleId: "vfx", panelTarget: "module-bottom-vfx:compile-output" }],
+  ["component-lab:audit-inputs", { moduleId: "component-lab", panelTarget: "component-lab-right:inputs" }],
+  ["component-lab:audit-collections", { moduleId: "component-lab", panelTarget: "component-lab-main:collections" }],
+  ["component-lab:audit-surfaces", { moduleId: "component-lab", panelTarget: "component-lab-main:surfaces" }],
+  ["component-lab:responsive", { moduleId: "component-lab", panelTarget: "module-bottom-component-lab:responsive" }],
+  ["component-lab:native-handoff", { moduleId: "component-lab", panelTarget: "component-lab-right:native-handoff" }]
+]);

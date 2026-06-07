@@ -1,312 +1,452 @@
-//! Static API contracts for the Hub input and navigation primitive surface.
+//! Static API contracts for the React/MUI Hub input and navigation surface.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
-}
-
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-fn read_crate_file(name: &str) -> String {
+fn read_repo_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(crate_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub crate file {name}: {error}");
-        }),
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
     )
 }
 
-#[test]
-fn components_exports_locked_input_and_navigation_api() {
-    let components = read_ui_file("components.slint");
-
-    for snippet in [
-        "SelectOptionData,",
-        "HubSelectTrigger,",
-        "ToolbarSelect,",
-        "DropDownButton,",
-        "SegmentButton,",
-        "} from \"inputs.slint\";",
-        "HubTextField,",
-        "HubPathFieldRow,",
-        "SearchBox,",
-        "} from \"text_input_components.slint\";",
-        "HubCheckBox,",
-        "HubCheckBoxRow,",
-        "HubComboBox,",
-        "HubSwitch,",
-        "HubToggleRow,",
-        "} from \"input_state_components.slint\";",
-        "export { HubTabs, NavButton, NavRail } from \"navigation.slint\";",
-        "export { NavItemData } from \"shared.slint\";",
-        "NavigationItem,",
-        "MenuItem,",
-        "MaterialStyleMetrics,",
-        "MaterialPalette,",
-        "MaterialTypography,",
-        "} from \"material_bridge.slint\";",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            components.contains(snippet),
-            "components.slint must keep the stable input/navigation primitive export surface; missing {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain input/navigation API snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete input/navigation API snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn input_primitives_keep_public_state_and_callback_contracts() {
-    let inputs = read_ui_file("inputs.slint");
-    let text_inputs = read_ui_file("text_input_components.slint");
+fn input_barrel_exports_stable_react_wrapper_api_surface() {
+    let index = read_crate_file("web/src/components/inputs/index.ts");
 
-    let cases = [
-        (
-            "SearchBox",
+    assert_contains_all(
+        "components/inputs/index.ts",
+        &index,
+        &[
+            "export * from \"./HubButton\";",
+            "export * from \"./HubCheckbox\";",
+            "export * from \"./HubComboBox\";",
+            "export * from \"./HubIconButton\";",
+            "export * from \"./HubSearchField\";",
+            "export * from \"./HubSelect\";",
+            "export * from \"./HubSwitch\";",
+            "export * from \"./HubTabs\";",
+            "export * from \"./HubTextField\";",
+            "export * from \"./HubToggle\";",
+        ],
+    );
+}
+
+#[test]
+fn text_select_combo_and_binary_inputs_preserve_typed_props_and_callbacks() {
+    let search = read_crate_file("web/src/components/inputs/HubSearchField.tsx");
+    let text = read_crate_file("web/src/components/inputs/HubTextField.tsx");
+    let select = read_crate_file("web/src/components/inputs/HubSelect.tsx");
+    let combo = read_crate_file("web/src/components/inputs/HubComboBox.tsx");
+    let checkbox = read_crate_file("web/src/components/inputs/HubCheckbox.tsx");
+    let switch = read_crate_file("web/src/components/inputs/HubSwitch.tsx");
+
+    assert_contains_all(
+        "HubSearchField.tsx",
+        &search,
+        &[
+            "export interface HubSearchFieldProps",
+            "value: string;",
+            "placeholder: string;",
+            "compact?: boolean;",
+            "onChange: (value: string) => void;",
+            "onChange={(event) => onChange(event.target.value)}",
+            "slotProps",
+            "InputAdornment",
+        ],
+    );
+    assert_contains_all(
+        "HubTextField.tsx",
+        &text,
+        &[
+            "export interface HubTextFieldProps extends Omit<TextFieldProps, \"variant\" | \"size\">",
+            "minWidth?: number;",
+            "variant=\"outlined\"",
+            "size=\"small\"",
+            "Array.isArray(sx) ? sx : sx ? [sx] : []",
+        ],
+    );
+    assert_contains_all(
+        "HubSelect.tsx",
+        &select,
+        &[
+            "export interface HubSelectOption",
+            "export interface HubSelectProps",
+            "value: string;",
+            "options: HubSelectOption[];",
+            "minWidth?: number;",
+            "onChange: (value: string) => void;",
+            "const handleChange = (event: SelectChangeEvent) => {",
+            "onChange(event.target.value);",
+            "renderValue={(selected) =>",
+            "MenuItem key={option.value} value={option.value}",
+        ],
+    );
+    assert_contains_all(
+        "HubComboBox.tsx",
+        &combo,
+        &[
+            "export interface HubComboBoxOption",
+            "export interface HubComboBoxProps",
+            "value: string;",
+            "options: HubComboBoxOption[];",
+            "placeholder?: string;",
+            "minWidth?: number;",
+            "onChange: (value: string) => void;",
+            "const selected = options.find((option) => option.value === value) ?? null;",
+            "getOptionLabel={(option) => option.label}",
+            "isOptionEqualToValue={(option, current) => option.value === current.value}",
+            "onChange(option.value);",
+        ],
+    );
+    for (name, source, primitive) in [
+        ("HubCheckbox.tsx", checkbox, "Checkbox"),
+        ("HubSwitch.tsx", switch, "Switch"),
+    ] {
+        assert_contains_all(
+            name,
+            &source,
+            &[
+                "checked: boolean;",
+                "label: string;",
+                "detail?: string;",
+                "disabled?: boolean;",
+                "onChange?: (checked: boolean) => void;",
+                "const isDisabled = disabled || !onChange;",
+                "disabled={isDisabled}",
+                "onChange={(event) => onChange?.(event.target.checked)}",
+                primitive,
+                "FormControlLabel",
+            ],
+        );
+    }
+}
+
+#[test]
+fn button_icon_toggle_and_tabs_preserve_navigation_callback_contracts() {
+    let button = read_crate_file("web/src/components/inputs/HubButton.tsx");
+    let icon_button = read_crate_file("web/src/components/inputs/HubIconButton.tsx");
+    let toggle = read_crate_file("web/src/components/inputs/HubToggle.tsx");
+    let tabs = read_crate_file("web/src/components/inputs/HubTabs.tsx");
+
+    assert_contains_all(
+        "HubButton.tsx",
+        &button,
+        &[
+            "export type HubButtonTone = \"primary\" | \"secondary\" | \"tertiary\" | \"danger\";",
+            "export interface HubButtonProps extends Omit<ButtonProps, \"variant\">",
+            "tone?: HubButtonTone;",
+            "toneStyles[tone]",
+            "variant=\"contained\"",
+            "...asSxArray(sx)",
+        ],
+    );
+    assert_contains_all(
+        "HubIconButton.tsx",
+        &icon_button,
+        &[
+            "export interface HubIconButtonProps extends IconButtonProps",
+            "selected?: boolean;",
+            "label: string;",
+            "tooltip?: string;",
+            "Tooltip title={tooltip ?? label}",
+            "aria-label={label}",
+            "\"&.Mui-disabled\"",
+            "...asSxArray(sx)",
+        ],
+    );
+    assert_contains_all(
+        "HubToggle.tsx",
+        &toggle,
+        &[
+            "export interface HubToggleOption",
+            "value: string;",
+            "label: string;",
+            "icon: ReactNode;",
+            "export interface HubToggleProps",
+            "onChange: (value: string) => void;",
+            "ToggleButtonGroup",
+            "exclusive",
+            "nextValue: string | null",
+            "if (nextValue) {",
+            "onChange(nextValue);",
+            "aria-label={option.label}",
+        ],
+    );
+    assert_contains_all(
+        "HubTabs.tsx",
+        &tabs,
+        &[
+            "export interface HubTabOption",
+            "value: string;",
+            "label: string;",
+            "icon?: ReactElement;",
+            "export interface HubTabsProps",
+            "onChange: (value: string) => void;",
+            "Tabs",
+            "onChange={(_, nextValue: string) => onChange(nextValue)}",
+            "Tab",
+            "iconPosition=\"start\"",
+        ],
+    );
+}
+
+#[test]
+fn navigation_components_share_one_action_dispatcher_api() {
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
+    let app = read_crate_file("web/src/App.tsx");
+    let hub_api = read_crate_file("web/src/tauri/hubApi.ts");
+
+    assert_contains_all(
+        "NavigationDrawer.tsx",
+        &drawer,
+        &[
+            "export interface NavigationDrawerProps",
+            "activePage: string;",
+            "onAction: HubActionHandler;",
+            "const [collapsed, setCollapsed] = useState(false);",
+            "text.navItems.map",
+            "const selected = activePage === id;",
+            "selected={selected}",
+            "onClick={() => void onAction(HUB_ACTION.showPage, id)}",
+            "onClick={() => setCollapsed((current) => !current)}",
+            "@media (max-width: 980px)",
+        ],
+    );
+    assert_contains_all(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "export interface TopBarProps",
+            "state: HubShellState;",
+            "onAction: HubActionHandler;",
+            "const handleUserAction = (actionId: string) => {",
+            "void onAction(HUB_ACTION.showPage, \"settings\")",
+            "void onAction(HUB_ACTION.showPage, \"learn\")",
+            "void onAction(HUB_ACTION.showPage, \"team\")",
+            "void onAction(HUB_ACTION.selectEngine, engineId);",
+            "SourceEnginePopover",
+            "UserMenuPopover",
+            "HubIconButton label={state.ui.shell.settings}",
+        ],
+    );
+    assert_contains_all(
+        "HubWindow.tsx",
+        &hub_window,
+        &[
+            "export interface HubWindowProps",
+            "state: HubShellState;",
+            "onAction: HubActionHandler;",
+            "<TopBar state={state} onAction={onAction} />",
+            "<NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction}",
+            "ProjectsDashboard state={state} onAction={onAction}",
+            "CatalogPage state={state} onAction={onAction}",
+            "WorkspacePage state={state} onAction={onAction}",
+        ],
+    );
+    assert_contains_all(
+        "App.tsx",
+        &app,
+        &[
+            "const handleAction: HubActionHandler = async (actionId, targetId, payload) =>",
+            "dispatchHubAction(actionId, targetId, payload)",
+            "setState(nextState)",
+            "<HubWindow state={state} onAction={handleAction} />",
+        ],
+    );
+    assert_contains_all(
+        "hubApi.ts",
+        &hub_api,
+        &[
+            "dispatchHubAction<TActionId extends HubActionId>",
+            "invoke<HubShellState>(\"hub_action\"",
+            "request: { actionId, targetId, payload }",
+        ],
+    );
+}
+
+#[test]
+fn routed_pages_use_input_callbacks_for_navigation_and_filters() {
+    let projects = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
+    let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &projects,
+        &[
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "HubComboBox",
             "HubTextField",
-            &[
-                "in-out property <string> text;",
-                "in property <string> placeholder;",
-                "in property <bool> enabled: true;",
-                "out property <bool> focused: search-field.has-focus;",
-                "in property <length> box-width: HubTokens.input-width;",
-                "in property <length> box-height: HubVisualSpec.toolbar-density-height;",
-                "callback edited(string);",
-                "callback accepted(string);",
-                "forward-focus: search-field;",
-            ][..],
-        ),
-        (
+            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
+            "void onAction(HUB_ACTION.setProjectFilter, value)",
+            "void onAction(HUB_ACTION.setProjectSort, value)",
+            "void onAction(HUB_ACTION.setProjectViewMode, value)",
+            "void onAction(HUB_ACTION.viewAllProjects)",
+            "void onAction(HUB_ACTION.newProject)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectBrowserPage.tsx",
+        &browser,
+        &[
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "void onAction(HUB_ACTION.showProjectSubpage, \"dashboard\")",
+            "void onAction(HUB_ACTION.newProject)",
+            "void onAction(HUB_ACTION.openProjectDetail, project.id)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "HubTabs",
+            "onChange={setTab}",
+            "void onAction(HUB_ACTION.viewAllProjects)",
+            "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+        ],
+    );
+    assert_contains_all(
+        "CatalogPage.tsx",
+        &catalog,
+        &[
+            "HubSearchField",
+            "onChange={setQuery}",
+            "HubTabs value={tab}",
+            "onChange={setTab}",
+        ],
+    );
+    assert_contains_all(
+        "SettingsPage.tsx",
+        &settings,
+        &[
             "HubTextField",
-            "HubPathFieldRow",
-            &[
-                "in-out property <string> text;",
-                "in property <string> label;",
-                "in property <string> placeholder;",
-                "in property <string> supporting-text;",
-                "in property <bool> enabled: true;",
-                "out property <bool> focused: material-field.has-focus;",
-                "in property <image> leading-icon;",
-                "in property <image> trailing-icon;",
-                "callback edited(string);",
-                "callback accepted(string);",
-                "forward-focus: material-field;",
-            ][..],
-        ),
-        (
-            "HubPathFieldRow",
-            "",
-            &[
-                "in property <string> label;",
-                "in property <string> placeholder;",
-                "in property <string> supporting-text;",
-                "in-out property <string> text;",
-                "in property <bool> enabled: true;",
-                "in property <bool> show-action: true;",
-                "in property <bool> action-enabled: true;",
-                "in property <string> action-label;",
-                "in property <image> action-icon:",
-                "in property <length> field-height: HubTokens.input-field;",
-                "in property <length> action-width: HubTokens.control-md * 3;",
-                "callback action-clicked();",
-            ][..],
-        ),
-        (
-            "ToolbarSelect",
-            "DropDownButton",
-            &[
-                "in property <string> icon;",
-                "in property <image> icon-image;",
-                "in property <bool> has-icon-image: false;",
-                "in property <string> text;",
-                "in property <length> select-width: HubVisualSpec.toolbar-density-height * 7 / 2;",
-                "in property <length> select-height: HubVisualSpec.toolbar-density-height;",
-                "in property <bool> enabled: true;",
-                "in property <bool> focused: false;",
-                "in property <[MenuItem]> menu-items: [];",
-                "in property <[SelectOptionData]> options: [];",
-                "in property <int> option-count: 0;",
-                "callback selected(string);",
-                "callback selected-index(int);",
-            ][..],
-        ),
-        (
-            "DropDownButton",
-            "SegmentButton",
-            &[
-                "in property <string> text;",
-                "in property <image> icon-image;",
-                "in property <bool> has-icon-image: false;",
-                "in property <bool> active: false;",
-                "in property <bool> enabled: true;",
-                "in property <bool> focused: false;",
-                "in property <length> button-width: HubTokens.input-width * 2 / 5;",
-                "in property <length> button-height: HubTokens.control-md;",
-                "callback clicked;",
-            ][..],
-        ),
-        (
-            "SegmentButton",
-            "",
-            &[
-                "in property <string> text;",
-                "in property <bool> active;",
-                "in property <bool> enabled: true;",
-                "in property <bool> focused: false;",
-                "in property <length> button-height: HubTokens.control-md;",
-                "callback clicked;",
-            ][..],
-        ),
-    ];
-
-    for (component, next_component, required) in cases {
-        let owner = if matches!(component, "SearchBox" | "HubTextField" | "HubPathFieldRow") {
-            &text_inputs
-        } else {
-            &inputs
-        };
-        let component_source = owner
-            .split(&format!("export component {component}"))
-            .nth(1)
-            .and_then(|source| {
-                if next_component.is_empty() {
-                    Some(source)
-                } else {
-                    source
-                        .split(&format!("export component {next_component}"))
-                        .next()
-                }
-            })
-            .unwrap_or_else(|| panic!("input primitive owner must declare {component}"));
-
-        for snippet in required {
-            assert!(
-                component_source.contains(snippet),
-                "{component} must preserve its public primitive API; missing {snippet}"
-            );
-        }
-    }
+            "HubComboBox",
+            "HubCheckbox",
+            "HubSwitch",
+            "HubTabs",
+            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+        ],
+    );
 }
 
 #[test]
-fn hub_combobox_keeps_public_menu_adapter_contract() {
-    let input_state_components = read_ui_file("input_state_components.slint");
-    let component_source = input_state_components
-        .split("export component HubComboBox")
-        .nth(1)
-        .unwrap_or_else(|| panic!("input_state_components.slint must declare HubComboBox"));
+fn input_navigation_api_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
 
-    for snippet in [
-        "in property <string> label;",
-        "in property <bool> enabled: true;",
-        "in property <image> leading-icon;",
-        "in property <[MenuItem]> items: [];",
-        "in-out property <int> current-index: -1;",
-        "in property <length> combo-width: HubTokens.input-width;",
-        "in property <length> combo-height: HubTokens.input-field;",
-        "callback selected(int);",
-        "HubSelectDropDownSurface {",
-        "select-width: parent.width;",
-        "select-height: parent.height;",
-        "select-items: root.items;",
-        "current_index <=> root.current-index;",
-        "selected(index) =>",
-    ] {
-        assert!(
-            component_source.contains(snippet),
-            "HubComboBox must preserve its public Material menu adapter API; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_input_navigation_api_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_input_navigation_api_contract",
+            "## Input Navigation API Contract Cutover",
+            "React/MUI input/navigation API",
+            "web/src/components/inputs/index.ts",
+            "web/src/components/shell/NavigationDrawer.tsx",
+            "web/src/components/shell/TopBar.tsx",
+            "web/src/components/shell/HubWindow.tsx",
+            "web/src/App.tsx",
+            "web/src/tauri/hubApi.ts",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_input_navigation_api_contract.rs`",
+            "React/MUI input/navigation API",
+            "TypeScript props replace Slint exported input structs",
+            "NavigationDrawer, TopBar, HubWindow, App, and hubApi keep one action dispatcher",
+        ],
+    );
 }
 
 #[test]
-fn navigation_adapter_uses_one_nav_model_for_expanded_and_collapsed_routes() {
-    let shared = read_ui_file("shared.slint");
-    let navigation = read_ui_file("navigation.slint");
-    let app = read_ui_file("app.slint");
-    let sidebar = read_ui_file("shell_sidebar_components.slint");
-    let binding = read_crate_file("src/app/binding.rs");
-    let view_model = read_crate_file("src/app/view_model.rs");
+fn input_navigation_api_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_input_navigation_api_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
 
-    for snippet in [
-        "export struct NavItemData {",
-        "id: string,",
-        "title: string,",
-        "icon: string,",
-        "icon-image: image,",
-        "has-icon-image: bool,",
-        "active: bool,",
-    ] {
-        assert!(
-            shared.contains(snippet),
-            "NavItemData must remain the shared Hub navigation DTO; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "in property <[NavItemData]> items;",
-        "in property <[NavigationItem]> material-items;",
-        "in-out property <int> current-index: 0;",
-        "private property <[NavigationItem]> enabled-material-items: root.enabled ? root.material-items : [];",
-        "items: root.enabled-material-items;",
-        "current_index <=> root.current-index;",
-        "if root.enabled && index >= 0 && index < root.items.length",
-        "root.clicked(root.items[index].id);",
-        "for item in root.items: NavButton",
-    ] {
-        assert!(
-            navigation.contains(snippet),
-            "NavRail must keep collapsed Material routing and expanded Hub routing on one item model; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "in property <[NavigationItem]> material-nav-items;",
-        "in-out property <int> selected-nav-index: 0;",
-        "material-nav-items: root.material-nav-items;",
-        "selected-nav-index <=> root.selected-nav-index;",
-    ] {
-        assert!(
-            app.contains(snippet) || sidebar.contains(snippet),
-            "HubWindow/HubNavSidebar must forward Material navigation adapter data; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "let nav_items = view_model::navigation_items(snapshot.selected_page, language);",
-        "ui.set_selected_nav_index(view_model::selected_nav_index(&nav_items));",
-        "view_model::material_navigation_items(&nav_items)",
-        "ui.set_nav_items(view_model::model_from(nav_items));",
-    ] {
-        assert!(
-            binding.contains(snippet),
-            "binding.rs must derive both navigation projections from one nav_items vector; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "pub(super) fn material_navigation_items(items: &[NavItemData]) -> Vec<NavigationItem>",
-        "icon: item.icon_image.clone(),",
-        "selected_icon: item.icon_image.clone(),",
-        "text: item.title.clone(),",
-        "show_badge: false,",
-        "pub(super) fn selected_nav_index(items: &[NavItemData]) -> i32",
-    ] {
-        assert!(
-            view_model.contains(snippet),
-            "view_model.rs must keep Material NavigationItem as an adapter over NavItemData; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "ui_input_navigation_api_contract.rs",
+        &contract,
+        &[
+            "web/src/components/inputs/index.ts",
+            "web/src/components/inputs/HubButton.tsx",
+            "web/src/components/inputs/HubSearchField.tsx",
+            "web/src/components/inputs/HubSelect.tsx",
+            "web/src/components/inputs/HubComboBox.tsx",
+            "web/src/components/inputs/HubTabs.tsx",
+            "web/src/components/shell/NavigationDrawer.tsx",
+            "web/src/components/shell/TopBar.tsx",
+            "web/src/components/shell/HubWindow.tsx",
+            "web/src/App.tsx",
+            "web/src/tauri/hubApi.ts",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_input_navigation_api_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

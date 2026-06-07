@@ -1,15 +1,14 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
-    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiDispatchDisposition, UiDispatchEffect, UiFocusEffectReason, UiInputEvent,
-        UiInputEventMetadata, UiInputRoutePolicy, UiInputSequence, UiInputTimestamp,
-        UiKeyboardInputEvent, UiKeyboardInputState,
+        UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiFocusEffectReason,
+        UiInputEvent, UiInputEventMetadata, UiInputMethodRequestKind, UiInputRoutePolicy,
+        UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusedInputKind,
@@ -49,6 +48,27 @@ fn text_input_keyboard_text_payload_inserts_printable_text() {
 }
 
 #[test]
+fn text_input_keyboard_text_payload_refreshes_active_input_method_context() {
+    let mut surface = text_input_surface("ab", 1, []);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_key_with_text(&mut surface, "Z", 90, Some("Z"), |_| {});
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "aZb");
+    assert_eq!(result.applied_effects.len(), 1);
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    assert_eq!(request.owner, UiNodeId::new(2));
+    assert_eq!(request.surrounding_text.as_ref().unwrap().text, "aZb");
+    assert_eq!(request.surrounding_text.as_ref().unwrap().cursor_byte, 2);
+    assert_eq!(request.surrounding_text.as_ref().unwrap().anchor_byte, 2);
+    assert!(request.cursor_rect.is_some());
+    assert!(request.composition_rects.is_empty());
+    assert_eq!(surface.input.input_method_request, Some(request.clone()));
+}
+
+#[test]
 fn text_input_keyboard_text_payload_uses_constraints_and_selection() {
     let mut surface = text_input_surface_with_selection(
         "a9",
@@ -77,6 +97,18 @@ fn text_input_keyboard_text_payload_uses_constraints_and_selection() {
         }
     );
     assert_widget_binding_report(&result.binding_reports);
+}
+
+fn assert_input_method_request(
+    result: &zircon_runtime_interface::ui::dispatch::UiInputDispatchResult,
+    kind: UiInputMethodRequestKind,
+) -> &zircon_runtime_interface::ui::dispatch::UiInputMethodRequest {
+    assert_eq!(result.host_requests.len(), 1);
+    let UiDispatchHostRequestKind::InputMethod(request) = &result.host_requests[0].request else {
+        panic!("expected input method host request");
+    };
+    assert_eq!(request.kind, kind);
+    request
 }
 
 #[test]

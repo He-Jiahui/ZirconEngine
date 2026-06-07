@@ -1,5 +1,6 @@
 use zircon_runtime::core::framework::sound::SoundHrtfProfileDescriptor;
 
+use super::output_bed::clear_non_binaural_output_channels;
 use super::state::SoundHrtfRenderState;
 
 pub(crate) fn apply_loaded_hrtf_profile(
@@ -32,6 +33,7 @@ pub(crate) fn apply_loaded_hrtf_profile(
             profile.right_kernel.as_slice(),
         );
     }
+    clear_non_binaural_output_channels(buffer, channels);
 
     state.remember(
         &dry,

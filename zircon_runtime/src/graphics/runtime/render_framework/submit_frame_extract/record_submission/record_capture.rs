@@ -12,6 +12,12 @@ pub(super) fn record_capture(
 ) {
     record.store_capture(
         context.compiled_pipeline().clone(),
-        CapturedFrame::new(frame.width, frame.height, frame.rgba, frame.generation),
+        CapturedFrame::with_capture_report(
+            frame.width,
+            frame.height,
+            frame.rgba,
+            frame.generation,
+            frame.capture_report,
+        ),
     );
 }

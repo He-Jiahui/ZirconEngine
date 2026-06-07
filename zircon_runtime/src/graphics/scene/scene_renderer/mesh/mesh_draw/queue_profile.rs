@@ -41,6 +41,10 @@ impl MeshDrawQueuePhase {
             Self::Opaque
         }
     }
+
+    pub(crate) fn casts_shadow(self) -> bool {
+        matches!(self, Self::Opaque | Self::AlphaMask)
+    }
 }
 
 impl MeshDrawQueueProfile {
@@ -67,7 +71,7 @@ impl MeshDrawQueueProfile {
     }
 
     pub(crate) fn early_z_eligible(self) -> bool {
-        !matches!(self.phase, MeshDrawQueuePhase::Transparent)
+        self.phase.casts_shadow()
     }
 
     pub(crate) fn static_batch_eligible(self) -> bool {
@@ -86,6 +90,10 @@ impl MeshDrawQueueProfile {
         self.uses_indirect_draw
     }
 
+    pub(crate) fn motion_vector_history_eligible(self) -> bool {
+        self.mobility == Mobility::Dynamic
+    }
+
     fn direct_prepared_non_transparent(self) -> bool {
         self.geometry_source == MeshDrawGeometrySource::Prepared
             && !self.uses_indirect_draw
@@ -101,6 +109,10 @@ impl MeshDraw {
             self.mobility,
             self.uses_indirect_draw(),
         )
+    }
+
+    pub(crate) fn casts_shadow(&self) -> bool {
+        self.cast_shadows && self.queue_profile().phase().casts_shadow()
     }
 
     pub(crate) fn batch_key(&self) -> MeshDrawBatchKey {

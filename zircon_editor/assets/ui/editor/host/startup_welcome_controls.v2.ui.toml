@@ -19,14 +19,14 @@ component = "InputField"
 control_id = "ProjectNameEdited"
 props = { label = "Project", placeholder = "Project name", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
-events = [{ id = "WelcomeSurface/ProjectNameEdited", event = "Change", route = "WelcomeCommand.SetProjectName" }]
+events = [{ id = "WelcomeSurface/ProjectNameEdited", event = "Change", route = "workbench.welcome.set_project_name" }]
 
 [nodes.location]
 component = "InputField"
 control_id = "LocationEdited"
 props = { label = "Location", placeholder = "Project location", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
-events = [{ id = "WelcomeSurface/LocationEdited", event = "Change", route = "WelcomeCommand.SetLocation" }]
+events = [{ id = "WelcomeSurface/LocationEdited", event = "Change", route = "workbench.welcome.set_location" }]
 
 [nodes.actions]
 component = "HorizontalGroup"
@@ -39,14 +39,14 @@ component = "IconButton"
 control_id = "CreateProject"
 props = { label = "Create", icon = "add-circle-outline", surface_variant = "accent", button_variant = "primary", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "WelcomeCommand.CreateProject" }]
+events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "workbench.welcome.create_project" }]
 
 [nodes.open_existing]
 component = "IconButton"
 control_id = "OpenExistingProject"
 props = { label = "Open", icon = "editor_pages/workbench/menu/open-project.svg", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = "WelcomeCommand.OpenExistingProject" }]
+events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = "workbench.welcome.open_existing_project" }]
 
 [nodes.recent_actions]
 component = "HorizontalGroup"
@@ -59,11 +59,11 @@ component = "IconButton"
 control_id = "OpenRecentProject"
 props = { label = "Open Recent", icon = "editor_pages/asset_browser/navigation/recent.svg", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 116.0, preferred = 116.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "WelcomeCommand.OpenRecentProject" }]
+events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "workbench.welcome.open_recent_project" }]
 
 [nodes.remove_recent]
 component = "IconButton"
 control_id = "RemoveRecentProject"
 props = { label = "Remove", icon = "editor_pages/workbench/tabs/close-tab.svg", surface_variant = "danger", text_tone = "danger", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WelcomeSurface/RemoveRecentProject", event = "Click", route = "WelcomeCommand.RemoveRecentProject" }]
+events = [{ id = "WelcomeSurface/RemoveRecentProject", event = "Click", route = "workbench.welcome.remove_recent_project" }]

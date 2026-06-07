@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui"
+version = 2
+display_name = "Workbench Extension Level Variant Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionLevelVariantWorkspace]
+root = "level_variant_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.level_variant_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionLevelVariantWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_rail_gap" }, { node = "level_variant_left" }, { node = "level_variant_center" }, { node = "level_variant_right" }]
+
+[nodes.level_variant_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionLevelVariantRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.level_variant_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionLevelVariantLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_title" }, { node = "level_variant_variant_tab" }, { node = "level_variant_overrides_tab" }, { node = "level_variant_diff_tab" }, { node = "level_variant_set_row" }, { node = "level_variant_red_row" }, { node = "level_variant_actor_override_row" }]
+
+[nodes.level_variant_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionLevelVariantTitle"
+props = { text = "Level Variant" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.level_variant_variant_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionLevelVariantVariantTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Variant", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantVariantTab", event = "Click", route = "workbench.extension.level_variant.variant" }]
+
+[nodes.level_variant_overrides_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionLevelVariantOverridesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Overrides", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantOverridesTab", event = "Click", route = "workbench.extension.level_variant.overrides" }]
+
+[nodes.level_variant_diff_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionLevelVariantDiffTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Diff", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantDiffTab", event = "Click", route = "workbench.extension.level_variant.diff" }]
+
+[nodes.level_variant_set_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionLevelVariantSetRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Vehicle_Showcase", icon = "columns", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantSetRow", event = "Click", route = "workbench.extension.level_variant.set" }]
+
+[nodes.level_variant_red_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionLevelVariantRedRow"
+classes = ["workbench-list-row"]
+props = { text = "Variant_Red", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantRedRow", event = "Click", route = "workbench.extension.level_variant.red" }]
+
+[nodes.level_variant_actor_override_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionLevelVariantActorOverrideRow"
+classes = ["workbench-list-row"]
+props = { text = "Override_Material", icon = "layers", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantActorOverrideRow", event = "Click", route = "workbench.extension.level_variant.actor_override" }]
+
+[nodes.level_variant_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionLevelVariantCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_center_header" }, { node = "level_variant_override_table" }, { node = "level_variant_output" }]
+
+[nodes.level_variant_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionLevelVariantCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "level_variant_center_title" }, { node = "level_variant_header_fill" }, { node = "level_variant_preview_button" }, { node = "level_variant_apply_button" }]
+
+[nodes.level_variant_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionLevelVariantCenterTitle"
+props = { text = "Variant Overrides" }
+layout = { width = { min = 240.0, preferred = 240.0, max = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.level_variant_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionLevelVariantHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.level_variant_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionLevelVariantPreviewButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantPreview", event = "Click", route = "workbench.extension.level_variant.preview" }]
+
+[nodes.level_variant_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionLevelVariantApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantApply", event = "Click", route = "workbench.extension.level_variant.apply" }]
+
+[nodes.level_variant_override_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionLevelVariantOverrideTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_car_body_row" }, { node = "level_variant_wheel_fl_row" }, { node = "level_variant_light_rig_row" }, { node = "level_variant_door_l_row" }]
+
+[nodes.level_variant_car_body_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionLevelVariantCarBodyRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "CarBody", value_text = "Material   M_RedPaint   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantCarBodyTableRow", event = "Click", route = "workbench.extension.level_variant.override.car_body" }]
+
+[nodes.level_variant_wheel_fl_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionLevelVariantWheelFlRow"
+classes = ["workbench-table-row"]
+props = { text = "Wheel_FL", value_text = "Visible   true   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantWheelFlTableRow", event = "Click", route = "workbench.extension.level_variant.override.wheel_fl" }]
+
+[nodes.level_variant_light_rig_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionLevelVariantLightRigRow"
+classes = ["workbench-table-row"]
+props = { text = "Light_Rig", value_text = "Intensity   4.2   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantLightRigTableRow", event = "Click", route = "workbench.extension.level_variant.override.light_rig" }]
+
+[nodes.level_variant_door_l_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionLevelVariantDoorLRow"
+classes = ["workbench-table-row"]
+props = { text = "Door_L", value_text = "Transform   Conflict   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantDoorLTableRow", event = "Click", route = "workbench.extension.level_variant.override.door_l" }]
+
+[nodes.level_variant_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionLevelVariantOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Apply Log", value_text = "18 overrides   2 conflicts" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/LevelVariantOutput", event = "Click", route = "workbench.extension.level_variant.output" }]
+
+[nodes.level_variant_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionLevelVariantRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_variant_details_title" }, { node = "level_variant_variant_dropdown" }, { node = "level_variant_set_dropdown" }, { node = "level_variant_capture_field" }]
+
+[nodes.level_variant_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionLevelVariantDetailsTitle"
+props = { text = "Variant Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.level_variant_variant_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionLevelVariantVariantDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Variant_Red", value = "Variant_Red", options = ["Variant_Red", "Variant_Blue", "Variant_Day", "Variant_Night"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/LevelVariantVariantEdit", event = "Change", route = "workbench.extension.level_variant.variant.edit" },
+  { id = "WorkbenchExtension/LevelVariantVariantCommit", event = "Submit", route = "workbench.extension.level_variant.variant.commit" },
+]
+
+[nodes.level_variant_set_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionLevelVariantSetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Vehicle Showcase", value = "Vehicle Showcase", options = ["Vehicle Showcase", "City Block", "Environment", "Gameplay"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/LevelVariantSetEdit", event = "Change", route = "workbench.extension.level_variant.set.edit" },
+  { id = "WorkbenchExtension/LevelVariantSetCommit", event = "Submit", route = "workbench.extension.level_variant.set.commit" },
+]
+
+[nodes.level_variant_capture_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionLevelVariantCaptureField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Capture: Selected Props" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/LevelVariantCaptureEdit", event = "Change", route = "workbench.extension.level_variant.capture.edit" },
+  { id = "WorkbenchExtension/LevelVariantCaptureCommit", event = "Submit", route = "workbench.extension.level_variant.capture.commit" },
+]

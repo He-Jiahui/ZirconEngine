@@ -18,7 +18,7 @@ props = { text = "Sync" }
 [[root.bindings]]
 id = "SyncNow/onClick"
 event = "Click"
-route = "Route.Network.Sync"
+route = "route.network.sync"
 "##;
 
 const LOCALIZATION_REPORT_LAYOUT: &str = r##"
@@ -65,7 +65,7 @@ fn ui_asset_editor_projects_action_policy_report_items() {
     assert!(pane
         .action_policy_items
         .iter()
-        .any(|item| item.contains("Route.Network.Sync")));
+        .any(|item| item.contains("route.network.sync")));
 }
 
 #[test]

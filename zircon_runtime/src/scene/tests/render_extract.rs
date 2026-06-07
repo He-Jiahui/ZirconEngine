@@ -4,16 +4,18 @@ use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
 use crate::core::framework::render::{
-    DisplayMode, RenderExtractContext, RenderExtractProducer, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderPhase, RenderPhaseMeshSource, RenderVirtualGeometryDebugState,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    DisplayMode, RenderBloomSettings, RenderCameraOrderAmbiguity, RenderCameraTarget,
+    RenderCameraTargetOrderKey, RenderColorGradingSettings, RenderExtractContext,
+    RenderExtractProducer, RenderLayerSet, RenderMaterialAlphaMode, RenderPhase,
+    RenderPhaseMeshSource, RenderPostProcessVolumeProfile, RenderTonemapOperator,
+    RenderTonemapSettings, RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{AnimationSkeletonMarker, ResourceHandle, ResourceId, TextureMarker};
 use crate::scene::components::{
     AmbientLight, AnimationSkeletonComponent, CameraComponent, MeshRenderer, Mobility, NodeKind,
-    Sprite2dComponent,
+    PostProcessVolumeComponent, Sprite2dComponent,
 };
 use crate::scene::{DefaultLevelManager, World};
 
@@ -265,6 +267,31 @@ fn inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
 }
 
 #[test]
+fn hierarchy_inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Cube);
+    let camera = spawn_camera_on_layer(&mut world, 0b1111);
+    world.set_parent_checked(camera, Some(parent)).unwrap();
+    world.set_active_self(parent, false).unwrap();
+    world.set_active_camera(camera);
+    spawn_mesh_on_layer(&mut world, 0b0001, Mobility::Dynamic);
+    spawn_sprite_on_layer(&mut world, 0b0001);
+    world.spawn_node(NodeKind::DirectionalLight);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(703),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert!(!extract.view.camera.is_active);
+    assert!(extract.geometry.meshes.is_empty());
+    assert!(extract.geometry.phase_inputs.is_empty());
+    assert!(extract.sprites.sprites.is_empty());
+    assert!(extract.lighting.directional_lights.is_empty());
+    assert!(extract.visibility.renderable_entities.is_empty());
+}
+
+#[test]
 fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
@@ -320,6 +347,140 @@ fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers()
 }
 
 #[test]
+fn render_frame_extract_filters_lights_by_camera_layers() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+
+    let visible_ambient = spawn_light_on_layer(&mut world, NodeKind::AmbientLight, 0b0010);
+    let hidden_ambient = spawn_light_on_layer(&mut world, NodeKind::AmbientLight, 0b0100);
+    let visible_ambient_color = Vec3::new(0.2, 0.3, 0.4);
+    let hidden_ambient_color = Vec3::new(0.9, 0.1, 0.1);
+    world
+        .get_mut::<AmbientLight>(visible_ambient)
+        .unwrap()
+        .color = visible_ambient_color;
+    world
+        .get_mut::<AmbientLight>(visible_ambient)
+        .unwrap()
+        .intensity = 1.5;
+    world.get_mut::<AmbientLight>(hidden_ambient).unwrap().color = hidden_ambient_color;
+    world
+        .get_mut::<AmbientLight>(hidden_ambient)
+        .unwrap()
+        .intensity = 3.0;
+
+    let visible_directional = spawn_light_on_layer(&mut world, NodeKind::DirectionalLight, 0b0010);
+    let hidden_directional = spawn_light_on_layer(&mut world, NodeKind::DirectionalLight, 0b0100);
+    let visible_point = spawn_light_on_layer(&mut world, NodeKind::PointLight, 0b0010);
+    let hidden_point = spawn_light_on_layer(&mut world, NodeKind::PointLight, 0b0100);
+    let visible_rect = spawn_light_on_layer(&mut world, NodeKind::RectLight, 0b0010);
+    let hidden_rect = spawn_light_on_layer(&mut world, NodeKind::RectLight, 0b0100);
+    let visible_spot = spawn_light_on_layer(&mut world, NodeKind::SpotLight, 0b0010);
+    let hidden_spot = spawn_light_on_layer(&mut world, NodeKind::SpotLight, 0b0100);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(704),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.lighting.ambient_lights.len(), 1);
+    assert_eq!(
+        extract.lighting.ambient_lights[0].color,
+        visible_ambient_color
+    );
+    assert_eq!(extract.lighting.ambient_lights[0].intensity, 1.5);
+    assert_ne!(
+        extract.lighting.ambient_lights[0].color,
+        hidden_ambient_color
+    );
+    assert!(extract
+        .lighting
+        .directional_lights
+        .iter()
+        .any(|light| light.node_id == visible_directional));
+    assert!(extract
+        .lighting
+        .directional_lights
+        .iter()
+        .all(|light| light.node_id != hidden_directional));
+    assert!(extract
+        .lighting
+        .point_lights
+        .iter()
+        .any(|light| light.node_id == visible_point));
+    assert!(extract
+        .lighting
+        .point_lights
+        .iter()
+        .all(|light| light.node_id != hidden_point));
+    assert!(extract
+        .lighting
+        .rect_lights
+        .iter()
+        .any(|light| light.node_id == visible_rect));
+    assert!(extract
+        .lighting
+        .rect_lights
+        .iter()
+        .all(|light| light.node_id != hidden_rect));
+    assert!(extract
+        .lighting
+        .spot_lights
+        .iter()
+        .any(|light| light.node_id == visible_spot));
+    assert!(extract
+        .lighting
+        .spot_lights
+        .iter()
+        .all(|light| light.node_id != hidden_spot));
+
+    let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
+    assert_eq!(packet.scene.ambient_lights.len(), 1);
+    assert_eq!(packet.scene.ambient_lights[0].color, visible_ambient_color);
+    assert!(packet
+        .scene
+        .directional_lights
+        .iter()
+        .any(|light| light.node_id == visible_directional));
+    assert!(packet
+        .scene
+        .directional_lights
+        .iter()
+        .all(|light| light.node_id != hidden_directional));
+    assert!(packet
+        .scene
+        .point_lights
+        .iter()
+        .any(|light| light.node_id == visible_point));
+    assert!(packet
+        .scene
+        .point_lights
+        .iter()
+        .all(|light| light.node_id != hidden_point));
+    assert!(packet
+        .scene
+        .rect_lights
+        .iter()
+        .any(|light| light.node_id == visible_rect));
+    assert!(packet
+        .scene
+        .rect_lights
+        .iter()
+        .all(|light| light.node_id != hidden_rect));
+    assert!(packet
+        .scene
+        .spot_lights
+        .iter()
+        .any(|light| light.node_id == visible_spot));
+    assert!(packet
+        .scene
+        .spot_lights
+        .iter()
+        .all(|light| light.node_id != hidden_spot));
+}
+
+#[test]
 fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_extract() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
@@ -328,9 +489,13 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
     let scene_camera_visible_mesh = spawn_mesh_on_layer(&mut world, 0b0010, Mobility::Dynamic);
     let request_visible_sprite = spawn_sprite_on_layer(&mut world, 0b0100);
     let scene_camera_visible_sprite = spawn_sprite_on_layer(&mut world, 0b0010);
+    let request_visible_light =
+        spawn_light_on_layer(&mut world, NodeKind::DirectionalLight, 0b0100);
+    let scene_camera_visible_light =
+        spawn_light_on_layer(&mut world, NodeKind::DirectionalLight, 0b0010);
 
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
-        RenderWorldSnapshotHandle::new(704),
+        RenderWorldSnapshotHandle::new(705),
         SceneViewportExtractRequest {
             camera: Some(ViewportCameraSnapshot {
                 render_layers: RenderLayerSet::from_legacy_mask(0b0100),
@@ -381,6 +546,261 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
         .visibility
         .renderable_entities
         .contains(&scene_camera_visible_sprite));
+    assert!(extract
+        .lighting
+        .directional_lights
+        .iter()
+        .any(|light| light.node_id == request_visible_light));
+    assert!(extract
+        .lighting
+        .directional_lights
+        .iter()
+        .all(|light| light.node_id != scene_camera_visible_light));
+}
+
+#[test]
+fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+    let visible_volume = spawn_post_process_volume_on_layer(
+        &mut world,
+        0b0010,
+        PostProcessVolumeComponent::global(
+            8.0,
+            RenderPostProcessVolumeProfile::default()
+                .with_bloom(RenderBloomSettings {
+                    intensity: 0.75,
+                    radius: 0.4,
+                    ..RenderBloomSettings::default()
+                })
+                .with_color_grading(RenderColorGradingSettings {
+                    exposure: 1.4,
+                    ..RenderColorGradingSettings::default()
+                })
+                .with_effect_stack(
+                    crate::core::framework::render::RenderPostProcessEffectStackSettings {
+                        tonemap: RenderTonemapSettings {
+                            operator: RenderTonemapOperator::Aces,
+                            ..RenderTonemapSettings::default()
+                        },
+                        ..Default::default()
+                    },
+                ),
+        ),
+    );
+    let _hidden_volume = spawn_post_process_volume_on_layer(
+        &mut world,
+        0b0100,
+        PostProcessVolumeComponent::global(
+            16.0,
+            RenderPostProcessVolumeProfile::default().with_bloom(RenderBloomSettings {
+                intensity: 5.0,
+                ..RenderBloomSettings::default()
+            }),
+        ),
+    );
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(708),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+    let volume = &extract.post_process.volume_stack.volumes[0];
+    assert_eq!(volume.priority, 8.0);
+    assert!(volume.layer_mask.intersects_legacy_mask(0b0010));
+    let resolved = extract
+        .post_process
+        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+    assert_eq!(resolved.bloom.intensity, 0.75);
+    assert_eq!(resolved.color_grading.exposure, 1.4);
+    assert_eq!(
+        resolved.effect_stack.tonemap.operator,
+        RenderTonemapOperator::Aces
+    );
+    assert!(extract
+        .post_process
+        .volume_stack
+        .volumes
+        .iter()
+        .all(|volume| volume.priority != 16.0));
+    assert!(world
+        .get::<PostProcessVolumeComponent>(visible_volume)
+        .is_some());
+}
+
+#[test]
+fn inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+    let parent = world.spawn_node(NodeKind::Mesh);
+    let volume = spawn_post_process_volume_on_layer(
+        &mut world,
+        0b0010,
+        PostProcessVolumeComponent::global(
+            4.0,
+            RenderPostProcessVolumeProfile::default().with_bloom(RenderBloomSettings {
+                intensity: 0.9,
+                ..RenderBloomSettings::default()
+            }),
+        ),
+    );
+    world.set_parent_checked(volume, Some(parent)).unwrap();
+    world.set_active_self(parent, false).unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(709),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert!(extract.post_process.volume_stack.volumes.is_empty());
+    let resolved = extract
+        .post_process
+        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+    assert_eq!(resolved.bloom, RenderBloomSettings::default());
+}
+
+#[test]
+fn world_render_camera_order_report_projects_active_scene_cameras() {
+    let mut world = World::empty();
+    let hidden_parent = world.spawn_node(NodeKind::Cube);
+    world.set_active_self(hidden_parent, false).unwrap();
+
+    let primary_a = spawn_camera_on_layer(&mut world, 0b0001);
+    world.get_mut::<CameraComponent>(primary_a).unwrap().order = 1;
+
+    let primary_b = spawn_camera_on_layer(&mut world, 0b0001);
+    world.get_mut::<CameraComponent>(primary_b).unwrap().order = 1;
+
+    let texture_camera = spawn_camera_on_layer(&mut world, 0b0010);
+    let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+        "res://textures/camera-order-target.png",
+    ));
+    {
+        let component = world.get_mut::<CameraComponent>(texture_camera).unwrap();
+        component.order = -1;
+        component.target = RenderCameraTarget::Texture(texture);
+        component.hdr = true;
+    }
+
+    let headless_camera = spawn_camera_on_layer(&mut world, 0b0100);
+    {
+        let component = world.get_mut::<CameraComponent>(headless_camera).unwrap();
+        component.order = 2;
+        component.target = RenderCameraTarget::Headless {
+            size: UVec2::new(320, 180),
+        };
+    }
+
+    let hidden_camera = spawn_camera_on_layer(&mut world, 0b1000);
+    world
+        .get_mut::<CameraComponent>(hidden_camera)
+        .unwrap()
+        .order = -2;
+    world
+        .set_parent_checked(hidden_camera, Some(hidden_parent))
+        .unwrap();
+
+    let report = world.render_camera_order_report();
+
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.entity)
+            .collect::<Vec<_>>(),
+        vec![texture_camera, primary_a, primary_b, headless_camera]
+    );
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.sorted_camera_index_for_target)
+            .collect::<Vec<_>>(),
+        vec![0, 0, 1, 0]
+    );
+    assert_eq!(
+        report.ambiguities,
+        vec![RenderCameraOrderAmbiguity {
+            order: 1,
+            target: RenderCameraTargetOrderKey::PrimarySurface,
+        }]
+    );
+}
+
+#[test]
+fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
+    let mut world = World::empty();
+    let primary_a = spawn_camera_on_layer(&mut world, 0b0001);
+    world.get_mut::<CameraComponent>(primary_a).unwrap().order = 1;
+    world.set_active_camera(primary_a);
+
+    let primary_b = spawn_camera_on_layer(&mut world, 0b0001);
+    world.get_mut::<CameraComponent>(primary_b).unwrap().order = 1;
+
+    let texture_camera = spawn_camera_on_layer(&mut world, 0b0010);
+    let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+        "res://textures/frame-extract-camera-target.png",
+    ));
+    {
+        let component = world.get_mut::<CameraComponent>(texture_camera).unwrap();
+        component.order = -1;
+        component.target = RenderCameraTarget::Texture(texture);
+        component.hdr = true;
+    }
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(706),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.view.scene_camera_entity, Some(primary_a));
+    let report = extract
+        .view
+        .scene_camera_order_report
+        .as_ref()
+        .expect("scene-backed extract should carry camera ordering report");
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.entity)
+            .collect::<Vec<_>>(),
+        vec![texture_camera, primary_a, primary_b]
+    );
+    assert!(report.has_ambiguities());
+    assert_eq!(
+        report.ambiguities,
+        vec![RenderCameraOrderAmbiguity {
+            order: 1,
+            target: RenderCameraTargetOrderKey::PrimarySurface,
+        }]
+    );
+}
+
+#[test]
+fn explicit_camera_render_frame_extract_has_no_scene_camera_order_report() {
+    let mut world = World::empty();
+    let scene_camera = spawn_camera_on_layer(&mut world, 0b0001);
+    world.set_active_camera(scene_camera);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(707),
+        SceneViewportExtractRequest {
+            camera: Some(ViewportCameraSnapshot {
+                order: 42,
+                render_layers: RenderLayerSet::from_legacy_mask(0b0100),
+                ..ViewportCameraSnapshot::default()
+            }),
+            ..SceneViewportExtractRequest::default()
+        },
+    ));
+
+    assert_eq!(extract.view.camera.order, 42);
+    assert_eq!(extract.view.scene_camera_entity, None);
+    assert!(extract.view.scene_camera_order_report.is_none());
 }
 
 #[test]
@@ -517,6 +937,28 @@ fn spawn_sprite_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::En
             },
         )
         .unwrap();
+    world.set_render_layer_mask(entity, layer_mask).unwrap();
+    entity
+}
+
+fn spawn_light_on_layer(
+    world: &mut World,
+    kind: NodeKind,
+    layer_mask: u32,
+) -> crate::scene::EntityId {
+    let entity = world.spawn_node(kind);
+    world.set_render_layer_mask(entity, layer_mask).unwrap();
+    entity
+}
+
+fn spawn_post_process_volume_on_layer(
+    world: &mut World,
+    layer_mask: u32,
+    volume: PostProcessVolumeComponent,
+) -> crate::scene::EntityId {
+    let entity = world.spawn_node(NodeKind::Mesh);
+    let _ = world.remove::<MeshRenderer>(entity).unwrap();
+    world.insert(entity, volume).unwrap();
     world.set_render_layer_mask(entity, layer_mask).unwrap();
     entity
 }

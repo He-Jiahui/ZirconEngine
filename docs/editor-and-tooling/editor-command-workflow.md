@@ -157,14 +157,14 @@ Component Drawer template execution is host-mediated rather than native plugin U
 ### EditorOperation 分派
 
 1. Workbench menu item、toolbar button 或 builtin template binding 先携带 stable action id 进入 retained host dispatcher
-2. `operation_path_for_menu_action(...)` 把内置 menu action 映射到 `EditorOperationDescriptor` 路径，例如 `Scene.Node.CreateCube`、`Runtime.PlayMode.Enter`、`Runtime.PlayMode.Exit`、`View.BuildExport.Open`
+2. `operation_path_for_menu_action(...)` 把内置 menu action 映射到 `EditorOperationDescriptor` 路径，例如 `scene.node.create_cube`、`runtime.play_mode.enter`、`runtime.play_mode.exit`、`view.build_export.open`
 3. `dispatch_editor_binding(...)` 和 `dispatch_menu_action(...)` 优先调用 `EditorEventRuntime::invoke_operation(...)`
 4. operation registry 根据 capability snapshot 和 descriptor 决定该命令是否可见、可调用，以及是否声明 undoable
 5. 真正修改场景的 operation 继续进入 `EditorState::apply_intent` 和 `EditorCommand`；播放模式和窗口打开这类不可撤销命令则停在 editor event/runtime 边界处理副作用
 
 这条路径让插件菜单、内置 View 菜单、Scene toolbar 播放按钮和后续插件贡献的 toolbar 命令不再各自解析字符串。
 
-Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一条 operation 路径。Workbench `Window` 菜单把 Prefab、Material、UI Asset、Animation、Asset Browser 和 Diagnostics 映射到 `editor.*_window` descriptor，并注册 `Window.PrefabEditor.Open`、`Window.MaterialEditor.Open`、`Window.UiAssetEditor.Open`、`Window.AnimationEditor.Open`、`Window.AssetBrowser.Open`、`Window.Diagnostics.Open`。这些 operation 不直接修改 runtime scene；它们是 editor authoring shell 的窗口打开入口。
+Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一条 operation 路径。Workbench `Window` 菜单把 Prefab、Material、UI Asset、Animation、Asset Browser 和 Diagnostics 映射到 `editor.*_window` descriptor，并注册 `window.prefab_editor.open`、`window.material_editor.open`、`window.ui_asset_editor.open`、`window.animation_editor.open`、`window.asset_browser.open`、`window.diagnostics.open`。这些 operation 不直接修改 runtime scene；它们是 editor authoring shell 的窗口打开入口。
 
 ### 普通命令
 
@@ -244,7 +244,7 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 - inspector 因非法 parent 失败时保持原世界不变
 - inspector 插件动态组件字段提交进入 undo history，Undo 后恢复 JSON payload
 - inspector 插件动态组件 schema 卸载后拒绝字段提交
-- toolbar Play/Stop binding 会分派成 `Runtime.PlayMode.Enter` / `Runtime.PlayMode.Exit`
+- toolbar Play/Stop binding 会分派成 `runtime.play_mode.enter` / `runtime.play_mode.exit`
 - workbench menu action `CreateCube` 会通过 operation runtime 进入 undo stack
 - editor operation registry 暴露内置 menu/view/play-mode operation descriptor
 - enabled Component Drawer descriptors resolve into selected dynamic component Inspector snapshots

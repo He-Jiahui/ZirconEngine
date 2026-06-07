@@ -72,7 +72,9 @@ pub(super) fn parse_container(
     };
     Ok(Some(match kind {
         "Free" => UiContainerKind::Free,
+        "Canvas" | "CanvasBox" => UiContainerKind::Canvas,
         "Container" => UiContainerKind::Container,
+        "Block" | "BlockBox" => UiContainerKind::BlockBox,
         "Overlay" => UiContainerKind::Overlay,
         "Space" => UiContainerKind::Space,
         "SizeBox" => UiContainerKind::SizeBox(UiSizeBoxConfig {

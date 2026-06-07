@@ -1,11 +1,136 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const sources = {
-  atoms: readLocal("./atoms.js"),
-  collections: readLocal("./collections.js"),
-  surfaces: readLocal("./surfaces.js"),
-  moduleComponents: readLocal("./module-components.js"),
-  app: readLocal("./app.js"),
+  atoms: readLocal("./src/components/inputs/atoms.js"),
+  inputUtils: readLocal("./src/components/inputs/input-utils.js"),
+  buttons: readLocal("./src/components/inputs/buttons.js"),
+  button: readLocal("./src/components/inputs/buttons/button.js"),
+  iconButton: readLocal("./src/components/inputs/buttons/icon-button.js"),
+  fields: readLocal("./src/components/inputs/fields.js"),
+  fieldInput: readLocal("./src/components/inputs/fields/input.js"),
+  fieldSearchInput: readLocal("./src/components/inputs/fields/search-input.js"),
+  fieldNumber: readLocal("./src/components/inputs/fields/number-field.js"),
+  inputSelectionControls: readLocal("./src/components/inputs/selection-controls.js"),
+  inputCheckbox: readLocal("./src/components/inputs/selection-controls/checkbox.js"),
+  inputRadio: readLocal("./src/components/inputs/selection-controls/radio.js"),
+  inputToggle: readLocal("./src/components/inputs/selection-controls/toggle.js"),
+  tabs: readLocal("./src/components/inputs/tabs.js"),
+  dropdowns: readLocal("./src/components/inputs/dropdowns.js"),
+  dropdownSelect: readLocal("./src/components/inputs/dropdowns/select.js"),
+  sliders: readLocal("./src/components/inputs/sliders.js"),
+  slider: readLocal("./src/components/inputs/sliders/slider.js"),
+  rangeSlider: readLocal("./src/components/inputs/sliders/range-slider.js"),
+  collections: readLocal("./src/components/data/collections.js"),
+  listView: readLocal("./src/components/data/list-view.js"),
+  listRow: readLocal("./src/components/data/list-view/row.js"),
+  tableView: readLocal("./src/components/data/table-view.js"),
+  tableHeader: readLocal("./src/components/data/table-view/header.js"),
+  tableRow: readLocal("./src/components/data/table-view/row.js"),
+  treeView: readLocal("./src/components/data/tree-view.js"),
+  treeRow: readLocal("./src/components/data/tree-view/row.js"),
+  alerts: readLocal("./src/components/feedback/alerts.js"),
+  toast: readLocal("./src/components/feedback/toast.js"),
+  tooltip: readLocal("./src/components/feedback/tooltip.js"),
+  menu: readLocal("./src/components/overlays/menu.js"),
+  menuRow: readLocal("./src/components/overlays/menu/row.js"),
+  popupLayer: readLocal("./src/components/overlays/popup-layer.js"),
+  surfaces: readLocal("./src/components/surfaces/surfaces.js"),
+  surfaceWindow: readLocal("./src/components/surfaces/shell/window.js"),
+  surfaceChrome: readLocal("./src/components/surfaces/shell/chrome.js"),
+  surfaceDrawer: readLocal("./src/components/surfaces/panels/drawer-surface.js"),
+  surfaceScenePanel: readLocal("./src/components/surfaces/panels/scene-panel.js"),
+  surfaceInspectorPanel: readLocal("./src/components/surfaces/panels/inspector-panel.js"),
+  surfaceShowcasePanel: readLocal("./src/components/surfaces/panels/showcase-panel.js"),
+  surfaceViewport: readLocal("./src/components/surfaces/viewport/viewport-surface.js"),
+  moduleComponents: readLocal("./src/modules/shared/module-components.js"),
+  moduleActions: readLocal("./src/modules/shared/actions.js"),
+  moduleBottomOutput: readLocal("./src/modules/shared/bottom-output.js"),
+  modulePanels: readLocal("./src/modules/shared/panels.js"),
+  moduleRegions: readLocal("./src/modules/shared/regions.js"),
+  moduleRows: readLocal("./src/modules/shared/rows.js"),
+  moduleUtils: readLocal("./src/modules/shared/utils.js"),
+  moduleVisuals: readLocal("./src/modules/shared/visuals.js"),
+  app: [
+    "./app.js",
+    "./src/app/controller.js",
+    "./src/app/controller/activation.js",
+    "./src/app/controller/command-application.js",
+    "./src/app/controller/create-workbench-controller.js",
+    "./src/app/controller/command-routing.js",
+    "./src/app/controller/history.js",
+    "./src/app/controller/location-state.js",
+    "./src/app/controller/rendering.js",
+    "./src/app/controller/state.js",
+    "./src/app/controller/status.js",
+    "./src/app/route-state.js",
+    "./src/app/interactions/click.js",
+    "./src/app/interactions/click/bind.js",
+    "./src/app/interactions/click/dispatch.js",
+    "./src/app/interactions/click/handlers.js",
+    "./src/app/interactions/click/actions.js",
+    "./src/app/interactions/click/actions/feedback.js",
+    "./src/app/interactions/click/actions/group.js",
+    "./src/app/interactions/click/actions/handle.js",
+    "./src/app/interactions/click/actions/menu.js",
+    "./src/app/interactions/click/actions/target.js",
+    "./src/app/interactions/click/dropdowns.js",
+    "./src/app/interactions/click/dropdowns/dismissal.js",
+    "./src/app/interactions/click/dropdowns/feedback.js",
+    "./src/app/interactions/click/dropdowns/placement.js",
+    "./src/app/interactions/click/dropdowns/state.js",
+    "./src/app/interactions/click/dropdowns/target.js",
+    "./src/app/interactions/click/dropdowns/trigger.js",
+    "./src/app/interactions/click/generic.js",
+    "./src/app/interactions/click/generic/feedback.js",
+    "./src/app/interactions/click/generic/handle.js",
+    "./src/app/interactions/click/generic/target.js",
+    "./src/app/interactions/click/navigation.js",
+    "./src/app/interactions/click/navigation/activate.js",
+    "./src/app/interactions/click/navigation/handle.js",
+    "./src/app/interactions/click/navigation/target.js",
+    "./src/app/interactions/click/rows.js",
+    "./src/app/interactions/click/rows/data.js",
+    "./src/app/interactions/click/rows/feedback.js",
+    "./src/app/interactions/click/rows/selection.js",
+    "./src/app/interactions/click/rows/tree.js",
+    "./src/app/interactions/click/selection.js",
+    "./src/app/interactions/click/selection/feedback.js",
+    "./src/app/interactions/click/selection/radio.js",
+    "./src/app/interactions/click/selection/state.js",
+    "./src/app/interactions/click/selection/target.js",
+    "./src/app/interactions/click/selection/toggle.js",
+    "./src/app/interactions/click/tabs.js",
+    "./src/app/interactions/click/tabs/feedback.js",
+    "./src/app/interactions/click/tabs/handle.js",
+    "./src/app/interactions/click/tabs/panel.js",
+    "./src/app/interactions/click/tabs/state.js",
+    "./src/app/interactions/click/tabs/target.js",
+    "./src/app/interactions/click/toolbar.js",
+    "./src/app/interactions/click/toolbar/feedback.js",
+    "./src/app/interactions/click/toolbar/rail.js",
+    "./src/app/interactions/click/toolbar/state.js",
+    "./src/app/interactions/click/toolbar/target.js",
+    "./src/app/interactions/click/toolbar/tool.js",
+    "./src/app/interactions/click/utils.js",
+    "./src/app/interactions/fields.js",
+    "./src/app/interactions/fields/bind.js",
+    "./src/app/interactions/fields/focus.js",
+    "./src/app/interactions/fields/input.js",
+    "./src/app/interactions/fields/target.js",
+    "./src/app/interactions/keyboard.js",
+    "./src/app/interactions/keyboard/activate.js",
+    "./src/app/interactions/keyboard/bind.js",
+    "./src/app/interactions/keyboard/filter.js",
+    "./src/app/interactions/keyboard/target.js",
+    "./src/app/interactions/history.js",
+    "./src/app/interactions/history/bind.js",
+    "./src/app/interactions/history/events.js",
+  ].map(readLocal).join("\n"),
+  componentDrawerZui: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui"),
+  templateBuildSession: readRepo("../../../../zircon_editor/src/ui/template_runtime/runtime/build_session.rs"),
+  zuiAssetGovernance: readRepo("../../../../zircon_editor/src/tests/ui/boundary/zui_asset_governance.rs"),
+  zuiNodeComponentGovernance: readRepo("../../../../zircon_editor/src/tests/ui/boundary/zui_asset_governance/node_component.rs"),
+  zuiWorkbenchPrimitiveGovernance: readRepo("../../../../zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs"),
   templateNodes: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs"),
   buttonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_button.rs"),
   iconButtonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_icon_button.rs"),
@@ -47,6 +172,8 @@ const sources = {
   runtimePopupRows: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_rows.rs"),
   runtimePopupMenu: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_menu.rs"),
   runtimePopupOptions: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_options.rs"),
+  runtimePrototypeStore: readRepo("../../../../zircon_runtime/src/ui/template/asset/prototype_store.rs"),
+  runtimeComponentInstancer: readRepo("../../../../zircon_runtime/src/ui/v2/component_instancer.rs"),
   runtimeTestsMod: readRepo("../../../../zircon_runtime/src/ui/tests/mod.rs"),
   runtimeButtonTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_buttons.rs"),
   runtimeCollectionRowTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_collection_rows.rs"),
@@ -58,6 +185,53 @@ const sources = {
   runtimeTextFieldTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_text_fields.rs"),
   runtimePopupOptionsTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_popup_options.rs")
 };
+const componentAssetFiles = componentAssetPaths(new URL("../../../../zircon_editor/assets/ui/editor/components/", import.meta.url));
+const extensionModuleDomainFolders = [
+  "workbench/modules/extensions/animation/",
+  "workbench/modules/extensions/data/",
+  "workbench/modules/extensions/diagnostics/",
+  "workbench/modules/extensions/gameplay/",
+  "workbench/modules/extensions/index/",
+  "workbench/modules/extensions/multiplayer/",
+  "workbench/modules/extensions/production/",
+  "workbench/modules/extensions/rendering/",
+  "workbench/modules/extensions/simulation/",
+  "workbench/modules/extensions/ui/",
+  "workbench/modules/extensions/world/"
+];
+const coreModuleDomainFolders = [
+  "workbench/modules/core/ai/",
+  "workbench/modules/core/assets/",
+  "workbench/modules/core/gameplay/",
+  "workbench/modules/core/index/",
+  "workbench/modules/core/rendering/",
+  "workbench/modules/core/ui/"
+];
+const allowedComponentAssetFolders = [
+  "showcase/",
+  "workbench/primitives/inputs/",
+  "workbench/primitives/data/",
+  "workbench/primitives/feedback/",
+  "workbench/primitives/chrome/",
+  "workbench/shell/",
+  "workbench/modules/generated/",
+  ...coreModuleDomainFolders,
+  ...extensionModuleDomainFolders
+];
+const flatComponentRootZuiFiles = componentAssetFiles.filter((file) => !file.includes("/"));
+const flatCoreModuleZuiFiles = componentAssetFiles.filter((file) =>
+  file.startsWith("workbench/modules/core/")
+    && file.endsWith(".zui")
+    && file.slice("workbench/modules/core/".length).split("/").length === 1
+);
+const flatExtensionModuleZuiFiles = componentAssetFiles.filter((file) =>
+  file.startsWith("workbench/modules/extensions/")
+    && file.endsWith(".zui")
+    && file.slice("workbench/modules/extensions/".length).split("/").length === 1
+);
+const miscategorizedComponentAssets = componentAssetFiles.filter((file) =>
+  !allowedComponentAssetFolders.some((folder) => file.startsWith(folder))
+);
 
 const nativeComponentFamilies = [
   {
@@ -152,6 +326,330 @@ const nativeComponentFamilies = [
   }
 ];
 
+const nativeZuiComponentAssets = [
+  {
+    name: "button atom",
+    file: "workbench/primitives/inputs/workbench_button.zui",
+    componentName: "WorkbenchButton",
+    rootComponent: "Button",
+    interactive: true,
+    needles: ["button_variant", "button_interaction_state"]
+  },
+  {
+    name: "icon button atom",
+    file: "workbench/primitives/inputs/workbench_icon_button.zui",
+    componentName: "WorkbenchIconButton",
+    rootComponent: "IconButton",
+    interactive: true,
+    needles: ["icon_placement", "layout_icon_size"]
+  },
+  {
+    name: "rail button shell leaf",
+    file: "workbench/primitives/chrome/workbench_rail_button.zui",
+    componentName: "WorkbenchRailButton",
+    rootComponent: "IconButton",
+    interactive: true,
+    needles: ['button_size = "large"', "layout_icon_size = 22.0"]
+  },
+  {
+    name: "text input atom",
+    file: "workbench/primitives/inputs/workbench_field.zui",
+    componentName: "WorkbenchField",
+    rootComponent: "InputField",
+    interactive: true,
+    needles: ["editable_text = true", "placeholder"]
+  },
+  {
+    name: "checkbox atom",
+    file: "workbench/primitives/inputs/workbench_checkbox.zui",
+    componentName: "WorkbenchCheckbox",
+    rootComponent: "Checkbox",
+    interactive: true,
+    needles: ["checked = false", "label_color"]
+  },
+  {
+    name: "radio atom",
+    file: "workbench/primitives/inputs/workbench_radio.zui",
+    componentName: "WorkbenchRadio",
+    rootComponent: "Radio",
+    interactive: true,
+    needles: ["checked = false", "dot_size"]
+  },
+  {
+    name: "toggle atom",
+    file: "workbench/primitives/inputs/workbench_toggle.zui",
+    componentName: "WorkbenchToggle",
+    rootComponent: "Toggle",
+    interactive: true,
+    needles: ["track_width", "thumb_size"]
+  },
+  {
+    name: "tab atom",
+    file: "workbench/primitives/inputs/workbench_tab.zui",
+    componentName: "WorkbenchTab",
+    rootComponent: "ToggleButton",
+    interactive: true,
+    needles: ["checked = false", "selected = false"]
+  },
+  {
+    name: "segmented control atom",
+    file: "workbench/primitives/inputs/workbench_segmented_control.zui",
+    componentName: "WorkbenchSegmentedControl",
+    rootComponent: "SegmentedControl",
+    interactive: true,
+    needles: ['options = ["left", "center", "right"]', 'selection_state = "single"']
+  },
+  {
+    name: "dropdown atom",
+    file: "workbench/primitives/inputs/workbench_dropdown.zui",
+    componentName: "WorkbenchDropdown",
+    rootComponent: "Dropdown",
+    interactive: true,
+    needles: ["popup_open = false", 'selection_state = "single"']
+  },
+  {
+    name: "slider atom",
+    file: "workbench/primitives/inputs/workbench_slider.zui",
+    componentName: "WorkbenchSlider",
+    rootComponent: "RangeField",
+    interactive: true,
+    needles: ["min = 0.0", "max = 100.0", "step = 1.0"]
+  },
+  {
+    name: "list row collection",
+    file: "workbench/primitives/data/workbench_list_row.zui",
+    componentName: "WorkbenchListRow",
+    rootComponent: "ListRow",
+    interactive: true,
+    needles: ["selected = false", "layout_spacing"]
+  },
+  {
+    name: "tree row collection",
+    file: "workbench/primitives/data/workbench_tree_row.zui",
+    componentName: "WorkbenchTreeRow",
+    rootComponent: "TreeRow",
+    interactive: true,
+    needles: ["expanded = true", "tree_depth", "tree_indent_px"]
+  },
+  {
+    name: "table row collection",
+    file: "workbench/primitives/data/workbench_table_row.zui",
+    componentName: "WorkbenchTableRow",
+    rootComponent: "Table",
+    interactive: true,
+    needles: ["options = [", "layout_first_cell_offset_x"]
+  },
+  {
+    name: "popup menu collection",
+    file: "workbench/primitives/feedback/workbench_popup_menu.zui",
+    componentName: "WorkbenchPopupMenu",
+    rootComponent: "ContextActionMenu",
+    interactive: true,
+    needles: ["menu_items = [", "popup_anchor_x", "popup_anchor_y"]
+  },
+  {
+    name: "tooltip feedback",
+    file: "workbench/primitives/feedback/workbench_tooltip.zui",
+    componentName: "WorkbenchTooltip",
+    rootComponent: "Tooltip",
+    interactive: false,
+    needles: ["arrow_size", "surface_variant"]
+  },
+  {
+    name: "toast feedback",
+    file: "workbench/primitives/feedback/workbench_toast.zui",
+    componentName: "WorkbenchToast",
+    rootComponent: "Alert",
+    interactive: false,
+    needles: ["severity", "closeText", "status_mark_size"]
+  },
+  {
+    name: "property row primitive",
+    file: "workbench/primitives/data/workbench_property_row.zui",
+    componentName: "WorkbenchPropertyRow",
+    rootComponent: "PropertyRow",
+    interactive: false,
+    needles: ['text = "Property"', 'value = "Value"']
+  },
+  {
+    name: "editable property row primitive",
+    file: "workbench/primitives/data/workbench_component_property_row.zui",
+    componentName: "WorkbenchComponentPropertyRow",
+    rootComponent: "InputField",
+    interactive: true,
+    needles: ["editable_text = true", "layout_label_width"]
+  },
+  {
+    name: "chip shell leaf",
+    file: "workbench/primitives/chrome/workbench_chip.zui",
+    componentName: "WorkbenchChip",
+    rootComponent: "Label",
+    interactive: false,
+    needles: ['text = "Chip"', "font_size = 12.0"]
+  },
+  {
+    name: "axis value field shell leaf",
+    file: "workbench/primitives/chrome/workbench_axis_value_field.zui",
+    componentName: "WorkbenchAxisValueField",
+    rootComponent: "InputField",
+    interactive: true,
+    needles: ["editable_text = true", "layout_min_height = 24.0"]
+  },
+  {
+    name: "section title shell leaf",
+    file: "workbench/primitives/chrome/workbench_section_title.zui",
+    componentName: "WorkbenchSectionTitle",
+    rootComponent: "Label",
+    interactive: false,
+    needles: ["font_weight = 700", 'text_tone = "primary"']
+  },
+  {
+    name: "status item shell leaf",
+    file: "workbench/primitives/feedback/workbench_status_item.zui",
+    componentName: "WorkbenchStatusItem",
+    rootComponent: "Label",
+    interactive: false,
+    needles: ['text = "Status"', "font_size = 12.0"]
+  }
+];
+
+const componentDrawerImports = [
+  ["workbench/primitives/inputs/workbench_button.zui", "WorkbenchButton"],
+  ["workbench/primitives/inputs/workbench_checkbox.zui", "WorkbenchCheckbox"],
+  ["workbench/primitives/inputs/workbench_dropdown.zui", "WorkbenchDropdown"],
+  ["workbench/primitives/inputs/workbench_field.zui", "WorkbenchField"],
+  ["workbench/primitives/inputs/workbench_icon_button.zui", "WorkbenchIconButton"],
+  ["workbench/primitives/data/workbench_list_row.zui", "WorkbenchListRow"],
+  ["workbench/primitives/feedback/workbench_popup_menu.zui", "WorkbenchPopupMenu"],
+  ["workbench/primitives/inputs/workbench_radio.zui", "WorkbenchRadio"],
+  ["workbench/primitives/inputs/workbench_segmented_control.zui", "WorkbenchSegmentedControl"],
+  ["workbench/primitives/inputs/workbench_slider.zui", "WorkbenchSlider"],
+  ["workbench/primitives/inputs/workbench_tab.zui", "WorkbenchTab"],
+  ["workbench/primitives/data/workbench_table_row.zui", "WorkbenchTableRow"],
+  ["workbench/primitives/feedback/workbench_toast.zui", "WorkbenchToast"],
+  ["workbench/primitives/feedback/workbench_tooltip.zui", "WorkbenchTooltip"],
+  ["workbench/primitives/inputs/workbench_toggle.zui", "WorkbenchToggle"]
+];
+
+const nativeZuiShellSurfaceAssets = [
+  {
+    name: "activity rail shell surface",
+    file: "workbench/shell/workbench_activity_rail.zui",
+    componentName: "WorkbenchActivityRail",
+    rootNode: "activity_rail",
+    rootComponent: "VerticalGroup",
+    rootControlId: "WorkbenchWindowActivityRail",
+    classes: ["workbench-rail"],
+    imports: ["workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"],
+    mountedComponents: ["WorkbenchRailButton"],
+    controlIds: ["WorkbenchRailScene", "WorkbenchRailCube", "WorkbenchRailCode"]
+  },
+  {
+    name: "top toolbar shell surface",
+    file: "workbench/shell/workbench_top_toolbar.zui",
+    componentName: "WorkbenchTopToolbar",
+    rootNode: "top_toolbar",
+    rootComponent: "HorizontalGroup",
+    rootControlId: "WorkbenchWindowTopToolbar",
+    classes: ["workbench-topbar"],
+    imports: ["workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"],
+    mountedComponents: ["WorkbenchButton", "WorkbenchIconButton", "WorkbenchTab"],
+    controlIds: ["WorkbenchToolbarFileGroup", "WorkbenchModuleTabs", "WorkbenchModuleCommands", "WorkbenchToolbarRunGroup"]
+  },
+  {
+    name: "scene tree panel shell surface",
+    file: "workbench/shell/workbench_scene_tree_panel.zui",
+    componentName: "WorkbenchSceneTreePanel",
+    rootNode: "scene_tree_panel",
+    rootComponent: "VerticalGroup",
+    rootControlId: "WorkbenchSceneTreePanel",
+    classes: ["workbench-panel", "workbench-left-panel"],
+    imports: ["workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow"],
+    mountedComponents: ["WorkbenchField", "WorkbenchIconButton", "WorkbenchTab", "WorkbenchTreeRow"],
+    controlIds: ["WorkbenchSceneTabs", "WorkbenchSceneSearchField", "WorkbenchSceneTree", "WorkbenchSceneRootItem"]
+  },
+  {
+    name: "viewport panel shell surface",
+    file: "workbench/shell/workbench_viewport_panel.zui",
+    componentName: "WorkbenchViewportPanel",
+    rootNode: "viewport_panel",
+    rootComponent: "VerticalGroup",
+    rootControlId: "WorkbenchViewportPanel",
+    classes: ["workbench-viewport-panel"],
+    imports: ["workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip"],
+    mountedComponents: ["WorkbenchChip"],
+    controlIds: ["WorkbenchViewportToolbar", "WorkbenchViewportSurface", "WorkbenchViewportGizmoPanel"]
+  },
+  {
+    name: "inspector panel shell surface",
+    file: "workbench/shell/workbench_inspector_panel.zui",
+    componentName: "WorkbenchInspectorPanel",
+    rootNode: "inspector_panel",
+    rootComponent: "VerticalGroup",
+    rootControlId: "WorkbenchInspectorPanel",
+    classes: ["workbench-panel", "workbench-right-panel"],
+    imports: [
+      "workbench/primitives/chrome/workbench_axis_value_field.zui#WorkbenchAxisValueField",
+      "workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+      "workbench/primitives/data/workbench_component_property_row.zui#WorkbenchComponentPropertyRow",
+      "workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+      "workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+      "workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+    ],
+    mountedComponents: [
+      "WorkbenchAxisValueField",
+      "WorkbenchButton",
+      "WorkbenchComponentPropertyRow",
+      "WorkbenchDropdown",
+      "WorkbenchSectionTitle",
+      "WorkbenchTab"
+    ],
+    controlIds: ["WorkbenchInspectorTabs", "WorkbenchInspectorTransform", "WorkbenchInspectorMesh", "WorkbenchAddComponent"]
+  },
+  {
+    name: "status bar shell surface",
+    file: "workbench/shell/workbench_status_bar.zui",
+    componentName: "WorkbenchStatusBar",
+    rootNode: "status_bar",
+    rootComponent: "HorizontalGroup",
+    rootControlId: "WorkbenchWindowStatusBar",
+    classes: ["workbench-status"],
+    imports: ["workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip", "workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem"],
+    mountedComponents: ["WorkbenchChip", "WorkbenchIconButton", "WorkbenchStatusItem"],
+    controlIds: ["WorkbenchStatusReady", "WorkbenchStatusWarnings", "WorkbenchStatusGrid", "WorkbenchStatusZoom"]
+  },
+  {
+    name: "main band shell surface",
+    file: "workbench/shell/workbench_main_band.zui",
+    componentName: "WorkbenchMainBand",
+    rootNode: "main_band",
+    rootComponent: "Overlay",
+    rootControlId: "WorkbenchMainBand",
+    classes: ["workbench-main-band"],
+    imports: [
+      "workbench/shell/workbench_activity_rail.zui#WorkbenchActivityRail",
+      "workbench/shell/workbench_inspector_panel.zui#WorkbenchInspectorPanel",
+      "workbench/modules/core/index/workbench_module_workspace.zui#WorkbenchModuleWorkspace",
+      "workbench/shell/workbench_scene_tree_panel.zui#WorkbenchSceneTreePanel",
+      "workbench/shell/workbench_viewport_panel.zui#WorkbenchViewportPanel"
+    ],
+    mountedComponents: [
+      "WorkbenchActivityRail",
+      "WorkbenchInspectorPanel",
+      "WorkbenchModuleWorkspace",
+      "WorkbenchSceneTreePanel",
+      "WorkbenchViewportPanel"
+    ],
+    controlIds: [
+      "WorkbenchSceneWorkspace",
+      "WorkbenchMainBandActivityRail",
+      "WorkbenchMainBandViewportPanel",
+      "WorkbenchMainBandInspectorPanel",
+      "WorkbenchMainBandModuleWorkspace"
+    ]
+  }
+];
+
 const nativeInteractionContracts = [
   {
     name: "web delegated click and route responses",
@@ -159,11 +657,12 @@ const nativeInteractionContracts = [
     needles: [
       'document.addEventListener("click"',
       "applyCommandRoute(action)",
-      "recordCommand(action.dataset.action || commandLabel(action))",
+      "recordActionFallbackFeedback(controller, action)",
+      'actionPath("workbench.action", label)',
       'event.target.closest("[data-module]")',
       'event.target.closest("[data-action]")',
-      'event.target.closest("[data-toggle]")',
-      'event.target.closest("[data-radio]")',
+      'selectionControlTarget(event, "[data-toggle]")',
+      'selectionControlTarget(event, "[data-radio]")',
       'event.target.closest(".zr-tab, .zr-segment-item, .zr-panel-tab")',
       'event.target.closest("[data-tree-row]")',
       'event.target.closest("[data-dropdown]")'
@@ -177,8 +676,8 @@ const nativeInteractionContracts = [
       'document.addEventListener("keydown"',
       'document.addEventListener("input"',
       "target.click()",
-      "recordCommand(`focus-",
-      "recordCommand(`edit-"
+      'actionPath("workbench.field.focus"',
+      'actionPath("workbench.field.edit"'
     ]
   },
   {
@@ -299,10 +798,84 @@ const nativeInteractionContracts = [
       "separator",
       "matches_transient_menu_item_flag"
     ]
+  },
+  {
+    name: "native builtin import graph resolves zui component assets",
+    source: [
+      sources.templateBuildSession,
+      sources.runtimePrototypeStore,
+      sources.runtimeComponentInstancer,
+      sources.zuiAssetGovernance,
+      sources.zuiNodeComponentGovernance,
+      sources.zuiWorkbenchPrimitiveGovernance
+    ].join("\n"),
+    needles: [
+      "compile_template_document_with_builtin_imports",
+      "collect_builtin_template_imports",
+      "register_document_imports",
+      "resolve_builtin_import",
+      "root_component_aliases",
+      "UiPrototypeStoreBuilder",
+      "component_prototype(",
+      "resolve_component(",
+      "production_v2_zui_widget_imports_resolve_to_named_components",
+      "production_widget_import_zui_locators",
+      "production_zui_node_components_resolve_to_known_descriptors_or_imported_components",
+      "mod workbench_primitives;",
+      "WORKBENCH_PRIMITIVE_CONTRACTS",
+      "WORKBENCH_SHELL_SURFACE_CONTRACTS",
+      "workbench_primitive_component_assets_keep_native_component_contract",
+      "workbench_shell_surface_component_assets_keep_bottom_up_composition_contract",
+      "workbench_component_drawer_composes_workbench_primitive_assets"
+    ]
   }
 ];
 
 const checks = [];
+
+checks.push([
+  "zui component assets are grouped by functional folder",
+  componentAssetFiles.length >= 98
+    && flatComponentRootZuiFiles.length === 0
+    && flatCoreModuleZuiFiles.length === 0
+    && flatExtensionModuleZuiFiles.length === 0
+    && miscategorizedComponentAssets.length === 0
+    && allowedComponentAssetFolders.every((folder) => componentAssetFiles.some((file) => file.startsWith(folder)))
+]);
+
+checks.push([
+  "rust zui governance rejects flat workbench component assets",
+  [
+    "editor_workbench_zui_assets_are_grouped_by_functional_component_folder",
+    "res://ui/editor/components/showcase/",
+    "res://ui/editor/components/workbench/primitives/inputs/",
+    "res://ui/editor/components/workbench/primitives/data/",
+    "res://ui/editor/components/workbench/primitives/feedback/",
+    "res://ui/editor/components/workbench/primitives/chrome/",
+    "res://ui/editor/components/workbench/shell/",
+    "res://ui/editor/components/workbench/modules/core/ai/",
+    "res://ui/editor/components/workbench/modules/core/assets/",
+    "res://ui/editor/components/workbench/modules/core/gameplay/",
+    "res://ui/editor/components/workbench/modules/core/index/",
+    "res://ui/editor/components/workbench/modules/core/rendering/",
+    "res://ui/editor/components/workbench/modules/core/ui/",
+    "res://ui/editor/components/workbench/modules/extensions/animation/",
+    "res://ui/editor/components/workbench/modules/extensions/data/",
+    "res://ui/editor/components/workbench/modules/extensions/diagnostics/",
+    "res://ui/editor/components/workbench/modules/extensions/gameplay/",
+    "res://ui/editor/components/workbench/modules/extensions/index/",
+    "res://ui/editor/components/workbench/modules/extensions/multiplayer/",
+    "res://ui/editor/components/workbench/modules/extensions/production/",
+    "res://ui/editor/components/workbench/modules/extensions/rendering/",
+    "res://ui/editor/components/workbench/modules/extensions/simulation/",
+    "res://ui/editor/components/workbench/modules/extensions/ui/",
+    "res://ui/editor/components/workbench/modules/extensions/world/",
+    "res://ui/editor/components/workbench/modules/generated/",
+    "checked_assets >= 98"
+  ].every((needle) => sources.zuiAssetGovernance.includes(needle))
+    && !sources.zuiAssetGovernance.includes('"res://ui/editor/components/workbench/modules/core/",')
+    && !sources.zuiAssetGovernance.includes('"res://ui/editor/components/workbench/modules/extensions/",')
+]);
 
 for (const family of nativeComponentFamilies) {
   checks.push([
@@ -316,6 +889,76 @@ for (const family of nativeComponentFamilies) {
   checks.push([
     `${family.name} native file present`,
     family.files.every((file) => fileSource(file).length > 0)
+  ]);
+}
+
+for (const asset of nativeZuiComponentAssets) {
+  const assetSource = componentAssetSource(asset.file);
+  checks.push([
+    `${asset.name} declarative zui asset`,
+    [
+      "[asset]",
+      'kind = "component"',
+      `id = "res://ui/editor/components/${asset.file}"`,
+      `[components.${asset.componentName}]`,
+      'root = "root"',
+      '"workbench-primitive"',
+      "[nodes.root]",
+      `component = "${asset.rootComponent}"`,
+      `control_id = "${asset.componentName}Root"`,
+      "layout = {",
+      "width = {",
+      "height = {",
+      ...asset.needles
+    ].every((needle) => assetSource.includes(needle))
+  ]);
+  if (asset.interactive) {
+    checks.push([
+      `${asset.name} declarative zui input semantics`,
+      [
+        "input_interactive = true",
+        "input_clickable = true",
+        "input_hoverable = true",
+        "input_focusable = true"
+      ].every((needle) => assetSource.includes(needle))
+    ]);
+  }
+}
+
+checks.push([
+  "component drawer composes low-level zui assets",
+  componentDrawerImports.every(([file, componentName]) =>
+    sources.componentDrawerZui.includes(`res://ui/editor/components/${file}#${componentName}`)
+  )
+    && sources.componentDrawerZui.includes("[components.WorkbenchComponentDrawer]")
+    && sources.componentDrawerZui.includes('component = "WorkbenchButton"')
+    && sources.componentDrawerZui.includes('component = "WorkbenchIconButton"')
+    && sources.componentDrawerZui.includes('component = "WorkbenchDropdown"')
+    && sources.componentDrawerZui.includes('component = "WorkbenchPopupMenu"')
+    && sources.componentDrawerZui.includes('component = "WorkbenchToast"')
+]);
+
+for (const surface of nativeZuiShellSurfaceAssets) {
+  const surfaceSource = componentAssetSource(surface.file);
+  checks.push([
+    `${surface.name} declarative shell composition`,
+    [
+      "[asset]",
+      'kind = "component"',
+      `id = "res://ui/editor/components/${surface.file}"`,
+      `[components.${surface.componentName}]`,
+      `root = "${surface.rootNode}"`,
+      `[nodes.${surface.rootNode}]`,
+      `component = "${surface.rootComponent}"`,
+      `control_id = "${surface.rootControlId}"`,
+      "layout = {",
+      "width = {",
+      "height = {",
+      ...surface.classes.map((className) => `"${className}"`),
+      ...surface.imports.map((importRef) => `res://ui/editor/components/${importRef}`),
+      ...surface.mountedComponents.map((componentName) => `component = "${componentName}"`),
+      ...surface.controlIds.map((controlId) => `control_id = "${controlId}"`)
+    ].every((needle) => surfaceSource.includes(needle))
   ]);
 }
 
@@ -566,6 +1209,8 @@ checks.push([
 checks.push([
   "native component contract spans web and runtime",
   nativeComponentFamilies.length >= 15
+    && nativeZuiComponentAssets.length >= 23
+    && nativeZuiShellSurfaceAssets.length >= 7
     && nativeInteractionContracts.length >= 10
     && sources.templateNodes.includes("push_template_node_commands")
     && sources.runtimeExtract.includes("extract_ui_render_tree_from_arranged")
@@ -582,7 +1227,7 @@ if (failed.length > 0) {
 }
 
 console.log(
-  `native component contract: families=${nativeComponentFamilies.length} interactions=${nativeInteractionContracts.length} runtimeExtract=button,collection-row,selection,segmented,slider,dropdown,feedback,text-field,popup`,
+  `native component contract: families=${nativeComponentFamilies.length} zuiAssets=${nativeZuiComponentAssets.length} shellSurfaces=${nativeZuiShellSurfaceAssets.length} interactions=${nativeInteractionContracts.length} runtimeExtract=button,collection-row,selection,segmented,slider,dropdown,feedback,text-field,popup`,
 );
 console.log("ok native component family contract");
 
@@ -595,9 +1240,75 @@ function readRepo(path) {
 }
 
 function webSources() {
-  return [sources.atoms, sources.collections, sources.surfaces, sources.moduleComponents].join("\n");
+  return [
+    sources.atoms,
+    sources.inputUtils,
+    sources.buttons,
+    sources.button,
+    sources.iconButton,
+    sources.fields,
+    sources.fieldInput,
+    sources.fieldSearchInput,
+    sources.fieldNumber,
+    sources.inputSelectionControls,
+    sources.inputCheckbox,
+    sources.inputRadio,
+    sources.inputToggle,
+    sources.tabs,
+    sources.dropdowns,
+    sources.dropdownSelect,
+    sources.sliders,
+    sources.slider,
+    sources.rangeSlider,
+    sources.collections,
+    sources.listView,
+    sources.listRow,
+    sources.tableView,
+    sources.tableHeader,
+    sources.tableRow,
+    sources.treeView,
+    sources.treeRow,
+    sources.alerts,
+    sources.toast,
+    sources.tooltip,
+    sources.menu,
+    sources.menuRow,
+    sources.popupLayer,
+    sources.surfaces,
+    sources.surfaceWindow,
+    sources.surfaceChrome,
+    sources.surfaceDrawer,
+    sources.surfaceScenePanel,
+    sources.surfaceInspectorPanel,
+    sources.surfaceShowcasePanel,
+    sources.surfaceViewport,
+    sources.moduleComponents,
+    sources.moduleActions,
+    sources.moduleBottomOutput,
+    sources.modulePanels,
+    sources.moduleRegions,
+    sources.moduleRows,
+    sources.moduleUtils,
+    sources.moduleVisuals
+  ].join("\n");
 }
 
 function fileSource(fileName) {
   return readRepo(`../../../../zircon_editor/src/ui/retained_host/host_contract/painter/${fileName}`);
+}
+
+function componentAssetSource(fileName) {
+  return readRepo(`../../../../zircon_editor/assets/ui/editor/components/${fileName}`);
+}
+
+function componentAssetPaths(rootUrl, prefix = "") {
+  return readdirSync(rootUrl, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory()) {
+      return componentAssetPaths(new URL(`${entry.name}/`, rootUrl), `${prefix}${entry.name}/`);
+    }
+    if (entry.isFile() && entry.name.endsWith(".zui")) {
+      return [`${prefix}${entry.name}`];
+    }
+    return [];
+  });
 }

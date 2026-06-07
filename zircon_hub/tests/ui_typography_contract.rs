@@ -1,938 +1,473 @@
-//! Static contracts for Zircon Hub Material typography usage.
+//! Static contracts for the Hub React/MUI typography system.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-#[test]
-fn shared_typography_wrappers_use_material_text() {
-    let shared = read_ui_file("shared.slint");
-    for snippet in [
-        "MaterialText,",
-        "export component FieldLabel inherits MaterialText",
-        "style: MaterialTypography.label_large;",
-        "export component MutedText inherits MaterialText",
-        "style: MaterialTypography.body_small;",
-    ] {
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
+
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            shared.contains(snippet),
-            "shared typography wrappers should delegate text metrics to MaterialText; missing {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain typography contract snippet {snippet:?}"
         );
     }
+}
 
-    let field_label = shared
-        .split("export component FieldLabel")
-        .nth(1)
-        .and_then(|source| source.split("export component MutedText").next())
-        .expect("shared.slint must declare FieldLabel before MutedText");
-    let muted_text = shared
-        .split("export component MutedText")
-        .nth(1)
-        .expect("shared.slint must declare MutedText");
-    for forbidden in [
-        "inherits Text",
-        "font-size:",
-        "font-weight:",
-        "font_size:",
-        "font_weight:",
-    ] {
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            !field_label.contains(forbidden) && !muted_text.contains(forbidden),
-            "shared typography wrappers should not return to raw Text font bindings: {forbidden}"
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete typography snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn builds_current_task_status_uses_material_text() {
-    let builds = read_ui_file("builds.slint");
-    let builds_components = read_ui_file("builds_page_components.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    let section_summary = surfaces
-        .split("export component HubSectionSummary")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("export component HubSection inherits Rectangle")
-                .next()
-        })
-        .expect("surfaces.slint must declare HubSectionSummary before HubSection");
+fn mui_theme_and_global_css_define_shared_typography_scale() {
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let styles = read_crate_file("web/src/styles.css");
 
-    for snippet in [
-        "HubSection,",
-        "HubSectionSummary,",
-        "HubSection {",
-        "section-height: root.current-task-section-height;",
-        "section-height: root.history-section-height;",
-        "title: root.current-task-title;",
-        "title: root.build-history-title;",
-        "HubSectionSummary {",
-        "title: root.status-label;",
-        "detail: root.readiness.operation-summary;",
-        "title-foreground: HubVisualSpec.accent-stroke;",
-        "prominent: true;",
-    ] {
-        assert!(
-            builds_components.contains(snippet),
-            "BuildTaskHistoryPanel current task status should delegate summary text to HubSectionSummary; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "MaterialText,",
-        "MaterialText {",
-        "text: root.title;",
-        "style: root.prominent ? MaterialTypography.headline_small : MaterialTypography.title_small;",
-        "if root.detail != \"\": MutedText",
-    ] {
-        assert!(
-            surfaces.contains(snippet) || section_summary.contains(snippet),
-            "HubSectionSummary should own MaterialText-backed section summary typography; missing {snippet}"
-        );
-    }
-    assert!(
-        builds.contains("BuildTaskHistoryPanel {")
-            && !builds.contains("MaterialText {")
-            && !builds.contains("MutedText {"),
-        "BuildsPage should compose BuildTaskHistoryPanel instead of owning current-task text nodes"
+    assert_contains_all(
+        "muiTheme.ts",
+        &theme,
+        &[
+            "export const hubTheme = createTheme({",
+            "typography: {",
+            "fontFamily: 'Inter, Roboto, \"Segoe UI\", Arial, sans-serif'",
+            "h4: {",
+            "fontSize: 28",
+            "lineHeight: 1.2",
+            "fontWeight: 700",
+            "h6: {",
+            "fontSize: 16",
+            "lineHeight: 1.25",
+            "body1: {",
+            "fontSize: 14",
+            "body2: {",
+            "fontSize: 13",
+            "caption: {",
+            "fontSize: 12",
+            "button: {",
+            "fontWeight: 500",
+            "letterSpacing: 0",
+            "textTransform: \"none\"",
+            "MuiButton",
+            "whiteSpace: \"nowrap\"",
+            "MuiTooltip",
+        ],
     );
-    let current_task_section = builds_components
-        .split("title: root.current-task-title;")
-        .nth(1)
-        .and_then(|source| source.split("Divider {}").next())
-        .expect("BuildTaskHistoryPanel must declare current task section before the divider");
-    for forbidden in ["MaterialText {", "MutedText {"] {
-        assert!(
-            !current_task_section.contains(forbidden),
-            "BuildTaskHistoryPanel current task section should not hand-build summary text after adopting HubSectionSummary: {forbidden}"
-        );
-    }
-    assert!(
-        !builds_components
-            .lines()
-            .any(|line| line.trim() == "Text {"),
-        "BuildTaskHistoryPanel should not return to raw Text nodes"
-    );
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !builds.contains(forbidden) && !builds_components.contains(forbidden),
-            "BuildsPage and BuildTaskHistoryPanel should not return to raw Text font bindings: {forbidden}"
-        );
-    }
-}
 
-#[test]
-fn editor_empty_states_use_shared_material_text_block() {
-    let editor = read_ui_file("editor.slint");
-    let editor_components = read_ui_file("editor_page_components.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    let source_empty = editor_components
-        .split("if root.source-engine-count == 0: EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("if root.source-build-history-count == 0")
-                .next()
-        })
-        .expect(
-            "editor_page_components.slint must declare source-engine EmptyStateBlock before build-history block",
-        );
-    let history_empty = editor_components
-        .split("if root.source-build-history-count == 0: EmptyStateBlock")
-        .nth(1)
-        .expect("editor_page_components.slint must declare source build-history EmptyStateBlock");
-    let empty_block = surfaces
-        .split("export component EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("export component EmptyStatePanel").next())
-        .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
-
-    for snippet in [
-        "height: root.empty-height;",
-        "title: root.empty-title;",
-        "body-padding: MaterialStyleMetrics.padding_16;",
-        "center-content: true;",
-    ] {
-        assert!(
-            source_empty.contains(snippet),
-            "Editor source-engine empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "height: root.empty-height;",
-        "title: root.empty-title;",
-        "body-padding: MaterialStyleMetrics.padding_16;",
-        "center-content: true;",
-    ] {
-        assert!(
-            history_empty.contains(snippet),
-            "Editor build-history empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
-        );
-    }
-    for snippet in ["MaterialText {", "text: root.title;"] {
-        assert!(
-            empty_block.contains(snippet),
-            "EmptyStateBlock should own Material text for Editor empty states; missing {snippet}"
-        );
-    }
+    let letter_spacing_zero_count = theme.matches("letterSpacing: 0").count();
     assert!(
-        !source_empty.lines().any(|line| line.trim() == "Text {")
-            && !history_empty.lines().any(|line| line.trim() == "Text {"),
-        "Editor empty states should not return to raw Text nodes"
+        letter_spacing_zero_count >= 6,
+        "MUI typography variants should explicitly avoid negative or viewport-scaled letter spacing"
     );
-    assert!(
-        editor.contains("EditorSourceEngineListPanel {")
-            && editor.contains("EditorBuildHistoryPanel {")
-            && !editor.contains("if root.source-engine-count == 0: EmptyStateBlock")
-            && !editor.contains("if root.source-build-history-count == 0: EmptyStateBlock"),
-        "editor.slint should compose typed side-list panels instead of owning empty-state text blocks inline"
+
+    assert_contains_all(
+        "styles.css",
+        &styles,
+        &[
+            "font-family: Inter, Roboto, \"Segoe UI\", Arial, sans-serif;",
+            "button,",
+            "input,",
+            "textarea,",
+            "select",
+            "font: inherit;",
+        ],
     );
 }
 
 #[test]
-fn cloud_and_team_workspace_typography_uses_material_text() {
-    let data_display = read_ui_file("data_display.slint");
-    let cloud = read_ui_file("cloud.slint");
-    let cloud_components = read_ui_file("cloud_page_components.slint");
-    let cloud_surface = format!("{cloud}\n{cloud_components}");
-    let team = read_ui_file("team.slint");
-    let team_components = read_ui_file("team_page_components.slint");
-    let team_surface = format!("{team}\n{team_components}");
+fn data_components_use_mui_typography_variants_and_truncation() {
+    let hub_panel = read_crate_file("web/src/components/data/HubPanel.tsx");
+    let empty_state = read_crate_file("web/src/components/data/EmptyStateBlock.tsx");
+    let hub_list = read_crate_file("web/src/components/data/HubList.tsx");
+    let hub_tree = read_crate_file("web/src/components/data/HubTreeView.tsx");
+    let metric_card = read_crate_file("web/src/components/data/MetricCard.tsx");
+    let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
+    let project_table = read_crate_file("web/src/components/data/ProjectTable.tsx");
+    let quick_actions = read_crate_file("web/src/components/data/QuickActions.tsx");
+    let source_engine_list = read_crate_file("web/src/components/data/SourceEngineList.tsx");
+    let status_badge = read_crate_file("web/src/components/data/StatusBadge.tsx");
 
-    let metric_text_stack = data_display
-        .split("component MetricCardTextStack")
-        .nth(1)
-        .and_then(|source| source.split("export component MetricCard").next())
-        .expect("data_display.slint must declare MetricCardTextStack before MetricCard");
-    let metric_card = data_display
-        .split("export component MetricCard")
-        .nth(1)
-        .and_then(|source| source.split("export component HubMetricSlot").next())
-        .expect("data_display.slint must declare MetricCard before HubMetricSlot");
-    for snippet in [
-        "MaterialText {",
-        "text: root.primary;",
-        "style: MaterialTypography.title_small;",
+    assert_contains_all(
+        "HubPanel.tsx",
+        &hub_panel,
+        &[
+            "import { Box, Card, Typography } from \"@mui/material\";",
+            "Typography variant=\"h6\"",
+            "color: hubTokens.colors.textSoft",
+        ],
+    );
+    assert_contains_all(
+        "EmptyStateBlock.tsx",
+        &empty_state,
+        &[
+            "Typography variant=\"body2\"",
+            "fontWeight: 700",
+            "Typography variant=\"caption\"",
+            "color: hubTokens.colors.textMuted",
+        ],
+    );
+    assert_contains_all(
+        "HubList.tsx",
+        &hub_list,
+        &[
+            "ListItemText",
+            "primary={<Typography variant=\"body2\" noWrap>{item.title}</Typography>}",
+            "secondary={",
+            "item.detail || item.secondaryDetail ? (",
+            "<Box sx={{ minWidth: 0, display: \"grid\", gap: 0.15 }}>",
+            "{item.detail ? <Typography variant=\"caption\" noWrap>{item.detail}</Typography> : null}",
+            "{item.secondaryDetail ? (",
+            "Typography variant=\"caption\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "HubTreeView.tsx",
+        &hub_tree,
+        &[
+            "Typography variant=\"body2\" noWrap",
+            "Typography variant=\"caption\" noWrap",
+            "color: hubTokens.colors.textMuted",
+        ],
+    );
+    assert_contains_all(
+        "MetricCard.tsx",
+        &metric_card,
+        &[
+            "Typography variant=\"caption\" noWrap",
+            "Typography variant=\"h6\" noWrap",
+            "color: toneColor[tone]",
+        ],
+    );
+    assert_contains_all(
+        "ProjectCard.tsx",
+        &project_card,
+        &[
+            "Typography variant=\"h6\" noWrap",
+            "Typography variant=\"body2\" color=\"text.secondary\" noWrap",
+            "Typography variant=\"body2\" color=\"text.disabled\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "ProjectTable.tsx",
+        &project_table,
+        &[
+            "Typography component=\"div\" variant=\"body2\" noWrap",
+            "fontSize: 12",
+            "fontWeight: 500",
+            "Typography variant=\"body2\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "QuickActions.tsx",
+        &quick_actions,
+        &[
+            "Typography variant=\"body2\" noWrap",
+            "fontWeight: 700",
+            "Typography variant=\"caption\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "SourceEngineList.tsx",
+        &source_engine_list,
+        &[
+            "Typography variant=\"body2\"",
+            "Typography variant=\"body2\" noWrap",
+            "Typography variant=\"caption\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "StatusBadge.tsx",
+        &status_badge,
+        &["Typography variant=\"body2\"", "fontWeight: 600"],
+    );
+    for (name, source) in [
+        ("HubPanel.tsx", hub_panel),
+        ("EmptyStateBlock.tsx", empty_state),
+        ("HubList.tsx", hub_list),
+        ("HubTreeView.tsx", hub_tree),
+        ("MetricCard.tsx", metric_card),
+        ("ProjectCard.tsx", project_card),
+        ("ProjectTable.tsx", project_table),
+        ("QuickActions.tsx", quick_actions),
+        ("SourceEngineList.tsx", source_engine_list),
+        ("StatusBadge.tsx", status_badge),
     ] {
-        assert!(
-            metric_text_stack.contains(snippet),
-            "MetricCardTextStack should delegate primary metric typography to MaterialText; missing {snippet}"
-        );
-    }
-    assert!(
-        metric_card.contains("MetricCardTextStack {")
-            && metric_card.contains("label: root.label;")
-            && metric_card.contains("primary: root.primary;")
-            && metric_card.contains("secondary: root.secondary;")
-            && metric_card.contains("compact: root.compact;"),
-        "MetricCard should forward metric text into MetricCardTextStack instead of owning typography inline"
-    );
-    assert!(
-        !metric_text_stack
-            .lines()
-            .any(|line| line.trim() == "Text {")
-            && !metric_card.lines().any(|line| line.trim() == "Text {"),
-        "MetricCardTextStack and MetricCard should not return to raw Text nodes"
-    );
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !metric_text_stack.contains(forbidden) && !metric_card.contains(forbidden),
-            "MetricCardTextStack and MetricCard should not return to raw Text font bindings: {forbidden}"
-        );
-    }
-    let metric_slot = data_display
-        .split("export component HubMetricSlot")
-        .nth(1)
-        .and_then(|source| source.split("export component BuildHistoryRow").next())
-        .expect("data_display.slint must declare HubMetricSlot before BuildHistoryRow");
-    assert!(
-        data_display.contains("export component HubMetricSlot inherits ResponsiveSlot"),
-        "data_display.slint must expose HubMetricSlot as the responsive metric-card wrapper"
-    );
-    for snippet in [
-        "in property <string> label;",
-        "in property <string> primary;",
-        "in property <string> secondary;",
-        "in property <bool> compact-card: false;",
-        "MetricCard {",
-        "label: root.label;",
-        "primary: root.primary;",
-        "secondary: root.secondary;",
-        "compact: root.compact-card;",
-    ] {
-        assert!(
-            metric_slot.contains(snippet),
-            "HubMetricSlot should centralize responsive metric-card composition; missing {snippet}"
-        );
-    }
-    for forbidden in ["MaterialText {", "Text {"] {
-        assert!(
-            !metric_slot.contains(forbidden),
-            "HubMetricSlot should delegate text rendering to MetricCard instead of owning typography: {forbidden}"
-        );
-    }
-
-    for (page_name, source) in [("CloudPage", &cloud_surface), ("TeamPage", &team_surface)] {
-        assert!(
-            source.contains("inherits HubMetricSlot"),
-            "{page_name} should reuse the shared data-display HubMetricSlot for summary metrics"
-        );
-        assert!(
-            source.contains("HubListPanelSlot,"),
-            "{page_name} should route its lower row list through the shared HubListPanelSlot shell"
-        );
-    }
-    for forbidden in [
-        "component CloudMetric inherits",
-        "component TeamSummaryItem",
-        "component TeamSummaryCard",
-    ] {
-        assert!(
-            !cloud_surface.contains(forbidden) && !team_surface.contains(forbidden),
-            "Cloud/Team should not keep page-local metric card components after MetricCard extraction: {forbidden}"
-        );
-    }
-    assert!(
-        !cloud.contains("component CloudMetricSlot")
-            && !cloud.contains("component CloudServiceRow")
-            && !cloud.contains("component CloudServicesPanel")
-            && !team.contains("component TeamSummarySlot")
-            && !team.contains("component TeamMemberRow")
-            && !team.contains("component TeamMembersPanel"),
-        "Cloud/Team pages should import page-specific panel/row wrappers from component modules instead of defining them inline"
-    );
-
-    let surfaces = read_ui_file("surfaces.slint");
-    let empty_block = surfaces
-        .split("export component EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("export component EmptyStatePanel").next())
-        .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
-    let team_empty = team_components
-        .split("if root.member-count == 0: EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("for member in root.members").next())
-        .expect("team_page_components.slint must declare member empty state before member rows");
-    for snippet in [
-        "title: root.ui-text.no-team-members-found;",
-        "detail: root.members-empty-detail;",
-        "extra-detail: root.repository-path;",
-        "body-padding: MaterialStyleMetrics.padding_16;",
-    ] {
-        assert!(
-            team_empty.contains(snippet),
-            "Team empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
-        );
-    }
-    assert!(
-        team.contains("TeamMembersPanel {")
-            && !team.contains("if root.member-count == 0: EmptyStateBlock")
-            && !team.contains("for member in root.members: TeamMemberRow {"),
-        "team.slint should compose TeamMembersPanel instead of owning member empty-state or row repetition inline"
-    );
-    for snippet in [
-        "MaterialText {",
-        "style: root.title-prominent ? MaterialTypography.title_medium : MaterialTypography.label_large;",
-    ] {
-        assert!(
-            empty_block.contains(snippet),
-            "EmptyStateBlock should delegate shared empty-state typography to MaterialText; missing {snippet}"
-        );
-    }
-    assert!(
-        !team_empty.lines().any(|line| line.trim() == "Text {")
-            && !empty_block.lines().any(|line| line.trim() == "Text {"),
-        "Team empty state should not return to raw Text nodes"
-    );
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !team_empty.contains(forbidden) && !empty_block.contains(forbidden),
-            "Team empty state should not return to raw Text font bindings: {forbidden}"
-        );
+        assert_not_contains_any(name, &source, &["fontFamily", "letterSpacing"]);
     }
 }
 
 #[test]
-fn dashboard_project_card_and_empty_titles_use_material_text() {
-    let dashboard = read_ui_file("project_dashboard.slint");
-    let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
-    let dashboard_surface =
-        format!("{dashboard}\n{dashboard_components}\n{project_card_flow_components}");
-    let surfaces = read_ui_file("surfaces.slint");
-    let project_card = project_card_flow_components
-        .split("export component ProjectCard")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectFlow").next())
-        .expect("project_card_flow_components.slint must export ProjectCard before ProjectFlow");
-    let project_card_identity = project_card_flow_components
-        .split("component ProjectCardIdentityStack")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectCard").next())
-        .expect(
-            "project_card_flow_components.slint must declare ProjectCardIdentityStack before ProjectCard",
-        );
-    let button_states_title = dashboard_components
-        .split("component DashboardButtonStatesTitle")
-        .nth(1)
-        .and_then(|source| source.split("component DashboardButtonStatesSectionLabel").next())
-        .expect(
-            "project_dashboard_components.slint must declare DashboardButtonStatesTitle before DashboardButtonStatesSectionLabel",
-        );
-    let button_states_section_label = dashboard_components
-        .split("component DashboardButtonStatesSectionLabel")
-        .nth(1)
-        .and_then(|source| source.split("export component DashboardButtonStatesStrip").next())
-        .expect(
-            "project_dashboard_components.slint must declare DashboardButtonStatesSectionLabel before DashboardButtonStatesStrip",
-        );
-    let button_states_strip = dashboard_components
-        .split("export component DashboardButtonStatesStrip")
-        .nth(1)
-        .and_then(|source| source.split("export component ").next())
-        .expect("project_dashboard_components.slint must export DashboardButtonStatesStrip");
-    for snippet in [
-        "MaterialText,",
-        "component ProjectCardIdentityStack inherits Rectangle",
-        "MaterialText {",
-        "text: root.project.title;",
-        "style: MaterialTypography.title_small;",
-        "vertical_alignment: center;",
-        "MutedText {",
-        "text: root.project.project-path;",
-        "text: root.modified-label;",
-    ] {
-        assert!(
-            dashboard_surface.contains(snippet) || project_card_identity.contains(snippet),
-            "ProjectCardIdentityStack should own MaterialText-backed card identity typography; missing {snippet}"
+fn input_and_overlay_components_use_body_caption_label_typography() {
+    let checkbox = read_crate_file("web/src/components/inputs/HubCheckbox.tsx");
+    let switch = read_crate_file("web/src/components/inputs/HubSwitch.tsx");
+    let select = read_crate_file("web/src/components/inputs/HubSelect.tsx");
+    let menu = read_crate_file("web/src/components/overlays/HubMenu.tsx");
+    let source_engine_popover =
+        read_crate_file("web/src/components/overlays/SourceEnginePopover.tsx");
+    let user_menu_popover = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
+
+    for (name, source) in [("HubCheckbox.tsx", &checkbox), ("HubSwitch.tsx", &switch)] {
+        assert_contains_all(
+            name,
+            source,
+            &[
+                "FormControlLabel",
+                "Typography variant=\"body2\" noWrap",
+                "Typography variant=\"caption\" noWrap",
+                "color: isDisabled ? hubTokens.colors.textMuted : hubTokens.colors.text",
+            ],
         );
     }
-    for snippet in [
-        "ProjectCardIdentityStack {",
-        "project: root.project;",
-        "modified-label: root.visible-modified-label;",
-        "title-row-height: max(MaterialTypography.title_large.font_size, root.status-badge-height);",
-        "status-badge-width: root.status-badge-width;",
-        "status-badge-height: root.status-badge-height;",
-    ] {
-        assert!(
-            project_card.contains(snippet),
-            "ProjectCard should delegate title/path/modified text to ProjectCardIdentityStack; missing {snippet}"
-        );
-    }
-    for forbidden in ["MaterialText {", "MutedText {", "text: root.project.title;"] {
-        assert!(
-            !project_card.contains(forbidden),
-            "ProjectCard should not recreate identity typography after adopting ProjectCardIdentityStack: {forbidden}"
-        );
-    }
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !project_card.contains(forbidden) && !project_card_identity.contains(forbidden),
-            "ProjectCard identity typography should not return to raw Text font bindings: {forbidden}"
-        );
-    }
-    for snippet in [
-        "inherits MaterialText",
-        "text: root.title;",
-        "style: MaterialTypography.title_medium;",
-        "color: MaterialPalette.on_surface;",
-    ] {
-        assert!(
-            button_states_title.contains(snippet),
-            "DashboardButtonStatesTitle should own the MaterialText title typography; missing {snippet}"
-        );
-    }
-    for snippet in ["inherits MutedText", "text: root.label;"] {
-        assert!(
-            button_states_section_label.contains(snippet),
-            "DashboardButtonStatesSectionLabel should own muted section-label typography; missing {snippet}"
-        );
-    }
-    assert!(
-        button_states_strip.contains("DashboardButtonStatesTitle {")
-            && button_states_strip.contains("DashboardButtonStatesSectionLabel {")
-            && !button_states_strip.contains("MaterialText {")
-            && !button_states_strip.contains("MutedText {"),
-        "DashboardButtonStatesStrip should delegate visible labels to MaterialText-backed label helpers"
+    assert_contains_all(
+        "HubSelect.tsx",
+        &select,
+        &[
+            "renderValue={(selected) => (",
+            "Typography variant=\"body2\" color=\"text.secondary\"",
+            "IconComponent={ExpandMoreIcon}",
+            "MenuItem",
+        ],
+    );
+    assert_contains_all(
+        "HubMenu.tsx",
+        &menu,
+        &["MenuItem", "Typography variant=\"body2\""],
+    );
+    assert_contains_all(
+        "SourceEnginePopover.tsx",
+        &source_engine_popover,
+        &[
+            "Typography variant=\"caption\" sx={sectionLabelSx}",
+            "Typography variant=\"body2\" noWrap",
+            "Typography variant=\"caption\" noWrap",
+            "fontWeight: 700",
+            "textTransform: \"uppercase\"",
+        ],
+    );
+    assert_contains_all(
+        "UserMenuPopover.tsx",
+        &user_menu_popover,
+        &[
+            "Typography variant=\"body2\" noWrap",
+            "fontWeight: 700",
+            "Typography variant=\"caption\" noWrap",
+        ],
     );
 
-    let project_flow = project_card_flow_components
-        .split("export component ProjectFlow")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("export component DashboardProjectCardsSection")
-                .next()
-        })
-        .expect(
-            "project_card_flow_components.slint must export ProjectFlow before DashboardProjectCardsSection",
-        );
-    for snippet in [
-        "if root.project-card-count == 0: EmptyStatePanel",
-        "title: root.empty-title;",
-        "detail: root.empty-detail;",
-        "body-padding: HubTokens.space-6;",
-        "title-prominent: true;",
+    for (name, source) in [
+        ("HubCheckbox.tsx", checkbox),
+        ("HubSwitch.tsx", switch),
+        ("HubSelect.tsx", select),
+        ("HubMenu.tsx", menu),
+        ("SourceEnginePopover.tsx", source_engine_popover),
+        ("UserMenuPopover.tsx", user_menu_popover),
     ] {
-        assert!(
-            project_flow.contains(snippet),
-            "ProjectFlow empty state should delegate layout and typography to EmptyStatePanel; missing {snippet}"
-        );
-    }
-
-    let empty_block = surfaces
-        .split("export component EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("export component EmptyStatePanel").next())
-        .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
-    let empty_panel = surfaces
-        .split("export component EmptyStatePanel")
-        .nth(1)
-        .and_then(|source| source.split("export component StatusBanner").next())
-        .expect("surfaces.slint must declare EmptyStatePanel before StatusBanner");
-    for snippet in ["inherits HubPanel", "EmptyStateBlock {"] {
-        assert!(
-            empty_panel.contains(snippet),
-            "EmptyStatePanel should wrap EmptyStateBlock in a HubPanel shell; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "MaterialText {",
-        "text: root.title;",
-        "style: root.title-prominent ? MaterialTypography.title_medium : MaterialTypography.label_large;",
-        "if root.detail != \"\": MutedText",
-    ] {
-        assert!(
-            empty_block.contains(snippet),
-            "EmptyStateBlock should own MaterialText/MutedText empty-state typography; missing {snippet}"
-        );
-    }
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !project_flow.contains(forbidden)
-                && !empty_panel.contains(forbidden)
-                && !empty_block.contains(forbidden),
-            "ProjectFlow empty state title should not return to raw Text font bindings: {forbidden}"
-        );
+        assert_not_contains_any(name, &source, &["fontFamily", "letterSpacing"]);
     }
 }
 
 #[test]
-fn project_workflow_typography_uses_material_text() {
-    let components = read_ui_file("project_page_components.slint");
-    let browser_components = read_ui_file("project_browser_components.slint");
-    let detail_components = read_ui_file("project_detail_components.slint");
-    let new_page = read_ui_file("project_new_page.slint");
-    let browser_page = read_ui_file("project_browser_page.slint");
-    let detail_page = read_ui_file("project_detail_page.slint");
-    let project_pages = read_ui_file("project_pages.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    let table_view = read_ui_file("table_view_components.slint");
-    let project_text_surface = format!(
-        "{components}\n{browser_components}\n{detail_components}\n{new_page}\n{browser_page}\n{detail_page}\n{table_view}"
+fn shell_components_use_reference_title_status_and_navigation_typography() {
+    let top_bar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+
+    assert_contains_all(
+        "TopBar.tsx",
+        &top_bar,
+        &[
+            "Typography variant=\"h6\" noWrap sx={{ textTransform: \"uppercase\", lineHeight: 1 }}",
+            "Typography variant=\"body2\" noWrap color=\"text.secondary\"",
+            "Typography variant=\"body2\" noWrap",
+            "StatusBadge key={status.id}",
+            "SourceEnginePopover",
+            "UserMenuPopover",
+        ],
     );
-    let project_detail_action_note = detail_components
-        .split("component ProjectDetailActionNote")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectDetailActionStack").next())
-        .expect(
-            "project_detail_components.slint must declare ProjectDetailActionNote before ProjectDetailActionStack",
-        );
-    let project_create_section_label = components
-        .split("component ProjectCreateSectionLabel")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectCreateSettingsPanel").next())
-        .expect(
-            "project_page_components.slint must declare ProjectCreateSectionLabel before ProjectCreateSettingsPanel",
-        );
+    assert_contains_all(
+        "NavigationDrawer.tsx",
+        &drawer,
+        &[
+            "Typography",
+            "variant=\"body2\"",
+            "fontWeight: selected ? 700 : 500",
+            "Typography variant=\"caption\"",
+            "{text.engineStatus}",
+            "{text.checkForUpdates}",
+            "{text.checkForUpdatesDetail}",
+            "const collapseLabel = collapsed ? text.expand : text.collapse;",
+            "{collapseLabel}",
+        ],
+    );
 
-    for snippet in [
-        "MaterialText,",
-        "style: MaterialTypography.title_large;",
-        "style: MaterialTypography.label_medium;",
-        "style: MaterialTypography.label_large;",
-        "style: MaterialTypography.body_small;",
-        "vertical_alignment: center;",
-    ] {
-        assert!(
-            project_text_surface.contains(snippet),
-            "Project workflow shared components should delegate typography to MaterialText; missing {snippet}"
-        );
+    for (name, source) in [("TopBar.tsx", top_bar), ("NavigationDrawer.tsx", drawer)] {
+        assert_not_contains_any(name, &source, &["fontFamily", "letterSpacing"]);
     }
+}
 
-    for component_name in [
-        "PageHeader",
-        "ProjectSettingSummaryRow",
-        "ProjectCreateSettingsPanel",
-        "ProjectCreateCompactSummaryPanel",
-        "ProjectDetailStatusStrip",
-        "ProjectDetailActionStack",
-        "ProjectDetailDeleteActionStack",
-        "ProjectDetailActionsSection",
-        "ProjectDetailPinToggleRow",
-        "ProjectDetailInfoSection",
-        "ProjectDetailEngineSection",
-        "ProjectDetailMainPanel",
-        "ProjectBrowserRow",
-    ] {
-        let component_source = if component_name == "ProjectBrowserRow" {
-            &browser_components
-        } else if component_name.starts_with("ProjectDetail") {
-            &detail_components
-        } else {
-            &components
-        };
-        let component = component_source
-            .split(&format!("export component {component_name}"))
-            .nth(1)
-            .and_then(|source| {
-                if component_name == "ProjectDetailStatusStrip" {
-                    source
-                        .split("export component ProjectDetailInfoSection")
-                        .next()
-                } else if component_name == "ProjectDetailPinToggleRow" {
-                    source
-                        .split("export component ProjectDetailEngineSection")
-                        .next()
-                } else if component_name == "ProjectDetailEngineSection" {
-                    source
-                        .split("export component ProjectDetailActionsSection")
-                        .next()
-                } else if component_name == "ProjectDetailActionsSection" {
-                    source
-                        .split("export component ProjectDetailStatusStrip")
-                        .next()
-                } else if component_name == "ProjectDetailActionStack" {
-                    source
-                        .split("export component ProjectDetailDeleteActionStack")
-                        .next()
-                } else if component_name == "ProjectDetailDeleteActionStack" {
-                    source
-                        .split("export component ProjectDetailEngineSection")
-                        .next()
-                } else if component_name == "ProjectDetailInfoSection" {
-                    source
-                        .split("export component ProjectDetailMainPanel")
-                        .next()
-                } else if component_name == "ProjectDetailMainPanel" {
-                    source.split("export component ").next()
-                } else {
-                    source.split("export component ").next()
-                }
-            })
-            .unwrap_or_else(|| panic!("Project workflow UI must declare {component_name}"));
-        if component_name == "ProjectCreateCompactSummaryPanel" {
-            assert!(
-                component.contains("ProjectCreateSummary {"),
-                "{component_name} should delegate visible text to MaterialText-backed project summary components"
-            );
-        } else if component_name == "PageHeader" {
-            assert!(
-                component.contains("PageHeaderTitleStack {")
-                    && component.contains("title: root.title;")
-                    && component.contains("subtitle: root.subtitle;"),
-                "{component_name} should delegate title/subtitle text to the focused PageHeaderTitleStack"
-            );
-        } else if component_name == "ProjectBrowserRow" {
-            assert!(
-                component.contains("ProjectBrowserNameCell {")
-                    && component.contains("TableCellText {")
-                    && !component.contains("MaterialText {")
-                    && !component.contains("MutedText {"),
-                "{component_name} should delegate custom and ordinary Browser row text to focused MaterialText-backed cells"
-            );
-        } else if component_name == "ProjectCreateSettingsPanel" {
-            assert!(
-                component.contains("inherits HubContentPanelSlot")
-                    && component.contains("ProjectCreateSectionLabel {")
-                    && component.contains("label-height: root.section-label-height;")
-                    && component.contains("label-text: root.ui-text.source-engine;")
-                    && component.contains("ProjectEngineChoiceList {")
-                    && component.contains("ProjectCreateSummary {")
-                    && !component.contains("MaterialText {"),
-                "{component_name} should delegate section labels and visible form text to focused MaterialText-backed project workflow components"
-            );
-            for snippet in [
-                "inherits MaterialText",
-                "height: root.label-height;",
-                "text: root.label-text;",
-                "color: MaterialPalette.on_surface_variant;",
-                "style: MaterialTypography.body_small;",
-                "vertical_alignment: center;",
-            ] {
-                assert!(
-                    project_create_section_label.contains(snippet),
-                    "ProjectCreateSectionLabel should own source-engine section label typography; missing {snippet}"
-                );
-            }
-        } else if component_name == "ProjectDetailInfoSection"
-            || component_name == "ProjectDetailEngineSection"
-        {
-            assert!(
-                component.contains("inherits HubSection")
-                    && (component.contains("ProjectSettingSummaryRow {")
-                        || component.contains("ProjectEngineChoiceList {")),
-                "{component_name} should delegate section text through the MaterialText-backed HubSection primitive"
-            );
-        } else if component_name == "ProjectDetailActionsSection" {
-            assert!(
-                component.contains("inherits HubContentPanelSlot")
-                    && component.contains("ProjectDetailActionStack {")
-                    && component.contains("ProjectDetailDeleteActionStack {")
-                    && component.contains("ProjectDetailEngineSection {")
-                    && component.contains("project: root.project;")
-                    && component.contains("copy: root.copy;"),
-                "{component_name} should delegate action content through the typed action stacks, toggle row, section, and MaterialText-backed panel primitives"
-            );
-        } else if component_name == "ProjectDetailActionStack" {
-            assert!(
-                component.contains("inherits HubActionStack")
-                    && component.contains("HubActionCommandButton {")
-                    && component.contains("ProjectDetailPinToggleRow {")
-                    && component.contains("ProjectDetailActionNote {")
-                    && !component.contains("MutedText {"),
-                "{component_name} should delegate visible command text through HubActionCommandButton, HubToggleRow, and ProjectDetailActionNote primitives"
-            );
-            for snippet in [
-                "inherits MutedText",
-                "text: root.note-text;",
-                "height: root.note-height;",
-                "overflow: elide;",
-            ] {
-                assert!(
-                    project_detail_action_note.contains(snippet),
-                    "ProjectDetailActionNote should own muted action-note typography; missing {snippet}"
-                );
-            }
-        } else if component_name == "ProjectDetailDeleteActionStack" {
-            assert!(
-                component.contains("inherits HubActionStack")
-                    && component.contains("StatusBanner {")
-                    && component.contains("HubActionCommandButton {"),
-                "{component_name} should delegate visible delete-confirmation text through StatusBanner and HubActionCommandButton primitives"
-            );
-        } else if component_name == "ProjectDetailPinToggleRow" {
-            assert!(
-                component.contains("inherits HubToggleRow")
-                    && component.contains("label: root.detail.pinned")
-                    && component.contains("supporting-text: root.detail.pinned"),
-                "{component_name} should delegate visible text to the MaterialText-backed HubToggleRow primitive"
-            );
-        } else if component_name == "ProjectSettingSummaryRow" {
-            assert!(
-                component.contains("inherits HubKeyValueRow")
-                    && component.contains("label-width: root.row-height"),
-                "{component_name} should delegate visible text to the MaterialText-backed HubKeyValueRow primitive"
-            );
-        } else if component_name == "ProjectDetailStatusStrip" {
-            assert!(
-                component.contains("inherits HubBadgeMetaStrip")
-                    && component.contains("meta-text: root.copy.modified-prefix"),
-                "{component_name} should delegate visible text to the MaterialText-backed HubBadgeMetaStrip primitive"
-            );
-        } else if component_name == "ProjectDetailMainPanel" {
-            assert!(
-                component.contains("inherits HubMediaContentPanelSlot")
-                    && component.contains("ProjectDetailStatusStrip {")
-                    && component.contains("ProjectDetailInfoSection {"),
-                "{component_name} should delegate visible text to the shared media/content panel plus typed status and info sections"
-            );
-        } else {
-            assert!(
-                component.contains("MaterialText {"),
-                "{component_name} should use MaterialText for visible text"
-            );
-        }
-        assert!(
-            !component.lines().any(|line| line.trim() == "Text {"),
-            "{component_name} should not return to raw Text nodes"
+#[test]
+fn routed_pages_use_page_title_subtitle_typography_and_shared_components() {
+    let pages = [
+        "ProjectsDashboard.tsx",
+        "ProjectBrowserPage.tsx",
+        "ProjectDetailPage.tsx",
+        "EditorPage.tsx",
+        "BuildsPage.tsx",
+        "CatalogPage.tsx",
+        "CloudPage.tsx",
+        "TeamPage.tsx",
+        "SettingsPage.tsx",
+        "WorkspacePage.tsx",
+    ];
+
+    for page in pages {
+        let source = read_crate_file(&format!("web/src/pages/{page}"));
+        assert_contains_all(
+            page,
+            &source,
+            &[
+                "Typography",
+                "Typography variant=\"h4\"",
+                "Typography variant=\"body1\" color=\"text.secondary\"",
+            ],
         );
-        for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-            assert!(
-                !component.contains(forbidden),
-                "{component_name} should not return to raw Text font bindings: {forbidden}"
-            );
-        }
+        assert_not_contains_any(page, &source, &["fontFamily", "letterSpacing"]);
     }
 
-    for snippet in [
-        "MaterialText,",
-        "text: root.ui-text.source-engine;",
-        "meta-text: root.copy.modified-prefix + root.detail.modified;",
-        "style: MaterialTypography.body_small;",
-        "vertical_alignment: center;",
-    ] {
-        assert!(
-            components.contains(snippet)
-                || detail_components.contains(snippet)
-                || new_page.contains(snippet)
-                || detail_page.contains(snippet)
-                || project_pages.contains(snippet)
-                || browser_page.contains(snippet),
-            "Project workflow pages should use MaterialText for section/status labels; missing {snippet}"
-        );
-    }
-    let browser_results_panel = browser_components
-        .split("export component ProjectBrowserResultsPanel")
-        .nth(1)
-        .expect("project_browser_components.slint must declare ProjectBrowserResultsPanel");
-    let browser_empty = browser_results_panel
-        .split("if root.row-count == 0: EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("}").next())
-        .expect(
-            "ProjectBrowserResultsPanel must declare an EmptyStateBlock for empty browser results",
-        );
-    let engine_choice_list = components
-        .split("export component ProjectEngineChoiceList")
-        .nth(1)
-        .expect("project_page_components.slint must declare ProjectEngineChoiceList");
-    let engine_choice_empty = engine_choice_list
-        .split("if root.engine-count == 0: EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("for engine in root.engines").next())
-        .expect(
-            "ProjectEngineChoiceList must declare an EmptyStateBlock for missing source engines",
-        );
-    let empty_block = surfaces
-        .split("export component EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("export component EmptyStatePanel").next())
-        .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
-    for snippet in [
-        "height: HubTokens.list-row-lg;",
-        "title: root.ui-text.no-projects-match;",
-        "body-padding: HubTokens.space-4;",
-        "center-content: true;",
-    ] {
-        assert!(
-            browser_empty.contains(snippet),
-            "Project Browser empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "height: root.list-height;",
-        "title: root.empty-title;",
-        "body-padding: HubTokens.space-4;",
-        "center-content: true;",
-    ] {
-        assert!(
-            engine_choice_empty.contains(snippet),
-            "Project source-engine empty state should delegate content bindings to EmptyStateBlock through ProjectEngineChoiceList; missing {snippet}"
-        );
-    }
-    assert!(
-        components.contains("empty-title: root.ui-text.register-source-engine-before-create;")
-            && new_page.contains("ui-text: root.ui-text;")
-            && detail_components.contains("empty-title: root.copy.no-source-engine-available;")
-            && detail_page.contains("copy: root.ui-text;"),
-        "ProjectNewPage and ProjectDetailEngineSection should provide their own Source Engine empty-state copy to ProjectEngineChoiceList"
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &read_crate_file("web/src/pages/ProjectsDashboard.tsx"),
+        &[
+            "ProjectCard",
+            "ProjectTable",
+            "QuickActions",
+            "HubPanel title={text.projectBrowser}",
+            "HubPanel title={text.quickActions}",
+        ],
     );
-    for snippet in ["MaterialText {", "text: root.title;"] {
-        assert!(
-            empty_block.contains(snippet),
-            "EmptyStateBlock should own MaterialText typography for Project workflow empty states; missing {snippet}"
-        );
-    }
-    assert!(
-        !browser_empty.contains("MutedText {")
-            && !engine_choice_empty.contains("MutedText {")
-            && !browser_empty.lines().any(|line| line.trim() == "Text {"),
-        "Project workflow empty states should not return to local MutedText/raw Text nodes"
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &read_crate_file("web/src/pages/ProjectDetailPage.tsx"),
+        &[
+            "MetricCard",
+            "HubList",
+            "HubTreeView",
+            "StatusBadge",
+            "HubTabs",
+        ],
     );
-    assert!(
-        browser_page.contains("ProjectBrowserResultsPanel {")
-            && !browser_page.contains("EmptyStateBlock {")
-            && !browser_page.contains("PanelHeader {"),
-        "ProjectBrowserPage should compose the typed results panel instead of owning browser result text"
-    );
-    assert!(
-        !project_pages.lines().any(|line| line.trim() == "Text {")
-            && !new_page.lines().any(|line| line.trim() == "Text {")
-            && !browser_page.lines().any(|line| line.trim() == "Text {")
-            && !detail_page.lines().any(|line| line.trim() == "Text {"),
-        "Project workflow page modules should not return to raw Text nodes"
-    );
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !project_pages.contains(forbidden)
-                && !new_page.contains(forbidden)
-                && !browser_page.contains(forbidden)
-                && !detail_page.contains(forbidden),
-            "Project workflow page modules should not return to raw Text font bindings: {forbidden}"
-        );
-    }
-    assert!(
-        project_pages.contains("export { ProjectNewPage } from \"project_new_page.slint\";")
-            && project_pages
-                .contains("export { ProjectBrowserPage } from \"project_browser_page.slint\";")
-            && project_pages
-                .contains("export { ProjectDetailPage } from \"project_detail_page.slint\";")
-            && !project_pages.contains("export component ProjectDetailPage inherits"),
-        "project_pages.slint should keep New, Browser, and Detail pages available through dedicated page modules"
+    assert_contains_all(
+        "SettingsPage.tsx",
+        &read_crate_file("web/src/pages/SettingsPage.tsx"),
+        &[
+            "HubCheckbox",
+            "HubSwitch",
+            "SourceEngineList",
+            "HubTreeView",
+        ],
     );
 }
 
 #[test]
-fn settings_health_empty_state_uses_material_text() {
-    let settings_components = read_ui_file("settings_page_components.slint");
-    let surfaces = read_ui_file("surfaces.slint");
-    let health_empty = settings_components
-        .split("if root.settings-status-count == 0: EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("for status in root.settings-statuses").next())
-        .expect(
-            "settings_page_components.slint must declare configuration health EmptyStateBlock before status rows",
-        );
-    let empty_block = surfaces
-        .split("export component EmptyStateBlock")
-        .nth(1)
-        .and_then(|source| source.split("export component EmptyStatePanel").next())
-        .expect("surfaces.slint must declare EmptyStateBlock before EmptyStatePanel");
+fn typography_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
 
-    for snippet in [
-        "title: root.ui-text.no-configuration-checks;",
-        "detail: root.ui-text.configuration-health-empty-detail;",
-        "body-padding: HubTokens.space-4;",
-        "center-content: true;",
-    ] {
-        assert!(
-            health_empty.contains(snippet),
-            "Settings health empty state should delegate content bindings to EmptyStateBlock; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "MaterialText {",
-        "style: root.title-prominent ? MaterialTypography.title_medium : MaterialTypography.label_large;",
-    ] {
-        assert!(
-            empty_block.contains(snippet),
-            "EmptyStateBlock should delegate shared empty-state typography to MaterialText; missing {snippet}"
-        );
-    }
-    assert!(
-        !health_empty.lines().any(|line| line.trim() == "Text {")
-            && !empty_block.lines().any(|line| line.trim() == "Text {"),
-        "Settings health empty state should not return to raw Text nodes"
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_typography_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_typography_contract",
+            "## Typography Contract Cutover",
+            "React/MUI typography system",
+            "web/src/theme/muiTheme.ts",
+            "web/src/styles.css",
+            "web/src/components/data",
+            "web/src/components/inputs",
+            "web/src/components/overlays",
+            "web/src/components/shell",
+            "web/src/pages",
+        ],
     );
-    for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-        assert!(
-            !health_empty.contains(forbidden) && !empty_block.contains(forbidden),
-            "Settings health empty state should not return to raw Text font bindings: {forbidden}"
-        );
-    }
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_typography_contract.rs`",
+            "React/MUI typography system",
+            "shared MUI theme scale, global CSS font inheritance",
+            "data/input/overlay/shell Typography variants",
+            "routed page title/subtitle usage",
+        ],
+    );
+}
+
+#[test]
+fn typography_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_typography_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_material_typography = format!("Material{}", "Typography");
+
+    assert_contains_all(
+        "ui_typography_contract.rs",
+        &contract,
+        &[
+            "web/src/theme/muiTheme.ts",
+            "web/src/styles.css",
+            "HubPanel.tsx",
+            "EmptyStateBlock.tsx",
+            "HubList.tsx",
+            "MetricCard.tsx",
+            "ProjectCard.tsx",
+            "TopBar.tsx",
+            "NavigationDrawer.tsx",
+            "web/src/pages",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_typography_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_material_typography.as_str(),
+        ],
+    );
 }

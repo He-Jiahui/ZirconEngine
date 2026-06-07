@@ -84,70 +84,85 @@ fn hub_config_repair_converges_foundation_registries() {
         );
     }
 
-    let runtime = fs::read_to_string(crate_dir().join("src/app/runtime/persistence.rs"))
-        .expect("runtime/persistence.rs should be readable");
+    let runtime = fs::read_to_string(crate_dir().join("src/tauri_app/runtime_state.rs"))
+        .expect("runtime_state.rs should be readable");
     assert!(
         runtime.matches("config.repair_registries();").count() >= 2,
-        "HubRuntime::load should repair merged editor/Hub config before projecting snapshots and again after Source Engine registration"
+        "HubRuntimeSession::load_from_paths should repair merged editor/Hub config before projecting snapshots and again after Source Engine registration"
     );
+    for snippet in [
+        "session.register_source_engine_from_settings();",
+        "session.prune_stale_project_engine_bindings();",
+        "session.config.repair_registries();",
+        "session.persist()?;",
+    ] {
+        assert!(
+            runtime.contains(snippet),
+            "HubRuntimeSession should repair and persist project registries before React projection; missing {snippet}"
+        );
+    }
 }
 
 #[test]
-fn runtime_persistence_keeps_editor_recent_writes_in_persistence_owner() {
-    let runtime = fs::read_to_string(crate_dir().join("src/app/runtime.rs"))
-        .expect("runtime.rs should be readable");
-    let workspace = fs::read_to_string(crate_dir().join("src/app/runtime/project_workspace.rs"))
-        .expect("project_workspace.rs should be readable");
-    let persistence = fs::read_to_string(crate_dir().join("src/app/runtime/persistence.rs"))
-        .expect("runtime/persistence.rs should be readable");
+fn runtime_persistence_keeps_editor_recent_writes_in_tauri_session_owner() {
+    let runtime = fs::read_to_string(crate_dir().join("src/tauri_app/runtime_state.rs"))
+        .expect("runtime_state.rs should be readable");
+    let quick_actions =
+        fs::read_to_string(crate_dir().join("src/tauri_app/runtime_state/quick_actions.rs"))
+            .expect("runtime_state/quick_actions.rs should be readable");
 
-    for (name, source) in [("runtime.rs", runtime), ("project_workspace.rs", workspace)] {
-        assert!(
-            !source.contains("save_editor_recent_projects"),
-            "{name} must not write Editor recent JSON directly; route through runtime/persistence.rs"
-        );
-    }
+    assert!(
+        !quick_actions.contains("save_editor_recent_projects"),
+        "quick-action workflow code must not write Editor recent JSON directly; route through HubRuntimeSession persistence"
+    );
 
     for snippet in [
-        "pub(super) fn persist(&self) -> Result<(), HubError>",
-        "pub(super) fn persist_hub_config(&self) -> Result<(), HubError>",
-        "pub(super) fn persist_with_last_project(",
+        "fn persist(&self) -> Result<(), HubError>",
+        "fn persist_hub_config(&self) -> Result<(), HubError>",
+        "fn persist_with_last_project(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+        "config.runtime = self.runtime_state_for_config();",
         "save_editor_recent_projects_with_last_project(",
         "save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)",
     ] {
         assert!(
-            persistence.contains(snippet),
-            "runtime/persistence.rs should own Hub TOML and Editor recent save boundaries; missing {snippet}"
+            runtime.contains(snippet),
+            "runtime_state.rs should own Hub TOML and Editor recent save boundaries; missing {snippet}"
         );
     }
 }
 
 #[test]
-fn foundation_docs_reference_final_gate_plan_and_contracts() {
-    let foundations =
-        fs::read_to_string(crate_dir().join("../docs/zircon_hub/state/foundations.md"))
-            .expect("docs/zircon_hub/state/foundations.md should be readable");
+fn project_management_docs_record_tauri_react_contract_cutover() {
+    let shell_doc =
+        fs::read_to_string(crate_dir().join("../docs/zircon_hub/ui/tauri-react-shell.md"))
+            .expect("docs/zircon_hub/ui/tauri-react-shell.md should be readable");
+    let responsive_doc = fs::read_to_string(
+        crate_dir().join("../docs/zircon_hub/ui/responsive-component-system.md"),
+    )
+    .expect("docs/zircon_hub/ui/responsive-component-system.md should be readable");
 
     for snippet in [
-        "related_code:",
-        "implementation_files:",
-        "plan_sources:",
-        "tests:",
-        ".opencode/workflows/20260528_190023_866_继续完善hub/hub-foundations-contracts-docs/plan.md",
-        ".opencode/workflows/20260528_190023_866_继续完善hub/hub-foundations-contracts-docs/decomposition.md",
         "zircon_hub/tests/project_management_contract.rs",
-        "zircon_hub/tests/project_quick_actions_contract.rs",
-        "zircon_hub/tests/project_source_engine_contract.rs",
-        "zircon_hub/tests/ui_selected_project_runtime_contract.rs",
-        "cargo test -p zircon_hub --test project_management_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test project_quick_actions_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test project_source_engine_contract --locked -- --nocapture",
-        "cargo test -p zircon_hub --test ui_selected_project_runtime_contract --locked -- --nocapture",
-        "## Foundation contract gate",
+        "cargo test --manifest-path zircon_hub/Cargo.toml --test project_management_contract",
+        "## Project Management Contract Cutover",
+        "React/MUI project management state and registry repair",
+        "src/projects/metadata.rs",
+        "src/settings/hub_config.rs",
+        "src/tauri_app/runtime_state.rs",
     ] {
         assert!(
-            foundations.contains(snippet),
-            "Foundation docs should record final-gate plans, contracts, and validation evidence; missing {snippet}"
+            shell_doc.contains(snippet),
+            "Tauri React shell docs should record project management cutover; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "`project_management_contract.rs`",
+        "React/MUI project management state and registry repair",
+        "HubRuntimeSession persistence",
+    ] {
+        assert!(
+            responsive_doc.contains(snippet),
+            "Responsive component docs should record project management cutover; missing {snippet}"
         );
     }
 }
@@ -386,6 +401,7 @@ fn test_snapshot(recent_projects: Vec<RecentProject>) -> SnapshotBuilder {
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),
+            settings_draft: HubSettings::default(),
         },
     }
 }

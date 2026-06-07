@@ -1,24 +1,7 @@
 use std::mem::MaybeUninit;
 
-use crate::scene::ecs::{QueryEntityError, QueryEntityItem};
+use crate::scene::ecs::QueryEntityError;
 use crate::scene::EntityId;
-
-use super::super::cached_query_iter::cached_query_entity_index;
-
-pub(super) fn cached_many_entities<EntityList>(
-    cached_entity_indices: &[(EntityId, usize)],
-    entities: EntityList,
-) -> Vec<EntityId>
-where
-    EntityList: IntoIterator,
-    EntityList::Item: QueryEntityItem,
-{
-    entities
-        .into_iter()
-        .map(QueryEntityItem::entity_id)
-        .filter(|entity| cached_query_entity_index(cached_entity_indices, *entity).is_some())
-        .collect()
-}
 
 pub(super) fn collect_many_query_items<Item, const N: usize>(
     entities: [EntityId; N],

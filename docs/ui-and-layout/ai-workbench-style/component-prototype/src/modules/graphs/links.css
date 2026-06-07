@@ -1,0 +1,14 @@
+.zr-graph-link {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  height: 2px;
+  background: rgba(222, 235, 239, 0.78);
+  transform: rotate(var(--r));
+  transform-origin: left center;
+}
+
+.zr-graph-link.is-soft {
+  opacity: 0.78;
+}

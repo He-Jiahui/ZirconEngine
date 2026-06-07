@@ -28,7 +28,7 @@ impl SystemParamAccess {
             self.component_access.add_write(*component_id)?;
         }
         for component_id in query_access.reads() {
-            if !query_access.writes().contains(component_id) {
+            if query_access.writes().binary_search(component_id).is_err() {
                 self.component_access.add_read(*component_id)?;
             }
         }
@@ -157,7 +157,26 @@ impl SystemParamAccess {
     }
 
     pub fn conflicts_with(&self, other: &Self) -> bool {
-        !self.conflict_kinds_with(other).is_empty()
+        self.component_access
+            .conflicts_with(&other.component_access)
+            || resource_access_conflicts(
+                &self.resource_reads,
+                &self.resource_writes,
+                &other.resource_reads,
+                &other.resource_writes,
+            )
+            || type_access_conflicts(
+                &self.event_reads,
+                &self.event_writes,
+                &other.event_reads,
+                &other.event_writes,
+            )
+            || type_access_conflicts(
+                &self.message_reads,
+                &self.message_writes,
+                &other.message_reads,
+                &other.message_writes,
+            )
     }
 
     pub fn conflict_kinds_with(&self, other: &Self) -> Vec<SystemParamConflictKind> {
@@ -199,6 +218,37 @@ impl SystemParamAccess {
 
         conflicts
     }
+}
+
+fn resource_access_conflicts(
+    left_reads: &[ResourceId],
+    left_writes: &[ResourceId],
+    right_reads: &[ResourceId],
+    right_writes: &[ResourceId],
+) -> bool {
+    resource_intersects(left_writes, right_reads)
+        || resource_intersects(left_reads, right_writes)
+        || resource_intersects(left_writes, right_writes)
+}
+
+fn resource_intersects(left: &[ResourceId], right: &[ResourceId]) -> bool {
+    left.iter()
+        .any(|resource_id| contains_id(right, *resource_id))
+}
+
+fn type_access_conflicts(
+    left_reads: &[TypeId],
+    left_writes: &[TypeId],
+    right_reads: &[TypeId],
+    right_writes: &[TypeId],
+) -> bool {
+    type_intersects(left_writes, right_reads)
+        || type_intersects(left_reads, right_writes)
+        || type_intersects(left_writes, right_writes)
+}
+
+fn type_intersects(left: &[TypeId], right: &[TypeId]) -> bool {
+    left.iter().any(|type_id| contains_type_id(right, *type_id))
 }
 
 fn push_resource_conflicts(
@@ -261,9 +311,8 @@ fn insert_conflict(
 }
 
 fn insert_id(ids: &mut Vec<ResourceId>, resource_id: ResourceId) {
-    if !contains_id(ids, resource_id) {
-        ids.push(resource_id);
-        ids.sort_unstable();
+    if let Err(index) = ids.binary_search(&resource_id) {
+        ids.insert(index, resource_id);
     }
 }
 
@@ -272,11 +321,11 @@ fn contains_id(ids: &[ResourceId], resource_id: ResourceId) -> bool {
 }
 
 fn insert_type_id(ids: &mut Vec<TypeId>, type_id: TypeId) {
-    if !contains_type_id(ids, type_id) {
-        ids.push(type_id);
+    if let Err(index) = ids.binary_search(&type_id) {
+        ids.insert(index, type_id);
     }
 }
 
 fn contains_type_id(ids: &[TypeId], type_id: TypeId) -> bool {
-    ids.contains(&type_id)
+    ids.binary_search(&type_id).is_ok()
 }

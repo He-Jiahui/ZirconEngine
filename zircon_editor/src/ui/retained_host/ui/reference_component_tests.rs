@@ -6,7 +6,7 @@ fn source(relative: &str) -> String {
 fn component_showcase_reference_contract_source() -> String {
     [
         "assets/ui/editor/component_showcase.v2.ui.toml",
-        "assets/ui/editor/components/showcase_selection_section.zui",
+        "assets/ui/editor/components/showcase/showcase_selection_section.zui",
     ]
     .into_iter()
     .map(source)

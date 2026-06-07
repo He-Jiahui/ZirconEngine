@@ -13,6 +13,7 @@ pub use render_graph_execution_record::{
     RenderGraphExecutionRecord,
 };
 pub use render_graph_execution_resources::RenderGraphExecutionResources;
+pub(in crate::graphics::scene::scene_renderer) use render_graph_execution_resources::RenderGraphImportedFinalTarget;
 pub use render_pass_execution_context::{
     RenderPassExecutionContext, RenderPassGpuExecutionContext,
 };

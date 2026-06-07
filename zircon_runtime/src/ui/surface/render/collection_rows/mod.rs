@@ -4,6 +4,7 @@ mod table;
 mod tree;
 
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
     surface::UiRenderCommand,
@@ -28,6 +29,7 @@ pub(super) fn collection_row_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -43,7 +45,7 @@ pub(super) fn collection_row_render_commands(
         return Vec::new();
     }
 
-    let state = RowRenderState::resolve(kind, metadata, state_flags);
+    let state = RowRenderState::resolve(kind, metadata, state_flags, component_state);
     match kind {
         CollectionRowKind::List => list::list_row_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,

@@ -1,12 +1,15 @@
+mod advanced_followup_slots;
 mod boundary;
 mod m4_behavior_layers;
 mod m5_flagship_slots;
 mod pipeline_compile;
+mod plugin_feature_compile;
 mod plugin_render_feature_fixtures;
 mod project_render;
 mod render_debugger_and_history;
 mod render_framework_bridge;
 mod render_framework_graph_stats;
+mod render_framework_post_process_submit;
 mod render_product_advanced;
 mod render_product_anti_alias;
 mod render_product_shadows;

@@ -1,0 +1,41 @@
+@media (max-width: 720px) {
+  :root {
+    --rail-w: 48px;
+    --left-w: 0px;
+    --right-w: 0px;
+  }
+
+  .zr-window {
+    min-width: 640px;
+  }
+
+  .zr-topbar {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding-inline: 8px;
+  }
+
+  .zr-topbar-tools {
+    display: none;
+  }
+
+  .zr-topbar > .zr-topbar-group:last-child {
+    justify-self: end;
+  }
+
+  .zr-topbar-group {
+    min-width: 0;
+  }
+
+  .zr-statusbar {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: var(--bottom-h);
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .zr-status-right {
+    display: none;
+  }
+}

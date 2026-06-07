@@ -1,0 +1,20 @@
+.zr-lower-demo .zr-tooltip-bubble {
+  color: #d0d9dd;
+  border-color: #252d32;
+  background: #171c20;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+.zr-lower-demo .zr-tooltip-bubble::after {
+  border-right-color: #252d32;
+  border-bottom-color: #252d32;
+  background: #171c20;
+}
+
+.zr-lower-demo .zr-tooltip-small {
+  color: #a8b3b8;
+}
+
+.zr-lower-demo .zr-tooltip > .zr-icon {
+  color: #259ca7;
+}

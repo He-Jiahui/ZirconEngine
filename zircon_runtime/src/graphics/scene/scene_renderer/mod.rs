@@ -10,6 +10,7 @@ mod particle;
 mod post_process;
 mod prepass;
 mod primitives;
+mod shadow;
 mod sprite;
 mod ui;
 
@@ -24,5 +25,12 @@ pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
 pub(crate) use deferred::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
-pub(crate) use post_process::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};
+pub(crate) use post_process::{
+    cluster_buffer_bytes_for_size, cluster_dimensions_for_size,
+    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT,
+    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
+    SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
+};
 pub(crate) use prepass::NORMAL_FORMAT;

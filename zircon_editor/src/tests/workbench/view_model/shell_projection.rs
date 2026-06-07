@@ -63,7 +63,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .and_then(|item| item.operation_path.as_ref())
         .map(|path| path.as_str())
         .expect("undo operation path");
-    assert_eq!(undo_operation, "Edit.History.Undo");
+    assert_eq!(undo_operation, "edit.history.undo");
     assert_eq!(model.host_strip.active_page, MainPageId::workbench());
     assert_eq!(
         model
@@ -130,7 +130,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             .operation_path
             .as_ref()
             .map(|path| path.as_str()),
-        Some("Scene.Node.CreateRectLight")
+        Some("scene.node.create_rect_light")
     );
     let reset_layout_operation = model
         .menu_bar
@@ -141,7 +141,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .and_then(|item| item.operation_path.as_ref())
         .map(|path| path.as_str())
         .expect("reset layout operation path");
-    assert_eq!(reset_layout_operation, "Window.Layout.Reset");
+    assert_eq!(reset_layout_operation, "window.layout.reset");
     let debug_observatory_item = model
         .menu_bar
         .menus
@@ -164,7 +164,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             .operation_path
             .as_ref()
             .map(|path| path.as_str()),
-        Some("Window.DebugObservatory.Open")
+        Some("window.debug_observatory.open")
     );
 }
 
@@ -182,42 +182,42 @@ fn workbench_window_menu_exposes_unreal_style_functional_windows() {
         (
             "Prefab Editor",
             "editor.prefab_editor_window",
-            "Window.PrefabEditor.Open",
+            "window.prefab_editor.open",
         ),
         (
             "Material Editor",
             "editor.material_editor_window",
-            "Window.MaterialEditor.Open",
+            "window.material_editor.open",
         ),
         (
             "UI Component Showcase",
             "editor.ui_component_showcase",
-            "Window.UiComponentShowcase.Open",
+            "window.ui_component_showcase.open",
         ),
         (
             "Material Demo",
             "editor.material_demo_window",
-            "Window.MaterialDemo.Open",
+            "window.material_demo.open",
         ),
         (
             "UI Asset Editor",
             "editor.ui_asset_editor_window",
-            "Window.UiAssetEditor.Open",
+            "window.ui_asset_editor.open",
         ),
         (
             "Animation Editor",
             "editor.animation_editor_window",
-            "Window.AnimationEditor.Open",
+            "window.animation_editor.open",
         ),
         (
             "Asset Browser",
             "editor.asset_browser_window",
-            "Window.AssetBrowser.Open",
+            "window.asset_browser.open",
         ),
         (
             "Diagnostics",
             "editor.diagnostics_window",
-            "Window.Diagnostics.Open",
+            "window.diagnostics.open",
         ),
     ] {
         let item = window_menu
@@ -333,8 +333,8 @@ fn workbench_view_model_exposes_floating_windows_as_workspace_tabs() {
 fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
     let chrome = sample_workbench_chrome();
     let weather_capability = "editor.extension.weather_menu";
-    let public_operation = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
-    let gated_operation = EditorOperationPath::parse("Weather.CloudLayer.Secret").unwrap();
+    let public_operation = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
+    let gated_operation = EditorOperationPath::parse("weather.cloud_layer.secret").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_menu_item(

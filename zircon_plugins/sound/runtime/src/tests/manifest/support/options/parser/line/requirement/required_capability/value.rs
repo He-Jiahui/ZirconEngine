@@ -1,0 +1,3 @@
+pub(super) fn option_required_capability_from_plugin_toml(value: &str) -> String {
+    value.to_string()
+}

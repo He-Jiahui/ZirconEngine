@@ -9,10 +9,9 @@ use crate::core::job_scheduler::JobScheduler;
 use crate::core::state::StateRegistry;
 use crate::core::tasks::TaskPools;
 use crate::core::time::RuntimeTimeClocks;
-use crate::plugin::SceneRuntimeHookRegistration;
 
 use super::super::descriptors::RegistryName;
-use super::{ModuleEntry, ServiceEntry};
+use super::{ModuleEntry, SceneRuntimeHookSet, ServiceEntry};
 
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
@@ -25,5 +24,5 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) time: Mutex<RuntimeTimeClocks>,
     pub(crate) diagnostics: Mutex<DiagnosticStore>,
     pub(crate) states: Mutex<StateRegistry>,
-    pub(crate) scene_hooks: Mutex<Vec<SceneRuntimeHookRegistration>>,
+    pub(crate) scene_hooks: Mutex<SceneRuntimeHookSet>,
 }

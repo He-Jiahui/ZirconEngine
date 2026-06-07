@@ -7,11 +7,7 @@ fn external_audio_source_block_routes_other_component_audio() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock {
-                sample_rate_hz: 48_000,
-                channel_count: 1,
-                samples: vec![0.25, 0.5],
-            },
+            SoundExternalSourceBlock::new(48_000, SoundChannelLayout::mono(), vec![0.25, 0.5]),
         )
         .unwrap();
     let source_id = sound

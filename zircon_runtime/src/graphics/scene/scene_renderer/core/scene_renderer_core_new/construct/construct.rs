@@ -9,6 +9,7 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::scene_renderer_core::{
@@ -48,6 +49,12 @@ impl SceneRendererCore {
             device,
             &scene_bind_group_bundle.layout,
             &model_bind_group_layout,
+        );
+        let shadow_map_renderer = ShadowMapRenderer::new(
+            device,
+            &scene_bind_group_bundle.layout,
+            &model_bind_group_layout,
+            &texture_bind_group_layout,
         );
         let deferred = DeferredSceneResources::new(
             device,
@@ -90,6 +97,7 @@ impl SceneRendererCore {
             material_bind_group_layout,
             mesh_pipelines,
             normal_prepass,
+            shadow_map_renderer,
             deferred,
             particle_renderer,
             sprite_renderer,

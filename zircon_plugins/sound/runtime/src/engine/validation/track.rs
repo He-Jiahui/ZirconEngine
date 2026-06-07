@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundTrackDescriptor, SoundTrackSend};
 
-use super::values::validate_pan_value;
+use super::values::{validate_graph_history_frames, validate_pan_value};
 
 pub(super) fn validate_track_controls(track: &SoundTrackDescriptor) -> Result<(), SoundError> {
     let controls = track.controls;
@@ -14,6 +14,10 @@ pub(super) fn validate_track_controls(track: &SoundTrackDescriptor) -> Result<()
             track.display_name
         )));
     }
+    validate_graph_history_frames(
+        &format!("track {} delay frames", track.display_name),
+        controls.delay_frames,
+    )?;
     validate_pan_value("track pan", pan).map_err(SoundError::InvalidMixerGraph)
 }
 

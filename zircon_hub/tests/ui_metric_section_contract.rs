@@ -1,218 +1,280 @@
-//! Static contracts for shared Hub metric-section layout policy.
+//! Static contracts for shared React/MUI Hub metric-section layout policy.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-#[test]
-fn metric_card_delegates_copy_to_text_stack_helper() {
-    let data_display = read_ui_file("data_display.slint");
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
 
-    let metric_text_stack = data_display
-        .split("component MetricCardTextStack")
-        .nth(1)
-        .and_then(|source| source.split("export component MetricCard").next())
-        .expect("data_display.slint must declare MetricCardTextStack before MetricCard");
-    for snippet in [
-        "inherits VerticalLayout",
-        "in property <string> label;",
-        "in property <string> primary;",
-        "in property <string> secondary;",
-        "in property <bool> compact: false;",
-        "padding-left: MaterialStyleMetrics.padding_16;",
-        "padding-right: MaterialStyleMetrics.padding_16;",
-        "padding-top: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_16;",
-        "padding-bottom: root.compact ? HubTokens.space-2 : MaterialStyleMetrics.padding_16;",
-        "spacing: root.compact ? HubTokens.space-1 : MaterialStyleMetrics.spacing_6;",
-        "text: root.label;",
-        "text: root.primary;",
-        "text: root.secondary;",
-        "style: MaterialTypography.title_small;",
-        "color: MaterialPalette.on_surface;",
-        "overflow: elide;",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            metric_text_stack.contains(snippet),
-            "MetricCardTextStack must own metric-card copy and typography; missing {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain metric-section snippet {snippet:?}"
         );
     }
-    assert_eq!(
-        metric_text_stack.matches("MutedText {").count(),
-        2,
-        "MetricCardTextStack should own label and secondary muted text nodes"
-    );
-    assert_eq!(
-        metric_text_stack.matches("MaterialText {").count(),
-        1,
-        "MetricCardTextStack should own the primary metric value text node"
-    );
+}
 
-    let metric_card = data_display
-        .split("export component MetricCard")
-        .nth(1)
-        .and_then(|source| source.split("export component HubMetricSlot").next())
-        .expect("data_display.slint must declare MetricCard before HubMetricSlot");
-    for snippet in [
-        "inherits HubPanel",
-        "in property <string> label;",
-        "in property <string> primary;",
-        "in property <string> secondary;",
-        "in property <bool> compact: false;",
-        "min-height: root.compact ? HubTokens.list-row-md + HubTokens.space-2 : HubTokens.list-row-md;",
-        "horizontal-stretch: 1;",
-        "MetricCardTextStack {",
-        "width: parent.width;",
-        "height: parent.height;",
-        "label: root.label;",
-        "primary: root.primary;",
-        "secondary: root.secondary;",
-        "compact: root.compact;",
-    ] {
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            metric_card.contains(snippet),
-            "MetricCard must stay a HubPanel shell that delegates metric copy to MetricCardTextStack; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "MaterialText {",
-        "MutedText {",
-        "text: root.label;",
-        "text: root.primary;",
-        "text: root.secondary;",
-        "style: MaterialTypography.title_small;",
-    ] {
-        assert!(
-            !metric_card.contains(forbidden),
-            "MetricCard should not own direct metric-card text internals after helper extraction: {forbidden}"
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete metric-section snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn metric_section_state_centralizes_four_card_responsive_grid_policy() {
-    let components = read_ui_file("components.slint");
-    let data_display = read_ui_file("data_display.slint");
-    let cloud = read_ui_file("cloud.slint");
-    let team = read_ui_file("team.slint");
+fn metric_card_owns_shared_card_tone_icon_and_text_layout() {
+    let metric = read_crate_file("web/src/components/data/MetricCard.tsx");
+    let data_index = read_crate_file("web/src/components/data/index.ts");
 
-    assert!(
-        components.contains("HubMetricSectionState,"),
-        "components.slint must re-export HubMetricSectionState with the data-display metric primitives"
+    assert_contains_all(
+        "MetricCard.tsx",
+        &metric,
+        &[
+            "export interface MetricCardProps",
+            "label: string;",
+            "value: string;",
+            "detail?: string;",
+            "icon?: ReactNode;",
+            "tone?: \"neutral\" | \"accent\" | \"success\" | \"warning\" | \"error\";",
+            "const toneColor = {",
+            "neutral: hubTokens.colors.textSoft",
+            "accent: hubTokens.colors.accent",
+            "success: hubTokens.colors.success",
+            "warning: hubTokens.colors.warning",
+            "error: hubTokens.colors.error",
+            "minHeight: 86",
+            "gridTemplateColumns: icon ? \"34px minmax(0, 1fr)\" : \"1fr\"",
+            "borderRadius: `${hubTokens.radius.panel}px`",
+            "border: `1px solid ${hubTokens.colors.lineStrong}`",
+            "Typography variant=\"caption\" noWrap",
+            "Typography variant=\"h6\" noWrap",
+            "color: toneColor[tone]",
+        ],
     );
+    assert_contains_all(
+        "components/data/index.ts",
+        &data_index,
+        &["export * from \"./MetricCard\";"],
+    );
+}
 
-    let metric_state = data_display
-        .split("export component HubMetricSectionState")
-        .nth(1)
-        .and_then(|source| source.split("export component BuildHistoryRow").next())
-        .expect("data_display.slint must declare HubMetricSectionState before BuildHistoryRow");
-    for snippet in [
-        "in property <length> content-width;",
-        "in property <length> metric-gap: HubTokens.panel-gap;",
-        "in property <length> metric-min-width: HubTokens.panel-min-sm * 3 / 4;",
-        "in property <length> regular-row-height: HubTokens.workspace-row-cloud-metrics;",
-        "in property <length> compact-row-height: HubTokens.list-row-md + HubTokens.space-2;",
-        "in property <length> wide-breakpoint: root.metric-min-width * 4 + root.metric-gap * 4;",
-        "in property <length> medium-breakpoint: root.metric-min-width * 2 + root.metric-gap;",
-        "in property <length> compact-card-breakpoint: HubTokens.panel-min-md * 2 + root.metric-gap;",
-        "in property <bool> allow-two-columns: true;",
-        "out property <bool> compact-card: root.content-width < root.compact-card-breakpoint;",
-        "out property <bool> four-columns: root.content-width >= root.wide-breakpoint;",
-        "out property <bool> two-columns: !root.four-columns && root.allow-two-columns && root.content-width >= root.medium-breakpoint;",
-        "out property <int> row-count: root.four-columns ? 1 : (root.two-columns ? 2 : 4);",
-        "out property <length> row-height: root.compact-card ? root.compact-row-height : root.regular-row-height;",
-        "out property <length> slot-basis: root.four-columns || root.two-columns ? root.metric-min-width : root.content-width;",
-        "out property <length> slot-min-width: root.slot-basis;",
-        "out property <float> slot-grow: 1;",
-        "out property <length> section-height: root.row-height * root.row-count + root.metric-gap * (root.row-count - 1);",
-        "width: 0px;",
-        "height: 0px;",
+#[test]
+fn project_detail_uses_four_metric_cards_then_collapses_responsively() {
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "MetricCard",
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+            "gridTemplateColumns: \"repeat(2, minmax(0, 1fr))\"",
+            "gridTemplateColumns: \"1fr\"",
+            "MetricCard label={text.status} value={project.status}",
+            "tone={project.exists ? \"success\" : \"warning\"}",
+            "MetricCard label={text.engine} value={project.engineVersion}",
+            "tone=\"accent\"",
+            "MetricCard label={text.lastModified} value={project.modified}",
+            "MetricCard label={text.projectPin} value={project.pinned ? text.pinned : text.unpinned}",
+        ],
+    );
+}
+
+#[test]
+fn workspace_pages_use_shared_three_metric_grid_and_metric_card_atoms() {
+    for (page, snippets) in [
+        (
+            "BuildsPage.tsx",
+            vec![
+                "MetricCard label={text.buildProfile}",
+                "MetricCard label={text.outputRoot}",
+                "MetricCard",
+                "label={text.recentWorkflows}",
+            ],
+        ),
+        (
+            "CatalogPage.tsx",
+            vec![
+                "MetricCard label={text.entries}",
+                "MetricCard label={text.categories}",
+                "MetricCard label={text.scopes}",
+            ],
+        ),
+        (
+            "CloudPage.tsx",
+            vec![
+                "MetricCard label={text.packageRoot}",
+                "MetricCard label={text.deviceInstall}",
+                "MetricCard label={text.serviceSlots}",
+            ],
+        ),
+        (
+            "TeamPage.tsx",
+            vec![
+                "MetricCard",
+                "label={text.repository}",
+                "MetricCard",
+                "label={text.identity}",
+                "MetricCard",
+                "label={text.contributors}",
+            ],
+        ),
     ] {
-        assert!(
-            metric_state.contains(snippet),
-            "HubMetricSectionState must own the shared metric-grid sizing rule; missing {snippet}"
+        let source = read_crate_file(&format!("web/src/pages/{page}"));
+        assert_contains_all(
+            page,
+            &source,
+            &[
+                "MetricCard",
+                "gridTemplateColumns: \"repeat(3, minmax(0, 1fr))\"",
+                "gridTemplateColumns: \"1fr\"",
+                "@media (max-width: 980px)",
+            ],
         );
+        assert_contains_all(page, &source, &snippets);
+        assert_not_contains_any(page, &source, &["<Card", "<Paper", "HubMetricSectionState"]);
     }
-    assert!(
-        !metric_state.contains("MetricCard {") && !metric_state.contains("MaterialText {"),
-        "HubMetricSectionState should own only layout state; HubMetricSlot remains the metric-card renderer"
-    );
+}
 
-    for (page_name, source, state_id, slot_name) in [
-        ("CloudPage", &cloud, "cloud-metrics", "CloudMetricSlot"),
-        ("TeamPage", &team, "summary-metrics", "TeamSummarySlot"),
-    ] {
-        for snippet in [
-            &format!("{state_id} := HubMetricSectionState {{"),
-            "content-width: root.content-width;",
-            "compact: ",
-            "compact-rows: ",
-            "row-height: ",
-            "spacing-horizontal: ",
-            "spacing-vertical: ",
-            &format!("{slot_name} {{"),
-            &format!("basis: {state_id}.slot-basis;"),
-            &format!("flex-basis: {state_id}.slot-basis;"),
-            &format!("grow: {state_id}.slot-grow;"),
-            &format!("flex-grow: {state_id}.slot-grow;"),
-            &format!("min-width: {state_id}.slot-min-width;"),
-            &format!("height: {state_id}.row-height;"),
-            &format!("compact-card: {state_id}.compact-card;"),
-        ] {
-            assert!(
-                source.contains(snippet),
-                "{page_name} must consume HubMetricSectionState for summary metric sizing; missing {snippet}"
-            );
-        }
-        for forbidden in [
-            "metrics-four-columns:",
-            "metrics-two-columns:",
-            "metric-row-count:",
-            "metric-slot-basis:",
-            "metric-slot-min-width:",
-            "metric-slot-grow:",
-            "metric-section-height:",
-            "summary-compact:",
-            "summary-section-height:",
-        ] {
-            assert!(
-                !source.contains(forbidden),
-                "{page_name} should not keep page-local metric grid sizing policy after HubMetricSectionState extraction: {forbidden}"
-            );
-        }
-    }
+#[test]
+fn metric_pages_keep_data_projection_in_pages_not_metric_card() {
+    let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
+    let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
+    let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
+    let team = read_crate_file("web/src/pages/TeamPage.tsx");
 
-    assert!(
-        cloud.contains("metric-gap: HubTokens.space-3;")
-            && cloud.contains("regular-row-height: HubTokens.workspace-row-cloud-metrics;")
-            && cloud.contains("compact-row-height: HubTokens.list-row-md + HubTokens.space-2;")
-            && cloud.contains("compact-card-breakpoint: HubTokens.panel-min-md * 2 + HubTokens.space-3;")
-            && cloud.contains("service-available-height: max(root.service-panel-chrome-height + root.service-row-slot-height, root.content-height - root.header-height - cloud-metrics.section-height - HubTokens.panel-gap * 2);"),
-        "CloudPage should configure the shared metric state for the Cloud reference row and service-list budget"
+    assert_contains_all(
+        "BuildsPage.tsx",
+        &builds,
+        &[
+            "const buildHistory = useMemo(",
+            "const latestAction = buildHistory[0];",
+            "tone={latestAction ? metricTone(latestAction.tone) : \"neutral\"}",
+        ],
     );
-    assert!(
-        team.contains("metric-gap: HubTokens.panel-gap;")
-            && team.contains("regular-row-height: HubTokens.workspace-row-team-summary;")
-            && team.contains("compact-row-height: HubTokens.workspace-row-team-summary;")
-            && team.contains("allow-two-columns: false;")
-            && team
-                .contains("wide-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;")
-            && team.contains(
-                "compact-card-breakpoint: HubTokens.panel-min-sm * 3 + HubTokens.panel-gap * 3;",
-            ),
-        "TeamPage should configure the same metric state for the Team four-card reference row"
+    assert_contains_all(
+        "CatalogPage.tsx",
+        &catalog,
+        &[
+            "const categoryCount = new Set(rows.map((row) => row.category)).size;",
+            "const scopeCount = new Set(rows.map((row) => row.scope)).size;",
+            "detail={selectedRow?.category ?? text.noCatalog}",
+            "detail={selectedRow?.scope ?? text.noScope}",
+        ],
+    );
+    assert_contains_all(
+        "CloudPage.tsx",
+        &cloud,
+        &[
+            "const packageActions = useMemo(",
+            "const installActions = useMemo(",
+            "const reservedServices",
+        ],
+    );
+    assert_contains_all(
+        "TeamPage.tsx",
+        &team,
+        &[
+            "state.team.repositoryAvailable ? common.connected : common.notConfigured",
+            "value={state.team.identityName || common.notConfigured}",
+            "value={`${state.team.members.length}`}",
+        ],
+    );
+}
+
+#[test]
+fn metric_section_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_metric_section_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_metric_section_contract",
+            "## Metric Section Contract Cutover",
+            "React/MUI metric section system",
+            "web/src/components/data/MetricCard.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
+            "web/src/pages/CatalogPage.tsx",
+            "web/src/pages/CloudPage.tsx",
+            "web/src/pages/TeamPage.tsx",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_metric_section_contract.rs`",
+            "React/MUI metric section system",
+            "shared MetricCard tone/icon/text atom",
+            "four-card Project Detail metrics and three-card workspace metric grids",
+        ],
+    );
+}
+
+#[test]
+fn metric_section_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_metric_section_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_metric_section_contract.rs",
+        &contract,
+        &[
+            "web/src/components/data/MetricCard.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
+            "web/src/pages/CatalogPage.tsx",
+            "web/src/pages/CloudPage.tsx",
+            "web/src/pages/TeamPage.tsx",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_metric_section_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
     );
 }

@@ -21,6 +21,7 @@ pub struct HubSnapshot {
     pub project_subpage: ProjectSubpage,
     pub search_query: String,
     pub selected_project_path: Option<PathBuf>,
+    pub new_project_name: String,
     pub selected_template_id: String,
     pub new_project_location: PathBuf,
     pub new_project_engine_id: Option<String>,
@@ -36,6 +37,7 @@ pub struct HubSnapshot {
     pub engines: Vec<SourceEngineInstall>,
     pub active_engine_id: Option<String>,
     pub settings: HubSettings,
+    pub settings_draft: HubSettings,
 }
 
 impl HubSnapshot {
@@ -137,6 +139,7 @@ mod tests {
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
@@ -155,6 +158,7 @@ mod tests {
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),
+            settings_draft: HubSettings::default(),
         };
 
         let projects = snapshot.filtered_recent_projects();
@@ -181,6 +185,7 @@ mod tests {
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: root.join("Projects"),
             new_project_engine_id: None,
@@ -199,6 +204,7 @@ mod tests {
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),
+            settings_draft: HubSettings::default(),
         };
 
         let projects = snapshot.filtered_recent_projects();
@@ -218,6 +224,7 @@ mod tests {
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: Some(PathBuf::from("E:/Projects/Missing")),
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
@@ -233,6 +240,7 @@ mod tests {
             engines: Vec::new(),
             active_engine_id: None,
             settings: HubSettings::default(),
+            settings_draft: HubSettings::default(),
         };
 
         let scope = snapshot.scope();

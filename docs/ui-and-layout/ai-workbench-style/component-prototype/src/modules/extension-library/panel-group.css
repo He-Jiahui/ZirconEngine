@@ -1,0 +1,29 @@
+.zr-panel-group,
+.zr-panel-group-body {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.zr-panel-group .zr-panel-view.is-active {
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+}
+
+.zr-panel > .zr-panel-group {
+  height: 100%;
+}
+
+.zr-module-card-body > .zr-panel-group {
+  min-height: 0;
+}
+
+.zr-module-bottom .zr-panel-group {
+  height: 100%;
+}
+
+.zr-module-bottom .zr-panel-group-body {
+  min-height: 0;
+}

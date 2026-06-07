@@ -29,3 +29,16 @@ fn mixer_graph_rejects_parent_cycles_and_missing_tracks() {
         .unwrap_err();
     assert!(missing.to_string().contains("unknown track"));
 }
+
+#[test]
+fn mixer_graph_rejects_unbounded_track_delay_before_render() {
+    let sound = DefaultSoundManager::default();
+    let mut master = SoundTrackDescriptor::master();
+    master.controls.delay_frames = 1_000_000;
+
+    assert!(sound
+        .add_or_update_track(master)
+        .unwrap_err()
+        .to_string()
+        .contains("history budget"));
+}

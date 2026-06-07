@@ -3,6 +3,9 @@ use zircon_runtime_interface::ui::component::{UiDragPayload, UiDragPayloadKind, 
 
 const DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT: i64 = 36;
 const DEFAULT_PAGED_LIST_PAGE_SIZE: i64 = 100;
+const ASSET_FIELD_CLEAR_BINDING_SUFFIX: &str = "AssetFieldClear";
+const ASSET_FIELD_LOCATE_BINDING_SUFFIX: &str = "AssetFieldLocate";
+const ASSET_FIELD_OPEN_BINDING_SUFFIX: &str = "AssetFieldOpen";
 
 pub(super) fn demo_input_for_showcase_edit(
     action_id: &str,
@@ -167,9 +170,9 @@ pub(super) fn demo_input_for_showcase_action(
             }
         }
         action
-            if action_matches(action, "asset_field_clear")
-                || action_matches(action, "asset_field_locate")
-                || action_matches(action, "asset_field_open") =>
+            if action_matches_binding_suffix(action, ASSET_FIELD_CLEAR_BINDING_SUFFIX)
+                || action_matches_binding_suffix(action, ASSET_FIELD_LOCATE_BINDING_SUFFIX)
+                || action_matches_binding_suffix(action, ASSET_FIELD_OPEN_BINDING_SUFFIX) =>
         {
             UiComponentShowcaseDemoEventInput::None
         }
@@ -276,6 +279,10 @@ pub(super) fn demo_input_for_showcase_action(
 
 fn action_matches(action_id: &str, needle: &str) -> bool {
     action_key(action_id).contains(needle)
+}
+
+fn action_matches_binding_suffix(action_id: &str, binding_suffix: &str) -> bool {
+    action_key(action_id).contains(&camel_to_snake_segment(binding_suffix))
 }
 
 fn action_key(action_id: &str) -> String {

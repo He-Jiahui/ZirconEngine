@@ -25,6 +25,6 @@ fn menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects() {
             .undo_stack()
             .last()
             .map(|entry| entry.operation_id.as_str()),
-        Some("Scene.Node.CreateCube")
+        Some("scene.node.create_cube")
     );
 }

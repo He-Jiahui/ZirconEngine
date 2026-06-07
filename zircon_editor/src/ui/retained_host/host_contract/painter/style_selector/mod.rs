@@ -7,6 +7,7 @@ mod workbench_popup_row;
 mod workbench_segmented_control;
 mod workbench_selection_control;
 mod workbench_slider;
+mod workbench_status_control;
 mod workbench_table_row;
 mod workbench_text_field;
 mod workbench_toast;
@@ -78,6 +79,14 @@ pub(super) use workbench_slider::{
     is_workbench_slider_state_hot, select_workbench_slider_style, WorkbenchSliderStyle,
     WORKBENCH_SLIDER_HALO, WORKBENCH_SLIDER_TEXT, WORKBENCH_SLIDER_THUMB, WORKBENCH_SLIDER_TICK,
     WORKBENCH_SLIDER_TRACK, WORKBENCH_SLIDER_TRACK_DISABLED,
+};
+pub(super) use workbench_status_control::{
+    select_workbench_status_chip_style, select_workbench_status_icon_button_style,
+    select_workbench_status_signal_style, WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle,
+};
+#[cfg(test)]
+pub(super) use workbench_status_control::{
+    WORKBENCH_STATUS_NO_ERRORS_FILL, WORKBENCH_STATUS_RIGHT_BORDER,
 };
 pub(super) use workbench_table_row::{select_workbench_table_row_style, WorkbenchTableRowStyle};
 #[cfg(test)]

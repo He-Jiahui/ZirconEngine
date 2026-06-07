@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::ui::ecs::UiEcsProjectionSnapshot;
 use crate::ui::pipeline::UiPipelineFrameReport;
 
-use super::{UiFocusState, UiHitTestGrid, UiRenderExtract, UiSurfaceRebuildDebugStats};
+use super::{
+    UiFocusPath, UiFocusState, UiHitTestGrid, UiRenderExtract, UiSurfaceRebuildDebugStats,
+};
 use crate::ui::event_ui::UiTreeId;
 use crate::ui::layout::UiLayoutEngineSelectionReport;
 
@@ -16,6 +18,8 @@ pub struct UiSurfaceFrame {
     pub render_extract: UiRenderExtract,
     pub hit_grid: UiHitTestGrid,
     pub focus_state: UiFocusState,
+    #[serde(default)]
+    pub focus_path: UiFocusPath,
     pub last_rebuild: UiSurfaceRebuildDebugStats,
     #[serde(default)]
     pub layout_engine_report: UiLayoutEngineSelectionReport,

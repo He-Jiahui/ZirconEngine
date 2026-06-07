@@ -1,0 +1,23 @@
+.zr-showcase .zr-button {
+  min-width: 0;
+}
+
+.zr-showcase .zr-col-title {
+  color: #9faab0;
+  filter: brightness(0.9);
+}
+
+.zr-showcase .zr-switch {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.zr-showcase-col:first-child {
+  transform: translate(-3px, -1px);
+}
+
+.zr-section .zr-button {
+  width: 100%;
+  margin-top: 8px;
+}
+

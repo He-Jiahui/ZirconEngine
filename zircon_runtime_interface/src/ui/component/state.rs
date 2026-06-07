@@ -18,6 +18,7 @@ pub struct UiComponentFlags {
     pub selected: bool,
     pub checked: bool,
     pub disabled: bool,
+    pub loading: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

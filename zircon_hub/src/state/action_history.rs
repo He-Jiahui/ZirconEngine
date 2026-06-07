@@ -26,10 +26,15 @@ pub struct HubActionRecord {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum HubActionKind {
+    CreateProject,
+    ImportProject,
+    RemoveProject,
+    DeleteProject,
     BuildEditorRuntime,
     OpenEditor,
     PackageProject,
     InstallProject,
+    OpenResource,
     OpenOutput,
 }
 
@@ -42,12 +47,32 @@ pub enum HubActionStatus {
 }
 
 impl HubActionKind {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::CreateProject => "create-project",
+            Self::ImportProject => "import-project",
+            Self::RemoveProject => "remove-project",
+            Self::DeleteProject => "delete-project",
+            Self::BuildEditorRuntime => "build-editor-runtime",
+            Self::OpenEditor => "open-editor",
+            Self::PackageProject => "package-project",
+            Self::InstallProject => "install-project",
+            Self::OpenResource => "open-resource",
+            Self::OpenOutput => "open-output",
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
+            Self::CreateProject => "Create Project",
+            Self::ImportProject => "Import Project",
+            Self::RemoveProject => "Remove Project",
+            Self::DeleteProject => "Delete Project",
             Self::BuildEditorRuntime => "Build editor/runtime",
             Self::OpenEditor => "Open Editor",
             Self::PackageProject => "Package Project",
             Self::InstallProject => "Install to Device",
+            Self::OpenResource => "Open Resource",
             Self::OpenOutput => "Open Output",
         }
     }

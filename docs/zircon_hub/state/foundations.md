@@ -126,6 +126,7 @@ tests:
   - cargo test -p zircon_hub assets::catalog --locked -- --nocapture
   - cargo test -p zircon_hub plugins::catalog --locked -- --nocapture
   - cargo test -p zircon_hub learn::catalog --locked -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml keeps_first_source_engine_root_before_fallback_limit -- --nocapture
   - cargo test -p zircon_hub app::view_model --locked -- --nocapture
   - cargo test -p zircon_hub app::view_model::quick_actions --locked -- --nocapture
   - cargo test -p zircon_hub --test project_workflow_contract --locked -- --nocapture
@@ -200,6 +201,10 @@ rows. This makes catalog snapshots follow the same target model as the command
 and view-model layers: project-specific content wins when the project is valid,
 explicit project problems stay visible, and global Source Engine content is not
 silently promoted into a broken selected project.
+Assets and Learn also carry an internal root rank through discovery, so the
+configured or scope-bound Source root sorts ahead of fallback current-directory
+and compiled-repository roots before catalog limits truncate the result set. The
+rank is dropped before public catalog entries and DTOs are projected.
 
 ## Restart persistence
 

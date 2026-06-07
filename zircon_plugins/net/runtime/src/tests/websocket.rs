@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::net::{
-    NetConnectionState, NetEndpoint, NetError, NetManager, NetWebSocketCloseReason,
-    NetWebSocketConnectDescriptor, NetWebSocketFrame, NetWebSocketListenerDescriptor,
+    NetConnectionState, NetEndpoint, NetError, NetEvent, NetManager, NetTransportKind,
+    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor,
 };
 
 use crate::DefaultNetManager;
@@ -37,6 +38,16 @@ fn net_runtime_queues_websocket_frames_with_budget() {
         net.connection_state(client).unwrap(),
         NetConnectionState::Closed
     );
+
+    net.close_connection(server).unwrap();
+    let events = net.drain_events(16);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionClosed {
+            connection,
+            transport,
+        } if *connection == server && *transport == NetTransportKind::WebSocket
+    )));
 }
 
 #[test]

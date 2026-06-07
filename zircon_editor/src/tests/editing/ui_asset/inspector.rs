@@ -739,18 +739,18 @@ fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
     let pane = session.pane_presentation();
     assert_eq!(
         pane.inspector_binding_items,
-        vec!["onClick | SaveButton/onClick -> MenuAction.workbench.project.save".to_string()]
+        vec!["onClick | SaveButton/onClick -> menu_action.workbench.project.save".to_string()]
     );
     assert_eq!(pane.inspector_binding_selected_index, 0);
     assert_eq!(pane.inspector_binding_id, "SaveButton/onClick");
     assert_eq!(pane.inspector_binding_event, "onClick");
     assert_eq!(
         pane.inspector_binding_route,
-        "MenuAction.workbench.project.save"
+        "menu_action.workbench.project.save"
     );
     assert_eq!(
         pane.inspector_binding_route_target,
-        "MenuAction.workbench.project.save"
+        "menu_action.workbench.project.save"
     );
     assert_eq!(pane.inspector_binding_action_target, "");
 }
@@ -780,7 +780,7 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
         .set_selected_binding_event("onHover")
         .expect("set selected binding event"));
     assert!(session
-        .set_selected_binding_route("MenuAction.workbench.highlight_save")
+        .set_selected_binding_route("menu_action.workbench.highlight_save")
         .expect("set selected binding route"));
 
     let updated = session.pane_presentation();
@@ -789,11 +789,11 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     assert_eq!(updated.inspector_binding_event, "onHover");
     assert_eq!(
         updated.inspector_binding_route,
-        "MenuAction.workbench.highlight_save"
+        "menu_action.workbench.highlight_save"
     );
     assert_eq!(
         updated.inspector_binding_route_target,
-        "MenuAction.workbench.highlight_save"
+        "menu_action.workbench.highlight_save"
     );
     assert_eq!(updated.inspector_binding_action_target, "");
 
@@ -805,7 +805,7 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     assert_eq!(button.bindings[0].event.to_string(), "onHover");
     assert_eq!(
         button.bindings[0].route.as_deref(),
-        Some("MenuAction.workbench.highlight_save")
+        Some("menu_action.workbench.highlight_save")
     );
 }
 
@@ -831,7 +831,7 @@ fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields
     assert_eq!(
         pane.inspector_binding_items,
         vec![
-            "onClick | SaveButton/onClick -> MenuAction.workbench.project.save (+2 payload)"
+            "onClick | SaveButton/onClick -> menu_action.workbench.project.save (+2 payload)"
                 .to_string()
         ]
     );
@@ -847,11 +847,11 @@ fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields
     );
     assert_eq!(
         pane.inspector_binding_route,
-        "MenuAction.workbench.project.save"
+        "menu_action.workbench.project.save"
     );
     assert_eq!(
         pane.inspector_binding_route_target,
-        "MenuAction.workbench.project.save"
+        "menu_action.workbench.project.save"
     );
     assert_eq!(pane.inspector_binding_action_target, "");
     assert_eq!(
@@ -887,7 +887,7 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
         .select_binding_action_kind(2)
         .expect("select action kind"));
     assert!(session
-        .set_selected_binding_action_target("EditorAction.workbench.project.save")
+        .set_selected_binding_action_target("editor_action.workbench.project.save")
         .expect("set action target"));
     assert!(session
         .select_binding_payload(1)
@@ -908,12 +908,12 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
     assert_eq!(updated.inspector_binding_action_kind_selected_index, 2);
     assert_eq!(
         updated.inspector_binding_route,
-        "EditorAction.workbench.project.save"
+        "editor_action.workbench.project.save"
     );
     assert_eq!(updated.inspector_binding_route_target, "");
     assert_eq!(
         updated.inspector_binding_action_target,
-        "EditorAction.workbench.project.save"
+        "editor_action.workbench.project.save"
     );
     assert_eq!(
         updated.inspector_binding_payload_items,
@@ -931,7 +931,7 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
     let action = button.bindings[0].action.as_ref().expect("binding action");
     assert_eq!(
         action.action.as_deref(),
-        Some("EditorAction.workbench.project.save")
+        Some("editor_action.workbench.project.save")
     );
     assert_eq!(
         action.payload.get("mode").and_then(toml::Value::as_str),

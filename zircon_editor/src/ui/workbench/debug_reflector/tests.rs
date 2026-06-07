@@ -6,15 +6,15 @@ use zircon_runtime_interface::ui::{
         UiPoint,
     },
     surface::{
-        UiDamageDebugReport, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
-        UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,
-        UiDebugTimelineSnapshot, UiHitGridDebugStats, UiHitTestDebugDump, UiHitTestQuery,
-        UiHitTestReject, UiHitTestRejectReason, UiMaterialBatchDebugStat, UiOverdrawDebugStats,
-        UiRenderDebugSnapshot, UiRenderDebugStats, UiRenderDebugStatsV2, UiRenderVisualizerOverlay,
-        UiRenderVisualizerOverlayKind, UiRenderVisualizerSnapshot, UiRenderVisualizerStats,
-        UiRenderVisualizerTextStats, UiRendererParitySnapshot, UiRendererParityStats,
-        UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-        UiSurfaceRebuildDebugStats, UiWidgetReflectorNode,
+        UiCanvasLayerGroup, UiDamageDebugReport, UiDebugOverlayPrimitive,
+        UiDebugOverlayPrimitiveKind, UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary,
+        UiDebugTimelineRetention, UiDebugTimelineSnapshot, UiHitGridDebugStats, UiHitTestDebugDump,
+        UiHitTestQuery, UiHitTestReject, UiHitTestRejectReason, UiMaterialBatchDebugStat,
+        UiOverdrawDebugStats, UiRenderDebugSnapshot, UiRenderDebugStats, UiRenderDebugStatsV2,
+        UiRenderVisualizerOverlay, UiRenderVisualizerOverlayKind, UiRenderVisualizerSnapshot,
+        UiRenderVisualizerStats, UiRenderVisualizerTextStats, UiRendererParitySnapshot,
+        UiRendererParityStats, UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions,
+        UiSurfaceDebugSnapshot, UiSurfaceRebuildDebugStats, UiWidgetReflectorNode,
     },
     tree::{UiInputPolicy, UiVisibility},
 };
@@ -118,6 +118,14 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
             && section.lines.iter().any(|line| {
                 line.contains("batch breaks:") && line.contains("kind=Quad;unclipped;opaque;text")
             })
+    }));
+    assert!(model.sections.iter().any(|section| {
+        section.title == "Canvas Layers"
+            && section.lines.iter().any(|line| line == "groups: 1")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "parent=1 layer=0 z=1 children=[2]")
     }));
     assert!(model.sections.iter().any(|section| {
         section.title == "Invalidation"
@@ -492,6 +500,12 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
             ..UiOverdrawDebugStats::default()
         },
         layout_engine_report: layout_engine_report_fixture(),
+        canvas_layers: vec![UiCanvasLayerGroup {
+            parent_id: UiNodeId::new(1),
+            layer_index: 0,
+            z_order: 1,
+            child_ids: vec![UiNodeId::new(2)],
+        }],
         overlay_primitives: vec![UiDebugOverlayPrimitive {
             kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
             node_id: Some(UiNodeId::new(2)),
@@ -511,7 +525,7 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
 }
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let zircon = UiLayoutEngineCapability::legacy_zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
@@ -531,7 +545,7 @@ fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
 }
 
 fn unsupported_layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
-    let mut taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let mut taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     taffy.supported_families.clear();
     let mut zircon = UiLayoutEngineCapability::legacy_zircon();
     zircon.supported_families.clear();
@@ -718,6 +732,7 @@ fn reflector_node(
         hoverable: true,
         focusable: false,
         control_id: Some(path.to_string()),
+        slot: None,
         render_command_count: 1,
         hit_entry_count: 1,
         hit_cell_count: 1,

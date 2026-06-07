@@ -1,0 +1,10 @@
+.zr-showcase-col:first-child .zr-select {
+  background: linear-gradient(180deg, #20262a, #171c20);
+}
+
+.zr-showcase-col:first-child .zr-button,
+.zr-showcase-col:first-child .zr-select {
+  border-radius: 12px;
+  color: #98a3a9;
+  border-color: #273038;
+}

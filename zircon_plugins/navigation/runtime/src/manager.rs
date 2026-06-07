@@ -1,8 +1,10 @@
+mod agent_motion;
 mod bake;
 mod query;
 mod state;
 mod stats;
 mod tick;
+mod traversal;
 
 use std::sync::Mutex;
 

@@ -1,135 +1,56 @@
-//! Static contracts for the Hub visual standard and reference design artifacts.
+//! Static contracts for the Hub React/MUI visual standard and reference artifacts.
 
 use std::{
-    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
 };
 
-struct HubVisualArtifact {
-    design_png: &'static str,
-    runtime_evidence: &'static str,
-    responsive_evidence: &'static str,
-}
-
-const HUB_VISUAL_ARTIFACTS: &[HubVisualArtifact] = &[
-    HubVisualArtifact {
-        design_png: "hub-editor.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-editor.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-editor.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-builds.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-builds.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-builds.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-assets.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-assets.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-assets.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-plugins.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-plugins.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-plugins.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-cloud.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-cloud.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-cloud.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-team.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-team.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-team.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-learn.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-learn.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-learn.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-settings.png",
-        runtime_evidence: "target/hub-visual-check-final/main-pages/hub-settings.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-settings.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-new.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-new-project.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-new-project.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-browser.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-browser.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-browser.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-detail.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-detail.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-detail.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-browser-filter-menu.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-browser-filter-menu.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-browser-filter-menu.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-browser-sort-menu.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-browser-sort-menu.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-browser-sort-menu.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-projects-detail-delete-confirm.png",
-        runtime_evidence: "target/hub-visual-check-final/hub-projects-detail-delete-confirm.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-detail-delete-confirm.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-source-engine-popup.png",
-        runtime_evidence: "target/hub-visual-check-final/popups/hub-source-engine-popup.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-source-engine-popup.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-user-menu.png",
-        runtime_evidence: "target/hub-visual-check-final/popups/hub-user-menu.png",
-        responsive_evidence:
-            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/main-pages/hub-user-menu.png",
-    },
-    HubVisualArtifact {
-        design_png: "hub-state-empty.png",
-        runtime_evidence: "target/hub-visual-check-final/states/hub-state-empty.png",
-        responsive_evidence:
-            "Covered by shared `EmptyStateBlock`/`EmptyStatePanel` contracts and page-specific responsive captures",
-    },
-    HubVisualArtifact {
-        design_png: "hub-state-loading.png",
-        runtime_evidence: "target/hub-visual-check-final/states/hub-state-loading.png",
-        responsive_evidence:
-            "Covered by `TaskStatus::running_operation`, status/task contracts, and responsive Builds captures",
-    },
-    HubVisualArtifact {
-        design_png: "hub-state-error.png",
-        runtime_evidence: "target/hub-visual-check-final/states/hub-state-error.png",
-        responsive_evidence:
-            "Covered by `TaskStatus::error`, `StatusBanner`, and responsive guarded/error-flow captures",
-    },
+const FINAL_VISUAL_ARTIFACTS: &[&str] = &[
+    "hub.png",
+    "hub-editor.png",
+    "hub-builds.png",
+    "hub-assets.png",
+    "hub-plugins.png",
+    "hub-cloud.png",
+    "hub-team.png",
+    "hub-learn.png",
+    "hub-settings.png",
+    "hub-projects-new.png",
+    "hub-projects-browser.png",
+    "hub-projects-detail.png",
+    "hub-projects-browser-filter-menu.png",
+    "hub-projects-browser-sort-menu.png",
+    "hub-projects-detail-delete-confirm.png",
+    "hub-source-engine-popup.png",
+    "hub-user-menu.png",
+    "hub-state-empty.png",
+    "hub-state-loading.png",
+    "hub-state-error.png",
 ];
 
-const HUB_SUPPLEMENTAL_DESIGN_ARTIFACTS: &[&str] = &[
+const AI_DRAFT_ARTIFACTS: &[&str] = &[
+    "hub-editor.png",
+    "hub-builds.png",
+    "hub-assets.png",
+    "hub-plugins.png",
+    "hub-cloud.png",
+    "hub-team.png",
+    "hub-learn.png",
+    "hub-settings.png",
+    "hub-projects-new.png",
+    "hub-projects-browser.png",
+    "hub-projects-detail.png",
+    "hub-projects-browser-filter-menu.png",
+    "hub-projects-browser-sort-menu.png",
+    "hub-projects-detail-delete-confirm.png",
+    "hub-source-engine-popup.png",
+    "hub-user-menu.png",
+    "hub-state-empty.png",
+    "hub-state-loading.png",
+    "hub-state-error.png",
+];
+
+const SUPPLEMENTAL_DESIGN_ARTIFACTS: &[&str] = &[
     "hub-design-structure-layout.png",
     "hub-design-structure-supplement.png",
     "hub-design-functional-details.png",
@@ -146,18 +67,14 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
-fn ui_dir() -> PathBuf {
-    crate_dir().join("ui")
-}
-
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
+        fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
+            panic!("failed to read Hub crate file {path}: {error}");
         }),
     )
 }
@@ -170,1341 +87,794 @@ fn read_repo_file(path: &str) -> String {
     )
 }
 
-#[test]
-fn hub_visual_spec_is_exported_from_shared_tokens() {
-    let tokens = read_ui_file("tokens.slint");
-    let components = read_ui_file("components.slint");
-    let theme = read_ui_file("theme.slint");
-
-    assert!(
-        components.contains("export { HubTokens, HubVisualSpec } from \"tokens.slint\";"),
-        "components.slint must expose HubVisualSpec beside HubTokens"
-    );
-
-    let visual_spec = tokens
-        .split("export global HubVisualSpec")
-        .nth(1)
-        .expect("tokens.slint must define HubVisualSpec");
-
-    for snippet in [
-        "reference-width: MaterialStyleMetrics.size_640 * 2 + MaterialStyleMetrics.size_256 + MaterialStyleMetrics.size_32;",
-        "reference-height: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_344 + MaterialStyleMetrics.spacing_16 + MaterialStyleMetrics.size_2 + MaterialStyleMetrics.size_1;",
-        "panel-radius: MaterialStyleMetrics.border_radius_12;",
-        "compact-radius: MaterialStyleMetrics.border_radius_8;",
-        "badge-radius: MaterialStyleMetrics.border_radius_4;",
-        "panel-padding: HubTokens.space-4;",
-        "section-gap: HubTokens.panel-gap;",
-        "toolbar-density-height: HubTokens.control-md;",
-        "card-cover-height: HubTokens.list-row-lg + MaterialStyleMetrics.size_24 + MaterialStyleMetrics.size_2;",
-        "visual-card-height: HubTokens.list-row-lg * 3 - MaterialStyleMetrics.spacing_8;",
-        "visual-table-row-height: HubTokens.table-row;",
-        "page-background: rgb(21, 21, 21);",
-        "chrome-background: rgb(19, 19, 19);",
-        "chrome-outline-muted: rgb(33, 33, 33);",
-        "panel-background: rgb(32, 32, 32);",
-        "panel-raised-background: rgb(34, 34, 34);",
-        "panel-hover-background: rgb(40, 40, 40);",
-        "outline-muted: rgb(56, 56, 56);",
-        "outline-strong: rgb(135, 135, 135);",
-        "accent-fill: MaterialPalette.primary_container;",
-        "accent-stroke: MaterialPalette.primary;",
-        "nav-active-fill: rgb(20, 55, 54);",
-        "nav-active-stroke: rgb(22, 74, 74);",
-        "nav-idle-foreground: rgb(143, 143, 142);",
-        "neutral-icon-background: rgb(38, 38, 38);",
-        "neutral-icon-stroke: rgb(70, 70, 70);",
-        "neutral-icon-foreground: rgb(190, 190, 189);",
-        "badge-accent-fill: rgb(28, 56, 56);",
-        "badge-accent-stroke: rgb(42, 118, 121);",
-        "command-primary-fill: rgb(21, 70, 70);",
-        "command-primary-stroke: rgb(31, 112, 111);",
-        "search-prominent-background: rgb(28, 28, 28);",
-        "search-prominent-stroke: rgb(110, 155, 152);",
-        "search-prominent-placeholder: rgb(96, 96, 95);",
-        "toolbar-select-foreground: rgb(142, 142, 141);",
-        "view-toggle-active-fill: rgb(22, 50, 50);",
-        "view-toggle-active-stroke: rgb(49, 123, 124);",
-        "view-toggle-active-foreground: rgb(144, 153, 153);",
-        "view-toggle-idle-foreground: rgb(143, 143, 142);",
-        "brand-title-foreground: rgb(180, 180, 179);",
-        "brand-subtitle-foreground: rgb(121, 121, 120);",
-        "user-avatar-background: rgb(84, 84, 83);",
-        "user-avatar-foreground: rgb(205, 205, 204);",
-        "user-name-foreground: rgb(142, 142, 141);",
-        "topbar-icon-foreground: rgb(142, 142, 141);",
-        "status-running-fill: rgb(16, 31, 31);",
-        "status-running-stroke: rgb(53, 164, 163);",
-        "success-stroke: rgb(68, 137, 64);",
-        "warning-fill: rgb(37, 30, 16);",
-        "warning-stroke: rgb(160, 117, 49);",
-        "error-fill: rgb(34, 21, 20);",
-        "error-stroke: rgb(145, 69, 61);",
-        "button-state-primary-default-background: rgb(18, 88, 88);",
-        "button-state-secondary-default-background: rgb(36, 36, 36);",
-        "button-state-icon-primary-background: rgb(17, 108, 108);",
-        "button-state-icon-primary-hover-background: rgb(20, 70, 70);",
-        "button-state-strip-background: rgb(22, 22, 22);",
-    ] {
+fn assert_contains_all(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
         assert!(
-            visual_spec.contains(snippet),
-            "HubVisualSpec must lock the reference visual token: {snippet}"
+            source.contains(snippet),
+            "{label} must contain visual-standard snippet: {snippet}"
         );
     }
+}
 
-    for snippet in [
-        "primary: rgb(52, 213, 208),",
-        "tertiary: rgb(255, 202, 83),",
-        "error: rgb(255, 180, 171),",
-        "background: rgb(13, 17, 20),",
-        "surfaceContainerLowest: rgb(8, 12, 15),",
-        "surfaceContainerLow: rgb(22, 27, 30),",
-        "surfaceContainer: rgb(27, 32, 35),",
-        "surfaceContainerHigh: rgb(36, 42, 45),",
-    ] {
+fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
+    for snippet in snippets {
         assert!(
-            theme.contains(snippet),
-            "ZirconMaterialTheme dark scheme must preserve the Hub reference palette: {snippet}"
+            !source.contains(snippet),
+            "{label} must not contain obsolete visual-standard snippet: {snippet}"
         );
     }
 }
 
 #[test]
-fn hub_shared_components_consume_visual_spec_tokens() {
-    for (file_name, snippets) in [
+fn react_tokens_global_css_and_mui_theme_define_reference_visual_standard() {
+    let tokens = read_crate_file("web/src/theme/tokens.ts");
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let styles = read_crate_file("web/src/styles.css");
+
+    assert_contains_all(
+        &tokens,
+        &[
+            "export const hubTokens =",
+            "width: 1568",
+            "height: 1003",
+            "topBarHeight: 73",
+            "sidebarWidth: 222",
+            "sidebarCollapsedWidth: 78",
+            "pagePaddingX: 30",
+            "pagePaddingY: 28",
+            "compact: 7",
+            "panel: 8",
+            "card: 8",
+            "background: \"#111212\"",
+            "chrome: \"#151515\"",
+            "panel: \"#202020\"",
+            "panelLow: \"#1c1c1c\"",
+            "line: \"rgba(255,255,255,0.10)\"",
+            "lineStrong: \"rgba(255,255,255,0.16)\"",
+            "text: \"#eeeeee\"",
+            "textSoft: \"#b9b9b9\"",
+            "textMuted: \"#8d8d8d\"",
+            "accent: \"#21d5cf\"",
+            "accentDim: \"rgba(20, 121, 119, 0.72)\"",
+            "success: \"#77d77a\"",
+            "warning: \"#ffc24d\"",
+            "error: \"#ef655e\"",
+            "panel: \"inset 0 0 0 1px rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.28)\"",
+            "accent: \"0 0 14px rgba(33,213,207,0.2)\"",
+            "as const",
+        ],
+        "web/src/theme/tokens.ts",
+    );
+    assert_contains_all(
+        &theme,
+        &[
+            "export const hubTheme = createTheme({",
+            "mode: \"dark\"",
+            "default: hubTokens.colors.background",
+            "paper: hubTokens.colors.panel",
+            "main: hubTokens.colors.accent",
+            "main: hubTokens.colors.success",
+            "main: hubTokens.colors.warning",
+            "main: hubTokens.colors.error",
+            "primary: hubTokens.colors.text",
+            "secondary: hubTokens.colors.textSoft",
+            "disabled: hubTokens.colors.textMuted",
+            "divider: hubTokens.colors.line",
+            "borderRadius: hubTokens.radius.compact",
+            "fontFamily: 'Inter, Roboto, \"Segoe UI\", Arial, sans-serif'",
+            "letterSpacing: 0",
+            "textTransform: \"none\"",
+            "MuiButton:",
+            "height: 42",
+            "whiteSpace: \"nowrap\"",
+            "MuiCard:",
+            "backgroundImage: \"none\"",
+            "backgroundColor: hubTokens.colors.panel",
+            "boxShadow: hubTokens.shadows.panel",
+            "MuiIconButton:",
+            "MuiMenu:",
+            "MuiOutlinedInput:",
+            "MuiSelect:",
+            "MuiTooltip:",
+        ],
+        "web/src/theme/muiTheme.ts",
+    );
+    assert_contains_all(
+        &styles,
+        &[
+            "html,",
+            "body,",
+            "#root",
+            "width: 100%;",
+            "min-width: 0;",
+            "min-height: 100%;",
+            "margin: 0;",
+            "overflow: hidden;",
+            "background: #090a0a;",
+            "font-family: Inter, Roboto, \"Segoe UI\", Arial, sans-serif;",
+            "button,",
+            "input,",
+            "textarea,",
+            "select",
+            "font: inherit;",
+        ],
+        "web/src/styles.css",
+    );
+}
+
+#[test]
+fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
+    let window = read_crate_file("web/src/components/shell/HubWindow.tsx");
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+    let popover = read_crate_file("web/src/components/overlays/HubPopover.tsx");
+    let dialog = read_crate_file("web/src/components/overlays/HubDialog.tsx");
+    let source_popup = read_crate_file("web/src/components/overlays/SourceEnginePopover.tsx");
+    let user_popup = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
+
+    assert_contains_all(
+        &window,
+        &[
+            "width: \"100vw\"",
+            "height: \"100vh\"",
+            "overflow: \"hidden\"",
+            "color: hubTokens.colors.text",
+            "radial-gradient(circle at 30% 18%, rgba(38,86,82,0.13), transparent 30%)",
+            "linear-gradient(180deg, #161616 0%, #111111 100%)",
+            "border: `1px solid ${hubTokens.colors.lineStrong}`",
+            "borderRadius: \"10px\"",
+            "height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`",
+            "backgroundColor: \"rgba(17,17,17,0.55)\"",
+        ],
+        "HubWindow",
+    );
+    assert_contains_all(
+        &topbar,
+        &[
+            "height: hubTokens.window.topBarHeight",
+            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "borderBottom: `1px solid ${hubTokens.colors.line}`",
+            "backgroundColor: \"rgba(17,17,17,0.96)\"",
+            "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
+            "src={brandMark}",
+            "textTransform: \"uppercase\"",
+            "border: `1px solid ${engineAnchor ? \"rgba(45,212,207,0.48)\" : hubTokens.colors.lineStrong}`",
+            "backgroundColor: engineAnchor ? \"rgba(18,82,80,0.38)\"",
+            "state.taskStatus.map((status) =>",
+            "Avatar sx={{ width: 36, height: 36, bgcolor: \"#4b4f52\", fontSize: 14 }}",
+            "SourceEnginePopover",
+            "UserMenuPopover",
+        ],
+        "TopBar",
+    );
+    assert_contains_all(
+        &drawer,
+        &[
+            "width: drawerWidth",
+            "backgroundColor: \"rgba(16,16,16,0.96)\"",
+            "borderRight: `1px solid ${hubTokens.colors.line}`",
+            "transition: \"width 160ms ease\"",
+            "borderRadius: `${hubTokens.radius.panel}px`",
+            "backgroundColor: selected ? \"rgba(15,99,96,0.56)\" : \"transparent\"",
+            "backgroundColor: \"rgba(32,32,32,0.62)\"",
+            "backgroundColor: hubTokens.colors.success",
+            "{text.checkForUpdates}",
+            "{text.checkForUpdatesDetail}",
+            "disabled",
+            "\"&.Mui-disabled\"",
+            "const collapseLabel = collapsed ? text.expand : text.collapse;",
+            "{collapseLabel}",
+            "width: drawerWidth",
+        ],
+        "NavigationDrawer",
+    );
+    assert_contains_all(
+        &popover,
+        &[
+            "width = 340",
+            "maxWidth: \"calc(100vw - 32px)\"",
+            "color: hubTokens.colors.text",
+            "backgroundColor: \"rgba(25,29,29,0.98)\"",
+            "border: `1px solid ${hubTokens.colors.lineStrong}`",
+            "borderRadius: `${hubTokens.radius.panel}px`",
+            "boxShadow: \"0 24px 60px rgba(0,0,0,0.46), 0 0 0 1px rgba(45,212,207,0.08)\"",
+        ],
+        "HubPopover",
+    );
+    assert_contains_all(
+        &dialog,
+        &[
+            "Dialog",
+            "DialogTitle",
+            "DialogContent",
+            "DialogActions",
+            "border: `1px solid ${hubTokens.colors.lineStrong}`",
+            "backgroundImage: \"none\"",
+            "backgroundColor: \"rgba(28,28,28,0.98)\"",
+        ],
+        "HubDialog",
+    );
+    assert_contains_all(
+        &source_popup,
+        &[
+            "HubPopover anchorEl={anchorEl} open={open} width={388}",
+            "{text.activeEngine}",
+            "{text.readyFallback}",
+            "{text.localDefaults}",
+            "gridTemplateColumns: \"34px minmax(0, 1fr) auto\"",
+            "backgroundColor: active ? \"rgba(18,82,80,0.5)\"",
+            "StatusBadge label={activeLabel} tone=\"success\"",
+            "{text.manageEngines}",
+        ],
+        "SourceEnginePopover",
+    );
+    assert_contains_all(
+        &user_popup,
+        &[
+            "HubPopover anchorEl={anchorEl} open={open} width={284} align=\"right\"",
+            "gridTemplateColumns: \"42px minmax(0, 1fr)\"",
+            "Avatar sx={{ width: 38, height: 38, bgcolor: \"#4b4f52\", fontSize: 14 }}",
+            "borderColor: hubTokens.colors.line",
+            "color: isDisabled ? hubTokens.colors.textMuted : danger ? hubTokens.colors.error : hubTokens.colors.text",
+            "backgroundColor: isDisabled ? \"transparent\" : danger ? \"rgba(105,31,29,0.24)\" : \"rgba(255,255,255,0.055)\"",
+            "\"&.Mui-disabled\"",
+        ],
+        "UserMenuPopover",
+    );
+}
+
+#[test]
+fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
+    let button = read_crate_file("web/src/components/inputs/HubButton.tsx");
+    let icon_button = read_crate_file("web/src/components/inputs/HubIconButton.tsx");
+    let search = read_crate_file("web/src/components/inputs/HubSearchField.tsx");
+    let select = read_crate_file("web/src/components/inputs/HubSelect.tsx");
+    let toggle = read_crate_file("web/src/components/inputs/HubToggle.tsx");
+    let panel = read_crate_file("web/src/components/data/HubPanel.tsx");
+    let card = read_crate_file("web/src/components/data/ProjectCard.tsx");
+    let cover = read_crate_file("web/src/components/data/ProjectCover.tsx");
+    let badge = read_crate_file("web/src/components/data/StatusBadge.tsx");
+    let metric = read_crate_file("web/src/components/data/MetricCard.tsx");
+    let empty = read_crate_file("web/src/components/data/EmptyStateBlock.tsx");
+    let table = read_crate_file("web/src/components/data/ProjectTable.tsx");
+    let list = read_crate_file("web/src/components/data/HubList.tsx");
+    let data_index = read_crate_file("web/src/components/data/index.ts");
+
+    assert_contains_all(
+        &button,
+        &[
+            "export type HubButtonTone = \"primary\" | \"secondary\" | \"tertiary\" | \"danger\";",
+            "backgroundColor: hubTokens.colors.accentDim",
+            "borderColor: \"rgba(45, 212, 207, 0.48)\"",
+            "backgroundColor: \"rgba(32,32,32,0.82)\"",
+            "color: hubTokens.colors.accent",
+            "backgroundColor: \"rgba(120,25,25,0.54)\"",
+            "variant=\"contained\"",
+            "border: \"1px solid\"",
+            "px: 2.5",
+        ],
+        "HubButton",
+    );
+    assert_contains_all(
+        &icon_button,
+        &[
+            "Tooltip title={tooltip ?? label}",
+            "width: 50",
+            "height: 42",
+            "color: selected ? \"#eefefe\" : hubTokens.colors.textSoft",
+            "backgroundColor: selected ? \"rgba(9,94,91,0.56)\"",
+            "border: `1px solid ${selected ? \"rgba(45,212,207,0.48)\" : hubTokens.colors.lineStrong}`",
+            "\"&.Mui-disabled\"",
+        ],
+        "HubIconButton",
+    );
+    assert_contains_all(
+        &search,
+        &[
+            "width: compact ? 260 : 307",
+            "height: compact ? 36 : 47",
+            "borderColor: compact ? hubTokens.colors.lineStrong : \"rgba(45,212,207,0.92)\"",
+            "boxShadow: compact ? \"none\" : hubTokens.shadows.accent",
+            "color: hubTokens.colors.textMuted",
+            "opacity: 1",
+        ],
+        "HubSearchField",
+    );
+    assert_contains_all(
+        &select,
+        &[
+            "minWidth = 183",
+            "height: 42",
+            "color: hubTokens.colors.textSoft",
+            "display: \"flex\"",
+            "alignItems: \"center\"",
+            "MenuItem",
+        ],
+        "HubSelect",
+    );
+    assert_contains_all(
+        &toggle,
+        &[
+            "ToggleButtonGroup",
+            "width: 50",
+            "height: 42",
+            "borderRadius: `${hubTokens.radius.compact}px !important`",
+            "backgroundColor: \"rgba(31,31,31,0.72)\"",
+            "\"&.Mui-selected\"",
+            "backgroundColor: \"rgba(9,94,91,0.56)\"",
+        ],
+        "HubToggle",
+    );
+    assert_contains_all(
+        &panel,
+        &[
+            "Card",
+            "component=\"section\"",
+            "p: 2",
+            "overflow: \"hidden\"",
+            "Typography variant=\"h6\"",
+            "color: hubTokens.colors.textSoft",
+        ],
+        "HubPanel",
+    );
+    assert_contains_all(
+        &card,
+        &[
+            "height: 251",
+            "borderColor: selected ? \"rgba(45,212,207,0.44)\" : hubTokens.colors.lineStrong",
+            "transition: \"border-color 140ms ease, transform 140ms ease\"",
+            "transform: \"translateY(-1px)\"",
+            "height: 112",
+            "ProjectCover",
+            "Chip label={project.engineVersion}",
+            "Chip label={project.platform}",
+        ],
+        "ProjectCard",
+    );
+    assert_contains_all(
+        &cover,
+        &[
+            "width: thumb ? 30 : \"100%\"",
+            "height: thumb ? 30 : \"100%\"",
+            "backgroundColor: \"#141414\"",
+            "objectFit: \"cover\"",
+            "filter: \"saturate(0.98) contrast(0.98) brightness(0.98)\"",
+            "linear-gradient(90deg, rgba(255,255,255,0.035)",
+            "src={brandMark}",
+            "backgroundColor: \"rgba(10,20,22,0.72)\"",
+        ],
+        "ProjectCover",
+    );
+    assert_contains_all(
+        &badge,
+        &[
+            "const toneMap",
+            "running:",
+            "success:",
+            "warning:",
+            "error:",
+            "neutral:",
+            "height: 36",
+            "minWidth: 112",
+            "backgroundColor: toneStyle.background",
+            "border: `1px solid ${toneStyle.border}`",
+            "tone === \"running\"",
+        ],
+        "StatusBadge",
+    );
+    assert_contains_all(
+        &metric,
+        &[
+            "minHeight: 86",
+            "gridTemplateColumns: icon ? \"34px minmax(0, 1fr)\" : \"1fr\"",
+            "border: `1px solid ${hubTokens.colors.lineStrong}`",
+            "backgroundColor: \"rgba(32,32,32,0.62)\"",
+            "Typography variant=\"caption\"",
+            "Typography variant=\"h6\"",
+        ],
+        "MetricCard",
+    );
+    assert_contains_all(
+        &empty,
+        &[
+            "minHeight: 148",
+            "placeItems: \"center\"",
+            "border: `1px dashed ${hubTokens.colors.lineStrong}`",
+            "backgroundColor: \"rgba(28,28,28,0.42)\"",
+            "textAlign: \"center\"",
+        ],
+        "EmptyStateBlock",
+    );
+    assert_contains_all(
+        &table,
+        &[
+            "Table size=\"small\"",
+            "tableLayout: \"fixed\"",
+            "height: 36",
+            "borderColor: \"rgba(255,255,255,0.075)\"",
+            "backgroundColor: \"rgba(18,82,80,0.32)\"",
+            "ProjectCover coverId={project.coverId} size=\"thumb\"",
+            "fontSize: 12",
+        ],
+        "ProjectTable",
+    );
+    assert_contains_all(
+        &list,
+        &[
+            "List dense",
+            "gap: 0.7",
+            "minHeight: item.secondaryDetail ? 64 : 48",
+            "borderRadius: `${hubTokens.radius.compact}px`",
+            "backgroundColor: item.selected ? \"rgba(18,82,80,0.38)\" : \"rgba(32,32,32,0.54)\"",
+            "Typography variant=\"body2\"",
+            "Typography variant=\"caption\"",
+        ],
+        "HubList",
+    );
+    assert_not_contains_any(&data_index, &["ButtonStatesPanel"], "components/data index");
+}
+
+#[test]
+fn pages_keep_reference_responsive_density_and_state_surfaces() {
+    for (page, snippets) in [
         (
-            "surfaces.slint",
+            "ProjectsDashboard",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "border-radius: HubVisualSpec.panel-radius;",
-                "border-radius: HubVisualSpec.badge-radius;",
-                "HubVisualSpec.chrome-background",
-                "HubVisualSpec.warning-fill",
-                "HubVisualSpec.error-fill",
+                "height: \"100%\"",
+                "px: `${hubTokens.window.pagePaddingX}px`",
+                "py: `${hubTokens.window.pagePaddingY}px`",
+                "gridTemplateColumns: \"minmax(260px, 307px) 1fr auto auto auto\"",
+                "gridTemplateColumns: \"repeat(4, minmax(220px, 296px))\"",
+                "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
+                "EmptyStateBlock",
+                "HubDialog",
             ][..],
         ),
         (
-            "inputs.slint",
+            "ProjectBrowserPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "select-height: HubVisualSpec.toolbar-density-height;",
-            ],
+                "gridTemplateColumns: \"minmax(280px, 420px) 1fr auto auto auto\"",
+                "gridTemplateColumns: \"minmax(0, 1fr) minmax(320px, 0.42fr)\"",
+                "HubStatusBanner",
+                "EmptyStateBlock title={text.noProjectsFound}",
+                "SourceEngineList",
+            ][..],
         ),
         (
-            "text_input_components.slint",
+            "ProjectDetailPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "box-height: HubVisualSpec.toolbar-density-height;",
-                "height: HubTokens.input-field;",
-                "row-spacing: HubTokens.toolbar-gap;",
-            ],
+                "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+                "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
+                "ProjectCover",
+                "MetricCard",
+                "StatusBadge",
+                "EmptyStateBlock title={text.noProjectSelected}",
+            ][..],
         ),
         (
-            "input_state_components.slint",
+            "SettingsPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "opacity: root.enabled ? 1.0 : HubVisualSpec.disabled-opacity;",
-                "border-color: root.focused ? HubVisualSpec.focus-ring-color",
-                "background: HubVisualSpec.panel-background;",
-            ],
+                "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+                "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.42fr)\"",
+                "LinearProgress",
+                "StatusBadge label={draftSettings.health.label} tone={draftSettings.health.tone}",
+                "HubComboBox",
+                "HubTreeView",
+            ][..],
         ),
         (
-            "data_display.slint",
+            "BuildsPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "row-radius: HubVisualSpec.panel-radius;",
-                "in property <length> row-radius: HubVisualSpec.compact-radius;",
-                "border-radius: root.row-radius;",
-                "disabled-background: HubVisualSpec.panel-background.with_alpha(HubVisualSpec.disabled-opacity);",
-                "background: !root.enabled ? root.disabled-background",
-            ],
+                "gridTemplateColumns: \"repeat(3, minmax(0, 1fr))\"",
+                "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+                "LinearProgress",
+                "EmptyStateBlock title={text.noBuildHistory}",
+                "BuildActionDetail",
+            ][..],
         ),
         (
-            "table_view_components.slint",
+            "CatalogPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "row-height: HubVisualSpec.visual-table-row-height;",
-                "export component ProjectTableRow inherits HubInteractiveRowSurface",
-                "selected-background: HubVisualSpec.accent-fill;",
-            ],
+                "width: 320",
+                "HubSearchField",
+                "MetricCard",
+                "StatusBadge",
+                "EmptyStateBlock title={text.noEntriesFound}",
+                "HubTreeView",
+            ][..],
         ),
         (
-            "tree_view_components.slint",
+            "CloudPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "export component HubTreeRow inherits HubInteractiveRowSurface",
-                "row-radius: HubVisualSpec.compact-radius;",
-                "HubRowLeadingIconSlot {",
-                "shell-background: HubVisualSpec.neutral-icon-background;",
-                "shell-border: HubVisualSpec.neutral-icon-stroke;",
-                "icon-foreground: HubVisualSpec.neutral-icon-foreground;",
-            ],
+                "gridTemplateColumns: \"repeat(3, minmax(0, 1fr))\"",
+                "HubSwitch",
+                "HubCheckbox",
+                "EmptyStateBlock title={text.noPackagesRecorded}",
+                "StatusBadge label={state.taskSummary.label}",
+            ][..],
         ),
         (
-            "layout.slint",
+            "TeamPage",
             &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "background: HubVisualSpec.page-background;",
-            ],
-        ),
-        (
-            "shell_page_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "background: HubVisualSpec.page-background;",
-                "background: HubVisualSpec.panel-background;",
-            ],
-        ),
-        (
-            "shell_sidebar_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "background: HubVisualSpec.chrome-background;",
-                "border-radius: HubVisualSpec.panel-radius;",
-            ],
-        ),
-        (
-            "project_card_flow_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "cover-height: HubVisualSpec.card-cover-height;",
-                "card-height: HubVisualSpec.visual-card-height;",
-                "export component ProjectCard inherits HubInteractiveCardSurface",
-                "interaction-foreground: MaterialPalette.on_surface;",
-            ],
-        ),
-        (
-            "button_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "export component HubPanelHeaderActionButton inherits Rectangle",
-                "export component HubSidebarCollapseButton inherits Rectangle",
-            ],
-        ),
-        (
-            "icon_button_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "export component HubRowActionButton inherits HubIconButton",
-                "export component HubViewToggleGroup inherits HorizontalLayout",
-                "export component HubMoreMenuButton inherits HubFloatingIconButton",
-            ],
-        ),
-        (
-            "button_state_sample_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "import { HubIconButton } from \"icon_button_components.slint\";",
-                "HubVisualSpec.button-state-primary-default-background",
-                "HubVisualSpec.button-state-icon-primary-hover-background",
-                "root.primary && root.active ? HubVisualSpec.button-state-icon-primary-hover-background",
-            ],
-        ),
-        (
-            "project_dashboard_components.slint",
-            &[
-                "HubVisualSpec,",
-                "background: HubVisualSpec.button-state-strip-background;",
-            ],
-        ),
-        (
-            "project_browser_components.slint",
-            &[
-                "HubVisualSpec,",
-                "select-height: HubVisualSpec.toolbar-density-height;",
-                "border-radius: HubVisualSpec.panel-radius;",
-                "export component ProjectBrowserRow inherits HubInteractiveRowSurface",
-                "row-radius: HubVisualSpec.compact-radius;",
-                "interaction-foreground: root.content-foreground;",
-                "selected-background: MaterialPalette.secondary_container;",
-            ],
-        ),
-        (
-            "editor_page_components.slint",
-            &[
-                "HubVisualSpec,",
-                "export component SourceEngineRow inherits HubInteractiveRowSurface",
-                "row-radius: HubVisualSpec.panel-radius;",
-                "interaction-foreground: root.content-foreground;",
-                "selected-border: HubVisualSpec.accent-stroke;",
-                "idle-border: HubVisualSpec.outline-muted;",
-            ],
-        ),
-        (
-            "shell_header_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "pill.state == \"ok\" ? HubVisualSpec.success-stroke",
-                "pill.state == \"warn\" ? HubVisualSpec.warning-stroke",
-                "pill.state == \"error\" ? HubVisualSpec.error-stroke",
-                "HubVisualSpec.outline-strong",
-            ],
-        ),
-        (
-            "shell_header_popup_components.slint",
-            &[
-                "import { HubTokens, HubVisualSpec } from \"tokens.slint\";",
-                "import { HubUserMenuTriggerButton } from \"button_components.slint\";",
-                "HubAnchoredPopupPanel",
-                "HubPopupProfileHeader",
-                "HubPopupSectionHeader",
-                "HubUserMenuTriggerButton {",
-                "import { HubMenuRow } from \"data_display.slint\";",
-                "import { HubMenuListViewport } from \"list_container_components.slint\";",
-                "export component HeaderEngineOption inherits HubMenuRow",
-                "selected-border-width: HubTokens.border-width;",
-                "enabled-avatar-background: HubVisualSpec.neutral-icon-background;",
-                "enabled-avatar-foreground: HubVisualSpec.neutral-icon-foreground;",
-            ],
-        ),
-        (
-            "shared.slint",
-            &[
-                "HubVisualSpec",
-                "border-radius: HubVisualSpec.compact-radius;",
-                "border-radius: HubVisualSpec.panel-radius;",
-                "background: HubVisualSpec.panel-background;",
-            ],
-        ),
-        (
-            "navigation.slint",
-            &[
-                "import { NavItemData } from \"shared.slint\";",
-                "export component NavButton inherits Rectangle",
-                "StateLayerArea {",
-                "border_radius: HubVisualSpec.compact-radius;",
-                "MaterialText {",
-                "style: MaterialTypography.label_large;",
-                "export component NavRail inherits Rectangle",
-            ],
+                "StatusBadge label={state.taskSummary.label}",
+                "MetricCard",
+                "HubTreeView",
+                "EmptyStateBlock title={text.noTeamMembersFound}",
+                "ActionDetail",
+            ][..],
         ),
     ] {
-        let source = read_ui_file(file_name);
-        for snippet in snippets {
-            assert!(
-                source.contains(snippet),
-                "{file_name} must consume HubVisualSpec through shared visual components; missing {snippet}"
-            );
-        }
-    }
-}
-
-#[test]
-fn hub_pages_do_not_define_private_visual_literals() {
-    let mut violations = Vec::new();
-
-    for entry in fs::read_dir(ui_dir()).expect("failed to read Hub UI directory") {
-        let path = entry
-            .unwrap_or_else(|error| panic!("failed to read Hub UI directory entry: {error}"))
-            .path();
-        if path.extension().and_then(|extension| extension.to_str()) != Some("slint") {
-            continue;
-        }
-
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .expect("Hub UI file name must be valid UTF-8");
-        let color_literals_allowed = matches!(file_name, "theme.slint" | "tokens.slint");
-        let source = normalize_newlines(
-            fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display())),
-        );
-
-        for (line_index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            let location = format!("{file_name}:{}", line_index + 1);
-
-            if !color_literals_allowed
-                && (trimmed.contains("rgb(")
-                    || trimmed.contains("rgba(")
-                    || contains_hex_color_literal(trimmed))
-            {
-                violations.push(format!(
-                    "{location} defines a private color literal instead of HubVisualSpec or MaterialPalette: {trimmed}"
-                ));
-            }
-
-            if let Some(value) = numeric_px_literal_after(trimmed, "border-radius:") {
-                violations.push(format!(
-                    "{location} defines private border-radius {value}; use HubVisualSpec radius tokens"
-                ));
-            }
-
-            if let Some(value) = numeric_px_literal_after(trimmed, "row-height:") {
-                violations.push(format!(
-                    "{location} defines private row-height {value}; use HubVisualSpec.visual-table-row-height or HubTokens row tokens"
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub pages must not bypass the shared visual standard:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn hub_root_pages_remain_shared_component_compositions() {
-    for (file_name, root_export, required_snippets) in [
-        (
-            "project_dashboard.slint",
-            "export component ProjectDashboardPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "DashboardToolbar {",
-                "DashboardProjectCardsSection {",
-                "DashboardRecentProjectsPanel {",
-                "DashboardQuickActionsPanel {",
-            ][..],
-        ),
-        (
-            "project_new_page.slint",
-            "export component ProjectNewPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "ProjectCreateSettingsPanel {",
-                "ProjectCreateCompactSummaryPanel {",
-                "ProjectTemplateRailPanel {",
-            ][..],
-        ),
-        (
-            "project_browser_page.slint",
-            "export component ProjectBrowserPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "SearchBox {",
-                "ProjectFilterSelect {",
-                "ProjectSortSelect {",
-                "ProjectBrowserResultsPanel {",
-            ][..],
-        ),
-        (
-            "project_detail_page.slint",
-            "export component ProjectDetailPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "ProjectDetailMainPanel {",
-                "ProjectDetailActionsSection {",
-            ][..],
-        ),
-        (
-            "projects.slint",
-            "export component ProjectsPage inherits Fill",
-            &[
-                "ProjectDashboardPage {",
-                "ProjectNewPage {",
-                "ProjectBrowserPage {",
-                "ProjectDetailPage {",
-            ][..],
-        ),
-        (
-            "editor.slint",
-            "export component EditorPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "EditorSourceSummaryPanel {",
-                "EditorActionsPanel {",
-                "EditorSourceSettingsPanel {",
-                "EditorSourceEngineListPanel {",
-                "EditorBuildHistoryPanel {",
-            ][..],
-        ),
-        (
-            "builds.slint",
-            "export component BuildsPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "BuildSourceSummaryPanel {",
-                "BuildControlsPanel {",
-                "BuildPipelinePanel {",
-                "BuildTaskHistoryPanel {",
-                "OperationTimelinePanel {",
-            ][..],
-        ),
-        (
-            "assets.slint",
-            "export component AssetsPage inherits CatalogPage",
-            &["CatalogPage", "AssetRow {"][..],
-        ),
-        (
-            "plugins.slint",
-            "export component PluginsPage inherits CatalogPage",
-            &["CatalogPage", "PluginRow {"][..],
-        ),
-        (
-            "cloud.slint",
-            "export component CloudPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "OverviewPanel {",
-                "CloudMetricSlot {",
-                "CloudPackageActionsPanel {",
-                "CloudServicesPanel {",
-            ][..],
-        ),
-        (
-            "team.slint",
-            "export component TeamPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "TeamSummarySlot {",
-                "TeamMembersPanel {",
-                "TeamActionsPanel {",
-            ][..],
-        ),
-        (
-            "learn.slint",
-            "export component LearnPage inherits CatalogPage",
-            &["CatalogPage", "LearnRow {"][..],
-        ),
-        (
-            "settings.slint",
-            "export component SettingsPage inherits PageScrollSurface",
-            &[
-                "background: HubVisualSpec.page-background;",
-                "SettingsToolchainPanel {",
-                "SettingsBuildDefaultsPanel {",
-                "SettingsDefaultPathsPanel {",
-                "SettingsConfigurationHealthPanel {",
-                "SettingsSaveActionRow {",
-                "OperationTimelinePanel {",
-            ][..],
-        ),
-    ] {
-        let source = read_ui_file(file_name);
-        let exported_components = source
-            .lines()
-            .filter(|line| line.trim_start().starts_with("export component "))
-            .count();
-        assert_eq!(
-            exported_components, 1,
-            "{file_name} must expose one root page component and route page pieces through shared wrappers"
-        );
+        let source = read_crate_file(&format!("web/src/pages/{page}.tsx"));
+        assert_contains_all(&source, snippets, page);
         assert!(
-            source.contains(root_export),
-            "{file_name} must keep the expected root export: {root_export}"
+            source.contains("@media (max-width:"),
+            "{page} must keep responsive visual constraints"
         );
-
-        for (line_index, line) in source.lines().enumerate() {
-            let trimmed = line.trim_start();
-            assert!(
-                !trimmed.starts_with("component "),
-                "{}:{} must not define local visual helper components; move page-specific visuals into shared component modules",
-                file_name,
-                line_index + 1
-            );
-        }
-
-        for snippet in required_snippets {
-            assert!(
-                source.contains(snippet),
-                "{file_name} must compose the shared Hub visual/page component {snippet}"
-            );
-        }
     }
 }
 
 #[test]
-fn hub_design_png_artifacts_are_complete_and_reference_sized() {
-    let dashboard_reference = repo_dir().join("docs/ui-and-layout/hub.png");
-    assert!(
-        dashboard_reference.exists(),
-        "missing Projects Dashboard pixel reference {}",
-        dashboard_reference.display()
-    );
-    let (width, height) = png_dimensions(&dashboard_reference);
-    assert_eq!(
-        (width, height),
-        (1568, 1003),
-        "{} must remain the Hub reference canvas",
-        dashboard_reference.display()
-    );
-    let metadata = fs::metadata(&dashboard_reference).unwrap_or_else(|error| {
-        panic!(
-            "failed to stat Dashboard reference {}: {error}",
-            dashboard_reference.display()
-        )
-    });
-    assert!(
-        metadata.len() > 100_000,
-        "{} should remain the real Projects Dashboard visual reference, not a placeholder",
-        dashboard_reference.display()
-    );
+fn runtime_visual_assets_are_react_assets_not_reference_screenshots() {
+    let data = read_crate_file("web/src/data/hubData.ts");
 
-    for artifact in HUB_VISUAL_ARTIFACTS {
-        let path = repo_dir()
-            .join("docs/ui-and-layout")
-            .join(artifact.design_png);
-        assert!(path.exists(), "missing Hub design PNG {}", path.display());
-        let (width, height) = png_dimensions(&path);
-        assert_eq!(
-            (width, height),
-            (1568, 1003),
-            "{} must match the hub.png reference canvas",
-            path.display()
-        );
-        let metadata = fs::metadata(&path)
-            .unwrap_or_else(|error| panic!("failed to stat {}: {error}", path.display()));
-        assert!(
-            metadata.len() > 16_384,
-            "{} should be a rendered design artifact, not an empty placeholder",
-            path.display()
-        );
-    }
+    assert_contains_all(
+        &data,
+        &[
+            "import brandMarkAsset from \"../../../assets/brand/zircon-mark.svg\";",
+            "import elysiumCover from \"../../../assets/covers/reference/project-elysium.png\";",
+            "import neonCover from \"../../../assets/covers/reference/project-neon-streets.png\";",
+            "import sandsCover from \"../../../assets/covers/reference/project-sands-of-time.png\";",
+            "import stellarCover from \"../../../assets/covers/reference/project-stellar-outpost.png\";",
+            "import woodsCover from \"../../../assets/covers/reference/project-whispering-woods.png\";",
+            "export const brandMark = brandMarkAsset;",
+            "export const coverById: Record<string, string>",
+        ],
+        "web/src/data/hubData.ts",
+    );
+    assert_not_contains_any(
+        &data,
+        &[
+            "docs/ui-and-layout/hub.png",
+            "docs/ui-and-layout/hub-ai-drafts",
+            "hub-web-reference-1568x1003.png",
+            "hub-state-loading.png",
+            "hub-state-error.png",
+        ],
+        "web/src/data/hubData.ts",
+    );
+}
 
+#[test]
+fn visual_reference_artifacts_manifest_and_web_reference_remain_available() {
     let manifest = read_repo_file("docs/ui-and-layout/hub-ai-reference-manifest.json");
-    for snippet in [
-        "\"$schema\": \"docs/ui-and-layout/hub-ai-reference-manifest.schema.json\"",
-        "\"source_reference\": \"docs/ui-and-layout/hub.png\"",
-        "\"prompt_family\"",
-        "\"draft_kind\": \"overall-interaction-structure-layout\"",
-        "\"draft_usage\": \"Overall interaction structure layout drafts for review; local functional-content callouts are secondary; not acceptance evidence.\"",
-        "\"ai_draft_root\": \"docs/ui-and-layout/hub-ai-drafts\"",
-        "\"partial_images\": 2",
-        "\"design_board_workflow\"",
-        "\"source\": \"docs/ui-and-layout/hub-design-board/index.html\"",
-        "\"export_command\": \"node docs/ui-and-layout/hub-design-board/export-design-board.mjs\"",
-        "\"validate_command\": \"node docs/ui-and-layout/hub-design-board/validate-design-board.mjs\"",
-        "\"final_source\": \"docs/ui-and-layout/hub-web-reference/index.html\"",
-        "\"export_command\": \"node docs/ui-and-layout/hub-web-reference/export-pages.mjs\"",
-        "\"acceptance_evidence\"",
-        "\"ledger\": \"docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md\"",
-        "\"final_png_inventory\": \"docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md#generated-final-png-inventory\"",
-        "\"spot_checks\": \"docs/ui-and-layout/hub-web-reference/SPOT_CHECKS.md\"",
-        "\"web_exports\": \"docs/ui-and-layout/hub-web-reference/EXPORTS.md\"",
-        "\"visual_validation\": \"node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs\"",
-        "\"interaction_validation\": \"node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs\"",
-        "\"design_board_validation\": \"node docs/ui-and-layout/hub-design-board/validate-design-board.mjs\"",
-        "\"rust_contract\": \"cargo test --manifest-path zircon_hub/Cargo.toml --locked --offline --jobs 1 --test ui_visual_standard_contract\"",
-        "\"known_limit\": \"AI drafts and design-board screenshots are not final acceptance evidence; optional cargo check may time out under concurrent Hub library compilation.\"",
-        "\"width\": 1568",
-        "\"height\": 1003",
-        "\"selected_draft\": \"html-final-reference\"",
-    ] {
-        assert!(
-            manifest.contains(snippet),
-            "Hub AI reference manifest must describe the AI-directed HTML/CSS-finalized workflow; missing {snippet}"
-        );
-    }
-
-    let manifest_schema =
-        read_repo_file("docs/ui-and-layout/hub-ai-reference-manifest.schema.json");
-    for snippet in [
-        "\"$id\": \"docs/ui-and-layout/hub-ai-reference-manifest.schema.json\"",
-        "\"additionalProperties\": false",
-        "\"source_reference\"",
-        "\"streaming_generation\"",
-        "\"supplemental_design_mode_artifacts\"",
-        "\"design_board_workflow\"",
-        "\"acceptance_evidence\"",
-        "\"references\"",
-        "\"minItems\": 19",
-        "\"maxItems\": 19",
-        "\"minItems\": 3",
-        "\"maxItems\": 3",
-        "\"selected_draft\"",
-        "\"const\": \"html-final-reference\"",
-        "\"const\": \"docs/ui-and-layout/hub.png\"",
-        "\"const\": 1568",
-        "\"const\": 1003",
-    ] {
-        assert!(
-            manifest_schema.contains(snippet),
-            "Hub AI reference manifest schema must lock manifest structure; missing {snippet}"
-        );
-    }
-
+    let registry = read_repo_file("docs/ui-and-layout/hub-web-reference/page-registry.mjs");
     let exporter = read_repo_file("docs/ui-and-layout/hub-web-reference/export-pages.mjs");
     let visual_validator =
         read_repo_file("docs/ui-and-layout/hub-web-reference/validate-visuals.mjs");
-    let page_registry = read_repo_file("docs/ui-and-layout/hub-web-reference/page-registry.mjs");
-    let spot_checks = read_repo_file("docs/ui-and-layout/hub-web-reference/SPOT_CHECKS.md");
-    let acceptance_evidence =
-        read_repo_file("docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md");
-    let design_board_registry =
-        read_repo_file("docs/ui-and-layout/hub-design-board/board-registry.mjs");
-    let design_board_manifest = read_repo_file("docs/ui-and-layout/hub-design-board/manifest.json");
-    let design_board_exporter =
-        read_repo_file("docs/ui-and-layout/hub-design-board/export-design-board.mjs");
-    let design_board_validator =
-        read_repo_file("docs/ui-and-layout/hub-design-board/validate-design-board.mjs");
-    let design_board_review =
-        read_repo_file("docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md");
-    let design_board_coverage =
-        read_repo_file("docs/ui-and-layout/hub-design-board/STRUCTURE_COVERAGE_MATRIX.md");
-    for snippet in [
-        "export const CANVAS_WIDTH = 1568;",
-        "export const CANVAS_HEIGHT = 1003;",
-        "hub-web-reference-1568x1003.png",
-        "export const EXPORTS_LIST = [",
-    ] {
-        assert!(
-            page_registry.contains(snippet),
-            "Hub web reference page registry must own final canvas and export list; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "CANVAS_WIDTH",
-        "CANVAS_HEIGHT",
-        "EXPORTS_LIST",
-        "playwright",
-        "screenshot",
-        "--channel",
-        "msedge",
-        ".hub-shell",
-        "ZIRCON_HUB_WEB_REFERENCE_PORT",
-        "EADDRINUSE",
-        "listenOn",
-        "server.address",
-        "isInsideRepo",
-        "activePort",
-    ] {
-        assert!(
-            exporter.contains(snippet),
-            "Hub web reference exporter must own final PNG capture; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "validateSpotChecks",
-        "validateAcceptanceEvidence",
-        "spotCheckArtifacts",
-        "SPOT_CHECKS.md",
-        "ACCEPTANCE_EVIDENCE.md",
-        "AI-directed, HTML/CSS-finalized Hub reference PNGs",
-        "19-page export validation",
-        "against `docs/ui-and-layout/hub.png`",
-        "Latest review: 2026-05-30",
-        "no clipped text",
-        "no overlap",
-        "matching density",
-        "row.result !== \"Pass\"",
-        "must cite replay or validation evidence",
-        "Web reference visual validation | Pass",
-        "optional `cargo check` timeout",
-        "validateJsonSchemaSubset",
-        "additionalProperties === false",
-        "schema.required",
-        "schema.pattern",
-        "schema.minItems",
-        "schema.maxItems",
-        "validateJsonSchemaSubsetSelfTest",
-        "expectSchemaFailure",
-        "rejects unknown top-level properties",
-        "rejects missing reference output",
-        "rejects short reference inventory",
-        "rejects malformed AI draft path",
-        "rejects wrong canvas width",
-    ] {
-        assert!(
-            visual_validator.contains(snippet),
-            "Hub web reference visual validator must lock representative spot-check coverage; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "Hub Web Reference Spot Checks",
-        "AI-directed, HTML/CSS-finalized Hub reference PNGs",
-        "Latest review: 2026-05-30",
-        "| Artifact | Page id | Inspect for | Result | Evidence |",
-        "| --- | --- | --- | --- | --- |",
-        "`hub.png` | `projects-dashboard`",
-        "`hub-editor.png` | `hub-editor`",
-        "`hub-assets.png` | `hub-assets`",
-        "`hub-projects-detail-delete-confirm.png` | `hub-projects-detail-delete-confirm`",
-        "`hub-source-engine-popup.png` | `hub-source-engine-popup`",
-        "`hub-state-empty.png` | `hub-state-empty`",
-        "`hub-state-error.png` | `hub-state-error`",
-        "| Pass |",
-        "index.html?page=hub-editor",
-        "index.html?page=hub-assets",
-        "index.html?page=hub-source-engine-popup",
-        "validate-visuals.mjs",
-    ] {
-        assert!(
-            spot_checks.contains(snippet),
-            "Hub web-reference spot-check list must cover representative manual review rows; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "Hub Web Reference Acceptance Evidence",
-        "Date: 2026-05-30",
-        "Canvas: `1568x1003`",
-        "node docs/ui-and-layout/hub-web-reference/export-pages.mjs",
-        "Default port `5198` falls back to a free local port",
-        "explicit `ZIRCON_HUB_WEB_REFERENCE_PORT` remains strict",
-        "node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs",
-        "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs",
-        "docs/ui-and-layout/hub-ai-reference-manifest.schema.json",
-        "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
-        "cargo test --manifest-path zircon_hub/Cargo.toml --locked --offline --jobs 1",
-        "--test ui_visual_standard_contract",
-        "Generated Final PNG Inventory",
-        "Web reference export | Pass",
-        "default port fallback and strict explicit-port failure were both exercised",
-        "Web reference visual validation | Pass",
-        "AI manifest schema, schema subset validation, negative schema self-tests",
-        "Web reference interaction validation | Pass",
-        "left no `zircon-hub-cdp-*` temp profile",
-        "Design-board validation | Pass",
-        "Focused Rust visual contract | Pass",
-        "8 passed, 0 failed, 0 ignored",
-        "AI drafts are direction records only",
-        "not acceptance evidence for or against this visual-reference slice",
-        "Accept only the final web-reference PNGs and their static validation package",
-    ] {
-        assert!(
-            acceptance_evidence.contains(snippet),
-            "Hub web-reference acceptance evidence must record the closeout gate; missing {snippet}"
-        );
-    }
-    for artifact in HUB_VISUAL_ARTIFACTS {
-        let snippet = format!("- `{}`", artifact.design_png);
-        assert!(
-            acceptance_evidence.contains(&snippet),
-            "Hub web-reference acceptance evidence must list generated PNG {}; missing {snippet}",
-            artifact.design_png
-        );
-    }
-    for snippet in [
-        "DESIGN_BOARD_SOURCE",
-        "DESIGN_BOARD_LIST",
-        "STRUCTURE_REVIEW_REQUIRED_TEXT",
-        "STRUCTURE_COVERAGE_EXPECTED_ROWS",
-        "hub-design-structure-layout.png",
-        "hub-design-structure-supplement.png",
-        "hub-design-functional-details.png",
-    ] {
-        assert!(
-            design_board_registry.contains(snippet),
-            "Hub design-board registry must own supplemental design-mode artifacts; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "\"review_priority\": \"overall-interaction-structure-layout\"",
-        "\"category\": \"primary-structure\"",
-        "\"category\": \"secondary-functional-detail\"",
-        "\"structure_review_checklist\": \"docs/ui-and-layout/hub-design-board/STRUCTURE_REVIEW.md\"",
-    ] {
-        assert!(
-            design_board_manifest.contains(snippet),
-            "Hub design-board manifest must describe structure-first review; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "Microsoft/Edge/Application/msedge.exe",
-        "remote-debugging-port",
-        "Page.captureScreenshot",
-        ".design-shell",
-        "DESIGN_BOARD_LIST",
-    ] {
-        assert!(
-            design_board_exporter.contains(snippet),
-            "Hub design-board exporter must capture supplemental boards; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "validateManifest",
-        "validateStructureReview",
-        "validateStructureCoverageMatrix",
-        "validateBrowserBoards",
-        "fixed canvas without scroll overflow",
-    ] {
-        assert!(
-            design_board_validator.contains(snippet),
-            "Hub design-board validator must enforce structure review contracts; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "Overall Structure Checklist",
-        "Functional Detail Checklist",
-        "Acceptance Order",
-        "Shell frame",
-        "Overlay layer",
-        "Responsive structure",
-    ] {
-        assert!(
-            design_board_review.contains(snippet),
-            "Hub design-board structure checklist must cover {snippet}"
-        );
-    }
-    for snippet in [
-        "Review item",
-        "Primary artifact",
-        "Secondary artifact",
-        "Functional detail",
-        "primary artifact",
-    ] {
-        assert!(
-            design_board_coverage.contains(snippet),
-            "Hub design-board coverage matrix must cover {snippet}"
-        );
-    }
-
-    assert!(
-        !repo_dir().join("tools/generate-hub-design-assets.py").exists(),
-        "tools/generate-hub-design-assets.py must not remain the authoritative Hub design PNG generator"
-    );
-
-    let expected_artifacts = HUB_VISUAL_ARTIFACTS
-        .iter()
-        .map(|artifact| artifact.design_png)
-        .chain(std::iter::once("hub.png"))
-        .collect::<BTreeSet<_>>();
-    let actual_artifacts = fs::read_dir(repo_dir().join("docs/ui-and-layout"))
-        .expect("failed to read docs/ui-and-layout")
-        .map(|entry| {
-            entry
-                .unwrap_or_else(|error| panic!("failed to read docs/ui-and-layout entry: {error}"))
-                .path()
-        })
-        .filter_map(|path| {
-            let file_name = path.file_name()?.to_str()?;
-            (file_name == "hub.png"
-                || (file_name.starts_with("hub-")
-                    && !file_name.starts_with("hub-design-")
-                    && file_name.ends_with(".png")))
-            .then_some(file_name.to_owned())
-        })
-        .collect::<BTreeSet<_>>();
-    let expected_artifacts = expected_artifacts
-        .into_iter()
-        .map(str::to_owned)
-        .collect::<BTreeSet<_>>();
-    assert_eq!(
-        actual_artifacts, expected_artifacts,
-        "docs/ui-and-layout must not contain orphaned Hub design PNGs; update HUB_VISUAL_ARTIFACTS, the generator, and the artifact matrix together"
-    );
-
-    let supplemental = HUB_SUPPLEMENTAL_DESIGN_ARTIFACTS
-        .iter()
-        .map(|artifact| artifact.to_owned())
-        .collect::<BTreeSet<_>>();
-    for artifact in supplemental {
-        let path = repo_dir().join("docs/ui-and-layout").join(artifact);
-        assert!(
-            path.exists(),
-            "missing supplemental Hub design-mode PNG {}",
-            path.display()
-        );
-        let (width, height) = png_dimensions(&path);
-        assert_eq!(
-            (width, height),
-            (1568, 1003),
-            "{} must match the Hub structure review canvas",
-            path.display()
-        );
-        let metadata = fs::metadata(&path)
-            .unwrap_or_else(|error| panic!("failed to stat {}: {error}", path.display()));
-        assert!(
-            metadata.len() > 16_384,
-            "{} should be a rendered supplemental design-mode artifact",
-            path.display()
-        );
-    }
-}
-
-#[test]
-fn hub_ai_reference_manifest_and_web_exporter_cover_artifacts() {
-    let manifest = read_repo_file("docs/ui-and-layout/hub-ai-reference-manifest.json");
-    let exporter = read_repo_file("docs/ui-and-layout/hub-web-reference/export-pages.mjs");
-    let interaction_validator =
-        read_repo_file("docs/ui-and-layout/hub-web-reference/validate-interactions.mjs");
-    let page_registry = read_repo_file("docs/ui-and-layout/hub-web-reference/page-registry.mjs");
-    let web_app = read_repo_file("docs/ui-and-layout/hub-web-reference/app.js");
-    let web_styles = format!(
-        "{}\n{}",
-        read_repo_file("docs/ui-and-layout/hub-web-reference/styles.css"),
-        read_repo_file("docs/ui-and-layout/hub-web-reference/material-styles.css")
-    );
     let responsive_validator =
         read_repo_file("docs/ui-and-layout/hub-web-reference/validate-responsive.mjs");
-
-    for artifact in HUB_VISUAL_ARTIFACTS {
-        let page_id = artifact.design_png.trim_end_matches(".png");
-        for snippet in [
-            format!("\"page_id\": \"{page_id}\""),
-            format!("\"output\": \"{}\"", artifact.design_png),
-            format!("\"ai_draft\": \"docs/ui-and-layout/hub-ai-drafts/{page_id}.png\""),
-        ] {
-            assert!(
-                manifest.contains(&snippet),
-                "Hub AI manifest must cover {} with {snippet}",
-                artifact.design_png
-            );
-        }
-        for snippet in [
-            format!("\"{page_id}\""),
-            format!("\"{}\"", artifact.design_png),
-        ] {
-            assert!(
-                page_registry.contains(&snippet),
-                "Hub web page registry must capture {} with {snippet}",
-                artifact.design_png
-            );
-        }
-        assert!(
-            web_app.contains(&format!("\"{page_id}\"")),
-            "Hub web app must route the page id {page_id} for {}",
-            artifact.design_png
-        );
-    }
-
-    for snippet in [
-        "EXPORTS_LIST",
-        "selectedExports",
-        "captureAll",
-        "capture(pageId, target)",
-    ] {
-        assert!(
-            exporter.contains(snippet),
-            "Hub web reference exporter must consume the shared page registry; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "knownPageIds",
-        "[data-route]",
-        "a[href*='?page=']",
-        "readExportReplayRows",
-        "replayPathToFileUrl",
-        "output filename replay",
-        "EXPORTS.md replay",
-        "representative Hub web-reference click routes",
-        "assertSafeTemporaryProfile",
-        "taskkill",
-        "zircon-hub-cdp-",
-        "button.engine-select",
-        ".quick-row:first-child",
-    ] {
-        assert!(
-            interaction_validator.contains(snippet),
-            "Hub web reference interaction validator must lock route/replay coverage; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "projects-dashboard",
-        "renderProjectsDashboard",
-        "renderProjectBrowser",
-        "renderProjectDetail",
-        "renderSourceEnginePopup",
-        "renderUserMenu",
-        "renderState",
-    ] {
-        assert!(
-            web_app.contains(snippet),
-            "Hub web reference app must render the full reference workflow; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        ".browser-table {\n  --browser-table-columns: 42px minmax(0, 1fr) 86px 88px 90px 96px;",
-        ".browser-head,\n.browser-row {\n  width: 100%;\n  min-width: 0;\n  display: grid;",
-        "grid-template-columns: var(--browser-table-columns);",
-        ".browser-head > span",
-        "text-overflow: ellipsis;",
-    ] {
-        assert!(
-            web_styles.contains(snippet),
-            "Hub web reference styles must keep Project Browser header and rows on the same grid column model; missing {snippet}"
-        );
-    }
-
-    for snippet in [
-        "[\"layout-review-crop\", 1915, 508]",
-        "const headCells = [...browserHead.children]",
-        "for (const [rowIndex, browserRow] of browserRows.entries())",
-        "browser row \" + rowIndex + \" column \" + index + \" is not aligned with the header",
-        "browser row \" + rowIndex + \" column \" + index + \" width does not match the header",
-    ] {
-        assert!(
-            responsive_validator.contains(snippet),
-            "Hub web reference responsive validation must lock Browser table column alignment; missing {snippet}"
-        );
-    }
-}
-
-#[test]
-fn hub_ai_structure_drafts_are_recorded_for_layout_review() {
-    let manifest = read_repo_file("docs/ui-and-layout/hub-ai-reference-manifest.json");
-
-    for snippet in [
-        "structure-layout direction images only",
-        "Overall interaction structure layout drafts for review",
-        "local functional-content callouts are secondary",
-        "not acceptance evidence",
-        "Save the last streamed partial image",
-        "supplemental_design_mode_artifacts",
-        "design_board_workflow",
-        "docs/ui-and-layout/hub-design-board/index.html",
-        "docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
-        "hub-design-structure-layout.png",
-        "hub-design-structure-supplement.png",
-        "hub-design-functional-details.png",
-    ] {
-        assert!(
-            manifest.contains(snippet),
-            "Hub AI manifest must keep the structure-first draft policy; missing {snippet}"
-        );
-    }
-
-    for artifact in HUB_VISUAL_ARTIFACTS {
-        let page_id = artifact.design_png.trim_end_matches(".png");
-        let draft_path = repo_dir()
-            .join("docs/ui-and-layout/hub-ai-drafts")
-            .join(format!("{page_id}.png"));
-        assert!(
-            draft_path.exists(),
-            "missing Hub AI structure-layout draft {}",
-            draft_path.display()
-        );
-        let (width, height) = png_dimensions(&draft_path);
-        assert_eq!(
-            (width, height),
-            (1024, 1024),
-            "{} must be a lightweight structure-layout draft canvas",
-            draft_path.display()
-        );
-        let metadata = fs::metadata(&draft_path)
-            .unwrap_or_else(|error| panic!("failed to stat {}: {error}", draft_path.display()));
-        assert!(
-            metadata.len() > 16_384,
-            "{} should be a real AI structure-layout draft, not an empty placeholder",
-            draft_path.display()
-        );
-    }
-}
-
-#[test]
-fn hub_visual_documentation_lists_reference_design_artifacts() {
+    let interaction_validator =
+        read_repo_file("docs/ui-and-layout/hub-web-reference/validate-interactions.mjs");
     let ui_index = read_repo_file("docs/ui-and-layout/index.md");
-    let hub_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
 
-    for snippet in [
-        "Hub Visual Design Artifacts",
-        "Hub Visual Artifact Matrix",
-        "`hub.png` remains the Projects Dashboard pixel reference",
-        "`docs/ui-and-layout/hub-ai-reference-manifest.json`",
-        "`docs/ui-and-layout/hub-ai-reference-manifest.schema.json`",
-        "schema subset validation",
-        "negative schema self-tests",
-        "`docs/ui-and-layout/hub-web-reference/export-pages.mjs`",
-        "`docs/ui-and-layout/hub-web-reference/validate-interactions.mjs`",
-        "falls back to a free local port",
-        "`ZIRCON_HUB_WEB_REFERENCE_PORT`",
-        "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md",
-        "generated 19-file final PNG inventory",
-        "export port fallback evidence",
-        "interaction temp-profile cleanup evidence",
-        "known optional `cargo check` timeout",
-        "AI-directed, HTML/CSS-finalized",
-        "structure-layout direction drafts",
-        "overall interaction structure",
-        "local functional-content callouts",
-        "hub-design-structure-layout.png",
-        "hub-design-structure-supplement.png",
-        "hub-design-functional-details.png",
-        "docs/ui-and-layout/hub-design-board/index.html",
-        "node docs/ui-and-layout/hub-design-board/export-design-board.mjs",
-        "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
-        "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs",
-        "`1568x1003`",
-        "`hub.png`",
-        "Visual acceptance for Hub pages",
-        "matching design PNG and runtime capture",
-        "same component density",
-        "no overlapping UI",
-        "no clipped text or controls",
-        "consistent button and badge states",
-        "stable panel hierarchy",
-        "shared empty/loading/error styling",
-        "target/hub-visual-check-final/hub-projects-dashboard.png",
-        "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-dashboard.png",
-    ] {
-        assert!(
-            ui_index.contains(snippet),
-            "docs/ui-and-layout/index.md must list Hub visual design artifacts; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        &manifest,
+        &[
+            "\"source_reference\": \"docs/ui-and-layout/hub.png\"",
+            "\"ai_draft_root\": \"docs/ui-and-layout/hub-ai-drafts\"",
+            "\"final_source\": \"docs/ui-and-layout/hub-web-reference/index.html\"",
+            "\"width\": 1568",
+            "\"height\": 1003",
+            "\"draft_kind\": \"overall-interaction-structure-layout\"",
+            "\"draft_usage\": \"Overall interaction structure layout drafts for review; local functional-content callouts are secondary; not acceptance evidence.\"",
+            "\"export_command\": \"node docs/ui-and-layout/hub-web-reference/export-pages.mjs\"",
+            "\"visual_validation\": \"node docs/ui-and-layout/hub-web-reference/validate-visuals.mjs\"",
+            "\"interaction_validation\": \"node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs\"",
+        ],
+        "hub-ai-reference-manifest.json",
+    );
+    assert_contains_all(
+        &registry,
+        &[
+            "export const CANVAS_WIDTH = 1568;",
+            "export const CANVAS_HEIGHT = 1003;",
+            "export const DASHBOARD_PAGE_ID = \"projects-dashboard\";",
+            "export const DASHBOARD_CAPTURE_NAME = \"hub-web-reference-1568x1003.png\";",
+            "export const EXPORTS_LIST = [",
+        ],
+        "hub-web-reference/page-registry.mjs",
+    );
+    assert_contains_all(
+        &exporter,
+        &[
+            "EXPORTS_LIST",
+            "selectedExports",
+            "captureAll",
+            "capture(pageId, target)",
+        ],
+        "hub-web-reference/export-pages.mjs",
+    );
+    assert_contains_all(
+        &visual_validator,
+        &[
+            "validateExport",
+            "validateRootPngInventory",
+            "validateAiManifest",
+            "decodePng",
+            "CANVAS_WIDTH",
+            "CANVAS_HEIGHT",
+        ],
+        "hub-web-reference/validate-visuals.mjs",
+    );
+    assert_contains_all(
+        &responsive_validator,
+        &[
+            "const viewports = [",
+            "[\"wide\", 1600, 1024]",
+            "[\"desktop\", 1280, 900]",
+            "[\"compact\", 1024, 720]",
+            "responsiveAuditExpression(width, height)",
+        ],
+        "hub-web-reference/validate-responsive.mjs",
+    );
+    assert_contains_all(
+        &interaction_validator,
+        &[
+            "knownPageIds",
+            "[data-route]",
+            "button.engine-select",
+            ".quick-row:first-child",
+        ],
+        "hub-web-reference/validate-interactions.mjs",
+    );
+    assert_contains_all(
+        &ui_index,
+        &[
+            "Hub Visual Artifact Matrix",
+            "`hub.png` remains the Projects Dashboard pixel reference",
+            "`docs/ui-and-layout/hub-ai-reference-manifest.json`",
+            "`docs/ui-and-layout/hub-web-reference/export-pages.mjs`",
+            "target/hub-visual-check-final/hub-projects-dashboard.png",
+            "target/hub-visual-check-responsive-0529/{1600x1024,1280x900,1024x720}/hub-projects-dashboard.png",
+        ],
+        "docs/ui-and-layout/index.md",
+    );
 
-    for artifact in HUB_VISUAL_ARTIFACTS {
-        let design_snippet = format!("`{}`", artifact.design_png);
-        for snippet in [
-            design_snippet.as_str(),
-            artifact.runtime_evidence,
-            artifact.responsive_evidence,
-        ] {
+    for artifact in FINAL_VISUAL_ARTIFACTS {
+        let path = repo_dir().join("docs/ui-and-layout").join(artifact);
+        assert_png_canvas(&path, (1568, 1003), "final visual reference");
+
+        if *artifact != "hub.png" {
+            let page_id = artifact.trim_end_matches(".png");
             assert!(
-                ui_index.contains(snippet),
-                "docs/ui-and-layout/index.md must list {} with its runtime evidence; missing {snippet}",
-                artifact.design_png
+                manifest.contains(&format!("\"page_id\": \"{page_id}\"")),
+                "manifest must include page id {page_id}"
+            );
+            assert!(
+                manifest.contains(&format!("\"output\": \"{artifact}\"")),
+                "manifest must include output {artifact}"
+            );
+            assert!(
+                registry.contains(&format!("\"{artifact}\"")),
+                "web reference registry must include output {artifact}"
             );
         }
+        assert!(
+            ui_index.contains(&format!("`{artifact}`")),
+            "docs/ui-and-layout/index.md must document {artifact}"
+        );
     }
 
-    let matrix_rows = hub_visual_artifact_matrix_design_pngs(&ui_index);
-    let matrix_row_set = matrix_rows.iter().cloned().collect::<BTreeSet<_>>();
-    assert_eq!(
-        matrix_rows.len(),
-        matrix_row_set.len(),
-        "docs/ui-and-layout/index.md Hub Visual Artifact Matrix must not contain duplicate design rows"
-    );
-    assert_eq!(
-        matrix_row_set,
-        hub_visual_documented_artifact_names(),
-        "docs/ui-and-layout/index.md Hub Visual Artifact Matrix must exactly list hub.png plus HUB_VISUAL_ARTIFACTS"
-    );
+    for artifact in AI_DRAFT_ARTIFACTS {
+        let path = repo_dir()
+            .join("docs/ui-and-layout/hub-ai-drafts")
+            .join(artifact);
+        assert_png_canvas(&path, (1024, 1024), "AI structure draft");
+    }
 
-    for snippet in [
-        "Hub Visual Consistency Contract",
-        "HubVisualSpec",
-        "docs/ui-and-layout/hub.png",
-        "docs/ui-and-layout/hub-ai-reference-manifest.json",
-        "docs/ui-and-layout/hub-ai-reference-manifest.schema.json",
-        "docs/ui-and-layout/hub-web-reference/export-pages.mjs",
-        "docs/ui-and-layout/hub-web-reference/validate-visuals.mjs",
-        "docs/ui-and-layout/hub-web-reference/validate-interactions.mjs",
-        "docs/ui-and-layout/hub-web-reference/ACCEPTANCE_EVIDENCE.md",
-        "19 generated final `hub-*.png` files",
-        "optional `cargo check` attempt timed out",
-        "ui_visual_standard_contract",
-        "real Hub captures remain runtime evidence",
-        "AI-directed, HTML/CSS-finalized",
-        "manifest schema contract",
-        "schema subset validation",
-        "negative schema self-tests",
-        "falls back to a free local port",
-        "ZIRCON_HUB_WEB_REFERENCE_PORT",
-        "Export port policy",
-        "interaction temporary profile cleanup",
-        "no `zircon-hub-cdp-*` temp profile",
-        "structure-layout direction drafts",
-        "overall interaction structure",
-        "local functional-content callouts",
-        "hub-design-structure-layout.png",
-        "hub-design-structure-supplement.png",
-        "hub-design-functional-details.png",
-        "docs/ui-and-layout/hub-design-board/index.html",
-        "node docs/ui-and-layout/hub-design-board/export-design-board.mjs",
-        "node docs/ui-and-layout/hub-design-board/validate-design-board.mjs",
-        "node docs/ui-and-layout/hub-web-reference/validate-interactions.mjs",
-        "not acceptance evidence",
-        "artifact matrix",
-        "target/hub-visual-check-responsive-0529/",
-        "target/hub-visual-check-final/states/",
-        "global-state design PNGs",
-        "matching `1568x1003` runtime captures",
-        "private `rgb()` branches",
-        "root page composition",
-        "layout/data/callback forwarding",
-        "DashboardToolbar",
-        "ProjectBrowserResultsPanel",
-        "EditorActionsPanel",
-        "BuildTaskHistoryPanel",
-        "CloudServicesPanel",
-        "TeamMembersPanel",
-        "TeamActionsPanel",
-        "SettingsToolchainPanel",
-        "OperationTimelinePanel",
-        "HubVisualSpec.success-stroke",
-        "TaskStatus::running_operation",
-        "TaskStatus::error",
-        "Manual visual acceptance remains stricter than file existence",
-        "component density against the matching design PNG",
-        "no overlapping UI",
-        "no clipped text or controls",
-        "consistent button and badge states",
-        "stable panel hierarchy",
-        "shared empty/loading/error styling",
-    ] {
+    for artifact in SUPPLEMENTAL_DESIGN_ARTIFACTS {
+        let path = repo_dir().join("docs/ui-and-layout").join(artifact);
+        assert_png_canvas(&path, (1568, 1003), "supplemental design board");
         assert!(
-            hub_doc.contains(snippet),
-            "responsive-component-system.md must document the visual contract; missing {snippet}"
+            manifest.contains(artifact),
+            "manifest must include supplemental design artifact {artifact}"
         );
     }
 }
 
-fn hub_visual_documented_artifact_names() -> BTreeSet<String> {
-    hub_visual_artifact_names()
-        .into_iter()
-        .chain(std::iter::once("hub.png".to_owned()))
-        .collect()
+#[test]
+fn visual_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let component_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        &shell_doc,
+        &[
+            "Zircon Hub Tauri React Shell",
+            "web/src/theme/tokens.ts",
+            "web/src/theme/muiTheme.ts",
+            "components/inputs",
+            "components/data",
+            "components/feedback",
+            "components/overlays",
+            "components/shell",
+            "ui_visual_standard_contract",
+            "React/MUI visual standard",
+        ],
+        "tauri-react-shell.md",
+    );
+    assert_contains_all(
+        &component_doc,
+        &[
+            "React/MUI visual standard",
+            "`ui_visual_standard_contract.rs`",
+            "tokens, MUI theme overrides, global CSS, shell chrome, drawer/topbar, shared data/input components",
+            "design reference PNGs, AI drafts, and web-reference exporters remain comparison assets",
+        ],
+        "responsive-component-system.md",
+    );
 }
 
-fn hub_visual_artifact_matrix_design_pngs(source: &str) -> Vec<String> {
-    let section = source
-        .split("### Hub Visual Artifact Matrix")
-        .nth(1)
-        .expect("docs/ui-and-layout/index.md must contain the Hub Visual Artifact Matrix section");
-    let mut rows = Vec::new();
-    let mut in_table = false;
+#[test]
+fn visual_standard_contract_is_cut_over_to_react_sources() {
+    let source = read_crate_file("tests/ui_visual_standard_contract.rs");
+    let obsolete_ui_suffix = [".", "slint"].concat();
+    let obsolete_reader = ["read", "_ui", "_file"].concat();
+    let obsolete_root_reader = ["ui", "_dir"].concat();
+    let obsolete_app_path = ["src", "app"].join("/");
 
-    for line in section.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("| ") {
-            in_table = true;
-            if let Some(value) = trimmed
-                .split('|')
-                .nth(1)
-                .map(str::trim)
-                .filter(|value| value.starts_with("`hub") && value.ends_with("`"))
-            {
-                rows.push(value.trim_matches('`').to_owned());
-            }
-        } else if in_table {
-            break;
-        }
+    for obsolete in [
+        obsolete_ui_suffix.as_str(),
+        obsolete_reader.as_str(),
+        obsolete_root_reader.as_str(),
+        obsolete_app_path.as_str(),
+    ] {
+        assert!(
+            !source.contains(obsolete),
+            "visual-standard contract must not inspect removed UI-file or app-module surfaces: {obsolete}"
+        );
     }
 
-    rows
+    assert_contains_all(
+        &source,
+        &[
+            "web/src/theme/tokens.ts",
+            "web/src/theme/muiTheme.ts",
+            "web/src/styles.css",
+            "HubWindow.tsx",
+            "TopBar.tsx",
+            "NavigationDrawer.tsx",
+            "HubButton.tsx",
+            "HubIconButton.tsx",
+            "HubSearchField.tsx",
+            "ProjectCard.tsx",
+            "ProjectCover.tsx",
+            "StatusBadge.tsx",
+            "MetricCard.tsx",
+            "EmptyStateBlock.tsx",
+            "docs/ui-and-layout/hub-ai-reference-manifest.json",
+            "docs/ui-and-layout/hub-web-reference/page-registry.mjs",
+        ],
+        "visual-standard contract",
+    );
 }
 
-fn hub_visual_artifact_names() -> BTreeSet<String> {
-    HUB_VISUAL_ARTIFACTS
-        .iter()
-        .map(|artifact| artifact.design_png.to_owned())
-        .collect()
-}
-
-fn contains_hex_color_literal(line: &str) -> bool {
-    let bytes = line.as_bytes();
-    for index in 0..bytes.len() {
-        if bytes[index] != b'#' {
-            continue;
-        }
-
-        let mut digit_count = 0;
-        while index + 1 + digit_count < bytes.len()
-            && bytes[index + 1 + digit_count].is_ascii_hexdigit()
-        {
-            digit_count += 1;
-        }
-
-        if matches!(digit_count, 6 | 8)
-            && bytes
-                .get(index + 1 + digit_count)
-                .is_none_or(|byte| !byte.is_ascii_hexdigit())
-        {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn numeric_px_literal_after<'a>(line: &'a str, property: &str) -> Option<&'a str> {
-    let value = line.strip_prefix(property)?.trim();
-    let token = value
-        .trim_end_matches(';')
-        .split_whitespace()
-        .next()
-        .unwrap_or_default();
-    if token.len() > 2 && token.ends_with("px") && token[..token.len() - 2].parse::<f32>().is_ok() {
-        Some(token)
-    } else {
-        None
-    }
+fn assert_png_canvas(path: &Path, expected: (u32, u32), label: &str) {
+    assert!(path.exists(), "missing {label} PNG {}", path.display());
+    let actual = png_dimensions(path);
+    assert_eq!(
+        actual,
+        expected,
+        "{} must have the expected {label} canvas",
+        path.display()
+    );
+    let metadata = fs::metadata(path)
+        .unwrap_or_else(|error| panic!("failed to stat {}: {error}", path.display()));
+    assert!(
+        metadata.len() > 16_384,
+        "{} should be a rendered {label}, not an empty placeholder",
+        path.display()
+    );
 }
 
 fn png_dimensions(path: &Path) -> (u32, u32) {

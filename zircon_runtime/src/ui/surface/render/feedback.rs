@@ -1,11 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 const TOOLTIP_PADDING_X: f32 = 8.0;
 const TOOLTIP_TITLE_TOP: f32 = 7.0;
@@ -73,6 +76,7 @@ pub(super) fn feedback_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -88,7 +92,7 @@ pub(super) fn feedback_render_commands(
         return Vec::new();
     }
 
-    let state = FeedbackRenderState::resolve(kind, metadata, state_flags);
+    let state = FeedbackRenderState::resolve(kind, metadata, state_flags, component_state);
     match kind {
         FeedbackKind::Alert => alert_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,
@@ -132,23 +136,11 @@ impl FeedbackRenderState {
         kind: FeedbackKind,
         metadata: &UiTemplateNodeMetadata,
         state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
     ) -> Self {
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            checked: state_flags.checked || bool_attribute(metadata, "checked").unwrap_or(false),
-            selected: bool_attribute(metadata, "selected").unwrap_or(false),
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-        };
+        let painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
         let family = match kind {
             FeedbackKind::Alert | FeedbackKind::AlertTitle => UiPainterFamily::Alert,
             FeedbackKind::Tooltip => UiPainterFamily::Tooltip,
@@ -882,10 +874,6 @@ fn first_string(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<Stri
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
-    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

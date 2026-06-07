@@ -270,7 +270,7 @@ fn shared_menu_pointer_bridge_routes_multi_column_popup_items_after_right_edge_c
 
 #[test]
 fn shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover() {
-    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let menu_bar = MenuBarModel {
         menus: vec![MenuModel {
             label: "Tools".to_string(),
@@ -338,13 +338,13 @@ fn shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover() {
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 1,
-            action_id: "Weather.CloudLayer.Refresh".to_string(),
+            action_id: "weather.cloud_layer.refresh".to_string(),
         }),
         "the nested popup should flip left near the shell edge and keep legacy flattened item indices for dispatch"
     );
     assert_eq!(
         nested_leaf.action_id.as_deref(),
-        Some("Weather.CloudLayer.Refresh")
+        Some("weather.cloud_layer.refresh")
     );
     assert_eq!(nested_leaf.state.open_menu_index, None);
 }

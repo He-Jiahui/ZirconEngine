@@ -89,6 +89,7 @@ tests:
   - shape_overlap_rejects_non_finite_query_rotation
   - builtin_shape_cast_reports_initial_overlap_without_claiming_swept_solver
   - backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos includes Generic6Dof joint constraint and skeleton-binding serde round-trip coverage
+  - joint_constraint_metadata_toml_roundtrips_sparse_axis_limits covers default TOML serialization, sparse x/y/z axis maps, and legacy three-slot axis arrays
   - world_project_roundtrip_preserves_physics_and_animation_components includes Generic6Dof joint metadata persistence through scene project IO
   - world_sync_preserves_constraint_and_skeletal_joint_metadata covers physics plugin world-sync projection into PhysicsJointSyncState
   - 2026-06-04: rustfmt --edition 2021 --check over runtime physics framework files, scene/project joint metadata files, physics plugin manager/query/trigger/lib/test files, scene asset fixtures, and manifest contribution tests (passed)
@@ -98,6 +99,8 @@ tests:
   - 2026-06-04: rustfmt --edition 2021 --check over physics trigger facade/child files and the Sound manager-handle structural test correction (passed)
   - 2026-06-04: git diff --check, trailing-whitespace scan, and conflict-marker scan over the trigger split, Physics/Sound docs, and manager-handle structural test correction (passed; expected LF-to-CRLF warnings only)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-physics-trigger-split-0604 --message-format short --color never (pending while active Cargo lanes are busy)
+  - 2026-06-05: cargo test -p zircon_runtime --lib core::framework::physics::tests::joint_constraint_metadata_toml_roundtrips_sparse_axis_limits --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture (passed)
+  - 2026-06-05: cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture (passed)
 doc_type: module-detail
 ---
 
@@ -135,7 +138,7 @@ Queries use a shared `PhysicsQueryFilter` instead of duplicating collision field
 
 Ray casts carry origin, direction, max distance, and the shared filter. Shape overlap queries carry a collider shape plus world transform and filter. Shape casts carry a collider shape, origin transform, direction, max distance, and filter. The trait supplies default no-op `shape_overlap` and `shape_cast` implementations so simple managers can implement only stepping, sync, and ray casts while still satisfying the framework contract.
 
-Joint sync now covers the basic family names needed by first-party authoring and runtime plugins: `Fixed`, `Distance`, `Hinge`, `Slider`, `ConeTwist`, and `Generic6Dof`. `PhysicsJointConstraintMetadata` is attached to both scene `JointComponent` and `PhysicsJointSyncState` so linear/angular limit metadata, per-axis drives, break thresholds, and projection tolerances can round-trip through ECS, scene assets, dynamic-scene remapping, and plugin world sync. `PhysicsSkeletonJointBinding` optionally links a joint to a skeleton entity and bone path for ragdoll/physical-bone style authoring. This is metadata and synchronization scope only; it is not a native constraint solver promise.
+Joint sync now covers the basic family names needed by first-party authoring and runtime plugins: `Fixed`, `Distance`, `Hinge`, `Slider`, `ConeTwist`, and `Generic6Dof`. `PhysicsJointConstraintMetadata` is attached to both scene `JointComponent` and `PhysicsJointSyncState` so linear/angular limit metadata, per-axis drives, break thresholds, and projection tolerances can round-trip through ECS, scene assets, dynamic-scene remapping, and plugin world sync. TOML-facing serialization keeps default joint constraints compact by omitting empty optional fields and writes sparse per-axis limits as `x`/`y`/`z` maps when present; deserialization still accepts the legacy three-slot axis array shape. `PhysicsSkeletonJointBinding` optionally links a joint to a skeleton entity and bone path for ragdoll/physical-bone style authoring. This is metadata and synchronization scope only; it is not a native constraint solver promise.
 
 ## Design and Rationale
 
@@ -155,16 +158,17 @@ The default `tick_scene_world(...)` implementation in the trait only plans, drai
 
 ## Edge Cases and Constraints
 
-All query and joint DTOs are data contracts. Backend implementations must still validate finite transforms, finite vectors, non-negative distances, finite ordered limits, non-negative drive/break/projection values, non-empty skeleton bone paths when a skeleton binding is present, supported shapes, backend availability, and synchronized-world presence. Invalid inputs should produce empty query results, `None`, or be omitted from sanitized sync snapshots, not panics. The framework does not require a backend to allocate spatial acceleration structures, allocate native constraints, or retain entity references beyond the synchronized snapshot.
+All query and joint DTOs are data contracts. Backend implementations must still validate finite transforms, finite vectors, non-negative distances, finite ordered limits, non-negative drive/break/projection values, non-empty skeleton bone paths when a skeleton binding is present, supported shapes, backend availability, and synchronized-world presence. Invalid inputs should produce empty query results, `None`, or be omitted from sanitized sync snapshots, not panics. Axis-limit deserialization rejects unknown map keys and arrays longer than the three supported axes so invalid authored data cannot silently drift into a fourth axis. The framework does not require a backend to allocate spatial acceleration structures, allocate native constraints, or retain entity references beyond the synchronized snapshot.
 
 The no-op trait defaults are intentional. They keep optional backends from inventing plugin-local compatibility traits while still making missing capability behavior explicit: an implementation that does not override shape queries returns no hits.
 
 ## Test Coverage
 
-Framework tests currently cover default settings, serde casing for collider/body/joint enums, world sync defaults, backend status/step-plan/query DTO round-trips, Generic6Dof joint constraint/skeleton metadata round-trips, and scene identity on body/collider/contact DTOs. Scene tests cover project IO persistence for joint metadata, and plugin runtime tests cover shared-filter overlap behavior, the builtin shape-cast boundary that only reports initial overlaps until a native swept solver is installed, and preservation of constraint/skeletal joint metadata in `build_world_sync_state`.
+Framework tests currently cover default settings, serde casing for collider/body/joint enums, world sync defaults, backend status/step-plan/query DTO round-trips, Generic6Dof joint constraint/skeleton metadata round-trips, TOML-safe default and sparse-axis joint constraint serialization, legacy axis-array deserialization, and scene identity on body/collider/contact DTOs. Scene tests cover project IO persistence for joint metadata and the scene asset round-trip where a default joint constraint is embedded in authored scene TOML. Plugin runtime tests cover shared-filter overlap behavior, the builtin shape-cast boundary that only reports initial overlaps until a native swept solver is installed, and preservation of constraint/skeletal joint metadata in `build_world_sync_state`.
 
-Focused Cargo validation for the current constraint-contract update is pending until active Cargo lanes quiet down. The next low-risk focused check is:
+Focused runtime validation for the TOML-safe joint-constraint continuation passed:
 
 ```powershell
-cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-physics-constraints-0604 --message-format short --color never
+cargo test -p zircon_runtime --lib core::framework::physics::tests::joint_constraint_metadata_toml_roundtrips_sparse_axis_limits --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture
+cargo test -p zircon_runtime --lib asset::tests::assets::scene --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-test-splits-0605 --message-format short --color never -- --test-threads=1 --nocapture
 ```

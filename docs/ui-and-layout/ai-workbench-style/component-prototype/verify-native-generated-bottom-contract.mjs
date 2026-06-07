@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
-import { nativeModules } from "./modules.js";
+import { nativeModules } from "./src/modules/modules.js";
 
+const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const expectedGeneratedBottomControlEvents = 48;
-const generatedBottomComponentUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench_generated_bottom_panel.zui";
-const generatedBottomDrawerUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench_generated_bottom_drawer.zui";
+const generatedBottomComponentUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui";
+const generatedBottomDrawerUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui";
 const generatedBottomBodyUrl = "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml";
-const moduleWorkspaceUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui";
+const moduleWorkspaceUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui";
 const generatedBottomBindingsUrl =
   "../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs";
 const windowTemplateBindingsUrl =
@@ -97,7 +98,7 @@ const sources = {
 const failures = [];
 const webGeneratedBottomRoutes = generatedBottomRoutesFromWeb();
 const generatedBottomEvents = generatedBottomEventsFromZui(
-  "workbench_generated_bottom_panel.zui",
+  "workbench/modules/generated/workbench_generated_bottom_panel.zui",
   sources.generatedBottomComponent,
 );
 const generatedBottomBindings = generatedBottomBindingsFromRust(sources.generatedBottomBindings);
@@ -108,12 +109,28 @@ const routeTargetByPanelRoute = new Map(routeTargets.map((target) => [target.pan
 const routeTargetByActionId = new Map(routeTargets.map((target) => [target.actionId, target]));
 const eventBindingIds = new Set(generatedBottomEvents.map((event) => event.bindingId));
 const bindingActionIds = new Set([...generatedBottomBindings.values()].map((binding) => binding.actionId));
+const generatedBottomActionIds = new Set([
+  ...bindingActionIds,
+  ...generatedBottomPreviewActions,
+  ...routeTargets.map((target) => target.actionId),
+]);
+const invalidGeneratedBottomActionIds = [...generatedBottomActionIds].filter(
+  (actionId) => !previewActionIdPattern.test(actionId),
+);
 
 check(webGeneratedBottomRoutes.length === 37, `expected 37 web generated-bottom routes, found ${webGeneratedBottomRoutes.length}`);
 check(routeTargets.length === webGeneratedBottomRoutes.length, `expected ${webGeneratedBottomRoutes.length} native generated-bottom route targets, found ${routeTargets.length}`);
 check(generatedBottomEvents.length === expectedGeneratedBottomControlEvents, `expected ${expectedGeneratedBottomControlEvents} generated-bottom ZUI events, found ${generatedBottomEvents.length}`);
 check(generatedBottomBindings.size === expectedGeneratedBottomControlEvents, `expected ${expectedGeneratedBottomControlEvents} generated-bottom bindings, found ${generatedBottomBindings.size}`);
 check(generatedBottomPreviewActions.size === expectedGeneratedBottomControlEvents, `expected ${expectedGeneratedBottomControlEvents} generated-bottom preview actions, found ${generatedBottomPreviewActions.size}`);
+check(
+  invalidGeneratedBottomActionIds.length === 0,
+  `generated-bottom action ids must use dotted lower-case functional paths: ${invalidGeneratedBottomActionIds.join(", ")}`,
+);
+check(
+  [...generatedBottomActionIds].every((actionId) => actionId.startsWith("workbench.generated_bottom.")),
+  "generated-bottom action ids must stay under workbench.generated_bottom.*",
+);
 
 for (const route of webGeneratedBottomRoutes) {
   const target = routeTargetByPanelRoute.get(route);
@@ -128,8 +145,8 @@ for (const route of webGeneratedBottomRoutes) {
   }
 }
 
-check(sources.matrix.includes("workbench_generated_bottom_panel.zui"), "matrix mentions generated bottom component");
-check(sources.matrix.includes("workbench_generated_bottom_drawer.zui"), "matrix mentions generated bottom drawer host");
+check(sources.matrix.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui"), "matrix mentions generated bottom component");
+check(sources.matrix.includes("workbench/modules/generated/workbench_generated_bottom_drawer.zui"), "matrix mentions generated bottom drawer host");
 check(sources.matrix.includes("generated_bottom_body.v2.ui.toml"), "matrix mentions generated bottom shell pane body");
 check(sources.matrix.includes("generated_bottom_view_descriptor.rs"), "matrix mentions generated bottom activity view descriptor");
 check(sources.matrix.includes("builtin_shell_view_instances.rs"), "matrix mentions generated bottom shell view instance");
@@ -146,12 +163,12 @@ check(sources.readme.includes("verify-native-generated-bottom-contract.mjs"), "R
 check(sources.readme.includes("visible shell bottom drawer pane body"), "README documents generated bottom visible shell drawer body evidence");
 
 check(
-  sources.moduleWorkspace.includes("workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer") &&
+  sources.moduleWorkspace.includes("workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer") &&
     sources.moduleWorkspace.includes("WorkbenchGeneratedBottomDrawerHost"),
   "native module workspace hosts generated bottom drawer component",
 );
 check(
-  sources.generatedBottomDrawer.includes("workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
+  sources.generatedBottomDrawer.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     sources.generatedBottomDrawer.includes("[components.WorkbenchGeneratedBottomDrawer]") &&
     sources.generatedBottomDrawer.includes('control_id = "WorkbenchGeneratedBottomDrawer"') &&
     sources.generatedBottomDrawer.includes('props = { visibility = "collapsed" }') &&
@@ -160,7 +177,7 @@ check(
 );
 check(
   sources.generatedBottomBody.includes('id = "editor.host.pane.generated_bottom.body"') &&
-    sources.generatedBottomBody.includes("workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
+    sources.generatedBottomBody.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     sources.generatedBottomBody.includes('control_id = "GeneratedBottomPaneBodyRoot"') &&
     sources.generatedBottomBody.includes('control_id = "GeneratedBottomPanePanelHost"'),
   "shell generated bottom pane body mounts the shared generated bottom panel",
@@ -301,7 +318,7 @@ check(
 
 for (const event of generatedBottomEvents) {
   check(Boolean(event.controlId), `${event.bindingId} has no control_id`);
-  check(event.route.startsWith("WorkbenchGeneratedBottom."), `${event.bindingId} route ${event.route} is outside WorkbenchGeneratedBottom.*`);
+  check(event.route.startsWith("workbench.generated_bottom."), `${event.bindingId} route ${event.route} is outside workbench.generated_bottom.*`);
   check(["Click", "Change", "Submit"].includes(event.eventKind), `${event.bindingId} uses unsupported event ${event.eventKind}`);
   const binding = generatedBottomBindings.get(event.bindingId);
   check(Boolean(binding), `${event.bindingId} is declared in ZUI but missing from native generated-bottom bindings`);
@@ -417,10 +434,21 @@ function rustFieldString(block, fieldName) {
 
 function previewActionsFromRust(source) {
   const ids = new Set();
+  const invalidIds = new Set();
   for (const listMatch of source.matchAll(/PREVIEW_ACTION_IDS:\s*&\[&str\]\s*=\s*&\[([\s\S]*?)\];/g)) {
-    for (const idMatch of listMatch[1].matchAll(/"([a-z0-9_]+(?:\.[a-z0-9_]+)+)"/g)) {
-      ids.add(idMatch[1]);
+    for (const idMatch of listMatch[1].matchAll(/"([^"]+)"/g)) {
+      const id = idMatch[1];
+      if (!previewActionIdPattern.test(id)) {
+        invalidIds.add(id);
+        continue;
+      }
+      ids.add(id);
     }
+  }
+  if (invalidIds.size > 0) {
+    throw new Error(
+      `preview action ids must use dotted functional paths: ${[...invalidIds].join(", ")}`,
+    );
   }
   if (ids.size === 0) {
     throw new Error("preview action arrays were not found");

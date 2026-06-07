@@ -288,6 +288,8 @@ impl ResourceStreamer {
             alpha_cutoff,
             lighting_model: lighting_model.clone(),
             unlit,
+            cast_shadows: descriptor.cast_shadows,
+            receive_shadows: descriptor.receive_shadows,
             base_color_texture: base_color_texture.id(),
             normal_texture: normal_texture.id(),
             metallic_roughness_texture: metallic_roughness_texture.id(),

@@ -1,0 +1,205 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui"
+version = 2
+display_name = "Workbench Perception Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+[components.WorkbenchPerceptionWorkspace]
+root = "perception_workspace"
+default_classes = ["workbench-module-body"]
+
+[nodes.perception_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchModulePerceptionWorkspace"
+classes = ["workbench-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_rail_gap" }, { node = "perception_left" }, { node = "perception_center" }, { node = "perception_right" }]
+
+[nodes.perception_rail_gap]
+component = "Container"
+control_id = "WorkbenchPerceptionRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.perception_left]
+component = "VerticalGroup"
+control_id = "WorkbenchPerceptionLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_title" }, { node = "perception_sight_tab" }, { node = "perception_hearing_tab" }, { node = "perception_debug_tab" }, { node = "perception_guard_row" }, { node = "perception_sniper_row" }]
+
+[nodes.perception_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchPerceptionTitle"
+props = { text = "AI Perception" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.perception_sight_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchPerceptionSightTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Sight", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionSightTab", event = "Click", route = "workbench.module.perception.sight" }]
+
+[nodes.perception_hearing_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchPerceptionHearingTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Hearing", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionHearingTab", event = "Click", route = "workbench.module.perception.hearing" }]
+
+[nodes.perception_debug_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchPerceptionDebugTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Debug", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionDebugTab", event = "Click", route = "workbench.module.perception.debug" }]
+
+[nodes.perception_guard_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchPerceptionGuardRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "AI_Guard_01", icon = "eye", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionGuard", event = "Click", route = "workbench.module.perception.agent.guard" }]
+
+[nodes.perception_sniper_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchPerceptionSniperRow"
+classes = ["workbench-list-row"]
+props = { text = "Sniper_Perception", icon = "eye", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionSniper", event = "Click", route = "workbench.module.perception.agent.sniper" }]
+
+[nodes.perception_center]
+component = "VerticalGroup"
+control_id = "WorkbenchPerceptionCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_center_header" }, { node = "perception_map_canvas" }, { node = "perception_event_row" }]
+
+[nodes.perception_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchPerceptionCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "perception_center_title" }, { node = "perception_header_fill" }, { node = "perception_simulate_button" }]
+
+[nodes.perception_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchPerceptionCenterTitle"
+props = { text = "World Perception Map" }
+layout = { width = { min = 190.0, preferred = 190.0, max = 210.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.perception_header_fill]
+component = "Container"
+control_id = "WorkbenchPerceptionHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.perception_simulate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchPerceptionSimulateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Simulate", button_variant = "filled", button_color = "accent", background_color = "#12383d", border_color = "#209fa8" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionSimulate", event = "Click", route = "workbench.module.perception.simulate" }]
+
+[nodes.perception_map_canvas]
+component = "VerticalGroup"
+control_id = "WorkbenchPerceptionMapCanvas"
+classes = ["workbench-panel", "workbench-module-graph"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_map_row_01" }, { node = "perception_map_row_02" }, { node = "perception_map_row_03" }]
+
+[nodes.perception_map_row_01]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchPerceptionSightConeRow"
+classes = ["workbench-property-row", "workbench-row-selected"]
+props = { text = "Sight Cone", value_text = "AI_Guard_01   74 deg   target visible", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionSightCone", event = "Click", route = "workbench.module.perception.sight_cone" }]
+
+[nodes.perception_map_row_02]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchPerceptionHearingPulseRow"
+classes = ["workbench-property-row"]
+props = { text = "Hearing Pulse", value_text = "Noise_Maker_BP   1200 cm" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionHearingPulse", event = "Click", route = "workbench.module.perception.hearing_pulse" }]
+
+[nodes.perception_map_row_03]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchPerceptionStimulusRow"
+classes = ["workbench-table-row"]
+props = { text = "00:12.345", value_text = "Noise_Maker_BP   Hearing   Purple" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionStimulus", event = "Click", route = "workbench.module.perception.stimulus" }]
+
+[nodes.perception_event_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchPerceptionEventRow"
+classes = ["workbench-table-row"]
+props = { text = "Event", value_text = "AI_Guard_01   Hearing stimulus   00:11.8" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/PerceptionEvent", event = "Click", route = "workbench.module.perception.event" }]
+
+[nodes.perception_right]
+component = "VerticalGroup"
+control_id = "WorkbenchPerceptionRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "perception_details_title" }, { node = "perception_config_dropdown" }, { node = "perception_los_field" }, { node = "perception_team_field" }]
+
+[nodes.perception_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchPerceptionDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.perception_config_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchPerceptionConfigDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Guard_Perception", value = "Guard_Perception" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/PerceptionConfigEdit", event = "Change", route = "workbench.module.perception.config.edit" },
+  { id = "WorkbenchModule/PerceptionConfigCommit", event = "Submit", route = "workbench.module.perception.config.commit" },
+]
+
+[nodes.perception_los_field]
+component = "WorkbenchField"
+control_id = "WorkbenchPerceptionLosField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Draw LoS: On" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/PerceptionLosEdit", event = "Change", route = "workbench.module.perception.los.edit" },
+  { id = "WorkbenchModule/PerceptionLosCommit", event = "Submit", route = "workbench.module.perception.los.commit" },
+]
+
+[nodes.perception_team_field]
+component = "WorkbenchField"
+control_id = "WorkbenchPerceptionTeamField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Team Filter: All" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/PerceptionTeamEdit", event = "Change", route = "workbench.module.perception.team.edit" },
+  { id = "WorkbenchModule/PerceptionTeamCommit", event = "Submit", route = "workbench.module.perception.team.commit" },
+]

@@ -1,12 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
-    component::UiValue,
+    component::{UiComponentState, UiValue},
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 const HORIZONTAL_INSET: f32 = 8.0;
 const CARET_SIZE: f32 = 12.0;
@@ -36,6 +38,7 @@ pub(super) fn dropdown_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -48,7 +51,7 @@ pub(super) fn dropdown_render_commands(
         return Vec::new();
     }
 
-    let state = DropdownRenderState::resolve(metadata, state_flags);
+    let state = DropdownRenderState::resolve(metadata, state_flags, component_state);
     let mut commands = Vec::new();
     commands.push(quad_command(
         node_id,
@@ -142,18 +145,14 @@ struct DropdownRenderState {
 }
 
 impl DropdownRenderState {
-    fn resolve(metadata: &UiTemplateNodeMetadata, state_flags: &UiStateFlags) -> Self {
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            selected: bool_attribute(metadata, "selected").unwrap_or(false),
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            ..UiPainterState::normal()
-        };
+    fn resolve(
+        metadata: &UiTemplateNodeMetadata,
+        state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
+    ) -> Self {
+        let painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
         let family = UiPainterFamily::Dropdown;
         Self {
             family,
@@ -366,10 +365,6 @@ fn corner_radius(metadata: &UiTemplateNodeMetadata) -> f32 {
         .or_else(|| number_attribute(metadata, "radius"))
         .unwrap_or(4.0)
         .max(0.0)
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
-    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

@@ -3,8 +3,8 @@ use crate::ui::{
     layout::{compute_virtual_list_window, solve_axis_constraints},
     surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
     tree::{
-        UiHitTestIndex, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt,
-        UiRuntimeTreeLayoutExt, UiRuntimeTreeScrollExt,
+        UiHitTestIndex, UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt, UiRuntimeTreeLayoutExt,
+        UiRuntimeTreeScrollExt,
     },
 };
 use zircon_runtime_interface::ui::{

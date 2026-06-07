@@ -177,14 +177,14 @@ impl EditorEventRuntime {
                         .collect::<Vec<_>>()
                 };
                 EditorOperationControlResponse::success(
-                    "Editor.Operation.List",
+                    "editor.operation.list",
                     Some(json!({ "operations": operations })),
                 )
             }
             EditorOperationControlRequest::QueryOperationStack => {
                 let stack = self.operation_stack();
                 EditorOperationControlResponse::success(
-                    "Editor.Operation.Stack",
+                    "editor.operation.stack",
                     Some(json!({
                         "undo_stack": stack_entries(stack.undo_stack()),
                         "redo_stack": stack_entries(stack.redo_stack()),

@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
     tree::UiTreeError,
 };
 
-use crate::ui::tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt};
+use crate::ui::tree::UiRuntimeTreeFocusExt;
 
 use super::input::is_valid_input_owner;
 use super::surface::UiSurface;

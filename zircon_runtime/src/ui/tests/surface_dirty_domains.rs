@@ -2,7 +2,7 @@ use crate::ui::{
     surface::{
         UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface, UiSurfaceRebuildReport,
     },
-    tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeLayoutExt},
+    tree::UiRuntimeTreeLayoutExt,
 };
 use zircon_runtime_interface::ui::{
     component::UiValue,

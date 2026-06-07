@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ExternalAudioSourceHandle, SoundClipId, SoundImpulseResponseId, SoundListenerId,
-    SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId, SoundVolumeId,
+    ExternalAudioSourceHandle, SoundChannelLayout, SoundClipId, SoundImpulseResponseId,
+    SoundListenerId, SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId,
+    SoundVolumeId,
 };
 
 pub const AUDIO_SOURCE_COMPONENT_TYPE: &str = "sound.Component.AudioSource";
@@ -69,7 +70,24 @@ pub enum SoundSourceInput {
 pub struct SoundExternalSourceBlock {
     pub sample_rate_hz: u32,
     pub channel_count: u16,
+    /// Provider-declared speaker layout for the interleaved frames in `samples`.
+    pub channel_layout: SoundChannelLayout,
     pub samples: Vec<f32>,
+}
+
+impl SoundExternalSourceBlock {
+    pub fn new(
+        sample_rate_hz: u32,
+        channel_layout: SoundChannelLayout,
+        samples: impl Into<Vec<f32>>,
+    ) -> Self {
+        Self {
+            sample_rate_hz,
+            channel_count: channel_layout.channel_count,
+            channel_layout,
+            samples: samples.into(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

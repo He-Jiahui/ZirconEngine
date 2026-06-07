@@ -1,6 +1,5 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
-use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 

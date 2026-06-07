@@ -1,5 +1,4 @@
 use crate::ui::template::{UiTemplateInstance, UiTemplateLoader, UiTemplateSurfaceBuilder};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

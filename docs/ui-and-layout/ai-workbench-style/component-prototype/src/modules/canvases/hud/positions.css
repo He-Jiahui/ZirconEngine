@@ -1,0 +1,61 @@
+.zr-hud-widget.is-minimap {
+  left: 8%;
+  top: 12%;
+  width: 126px;
+  height: 108px;
+}
+
+.zr-hud-widget.is-score-left {
+  left: 42%;
+  top: 10%;
+  width: 64px;
+  background: rgba(24, 90, 145, 0.62);
+}
+
+.zr-hud-widget.is-score-right {
+  right: 38%;
+  top: 10%;
+  width: 64px;
+  background: rgba(145, 48, 45, 0.62);
+}
+
+.zr-hud-widget.is-weapon {
+  right: 7%;
+  top: 12%;
+  width: 168px;
+  height: 82px;
+  display: grid;
+  place-content: center;
+}
+
+.zr-hud-widget.is-ability {
+  bottom: 14%;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+}
+
+.zr-hud-widget.a1 {
+  left: 47%;
+}
+
+.zr-hud-widget.a2 {
+  left: 53%;
+  border-color: var(--accent);
+}
+
+.zr-hud-widget.a3 {
+  left: 59%;
+}
+
+.zr-hud-widget.is-action {
+  right: 14%;
+  bottom: 13%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.zr-hud-widget.b2 {
+  right: 7%;
+}

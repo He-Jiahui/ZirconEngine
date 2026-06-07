@@ -1,8 +1,9 @@
 use serde_json::json;
 use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
-    NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, NavigationAreaSettings, NavigationManager,
-    AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NavLinkTraversalMode, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
+    NavigationAreaSettings, NavigationManager, AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
@@ -66,6 +67,78 @@ fn navigation_manager_ticks_dynamic_agents_toward_destination() {
     assert_eq!(
         world.world_transform(agent).unwrap().translation,
         Vec3::new(1.0, 0.0, 0.0)
+    );
+}
+
+#[test]
+fn navigation_manager_limits_agent_start_velocity_by_acceleration() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    world
+        .register_component_type(navigation_component_descriptors()[2].clone())
+        .unwrap();
+    let agent = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([10.0, 0.0, 0.0]),
+                speed: 10.0,
+                acceleration: 2.0,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+
+    let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+    assert_eq!(report.moved_agents, 1);
+    assert_eq!(
+        world.world_transform(agent).unwrap().translation,
+        Vec3::new(0.5, 0.0, 0.0)
+    );
+}
+
+#[test]
+fn navigation_manager_auto_braking_stops_at_agent_stopping_distance() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    world
+        .register_component_type(navigation_component_descriptors()[2].clone())
+        .unwrap();
+    let agent = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([1.0, 0.0, 0.0]),
+                speed: 10.0,
+                acceleration: 100.0,
+                stopping_distance: 0.25,
+                auto_braking: true,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+
+    let first_report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+    let second_report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+    assert_eq!(first_report.moved_agents, 1);
+    assert_eq!(second_report.moved_agents, 0);
+    assert_eq!(
+        world.world_transform(agent).unwrap().translation,
+        Vec3::new(0.75, 0.0, 0.0)
     );
 }
 
@@ -141,6 +214,105 @@ fn loaded_navmesh_no_path_blocks_agent_instead_of_direct_fallback() {
         )
         .unwrap();
     manager.load_nav_mesh(two_island_navmesh(false)).unwrap();
+
+    let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+    assert_eq!(report.moved_agents, 0);
+    assert_eq!(report.blocked_agents, 1);
+    assert_eq!(
+        world.world_transform(agent).unwrap().translation,
+        Vec3::ZERO
+    );
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("no path")));
+}
+
+#[test]
+fn automatic_agent_tick_does_not_cross_manual_off_mesh_links() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    world
+        .register_component_type(navigation_component_descriptors()[2].clone())
+        .unwrap();
+    let agent = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([8.0, 0.0, 0.0]),
+                speed: 4.0,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    let mut asset = two_island_navmesh(true);
+    asset.off_mesh_links[0].traversal_mode = NavLinkTraversalMode::Manual;
+    manager.load_nav_mesh(asset).unwrap();
+
+    let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+    assert_eq!(report.moved_agents, 0);
+    assert_eq!(report.blocked_agents, 1);
+    assert_eq!(
+        world.world_transform(agent).unwrap().translation,
+        Vec3::ZERO
+    );
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("no path")));
+}
+
+#[test]
+fn explicit_path_query_can_still_cross_manual_off_mesh_links() {
+    let manager = DefaultNavigationManager::new();
+    let mut asset = two_island_navmesh(true);
+    asset.off_mesh_links[0].traversal_mode = NavLinkTraversalMode::Manual;
+    let handle = manager.load_nav_mesh(asset).unwrap();
+
+    let mut query = NavPathQuery::new([0.0, 0.0, 0.0], [8.0, 0.0, 0.0]);
+    query.nav_mesh = Some(handle);
+    let result = manager.find_path(query).unwrap();
+
+    assert_eq!(result.status, NavPathStatus::Complete);
+    assert!(result
+        .points
+        .iter()
+        .any(|point| point.flags.iter().any(|flag| flag == "off_mesh_link")));
+}
+
+#[test]
+fn automatic_agent_tick_respects_auto_traverse_links_opt_out() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    world
+        .register_component_type(navigation_component_descriptors()[2].clone())
+        .unwrap();
+    let agent = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([8.0, 0.0, 0.0]),
+                speed: 4.0,
+                auto_traverse_links: false,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    manager.load_nav_mesh(two_island_navmesh(true)).unwrap();
 
     let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
 

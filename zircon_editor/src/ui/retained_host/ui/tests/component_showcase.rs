@@ -8,14 +8,14 @@ fn source(relative: &str) -> String {
 fn component_showcase_contract_source() -> String {
     [
         "assets/ui/editor/component_showcase.v2.ui.toml",
-        "assets/ui/editor/components/showcase_command_toolbar.zui",
-        "assets/ui/editor/components/showcase_bottom_log.zui",
-        "assets/ui/editor/components/showcase_category_nav.zui",
-        "assets/ui/editor/components/showcase_state_panel.zui",
-        "assets/ui/editor/components/showcase_visual_section.zui",
-        "assets/ui/editor/components/showcase_input_section.zui",
-        "assets/ui/editor/components/showcase_selection_section.zui",
-        "assets/ui/editor/components/showcase_collections_section.zui",
+        "assets/ui/editor/components/showcase/showcase_command_toolbar.zui",
+        "assets/ui/editor/components/showcase/showcase_bottom_log.zui",
+        "assets/ui/editor/components/showcase/showcase_category_nav.zui",
+        "assets/ui/editor/components/showcase/showcase_state_panel.zui",
+        "assets/ui/editor/components/showcase/showcase_visual_section.zui",
+        "assets/ui/editor/components/showcase/showcase_input_section.zui",
+        "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+        "assets/ui/editor/components/showcase/showcase_collections_section.zui",
     ]
     .into_iter()
     .map(source)

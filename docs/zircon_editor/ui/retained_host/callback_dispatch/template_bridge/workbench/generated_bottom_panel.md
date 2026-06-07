@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_generated_bottom_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
@@ -33,10 +33,10 @@ related_code:
   - zircon_editor/src/tests/host/retained_generated_bottom_template_body.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-generated-bottom-contract.mjs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_generated_bottom_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs

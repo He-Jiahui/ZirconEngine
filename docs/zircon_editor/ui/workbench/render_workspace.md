@@ -1,15 +1,15 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_extension_shader_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_render_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_shader_editor_workspace.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_render_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
 plan_sources:

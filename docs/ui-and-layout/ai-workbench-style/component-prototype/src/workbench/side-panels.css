@@ -1,0 +1,8 @@
+@import "./side-panels/menus.css";
+@import "./side-panels/alt-panel.css";
+@import "./side-panels/layer-history.css";
+@import "./side-panels/console.css";
+@import "./side-panels/inspector-checkboxes.css";
+@import "./side-panels/form-overrides.css";
+@import "./side-panels/topbar-overrides.css";
+

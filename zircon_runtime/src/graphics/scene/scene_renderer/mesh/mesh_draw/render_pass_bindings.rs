@@ -24,6 +24,10 @@ impl MeshDraw {
         pass.set_index_buffer(self.mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
     }
 
+    pub(crate) fn has_previous_motion_vector_transform(&self) -> bool {
+        self.has_previous_motion_vector_transform
+    }
+
     pub(crate) fn record_indexed_draw<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
         if let Some(indirect_args_buffer) = &self.indirect_args_buffer {
             pass.draw_indexed_indirect(indirect_args_buffer, self.indirect_args_offset);

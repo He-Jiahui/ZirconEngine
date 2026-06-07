@@ -7,7 +7,7 @@ use super::assert_non_dispatchable_child;
 
 #[test]
 fn material_text_field_sample_covers_variants_helper_error_and_disabled_states() {
-    let path = editor_asset("assets/ui/editor/material_components/material_text_fields.zui");
+    let path = editor_asset("assets/ui/editor/material_components/inputs/material_text_fields.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -129,7 +129,7 @@ fn material_text_field_sample_covers_variants_helper_error_and_disabled_states()
 
 #[test]
 fn material_textarea_autosize_sample_covers_min_max_autosize_error_and_disabled_states() {
-    let path = editor_asset("assets/ui/editor/material_components/material_textarea_autosize.zui");
+    let path = editor_asset("assets/ui/editor/material_components/inputs/material_textarea_autosize.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

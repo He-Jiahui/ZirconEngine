@@ -1,0 +1,18 @@
+.zr-side-stack .zr-list,
+.zr-side-stack .zr-menu {
+  background: linear-gradient(180deg, #1a1f22, #151a1d);
+}
+
+.zr-side-stack .zr-menu {
+  width: 145px;
+  min-width: 0;
+  background: linear-gradient(180deg, #20252a, #1b2024);
+}
+
+.zr-side-stack {
+  transform: translate(2px, -2px);
+}
+
+.zr-side-menu {
+  transform: translateY(-12px);
+}

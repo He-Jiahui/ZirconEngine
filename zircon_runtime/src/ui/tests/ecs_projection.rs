@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     ecs::{
         UiEcsDirtyDomainKind, UiEcsDirtyDomains, UiEcsProjectionChangeKind,

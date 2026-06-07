@@ -1,0 +1,35 @@
+.zr-tooltip {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 78px;
+  transform: translate(-20px, 20px);
+}
+
+.zr-tooltip-bubble {
+  width: 96px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #171c20;
+  text-align: center;
+  box-shadow: 0 14px 28px var(--shadow);
+}
+
+.zr-tooltip-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 45px;
+  width: 9px;
+  height: 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #171c20;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.zr-tooltip-small {
+  color: var(--text-muted);
+  font-size: 11px;
+}

@@ -1,0 +1,7 @@
+.zr-statusbar .zr-select,
+.zr-statusbar .zr-icon-button {
+  color: #aeb9bd;
+  border-color: #242b30;
+  background: linear-gradient(180deg, #171c1f, #111619);
+  box-shadow: none;
+}

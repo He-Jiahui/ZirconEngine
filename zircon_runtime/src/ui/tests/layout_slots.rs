@@ -1,14 +1,13 @@
 use crate::ui::surface::{hit_test_surface_frame, UiSurface};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
-        AxisConstraint, BoxConstraints, DesiredSize, StretchMode, UiAlignment, UiAlignment2D,
-        UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiGridSlotPlacement,
-        UiLayoutEngineBackend, UiLayoutEngineFamily, UiLayoutEngineSupport, UiLinearBoxConfig,
-        UiMargin, UiMasonryBoxConfig, UiPoint, UiScrollState, UiScrollableBoxConfig,
-        UiScrollbarVisibility, UiSize, UiSlot, UiSlotKind, UiVirtualListConfig,
-        UiVirtualListWindow,
+        Anchor, AxisConstraint, BoxConstraints, DesiredSize, Pivot, Position, StretchMode,
+        UiAlignment, UiAlignment2D, UiAxis, UiCanvasSlotPlacement, UiContainerKind, UiFrame,
+        UiGridBoxConfig, UiGridSlotPlacement, UiLayoutEngineBackend, UiLayoutEngineFamily,
+        UiLayoutEngineSupport, UiLinearBoxConfig, UiMargin, UiMasonryBoxConfig, UiPoint,
+        UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiSlot, UiSlotKind,
+        UiVirtualListConfig, UiVirtualListWindow,
     },
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -159,6 +158,90 @@ fn free_layout_consumes_explicit_slot_padding_alignment_and_preserves_default_an
 }
 
 #[test]
+fn free_layout_consumes_canvas_slot_placement_before_child_default_anchor() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.slot.free.canvas"));
+    surface
+        .tree
+        .insert_root(UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root")));
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            pointer_node(
+                2,
+                "root/slotted_size",
+                "free.canvas.size",
+                BoxConstraints::default(),
+                0,
+            )
+            .with_anchor(Anchor::new(0.25, 0.25))
+            .with_pivot(Pivot::new(0.5, 0.5))
+            .with_position(Position::new(99.0, 77.0)),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            pointer_node(
+                3,
+                "root/auto_size",
+                "free.canvas.auto",
+                BoxConstraints {
+                    width: fixed_constraint(30.0),
+                    height: fixed_constraint(10.0),
+                },
+                1,
+            ),
+        )
+        .unwrap();
+    surface.tree.slots.push(
+        UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Free).with_canvas_placement(
+            UiCanvasSlotPlacement::new(
+                Anchor::new(1.0, 0.5),
+                Pivot::new(1.0, 0.5),
+                Position::new(-10.0, 5.0),
+            )
+            .with_offset(UiMargin::new(2.0, 3.0, 80.0, 30.0)),
+        ),
+    );
+    surface.tree.slots.push(
+        UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Free).with_canvas_placement(
+            UiCanvasSlotPlacement::new(
+                Anchor::new(0.5, 0.0),
+                Pivot::new(0.5, 0.0),
+                Position::new(4.0, 8.0),
+            )
+            .with_offset(UiMargin::new(10.0, 2.0, 200.0, 200.0))
+            .with_auto_size(true),
+        ),
+    );
+
+    surface.compute_layout(UiSize::new(200.0, 100.0)).unwrap();
+    let frame = surface.surface_frame();
+    let slotted = frame
+        .arranged_tree
+        .get(UiNodeId::new(2))
+        .expect("slotted child should be arranged");
+    let auto = frame
+        .arranged_tree
+        .get(UiNodeId::new(3))
+        .expect("auto-sized child should be arranged");
+
+    assert_eq!(slotted.frame, UiFrame::new(112.0, 43.0, 80.0, 30.0));
+    assert_eq!(auto.frame, UiFrame::new(99.0, 10.0, 30.0, 10.0));
+    assert_eq!(
+        render_frame_for(&frame, UiNodeId::new(2)),
+        Some(slotted.frame)
+    );
+    assert_eq!(hit_frame_for(&frame, UiNodeId::new(2)), Some(slotted.frame));
+    assert_eq!(
+        hit_test_surface_frame(&frame, UiPoint::new(115.0, 45.0)).top_hit,
+        Some(UiNodeId::new(2))
+    );
+}
+
+#[test]
 fn overlay_layout_consumes_slot_padding_alignment() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.slot.overlay"));
     surface.tree.insert_root(
@@ -240,12 +323,14 @@ fn overlay_slot_geometry_feeds_arranged_render_hit_and_z_order_from_one_surface_
     surface.tree.slots.push(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Overlay)
             .with_padding(UiMargin::new(4.0, 4.0, 4.0, 4.0))
-            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Start)),
+            .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Start))
+            .with_z_order(20),
     );
     surface.tree.slots.push(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Overlay)
             .with_padding(UiMargin::new(10.0, 8.0, 10.0, 8.0))
-            .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::End)),
+            .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::End))
+            .with_z_order(1),
     );
 
     surface.compute_layout(UiSize::new(120.0, 80.0)).unwrap();
@@ -254,9 +339,21 @@ fn overlay_slot_geometry_feeds_arranged_render_hit_and_z_order_from_one_surface_
         .arranged_tree
         .get(UiNodeId::new(3))
         .expect("front overlay child should be arranged");
+    let back = frame
+        .arranged_tree
+        .get(UiNodeId::new(2))
+        .expect("back overlay child should be arranged");
 
     assert_eq!(front.frame, UiFrame::new(70.0, 52.0, 40.0, 20.0));
     assert_eq!(front.clip_frame, UiFrame::new(70.0, 52.0, 40.0, 20.0));
+    assert_eq!(back.z_index, 20);
+    assert_eq!(front.z_index, 11);
+    assert_eq!(
+        surface.tree.node(UiNodeId::new(2)).unwrap().z_index,
+        0,
+        "slot z_order should affect arranged output without mutating node z_index"
+    );
+    assert_eq!(render_z_for(&frame, UiNodeId::new(2)), Some(back.z_index));
     assert_eq!(
         render_frame_for(&frame, UiNodeId::new(3)),
         Some(front.frame)
@@ -265,11 +362,11 @@ fn overlay_slot_geometry_feeds_arranged_render_hit_and_z_order_from_one_surface_
     assert_eq!(hit_z_for(&frame, UiNodeId::new(3)), Some(front.z_index));
 
     let hit = hit_test_surface_frame(&frame, UiPoint::new(75.0, 53.0));
-    assert_eq!(hit.top_hit, Some(UiNodeId::new(3)));
-    assert_eq!(hit.stacked, vec![UiNodeId::new(3), UiNodeId::new(2)]);
+    assert_eq!(hit.top_hit, Some(UiNodeId::new(2)));
+    assert_eq!(hit.stacked, vec![UiNodeId::new(2), UiNodeId::new(3)]);
     assert_eq!(
         hit.path.bubble_route,
-        vec![UiNodeId::new(3), UiNodeId::new(1)]
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
     );
 }
 
@@ -730,6 +827,19 @@ fn render_frame_for(
         .iter()
         .find(|command| command.node_id == node_id)
         .map(|command| command.frame)
+}
+
+fn render_z_for(
+    frame: &zircon_runtime_interface::ui::surface::UiSurfaceFrame,
+    node_id: UiNodeId,
+) -> Option<i32> {
+    frame
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == node_id)
+        .map(|command| command.z_index)
 }
 
 fn hit_frame_for(

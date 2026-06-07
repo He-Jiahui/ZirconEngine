@@ -25,5 +25,17 @@ pub struct StandardMaterialDescriptor {
     pub lighting_model: RenderMaterialLightingModel,
     pub unlit: bool,
     pub double_sided: bool,
+    #[serde(default = "default_cast_shadows")]
+    pub cast_shadows: bool,
+    #[serde(default = "default_receive_shadows")]
+    pub receive_shadows: bool,
     pub fallback_policy: RenderMaterialFallbackPolicy,
+}
+
+fn default_cast_shadows() -> bool {
+    true
+}
+
+fn default_receive_shadows() -> bool {
+    true
 }

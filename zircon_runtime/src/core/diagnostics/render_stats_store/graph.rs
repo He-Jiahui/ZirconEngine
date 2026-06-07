@@ -135,6 +135,9 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_graph_executed_dependency_count,
         &["render", "graph", "dependency"],
     );
+    record_graph_execution_coverage(store, frame_index, stats);
+    record_graph_execution_resources(store, frame_index, stats);
+    record_graph_stage_execution(store, frame_index, stats);
     record_count(
         store,
         "render.graph.compute_dispatch_count",
@@ -246,6 +249,156 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_async_compute_pass_count,
         &["render", "graph", "async_compute"],
+    );
+}
+
+fn record_graph_execution_coverage(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = stats.last_graph_execution_coverage_report;
+    record_count(
+        store,
+        "render.graph.execution.coverage.planned_live_pass_count",
+        frame_index,
+        report.planned_live_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.coverage.executed_pass_count",
+        frame_index,
+        report.executed_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.coverage.matched_planned_pass_count",
+        frame_index,
+        report.matched_planned_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.coverage.missing_planned_pass_count",
+        frame_index,
+        report.missing_planned_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.coverage.unexpected_executed_pass_count",
+        frame_index,
+        report.unexpected_executed_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.coverage.duplicate_executed_pass_count",
+        frame_index,
+        report.duplicate_executed_pass_count,
+        &["render", "graph", "execution", "coverage"],
+    );
+}
+
+fn record_graph_stage_execution(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = stats.last_graph_stage_execution_report;
+    record_count(
+        store,
+        "render.graph.execution.stage.staged_pass_count",
+        frame_index,
+        report.staged_pass_count,
+        &["render", "graph", "execution", "stage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.stage.unstaged_pass_count",
+        frame_index,
+        report.unstaged_pass_count,
+        &["render", "graph", "execution", "stage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.stage.unique_stage_count",
+        frame_index,
+        report.unique_stage_count,
+        &["render", "graph", "execution", "stage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.stage.transition_count",
+        frame_index,
+        report.stage_transition_count,
+        &["render", "graph", "execution", "stage"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.stage.order_violation_count",
+        frame_index,
+        report.stage_order_violation_count,
+        &["render", "graph", "execution", "stage", "order"],
+    );
+}
+
+fn record_graph_execution_resources(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = stats.last_graph_execution_resource_report;
+    record_count(
+        store,
+        "render.graph.execution.texture_view_count",
+        frame_index,
+        report.texture_view_count,
+        &["render", "graph", "execution", "resource", "texture"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.external_texture_view_count",
+        frame_index,
+        report.external_texture_view_count,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "texture",
+            "external",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.owned_texture_count",
+        frame_index,
+        report.owned_texture_count,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "texture",
+            "owned",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.buffer_count",
+        frame_index,
+        report.buffer_count,
+        &["render", "graph", "execution", "resource", "buffer"],
+    );
+    record_count(
+        store,
+        "render.graph.execution.bound_resource_count",
+        frame_index,
+        report.total_bound_resource_count,
+        &["render", "graph", "execution", "resource"],
     );
 }
 

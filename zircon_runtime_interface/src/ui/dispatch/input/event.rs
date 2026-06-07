@@ -17,6 +17,7 @@ pub enum UiInputEvent {
     Ime(UiImeInputEvent),
     Navigation(UiNavigationInputEvent),
     Analog(UiAnalogInputEvent),
+    MouseMotion(UiMouseMotionInputEvent),
     DragDrop(UiDragDropInputEvent),
     Popup(UiPopupInputEvent),
     TooltipTimer(UiTooltipTimerInputEvent),
@@ -131,6 +132,13 @@ pub struct UiAnalogInputEvent {
     pub metadata: UiInputEventMetadata,
     pub control: String,
     pub value: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiMouseMotionInputEvent {
+    pub metadata: UiInputEventMetadata,
+    pub delta_x: f32,
+    pub delta_y: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

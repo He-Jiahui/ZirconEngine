@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
+use crate::core::framework::sound::SoundChannelLayout;
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::{
@@ -87,6 +88,7 @@ pub(crate) fn sample_sound_asset(uri: &str) -> SoundAsset {
         uri: AssetUri::parse(uri).unwrap(),
         sample_rate_hz: 48_000,
         channel_count: 1,
+        channel_layout: SoundChannelLayout::mono(),
         samples: vec![0.0, 0.5, -0.5, 32767.0 / 32768.0],
     }
 }

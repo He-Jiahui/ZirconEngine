@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs
 import { tmpdir } from "node:os";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { extensionModules, webModuleTabs } from "./modules.js";
+import { extensionModules, webModuleTabs } from "./src/modules/modules.js";
+import { actionRouteKey } from "./src/foundation/action-paths.js";
 
 const edgeCandidates = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
@@ -136,7 +137,44 @@ try {
 
 function validateSourcePolicy() {
   const html = readFileSync(resolve(here, "index.html"), "utf8");
-  for (const required of ["tokens.css", "layout.css", "atoms.css", "collections.css", "surfaces.css", "modules.css", "workbench.css", "responsive.css", "app.js"]) {
+  for (const required of [
+    "src/foundation/tokens.css",
+    "src/foundation/layout.css",
+    "src/components/inputs/atoms.css",
+    "src/components/inputs/buttons.css",
+    "src/components/inputs/fields.css",
+    "src/components/inputs/selection-controls.css",
+    "src/components/inputs/tabs.css",
+    "src/components/inputs/dropdowns.css",
+    "src/components/inputs/sliders.css",
+    "src/components/data/collections.css",
+    "src/components/overlays/menu.css",
+    "src/components/feedback/alerts.css",
+    "src/components/feedback/toast.css",
+    "src/components/feedback/tooltip.css",
+    "src/components/surfaces/surfaces.css",
+    "src/components/surfaces/viewport.css",
+    "src/components/surfaces/inspector.css",
+    "src/components/surfaces/showcase.css",
+    "src/components/surfaces/status.css",
+    "src/modules/modules.css",
+    "src/modules/module-layouts.css",
+    "src/modules/extension-library.css",
+    "src/modules/module-data.css",
+    "src/modules/module-graphs.css",
+    "src/modules/module-output.css",
+    "src/modules/module-canvases.css",
+    "src/modules/module-feedback.css",
+    "src/modules/module-responsive.css",
+    "src/workbench/workbench.css",
+    "src/workbench/showcase-base.css",
+    "src/workbench/inspector-detail.css",
+    "src/workbench/showcase-controls.css",
+    "src/workbench/side-panels.css",
+    "src/workbench/statusbar-tuning.css",
+    "src/foundation/responsive.css",
+    "app.js",
+  ]) {
     if (!html.includes(required)) {
       throw new Error(`index.html must load ${required}.`);
     }
@@ -144,18 +182,1128 @@ function validateSourcePolicy() {
   if (/https?:\/\//i.test(html)) {
     throw new Error("index.html must not load external resources.");
   }
+  const foundationTokenCss = readFileSync(resolve(here, "src/foundation/tokens.css"), "utf8");
+  const foundationTokenCssRoles = [
+    ["./tokens/dimensions.css", "src/foundation/tokens/dimensions.css", "--ref-w"],
+    ["./tokens/typography.css", "src/foundation/tokens/typography.css", "--font"],
+    ["./tokens/palette.css", "src/foundation/tokens/palette.css", "--accent"],
+    ["./tokens/effects.css", "src/foundation/tokens/effects.css", "--shadow"],
+    ["./tokens/shape-controls.css", "src/foundation/tokens/shape-controls.css", "--control-h"],
+    ["./tokens/gaps.css", "src/foundation/tokens/gaps.css", "--gap-4"],
+    ["./tokens/base.css", "src/foundation/tokens/base.css", ".zr-app"],
+  ];
+  for (const [importPath, rolePath, selector] of foundationTokenCssRoles) {
+    if (!foundationTokenCss.includes(importPath)) {
+      throw new Error(`foundation tokens.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (foundationTokenCss.includes(":root") || foundationTokenCss.includes(".zr-")) {
+    throw new Error("foundation tokens.css must remain an import-only token style entry.");
+  }
+  const foundationResponsiveCss = readFileSync(resolve(here, "src/foundation/responsive.css"), "utf8");
+  const foundationResponsiveCssRoles = [
+    ["./responsive/wide-shell.css", "src/foundation/responsive/wide-shell.css", ".zr-topbar"],
+    ["./responsive/wide-panels.css", "src/foundation/responsive/wide-panels.css", ".zr-showcase-grid"],
+    ["./responsive/tablet-shell.css", "src/foundation/responsive/tablet-shell.css", ".zr-window"],
+    ["./responsive/tablet-panels.css", "src/foundation/responsive/tablet-panels.css", ".zr-inspector"],
+    ["./responsive/mobile-shell.css", "src/foundation/responsive/mobile-shell.css", ".zr-statusbar"],
+    ["./responsive/mobile-panels.css", "src/foundation/responsive/mobile-panels.css", ".zr-viewport"],
+    ["./responsive/compact-controls.css", "src/foundation/responsive/compact-controls.css", ".zr-viewport-cluster:first-child .zr-select"],
+  ];
+  for (const [importPath, rolePath, selector] of foundationResponsiveCssRoles) {
+    if (!foundationResponsiveCss.includes(importPath)) {
+      throw new Error(`foundation responsive.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (foundationResponsiveCss.includes(".zr-")) {
+    throw new Error("foundation responsive.css must remain an import-only global responsive style entry.");
+  }
+  const collectionsCss = readFileSync(resolve(here, "src/components/data/collections.css"), "utf8");
+  const collectionCssRoles = [
+    ["./collections/panel-group.css", "src/components/data/collections/panel-group.css", ".zr-panel-tabs"],
+    ["./collections/tree-view.css", "src/components/data/collections/tree-view.css", ".zr-tree-row"],
+    ["./collections/table-view.css", "src/components/data/collections/table-view.css", ".zr-table-row"],
+    ["./collections/list-view.css", "src/components/data/collections/list-view.css", ".zr-list-item"],
+  ];
+  for (const [importPath, rolePath, selector] of collectionCssRoles) {
+    if (!collectionsCss.includes(importPath)) {
+      throw new Error(`collections.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (collectionsCss.includes(".zr-")) {
+    throw new Error("collections.css must remain an import-only collection style entry.");
+  }
+  const surfacesCss = readFileSync(resolve(here, "src/components/surfaces/surfaces.css"), "utf8");
+  const surfaceCssRoles = [
+    ["./shell/window.css", "src/components/surfaces/shell/window.css", ".zr-window"],
+    ["./shell/topbar.css", "src/components/surfaces/shell/topbar.css", ".zr-topbar"],
+    ["./shell/rail.css", "src/components/surfaces/shell/rail.css", ".zr-rail"],
+    ["./panels/base.css", "src/components/surfaces/panels/base.css", ".zr-panel"],
+    ["./panels/scene.css", "src/components/surfaces/panels/scene.css", ".zr-scene-panel"],
+  ];
+  for (const [importPath, rolePath, selector] of surfaceCssRoles) {
+    if (!surfacesCss.includes(importPath)) {
+      throw new Error(`surfaces.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (surfacesCss.includes(".zr-")) {
+    throw new Error("surfaces.css must remain an import-only surface shell/panel style entry.");
+  }
+  const inspectorCss = readFileSync(resolve(here, "src/components/surfaces/inspector.css"), "utf8");
+  const inspectorCssRoles = [
+    ["./panels/inspector/layout.css", "src/components/surfaces/panels/inspector/layout.css", ".zr-inspector"],
+    ["./panels/inspector/object-header.css", "src/components/surfaces/panels/inspector/object-header.css", ".zr-object-header"],
+    ["./panels/inspector/sections.css", "src/components/surfaces/panels/inspector/sections.css", ".zr-section-title"],
+    ["./panels/inspector/fields.css", "src/components/surfaces/panels/inspector/fields.css", ".zr-form-row"],
+    ["./panels/inspector/resources.css", "src/components/surfaces/panels/inspector/resources.css", ".zr-resource-row"],
+  ];
+  for (const [importPath, rolePath, selector] of inspectorCssRoles) {
+    if (!inspectorCss.includes(importPath)) {
+      throw new Error(`inspector.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (inspectorCss.includes(".zr-")) {
+    throw new Error("inspector.css must remain an import-only inspector surface style entry.");
+  }
+  const showcaseCss = readFileSync(resolve(here, "src/components/surfaces/showcase.css"), "utf8");
+  const showcaseCssRoles = [
+    ["./panels/showcase/layout.css", "src/components/surfaces/panels/showcase/layout.css", ".zr-showcase"],
+    ["./panels/showcase/grid.css", "src/components/surfaces/panels/showcase/grid.css", ".zr-showcase-grid"],
+    ["./panels/showcase/columns.css", "src/components/surfaces/panels/showcase/columns.css", ".zr-showcase-col"],
+    ["./panels/showcase/stacks.css", "src/components/surfaces/panels/showcase/stacks.css", ".zr-side-stack"],
+  ];
+  for (const [importPath, rolePath, selector] of showcaseCssRoles) {
+    if (!showcaseCss.includes(importPath)) {
+      throw new Error(`showcase.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (showcaseCss.includes(".zr-")) {
+    throw new Error("showcase.css must remain an import-only showcase surface style entry.");
+  }
+  const statusCss = readFileSync(resolve(here, "src/components/surfaces/status.css"), "utf8");
+  const statusCssRoles = [
+    ["./status/bar.css", "src/components/surfaces/status/bar.css", ".zr-statusbar"],
+    ["./status/groups.css", "src/components/surfaces/status/groups.css", ".zr-status-left"],
+    ["./status/controls.css", "src/components/surfaces/status/controls.css", ".zr-statusbar .zr-select"],
+    ["./status/indicators.css", "src/components/surfaces/status/indicators.css", ".zr-dot"],
+  ];
+  for (const [importPath, rolePath, selector] of statusCssRoles) {
+    if (!statusCss.includes(importPath)) {
+      throw new Error(`status.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (statusCss.includes(".zr-")) {
+    throw new Error("status.css must remain an import-only statusbar surface style entry.");
+  }
+  const viewportCss = readFileSync(resolve(here, "src/components/surfaces/viewport.css"), "utf8");
+  const viewportCssRoles = [
+    ["./viewport/base.css", ".zr-scene-shell"],
+    ["./viewport/lighting.css", "./lighting/lightwash.css"],
+    ["./viewport/structure.css", "./structure/wall.css"],
+    ["./viewport/floor.css", "./floor/base.css"],
+    ["./viewport/props.css", "./props/cargo.css"],
+    ["./viewport/tools.css", "./tools/axis-mini.css"],
+  ];
+  for (const [importPath, selector] of viewportCssRoles) {
+    if (!viewportCss.includes(importPath)) {
+      throw new Error(`viewport.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, `src/components/surfaces/${importPath.replace("./", "")}`), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${importPath} must own ${selector}.`);
+    }
+  }
+  if (viewportCss.includes(".zr-")) {
+    throw new Error("viewport.css must remain an import-only surface style entry.");
+  }
+  const viewportLightingCss = readFileSync(resolve(here, "src/components/surfaces/viewport/lighting.css"), "utf8");
+  const viewportLightingCssRoles = [
+    ["./lighting/lightwash.css", "src/components/surfaces/viewport/lighting/lightwash.css", ".zr-scene-lightwash"],
+    ["./lighting/shadows.css", "src/components/surfaces/viewport/lighting/shadows.css", ".zr-scene-shadow"],
+  ];
+  for (const [importPath, rolePath, selector] of viewportLightingCssRoles) {
+    if (!viewportLightingCss.includes(importPath)) {
+      throw new Error(`lighting.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (viewportLightingCss.includes(".zr-")) {
+    throw new Error("lighting.css must remain an import-only viewport lighting style entry.");
+  }
+  const viewportFloorCss = readFileSync(resolve(here, "src/components/surfaces/viewport/floor.css"), "utf8");
+  const viewportFloorCssRoles = [
+    ["./floor/base.css", "src/components/surfaces/viewport/floor/base.css", ".zr-scene-floor"],
+    ["./floor/grid.css", "src/components/surfaces/viewport/floor/grid.css", ".zr-viewport-grid-line"],
+    ["./floor/reflections.css", "src/components/surfaces/viewport/floor/reflections.css", ".zr-floor-reflection"],
+    ["./floor/grates.css", "src/components/surfaces/viewport/floor/grates.css", ".zr-floor-grate"],
+    ["./floor/panels.css", "src/components/surfaces/viewport/floor/panels.css", ".zr-floor-panel"],
+    ["./floor/seams.css", "src/components/surfaces/viewport/floor/seams.css", ".zr-floor-seam"],
+  ];
+  for (const [importPath, rolePath, selector] of viewportFloorCssRoles) {
+    if (!viewportFloorCss.includes(importPath)) {
+      throw new Error(`floor.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (viewportFloorCss.includes(".zr-")) {
+    throw new Error("floor.css must remain an import-only viewport floor style entry.");
+  }
+  const viewportStructureCss = readFileSync(resolve(here, "src/components/surfaces/viewport/structure.css"), "utf8");
+  const viewportStructureCssRoles = [
+    ["./structure/wall.css", "src/components/surfaces/viewport/structure/wall.css", ".zr-scene-wall"],
+    ["./structure/ceiling-door.css", "src/components/surfaces/viewport/structure/ceiling-door.css", ".zr-scene-door"],
+    ["./structure/fixtures.css", "src/components/surfaces/viewport/structure/fixtures.css", ".zr-scene-wall-panel"],
+    ["./structure/side-walls.css", "src/components/surfaces/viewport/structure/side-walls.css", ".zr-scene-side"],
+    ["./structure/rails.css", "src/components/surfaces/viewport/structure/rails.css", ".zr-scene-handrail"],
+  ];
+  for (const [importPath, rolePath, selector] of viewportStructureCssRoles) {
+    if (!viewportStructureCss.includes(importPath)) {
+      throw new Error(`structure.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (viewportStructureCss.includes(".zr-")) {
+    throw new Error("structure.css must remain an import-only viewport structure style entry.");
+  }
+  const viewportPropsCss = readFileSync(resolve(here, "src/components/surfaces/viewport/props.css"), "utf8");
+  const viewportPropsCssRoles = [
+    ["./props/cargo.css", "src/components/surfaces/viewport/props/cargo.css", ".zr-scene-cargo"],
+    ["./props/crate.css", "src/components/surfaces/viewport/props/crate.css", ".zr-crate"],
+    ["./props/selection.css", "src/components/surfaces/viewport/props/selection.css", ".zr-selection-edge"],
+    ["./props/transform.css", "src/components/surfaces/viewport/props/transform.css", ".zr-transform-axis"],
+  ];
+  for (const [importPath, rolePath, selector] of viewportPropsCssRoles) {
+    if (!viewportPropsCss.includes(importPath)) {
+      throw new Error(`props.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (viewportPropsCss.includes(".zr-")) {
+    throw new Error("props.css must remain an import-only viewport props style entry.");
+  }
+  const viewportToolsCss = readFileSync(resolve(here, "src/components/surfaces/viewport/tools.css"), "utf8");
+  const viewportToolsCssRoles = [
+    ["./tools/axis-mini.css", "src/components/surfaces/viewport/tools/axis-mini.css", ".zr-axis-mini"],
+    ["./tools/orientation-gizmo.css", "src/components/surfaces/viewport/tools/orientation-gizmo.css", ".zr-orientation-gizmo"],
+    ["./tools/vignette.css", "src/components/surfaces/viewport/tools/vignette.css", ".zr-scene-vignette"],
+    ["./tools/toolbar.css", "src/components/surfaces/viewport/tools/toolbar.css", ".zr-viewport-tools"],
+  ];
+  for (const [importPath, rolePath, selector] of viewportToolsCssRoles) {
+    if (!viewportToolsCss.includes(importPath)) {
+      throw new Error(`tools.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (viewportToolsCss.includes(".zr-")) {
+    throw new Error("tools.css must remain an import-only viewport tools style entry.");
+  }
+  const moduleCanvasCss = readFileSync(resolve(here, "src/modules/module-canvases.css"), "utf8");
+  const moduleMapCss = readFileSync(resolve(here, "src/modules/canvases/map.css"), "utf8");
+  const moduleHudCss = readFileSync(resolve(here, "src/modules/canvases/hud.css"), "utf8");
+  const moduleFeedbackCss = readFileSync(resolve(here, "src/modules/module-feedback.css"), "utf8");
+  const moduleCssRoles = [
+    [moduleCanvasCss, "./canvases/map.css", "src/modules/canvases/map/map.css", "./map/base.css"],
+    [moduleCanvasCss, "./canvases/hud.css", "src/modules/canvases/hud/hud.css", "./hud/base.css"],
+    [moduleFeedbackCss, "./feedback/inline-status.css", "src/modules/feedback/inline-status.css", ".zr-action-flash"],
+  ];
+  for (const [entrySource, importPath, rolePath, selector] of moduleCssRoles) {
+    if (!entrySource.includes(importPath)) {
+      throw new Error(`module CSS entry must import ${importPath}.`);
+    }
+    if (selector.startsWith("./")) {
+      if (!readFileSync(resolve(here, importPath.replace("./", "src/modules/")), "utf8").includes(selector)) {
+        throw new Error(`${importPath} must import ${selector}.`);
+      }
+    } else {
+      const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+      if (!roleSource.includes(selector)) {
+        throw new Error(`${rolePath} must own ${selector}.`);
+      }
+    }
+  }
+  const moduleMapCssRoles = [
+    ["./map/base.css", "src/modules/canvases/map/base.css", ".zr-module-map"],
+    ["./map/walls.css", "src/modules/canvases/map/walls.css", ".zr-map-wall"],
+    ["./map/points.css", "src/modules/canvases/map/points.css", ".zr-map-point"],
+    ["./map/cones.css", "src/modules/canvases/map/cones.css", ".zr-map-cone"],
+    ["./map/paths.css", "src/modules/canvases/map/paths.css", ".zr-map-path"],
+  ];
+  const moduleHudCssRoles = [
+    ["./hud/base.css", "src/modules/canvases/hud/base.css", ".zr-module-hud-canvas"],
+    ["./hud/widgets.css", "src/modules/canvases/hud/widgets.css", ".zr-hud-widget"],
+    ["./hud/positions.css", "src/modules/canvases/hud/positions.css", ".zr-hud-widget.is-minimap"],
+    ["./hud/status.css", "src/modules/canvases/hud/status.css", ".zr-hud-widget.is-status"],
+    ["./hud/crosshair.css", "src/modules/canvases/hud/crosshair.css", ".zr-hud-crosshair"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleMapCssRoles) {
+    if (!moduleMapCss.includes(importPath)) {
+      throw new Error(`canvases/map.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  for (const [importPath, rolePath, selector] of moduleHudCssRoles) {
+    if (!moduleHudCss.includes(importPath)) {
+      throw new Error(`canvases/hud.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleCanvasCss.includes(".zr-") || moduleMapCss.includes(".zr-") || moduleHudCss.includes(".zr-") || moduleFeedbackCss.includes(".zr-")) {
+    throw new Error("module canvas and feedback CSS entries must remain import-only.");
+  }
+  const moduleOutputCss = readFileSync(resolve(here, "src/modules/module-output.css"), "utf8");
+  const moduleOutputCssRoles = [
+    ["./output/preview.css", "src/modules/output/preview.css", ".zr-module-preview"],
+    ["./output/stats-actions.css", "src/modules/output/stats-actions.css", ".zr-module-stat-grid"],
+    ["./output/layout.css", "src/modules/output/layout.css", ".zr-module-output-grid"],
+    ["./output/logs.css", "src/modules/output/logs.css", ".zr-module-log"],
+    ["./output/asset-strip.css", "src/modules/output/asset-strip.css", ".zr-module-asset-strip"],
+    ["./output/timeline.css", "src/modules/output/timeline.css", ".zr-module-timeline"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleOutputCssRoles) {
+    if (!moduleOutputCss.includes(importPath)) {
+      throw new Error(`module-output.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleOutputCss.includes(".zr-")) {
+    throw new Error("module-output.css must remain an import-only output style entry.");
+  }
+  const moduleGraphsCss = readFileSync(resolve(here, "src/modules/module-graphs.css"), "utf8");
+  const moduleGraphCssRoles = [
+    ["./graphs/board.css", "src/modules/graphs/board.css", ".zr-module-graph"],
+    ["./graphs/nodes.css", "src/modules/graphs/nodes.css", ".zr-module-node"],
+    ["./graphs/links.css", "src/modules/graphs/links.css", ".zr-graph-link"],
+    ["./graphs/minimap.css", "src/modules/graphs/minimap.css", ".zr-module-minimap"],
+    ["./graphs/curves.css", "src/modules/graphs/curves.css", ".zr-module-curve"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleGraphCssRoles) {
+    if (!moduleGraphsCss.includes(importPath)) {
+      throw new Error(`module-graphs.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleGraphsCss.includes(".zr-")) {
+    throw new Error("module-graphs.css must remain an import-only graph style entry.");
+  }
+  const moduleDataCss = readFileSync(resolve(here, "src/modules/module-data.css"), "utf8");
+  const moduleDataCssRoles = [
+    ["./data/settings.css", "src/modules/data/settings.css", ".zr-module-setting"],
+    ["./data/collection-rows.css", "src/modules/data/collection-rows.css", ".zr-module-list-row.is-selected"],
+    ["./data/list-rows.css", "src/modules/data/list-rows.css", ".zr-module-list-row"],
+    ["./data/tree-rows.css", "src/modules/data/tree-rows.css", ".zr-module-tree-row"],
+    ["./data/table-rows.css", "src/modules/data/table-rows.css", ".zr-module-table-row"],
+    ["./data/tags.css", "src/modules/data/tags.css", ".zr-module-tag"],
+    ["./data/card-tools.css", "src/modules/data/card-tools.css", ".zr-module-card-tools"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleDataCssRoles) {
+    if (!moduleDataCss.includes(importPath)) {
+      throw new Error(`module-data.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleDataCss.includes(".zr-")) {
+    throw new Error("module-data.css must remain an import-only module data style entry.");
+  }
+  const modulesCss = readFileSync(resolve(here, "src/modules/modules.css"), "utf8");
+  const moduleShellCssRoles = [
+    ["./shell/top-tabs.css", "src/modules/shell/top-tabs.css", ".zr-module-tabs"],
+    ["./shell/toolbar.css", "src/modules/shell/toolbar.css", ".zr-module-toolbar"],
+    ["./shell/regions.css", "src/modules/shell/regions.css", ".zr-module-left"],
+    ["./shell/mainbar.css", "src/modules/shell/mainbar.css", ".zr-module-mainbar"],
+    ["./shell/panel-tabs.css", "src/modules/shell/panel-tabs.css", ".zr-module-panel-tabs"],
+    ["./shell/cards.css", "src/modules/shell/cards.css", ".zr-module-card"],
+    ["./shell/forms.css", "src/modules/shell/forms.css", ".zr-module-filterbar .zr-search"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleShellCssRoles) {
+    if (!modulesCss.includes(importPath)) {
+      throw new Error(`modules.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (modulesCss.includes(".zr-")) {
+    throw new Error("modules.css must remain an import-only module shell style entry.");
+  }
+  const moduleLayoutsCss = readFileSync(resolve(here, "src/modules/module-layouts.css"), "utf8");
+  const moduleLayoutCssRoles = [
+    ["./layouts/base.css", "src/modules/layouts/base.css", ".zr-module-editor-grid"],
+    ["./layouts/core.css", "src/modules/layouts/core.css", ".zr-module-editor-grid.is-gameplay"],
+    ["./layouts/library.css", "src/modules/layouts/library.css", ".zr-module-editor-grid.is-library"],
+    ["./layouts/extensions.css", "src/modules/layouts/extensions.css", ".zr-module-editor-grid.is-extension"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleLayoutCssRoles) {
+    if (!moduleLayoutsCss.includes(importPath)) {
+      throw new Error(`module-layouts.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleLayoutsCss.includes(".zr-")) {
+    throw new Error("module-layouts.css must remain an import-only module layout style entry.");
+  }
+  const extensionLibraryCss = readFileSync(resolve(here, "src/modules/extension-library.css"), "utf8");
+  const extensionLibraryCssRoles = [
+    ["./extension-library/card-grid.css", "src/modules/extension-library/card-grid.css", ".zr-extension-card-grid"],
+    ["./extension-library/cards.css", "src/modules/extension-library/cards.css", ".zr-extension-card"],
+    ["./extension-library/drilldown.css", "src/modules/extension-library/drilldown.css", ".zr-library-drilldown"],
+    ["./extension-library/panel-group.css", "src/modules/extension-library/panel-group.css", ".zr-panel-group"],
+  ];
+  for (const [importPath, rolePath, selector] of extensionLibraryCssRoles) {
+    if (!extensionLibraryCss.includes(importPath)) {
+      throw new Error(`extension-library.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (extensionLibraryCss.includes(".zr-")) {
+    throw new Error("extension-library.css must remain an import-only More Editors library style entry.");
+  }
+  const moduleResponsiveCss = readFileSync(resolve(here, "src/modules/module-responsive.css"), "utf8");
+  const moduleResponsiveCssRoles = [
+    ["./responsive/navigation.css", "src/modules/responsive/navigation.css", ".zr-module-tab"],
+    ["./responsive/workspace.css", "src/modules/responsive/workspace.css", ".zr-module-editor-grid.is-gameplay"],
+    ["./responsive/tablet-shell.css", "src/modules/responsive/tablet-shell.css", ".zr-module-left"],
+    ["./responsive/mobile-stack.css", "src/modules/responsive/mobile-stack.css", ".zr-module-tabs"],
+  ];
+  for (const [importPath, rolePath, selector] of moduleResponsiveCssRoles) {
+    if (!moduleResponsiveCss.includes(importPath)) {
+      throw new Error(`module-responsive.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (moduleResponsiveCss.includes(".zr-")) {
+    throw new Error("module-responsive.css must remain an import-only module responsive style entry.");
+  }
+  const workbenchCss = readFileSync(resolve(here, "src/workbench/workbench.css"), "utf8");
+  const workbenchLowerDemoCssRoles = [
+    ["./lower-demo/layout.css", "src/workbench/lower-demo/layout.css", ".zr-lower-demo"],
+    ["./lower-demo/alerts.css", "src/workbench/lower-demo/alerts.css", ".zr-alert-stack"],
+    ["./lower-demo/table.css", "src/workbench/lower-demo/table.css", ".zr-table .zr-table-row"],
+    ["./lower-demo/toast.css", "src/workbench/lower-demo/toast.css", ".zr-toast"],
+    ["./lower-demo/effects.css", "src/workbench/lower-demo/effects.css", "filter: blur"],
+    ["./lower-demo/tooltip.css", "src/workbench/lower-demo/tooltip.css", ".zr-tooltip-bubble"],
+  ];
+  for (const [importPath, rolePath, selector] of workbenchLowerDemoCssRoles) {
+    if (!workbenchCss.includes(importPath)) {
+      throw new Error(`workbench.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (workbenchCss.includes(".zr-")) {
+    throw new Error("workbench.css must remain an import-only lower-demo style entry.");
+  }
+  const showcaseControlCss = readFileSync(resolve(here, "src/workbench/showcase-controls.css"), "utf8");
+  const showcaseControlCssRoles = [
+    ["./showcase-controls/icon-buttons.css", "src/workbench/showcase-controls/icon-buttons.css", ".zr-icon-button.is-lg"],
+    ["./showcase-controls/shared-gaps.css", "src/workbench/showcase-controls/shared-gaps.css", ".zr-field-stack"],
+    ["./showcase-controls/button-grid.css", "src/workbench/showcase-controls/button-grid.css", "./button-grid/layout.css"],
+    ["./showcase-controls/fields.css", "src/workbench/showcase-controls/fields.css", ".zr-input:focus"],
+    ["./showcase-controls/selection-controls.css", "src/workbench/showcase-controls/selection-controls.css", ".zr-checkbox"],
+    ["./showcase-controls/segmented-controls.css", "src/workbench/showcase-controls/segmented-controls.css", ".zr-segment"],
+    ["./showcase-controls/sliders.css", "src/workbench/showcase-controls/sliders.css", ".zr-slider-track"],
+    ["./showcase-controls/tabs.css", "src/workbench/showcase-controls/tabs.css", ".zr-tab.is-active"],
+  ];
+  for (const [importPath, rolePath, selector] of showcaseControlCssRoles) {
+    if (!showcaseControlCss.includes(importPath)) {
+      throw new Error(`showcase-controls.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (showcaseControlCss.includes(".zr-")) {
+    throw new Error("showcase-controls.css must remain an import-only workbench control style entry.");
+  }
+  const showcaseButtonGridCss = readFileSync(resolve(here, "src/workbench/showcase-controls/button-grid.css"), "utf8");
+  const showcaseButtonGridCssRoles = [
+    ["./button-grid/layout.css", "src/workbench/showcase-controls/button-grid/layout.css", ".zr-showcase-col:first-child .zr-control-grid"],
+    ["./button-grid/base-controls.css", "src/workbench/showcase-controls/button-grid/base-controls.css", ".zr-showcase-col:first-child .zr-select"],
+    ["./button-grid/state-colors.css", "src/workbench/showcase-controls/button-grid/state-colors.css", ".zr-showcase-col:first-child .zr-button:disabled"],
+    ["./button-grid/item-overrides.css", "src/workbench/showcase-controls/button-grid/item-overrides.css", ".zr-showcase-col:first-child .zr-control-grid > :nth-child(8) .zr-icon"],
+  ];
+  for (const [importPath, rolePath, selector] of showcaseButtonGridCssRoles) {
+    if (!showcaseButtonGridCss.includes(importPath)) {
+      throw new Error(`button-grid.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (showcaseButtonGridCss.includes(".zr-")) {
+    throw new Error("button-grid.css must remain an import-only button grid style entry.");
+  }
+  const inspectorDetailCss = readFileSync(resolve(here, "src/workbench/inspector-detail.css"), "utf8");
+  const inspectorDetailCssRoles = [
+    ["./inspector-detail/base.css", "src/workbench/inspector-detail/base.css", ".zr-inspector .zr-button"],
+    ["./inspector-detail/scene-tree.css", "src/workbench/inspector-detail/scene-tree.css", ".zr-scene-panel .zr-tree"],
+    ["./inspector-detail/forms.css", "src/workbench/inspector-detail/forms.css", ".zr-inspector .zr-form-row"],
+    ["./inspector-detail/transform-section.css", "src/workbench/inspector-detail/transform-section.css", "./transform-section/section.css"],
+    ["./inspector-detail/mesh-renderer-section.css", "src/workbench/inspector-detail/mesh-renderer-section.css", ".zr-section.is-mesh-renderer"],
+  ];
+  for (const [importPath, rolePath, selector] of inspectorDetailCssRoles) {
+    if (!inspectorDetailCss.includes(importPath)) {
+      throw new Error(`inspector-detail.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (inspectorDetailCss.includes(".zr-")) {
+    throw new Error("inspector-detail.css must remain an import-only inspector detail style entry.");
+  }
+  const inspectorTransformCss = readFileSync(resolve(here, "src/workbench/inspector-detail/transform-section.css"), "utf8");
+  const inspectorTransformCssRoles = [
+    ["./transform-section/section.css", "src/workbench/inspector-detail/transform-section/section.css", ".zr-section.is-transform"],
+    ["./transform-section/value-boxes.css", "src/workbench/inspector-detail/transform-section/value-boxes.css", ".zr-value-box"],
+    ["./transform-section/vector-rows.css", "src/workbench/inspector-detail/transform-section/vector-rows.css", ".zr-vector-row:nth-of-type(2)"],
+    ["./transform-section/linked-axis.css", "src/workbench/inspector-detail/transform-section/linked-axis.css", ".zr-linked-axis"],
+    ["./transform-section/axis-labels.css", "src/workbench/inspector-detail/transform-section/axis-labels.css", "> span:nth-child(2)"],
+    ["./transform-section/controls.css", "src/workbench/inspector-detail/transform-section/controls.css", ".zr-checkbox.is-checked"],
+  ];
+  for (const [importPath, rolePath, selector] of inspectorTransformCssRoles) {
+    if (!inspectorTransformCss.includes(importPath)) {
+      throw new Error(`transform-section.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (inspectorTransformCss.includes(".zr-")) {
+    throw new Error("transform-section.css must remain an import-only inspector transform style entry.");
+  }
+  const sidePanelsCss = readFileSync(resolve(here, "src/workbench/side-panels.css"), "utf8");
+  const sidePanelsCssRoles = [
+    ["./side-panels/menus.css", "src/workbench/side-panels/menus.css", ".zr-side-stack"],
+    ["./side-panels/alt-panel.css", "src/workbench/side-panels/alt-panel.css", ".zr-alt-panel"],
+    ["./side-panels/layer-history.css", "src/workbench/side-panels/layer-history.css", ".zr-layer-row"],
+    ["./side-panels/console.css", "src/workbench/side-panels/console.css", ".zr-console-row"],
+    ["./side-panels/inspector-checkboxes.css", "src/workbench/side-panels/inspector-checkboxes.css", ".zr-inspector .zr-checkbox"],
+    ["./side-panels/form-overrides.css", "src/workbench/side-panels/form-overrides.css", ".zr-form-row .zr-select"],
+    ["./side-panels/topbar-overrides.css", "src/workbench/side-panels/topbar-overrides.css", ".zr-topbar .zr-select:has"],
+  ];
+  for (const [importPath, rolePath, selector] of sidePanelsCssRoles) {
+    if (!sidePanelsCss.includes(importPath)) {
+      throw new Error(`side-panels.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (sidePanelsCss.includes(".zr-")) {
+    throw new Error("side-panels.css must remain an import-only workbench side panel style entry.");
+  }
+  const statusbarTuningCss = readFileSync(resolve(here, "src/workbench/statusbar-tuning.css"), "utf8");
+  const statusbarTuningCssRoles = [
+    ["./statusbar-tuning/popup-layer.css", "src/workbench/statusbar-tuning/popup-layer.css", ".zr-popup-layer"],
+    ["./statusbar-tuning/left-group.css", "src/workbench/statusbar-tuning/left-group.css", ".zr-status-left"],
+    ["./statusbar-tuning/right-group.css", "src/workbench/statusbar-tuning/right-group.css", ".zr-status-right"],
+    ["./statusbar-tuning/frame.css", "src/workbench/statusbar-tuning/frame.css", ".zr-statusbar"],
+    ["./statusbar-tuning/controls.css", "src/workbench/statusbar-tuning/controls.css", ".zr-statusbar .zr-select"],
+  ];
+  for (const [importPath, rolePath, selector] of statusbarTuningCssRoles) {
+    if (!statusbarTuningCss.includes(importPath)) {
+      throw new Error(`statusbar-tuning.css must import ${importPath}.`);
+    }
+    const roleSource = readFileSync(resolve(here, rolePath), "utf8");
+    if (!roleSource.includes(selector)) {
+      throw new Error(`${rolePath} must own ${selector}.`);
+    }
+  }
+  if (statusbarTuningCss.includes(".zr-")) {
+    throw new Error("statusbar-tuning.css must remain an import-only workbench statusbar tuning style entry.");
+  }
   const sources = [
     "app.js",
-    "atoms.js",
-    "collections.js",
-    "surfaces.js",
-    "modules.js",
-    "module-components.js",
-    "extension-modules.js",
-    "extension-handoff.js",
-    "extension-blueprints.js",
-    "routes.js",
-    "icons.js",
+    "src/app/mount.js",
+    "src/app/controller.js",
+    "src/app/controller/activation.js",
+    "src/app/controller/activation/factory.js",
+    "src/app/controller/activation/module.js",
+    "src/app/controller/activation/panel.js",
+    "src/app/controller/activation/reset.js",
+    "src/app/controller/command-application.js",
+    "src/app/controller/command-application/apply.js",
+    "src/app/controller/command-application/module.js",
+    "src/app/controller/command-application/panel.js",
+    "src/app/controller/command-application/record.js",
+    "src/app/controller/command-application/status.js",
+    "src/app/controller/create-workbench-controller.js",
+    "src/app/controller/command-routing.js",
+    "src/app/controller/command-routing/explicit.js",
+    "src/app/controller/command-routing/fallback.js",
+    "src/app/controller/command-routing/label.js",
+    "src/app/controller/command-routing/resolve.js",
+    "src/app/controller/history.js",
+    "src/app/controller/location-state.js",
+    "src/app/controller/location-state/apply.js",
+    "src/app/controller/location-state/module.js",
+    "src/app/controller/location-state/panel.js",
+    "src/app/controller/location-state/request.js",
+    "src/app/controller/location-state/status.js",
+    "src/app/controller/rendering.js",
+    "src/app/controller/state.js",
+    "src/app/controller/status.js",
+    "src/app/controller/workbench/commands.js",
+    "src/app/controller/workbench/location.js",
+    "src/app/controller/workbench/render-loop.js",
+    "src/app/controller/workbench/route-sync.js",
+    "src/app/route-state.js",
+    "src/app/labels.js",
+    "src/app/interactions/click.js",
+    "src/app/interactions/click/bind.js",
+    "src/app/interactions/click/dispatch.js",
+    "src/app/interactions/click/handlers.js",
+    "src/app/interactions/click/actions.js",
+    "src/app/interactions/click/actions/feedback.js",
+    "src/app/interactions/click/actions/group.js",
+    "src/app/interactions/click/actions/handle.js",
+    "src/app/interactions/click/actions/menu.js",
+    "src/app/interactions/click/actions/target.js",
+    "src/app/interactions/click/dropdowns.js",
+    "src/app/interactions/click/dropdowns/dismissal.js",
+    "src/app/interactions/click/dropdowns/feedback.js",
+    "src/app/interactions/click/dropdowns/placement.js",
+    "src/app/interactions/click/dropdowns/state.js",
+    "src/app/interactions/click/dropdowns/target.js",
+    "src/app/interactions/click/dropdowns/trigger.js",
+    "src/app/interactions/click/generic.js",
+    "src/app/interactions/click/generic/feedback.js",
+    "src/app/interactions/click/generic/handle.js",
+    "src/app/interactions/click/generic/target.js",
+    "src/app/interactions/click/navigation.js",
+    "src/app/interactions/click/navigation/activate.js",
+    "src/app/interactions/click/navigation/handle.js",
+    "src/app/interactions/click/navigation/target.js",
+    "src/app/interactions/click/rows.js",
+    "src/app/interactions/click/rows/data.js",
+    "src/app/interactions/click/rows/feedback.js",
+    "src/app/interactions/click/rows/selection.js",
+    "src/app/interactions/click/rows/tree.js",
+    "src/app/interactions/click/selection.js",
+    "src/app/interactions/click/selection/feedback.js",
+    "src/app/interactions/click/selection/radio.js",
+    "src/app/interactions/click/selection/state.js",
+    "src/app/interactions/click/selection/target.js",
+    "src/app/interactions/click/selection/toggle.js",
+    "src/app/interactions/click/tabs.js",
+    "src/app/interactions/click/tabs/feedback.js",
+    "src/app/interactions/click/tabs/handle.js",
+    "src/app/interactions/click/tabs/panel.js",
+    "src/app/interactions/click/tabs/state.js",
+    "src/app/interactions/click/tabs/target.js",
+    "src/app/interactions/click/toolbar.js",
+    "src/app/interactions/click/toolbar/feedback.js",
+    "src/app/interactions/click/toolbar/rail.js",
+    "src/app/interactions/click/toolbar/state.js",
+    "src/app/interactions/click/toolbar/target.js",
+    "src/app/interactions/click/toolbar/tool.js",
+    "src/app/interactions/click/utils.js",
+    "src/app/interactions/fields.js",
+    "src/app/interactions/fields/bind.js",
+    "src/app/interactions/fields/focus.js",
+    "src/app/interactions/fields/input.js",
+    "src/app/interactions/fields/target.js",
+    "src/app/interactions/keyboard.js",
+    "src/app/interactions/keyboard/activate.js",
+    "src/app/interactions/keyboard/bind.js",
+    "src/app/interactions/keyboard/filter.js",
+    "src/app/interactions/keyboard/target.js",
+    "src/app/interactions/history.js",
+    "src/app/interactions/history/bind.js",
+    "src/app/interactions/history/events.js",
+    "src/foundation/tokens.css",
+    "src/foundation/tokens/dimensions.css",
+    "src/foundation/tokens/typography.css",
+    "src/foundation/tokens/palette.css",
+    "src/foundation/tokens/effects.css",
+    "src/foundation/tokens/shape-controls.css",
+    "src/foundation/tokens/gaps.css",
+    "src/foundation/tokens/base.css",
+    "src/components/inputs/atoms.js",
+    "src/components/inputs/input-utils.js",
+    "src/components/inputs/buttons.js",
+    "src/components/inputs/buttons/button.js",
+    "src/components/inputs/buttons/icon-button.js",
+    "src/components/inputs/fields.js",
+    "src/components/inputs/fields/input.js",
+    "src/components/inputs/fields/search-input.js",
+    "src/components/inputs/fields/number-field.js",
+    "src/components/inputs/selection-controls.js",
+    "src/components/inputs/selection-controls/checkbox.js",
+    "src/components/inputs/selection-controls/radio.js",
+    "src/components/inputs/selection-controls/toggle.js",
+    "src/components/inputs/tabs.js",
+    "src/components/inputs/dropdowns.js",
+    "src/components/inputs/dropdowns/select.js",
+    "src/components/inputs/sliders.js",
+    "src/components/inputs/sliders/slider.js",
+    "src/components/inputs/sliders/range-slider.js",
+    "src/components/data/collections.js",
+    "src/components/data/collection-utils.js",
+    "src/components/data/list-view.js",
+    "src/components/data/list-view/row.js",
+    "src/components/data/table-view.js",
+    "src/components/data/table-view/header.js",
+    "src/components/data/table-view/row.js",
+    "src/components/data/tree-view.js",
+    "src/components/data/tree-view/row.js",
+    "src/components/data/collections.css",
+    "src/components/data/collections/panel-group.css",
+    "src/components/data/collections/tree-view.css",
+    "src/components/data/collections/table-view.css",
+    "src/components/data/collections/list-view.css",
+    "src/components/feedback/alerts.js",
+    "src/components/feedback/toast.js",
+    "src/components/feedback/tooltip.js",
+    "src/components/overlays/menu.js",
+    "src/components/overlays/menu/row.js",
+    "src/components/overlays/popup-layer.js",
+    "src/components/surfaces/surfaces.js",
+    "src/components/surfaces/shell/window.js",
+    "src/components/surfaces/shell/chrome.js",
+    "src/components/surfaces/panels/drawer-surface.js",
+    "src/components/surfaces/panels/scene-panel.js",
+    "src/components/surfaces/panels/inspector-panel.js",
+    "src/components/surfaces/panels/showcase-panel.js",
+    "src/components/surfaces/viewport/viewport-surface.js",
+    "src/components/surfaces/surfaces.css",
+    "src/components/surfaces/shell/window.css",
+    "src/components/surfaces/shell/topbar.css",
+    "src/components/surfaces/shell/rail.css",
+    "src/components/surfaces/panels/base.css",
+    "src/components/surfaces/panels/scene.css",
+    "src/components/surfaces/panels/inspector/layout.css",
+    "src/components/surfaces/panels/inspector/object-header.css",
+    "src/components/surfaces/panels/inspector/sections.css",
+    "src/components/surfaces/panels/inspector/fields.css",
+    "src/components/surfaces/panels/inspector/resources.css",
+    "src/components/surfaces/panels/showcase/layout.css",
+    "src/components/surfaces/panels/showcase/grid.css",
+    "src/components/surfaces/panels/showcase/columns.css",
+    "src/components/surfaces/panels/showcase/stacks.css",
+    "src/components/surfaces/status.css",
+    "src/components/surfaces/status/bar.css",
+    "src/components/surfaces/status/groups.css",
+    "src/components/surfaces/status/controls.css",
+    "src/components/surfaces/status/indicators.css",
+    "src/components/surfaces/viewport.css",
+    "src/components/surfaces/viewport/base.css",
+    "src/components/surfaces/viewport/lighting.css",
+    "src/components/surfaces/viewport/lighting/lightwash.css",
+    "src/components/surfaces/viewport/lighting/shadows.css",
+    "src/components/surfaces/viewport/structure.css",
+    "src/components/surfaces/viewport/structure/wall.css",
+    "src/components/surfaces/viewport/structure/ceiling-door.css",
+    "src/components/surfaces/viewport/structure/fixtures.css",
+    "src/components/surfaces/viewport/structure/side-walls.css",
+    "src/components/surfaces/viewport/structure/rails.css",
+    "src/components/surfaces/viewport/floor.css",
+    "src/components/surfaces/viewport/floor/base.css",
+    "src/components/surfaces/viewport/floor/grid.css",
+    "src/components/surfaces/viewport/floor/reflections.css",
+    "src/components/surfaces/viewport/floor/grates.css",
+    "src/components/surfaces/viewport/floor/panels.css",
+    "src/components/surfaces/viewport/floor/seams.css",
+    "src/components/surfaces/viewport/props.css",
+    "src/components/surfaces/viewport/props/cargo.css",
+    "src/components/surfaces/viewport/props/crate.css",
+    "src/components/surfaces/viewport/props/selection.css",
+    "src/components/surfaces/viewport/props/transform.css",
+    "src/components/surfaces/viewport/tools.css",
+    "src/components/surfaces/viewport/tools/axis-mini.css",
+    "src/components/surfaces/viewport/tools/orientation-gizmo.css",
+    "src/components/surfaces/viewport/tools/vignette.css",
+    "src/components/surfaces/viewport/tools/toolbar.css",
+    "src/foundation/responsive.css",
+    "src/foundation/responsive/wide-shell.css",
+    "src/foundation/responsive/wide-panels.css",
+    "src/foundation/responsive/tablet-shell.css",
+    "src/foundation/responsive/tablet-panels.css",
+    "src/foundation/responsive/mobile-shell.css",
+    "src/foundation/responsive/mobile-panels.css",
+    "src/foundation/responsive/compact-controls.css",
+    "src/modules/module-canvases.css",
+    "src/modules/canvases/map.css",
+    "src/modules/canvases/map/base.css",
+    "src/modules/canvases/map/walls.css",
+    "src/modules/canvases/map/points.css",
+    "src/modules/canvases/map/cones.css",
+    "src/modules/canvases/map/paths.css",
+    "src/modules/canvases/hud.css",
+    "src/modules/canvases/hud/base.css",
+    "src/modules/canvases/hud/widgets.css",
+    "src/modules/canvases/hud/positions.css",
+    "src/modules/canvases/hud/status.css",
+    "src/modules/canvases/hud/crosshair.css",
+    "src/modules/module-feedback.css",
+    "src/modules/feedback/inline-status.css",
+    "src/modules/module-data.css",
+    "src/modules/data/settings.css",
+    "src/modules/data/collection-rows.css",
+    "src/modules/data/list-rows.css",
+    "src/modules/data/tree-rows.css",
+    "src/modules/data/table-rows.css",
+    "src/modules/data/tags.css",
+    "src/modules/data/card-tools.css",
+    "src/modules/module-graphs.css",
+    "src/modules/graphs/board.css",
+    "src/modules/graphs/nodes.css",
+    "src/modules/graphs/links.css",
+    "src/modules/graphs/minimap.css",
+    "src/modules/graphs/curves.css",
+    "src/modules/module-output.css",
+    "src/modules/output/preview.css",
+    "src/modules/output/stats-actions.css",
+    "src/modules/output/layout.css",
+    "src/modules/output/logs.css",
+    "src/modules/output/asset-strip.css",
+    "src/modules/output/timeline.css",
+    "src/modules/modules.css",
+    "src/modules/shell/top-tabs.css",
+    "src/modules/shell/toolbar.css",
+    "src/modules/shell/regions.css",
+    "src/modules/shell/mainbar.css",
+    "src/modules/shell/panel-tabs.css",
+    "src/modules/shell/cards.css",
+    "src/modules/shell/forms.css",
+    "src/modules/module-layouts.css",
+    "src/modules/layouts/base.css",
+    "src/modules/layouts/core.css",
+    "src/modules/layouts/library.css",
+    "src/modules/layouts/extensions.css",
+    "src/modules/extension-library.css",
+    "src/modules/extension-library/card-grid.css",
+    "src/modules/extension-library/cards.css",
+    "src/modules/extension-library/drilldown.css",
+    "src/modules/extension-library/panel-group.css",
+    "src/modules/module-responsive.css",
+    "src/modules/responsive/navigation.css",
+    "src/modules/responsive/workspace.css",
+    "src/modules/responsive/tablet-shell.css",
+    "src/modules/responsive/mobile-stack.css",
+    "src/workbench/workbench.css",
+    "src/workbench/lower-demo/layout.css",
+    "src/workbench/lower-demo/alerts.css",
+    "src/workbench/lower-demo/table.css",
+    "src/workbench/lower-demo/toast.css",
+    "src/workbench/lower-demo/effects.css",
+    "src/workbench/lower-demo/tooltip.css",
+    "src/workbench/showcase-controls.css",
+    "src/workbench/showcase-controls/icon-buttons.css",
+    "src/workbench/showcase-controls/shared-gaps.css",
+    "src/workbench/showcase-controls/button-grid.css",
+    "src/workbench/showcase-controls/button-grid/layout.css",
+    "src/workbench/showcase-controls/button-grid/base-controls.css",
+    "src/workbench/showcase-controls/button-grid/state-colors.css",
+    "src/workbench/showcase-controls/button-grid/item-overrides.css",
+    "src/workbench/showcase-controls/fields.css",
+    "src/workbench/showcase-controls/selection-controls.css",
+    "src/workbench/showcase-controls/segmented-controls.css",
+    "src/workbench/showcase-controls/sliders.css",
+    "src/workbench/showcase-controls/tabs.css",
+    "src/workbench/inspector-detail.css",
+    "src/workbench/inspector-detail/base.css",
+    "src/workbench/inspector-detail/scene-tree.css",
+    "src/workbench/inspector-detail/forms.css",
+    "src/workbench/inspector-detail/transform-section.css",
+    "src/workbench/inspector-detail/transform-section/section.css",
+    "src/workbench/inspector-detail/transform-section/value-boxes.css",
+    "src/workbench/inspector-detail/transform-section/vector-rows.css",
+    "src/workbench/inspector-detail/transform-section/linked-axis.css",
+    "src/workbench/inspector-detail/transform-section/axis-labels.css",
+    "src/workbench/inspector-detail/transform-section/controls.css",
+    "src/workbench/inspector-detail/mesh-renderer-section.css",
+    "src/workbench/side-panels.css",
+    "src/workbench/side-panels/menus.css",
+    "src/workbench/side-panels/alt-panel.css",
+    "src/workbench/side-panels/layer-history.css",
+    "src/workbench/side-panels/console.css",
+    "src/workbench/side-panels/inspector-checkboxes.css",
+    "src/workbench/side-panels/form-overrides.css",
+    "src/workbench/side-panels/topbar-overrides.css",
+    "src/workbench/statusbar-tuning.css",
+    "src/workbench/statusbar-tuning/popup-layer.css",
+    "src/workbench/statusbar-tuning/left-group.css",
+    "src/workbench/statusbar-tuning/right-group.css",
+    "src/workbench/statusbar-tuning/frame.css",
+    "src/workbench/statusbar-tuning/controls.css",
+    "src/modules/modules.js",
+    "src/modules/workbench/registry.js",
+    "src/modules/workbench/navigation.js",
+    "src/modules/workbench/toolbar.js",
+    "src/modules/workbench/rail.js",
+    "src/modules/workbench/workspace.js",
+    "src/modules/component-lab/module.js",
+    "src/modules/component-lab/data.js",
+    "src/modules/component-lab/routes.js",
+    "src/modules/component-lab/left.js",
+    "src/modules/component-lab/center.js",
+    "src/modules/component-lab/center/atom-palette.js",
+    "src/modules/component-lab/center/collection-palette.js",
+    "src/modules/component-lab/center/coverage-matrix.js",
+    "src/modules/component-lab/center/lab-column.js",
+    "src/modules/component-lab/center/layout-grammar.js",
+    "src/modules/component-lab/center/surface-palette.js",
+    "src/modules/component-lab/details.js",
+    "src/modules/component-lab/bottom.js",
+    "src/modules/shared/module-components.js",
+    "src/modules/shared/actions.js",
+    "src/modules/shared/bottom-output.js",
+    "src/modules/shared/panels.js",
+    "src/modules/shared/regions.js",
+    "src/modules/shared/rows.js",
+    "src/modules/shared/utils.js",
+    "src/modules/shared/visuals.js",
+    "src/modules/core/core-modules.js",
+    "src/modules/core/registry/index.js",
+    "src/modules/core/registry/gameplay.js",
+    "src/modules/core/registry/gameplay/effect.js",
+    "src/modules/core/registry/gameplay/ability.js",
+    "src/modules/core/registry/gameplay/tags.js",
+    "src/modules/core/registry/ai.js",
+    "src/modules/core/registry/ai/perception.js",
+    "src/modules/core/registry/ai/behavior.js",
+    "src/modules/core/registry/rendering.js",
+    "src/modules/core/registry/rendering/material.js",
+    "src/modules/core/registry/rendering/render-pipeline.js",
+    "src/modules/core/registry/rendering/vfx.js",
+    "src/modules/core/registry/assets.js",
+    "src/modules/core/registry/ui.js",
+    "src/modules/core/core-module-details.js",
+    "src/modules/core/details/index.js",
+    "src/modules/core/details/gameplay.js",
+    "src/modules/core/details/gameplay/effect.js",
+    "src/modules/core/details/gameplay/ability.js",
+    "src/modules/core/details/gameplay/tags.js",
+    "src/modules/core/details/ai.js",
+    "src/modules/core/details/ai/perception.js",
+    "src/modules/core/details/ai/behavior.js",
+    "src/modules/core/details/rendering.js",
+    "src/modules/core/details/rendering/material.js",
+    "src/modules/core/details/rendering/render-pipeline.js",
+    "src/modules/core/details/rendering/vfx.js",
+    "src/modules/core/details/assets.js",
+    "src/modules/core/details/ui.js",
+    "src/modules/core/details/routes.js",
+    "src/modules/core/core-module-lefts.js",
+    "src/modules/core/lefts/index.js",
+    "src/modules/core/lefts/gameplay.js",
+    "src/modules/core/lefts/gameplay/effect.js",
+    "src/modules/core/lefts/gameplay/ability.js",
+    "src/modules/core/lefts/gameplay/tags.js",
+    "src/modules/core/lefts/ai.js",
+    "src/modules/core/lefts/ai/perception.js",
+    "src/modules/core/lefts/ai/behavior.js",
+    "src/modules/core/lefts/rendering.js",
+    "src/modules/core/lefts/rendering/material.js",
+    "src/modules/core/lefts/rendering/render-pipeline.js",
+    "src/modules/core/lefts/rendering/vfx.js",
+    "src/modules/core/lefts/assets.js",
+    "src/modules/core/lefts/ui.js",
+    "src/modules/core/core-module-centers.js",
+    "src/modules/core/centers/index.js",
+    "src/modules/core/centers/gameplay.js",
+    "src/modules/core/centers/gameplay/effect.js",
+    "src/modules/core/centers/gameplay/ability.js",
+    "src/modules/core/centers/gameplay/tags.js",
+    "src/modules/core/centers/ai.js",
+    "src/modules/core/centers/ai/perception.js",
+    "src/modules/core/centers/ai/behavior.js",
+    "src/modules/core/centers/rendering.js",
+    "src/modules/core/centers/rendering/material.js",
+    "src/modules/core/centers/rendering/render-pipeline.js",
+    "src/modules/core/centers/rendering/vfx.js",
+    "src/modules/core/centers/assets.js",
+    "src/modules/core/centers/ui.js",
+    "src/modules/core/core-module-bottoms.js",
+    "src/modules/core/bottoms/index.js",
+    "src/modules/core/bottoms/gameplay.js",
+    "src/modules/core/bottoms/gameplay/effect.js",
+    "src/modules/core/bottoms/gameplay/ability.js",
+    "src/modules/core/bottoms/gameplay/tags.js",
+    "src/modules/core/bottoms/ai.js",
+    "src/modules/core/bottoms/ai/perception.js",
+    "src/modules/core/bottoms/ai/behavior.js",
+    "src/modules/core/bottoms/rendering.js",
+    "src/modules/core/bottoms/rendering/material.js",
+    "src/modules/core/bottoms/rendering/render-pipeline.js",
+    "src/modules/core/bottoms/rendering/vfx.js",
+    "src/modules/core/bottoms/assets.js",
+    "src/modules/core/bottoms/ui.js",
+    "src/modules/core/bottoms/routes.js",
+    "src/modules/extensions/extension-modules.js",
+    "src/modules/extensions/extension-configs.js",
+    "src/modules/extensions/configs/sources.js",
+    "src/modules/extensions/configs/factory.js",
+    "src/modules/extensions/configs/recipes.js",
+    "src/modules/extensions/configs/recipes/animation.js",
+    "src/modules/extensions/configs/recipes/data.js",
+    "src/modules/extensions/configs/recipes/default.js",
+    "src/modules/extensions/configs/recipes/diagnostics.js",
+    "src/modules/extensions/configs/recipes/gameplay.js",
+    "src/modules/extensions/configs/recipes/online.js",
+    "src/modules/extensions/configs/recipes/production.js",
+    "src/modules/extensions/configs/recipes/rendering.js",
+    "src/modules/extensions/configs/recipes/runtime.js",
+    "src/modules/extensions/configs/recipes/simulation.js",
+    "src/modules/extensions/configs/recipes/ui.js",
+    "src/modules/extensions/configs/recipes/vfx.js",
+    "src/modules/extensions/configs/recipes/world.js",
+    "src/modules/extensions/configs/layout-kind.js",
+    "src/modules/extensions/configs/controls.js",
+    "src/modules/extensions/configs/assets.js",
+    "src/modules/extensions/configs/text.js",
+    "src/modules/extensions/extension-handoff.js",
+    "src/modules/extensions/extension-library.js",
+    "src/modules/extensions/library/module.js",
+    "src/modules/extensions/library/left.js",
+    "src/modules/extensions/library/center.js",
+    "src/modules/extensions/library/cards.js",
+    "src/modules/extensions/library/drilldown.js",
+    "src/modules/extensions/library/details.js",
+    "src/modules/extensions/library/bottom.js",
+    "src/modules/extensions/library/rows.js",
+    "src/modules/extensions/library/routes.js",
+    "src/modules/extensions/extension-surfaces.js",
+    "src/modules/extensions/surfaces/left.js",
+    "src/modules/extensions/surfaces/left/panel.js",
+    "src/modules/extensions/surfaces/left/reference.js",
+    "src/modules/extensions/surfaces/left/tools.js",
+    "src/modules/extensions/surfaces/left/assets.js",
+    "src/modules/extensions/surfaces/center.js",
+    "src/modules/extensions/surfaces/center/panel.js",
+    "src/modules/extensions/surfaces/center/metrics.js",
+    "src/modules/extensions/surfaces/center/reference-rhythm.js",
+    "src/modules/extensions/surfaces/details.js",
+    "src/modules/extensions/surfaces/details/panel.js",
+    "src/modules/extensions/surfaces/details/summary.js",
+    "src/modules/extensions/surfaces/details/table.js",
+    "src/modules/extensions/surfaces/details/status.js",
+    "src/modules/extensions/surfaces/bottom.js",
+    "src/modules/extensions/surfaces/bottom/panel.js",
+    "src/modules/extensions/surfaces/bottom/output.js",
+    "src/modules/extensions/surfaces/bottom/validation.js",
+    "src/modules/extensions/surfaces/bottom/references.js",
+    "src/modules/extensions/surfaces/bottom/handoff.js",
+    "src/modules/extensions/surfaces/primary.js",
+    "src/modules/extensions/surfaces/primary/panel.js",
+    "src/modules/extensions/surfaces/primary/blueprint.js",
+    "src/modules/extensions/surfaces/primary/layout-kind.js",
+    "src/modules/extensions/surfaces/primary/graph.js",
+    "src/modules/extensions/surfaces/routes.js",
+    "src/modules/extensions/surfaces/utils.js",
+    "src/modules/extensions/extension-blueprints.js",
+    "src/modules/extensions/blueprints/helpers.js",
+    "src/modules/extensions/blueprints/animation.js",
+    "src/modules/extensions/blueprints/animation/animation-compression.js",
+    "src/modules/extensions/blueprints/animation/blend-space.js",
+    "src/modules/extensions/blueprints/animation/control-rig.js",
+    "src/modules/extensions/blueprints/animation/montage-editor.js",
+    "src/modules/extensions/blueprints/animation/motion-matching.js",
+    "src/modules/extensions/blueprints/animation/pose-library.js",
+    "src/modules/extensions/blueprints/animation/retarget.js",
+    "src/modules/extensions/blueprints/animation/sequencer.js",
+    "src/modules/extensions/blueprints/data.js",
+    "src/modules/extensions/blueprints/diagnostics.js",
+    "src/modules/extensions/blueprints/gameplay.js",
+    "src/modules/extensions/blueprints/multiplayer.js",
+    "src/modules/extensions/blueprints/production.js",
+    "src/modules/extensions/blueprints/rendering.js",
+    "src/modules/extensions/blueprints/simulation.js",
+    "src/modules/extensions/blueprints/ui.js",
+    "src/modules/extensions/blueprints/world.js",
+    "src/modules/extensions/blueprints/world/foliage-editor.js",
+    "src/modules/extensions/blueprints/world/level-streaming.js",
+    "src/modules/extensions/blueprints/world/level-variant.js",
+    "src/modules/extensions/blueprints/world/prefab-editor.js",
+    "src/modules/extensions/blueprints/world/scatter-editor.js",
+    "src/modules/extensions/blueprints/world/terrain-editor.js",
+    "src/modules/extensions/blueprints/world/volume-editor.js",
+    "src/modules/extensions/blueprints/world/weather-editor.js",
+    "src/routing/routes.js",
+    "src/routing/commands/module-targets.js",
+    "src/routing/commands/scoped-targets.js",
+    "src/routing/commands/panel-targets.js",
+    "src/routing/commands/extension-targets.js",
+    "src/routing/commands/labels.js",
+    "src/routing/commands/route-for-command.js",
+    "src/routing/panels/activation.js",
+    "src/foundation/icons.js",
   ].map((file) => readFileSync(resolve(here, file), "utf8")).join("\n");
   if (sources.includes("workbench.png")) {
     throw new Error("Component prototype must not embed the full workbench reference screenshot.");
@@ -205,7 +1353,7 @@ function auditExpression(width, height) {
     if (scroll.scrollWidth > Math.max(width, 640) + 1) failures.push("document horizontal overflow exceeds responsive floor");
     if (width >= 900) {
       const originalHash = window.location.hash;
-      history.replaceState(history.state, "", window.location.pathname + window.location.search + "#module=hud-editor&command=tree-canvas-panel");
+      history.replaceState(history.state, "", window.location.pathname + window.location.search + "#module=hud-editor&action=workbench.command.tree_canvas_panel");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
       const hudMain = document.querySelector('.zr-module-main[data-module-active="hud-editor"]');
       const hudLeft = document.querySelector('.zr-module-left[data-panel-host="hud-editor"]');
@@ -342,6 +1490,24 @@ function interactionAuditExpression() {
       return (label || node.tagName.toLowerCase()).replace(/\\s+/g, " ").slice(0, 80);
     };
     const controls = (selector) => [...document.querySelectorAll(selector)].filter(visible);
+    const routeKeyForAction = (value) => {
+      const normalized = String(value || "").trim().toLowerCase();
+      const leaf = /^[a-z0-9_]+(?:\\.[a-z0-9_]+)+$/.test(normalized)
+        ? normalized.split(".").filter(Boolean).at(-1)
+        : normalized;
+      return leaf
+        .replace(/['’]/g, "")
+        .replace(/&/g, " and ")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    };
+    const clickActionByRouteKey = (routeKey) => {
+      const node = [...document.querySelectorAll("[data-action]")]
+        .find((candidate) => routeKeyForAction(candidate.dataset.action) === routeKey);
+      node?.click();
+      return Boolean(node);
+    };
     const isEditableControl = (node) => node.matches?.("input:not([disabled]), textarea:not([disabled])");
     const clickAndExpectResponse = async (node, context) => {
       const before = responseCount();
@@ -562,16 +1728,16 @@ function interactionAuditExpression() {
       }
 
       await activateModule("gameplay-effect", "route restore");
-      document.querySelector('[data-action="browse"]')?.click();
+      clickActionByRouteKey("browse");
       await settle();
       if (document.querySelector(".zr-module-main")?.dataset.moduleActive !== "asset-browser") failures.push("browse did not route to asset browser");
       await activateModule("gameplay-effect", "route compile restore");
-      document.querySelector('[data-action="compile"]')?.click();
+      clickActionByRouteKey("compile");
       await settle();
       const compilePanel = document.querySelector('[data-panel-view="module-bottom-gameplay-effect:compile-log"]');
       if (!compilePanel?.classList.contains("is-active")) failures.push("compile did not route to compile log");
       await activateModule("material", "route material restore");
-      document.querySelector('[data-action="texture-sample"]')?.click();
+      clickActionByRouteKey("texture-sample");
       await settle();
       if (document.querySelector(".zr-module-main")?.dataset.moduleActive !== "material") failures.push("texture sample did not stay on material module");
       await activateModule("gameplay-effect", "popup restore");
@@ -652,7 +1818,7 @@ async function assertCommandPanelHistory(cdp) {
   await waitForWorkbench(cdp);
   await clickActionAndWait(cdp, "compile", "gameplay-effect", "module-bottom-gameplay-effect:compile-log", "compile");
   await clickActionAndWait(cdp, "browse", "asset-browser", "", "browse");
-  await clickPanelTabAndWait(cdp, "asset-right:metadata", "asset-browser", "panel-asset-rightmetadata");
+  await clickPanelTabAndWait(cdp, "asset-right:metadata", "asset-browser", "workbench.panel.select.asset_right_metadata");
   await cdp.send("Runtime.evaluate", {
     expression: "history.back()",
     awaitPromise: true,
@@ -664,7 +1830,7 @@ async function assertCommandPanelHistory(cdp) {
     awaitPromise: true,
     returnByValue: true,
   });
-  await waitForHistoryState(cdp, "asset-browser", "asset-right:metadata", "panel-asset-rightmetadata");
+  await waitForHistoryState(cdp, "asset-browser", "asset-right:metadata", "workbench.panel.select.asset_right_metadata");
 }
 
 async function assertModuleScopedCommandRoutes(cdp) {
@@ -731,7 +1897,7 @@ function allTopLevelToolbarCommandRoutesExpression() {
         hashModule: params.get("module") || "",
         activePanel,
         hashPanel,
-        hashCommand: params.get("command") || ""
+        hashAction: params.get("action") || params.get("command") || ""
       };
     };
     const click = async (selector, context) => {
@@ -758,8 +1924,8 @@ function allTopLevelToolbarCommandRoutesExpression() {
       if (state.activePanel !== state.hashPanel) {
         failures.push("active/hash panel mismatch after " + id + "/" + action + ": " + state.activePanel + "/" + state.hashPanel);
       }
-      if (state.hashCommand !== action) {
-        failures.push("command mismatch after " + id + "/" + action + ": " + state.hashCommand);
+      if (state.hashAction !== action) {
+        failures.push("action mismatch after " + id + "/" + action + ": " + state.hashAction);
       }
     };
 
@@ -818,8 +1984,15 @@ function allExtensionToolbarCommandRoutesExpression() {
       : String(value).replace(/["\\\\]/g, "\\\\$&");
     const responseCount = () => Number.parseInt(document.documentElement.dataset.zrResponseCount || "0", 10);
     const activeModule = () => document.querySelector(".zr-module-main")?.dataset.moduleActive || "";
+    const routeKeyForAction = (command) => {
+      const normalized = String(command || "").trim().toLowerCase();
+      const leaf = /^[a-z0-9_]+(?:\\.[a-z0-9_]+)+$/.test(normalized)
+        ? normalized.split(".").filter(Boolean).at(-1)
+        : normalized;
+      return leaf.replace(/_/g, "-");
+    };
     const extensionPanelKeyForToolbarCommand = (command) => {
-      const tokens = command.split("-").filter(Boolean);
+      const tokens = routeKeyForAction(command).split("-").filter(Boolean);
       const verb = tokens[0] ?? "";
       if (["native", "handoff", "promote", "promotion", "matrix", "gate", "zui", "retained"].includes(verb)
         || tokens.some((token) => ["native", "handoff", "promotion", "matrix", "gate", "zui", "retained"].includes(token))) {
@@ -846,7 +2019,7 @@ function allExtensionToolbarCommandRoutesExpression() {
         hashModule: params.get("module") || "",
         activePanel,
         hashPanel,
-        hashCommand: params.get("command") || ""
+        hashAction: params.get("action") || params.get("command") || ""
       };
     };
     const click = async (selector, context) => {
@@ -875,13 +2048,13 @@ function allExtensionToolbarCommandRoutesExpression() {
         || state.hashModule !== expectedModule
         || state.activePanel !== expectedPanel
         || state.hashPanel !== expectedPanel
-        || state.hashCommand !== action
+        || state.hashAction !== action
       ) {
         failures.push(
           "toolbar route mismatch " + id + "/" + action
           + ": expected " + expectedModule + "/" + expectedPanel + "/" + action
           + ", got active=" + state.activeModule + "/" + state.activePanel
-          + " hash=" + state.hashModule + "/" + state.hashPanel + "/" + state.hashCommand
+          + " hash=" + state.hashModule + "/" + state.hashPanel + "/" + state.hashAction
         );
       }
     };
@@ -901,7 +2074,7 @@ function allExtensionToolbarCommandRoutesExpression() {
         .filter(Boolean);
       const uniqueActions = new Set(actions);
       if (actions.length < 5) failures.push("expected at least five toolbar actions for " + id + ", found " + actions.length);
-      if (!uniqueActions.has("more-editors")) failures.push("missing More Editors toolbar route for " + id);
+      if (!actions.some((action) => routeKeyForAction(action) === "more-editors")) failures.push("missing More Editors toolbar route for " + id);
       if (uniqueActions.size !== actions.length) failures.push("duplicate toolbar action ids for " + id);
 
       for (const action of actions) {
@@ -909,7 +2082,7 @@ function allExtensionToolbarCommandRoutesExpression() {
         const before = responseCount();
         if (!await click('.zr-module-toolbar [data-action="' + escapeCss(action) + '"]', "toolbar action " + id + "/" + action)) continue;
         if (responseCount() <= before) failures.push("no response after toolbar action " + id + "/" + action);
-        if (action === "more-editors") {
+        if (routeKeyForAction(action) === "more-editors") {
           assertRoute(id, action, "editor-library", "module-bottom-editor-library:routing-log");
         } else {
           assertRoute(id, action, id, "module-bottom-" + id + ":" + extensionPanelKeyForToolbarCommand(action));
@@ -925,8 +2098,8 @@ async function assertCommandState(cdp) {
   await cdp.send("Page.navigate", { url: referenceUrl });
   await waitForWorkbench(cdp);
   await clickActionAndWait(cdp, "save", "gameplay-effect", "", "save");
-  await clickTreeRowAndWait(cdp, "ge-healthregen", "gameplay-effect", "", "tree-ge-healthregen");
-  await editFieldAndWait(cdp, ".zr-module-left input[placeholder='Search assets...']:not([disabled])", "gameplay-effect", "", "edit-search-assets");
+  await clickTreeRowAndWait(cdp, "ge-healthregen", "gameplay-effect", "", "workbench.tree.select.ge_health_regen");
+  await editFieldAndWait(cdp, ".zr-module-left input[placeholder='Search assets...']:not([disabled])", "gameplay-effect", "", "workbench.field.edit.search_assets");
 }
 
 async function assertKeyboardActivation(cdp) {
@@ -934,31 +2107,31 @@ async function assertKeyboardActivation(cdp) {
   await waitForWorkbench(cdp);
   await assertElementAttribute(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="healthregen"]',
+    '.zr-module-table-row[role="button"][data-action$=".health_regen"]',
     "aria-label",
     "HealthRegen",
   );
   await assertElementAttribute(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="incominghealing"]',
+    '.zr-module-table-row[role="button"][data-action$=".incoming_healing"]',
     "aria-label",
     "IncomingHealing",
   );
   await pressActionKeyAndWait(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="healthregen"]',
+    '.zr-module-table-row[role="button"][data-action$=".health_regen"]',
     "Enter",
     "gameplay-effect",
     "",
-    "row-healthregen",
+    "workbench.module.table.health_regen",
   );
   await pressActionKeyAndWait(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="incominghealing"]',
+    '.zr-module-table-row[role="button"][data-action$=".incoming_healing"]',
     " ",
     "gameplay-effect",
     "",
-    "row-incominghealing",
+    "workbench.module.table.incoming_healing",
   );
 }
 
@@ -967,31 +2140,31 @@ async function assertCollectionRowButtons(cdp) {
   await waitForWorkbench(cdp);
   await assertElementAttribute(
     cdp,
-    '.zr-module-left .zr-module-list-row[data-action="target-tags"]',
+    '.zr-module-left .zr-module-list-row[data-action$=".target_tags"]',
     "type",
     "button",
   );
   await assertElementAttribute(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="healthregen"]',
+    '.zr-module-table-row[role="button"][data-action$=".health_regen"]',
     "aria-label",
     "HealthRegen",
   );
   await pressActionKeyAndWait(
     cdp,
-    '.zr-module-left .zr-module-list-row[data-action="target-tags"]',
+    '.zr-module-left .zr-module-list-row[data-action$=".target_tags"]',
     "Enter",
     "gameplay-effect",
     "",
-    "row-target-tags",
+    "workbench.module.list.target_tags",
   );
   await pressActionKeyAndWait(
     cdp,
-    '.zr-module-table-row[role="button"][data-action="healthregen"]',
+    '.zr-module-table-row[role="button"][data-action$=".health_regen"]',
     " ",
     "gameplay-effect",
     "",
-    "row-healthregen",
+    "workbench.module.table.health_regen",
   );
 }
 
@@ -999,7 +2172,7 @@ async function assertCollectionTreeRows(cdp) {
   await cdp.send("Page.navigate", { url: referenceUrl });
   await waitForWorkbench(cdp);
   const mounted = JSON.parse(await evaluate(cdp, `(async () => {
-    const { treeView } = await import(new URL("./collections.js", location.href).href);
+    const { treeView } = await import(new URL("./src/components/data/collections.js", location.href).href);
     document.querySelector("#zr-tree-contract-host")?.remove();
     const host = document.createElement("section");
     host.id = "zr-tree-contract-host";
@@ -1027,11 +2200,11 @@ async function assertCollectionTreeRows(cdp) {
   const expected = {
     rootTag: "BUTTON",
     rootType: "button",
-    rootAction: "contract-root",
+    rootAction: "workbench.collection.tree.contract_root",
     rootLabel: "Contract Root",
     childTag: "BUTTON",
     childType: "button",
-    childAction: "contract-child",
+    childAction: "workbench.collection.tree.contract_child",
     childLabel: "Contract Child",
   };
   for (const [key, value] of Object.entries(expected)) {
@@ -1045,7 +2218,7 @@ async function assertCollectionTreeRows(cdp) {
     awaitPromise: true,
     returnByValue: true,
   });
-  await waitForHistoryState(cdp, "gameplay-effect", "", "tree-contract-child");
+  await waitForHistoryState(cdp, "gameplay-effect", "", "workbench.collection.tree.contract_child");
 }
 
 async function assertPopupMenuSelection(cdp) {
@@ -1117,7 +2290,7 @@ async function clickExtensionModuleAndWait(cdp, moduleId) {
 }
 
 async function clickActionAndWait(cdp, action, expectedModuleId, expectedPanelTarget = "", expectedCommandId = "", attempts = 80) {
-  const selector = `[data-action="${cssEscape(action)}"]`;
+  const selector = actionSelector(action);
   await cdp.send("Runtime.evaluate", {
     expression: `document.querySelector(${JSON.stringify(selector)})?.click()`,
     awaitPromise: true,
@@ -1127,7 +2300,7 @@ async function clickActionAndWait(cdp, action, expectedModuleId, expectedPanelTa
 }
 
 async function clickActiveModuleActionAndWait(cdp, action, expectedModuleId, expectedPanelTarget = "", expectedCommandId = "", attempts = 80) {
-  const selector = `.zr-module-toolbar [data-action="${cssEscape(action)}"]`;
+  const selector = scopedActionSelector(".zr-module-toolbar", action);
   await cdp.send("Runtime.evaluate", {
     expression: `document.querySelector(${JSON.stringify(selector)})?.click()`,
     awaitPromise: true,
@@ -1201,14 +2374,14 @@ async function waitForHistoryState(cdp, expectedModuleId, expectedPanelTarget = 
       && state.hashModule === expectedModuleId
       && state.activePanel === expectedPanelTarget
       && state.hashPanel === expectedPanelTarget
-      && state.hashCommand === expectedCommandId
+      && commandMatches(state.hashAction, expectedCommandId)
     ) {
       return state;
     }
     await delay(100);
   }
   const state = JSON.parse(await evaluate(cdp, moduleHistoryStateExpression()));
-  throw new Error(`Expected history state ${expectedModuleId}/${expectedPanelTarget}/${expectedCommandId}, got active=${state.activeModule}/${state.activePanel} hash=${state.hashModule}/${state.hashPanel}/${state.hashCommand}.`);
+  throw new Error(`Expected history state ${expectedModuleId}/${expectedPanelTarget}/${expectedCommandId}, got active=${state.activeModule}/${state.activePanel} hash=${state.hashModule}/${state.hashPanel}/${state.hashAction}.`);
 }
 
 async function assertDeepLink(cdp, requestedModuleId, expectedModuleId, requestedPanelTarget = "", expectedPanelTarget = requestedPanelTarget) {
@@ -1235,17 +2408,36 @@ function moduleHistoryStateExpression() {
     const activeModule = document.querySelector(".zr-module-main")?.dataset.moduleActive || "";
     const hashModule = new URLSearchParams(location.hash.replace(/^#/, "")).get("module") || "";
     const hashPanel = new URLSearchParams(location.hash.replace(/^#/, "")).get("panel") || "";
-    const hashCommand = new URLSearchParams(location.hash.replace(/^#/, "")).get("command") || "";
+    const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const hashAction = params.get("action") || params.get("command") || "";
     const activePanel = hashPanel && [...document.querySelectorAll(".zr-panel-view.is-active")]
       .some((view) => view.dataset.panelView === hashPanel)
       ? hashPanel
       : "";
-    return JSON.stringify({ activeModule, hashModule, activePanel, hashPanel, hashCommand });
+    return JSON.stringify({ activeModule, hashModule, activePanel, hashPanel, hashAction });
   })()`;
 }
 
 function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
+}
+
+function actionSelector(action) {
+  const leaf = actionRouteKey(action).replace(/-/g, "_");
+  return `[data-action="${cssEscape(action)}"], [data-action$=".${cssEscape(leaf)}"]`;
+}
+
+function scopedActionSelector(scope, action) {
+  return actionSelector(action)
+    .split(", ")
+    .map((selector) => `${scope} ${selector}`)
+    .join(", ");
+}
+
+function commandMatches(actual, expected) {
+  if (!expected) return actual === "";
+  if (actual === expected) return true;
+  return actionRouteKey(actual) === actionRouteKey(expected);
 }
 
 async function waitForJson(url, attempts = 80) {

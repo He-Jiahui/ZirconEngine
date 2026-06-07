@@ -1,6 +1,20 @@
+mod accessibility;
+mod analog;
+mod analog_navigation;
 mod dispatch;
+mod drag_drop;
+mod editable_text;
 mod effect;
+mod keyboard;
+mod keyboard_action;
+mod keyboard_clipboard;
 mod keyboard_navigation;
+mod mouse_motion;
+mod navigation;
+mod owner_route;
+mod pointer;
+mod pointer_reply;
+mod popup;
 mod route_policy;
 mod route_steps;
 mod state;
@@ -8,6 +22,7 @@ mod text_constraints;
 mod text_keyboard;
 mod text_pointer;
 mod text_state;
+mod tooltip_timer;
 mod validation;
 
 pub(crate) use dispatch::dispatch_input_event;

@@ -16,6 +16,7 @@ use super::super::viewport_generation_guard::validate_viewport_generation;
 use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
+use super::update_motion_vector_history::update_motion_vector_history_after_success;
 
 pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     server: &WgpuRenderFramework,
@@ -33,6 +34,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
             }
         };
     apply_submission_target_size_to_runtime_frame(&mut frame, &context);
+    apply_submission_output_target_to_runtime_frame(&mut frame, &context);
     apply_effective_advanced_extracts_to_runtime_frame(&mut frame, &context);
     apply_effective_post_process_graph_to_runtime_frame(&mut frame, &context);
     let mut state = server.lock_state();
@@ -52,11 +54,11 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     state.last_virtual_geometry_debug_snapshot = frame.virtual_geometry_debug_snapshot.clone();
-    let frame = attach_prepared_sidebands_to_runtime_frame(frame, &prepared);
-    let frame = {
+    let runtime_frame = attach_prepared_sidebands_to_runtime_frame(frame, &prepared);
+    let rendered_frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
         match state.renderer.render_frame_with_pipeline(
-            &frame,
+            &runtime_frame,
             context.compiled_pipeline(),
             resolved_history.current_history_handle(),
             resolved_history.previous_history_available(),
@@ -75,7 +77,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
             }
         }
     };
-    let frame_generation = frame.generation;
+    let frame_generation = rendered_frame.generation;
     state = finish_active_capture_and_relock(
         server,
         state,
@@ -94,9 +96,10 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
         &context,
         prepared,
         resolved_history.allocated_history(),
-        frame,
+        rendered_frame,
         runtime_feedback,
     );
+    update_motion_vector_history_after_success(record, &runtime_frame);
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);
     Ok(())
@@ -109,6 +112,13 @@ fn fail_pending_capture_after_preflight_error(
 ) {
     let mut state = server.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
+}
+
+fn apply_submission_output_target_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.output_target = context.output_target();
 }
 
 fn apply_submission_target_size_to_runtime_frame(
@@ -153,8 +163,10 @@ fn attach_prepared_sidebands_to_runtime_frame(
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
-        RenderPluginRendererOutputs, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        AdvancedProfileRuntimePlan, AdvancedProviderAvailability, FallbackSkyboxKind,
+        PreviewEnvironmentExtract, RenderCameraTargetKind, RenderCapabilitySummary,
+        RenderFrameExtract, RenderOverlayExtract, RenderPluginRendererOutputs, RenderProfileBundle,
+        RenderSceneGeometryExtract, RenderSceneSnapshot,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
         RenderWorldSnapshotHandle, ViewportCameraSnapshot,
     };
@@ -208,6 +220,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn direct_runtime_frame_submit_projects_resolved_output_target() {
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(45),
+            empty_scene_snapshot(),
+        );
+        let mut frame = ViewportRenderFrame::from_extract(extract, UVec2::new(1280, 720));
+        let context = frame_submission_context_with_output_target(
+            UVec2::new(96, 54),
+            crate::graphics::ViewportRenderOutputTarget::Headless {
+                size: UVec2::new(96, 54),
+            },
+        );
+
+        apply_submission_target_size_to_runtime_frame(&mut frame, &context);
+        apply_submission_output_target_to_runtime_frame(&mut frame, &context);
+
+        assert_eq!(frame.viewport_size, UVec2::new(96, 54));
+        assert_eq!(
+            frame.output_target().kind(),
+            RenderCameraTargetKind::Headless
+        );
+        assert_eq!(frame.output_target().size(), Some(UVec2::new(96, 54)));
+    }
+
     fn empty_scene_snapshot() -> RenderSceneSnapshot {
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -228,5 +265,85 @@ mod tests {
             },
             virtual_geometry_debug: None,
         }
+    }
+
+    fn frame_submission_context_with_output_target(
+        size: UVec2,
+        output_target: crate::graphics::ViewportRenderOutputTarget,
+    ) -> super::super::super::frame_submission_context::FrameSubmissionContext {
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(46),
+            empty_scene_snapshot(),
+        );
+        super::super::super::frame_submission_context::FrameSubmissionContext::new(
+            size,
+            size,
+            crate::core::framework::render::RenderPipelineHandle::new(1),
+            0,
+            None,
+            empty_pipeline(),
+            crate::VisibilityContext::from_extract(&extract),
+            None,
+            None,
+            Default::default(),
+            None,
+            output_target,
+            Default::default(),
+            None,
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            default_render_advanced_runtime_plan(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            false,
+            false,
+            None,
+            Default::default(),
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            None,
+            Default::default(),
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+            1,
+        )
+    }
+
+    fn empty_pipeline() -> crate::CompiledRenderPipeline {
+        let graph = crate::render_graph::RenderGraphBuilder::new("direct-runtime-frame-test")
+            .compile()
+            .unwrap();
+        crate::CompiledRenderPipeline {
+            handle: crate::core::framework::render::RenderPipelineHandle::new(1),
+            name: "empty".to_string(),
+            renderer_name: "empty".to_string(),
+            stages: vec![crate::RenderPassStage::Opaque3d],
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            graph,
+        }
+    }
+
+    fn default_render_advanced_runtime_plan() -> AdvancedProfileRuntimePlan {
+        AdvancedProfileRuntimePlan::from_profile_bundle(
+            &RenderProfileBundle::default_render(),
+            &RenderCapabilitySummary::default(),
+            &AdvancedProviderAvailability::new(),
+        )
     }
 }

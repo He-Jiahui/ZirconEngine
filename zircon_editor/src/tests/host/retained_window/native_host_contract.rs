@@ -2491,7 +2491,7 @@ fn rust_owned_host_painter_draws_open_nested_menu_popup() {
                 enabled: true,
                 children: model_rc(vec![HostMenuChromeItemData {
                     label: "Refresh Clouds".into(),
-                    action_id: "Weather.CloudLayer.Refresh".into(),
+                    action_id: "weather.cloud_layer.refresh".into(),
                     enabled: true,
                     ..HostMenuChromeItemData::default()
                 }]),

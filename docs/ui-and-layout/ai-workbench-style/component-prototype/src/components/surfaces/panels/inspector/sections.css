@@ -1,0 +1,20 @@
+.zr-section {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #2c3338;
+}
+
+.zr-section.is-mesh-renderer {
+  margin-top: 19px;
+  padding-top: 10px;
+}
+
+.zr-section-title {
+  height: 24px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 20px 18px;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-strong);
+  font-weight: 600;
+}

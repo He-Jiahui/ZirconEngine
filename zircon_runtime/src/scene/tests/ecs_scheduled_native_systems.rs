@@ -4,7 +4,7 @@ use crate::scene::components::Name;
 use crate::scene::ecs::{
     Added, Changed, Commands, CommandsParam, Component, Message, MessageReader, MessageReaderParam,
     Query, QueryState, RemovedComponents, RemovedComponentsParam, ScheduleConflictNodeKind,
-    ScheduledSceneStep, SystemStage, With,
+    ScheduledSceneStep, ScheduledSceneStepRef, SystemStage, With,
 };
 use crate::scene::{EntityId, World};
 
@@ -215,15 +215,14 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
 
     let native_steps = world.scheduled_native_system_steps_for_stage(SystemStage::Update);
     let step_labels =
-        ScheduledSceneStep::sorted_for_stage(SystemStage::Update, &[], native_steps, &[])
-            .into_iter()
+        ScheduledSceneStep::iter_sorted_for_stage(SystemStage::Update, &[], &native_steps, &[])
             .map(|step| match step {
-                ScheduledSceneStep::Native { id, .. } => format!("native:{id}"),
-                ScheduledSceneStep::ApplyDeferred {
+                ScheduledSceneStepRef::Native { id, .. } => format!("native:{id}"),
+                ScheduledSceneStepRef::ApplyDeferred {
                     after_system_id, ..
                 } => format!("apply_deferred:{after_system_id}"),
-                ScheduledSceneStep::Internal(_) => "internal".to_string(),
-                ScheduledSceneStep::Hook(_) => "hook".to_string(),
+                ScheduledSceneStepRef::Internal(_) => "internal".to_string(),
+                ScheduledSceneStepRef::Hook(_) => "hook".to_string(),
             })
             .collect::<Vec<_>>();
 
@@ -241,20 +240,118 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
 #[test]
 fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let driver_source = include_str!("../module/world_driver.rs");
-    assert!(driver_source.contains("let hooks = core.scene_runtime_hooks_snapshot();"));
-    assert!(driver_source.contains("&systems, &hooks"));
+    assert!(driver_source.contains("let hooks = core.scene_runtime_hook_stage_plan_snapshot();"));
+    assert!(driver_source
+        .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());"));
+    assert!(driver_source.contains("schedule.internal_systems_for_stage(*stage)"));
+    assert!(driver_source.contains("schedule.native_steps_for_stage(*stage)"));
+    assert!(driver_source.contains("hooks.hooks_for_stage(*stage)"));
+    assert!(!driver_source.contains("world.schedule().systems().to_vec()"));
     assert!(!driver_source.contains("systems_for_stage(&systems"));
     assert!(!driver_source.contains("scene_runtime_hooks_for_stage(stage)"));
 
+    let runtime_extensions_source = include_str!("../../core/runtime/handle/runtime_extensions.rs");
+    assert!(runtime_extensions_source.contains("scene_runtime_hook_stage_plan_snapshot"));
+    assert!(runtime_extensions_source.contains(") -> Arc<SceneRuntimeHookStagePlan>"));
+    assert!(!runtime_extensions_source.contains("fn scene_runtime_hooks_snapshot("));
+
+    let hook_state_source = include_str!("../../core/runtime/state/scene_runtime_hooks.rs");
+    assert!(hook_state_source.contains("stage_plan: Arc<SceneRuntimeHookStagePlan>"));
+    assert!(hook_state_source.contains("Arc::new(SceneRuntimeHookStagePlan::from_ordered"));
+    assert!(hook_state_source.contains("Arc::clone(&self.stage_plan)"));
+    assert!(hook_state_source
+        .contains("fn from_ordered(ordered: &[SceneRuntimeHookRegistration]) -> Self"));
+    assert!(hook_state_source.contains("let stage_hook_counts = hook_counts_by_stage(ordered);"));
+    assert!(hook_state_source
+        .contains("let mut by_stage = hook_groups_with_capacity(&stage_hook_counts);"));
+    assert!(hook_state_source.contains("fn hook_counts_by_stage("));
+    assert!(hook_state_source.contains("counts[hook.descriptor().stage.rank()] += 1;"));
+    assert!(hook_state_source.contains("fn hook_groups_with_capacity("));
+    assert!(hook_state_source.contains("Vec::with_capacity(stage_hook_counts[stage_index])"));
+    assert!(!hook_state_source.contains(
+        "ordered: Vec<SceneRuntimeHookRegistration>,\n    by_stage: [Vec<SceneRuntimeHookRegistration>; SystemStage::COUNT],"
+    ));
+    assert!(!hook_state_source.contains("let mut by_stage = empty_hook_groups();"));
+    assert!(!hook_state_source.contains("by_stage: self.by_stage.clone()"));
+    assert!(!hook_state_source
+        .contains("#[derive(Clone, Debug)]\npub(crate) struct SceneRuntimeHookStagePlan"));
+
     let runner_source = include_str!("../ecs/schedule_runner.rs");
     assert!(runner_source.contains("internal_systems: &[SceneSystemDescriptor]"));
+    assert!(runner_source.contains("native_steps: &[ScheduledSceneStep]"));
     assert!(runner_source.contains("hooks: &[SceneRuntimeHookRegistration]"));
+    assert!(runner_source.contains("ScheduledSceneStep::iter_sorted_for_stage("));
+    assert!(runner_source.contains("ScheduledSceneStepRef::Internal(system)"));
+    assert!(!runner_source.contains("ScheduledSceneStep::sorted_for_stage("));
+    assert!(!runner_source.contains("let steps ="));
+    assert!(!runner_source.contains("scheduled_native_system_steps_for_stage(stage)"));
 
     let step_source = include_str!("../ecs/system/native/scheduled_scene_step.rs");
+    assert!(step_source.contains("pub(crate) struct SortedScheduledSceneSteps<'a>"));
+    assert!(step_source.contains("type Item = ScheduledSceneStepRef<'a>;"));
+    assert!(step_source.contains("pub(crate) enum ScheduledSceneStepRef<'a>"));
+    assert!(step_source.contains("fn compare_step_refs("));
+    assert!(!step_source.contains("pub(crate) fn sorted_for_stage("));
+    assert!(!step_source.contains("fn to_owned_step("));
+    assert!(!step_source.contains("Internal(SceneSystemDescriptor)"));
+    assert!(!step_source.contains("Hook(SceneRuntimeHookRegistration)"));
     assert!(step_source.contains("internal_systems: &[SceneSystemDescriptor]"));
+    assert!(step_source.contains("native_steps: &[Self]"));
     assert!(step_source.contains("hooks: &[SceneRuntimeHookRegistration]"));
+    assert!(step_source
+        .contains("debug_assert!(internal_systems.iter().all(|system| system.stage == stage));"));
+    assert!(step_source
+        .contains("debug_assert!(hooks.iter().all(|hook| hook.descriptor().stage == stage));"));
     assert!(!step_source.contains("internal_systems: Vec<SceneSystemDescriptor>"));
+    assert!(!step_source.contains("native_steps: Vec<Self>"));
     assert!(!step_source.contains("hooks: Vec<SceneRuntimeHookRegistration>"));
+    assert!(!step_source.contains("filter(|system| system.stage == stage)"));
+    assert!(!step_source.contains("filter(|hook| hook.descriptor().stage == stage)"));
+
+    let schedule_source = include_str!("../ecs/schedule_stage_plan.rs");
+    assert!(schedule_source.contains("struct SceneScheduleStagePlan"));
+    assert!(schedule_source.contains("from_registry("));
+    assert!(!schedule_source.contains("from_schedule("));
+    assert!(schedule_source
+        .contains("internal_systems_by_stage: [Vec<SceneSystemDescriptor>; SystemStage::COUNT]"));
+    assert!(schedule_source
+        .contains("native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT]"));
+    assert!(schedule_source.contains("let systems = registry.systems();"));
+    assert!(schedule_source
+        .contains("let internal_system_counts = internal_system_counts_by_stage(systems);"));
+    assert!(schedule_source.contains(
+        "let mut internal_systems_by_stage =\n            internal_system_groups_with_capacity(&internal_system_counts);"
+    ));
+    assert!(schedule_source.contains("fn internal_system_counts_by_stage("));
+    assert!(schedule_source.contains("counts[system.stage.rank()] += 1;"));
+    assert!(schedule_source.contains("fn internal_system_groups_with_capacity("));
+    assert!(schedule_source.contains("Vec::with_capacity(internal_system_counts[stage_index])"));
+    assert!(!schedule_source.contains("fn empty_internal_system_groups("));
+    assert!(!schedule_source.contains("std::array::from_fn(|_| Vec::new())"));
+
+    let schedule_owner_source = include_str!("../ecs/schedule.rs");
+    assert!(schedule_owner_source.contains("executor_plan: Arc<SceneScheduleStagePlan>"));
+    assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
+    assert!(schedule_owner_source.contains("fn refresh_executor_plan(&mut self)"));
+    assert!(schedule_owner_source.contains("self.refresh_executor_plan();"));
+    assert!(schedule_owner_source.contains("impl<'de> Deserialize<'de> for Schedule"));
+    assert!(schedule_owner_source.contains("impl Clone for Schedule"));
+    assert!(!schedule_owner_source.contains("pub stages: Vec<SystemStage>"));
+    assert!(!schedule_owner_source.contains("SceneScheduleStagePlan::from_schedule(self)"));
+
+    let registry_source = include_str!("../ecs/scene_system_registry.rs");
+    assert!(registry_source.contains("native_system_steps_by_stage("));
+    assert!(registry_source
+        .contains("let native_step_counts = native_step_counts_by_stage(&self.native_systems);"));
+    assert!(registry_source
+        .contains("let mut by_stage = native_step_groups_with_capacity(&native_step_counts);"));
+    assert!(registry_source.contains("fn native_step_counts_by_stage("));
+    assert!(registry_source.contains("let step_count = if system.has_deferred_commands() {"));
+    assert!(registry_source.contains("counts[system.stage().rank()] += step_count;"));
+    assert!(registry_source.contains("fn native_step_groups_with_capacity("));
+    assert!(registry_source.contains("Vec::with_capacity(native_step_counts[stage_index])"));
+    assert!(!registry_source.contains("fn empty_native_step_groups("));
+    assert!(!registry_source.contains("std::array::from_fn(|_| Vec::new())"));
 }
 
 #[test]

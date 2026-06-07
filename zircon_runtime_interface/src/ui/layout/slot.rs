@@ -88,12 +88,14 @@ pub enum UiSlotKind {
     Scale,
 }
 
-/// Parent-owned anchor placement payload for Free/Canvas-like panels. Runtime
-/// arrange still decides when this preserved contract starts replacing node defaults.
+/// Parent-owned anchor placement payload consumed by Free/Canvas-like panels
+/// before falling back to child node default placement.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiCanvasSlotPlacement {
     #[serde(default)]
     pub anchor: Anchor,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor_max: Option<Anchor>,
     #[serde(default)]
     pub pivot: Pivot,
     #[serde(default)]
@@ -108,11 +110,21 @@ impl UiCanvasSlotPlacement {
     pub const fn new(anchor: Anchor, pivot: Pivot, position: Position) -> Self {
         Self {
             anchor,
+            anchor_max: None,
             pivot,
             position,
             offset: UiMargin::new(0.0, 0.0, 0.0, 0.0),
             auto_size: false,
         }
+    }
+
+    pub fn with_anchor_max(mut self, anchor_max: Anchor) -> Self {
+        self.anchor_max = Some(anchor_max);
+        self
+    }
+
+    pub fn resolved_anchor_max(self) -> Anchor {
+        self.anchor_max.unwrap_or(self.anchor)
     }
 
     pub fn with_offset(mut self, offset: UiMargin) -> Self {

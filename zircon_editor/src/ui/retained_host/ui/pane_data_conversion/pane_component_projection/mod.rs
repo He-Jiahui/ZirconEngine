@@ -887,13 +887,7 @@ fn primary_click_action_id(
     bindings
         .iter()
         .find(|binding| binding.event_kind == UiEventKind::Click)
-        .map(|binding| {
-            if binding.action_id.is_empty() {
-                binding_path_action_id(&binding.binding_id)
-            } else {
-                binding.action_id.clone()
-            }
-        })
+        .and_then(|binding| (!binding.action_id.is_empty()).then(|| binding.action_id.clone()))
 }
 
 fn primary_change_action_id(

@@ -1,0 +1,48 @@
+.zr-map-point {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: rgba(13, 18, 20, 0.9);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.zr-map-point span {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 5px);
+  transform: translateX(-50%);
+  color: #dbe6ea;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.zr-map-point.is-agent.is-1 {
+  left: 34%;
+  top: 18%;
+}
+
+.zr-map-point.is-agent.is-2 {
+  right: 26%;
+  top: 36%;
+}
+
+.zr-map-point.is-agent.is-3 {
+  left: 42%;
+  bottom: 20%;
+}
+
+.zr-map-point.is-hostile {
+  right: 20%;
+  bottom: 24%;
+  color: var(--red);
+}
+
+.zr-map-point.is-sound {
+  left: 25%;
+  top: 43%;
+  color: #b875ff;
+}

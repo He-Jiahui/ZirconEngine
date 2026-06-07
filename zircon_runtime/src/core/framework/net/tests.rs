@@ -25,6 +25,24 @@ fn endpoint_transport_and_security_policy_are_neutral_contracts() {
         serde_json::from_value::<NetSecurityPolicy>(json).unwrap(),
         policy
     );
+
+    let diagnostics = NetDiagnostics {
+        backend_name: "tokio-net+http+websocket".to_string(),
+        mode: NetRuntimeMode::DedicatedServer,
+        open_udp_sockets: 1,
+        open_tcp_listeners: 2,
+        open_http_listeners: 3,
+        open_websocket_listeners: 4,
+        open_tcp_connections: 5,
+        open_http_routes: 6,
+        open_websocket_connections: 7,
+        queued_events: 8,
+    };
+    let json = serde_json::to_value(&diagnostics).unwrap();
+    assert_eq!(
+        serde_json::from_value::<NetDiagnostics>(json).unwrap(),
+        diagnostics
+    );
 }
 
 #[test]
@@ -89,6 +107,34 @@ fn http_and_websocket_descriptors_keep_protocol_state_data_only() {
     assert_eq!(
         serde_json::from_value::<NetWebSocketFrame>(json).unwrap(),
         close
+    );
+
+    let events = vec![
+        NetEvent::UdpSocketClosed {
+            socket: NetSocketId::new(2),
+        },
+        NetEvent::ListenerClosed {
+            listener: NetListenerId::new(3),
+            transport: NetTransportKind::Http,
+        },
+        NetEvent::ConnectionAccepted {
+            listener: NetListenerId::new(8),
+            connection: NetConnectionId::new(9),
+            transport: NetTransportKind::WebSocket,
+            remote: NetEndpoint::new("127.0.0.1", 9010),
+        },
+        NetEvent::ConnectionClosed {
+            connection: NetConnectionId::new(9),
+            transport: NetTransportKind::WebSocket,
+        },
+        NetEvent::HttpRouteUnregistered {
+            route: NetRouteId::new(4),
+        },
+    ];
+    let json = serde_json::to_value(&events).unwrap();
+    assert_eq!(
+        serde_json::from_value::<Vec<NetEvent>>(json).unwrap(),
+        events
     );
 }
 

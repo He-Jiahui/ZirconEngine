@@ -144,16 +144,16 @@ Observed Material lab examples:
 
 | Surface | Observed icon usage | Deferral note |
 | --- | --- | --- |
-| `zircon_editor/assets/ui/editor/material_components/material_floating_action_button.zui` | `IconButton` samples use `icon = "add"` and `icon = "edit"`; the extended `Button` sample also uses `icon = "add"`. | Material FAB examples are generic component states, not Editor page/function roles. |
-| `zircon_editor/assets/ui/editor/material_components/material_speed_dial.zui` | `IconButton` sample exists without a concrete `icon` or Ionicons `value` prop. | Component behavior sample, no production icon role to map. |
-| `zircon_editor/assets/ui/editor/material_components/material_icons.zui` | `Icon` sample exists without a concrete `icon` or Ionicons `value` prop. | Icon component showcase, no production icon role to map. |
+| `zircon_editor/assets/ui/editor/material_components/inputs/material_floating_action_button.zui` | `IconButton` samples use `icon = "add"` and `icon = "edit"`; the extended `Button` sample also uses `icon = "add"`. | Material FAB examples are generic component states, not Editor page/function roles. |
+| `zircon_editor/assets/ui/editor/material_components/feedback/material_speed_dial.zui` | `IconButton` sample exists without a concrete `icon` or Ionicons `value` prop. | Component behavior sample, no production icon role to map. |
+| `zircon_editor/assets/ui/editor/material_components/data_display/material_icons.zui` | `Icon` sample exists without a concrete `icon` or Ionicons `value` prop. | Icon component showcase, no production icon role to map. |
 
 Other non-production `.zui` showcase examples observed during validation, also deferred:
 
 | Surface | Observed icon usage | Deferral note |
 | --- | --- | --- |
-| `zircon_editor/assets/ui/editor/components/showcase_input_section.zui` | `IconButton` sample uses `icon = "add-outline"`. | Generic input showcase, not production shell chrome. |
-| `zircon_editor/assets/ui/editor/components/showcase_visual_section.zui` | `Icon` sample uses `icon = "options-outline"` and `value = "ionicons/options-outline.svg"`. | Generic visual showcase, not production shell chrome. |
+| `zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui` | `IconButton` sample uses `icon = "add-outline"`. | Generic input showcase, not production shell chrome. |
+| `zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui` | `Icon` sample uses `icon = "options-outline"` and `value = "ionicons/options-outline.svg"`. | Generic visual showcase, not production shell chrome. |
 
 Demo and showcase `.v2.ui.toml` files are also outside the first production mapping scope unless a future plan elects to map demos. They are demo surfaces rather than builtin production shell templates for this milestone.
 

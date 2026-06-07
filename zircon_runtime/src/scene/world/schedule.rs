@@ -1,7 +1,7 @@
 use super::World;
-use crate::scene::ecs::{
-    IntoSceneSystem, Schedule, ScheduleError, ScheduledSceneStep, SystemParam, SystemStage,
-};
+#[cfg(test)]
+use crate::scene::ecs::ScheduledSceneStep;
+use crate::scene::ecs::{IntoSceneSystem, Schedule, ScheduleError, SystemParam, SystemStage};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
@@ -30,6 +30,7 @@ impl World {
         result
     }
 
+    #[cfg(test)]
     pub(crate) fn scheduled_native_system_steps_for_stage(
         &self,
         stage: SystemStage,
@@ -67,7 +68,6 @@ impl World {
                     self.run_native_scene_system(&id);
                 }
                 ScheduledSceneStep::ApplyDeferred { .. } => self.apply_deferred(),
-                ScheduledSceneStep::Internal(_) | ScheduledSceneStep::Hook(_) => {}
             }
         }
     }

@@ -1,7 +1,9 @@
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderPipelineHandle, SolariRuntimeReport,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use crate::graphics::ViewportMotionVectorObjectHistory;
 
 use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot};
 
@@ -11,6 +13,8 @@ pub(super) struct ViewportRecordState {
     viewport_generation: u64,
     quality_profile: Option<String>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
+    previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+    previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
     pipeline_asset: RenderPipelineAsset,
     compile_options: RenderPipelineCompileOptions,
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
@@ -27,6 +31,8 @@ impl ViewportRecordState {
         viewport_generation: u64,
         quality_profile: Option<String>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
+        previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+        previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
         pipeline_asset: RenderPipelineAsset,
         compile_options: RenderPipelineCompileOptions,
         advanced_runtime_plan: AdvancedProfileRuntimePlan,
@@ -40,6 +46,8 @@ impl ViewportRecordState {
             viewport_generation,
             quality_profile,
             previous_visibility,
+            previous_motion_vector_camera,
+            previous_motion_vector_object_history,
             pipeline_asset,
             compile_options,
             advanced_runtime_plan,
@@ -63,6 +71,16 @@ impl ViewportRecordState {
 
     pub(super) fn previous_visibility(&self) -> Option<&VisibilityHistorySnapshot> {
         self.previous_visibility.as_ref()
+    }
+
+    pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
+        self.previous_motion_vector_camera.as_ref()
+    }
+
+    pub(super) fn previous_motion_vector_object_history(
+        &self,
+    ) -> Option<&ViewportMotionVectorObjectHistory> {
+        self.previous_motion_vector_object_history.as_ref()
     }
 
     pub(super) fn pipeline_asset(&self) -> &RenderPipelineAsset {

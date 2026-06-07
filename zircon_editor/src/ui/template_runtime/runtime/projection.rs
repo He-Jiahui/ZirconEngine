@@ -6,7 +6,7 @@ use crate::ui::template::{
 use toml::Value;
 use zircon_runtime::ui::template::UiTemplateInstance;
 use zircon_runtime::ui::v2::UiV2CompiledDocument;
-use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId, template::UiTemplateNode, v2::UiV2NodeHandle,
 };

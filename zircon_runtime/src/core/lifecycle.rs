@@ -26,10 +26,14 @@ pub enum ServiceKind {
 
 impl ServiceKind {
     pub fn from_registry_segment(value: &str) -> Option<Self> {
+        Self::from_registry_segment_bytes(value.as_bytes())
+    }
+
+    pub(crate) fn from_registry_segment_bytes(value: &[u8]) -> Option<Self> {
         match value {
-            "Driver" => Some(Self::Driver),
-            "Manager" => Some(Self::Manager),
-            "Plugin" => Some(Self::Plugin),
+            b"Driver" => Some(Self::Driver),
+            b"Manager" => Some(Self::Manager),
+            b"Plugin" => Some(Self::Plugin),
             _ => None,
         }
     }

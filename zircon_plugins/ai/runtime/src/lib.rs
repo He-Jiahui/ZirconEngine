@@ -68,7 +68,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
             zircon_runtime::plugin::CapabilityStatus::Partial,
         )
         .with_note(
-            "Foundational AI runtime package; behavior-tree execution is intentionally staged behind manager contracts.",
+            "Foundational AI runtime package; deterministic selector/sequence/task execution and blackboard decorators are available while advanced node families remain partial.",
         ),
     )
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(

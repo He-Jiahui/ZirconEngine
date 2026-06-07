@@ -241,21 +241,7 @@ fn material_ui_component_design_matrix_names_existing_zui_prototypes() {
     );
 
     let prototype_dir = workspace_root().join("zircon_editor/assets/ui/editor/material_components");
-    let prototype_files = fs::read_dir(&prototype_dir)
-        .unwrap_or_else(|error| {
-            panic!(
-                "Material prototype directory is readable at {}: {error}",
-                prototype_dir.display()
-            )
-        })
-        .map(|entry| {
-            entry
-                .expect("prototype dir entry is readable")
-                .file_name()
-                .to_string_lossy()
-                .to_string()
-        })
-        .collect::<BTreeSet<_>>();
+    let prototype_files = collect_material_prototype_file_names(&prototype_dir);
 
     for reference in references {
         assert!(
@@ -263,6 +249,35 @@ fn material_ui_component_design_matrix_names_existing_zui_prototypes() {
             "design matrix references `{reference}`, but no matching Material prototype file exists"
         );
     }
+}
+
+fn collect_material_prototype_file_names(prototype_dir: &Path) -> BTreeSet<String> {
+    let mut files = BTreeSet::new();
+    for entry in fs::read_dir(prototype_dir).unwrap_or_else(|error| {
+        panic!(
+            "Material prototype directory is readable at {}: {error}",
+            prototype_dir.display()
+        )
+    }) {
+        let path = entry.expect("prototype dir entry is readable").path();
+        if path.is_dir() {
+            files.extend(collect_material_prototype_file_names(&path));
+            continue;
+        }
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("material_") && name.ends_with(".zui"))
+        {
+            files.insert(
+                path.file_name()
+                    .expect("prototype path has a file name")
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        }
+    }
+    files
 }
 
 fn collect_mui_docs_components() -> BTreeSet<String> {

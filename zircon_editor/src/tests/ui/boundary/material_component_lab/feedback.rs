@@ -17,302 +17,300 @@ const EXPECTED_INTERACTION_FEEDBACK: &[(&str, &str, &str, &str)] = &[
         "accordion",
         "MaterialLab/Accordion/Toggle",
         "Toggle",
-        "MaterialLab.Accordion.Toggle",
+        "material_lab.accordion.toggle",
     ),
     (
         "autocomplete",
         "MaterialLab/Autocomplete/Change",
         "Change",
-        "MaterialLab.Autocomplete.Change",
+        "material_lab.autocomplete.change",
     ),
     (
         "backdrop",
         "MaterialLab/Backdrop/Click",
         "Click",
-        "MaterialLab.Backdrop.Click",
+        "material_lab.backdrop.click",
     ),
     (
         "bottom_navigation",
         "MaterialLab/BottomNavigation/Change",
         "Change",
-        "MaterialLab.BottomNavigation.Change",
+        "material_lab.bottom_navigation.change",
     ),
     (
         "breadcrumbs",
         "MaterialLab/Breadcrumbs/Click",
         "Click",
-        "MaterialLab.Breadcrumbs.Click",
+        "material_lab.breadcrumbs.click",
     ),
     (
         "buttons",
         "MaterialLab/Buttons/Click",
         "Click",
-        "MaterialLab.Buttons.Click",
+        "material_lab.buttons.click",
     ),
     (
         "cards",
         "MaterialLab/Cards/Click",
         "Click",
-        "MaterialLab.Cards.Click",
+        "material_lab.cards.click",
     ),
     (
         "checkboxes",
         "MaterialLab/Checkboxes/Toggle",
         "Toggle",
-        "MaterialLab.Checkboxes.Toggle",
+        "material_lab.checkboxes.toggle",
     ),
     (
         "chips",
         "MaterialLab/Chips/Click",
         "Click",
-        "MaterialLab.Chips.Click",
+        "material_lab.chips.click",
     ),
     (
         "dialogs",
         "MaterialLab/Dialogs/Click",
         "Click",
-        "MaterialLab.Dialogs.Click",
+        "material_lab.dialogs.click",
     ),
     (
         "drawers",
         "MaterialLab/Drawers/Click",
         "Click",
-        "MaterialLab.Drawers.Click",
+        "material_lab.drawers.click",
     ),
     (
         "floating_action_button",
         "MaterialLab/FloatingActionButton/Click",
         "Click",
-        "MaterialLab.FloatingActionButton.Click",
+        "material_lab.floating_action_button.click",
     ),
     (
         "image_list",
         "MaterialLab/ImageList/Click",
         "Click",
-        "MaterialLab.ImageList.Click",
+        "material_lab.image_list.click",
     ),
     (
         "links",
         "MaterialLab/Links/Click",
         "Click",
-        "MaterialLab.Links.Click",
+        "material_lab.links.click",
     ),
     (
         "lists",
         "MaterialLab/Lists/Click",
         "Click",
-        "MaterialLab.Lists.Click",
+        "material_lab.lists.click",
     ),
     (
         "menubar",
         "MaterialLab/Menubar/Click",
         "Click",
-        "MaterialLab.Menubar.Click",
+        "material_lab.menubar.click",
     ),
     (
         "menus",
         "MaterialLab/Menus/Click",
         "Click",
-        "MaterialLab.Menus.Click",
+        "material_lab.menus.click",
     ),
     (
         "modal",
         "MaterialLab/Modal/Click",
         "Click",
-        "MaterialLab.Modal.Click",
+        "material_lab.modal.click",
     ),
     (
         "mui_x_agent_chat",
         "MaterialLab/MuiXAgentChat/Submit",
         "Submit",
-        "MaterialLab.MuiXAgentChat.Submit",
+        "material_lab.mui_x_agent_chat.submit",
     ),
     (
         "mui_x_bar_chart",
         "MaterialLab/MuiXBarChart/Hover",
         "Hover",
-        "MaterialLab.MuiXBarChart.Hover",
+        "material_lab.mui_x_bar_chart.hover",
     ),
     (
         "mui_x_charts",
         "MaterialLab/MuiXCharts/Hover",
         "Hover",
-        "MaterialLab.MuiXCharts.Hover",
+        "material_lab.mui_x_charts.hover",
     ),
     (
         "mui_x_chat_composer",
         "MaterialLab/MuiXChatComposer/Submit",
         "Submit",
-        "MaterialLab.MuiXChatComposer.Submit",
+        "material_lab.mui_x_chat_composer.submit",
     ),
     (
         "mui_x_data_grid",
         "MaterialLab/MuiXDataGrid/Click",
         "Click",
-        "MaterialLab.MuiXDataGrid.Click",
+        "material_lab.mui_x_data_grid.click",
     ),
     (
         "mui_x_date_time_pickers",
         "MaterialLab/MuiXDateTimePickers/Submit",
         "Submit",
-        "MaterialLab.MuiXDateTimePickers.Submit",
+        "material_lab.mui_x_date_time_pickers.submit",
     ),
     (
         "mui_x_gauge",
         "MaterialLab/MuiXGauge/Hover",
         "Hover",
-        "MaterialLab.MuiXGauge.Hover",
+        "material_lab.mui_x_gauge.hover",
     ),
     (
         "mui_x_line_chart",
         "MaterialLab/MuiXLineChart/Hover",
         "Hover",
-        "MaterialLab.MuiXLineChart.Hover",
+        "material_lab.mui_x_line_chart.hover",
     ),
     (
         "mui_x_pie_chart",
         "MaterialLab/MuiXPieChart/Hover",
         "Hover",
-        "MaterialLab.MuiXPieChart.Hover",
+        "material_lab.mui_x_pie_chart.hover",
     ),
     (
         "mui_x_sparkline",
         "MaterialLab/MuiXSparkline/Hover",
         "Hover",
-        "MaterialLab.MuiXSparkline.Hover",
+        "material_lab.mui_x_sparkline.hover",
     ),
     (
         "mui_x_tree_view",
         "MaterialLab/MuiXTreeView/Toggle",
         "Toggle",
-        "MaterialLab.MuiXTreeView.Toggle",
+        "material_lab.mui_x_tree_view.toggle",
     ),
     (
         "number_field",
         "MaterialLab/NumberField/Change",
         "Change",
-        "MaterialLab.NumberField.Change",
+        "material_lab.number_field.change",
     ),
     (
         "pagination",
         "MaterialLab/Pagination/Change",
         "Change",
-        "MaterialLab.Pagination.Change",
+        "material_lab.pagination.change",
     ),
     (
         "popover",
         "MaterialLab/Popover/Click",
         "Click",
-        "MaterialLab.Popover.Click",
+        "material_lab.popover.click",
     ),
     (
         "popper",
         "MaterialLab/Popper/Click",
         "Click",
-        "MaterialLab.Popper.Click",
+        "material_lab.popper.click",
     ),
     (
         "radio_buttons",
         "MaterialLab/RadioButtons/Change",
         "Change",
-        "MaterialLab.RadioButtons.Change",
+        "material_lab.radio_buttons.change",
     ),
     (
         "rating",
         "MaterialLab/Rating/Change",
         "Change",
-        "MaterialLab.Rating.Change",
+        "material_lab.rating.change",
     ),
     (
         "selects",
         "MaterialLab/Selects/Change",
         "Change",
-        "MaterialLab.Selects.Change",
+        "material_lab.selects.change",
     ),
     (
         "slider",
         "MaterialLab/Slider/DragUpdate",
         "DragUpdate",
-        "MaterialLab.Slider.DragUpdate",
+        "material_lab.slider.drag_update",
     ),
     (
         "snackbars",
         "MaterialLab/Snackbars/Click",
         "Click",
-        "MaterialLab.Snackbars.Click",
+        "material_lab.snackbars.click",
     ),
     (
         "speed_dial",
         "MaterialLab/SpeedDial/Click",
         "Click",
-        "MaterialLab.SpeedDial.Click",
+        "material_lab.speed_dial.click",
     ),
     (
         "steppers",
         "MaterialLab/Steppers/Change",
         "Change",
-        "MaterialLab.Steppers.Change",
+        "material_lab.steppers.change",
     ),
     (
         "switches",
         "MaterialLab/Switches/Toggle",
         "Toggle",
-        "MaterialLab.Switches.Toggle",
+        "material_lab.switches.toggle",
     ),
     (
         "table",
         "MaterialLab/Table/Click",
         "Click",
-        "MaterialLab.Table.Click",
+        "material_lab.table.click",
     ),
     (
         "tabs",
         "MaterialLab/Tabs/Change",
         "Change",
-        "MaterialLab.Tabs.Change",
+        "material_lab.tabs.change",
     ),
     (
         "text_fields",
         "MaterialLab/TextFields/Change",
         "Change",
-        "MaterialLab.TextFields.Change",
+        "material_lab.text_fields.change",
     ),
     (
         "textarea_autosize",
         "MaterialLab/TextareaAutosize/Change",
         "Change",
-        "MaterialLab.TextareaAutosize.Change",
+        "material_lab.textarea_autosize.change",
     ),
     (
         "toggle_button",
         "MaterialLab/ToggleButton/Toggle",
         "Toggle",
-        "MaterialLab.ToggleButton.Toggle",
+        "material_lab.toggle_button.toggle",
     ),
     (
         "tooltips",
         "MaterialLab/Tooltips/Hover",
         "Hover",
-        "MaterialLab.Tooltips.Hover",
+        "material_lab.tooltips.hover",
     ),
     (
         "transfer_list",
         "MaterialLab/TransferList/Change",
         "Change",
-        "MaterialLab.TransferList.Change",
+        "material_lab.transfer_list.change",
     ),
 ];
 
 #[test]
 fn material_component_lab_mui_x_prototypes_define_feedback_routes() {
     for key in MUI_X_PROTOTYPES {
-        let path = editor_asset(&format!(
-            "assets/ui/editor/material_components/material_{key}.zui"
-        ));
+        let path = material_prototype_path(key);
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
         assert!(
-            source.contains("MaterialLab/") && source.contains("route = \"MaterialLab."),
+            source.contains("MaterialLab/") && source.contains("route = \"material_lab."),
             "{} should define a Material Lab feedback route for MUI X interaction evidence",
             path.display()
         );
@@ -495,7 +493,8 @@ fn material_component_lab_feedback_route_inventory_matches_expected_interactions
 
 #[test]
 fn material_button_group_uses_child_segment_routes_without_sample_feedback_route() {
-    let path = editor_asset("assets/ui/editor/material_components/material_button_group.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/inputs/material_button_group.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -526,17 +525,17 @@ fn material_button_group_uses_child_segment_routes_without_sample_feedback_route
         (
             "segment_first",
             "ButtonGroup/First/Click",
-            "ButtonGroup.First.Click",
+            "button_group.first.click",
         ),
         (
             "segment_middle",
             "ButtonGroup/Middle/Click",
-            "ButtonGroup.Middle.Click",
+            "button_group.middle.click",
         ),
         (
             "segment_last",
             "ButtonGroup/Last/Click",
-            "ButtonGroup.Last.Click",
+            "button_group.last.click",
         ),
     ] {
         let segment = document
@@ -611,8 +610,9 @@ fn material_button_group_child_routes_are_registered_as_structural_builtin_bindi
 
 #[test]
 fn material_floating_action_button_sample_covers_circular_small_and_extended_shapes() {
-    let path =
-        editor_asset("assets/ui/editor/material_components/material_floating_action_button.zui");
+    let path = editor_asset(
+        "assets/ui/editor/material_components/inputs/material_floating_action_button.zui",
+    );
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

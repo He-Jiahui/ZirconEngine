@@ -30,34 +30,6 @@ impl HubPage {
         }
     }
 
-    pub fn title(self) -> &'static str {
-        match self {
-            Self::Projects => "Projects",
-            Self::Editor => "Editor",
-            Self::Assets => "Assets",
-            Self::Builds => "Builds",
-            Self::Plugins => "Plugins",
-            Self::Cloud => "Cloud",
-            Self::Team => "Team",
-            Self::Learn => "Learn",
-            Self::Settings => "Settings",
-        }
-    }
-
-    pub fn subtitle(self) -> &'static str {
-        match self {
-            Self::Projects => "Manage your projects and start building worlds.",
-            Self::Editor => "Manage source installs and launch the editor.",
-            Self::Assets => "Browse selected project and Source Engine assets.",
-            Self::Builds => "Build and package workflows for the selected project.",
-            Self::Plugins => "Browse selected project plugin manifests and Source Engine plugins.",
-            Self::Cloud => "Local packages, installs, and reserved service slots.",
-            Self::Team => "Local Git identity and recent contributors.",
-            Self::Learn => "Guides, samples, and local documentation.",
-            Self::Settings => "Configure toolchains, source paths, and defaults.",
-        }
-    }
-
     pub fn from_id(id: &str) -> Option<Self> {
         match id.trim().to_ascii_lowercase().as_str() {
             "projects" => Some(Self::Projects),

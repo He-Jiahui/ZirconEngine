@@ -30,6 +30,8 @@ impl World {
             point_lights: HashMap::new(),
             rect_lights: HashMap::new(),
             spot_lights: HashMap::new(),
+            post_process_settings: HashMap::new(),
+            post_process_volumes: HashMap::new(),
             rigid_bodies: HashMap::new(),
             colliders: HashMap::new(),
             joints: HashMap::new(),

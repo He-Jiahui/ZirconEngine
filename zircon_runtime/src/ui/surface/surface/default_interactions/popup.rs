@@ -9,7 +9,6 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::{
     is_default_popup_behavior, widget_behavior, widget_open_property, UiDefaultKeyboardActionReport,

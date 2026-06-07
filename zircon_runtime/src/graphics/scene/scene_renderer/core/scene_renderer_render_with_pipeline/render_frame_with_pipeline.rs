@@ -1,10 +1,13 @@
-use crate::core::framework::render::FrameHistoryHandle;
+use crate::core::framework::render::{
+    FrameHistoryHandle, PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus,
+    RenderCaptureReport, RenderCaptureSource,
+};
 
 use crate::graphics::backend::ViewportSurface;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
-use crate::render_graph::QueueLane;
+use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 use crate::CompiledRenderPipeline;
 
 use super::super::runtime_features::runtime_features_from_pipeline;
@@ -31,11 +34,25 @@ impl SceneRenderer {
             previous_history_available,
         )?;
         let target = self.target.as_ref().expect("offscreen target");
+        if let Some((output_target, capture_report)) =
+            output_target_capture_resource(&self.streamer, frame)
+        {
+            return finish_viewport_frame(
+                &self.backend.device,
+                &self.backend.queue,
+                output_target.texture(),
+                output_target.size(),
+                generation,
+                capture_report,
+            );
+        }
         finish_viewport_frame(
             &self.backend.device,
             &self.backend.queue,
-            target,
+            &target.final_color,
+            target.size,
             generation,
+            RenderCaptureReport::framework_offscreen(frame.output_target().kind(), target.size),
         )
     }
 
@@ -81,6 +98,14 @@ impl SceneRenderer {
         let size = viewport_size(frame);
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
+        let screen_space_reflection_history_enabled = runtime_features.history_resolve_enabled
+            && frame
+                .extract
+                .post_process
+                .effect_stack
+                .screen_space_reflection
+                .is_enabled()
+            && pipeline_writes_screen_space_reflection_history(pipeline);
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -91,6 +116,7 @@ impl SceneRenderer {
                 previous_history_available,
                 size,
                 runtime_features,
+                screen_space_reflection_history_enabled,
             );
             let target = self.target.as_mut().expect("offscreen target");
             self.core.render_compiled_scene(
@@ -106,11 +132,67 @@ impl SceneRenderer {
                 history_available,
             )?
         };
-
+        let direct_imported = runtime_outputs
+            .output_target_graph_import_report()
+            .is_some_and(|report| {
+                report.status == RenderCameraTargetGraphImportStatus::DirectImported
+            });
+        if direct_imported {
+            self.streamer
+                .skip_output_target_writeback_after_direct_import(frame);
+        } else {
+            let target = self.target.as_ref().expect("offscreen target");
+            self.streamer.execute_output_target_writeback(
+                &self.backend.device,
+                &self.backend.queue,
+                frame,
+                &target.final_color,
+                &target.final_color_view,
+                target.size,
+            )?;
+        }
         store_last_runtime_outputs(self, runtime_outputs)?;
         self.generation += 1;
         Ok(self.generation)
     }
+}
+
+fn output_target_capture_resource(
+    streamer: &crate::graphics::scene::resources::ResourceStreamer,
+    frame: &ViewportRenderFrame,
+) -> Option<(
+    std::sync::Arc<crate::graphics::scene::resources::OutputTargetTextureResource>,
+    RenderCaptureReport,
+)> {
+    let graph_import_report = streamer.last_output_target_graph_import_report();
+    let writeback_report = streamer.last_output_target_writeback_report();
+    let texture = frame.output_target().texture_handle()?;
+    let output_target = streamer.output_target_texture_resource(&texture.id())?;
+    let report = RenderCaptureReport::texture_from_reports(
+        output_target.size(),
+        graph_import_report,
+        writeback_report,
+    );
+    matches!(
+        report.source,
+        RenderCaptureSource::TextureDirectGraphImport
+            | RenderCaptureSource::TextureWritebackConversion
+            | RenderCaptureSource::TextureWritebackCopy
+    )
+    .then_some((output_target, report))
+}
+
+fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipeline) -> bool {
+    pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .flat_map(|pass| pass.resources.iter())
+        .any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
+                && resource.access == RenderGraphResourceAccessKind::Write
+        })
 }
 
 impl SceneRenderer {
@@ -139,6 +221,13 @@ impl SceneRenderer {
             .executed_post_process_nodes()
     }
 
+    pub(crate) fn last_motion_vector_camera_status(
+        &self,
+    ) -> crate::core::framework::render::MotionVectorCameraStatus {
+        self.last_render_graph_execution
+            .motion_vector_camera_status()
+    }
+
     pub(crate) fn last_render_graph_post_process_graph(
         &self,
     ) -> Option<&crate::core::framework::render::PostProcessPassGraph> {
@@ -148,6 +237,15 @@ impl SceneRenderer {
     pub(crate) fn last_render_graph_executed_resource_access_count(&self) -> usize {
         self.last_render_graph_execution
             .executed_resource_access_count()
+    }
+
+    pub(crate) fn last_render_graph_executed_resource_access_count_for(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> usize {
+        self.last_render_graph_execution
+            .executed_resource_access_count_for(resource_name, access)
     }
 
     pub(crate) fn last_render_graph_executed_dependency_count(&self) -> usize {
@@ -191,6 +289,24 @@ impl SceneRenderer {
     pub(crate) fn last_render_graph_compute_unexpected_dispatch_count(&self) -> usize {
         self.last_render_graph_execution
             .compute_workload_unexpected_dispatch_count()
+    }
+
+    pub(crate) fn last_render_graph_execution_resource_report(
+        &self,
+    ) -> crate::core::framework::render::RenderGraphExecutionResourceReport {
+        self.last_render_graph_execution.resource_report()
+    }
+
+    pub(crate) fn last_render_graph_stage_execution_report(
+        &self,
+    ) -> crate::core::framework::render::RenderGraphStageExecutionReport {
+        self.last_render_graph_execution.stage_execution_report()
+    }
+
+    pub(crate) fn last_frame_history_copy_report(
+        &self,
+    ) -> crate::core::framework::render::RenderHistoryCopyReport {
+        self.last_render_graph_execution.history_copy_report()
     }
 
     pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {
@@ -273,5 +389,17 @@ impl SceneRenderer {
     pub(crate) fn last_post_process_lut_unsupported_shape_count(&self) -> usize {
         self.streamer
             .last_post_process_lut_unsupported_shape_count()
+    }
+
+    pub(crate) fn last_output_target_writeback_report(
+        &self,
+    ) -> crate::core::framework::render::RenderCameraTargetWritebackReport {
+        self.streamer.last_output_target_writeback_report()
+    }
+
+    pub(crate) fn last_output_target_graph_import_report(
+        &self,
+    ) -> crate::core::framework::render::RenderCameraTargetGraphImportReport {
+        self.streamer.last_output_target_graph_import_report()
     }
 }

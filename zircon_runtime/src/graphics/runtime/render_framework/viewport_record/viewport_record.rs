@@ -1,6 +1,8 @@
 use crate::core::framework::render::{
     CapturedFrame, RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor,
+    ViewportCameraSnapshot,
 };
+use crate::graphics::ViewportMotionVectorObjectHistory;
 
 use crate::{
     graphics::backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
@@ -17,5 +19,7 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
     pub(super) virtual_geometry_runtime: Option<Box<dyn VirtualGeometryRuntimeState>>,
     pub(super) last_capture: Option<CapturedFrame>,
     pub(super) history: Option<ViewportFrameHistory>,
+    pub(super) motion_vector_camera: Option<ViewportCameraSnapshot>,
+    pub(super) motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
     pub(super) surface: Option<ViewportSurface>,
 }

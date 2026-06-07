@@ -7,7 +7,14 @@ related_code:
   - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
   - zircon_editor/assets/ui/editor/material_component_lab.v2.ui.toml
-  - zircon_editor/assets/ui/editor/material_components/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/feedback/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/layout/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/style.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation
@@ -102,35 +109,35 @@ related_code:
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/virtualization.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
-  - zircon_editor/assets/ui/editor/components/showcase_visual_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_input_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_selection_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase_collections_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - zircon_editor/src/tests/ui/boundary/material_ui_component_design_matrix.rs
   - zircon_editor/src/tests/ui/boundary/mui_web_parity_inventory.rs
 implementation_files:
   - docs/ui-and-layout/material-ui-component-design-matrix.md
-  - zircon_editor/assets/ui/editor/material_components/material_button_group.zui
-  - zircon_editor/assets/ui/editor/material_components/material_floating_action_button.zui
-  - zircon_editor/assets/ui/editor/material_components/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/material_textarea_autosize.zui
-  - zircon_editor/assets/ui/editor/material_components/material_selects.zui
-  - zircon_editor/assets/ui/editor/material_components/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/material_radio_buttons.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_agent_chat.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_bar_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_charts.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_chat_composer.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_data_grid.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_date_time_pickers.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_gauge.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_line_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_masonry.zui
-  - zircon_editor/assets/ui/editor/material_components/material_transfer_list.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_pie_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_sparkline.zui
-  - zircon_editor/assets/ui/editor/material_components/material_mui_x_tree_view.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_button_group.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_floating_action_button.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_bar_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_charts.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_chat_composer.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_data_grid.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_date_time_pickers.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_gauge.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_line_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
+  - zircon_editor/assets/ui/editor/material_components/navigation/material_transfer_list.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_pie_chart.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_sparkline.zui
+  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_tree_view.zui
   - zircon_editor/assets/ui/editor/material_component_lab.v2.ui.toml
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/style.rs
@@ -554,7 +561,7 @@ Each batch must keep the same acceptance shape: update theme/style tokens first,
 
 ## Detailed Prototype Contract
 
-This contract is the implementation bridge from the MUI docs inventory to Zircon retained UI. Every visual row gets a single-component `.zui` prototype under `zircon_editor/assets/ui/editor/material_components/material_<component>.zui`; behavior/utility rows get a compact placeholder that documents the retained behavior owner without forcing a fake visual control.
+This contract is the implementation bridge from the MUI docs inventory to Zircon retained UI. Every visual row gets a single-component `.zui` prototype under a functional domain folder in `zircon_editor/assets/ui/editor/material_components/{data_display,feedback,inputs,layout,mui_x,navigation,surfaces,utils_lab}/material_<component>.zui`; behavior/utility rows get a compact placeholder that documents the retained behavior owner without forcing a fake visual control.
 
 | Group | Components | Response mechanism（响应机制） | Appearance variants（外观变体） | Layout modes（布局模式） | `.zui` mapping | Validation |
 |---|---|---|---|---|---|---|

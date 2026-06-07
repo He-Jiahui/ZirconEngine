@@ -23,9 +23,11 @@ pub(crate) struct MeshDraw {
     pub(super) texture: Arc<GpuTextureResource>,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
+    pub(super) cast_shadows: bool,
     #[allow(dead_code)]
     pub(super) model_buffer: wgpu::Buffer,
     pub(super) model_bind_group: wgpu::BindGroup,
+    pub(super) has_previous_motion_vector_transform: bool,
 }
 
 impl MeshDraw {
@@ -42,8 +44,10 @@ impl MeshDraw {
         texture: Arc<GpuTextureResource>,
         material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
+        cast_shadows: bool,
         model_buffer: wgpu::Buffer,
         model_bind_group: wgpu::BindGroup,
+        has_previous_motion_vector_transform: bool,
     ) -> Self {
         Self {
             mesh,
@@ -59,8 +63,10 @@ impl MeshDraw {
             texture,
             material_uniform,
             pipeline_key,
+            cast_shadows,
             model_buffer,
             model_bind_group,
+            has_previous_motion_vector_transform,
         }
     }
 }

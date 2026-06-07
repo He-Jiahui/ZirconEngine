@@ -102,7 +102,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
             &self,
             registry: &mut EditorExtensionRegistry,
         ) -> Result<(), crate::core::editor_extension::EditorExtensionRegistryError> {
-            let operation_path = EditorOperationPath::parse("Sdk.Failure.Open")
+            let operation_path = EditorOperationPath::parse("sdk.failure.open")
                 .map_err(crate::core::editor_extension::EditorExtensionRegistryError::Operation)?;
             registry.register_operation(EditorOperationDescriptor::new(
                 operation_path,
@@ -145,7 +145,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
     assert!(report
         .extensions
         .operations()
-        .descriptor(&EditorOperationPath::parse("Sdk.Failure.Open").unwrap())
+        .descriptor(&EditorOperationPath::parse("sdk.failure.open").unwrap())
         .is_some());
     assert_eq!(report.lifecycle.records().len(), 2);
 }
@@ -277,8 +277,8 @@ fn editor_plugin_catalog_records_registered_lifecycle_events_and_rejects_unknown
 
 #[test]
 fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
-    let import_operation = EditorOperationPath::parse("Sdk.Asset.ImportModel").unwrap();
-    let open_operation = EditorOperationPath::parse("Sdk.Asset.OpenModelInspector").unwrap();
+    let import_operation = EditorOperationPath::parse("sdk.asset.import_model").unwrap();
+    let open_operation = EditorOperationPath::parse("sdk.asset.open_model_inspector").unwrap();
 
     let mut registry = EditorExtensionRegistry::default();
     registry
@@ -389,8 +389,8 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         &[],
     );
     let capability = "editor.extension.asset_authoring".to_string();
-    let import_operation = EditorOperationPath::parse("Sdk.Asset.ImportModel").unwrap();
-    let open_operation = EditorOperationPath::parse("Sdk.Asset.OpenModelInspector").unwrap();
+    let import_operation = EditorOperationPath::parse("sdk.asset.import_model").unwrap();
+    let open_operation = EditorOperationPath::parse("sdk.asset.open_model_inspector").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_operation(EditorOperationDescriptor::new(

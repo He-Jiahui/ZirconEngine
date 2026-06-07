@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::core::JobScheduler;
 
@@ -37,34 +38,23 @@ impl ScheduleParallelExecutor {
         E: Send,
     {
         for batch in batches {
-            let tasks = registry.tasks_for_batch(batch)?;
-            if tasks.len() == 1 {
-                run_task(tasks[0].1, tasks[0].2)?;
+            let system_ids = batch.system_ids();
+            if let [system_id] = system_ids {
+                let task = registry.task_for_system(system_id)?;
+                run_task(system_id, task)?;
                 continue;
             }
 
-            let results = Mutex::new(Vec::with_capacity(tasks.len()));
-            self.scheduler.install(|| {
-                rayon::scope(|scope| {
-                    for (index, system_id, task) in tasks {
-                        let results = &results;
-                        scope.spawn(move |_| {
-                            results.lock().expect("schedule task results lock").push((
-                                index,
-                                system_id.to_string(),
-                                task(),
-                            ));
-                        });
-                    }
-                });
-            });
-
-            let mut results = results
-                .into_inner()
-                .expect("schedule task results lock should not be poisoned");
-            results.sort_by_key(|(index, _, _)| *index);
-            for (_, system_id, result) in results {
+            let tasks = registry.tasks_for_batch(system_ids)?;
+            let results = self
+                .scheduler
+                .install(|| tasks.into_par_iter().map(|task| task()).collect::<Vec<_>>());
+            for (index, result) in results.into_iter().enumerate() {
                 if let Err(error) = result {
+                    let system_id = system_ids
+                        .get(index)
+                        .expect("task result index must originate from batch order")
+                        .clone();
                     return Err(ScheduleParallelExecutorError::TaskFailed { system_id, error });
                 }
             }
@@ -99,29 +89,31 @@ impl<E> ScheduleParallelTaskRegistry<E> {
         self.tasks.contains_key(system_id)
     }
 
-    fn tasks_for_batch<'registry>(
+    fn task_for_system<'registry>(
         &'registry self,
-        batch: &'registry ScheduleParallelBatch,
+        system_id: &str,
     ) -> Result<
-        Vec<(
-            usize,
-            &'registry str,
-            &'registry (dyn Fn() -> Result<(), E> + Send + Sync),
-        )>,
+        &'registry (dyn Fn() -> Result<(), E> + Send + Sync),
         ScheduleParallelExecutorError<E>,
     > {
-        batch
-            .system_ids()
-            .iter()
-            .enumerate()
-            .map(|(index, system_id)| {
-                self.tasks
-                    .get(system_id)
-                    .map(|task| (index, system_id.as_str(), task.as_ref()))
-                    .ok_or_else(|| ScheduleParallelExecutorError::MissingTask {
-                        system_id: system_id.clone(),
-                    })
+        self.tasks
+            .get(system_id)
+            .map(|task| task.as_ref())
+            .ok_or_else(|| ScheduleParallelExecutorError::MissingTask {
+                system_id: system_id.to_string(),
             })
+    }
+
+    fn tasks_for_batch<'registry>(
+        &'registry self,
+        system_ids: &'registry [String],
+    ) -> Result<
+        Vec<&'registry (dyn Fn() -> Result<(), E> + Send + Sync)>,
+        ScheduleParallelExecutorError<E>,
+    > {
+        system_ids
+            .iter()
+            .map(|system_id| self.task_for_system(system_id))
             .collect()
     }
 }

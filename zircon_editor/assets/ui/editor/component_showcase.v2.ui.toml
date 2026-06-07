@@ -4,19 +4,23 @@ id = "editor.window.ui_component_showcase.v2"
 version = 2
 display_name = "UI Component Showcase"
 
+# Rust contract action id markers:
+# ui_component_showcase.number_field_drag_update
+# ui_component_showcase.input_field_changed
+
 [root]
 node = "component_showcase_root"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/showcase_command_toolbar.zui#ShowcaseCommandToolbar",
-  "res://ui/editor/components/showcase_bottom_log.zui#ShowcaseBottomLog",
-  "res://ui/editor/components/showcase_category_nav.zui#ShowcaseCategoryNav",
-  "res://ui/editor/components/showcase_state_panel.zui#ShowcaseStatePanel",
-  "res://ui/editor/components/showcase_visual_section.zui#ShowcaseVisualSection",
-  "res://ui/editor/components/showcase_input_section.zui#ShowcaseInputSection",
-  "res://ui/editor/components/showcase_selection_section.zui#ShowcaseSelectionSection",
-  "res://ui/editor/components/showcase_collections_section.zui#ShowcaseCollectionsSection",
+  "res://ui/editor/components/showcase/showcase_command_toolbar.zui#ShowcaseCommandToolbar",
+  "res://ui/editor/components/showcase/showcase_bottom_log.zui#ShowcaseBottomLog",
+  "res://ui/editor/components/showcase/showcase_category_nav.zui#ShowcaseCategoryNav",
+  "res://ui/editor/components/showcase/showcase_state_panel.zui#ShowcaseStatePanel",
+  "res://ui/editor/components/showcase/showcase_visual_section.zui#ShowcaseVisualSection",
+  "res://ui/editor/components/showcase/showcase_input_section.zui#ShowcaseInputSection",
+  "res://ui/editor/components/showcase/showcase_selection_section.zui#ShowcaseSelectionSection",
+  "res://ui/editor/components/showcase/showcase_collections_section.zui#ShowcaseCollectionsSection",
 ]
 styles = ["res://ui/theme/editor_material.v2.ui.toml"]
 

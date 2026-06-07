@@ -1,4 +1,4 @@
-use zircon_runtime::core::framework::net::{NetEndpoint, NetManager};
+use zircon_runtime::core::framework::net::{NetEndpoint, NetEvent, NetManager};
 
 use crate::DefaultNetManager;
 
@@ -15,4 +15,8 @@ fn default_net_manager_sends_udp_packet_to_bound_socket() {
 
     assert_eq!(packets[0].payload, b"ping");
     net.close_socket(socket).unwrap();
+
+    assert!(net.drain_events(8).iter().any(
+        |event| matches!(event, NetEvent::UdpSocketClosed { socket: closed } if *closed == socket)
+    ));
 }

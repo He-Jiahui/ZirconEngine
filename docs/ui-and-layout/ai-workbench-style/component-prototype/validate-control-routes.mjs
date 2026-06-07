@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { extensionModules, webModuleTabs } from "./modules.js";
+import { extensionModules, webModuleTabs } from "./src/modules/modules.js";
 
 const edgeCandidates = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
@@ -61,6 +61,7 @@ try {
   }
   console.log(`validated control route audit across ${state.modules} top-level modules`);
   console.log(`validated control route audit across ${state.extensions} extension modules`);
+  console.log(`validated ${state.explicitRouteControls} explicit panel-route controls`);
   console.log(`validated ${state.controls} visible control route responses`);
 } finally {
   await cleanup();
@@ -74,6 +75,7 @@ function controlRouteAuditExpression() {
     const auditDeadlineAt = performance.now() + ${routeAuditTimeoutMs};
     let captureHistoryWrites = true;
     let baselineCounter = 0;
+    let explicitRouteControlCount = 0;
     const originalPushState = history.pushState.bind(history);
     const originalReplaceState = history.replaceState.bind(history);
     let moduleCount = 0;
@@ -101,6 +103,9 @@ function controlRouteAuditExpression() {
         ? panelTarget
         : "";
     };
+    const activePanelMatches = (panelTarget) => Boolean(
+      panelTarget && document.querySelector('.zr-panel-view.is-active[data-panel-view="' + attrEscape(panelTarget) + '"]')
+    );
     const attrEscape = (value) => String(value).replace(/["\\\\]/g, "\\\\$&");
     const checkDeadline = (context) => {
       if (performance.now() <= auditDeadlineAt) return;
@@ -131,7 +136,7 @@ function controlRouteAuditExpression() {
       const baselineParams = new URLSearchParams();
       baselineParams.set("module", moduleId);
       if (panelTarget) baselineParams.set("panel", panelTarget);
-      baselineParams.set("command", "route-audit-baseline-" + baselineCounter);
+      baselineParams.set("action", "workbench.route_audit.baseline." + baselineCounter);
       originalReplaceState(
         history.state,
         "",
@@ -172,7 +177,12 @@ function controlRouteAuditExpression() {
       const label = labelFor(node);
       const expectedModule = node.dataset?.module || "";
       const expectedPanel = node.dataset?.panelTab || "";
+      const expectedRoutePanel = node.dataset?.routePanel || "";
+      const expectedRouteModule = node.dataset?.routeModule || "";
       routeWrites.length = 0;
+      if (expectedRoutePanel) {
+        explicitRouteControlCount += 1;
+      }
       if (node.matches?.("input:not([disabled]), textarea:not([disabled])")) {
         node.focus();
         await settle();
@@ -188,6 +198,12 @@ function controlRouteAuditExpression() {
       if (responseCount() <= before) failures.push("no response after " + context + ": " + label);
       const reachedExpectedModule = expectedModule && activeModule() === expectedModule;
       const reachedExpectedPanel = expectedPanel && Boolean(document.querySelector('.zr-panel-view.is-active[data-panel-view="' + attrEscape(expectedPanel) + '"]'));
+      if (expectedRouteModule && activeModule() !== expectedRouteModule) {
+        failures.push("explicit route module mismatch after " + context + ": " + label + " expected " + expectedRouteModule + " got " + activeModule());
+      }
+      if (expectedRoutePanel && !activePanelMatches(expectedRoutePanel)) {
+        failures.push("explicit route panel mismatch after " + context + ": " + label + " expected " + expectedRoutePanel);
+      }
       if (routeWrites.length === 0 && location.hash === beforeHash && !reachedExpectedModule && !reachedExpectedPanel) {
         failures.push("no route-state write after " + context + ": " + label);
       }
@@ -343,11 +359,13 @@ function controlRouteAuditExpression() {
 
     const controlsAudited = audits.reduce((total, audit) => total + audit.count, 0);
     if (controlsAudited < 200) failures.push("control route audit covered too few controls: " + controlsAudited);
+    if (explicitRouteControlCount < ${expectedExtensionCards} * 20) failures.push("explicit panel-route audit covered too few controls: " + explicitRouteControlCount);
     return JSON.stringify({
       ok: failures.length === 0,
       failures,
       modules: moduleCount,
       extensions: extensionCount,
+      explicitRouteControls: explicitRouteControlCount,
       controls: controlsAudited,
       audits
     });

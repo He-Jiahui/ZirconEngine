@@ -1,0 +1,12 @@
+.zr-inspector {
+  right: 0;
+  top: var(--topbar-h);
+  width: var(--right-w);
+  height: 489px;
+  z-index: 4;
+}
+
+.zr-inspector-body {
+  padding: 12px 18px 8px;
+  color: #c5ced2;
+}

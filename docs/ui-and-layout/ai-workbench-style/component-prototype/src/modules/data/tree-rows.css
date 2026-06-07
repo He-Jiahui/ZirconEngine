@@ -1,0 +1,30 @@
+.zr-module-tree-row {
+  height: 28px;
+  display: grid;
+  grid-template-columns: 18px 18px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.zr-module-tree.zr-tree::before {
+  display: none;
+}
+
+.zr-module-tree-row[data-depth="1"] {
+  padding-left: 22px;
+}
+
+.zr-module-tree-row[data-depth="2"] {
+  padding-left: 38px;
+}
+
+.zr-module-tree-row[data-depth="3"] {
+  padding-left: 54px;
+}
+
+.zr-module-tree-row .zr-icon {
+  width: 15px;
+  height: 15px;
+}

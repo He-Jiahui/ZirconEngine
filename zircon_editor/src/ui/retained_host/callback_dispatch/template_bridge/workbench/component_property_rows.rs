@@ -14,9 +14,9 @@ use super::{
 
 const COMPONENT_PROPERTY_CONTAINER: &str = "WorkbenchInspectorMesh";
 const VIRTUAL_ROW_EDIT_BINDING_ID: &str = "Inspector/ComponentProperty04Edit";
-const VIRTUAL_ROW_EDIT_ROUTE: &str = "Inspector.ComponentProperty04.Edit";
+const VIRTUAL_ROW_EDIT_ROUTE: &str = "inspector.component_property_04.edit";
 const VIRTUAL_ROW_COMMIT_BINDING_ID: &str = "Inspector/ComponentProperty04Commit";
-const VIRTUAL_ROW_COMMIT_ROUTE: &str = "Inspector.ComponentProperty04.Commit";
+const VIRTUAL_ROW_COMMIT_ROUTE: &str = "inspector.component_property_04.commit";
 
 const PROPERTY_FIELD_ID: &str = "inspector_property_field_id";
 const PROPERTY_NAME: &str = "inspector_property_name";

@@ -22,7 +22,7 @@ impl UiLayoutPassEngineContext {
         self.selections.push(
             UiLayoutEngineSelection::select(
                 &UiLayoutEngineRequest::from_container_kind(container),
-                &UiLayoutEngineCapability::taffy_flex_grid_block(),
+                &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
                 &UiLayoutEngineCapability::legacy_zircon(),
             )
             .with_node_id(node_id)
@@ -52,7 +52,7 @@ impl UiLayoutPassEngineContext {
         self.selections.push(
             UiLayoutEngineSelection::select(
                 &UiLayoutEngineRequest::from_container_kind(container),
-                &UiLayoutEngineCapability::taffy_flex_grid_block(),
+                &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
                 &UiLayoutEngineCapability::legacy_zircon(),
             )
             .with_node_id(node_id),

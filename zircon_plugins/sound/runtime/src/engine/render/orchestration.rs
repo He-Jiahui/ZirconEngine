@@ -7,7 +7,7 @@ use crate::SoundConfig;
 use super::super::dsp::{apply_track_controls, apply_track_effects, meter_for};
 use super::super::state::SoundEngineState;
 use super::super::validation::{track_render_order, validate_graph};
-use super::routing::{add_scaled, solo_tracks};
+use super::routing::{add_scaled, solo_tracks, track_send_source_buffer};
 use super::runtime_state::{latency_frames_for_graph, sync_runtime_states};
 
 impl SoundEngineState {
@@ -79,11 +79,7 @@ impl SoundEngineState {
             }
             for send in &track.sends {
                 if let Some(send_buffer) = track_buffers.get_mut(&send.target) {
-                    let source = if send.pre_effects {
-                        &raw_buffer
-                    } else {
-                        &buffer
-                    };
+                    let source = track_send_source_buffer(send, &raw_buffer, &buffer);
                     add_scaled(send_buffer, source, send.gain);
                 }
             }

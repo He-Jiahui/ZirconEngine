@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::render::{RenderFrameExtract, RenderPhase};
+use crate::core::framework::render::{
+    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
+};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphBuilder};
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
@@ -418,6 +420,14 @@ fn validate_descriptor_names(descriptors: &[RenderFeatureDescriptor]) -> Result<
                     descriptor.name, pass.pass_name
                 ));
             }
+            if pass.queue == crate::render_graph::QueueLane::AsyncCompute
+                && pass.compute_workload.is_none()
+            {
+                return Err(format!(
+                    "feature descriptor `{}` pass `{}` declares `AsyncCompute` queue but no compute workload",
+                    descriptor.name, pass.pass_name
+                ));
+            }
             if let Some(workload) = &pass.compute_workload {
                 if pass.queue != crate::render_graph::QueueLane::AsyncCompute {
                     return Err(format!(
@@ -630,25 +640,91 @@ fn texture_desc_for(
     options: &RenderPipelineCompileOptions,
 ) -> TextureDesc {
     let view_size = extract.view.effective_render_size();
-    let format = if name.contains("depth") || name.contains("shadow") {
-        TextureFormat::Depth32Float
-    } else if extract.view.camera.hdr && is_scene_color_resource(name) {
-        TextureFormat::Rgba16Float
-    } else {
-        TextureFormat::Rgba8UnormSrgb
+    let base_width = view_size.x.max(1);
+    let base_height = view_size.y.max(1);
+    let (width, height) = post_process_intermediate_size(name, base_width, base_height);
+    let post_process_format = post_process_intermediate_format(name);
+    let format = match post_process_format {
+        Some(format) => format,
+        None if name.contains("depth") || name.contains("shadow") => TextureFormat::Depth32Float,
+        None if extract.view.camera.hdr && is_scene_color_resource(name) => {
+            TextureFormat::Rgba16Float
+        }
+        None => TextureFormat::Rgba8UnormSrgb,
     };
     let mut usage =
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC;
     if !format.is_depth() {
         usage |= TextureUsage::STORAGE | TextureUsage::COPY_DST;
     }
-    let sample_count = if name.contains("shadow") {
+    let sample_count = if post_process_format.is_some() || name.contains("shadow") {
         1
     } else {
         options.graph_msaa_sample_count(extract.view.camera.msaa_samples)
     };
-    TextureDesc::new(name, view_size.x.max(1), view_size.y.max(1), format, usage)
+    TextureDesc::new(name, width, height, format, usage)
         .with_sample_count(sample_count)
+        .with_mip_levels(post_process_intermediate_mip_levels(name, width, height))
+}
+
+fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
+    match name {
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+        | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+        | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+        | PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
+            Some(TextureFormat::Rgba16Float)
+        }
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION => {
+            Some(TextureFormat::Rgba8Unorm)
+        }
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY => {
+            Some(TextureFormat::Rgba8UnormSrgb)
+        }
+        _ => None,
+    }
+}
+
+fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, u32) {
+    match name {
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
+            (half_extent(width), half_extent(height))
+        }
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
+            let half_width = half_extent(width);
+            let half_height = half_extent(height);
+            (half_extent(half_width), half_extent(half_height))
+        }
+        _ => (width, height),
+    }
+}
+
+fn post_process_intermediate_mip_levels(name: &str, width: u32, height: u32) -> u32 {
+    match name {
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
+            full_mip_chain_level_count(width, height)
+        }
+        _ => 1,
+    }
+}
+
+fn full_mip_chain_level_count(width: u32, height: u32) -> u32 {
+    u32::BITS - width.max(height).max(1).leading_zeros()
+}
+
+fn half_extent(value: u32) -> u32 {
+    (value.saturating_add(1) / 2).max(1)
 }
 
 fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
@@ -785,6 +861,53 @@ mod tests {
     }
 
     #[test]
+    fn compile_describes_ssr_pyramids_as_mip_chain_transients() {
+        let mut extract = test_extract();
+        extract.apply_viewport_size(crate::core::math::UVec2::new(128, 64));
+        let compiled = RenderPipelineAsset::default_forward_plus()
+            .compile(&extract)
+            .unwrap();
+
+        let depth_pyramid = texture_lifetime(
+            &compiled,
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        );
+        let depth_pyramid_coarse = texture_lifetime(
+            &compiled,
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        );
+        let reflection_pyramid = texture_lifetime(
+            &compiled,
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        );
+        let reflection_pyramid_coarse = texture_lifetime(
+            &compiled,
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        );
+
+        assert_eq!((depth_pyramid.width, depth_pyramid.height), (64, 32));
+        assert_eq!(depth_pyramid.mip_levels, 7);
+        assert_eq!(
+            (depth_pyramid_coarse.width, depth_pyramid_coarse.height),
+            (32, 16)
+        );
+        assert_eq!(depth_pyramid_coarse.mip_levels, 1);
+        assert_eq!(
+            (reflection_pyramid.width, reflection_pyramid.height),
+            (64, 32)
+        );
+        assert_eq!(reflection_pyramid.mip_levels, 7);
+        assert_eq!(
+            (
+                reflection_pyramid_coarse.width,
+                reflection_pyramid_coarse.height
+            ),
+            (32, 16)
+        );
+        assert_eq!(reflection_pyramid_coarse.mip_levels, 1);
+    }
+
+    #[test]
     fn compile_rejects_compute_workload_on_non_compute_queue() {
         let pipeline = RenderPipelineAsset {
             handle: RenderPipelineHandle::new(79),
@@ -828,5 +951,21 @@ mod tests {
             RenderWorldSnapshotHandle::new(1),
             World::new().to_render_snapshot(),
         )
+    }
+
+    fn texture_lifetime<'a>(
+        compiled: &'a crate::graphics::pipeline::CompiledRenderPipeline,
+        name: &str,
+    ) -> &'a crate::rhi::TextureDesc {
+        let lifetime = compiled
+            .graph
+            .resource_lifetimes()
+            .iter()
+            .find(|lifetime| lifetime.name == name)
+            .unwrap_or_else(|| panic!("missing graph resource lifetime `{name}`"));
+        match &lifetime.desc {
+            crate::render_graph::RenderGraphResourceDesc::Texture(desc) => desc,
+            other => panic!("expected texture desc for `{name}`, got {other:?}"),
+        }
     }
 }

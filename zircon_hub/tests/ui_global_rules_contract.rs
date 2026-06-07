@@ -1,536 +1,591 @@
-//! Static Hub UI guardrail contracts that scan every Slint file.
+//! Static guardrail contracts for the React + Material UI Hub frontend.
 
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-fn slint_files() -> Vec<PathBuf> {
-    let mut files = fs::read_dir(ui_dir())
-        .expect("failed to read Hub UI directory")
-        .map(|entry| entry.expect("failed to read Hub UI entry").path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "slint")
-        })
-        .collect::<Vec<_>>();
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
+
+fn web_files() -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    collect_web_files(&crate_dir().join("web/src"), &mut files);
     files.sort();
     files
 }
 
-#[test]
-fn hub_ui_files_route_typography_through_material_wrappers() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if uses_raw_text_or_direct_font_binding(trimmed) {
-                violations.push(format!(
-                    "{}:{}: {}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI files must route visible typography through MaterialText/shared wrappers instead of raw Text/font bindings:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn hub_ui_files_do_not_use_character_icon_literals() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if let Some(literal) = character_icon_literal(trimmed) {
-                violations.push(format!(
-                    "{}:{}: {} uses {literal:?}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI controls must use SVG/Material icon slots instead of single-character text glyphs:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn hub_ui_direct_touch_area_is_reserved_for_window_dragging() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("<unknown>");
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") || !trimmed.contains("TouchArea") {
-                continue;
-            }
-            if file_name == "shell_header_components.slint" && trimmed == "drag-area := TouchArea {"
-            {
-                continue;
-            }
-            violations.push(format!(
-                "{}:{}: {}",
-                display_path(&path),
-                index + 1,
-                trimmed
-            ));
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI interaction surfaces must use Material controls/ListTile/StateLayerArea; direct TouchArea is reserved for shell window dragging:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn input_and_navigation_state_owners_do_not_bypass_shared_primitives() {
-    let mut violations = Vec::new();
-    let allowed_state_owner_files = [
-        "inputs.slint",
-        "text_input_components.slint",
-        "input_state_components.slint",
-        "button_components.slint",
-        "icon_button_components.slint",
-        "navigation.slint",
-        "app.slint",
-        "project_browser_components.slint",
-        "project_card_flow_components.slint",
-        "project_dashboard_components.slint",
-        "settings_page_components.slint",
-        "shell_header_components.slint",
-    ];
-
-    for path in slint_files() {
-        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-            continue;
-        };
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for forbidden in [
-            "NavigationRail as MaterialNavigationRail",
-            "material-field := TextField",
-            "trigger := OutlineButton",
-            "material-segment := SegmentedButton",
-            "FilledIconButton {",
-            "OutlineIconButton {",
-            "MaterialIconButton {",
-        ] {
-            if source.contains(forbidden) && !allowed_state_owner_files.contains(&file_name) {
-                violations.push(format!("{}: {forbidden}", display_path(&path)));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub input/navigation primitive state must stay in shared owner wrappers instead of page-local Material bypasses:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn hub_ui_files_do_not_use_percentage_sizing() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if percentage_size_binding(trimmed) {
-                violations.push(format!(
-                    "{}:{}: {}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI sizing should use tokens, stretch, or explicit parent/content-width contracts instead of percent-based layout bindings:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn page_content_width_arithmetic_stays_in_layout_primitive() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let file_name = path.file_name().and_then(|name| name.to_str());
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if trimmed
-                == "out property <length> content-width: max(1px, root.width - root.page-padding-x * 2);"
-            {
-                continue;
-            }
-            if path.file_name().and_then(|name| name.to_str())
-                == Some("shell_header_popup_components.slint")
-                && matches!(
-                    trimmed,
-                    "x: root.width - root.popup-width;" | "popup-x: root.width - root.popup-width;"
-                )
-            {
-                continue;
-            }
-            if file_name == Some("project_browser_page.slint")
-                && trimmed
-                    == "private property <length> browser-table-row-width: max(HubTokens.control-md, root.content-width - root.page-gap * 2);"
-            {
-                continue;
-            }
-            if trimmed.contains("root.width -")
-                || trimmed.contains("root.width /")
-                || trimmed.contains("root.width *")
-            {
-                violations.push(format!(
-                    "{}:{}: {}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub pages and chrome should consume PageScrollSurface/content-width, stretch, or tokens instead of page-local root.width arithmetic:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn page_scroll_surface_is_owned_by_page_roots() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let file_name = path.file_name().and_then(|name| name.to_str());
-        if matches!(
-            file_name,
-            Some(
-                "data_display.slint"
-                    | "list_container_components.slint"
-                    | "table_view_components.slint"
-                    | "tree_view_components.slint"
-            )
-        ) {
+fn collect_web_files(dir: &Path, files: &mut Vec<PathBuf>) {
+    for entry in fs::read_dir(dir).unwrap_or_else(|error| panic!("failed to read {dir:?}: {error}"))
+    {
+        let path = entry
+            .unwrap_or_else(|error| panic!("failed to read entry in {dir:?}: {error}"))
+            .path();
+        if path.is_dir() {
+            collect_web_files(&path, files);
             continue;
         }
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if trimmed.contains("page-surface := PageScrollSurface")
-                || trimmed.contains("content-width: page-surface.content-width")
-                || trimmed.contains("content-height: page-surface.content-height")
-                || trimmed.contains("page-surface.content-height")
-                || trimmed.contains("page-surface.viewport-height")
-                || trimmed.contains("scroll-y <=> root.scroll-y;")
-            {
-                violations.push(format!(
-                    "{}:{}: {}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed
-                ));
-            }
+        if path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| matches!(extension, "ts" | "tsx" | "css"))
+        {
+            files.push(path);
         }
     }
-
-    assert!(
-        violations.is_empty(),
-        "Hub pages should inherit PageScrollSurface or CatalogPage directly instead of nesting page-surface wrappers:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn page_compact_breakpoints_use_design_tokens() {
-    let mut violations = Vec::new();
-    let layout = read_ui_file("layout.slint");
-    for snippet in [
-        "export component ResponsiveState",
-        "export component ResponsiveCollapse",
-        "out property <bool> compact: root.viewport-width < HubTokens.breakpoint-compact;",
-        "out property <bool> medium: root.viewport-width < HubTokens.breakpoint-medium;",
-        "out property <bool> wide: root.viewport-width >= HubTokens.breakpoint-wide;",
-        "out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;",
-        "out property <bool> collapsed: root.content-width < root.collapse-at;",
-    ] {
-        assert!(
-            layout.contains(snippet),
-            "layout.slint must centralize viewport breakpoints in ResponsiveState; missing {snippet}"
-        );
-    }
-
-    for path in slint_files() {
-        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-            continue;
-        };
-
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            if file_name == "layout.slint"
-                && (trimmed
-                    == "out property <bool> compact: root.viewport-width < HubTokens.breakpoint-compact;"
-                    || trimmed
-                        == "out property <bool> medium: root.viewport-width < HubTokens.breakpoint-medium;"
-                    || trimmed
-                        == "out property <bool> wide: root.viewport-width >= HubTokens.breakpoint-wide;"
-                    || trimmed
-                        == "out property <bool> short: root.viewport-height < HubTokens.breakpoint-short;"
-                    || trimmed
-                        == "in property <length> page-padding: root.width < HubTokens.breakpoint-compact ? HubTokens.page-padding-compact : HubTokens.page-padding;")
-                || trimmed == "out property <bool> collapsed: root.content-width < root.collapse-at;"
-            {
-                continue;
-            }
-            if trimmed.contains("root.width <")
-                || trimmed.contains("root.height <")
-                || trimmed.contains("root.viewport-width <")
-                || trimmed.contains("root.viewport-width >=")
-                || trimmed.contains("root.viewport-height <")
-            {
-                violations.push(format!("{}:{}: {trimmed}", display_path(&path), index + 1));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI viewport breakpoints must be centralized in layout.slint ResponsiveState:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn absolute_positioning_stays_out_of_page_layouts() {
-    let mut violations = Vec::new();
-    for path in slint_files() {
-        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-            continue;
-        };
-        if matches!(
-            file_name,
-            "app.slint"
-                | "button_components.slint"
-                | "icon_button_components.slint"
-                | "data_display.slint"
-                | "overlays.slint"
-                | "dropdown_components.slint"
-                | "project_browser_components.slint"
-                | "project_card_flow_components.slint"
-                | "inputs.slint"
-                | "text_input_components.slint"
-                | "input_state_components.slint"
-                | "project_dashboard_components.slint"
-                | "shared.slint"
-                | "shell_header_components.slint"
-                | "shell_header_popup_components.slint"
-        ) {
-            continue;
-        }
-
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim_start();
-            if trimmed.starts_with("x:") || trimmed.starts_with("y:") {
-                violations.push(format!(
-                    "{}:{}: {}",
-                    display_path(&path),
-                    index + 1,
-                    trimmed.trim()
-                ));
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "business pages should use layouts; only shell/input popup anchors may use x/y:\n{}",
-        violations.join("\n")
-    );
-}
-
-#[test]
-fn hub_ui_layout_sizes_are_tokenized() {
-    let mut violations = Vec::new();
-
-    for path in slint_files() {
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
-        for (index, line) in source.lines().enumerate() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("//") {
-                continue;
-            }
-            for value in raw_px_literals(trimmed) {
-                if value > 1.0 {
-                    violations.push(format!(
-                        "{}:{}: {}",
-                        display_path(&path),
-                        index + 1,
-                        trimmed
-                    ));
-                    break;
-                }
-            }
-        }
-    }
-
-    assert!(
-        violations.is_empty(),
-        "Hub UI should derive layout sizes from MaterialStyleMetrics/HubTokens instead of raw px literals above 1px:\n{}",
-        violations.join("\n")
-    );
-}
-
-fn uses_raw_text_or_direct_font_binding(line: &str) -> bool {
-    line == "Text {"
-        || line.ends_with(": Text {")
-        || line.ends_with(":= Text {")
-        || line.contains("inherits Text")
-        || line.contains("font-size:")
-        || line.contains("font-weight:")
-        || line.contains("font_size:")
-        || line.contains("font_weight:")
-}
-
-fn character_icon_literal(line: &str) -> Option<&str> {
-    for property in ["text:", "fallback-text:"] {
-        if let Some(value) = line.strip_prefix(property) {
-            let literal = value.trim().trim_end_matches(';').trim();
-            if let Some(unquoted) = literal
-                .strip_prefix('"')
-                .and_then(|inner| inner.strip_suffix('"'))
-            {
-                if matches!(
-                    unquoted,
-                    "+" | ">" | "<" | "[]" | "::" | "==" | "v" | "!" | "?" | "..."
-                ) {
-                    return Some(unquoted);
-                }
-            }
-        }
-    }
-    None
-}
-
-fn percentage_size_binding(line: &str) -> bool {
-    [
-        "width:",
-        "height:",
-        "min-width:",
-        "min-height:",
-        "max-width:",
-        "max-height:",
-        "preferred-width:",
-        "preferred-height:",
-    ]
-    .iter()
-    .any(|property| line.starts_with(property) && line.contains('%'))
-}
-
-fn raw_px_literals(line: &str) -> Vec<f32> {
-    let mut values = Vec::new();
-
-    for (unit_index, _) in line.match_indices("px") {
-        let prefix = &line[..unit_index];
-        let mut start = prefix.len();
-        while start > 0 {
-            let byte = prefix.as_bytes()[start - 1];
-            if byte.is_ascii_digit() || byte == b'.' {
-                start -= 1;
-            } else {
-                break;
-            }
-        }
-        if start == prefix.len() {
-            continue;
-        }
-
-        let literal = &prefix[start..];
-        if let Ok(value) = literal.parse::<f32>() {
-            values.push(value);
-        }
-    }
-
-    values
 }
 
 fn display_path(path: &Path) -> String {
-    path.strip_prefix(PathBuf::from(env!("CARGO_MANIFEST_DIR")))
+    path.strip_prefix(crate_dir())
         .unwrap_or(path)
         .display()
         .to_string()
+        .replace('\\', "/")
+}
+
+fn imports_symbol(line: &str, symbol: &str) -> bool {
+    if !line.contains("@mui/material") {
+        return false;
+    }
+    line.split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .any(|token| token == symbol)
+}
+
+fn material_primitive_owner_allowed(path: &str, primitive: &str) -> bool {
+    match primitive {
+        "Button" => path == "web/src/components/inputs/HubButton.tsx",
+        "IconButton" => matches!(
+            path,
+            "web/src/components/inputs/HubIconButton.tsx"
+                | "web/src/components/data/ProjectCard.tsx"
+                | "web/src/components/data/ProjectTable.tsx"
+        ),
+        "TextField" => matches!(
+            path,
+            "web/src/components/inputs/HubTextField.tsx"
+                | "web/src/components/inputs/HubSearchField.tsx"
+                | "web/src/components/inputs/HubComboBox.tsx"
+        ),
+        "Autocomplete" => path == "web/src/components/inputs/HubComboBox.tsx",
+        "Select" => path == "web/src/components/inputs/HubSelect.tsx",
+        "Checkbox" => path == "web/src/components/inputs/HubCheckbox.tsx",
+        "Switch" => path == "web/src/components/inputs/HubSwitch.tsx",
+        "Tabs" => path == "web/src/components/inputs/HubTabs.tsx",
+        "ToggleButton" => path == "web/src/components/inputs/HubToggle.tsx",
+        "Card" => path.starts_with("web/src/components/data/"),
+        "Table" => path == "web/src/components/data/ProjectTable.tsx",
+        "ListItemButton" => {
+            path.starts_with("web/src/components/data/")
+                || path == "web/src/components/shell/NavigationDrawer.tsx"
+        }
+        "Dialog" => path == "web/src/components/overlays/HubDialog.tsx",
+        "Menu" => path == "web/src/components/overlays/HubMenu.tsx",
+        "Popover" => path == "web/src/components/overlays/HubPopover.tsx",
+        "Drawer" => path == "web/src/components/shell/NavigationDrawer.tsx",
+        "Snackbar" => path == "web/src/components/feedback/HubSnackbar.tsx",
+        "Alert" => path.starts_with("web/src/components/feedback/"),
+        _ => false,
+    }
+}
+
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            source.contains(snippet),
+            "{source_name} should contain global React/MUI guardrail snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete or page-local global guardrail snippet {snippet:?}"
+        );
+    }
+}
+
+#[test]
+fn pages_are_composition_surfaces_not_raw_material_owner_layers() {
+    let mut violations = Vec::new();
+    let forbidden_page_imports = [
+        "Button",
+        "IconButton",
+        "TextField",
+        "Select",
+        "Autocomplete",
+        "Checkbox",
+        "Switch",
+        "Tabs",
+        "Tab",
+        "ToggleButton",
+        "Card",
+        "Paper",
+        "Table",
+        "ListItemButton",
+        "Drawer",
+        "Dialog",
+        "Menu",
+        "Popover",
+        "Snackbar",
+        "Alert",
+    ];
+
+    for path in web_files()
+        .into_iter()
+        .filter(|path| display_path(path).starts_with("web/src/pages/"))
+    {
+        let source = normalize_newlines(fs::read_to_string(&path).unwrap());
+        let name = display_path(&path);
+        assert_contains_all(
+            &name,
+            &source,
+            &["../components/data", "../components/inputs"],
+        );
+        for line in source.lines().filter(|line| line.contains("@mui/material")) {
+            for forbidden in forbidden_page_imports {
+                if imports_symbol(line, forbidden) {
+                    violations.push(format!(
+                        "{name}: page imports raw MUI primitive {forbidden}: {line}"
+                    ));
+                }
+            }
+        }
+        for forbidden_tag in [
+            "<Button ",
+            "<IconButton",
+            "<TextField",
+            "<Select",
+            "<Autocomplete",
+            "<Checkbox",
+            "<Switch",
+            "<Tabs",
+            "<Tab ",
+            "<ToggleButton",
+            "<Card",
+            "<Paper",
+            "<Table",
+            "<ListItemButton",
+            "<Drawer",
+            "<Dialog",
+            "<Menu",
+            "<Popover",
+            "<Snackbar",
+            "<Alert",
+        ] {
+            if source.contains(forbidden_tag) {
+                violations.push(format!("{name}: page renders raw MUI tag {forbidden_tag}"));
+            }
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "React pages must assemble shared Hub component families instead of owning raw Material primitives:\n{}",
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn material_primitive_ownership_stays_in_matching_component_families() {
+    let guarded_primitives = [
+        "Button",
+        "IconButton",
+        "TextField",
+        "Autocomplete",
+        "Select",
+        "Checkbox",
+        "Switch",
+        "Tabs",
+        "ToggleButton",
+        "Card",
+        "Table",
+        "ListItemButton",
+        "Dialog",
+        "Menu",
+        "Popover",
+        "Drawer",
+        "Snackbar",
+        "Alert",
+    ];
+
+    let mut violations = Vec::new();
+    for path in web_files() {
+        let name = display_path(&path);
+        let source = normalize_newlines(fs::read_to_string(&path).unwrap());
+        for line in source.lines().filter(|line| line.contains("@mui/material")) {
+            for primitive in guarded_primitives {
+                if imports_symbol(line, primitive)
+                    && !material_primitive_owner_allowed(&name, primitive)
+                {
+                    violations.push(format!(
+                        "{name}: {primitive} is imported outside the allowed React/MUI owner set: `{line}`"
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "Raw Material primitive imports must stay in their wrapper family:\n{}",
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn page_layouts_avoid_absolute_positioning_and_viewport_arithmetic() {
+    let mut violations = Vec::new();
+    for path in web_files()
+        .into_iter()
+        .filter(|path| display_path(path).starts_with("web/src/pages/"))
+    {
+        let name = display_path(&path);
+        let source = normalize_newlines(fs::read_to_string(&path).unwrap());
+        for forbidden in [
+            "position: \"absolute\"",
+            "position: \"fixed\"",
+            "left:",
+            "right:",
+            "top:",
+            "bottom:",
+            "width: \"100vw\"",
+            "height: \"100vh\"",
+            "calc(100vw",
+            "calc(100vh",
+        ] {
+            if source.contains(forbidden) {
+                violations.push(format!("{name}: page layout contains {forbidden}"));
+            }
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "React page layouts should use grids/flex and shell-provided geometry instead of absolute positioning or viewport arithmetic:\n{}",
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn app_and_shell_keep_state_loading_routing_and_feedback_boundaries() {
+    let app = read_crate_file("web/src/App.tsx");
+    let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
+    let top_bar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
+
+    assert_contains_all(
+        "App.tsx",
+        &app,
+        &[
+            "loadHubState().then",
+            "dispatchHubAction(actionId, targetId, payload)",
+            "setState(nextState)",
+            "HubWindow state={state} onAction={handleAction}",
+            "HubSnackbar task={state.taskSummary}",
+            "const shellText = stateRef.current.ui.shell;",
+            "shellText.actionFailed",
+        ],
+    );
+    assert_contains_all(
+        "HubWindow.tsx",
+        &hub_window,
+        &[
+            "width: \"100vw\"",
+            "height: \"100vh\"",
+            "overflow: \"hidden\"",
+            "TopBar state={state} onAction={onAction}",
+            "NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction}",
+            "component=\"main\"",
+            "state.activePage === \"projects\"",
+            "CatalogPage state={state} onAction={onAction}",
+            "WorkspacePage state={state} onAction={onAction}",
+        ],
+    );
+    assert_contains_all(
+        "TopBar.tsx",
+        &top_bar,
+        &[
+            "HubIconButton",
+            "SourceEnginePopover",
+            "UserMenuPopover",
+            "void onAction",
+        ],
+    );
+    assert_contains_all(
+        "NavigationDrawer.tsx",
+        &drawer,
+        &[
+            "Drawer",
+            "ListItemButton",
+            "void onAction(HUB_ACTION.showPage, id)",
+        ],
+    );
+}
+
+#[test]
+fn hub_window_capture_scripts_cover_tauri_visual_state_matrix() {
+    let capture = read_repo_file(
+        ".codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1",
+    );
+    let project_pages = read_repo_file(
+        ".codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-project-pages.ps1",
+    );
+    let matrix = read_repo_file(
+        ".codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-visual-state-matrix.ps1",
+    );
+    let comparison = read_repo_file(
+        ".codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1",
+    );
+    let skill_doc = read_repo_file(
+        ".codex/skills/zircon-project-skills/capture-hub-window-screenshot/SKILL.md",
+    );
+
+    assert_contains_all(
+        "capture-hub-window.ps1",
+        &capture,
+        &[
+            "[string]$VisualTaskState = \"\"",
+            "$env:ZIRCON_HUB_VISUAL_TASK_STATE = $VisualTaskState",
+            "Remove-Item Env:\\ZIRCON_HUB_VISUAL_TASK_STATE",
+            "Title -eq \"Zircon Hub\"",
+            "[string]$RequireWindowTitle = \"\"",
+            "Expected window title '$RequireWindowTitle'",
+        ],
+    );
+    assert_contains_all(
+        "capture-hub-project-pages.ps1",
+        &project_pages,
+        &[
+            "$browserX = [int][Math]::Round($WindowWidth * 0.607)",
+            "$script:MinimumCaptureWidth = [int][Math]::Floor($WindowWidth * 0.90)",
+            "Refusing to capture '$Path' from window titled '$($Window.Title)'; expected 'Zircon Hub'.",
+            "Refusing to capture '$Path' because window width $($Window.Width) is below minimum $script:MinimumCaptureWidth.",
+        ],
+    );
+    assert_contains_all(
+        "capture-hub-visual-state-matrix.ps1",
+        &matrix,
+        &[
+            "\"hub-state-$Name.png\"",
+            "Invoke-VisualStateCapture -Name \"editor\"",
+            "Invoke-VisualStateCapture -Name \"assets\"",
+            "Invoke-VisualStateCapture -Name \"builds\"",
+            "Invoke-VisualStateCapture -Name \"plugins\"",
+            "Invoke-VisualStateCapture -Name \"cloud\"",
+            "Invoke-VisualStateCapture -Name \"team\"",
+            "Invoke-VisualStateCapture -Name \"learn\"",
+            "Invoke-VisualStateCapture -Name \"settings\"",
+            "Invoke-VisualStateCapture -Name \"source-engine-popup\"",
+            "Invoke-VisualStateCapture -Name \"user-menu\"",
+            "Invoke-VisualStateCapture -Name \"project-browser-empty\"",
+            "Invoke-VisualStateCapture -Name \"loading\"",
+            "Invoke-VisualStateCapture -Name \"error\"",
+            "Visual state capture '$Name' must require state-specific WebView text before capture.",
+            "-Name \"editor\" -Page \"editor\" -RequireWebViewText \"Launch Target\"",
+            "-Name \"assets\" -Page \"assets\" -RequireWebViewText \"Assets Catalog\"",
+            "-Name \"builds\" -Page \"builds\" -RequireWebViewText \"Build Workflow\"",
+            "-Name \"plugins\" -Page \"plugins\" -RequireWebViewText \"Plugins Catalog\"",
+            "-Name \"cloud\" -Page \"cloud\" -RequireWebViewText \"Package Outputs\"",
+            "-Name \"team\" -Page \"team\" -RequireWebViewText \"Team Members\"",
+            "-Name \"learn\" -Page \"learn\" -RequireWebViewText \"Learn Catalog\"",
+            "-Name \"settings\" -Page \"settings\" -RequireWebViewText \"Build Defaults\"",
+            "-Name \"project-browser-empty\" -Page \"projects\" -ProjectSubpage \"project-browser\" -ProjectViewMode \"list\" -IncludeProject $false -RequireWebViewText \"No projects found\"",
+            "-Name \"loading\" -Page \"builds\" -VisualTaskState \"loading\" -RequireWebViewText \"Loading Hub state\"",
+            "-Name \"error\" -Page \"builds\" -VisualTaskState \"error\" -RequireWebViewText \"Visual verification error state\"",
+            "-ConfigMode Current",
+            "-VisualTaskState \"loading\"",
+            "-VisualTaskState \"error\"",
+            "-RequireWindowTitle \"Zircon Hub\"",
+            "Test-HubScreenshotMostlyWhite",
+            "Test-HubScreenshotMissingAccent",
+            "Screenshot for '$Name' is mostly white and cannot be trusted",
+            "does not contain enough Hub accent pixels",
+        ],
+    );
+    assert_contains_all(
+        "compare-hub-tauri-references.ps1",
+        &comparison,
+        &[
+            "hub-tauri-reference-comparison.json",
+            "hub-tauri-reference-comparison.md",
+            "target\\hub-visual-check\\tauri-project-pages-full-matrix",
+            "hub-state-editor.png",
+            "hub-state-learn.png",
+            "hub-projects-new-project.png",
+            "hub-projects-detail-delete-confirm.png",
+            "hub-state-project-browser-empty.png",
+            "$MaxMeanDelta = 35.0",
+            "$MaxRmsDelta = 75.0",
+            "$MinimumActualWidth = 1400",
+            "AI draft PNGs are checked for inventory presence",
+            "Final similarity metrics compare against the HTML/CSS-finalized",
+        ],
+    );
+    assert_contains_all(
+        "capture Hub skill doc",
+        &skill_doc,
+        &[
+            "capture-hub-visual-state-matrix.ps1",
+            "compare-hub-tauri-references.ps1",
+            "Editor, Assets, Builds, Plugins, Cloud, Team, Learn, Settings, Source Engine popup, User menu, empty Project Browser, loading, and error-state screenshots",
+            "Hub Tauri reference comparison",
+            "ZIRCON_HUB_VISUAL_TASK_STATE",
+            "real Tauri `hub_state` view-model",
+        ],
+    );
+}
+
+#[test]
+fn typography_visual_assets_and_global_css_stay_centralized() {
+    let theme = read_crate_file("web/src/theme/muiTheme.ts");
+    let tokens = read_crate_file("web/src/theme/tokens.ts");
+    let styles = read_crate_file("web/src/styles.css");
+    let data = read_crate_file("web/src/data/hubData.ts");
+
+    assert_contains_all(
+        "muiTheme.ts",
+        &theme,
+        &[
+            "createTheme",
+            "typography: {",
+            "letterSpacing: 0",
+            "textTransform: \"none\"",
+            "MuiButton",
+            "MuiOutlinedInput",
+            "MuiTooltip",
+        ],
+    );
+    assert_contains_all(
+        "tokens.ts",
+        &tokens,
+        &[
+            "colors",
+            "radius",
+            "window",
+            "pagePaddingX",
+            "topBarHeight",
+            "sidebarWidth",
+        ],
+    );
+    assert_contains_all(
+        "styles.css",
+        &styles,
+        &[
+            "font-family: Inter, Roboto, \"Segoe UI\", Arial, sans-serif;",
+            "button,",
+            "input,",
+            "textarea,",
+            "select",
+            "font: inherit;",
+        ],
+    );
+    assert_contains_all(
+        "hubData.ts",
+        &data,
+        &[
+            "../../../assets/brand/zircon-mark.svg",
+            "../../../assets/covers/reference/",
+            "fallbackShellState",
+        ],
+    );
+    assert_not_contains_any(
+        "hubData.ts",
+        &data,
+        &["docs/ui-and-layout", "hub-ai-drafts", "hub.png"],
+    );
+}
+
+#[test]
+fn global_rules_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_global_rules_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_global_rules_contract",
+            "## Global Rules Contract Cutover",
+            "React/MUI global guardrails",
+            "web/src/App.tsx",
+            "web/src/components",
+            "web/src/pages",
+            "web/src/theme",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_global_rules_contract.rs`",
+            "React/MUI global guardrails",
+            "raw Material primitive ownership",
+            "pages remain composition surfaces",
+            "absolute positioning stays out of page layouts",
+        ],
+    );
+}
+
+#[test]
+fn global_rules_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_global_rules_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_global_rules_contract.rs",
+        &contract,
+        &[
+            "web/src/App.tsx",
+            "web/src/components",
+            "web/src/pages",
+            "web/src/theme",
+            "web/src/data/hubData.ts",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_global_rules_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

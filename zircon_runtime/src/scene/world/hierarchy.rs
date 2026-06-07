@@ -40,6 +40,8 @@ impl World {
         self.directional_lights.remove(&entity);
         self.point_lights.remove(&entity);
         self.spot_lights.remove(&entity);
+        self.post_process_settings.remove(&entity);
+        self.post_process_volumes.remove(&entity);
         self.rigid_bodies.remove(&entity);
         self.colliders.remove(&entity);
         self.joints.remove(&entity);

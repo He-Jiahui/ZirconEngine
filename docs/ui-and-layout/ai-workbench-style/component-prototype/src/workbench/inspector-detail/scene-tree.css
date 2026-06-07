@@ -1,0 +1,22 @@
+.zr-scene-panel .zr-search .zr-input {
+  border-color: #1d2429;
+  background: linear-gradient(180deg, #15191d, #0f1215);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.018);
+}
+
+.zr-scene-panel .zr-tree {
+  transform: translate(-1px, -1px);
+}
+
+.zr-scene-panel .zr-tree-row {
+  color: #a8b2b7;
+}
+
+.zr-scene-panel .zr-tree-row.is-selected {
+  color: #cce8ea;
+}
+
+.zr-scene-panel .zr-tree-row .zr-icon,
+.zr-scene-panel .zr-tree-action {
+  opacity: 0.66;
+}

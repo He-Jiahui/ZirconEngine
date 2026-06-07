@@ -1,0 +1,21 @@
+.zr-viewport {
+  position: absolute;
+  left: calc(var(--rail-w) + var(--left-w));
+  top: var(--topbar-h);
+  right: var(--right-w);
+  height: 428px;
+  overflow: hidden;
+  border: 1px solid #050607;
+  background: #111518;
+}
+
+.zr-scene-shell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 51% 48%, rgba(186, 191, 188, 0.18), transparent 30%),
+    radial-gradient(ellipse at 19% 40%, rgba(154, 100, 62, 0.16), transparent 33%),
+    radial-gradient(ellipse at 82% 51%, rgba(142, 88, 52, 0.14), transparent 31%),
+    linear-gradient(180deg, #151719 0, #1d2021 44%, #191c1e 72%, #121416 100%);
+}

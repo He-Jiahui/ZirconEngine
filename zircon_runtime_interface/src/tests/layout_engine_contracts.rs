@@ -15,17 +15,47 @@ where
 
 #[test]
 fn ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_families() {
-    let capability = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let capability = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
 
     assert!(capability.supports_family(UiLayoutEngineFamily::Flex));
     assert!(capability.supports_family(UiLayoutEngineFamily::Grid));
     assert!(capability.supports_family(UiLayoutEngineFamily::Block));
+    assert!(capability.supports_family(UiLayoutEngineFamily::Wrap));
+    assert!(!capability.supports_family(UiLayoutEngineFamily::Canvas));
     assert!(!capability.supports_family(UiLayoutEngineFamily::Overlay));
     assert!(!capability.supports_family(UiLayoutEngineFamily::Scrollable));
     assert!(!capability.supports_family(UiLayoutEngineFamily::Masonry));
     assert!(!capability.supports_family(UiLayoutEngineFamily::VirtualizedList));
     assert!(capability.supports_content_measure);
     assert_eq!(round_trip(&capability), capability);
+
+    let legacy = UiLayoutEngineCapability::legacy_zircon();
+    assert!(legacy.supports_family(UiLayoutEngineFamily::Block));
+    assert!(legacy.supports_family(UiLayoutEngineFamily::Wrap));
+    assert!(legacy.supports_family(UiLayoutEngineFamily::Masonry));
+
+    for family in [
+        UiLayoutEngineFamily::Flex,
+        UiLayoutEngineFamily::Grid,
+        UiLayoutEngineFamily::Wrap,
+        UiLayoutEngineFamily::Block,
+    ] {
+        assert!(family.is_taffy_owned());
+        assert!(!family.is_zircon_owned());
+    }
+
+    for family in [
+        UiLayoutEngineFamily::Free,
+        UiLayoutEngineFamily::Canvas,
+        UiLayoutEngineFamily::Container,
+        UiLayoutEngineFamily::Overlay,
+        UiLayoutEngineFamily::Scrollable,
+        UiLayoutEngineFamily::VirtualizedList,
+        UiLayoutEngineFamily::Masonry,
+    ] {
+        assert!(family.is_zircon_owned());
+        assert!(!family.is_taffy_owned());
+    }
 }
 
 #[test]
@@ -35,6 +65,8 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
     ));
     let grid =
         UiLayoutEngineRequest::from_container_kind(UiContainerKind::GridBox(Default::default()));
+    let block = UiLayoutEngineRequest::from_container_kind(UiContainerKind::BlockBox);
+    let canvas = UiLayoutEngineRequest::from_container_kind(UiContainerKind::Canvas);
     let overlay = UiLayoutEngineRequest::from_container_kind(UiContainerKind::Overlay);
     let masonry = UiLayoutEngineRequest::from_container_kind(UiContainerKind::MasonryBox(
         UiMasonryBoxConfig {
@@ -59,6 +91,10 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
 
     assert_eq!(horizontal.family, UiLayoutEngineFamily::Flex);
     assert_eq!(grid.family, UiLayoutEngineFamily::Grid);
+    assert_eq!(block.family, UiLayoutEngineFamily::Block);
+    assert!(!block.requires_zircon_semantics());
+    assert_eq!(canvas.family, UiLayoutEngineFamily::Canvas);
+    assert!(canvas.requires_zircon_semantics());
     assert_eq!(overlay.family, UiLayoutEngineFamily::Overlay);
     assert_eq!(masonry.family, UiLayoutEngineFamily::Masonry);
     assert!(masonry.requires_zircon_semantics());
@@ -82,9 +118,10 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
 }
 
 #[test]
-fn ui_layout_engine_block_is_explicit_not_implied_by_current_container_contracts() {
-    let current_containers = [
+fn ui_layout_engine_block_is_explicit_block_box_not_generic_container() {
+    let non_block_containers = [
         UiContainerKind::Free,
+        UiContainerKind::Canvas,
         UiContainerKind::Container,
         UiContainerKind::Overlay,
         UiContainerKind::Space,
@@ -97,24 +134,26 @@ fn ui_layout_engine_block_is_explicit_not_implied_by_current_container_contracts
         UiContainerKind::MasonryBox(Default::default()),
     ];
 
-    for container in current_containers {
+    for container in non_block_containers {
         assert_ne!(
             UiLayoutEngineRequest::from_container_kind(container).family,
             UiLayoutEngineFamily::Block
         );
     }
 
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let legacy = UiLayoutEngineCapability::legacy_zircon();
-    let block = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block);
+    let block = UiLayoutEngineRequest::from_container_kind(UiContainerKind::BlockBox);
     let selection = UiLayoutEngineSelection::select(&block, &taffy, &legacy);
+    assert_eq!(block.family, UiLayoutEngineFamily::Block);
+    assert!(!block.requires_zircon_semantics());
     assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Taffy);
     assert_eq!(selection.support, UiLayoutEngineSupport::Native);
 }
 
 #[test]
 fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout() {
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let legacy = UiLayoutEngineCapability::legacy_zircon();
     let flex = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex);
     let overlay = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay);
@@ -165,7 +204,7 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
 
 #[test]
 fn ui_layout_engine_selection_report_tracks_taffy_tree_build_stats() {
-    let taffy = UiLayoutEngineCapability::taffy_flex_grid_block();
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     let legacy = UiLayoutEngineCapability::legacy_zircon();
     let selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),

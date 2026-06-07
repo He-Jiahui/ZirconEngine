@@ -1,0 +1,15 @@
+.zr-showcase-grid {
+  display: grid;
+  grid-template-columns: 204px 210px 214px 168px 260px 236px;
+  gap: 0;
+  height: 202px;
+  padding: 12px 286px 0 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.zr-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}

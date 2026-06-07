@@ -25,7 +25,7 @@ fn world_bootstraps_with_renderable_defaults() {
     assert!(snapshot.overlays.handles.is_empty());
     assert!(snapshot.overlays.scene_gizmos.is_empty());
     assert_eq!(
-        world.schedule().stages,
+        world.schedule().stages(),
         vec![
             SystemStage::First,
             SystemStage::PreUpdate,

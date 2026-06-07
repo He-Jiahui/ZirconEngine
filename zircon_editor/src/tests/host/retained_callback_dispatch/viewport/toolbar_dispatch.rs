@@ -84,7 +84,7 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
             .unwrap()
             .operation_id
             .as_deref(),
-        Some("Runtime.PlayMode.Enter")
+        Some("runtime.play_mode.enter")
     );
     assert_eq!(
         harness.runtime.editor_snapshot().session_mode,
@@ -115,7 +115,7 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
             .unwrap()
             .operation_id
             .as_deref(),
-        Some("Runtime.PlayMode.Exit")
+        Some("runtime.play_mode.exit")
     );
     assert_eq!(
         harness.runtime.editor_snapshot().session_mode,

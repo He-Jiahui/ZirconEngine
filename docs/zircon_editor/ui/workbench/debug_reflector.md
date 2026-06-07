@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime_interface/src/ui/ecs.rs
   - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
@@ -37,6 +38,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/ecs.rs
   - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
@@ -79,6 +81,11 @@ tests:
   - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections_tests.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/debug_reflector/model.rs zircon_editor/src/ui/workbench/debug_reflector/tests.rs zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_status_controls.rs (2026-06-07 Canvas layer reflector section: passed after applying rustfmt)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never (2026-06-07 Canvas layer reflector section: passed with existing warning noise)
+  - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out; first attempt timed out during test-target compilation without diagnostics)
+  - cargo test -p zircon_editor --lib runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out)
+  - cargo test -p zircon_editor --lib editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out after narrowing the test fixture to the projected body documents)
   - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
   - cargo test -p zircon_editor --lib editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor --message-format short --color never (2026-05-20: passed, 1 passed)
@@ -111,13 +118,15 @@ The editor debug reflector is the workbench-side consumer for `UiSurfaceDebugSna
 
 ## Model
 
-`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives base values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, layout engine selection, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status. `with_schedule_sections(...)` prepends the runtime-owned pipeline and UI ECS projection sections when a caller wants M5/M7 schedule diagnostics displayed in Runtime Diagnostics. `section_display_lines()` is the single formatter for section titles and indented lines used by both pane payload construction and retained-host live refresh, so Runtime Diagnostics cannot drift between the active-snapshot and body-surface paths.
+`EditorUiDebugReflectorModel` is a read model for pane projection. It stores summary strings, flattened node rows, detail lines, subsystem sections, and warnings. `from_snapshot(...)` derives base values from `UiSurfaceDebugSnapshot`, including tree rows, selected-node details, layout engine selection, Canvas layer groups, render stats, render visualizer stats, renderer parity stats, hit-grid stats, overdraw stats, invalidation, and damage status. `with_schedule_sections(...)` prepends the runtime-owned pipeline and UI ECS projection sections when a caller wants M5/M7 schedule diagnostics displayed in Runtime Diagnostics. `section_display_lines()` is the single formatter for section titles and indented lines used by both pane payload construction and retained-host live refresh, so Runtime Diagnostics cannot drift between the active-snapshot and body-surface paths.
 
 The schedule extension consumes only carried fields from the shared snapshot. The `Pipeline` section reports the active M7 stage rows from `UiPipelineFrameReport`: frame index, completed stage count, ordering completeness, missing required stages, elapsed time, dirty reasons, and non-zero counters such as input, pointer move, widget behavior, text, layout, picking, a11y, render extraction, and batch preparation. The editor does not infer stage activity from host events.
 
 The `ECS Projection` section reports the read-only `UiEcsProjectionSnapshot` added for the M5 bridge. It exposes projection totals, dirty-domain totals, interaction totals, render/hit facts, the derived schedule mask, schedule-impact rows, and dirty-domain-impact rows. This gives editor diagnostics a direct answer to which runtime nodes require `TextMeasure`, `Layout`, `A11yExtract`, `RenderExtract`, or `BatchPrepare` without allowing editor authoring state to write back into runtime UI truth.
 
 The layout engine section consumes `UiSurfaceDebugSnapshot.layout_engine_report`. It reports total requests, Taffy-selected containers, Zircon-selected containers, fallback count, unsupported count, aggregated fallback-reason counts, aggregate Taffy tree-build totals, and a bounded per-node preview with family, requested backend, selected backend, support state, fallback reason, and per-route Taffy tree-build/node counts. Editor code only displays the runtime-owned report; it does not rerun layout or infer backend ownership from arranged coordinates.
+
+The Canvas Layers section consumes `UiSurfaceDebugSnapshot.canvas_layers`. It reports the number of Canvas layer groups and a bounded preview of parent id, layer index, z-order, and grouped child ids. This exposes runtime's Slate-style `SConstraintCanvas` same-z grouping in Runtime Diagnostics without asking editor code to rebuild layout, infer paint order, or read renderer-private batches.
 
 The M7 render visualizer section consumes `UiSurfaceDebugSnapshot.render_batches.visualizer`. It exposes paint element count, batch groups, draw calls, visualizer overlay count, overdraw regions, resource binding count, text backend/glyph/decorator counters, and paint-cache reuse/rebuild counters. The renderer parity section consumes `render_batches.parity` and reports the canonical paint/batch row counts that runtime and editor renderers can compare without reading backend-private draw commands.
 
@@ -151,7 +160,7 @@ The live M7 projection refresh is deliberately narrow. It only rebuilds the Runt
 
 M2 registers `editor.debug_observatory` as a built-in `ActivityWindow` tool titled `Debug Observatory`. The descriptor lives under `ui::host::builtin_views::activity_windows`, requires the same runtime diagnostics capability as `editor.runtime_diagnostics`, and reuses `PanePayloadKind::RuntimeDiagnosticsV1` with the diagnostics route namespace. This keeps the Window-surface tool on the same payload/template boundary as Runtime Diagnostics instead of creating a second debug transport path.
 
-The workbench Window menu opens the tool through `MenuAction::OpenView(ViewDescriptorId::new("editor.debug_observatory"))`, operation path `Window.DebugObservatory.Open`, and fallback host action `OpenView.editor.debug_observatory`. The existing `editor.runtime_diagnostics` ActivityView remains the bottom drawer Runtime Diagnostics view; the Debug Observatory registration only adds the first-class Window entry point.
+The workbench Window menu opens the tool through `MenuAction::OpenView(ViewDescriptorId::new("editor.debug_observatory"))`, operation path `window.debug_observatory.open`, and fallback host action `OpenView.editor.debug_observatory`. The existing `editor.runtime_diagnostics` ActivityView remains the bottom drawer Runtime Diagnostics view; the Debug Observatory registration only adds the first-class Window entry point.
 
 ## Snapshot-Derived Overlay
 
@@ -182,3 +191,5 @@ The 2026-05-22 layout-engine fallback-reason summary continuation passed `cargo 
 The 2026-05-23 Taffy tree-build display continuation updates the same model path so native routes show `taffy_tree_builds` and `taffy_tree_nodes` beside backend/support/fallback fields, while Zircon fallback and unsupported routes show zeroes. Focused editor validation is deferred until shared Cargo/rustc jobs clear.
 
 The 2026-05-27 schedule/projection continuation adds `schedule_sections.rs` so Runtime Diagnostics displays `UiPipelineFrameReport` and `UiEcsProjectionSnapshot` facts already carried by `UiSurfaceDebugSnapshot`. Focused coverage lives in `schedule_sections_tests.rs`, and `pane_presentation.rs` asserts active Runtime Diagnostics payloads now include `Pipeline:` and `ECS Projection:` section headers. This slice deliberately avoids `.zui` governance files because a concurrent active session owns that area.
+
+The 2026-06-07 Canvas layer reflector continuation displays `UiSurfaceDebugSnapshot.canvas_layers` as a `Canvas Layers` section and verifies the section through the reflector model, Runtime Diagnostics payload rows, and template projection root attributes. Validation used `D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607`: scoped rustfmt passed after applying standard formatting; `cargo check -p zircon_editor --lib` passed with existing warning noise after threading the status-control warning mark width through an in-progress retained-host painter style-selector refactor; the three focused editor tests listed above each passed with `1 passed; 0 failed; 1879 filtered out`. The first model-test attempt timed out during test-target compilation without Rust diagnostics; the timed-out target processes were stopped and the warmed rerun passed.

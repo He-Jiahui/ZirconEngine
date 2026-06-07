@@ -6,8 +6,8 @@ use crate::scene::components::{
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
-    NodeKind, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight,
-    Sprite2dComponent, WorldMatrix,
+    NodeKind, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
+    RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::{
     ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry,
@@ -63,6 +63,10 @@ pub struct World {
     pub(super) rect_lights: HashMap<EntityId, RectLight>,
     #[serde(default)]
     pub(super) spot_lights: HashMap<EntityId, SpotLight>,
+    #[serde(skip, default)]
+    pub(super) post_process_settings: HashMap<EntityId, PostProcessSettingsComponent>,
+    #[serde(skip, default)]
+    pub(super) post_process_volumes: HashMap<EntityId, PostProcessVolumeComponent>,
     #[serde(default)]
     pub(super) rigid_bodies: HashMap<EntityId, RigidBodyComponent>,
     #[serde(default)]
@@ -207,6 +211,8 @@ impl<'de> Deserialize<'de> for World {
             point_lights: state.point_lights,
             rect_lights: state.rect_lights,
             spot_lights: state.spot_lights,
+            post_process_settings: HashMap::new(),
+            post_process_volumes: HashMap::new(),
             rigid_bodies: state.rigid_bodies,
             colliders: state.colliders,
             joints: state.joints,

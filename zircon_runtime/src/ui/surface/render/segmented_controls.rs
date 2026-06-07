@@ -1,11 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 const SEGMENTED_BACKGROUND: &str = "#1d2327";
 const SEGMENTED_BORDER: &str = "#4b626d";
@@ -41,6 +44,7 @@ pub(super) fn segmented_control_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -53,7 +57,7 @@ pub(super) fn segmented_control_render_commands(
         return Vec::new();
     }
 
-    let state = SegmentedRenderState::resolve(metadata, state_flags);
+    let state = SegmentedRenderState::resolve(metadata, state_flags, component_state);
     match control_kind(metadata) {
         Some(SegmentedControlKind::SegmentedControl) => segmented_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,
@@ -79,25 +83,23 @@ struct SegmentedRenderState {
 }
 
 impl SegmentedRenderState {
-    fn resolve(metadata: &UiTemplateNodeMetadata, state_flags: &UiStateFlags) -> Self {
-        let checked = state_flags.checked || bool_attribute(metadata, "checked").unwrap_or(false);
-        let selected = checked || bool_attribute(metadata, "selected").unwrap_or(false);
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            checked,
-            selected,
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-        };
+    fn resolve(
+        metadata: &UiTemplateNodeMetadata,
+        state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
+    ) -> Self {
+        let component_flags = component_state.map(|state| &state.flags);
+        let checked = component_flags.is_some_and(|flags| flags.checked)
+            || state_flags.checked
+            || bool_attribute(metadata, "checked").unwrap_or(false);
+        let selected = checked
+            || component_flags.is_some_and(|flags| flags.selected)
+            || bool_attribute(metadata, "selected").unwrap_or(false);
+        let mut painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
+        painter_state.checked = checked;
+        painter_state.selected = selected;
         let family = UiPainterFamily::Tab;
         Self {
             family,

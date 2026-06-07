@@ -1,4 +1,4 @@
-use crate::ui::{layout::taffy_style_for_container, tree::UiRuntimeTreeAccessExt};
+use crate::ui::{layout::taffy_style_for_container};
 use taffy::geometry::Rect;
 use taffy::prelude::{
     fr, line, AlignContent, AlignItems, AvailableSpace, Dimension, FlexDirection, FlexWrap,
@@ -659,6 +659,7 @@ fn taffy_main_axis(container: UiContainerKind) -> Option<Option<UiAxis>> {
         UiContainerKind::VerticalBox(_) => Some(Some(UiAxis::Vertical)),
         UiContainerKind::WrapBox(_) => Some(Some(UiAxis::Horizontal)),
         UiContainerKind::GridBox(_) => Some(None),
+        UiContainerKind::BlockBox => Some(None),
         _ => None,
     }
 }

@@ -19,7 +19,11 @@ pub(crate) fn software_backend_capabilities() -> Vec<SoundBackendCapability> {
         supported_channel_layouts: vec![
             SoundChannelLayout::mono(),
             SoundChannelLayout::stereo(),
+            SoundChannelLayout::quad(),
+            SoundChannelLayout::surround_5_0(),
             SoundChannelLayout::surround_5_1(),
+            SoundChannelLayout::surround_5_1_side(),
+            SoundChannelLayout::surround_7_0(),
             SoundChannelLayout::surround_7_1(),
         ],
         min_block_size_frames: 1,

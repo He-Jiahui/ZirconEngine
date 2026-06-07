@@ -26,7 +26,7 @@ pub use query_data::{QueryData, QueryDataAccess, QueryMutData};
 pub use query_entity_error::QueryEntityError;
 pub use query_filter::{Added, Changed, QueryFilter, With, Without};
 pub use query_iter::QueryIter;
-pub use query_many_iter::{QueryEntityItem, QueryManyIter};
+pub use query_many_iter::{QueryEntityItem, QueryManyCachedIter, QueryManyIter};
 pub use query_many_mut_iter::QueryManyMutIter;
 pub use query_many_unique_mut_iter::QueryManyUniqueMutIter;
 pub use query_mut_iter::QueryMutIter;

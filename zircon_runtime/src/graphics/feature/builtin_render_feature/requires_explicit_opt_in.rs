@@ -4,13 +4,15 @@ impl BuiltinRenderFeature {
     pub const fn requires_explicit_opt_in(self) -> bool {
         matches!(
             self,
-            Self::GlobalIllumination
+            Self::MeshLod
+                | Self::GlobalIllumination
                 | Self::HistoryResolve
                 | Self::Particle
                 | Self::NeuralCompute
                 | Self::SparseTexture
                 | Self::Terrain
                 | Self::Tree
+                | Self::Decal
                 | Self::Projector
                 | Self::Halo
                 | Self::LensFlare

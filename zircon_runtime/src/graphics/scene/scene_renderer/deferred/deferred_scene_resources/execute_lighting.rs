@@ -1,21 +1,37 @@
+use bytemuck::bytes_of;
+
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::render_graph::RenderGraphAttachmentOps;
 
+use super::shadow_receiver_uniform::DeferredShadowReceiverUniform;
 use super::DeferredSceneResources;
 
 impl DeferredSceneResources {
     pub(crate) fn execute_lighting(
         &self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_bind_group: &wgpu::BindGroup,
         gbuffer_albedo_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
         gbuffer_material_view: &wgpu::TextureView,
+        scene_depth_view: &wgpu::TextureView,
+        shadow_map_view: &wgpu::TextureView,
+        shadow_scene_uniform: Option<SceneUniform>,
         background_view: &wgpu::TextureView,
         scene_color_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
     ) {
+        let shadow_receiver_uniform =
+            DeferredShadowReceiverUniform::from_shadow_scene_uniform(shadow_scene_uniform);
+        queue.write_buffer(
+            &self.shadow_receiver_uniform_buffer,
+            0,
+            bytes_of(&shadow_receiver_uniform),
+        );
+
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
             layout: &self.lighting_bind_group_layout,
@@ -35,6 +51,22 @@ impl DeferredSceneResources {
                 wgpu::BindGroupEntry {
                     binding: 3,
                     resource: wgpu::BindingResource::TextureView(gbuffer_material_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(scene_depth_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(shadow_map_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: self.shadow_receiver_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: wgpu::BindingResource::Sampler(&self.shadow_compare_sampler),
                 },
             ],
         });

@@ -73,7 +73,10 @@ fn dotted_menu_action_ids_roundtrip_through_headless_dispatch() {
             "OpenView.editor.scene",
             MenuAction::OpenView(ViewDescriptorId::new("editor.scene")),
         ),
-        ("MenuAction.workbench.project.save", MenuAction::SaveProject),
+        (
+            "menu_action.workbench.project.save",
+            MenuAction::SaveProject,
+        ),
         ("SaveProject", MenuAction::SaveProject),
     ] {
         let binding = EditorUiBinding::new(

@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui"
+version = 2
+display_name = "Workbench Extension Menu Flow Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionMenuFlowWorkspace]
+root = "menu_flow_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.menu_flow_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMenuFlowWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_rail_gap" }, { node = "menu_flow_left" }, { node = "menu_flow_center" }, { node = "menu_flow_right" }]
+
+[nodes.menu_flow_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionMenuFlowRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.menu_flow_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMenuFlowLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_title" }, { node = "menu_flow_routes_tab" }, { node = "menu_flow_focus_tab" }, { node = "menu_flow_simulation_tab" }, { node = "menu_flow_main_menu_row" }, { node = "menu_flow_start_screen_row" }, { node = "menu_flow_focus_play_button_row" }]
+
+[nodes.menu_flow_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMenuFlowTitle"
+props = { text = "Menu Flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.menu_flow_routes_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMenuFlowRoutesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Routes", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowRoutesTab", event = "Click", route = "workbench.extension.menu_flow.routes" }]
+
+[nodes.menu_flow_focus_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMenuFlowFocusTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Focus", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowFocusTab", event = "Click", route = "workbench.extension.menu_flow.focus" }]
+
+[nodes.menu_flow_simulation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMenuFlowSimulationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Simulation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowSimulationTab", event = "Click", route = "workbench.extension.menu_flow.simulation" }]
+
+[nodes.menu_flow_main_menu_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMenuFlowMainMenuRow"
+classes = ["workbench-list-row"]
+props = { text = "MainMenu", icon = "columns", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowMainMenuRow", event = "Click", route = "workbench.extension.menu_flow.asset.main_menu" }]
+
+[nodes.menu_flow_start_screen_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMenuFlowStartScreenRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Screen_Start", icon = "image", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowStartScreenRow", event = "Click", route = "workbench.extension.menu_flow.screen.start" }]
+
+[nodes.menu_flow_focus_play_button_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMenuFlowFocusPlayButtonRow"
+classes = ["workbench-list-row"]
+props = { text = "Focus_PlayButton", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowFocusPlayButtonRow", event = "Click", route = "workbench.extension.menu_flow.focus.play_button" }]
+
+[nodes.menu_flow_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMenuFlowCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_center_header" }, { node = "menu_flow_graph" }, { node = "menu_flow_output" }]
+
+[nodes.menu_flow_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMenuFlowCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "menu_flow_center_title" }, { node = "menu_flow_header_fill" }, { node = "menu_flow_preview_button" }, { node = "menu_flow_validate_button" }]
+
+[nodes.menu_flow_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMenuFlowCenterTitle"
+props = { text = "Menu Flow Graph" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.menu_flow_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionMenuFlowHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.menu_flow_preview_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMenuFlowPreviewFlowButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Preview Flow", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowPreviewFlow", event = "Click", route = "workbench.extension.menu_flow.preview_flow" }]
+
+[nodes.menu_flow_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMenuFlowValidateFocusButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate Focus", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 130.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowValidateFocus", event = "Click", route = "workbench.extension.menu_flow.validate_focus" }]
+
+[nodes.menu_flow_graph]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMenuFlowGraph"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_start_node_row" }, { node = "menu_flow_options_node_row" }, { node = "menu_flow_match_node_row" }, { node = "menu_flow_exit_route_row" }]
+
+[nodes.menu_flow_start_node_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMenuFlowStartNodeRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Start", value_text = "Screen   12,34   selected" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowStartNodeRow", event = "Click", route = "workbench.extension.menu_flow.node.start" }]
+
+[nodes.menu_flow_options_node_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMenuFlowOptionsNodeRow"
+classes = ["workbench-table-row"]
+props = { text = "Options", value_text = "Screen   focus cycle   OK" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowOptionsNodeRow", event = "Click", route = "workbench.extension.menu_flow.node.options" }]
+
+[nodes.menu_flow_match_node_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMenuFlowMatchNodeRow"
+classes = ["workbench-table-row"]
+props = { text = "Match", value_text = "Screen   Route_Play   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowMatchNodeRow", event = "Click", route = "workbench.extension.menu_flow.node.match" }]
+
+[nodes.menu_flow_exit_route_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMenuFlowExitRouteRow"
+classes = ["workbench-table-row"]
+props = { text = "Exit", value_text = "Route   escape/back   warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowExitRouteRow", event = "Click", route = "workbench.extension.menu_flow.route.exit" }]
+
+[nodes.menu_flow_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMenuFlowOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Menu Flow", value_text = "12 screens   28 routes   2 issues" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MenuFlowOutput", event = "Click", route = "workbench.extension.menu_flow.output" }]
+
+[nodes.menu_flow_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMenuFlowRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "menu_flow_details_title" }, { node = "menu_flow_screen_dropdown" }, { node = "menu_flow_breakpoint_dropdown" }, { node = "menu_flow_transition_field" }]
+
+[nodes.menu_flow_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMenuFlowDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.menu_flow_screen_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMenuFlowScreenDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Screen_Start", value = "Screen_Start", options = ["Screen_Start", "Screen_Options", "Screen_Loadout"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MenuFlowScreenEdit", event = "Change", route = "workbench.extension.menu_flow.screen.edit" },
+  { id = "WorkbenchExtension/MenuFlowScreenCommit", event = "Submit", route = "workbench.extension.menu_flow.screen.commit" },
+]
+
+[nodes.menu_flow_breakpoint_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMenuFlowBreakpointDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Desktop", value = "Desktop", options = ["Desktop", "Console", "Compact"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MenuFlowBreakpointEdit", event = "Change", route = "workbench.extension.menu_flow.breakpoint.edit" },
+  { id = "WorkbenchExtension/MenuFlowBreakpointCommit", event = "Submit", route = "workbench.extension.menu_flow.breakpoint.commit" },
+]
+
+[nodes.menu_flow_transition_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionMenuFlowTransitionField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Transition: Fade" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MenuFlowTransitionEdit", event = "Change", route = "workbench.extension.menu_flow.transition.edit" },
+  { id = "WorkbenchExtension/MenuFlowTransitionCommit", event = "Submit", route = "workbench.extension.menu_flow.transition.commit" },
+]

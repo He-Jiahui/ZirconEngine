@@ -6,9 +6,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use subassets::{
-    add_gltf_animation_and_skin_placeholders, add_gltf_material_subassets, add_gltf_mesh_subassets,
-    add_gltf_scene_subassets, add_gltf_texture_subassets, gltf_label_reference, GltfMeshSubasset,
-    GltfPrimitiveSubasset,
+    add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
+    add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
+    gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
 };
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
@@ -225,7 +225,12 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     outcome = add_gltf_material_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_mesh_subassets(outcome, &context.uri, &meshes);
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
-    outcome = add_gltf_animation_and_skin_placeholders(outcome, &context.uri, &document);
+    outcome = add_gltf_animation_placeholders_and_skin_subassets(
+        outcome,
+        &context.uri,
+        &document,
+        &buffers,
+    )?;
     Ok(outcome)
 }
 

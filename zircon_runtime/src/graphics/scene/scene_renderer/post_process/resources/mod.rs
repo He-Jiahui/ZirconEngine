@@ -2,6 +2,16 @@ pub(in crate::graphics::scene::scene_renderer::post_process) mod depth_sampling_
 mod execute_bloom;
 mod execute_clustered_lighting;
 mod execute_depth_of_field_prepare;
+mod execute_motion_vector_camera;
+mod execute_motion_vector_neighbor_max;
+mod execute_motion_vector_tile_max;
 mod execute_post_process;
+mod execute_screen_space_reflection_depth_pyramid;
+mod execute_screen_space_reflection_depth_pyramid_coarse;
+mod execute_screen_space_reflection_reflection_pyramid;
+mod execute_screen_space_reflection_reflection_pyramid_coarse;
+mod execute_screen_space_reflection_resolve;
+mod execute_screen_space_reflection_specular_occlusion;
 mod execute_ssao;
 mod new;
+pub(in crate::graphics::scene::scene_renderer::post_process) mod shader_sources;

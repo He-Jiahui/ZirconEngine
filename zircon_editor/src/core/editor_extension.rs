@@ -348,7 +348,7 @@ impl ViewDescriptor {
     }
 
     pub fn open_operation_path(&self) -> Result<EditorOperationPath, EditorOperationRegistryError> {
-        EditorOperationPath::parse(format!("View.{}.Open", self.id))
+        EditorOperationPath::parse(format!("view.{}.open", self.id))
     }
 }
 

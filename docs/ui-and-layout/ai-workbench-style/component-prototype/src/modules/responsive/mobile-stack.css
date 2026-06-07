@@ -1,0 +1,54 @@
+@media (max-width: 720px) {
+  .zr-module-tabs {
+    display: none;
+  }
+
+  .zr-module-left {
+    display: none;
+  }
+
+  .zr-module-main {
+    left: var(--rail-w);
+    right: 0;
+    top: var(--topbar-h);
+    bottom: auto;
+    height: 428px;
+  }
+
+  .zr-module-right {
+    left: 64px;
+    right: 12px;
+    top: 74px;
+    bottom: auto;
+    width: auto;
+    height: 350px;
+  }
+
+  .zr-module-bottom {
+    left: var(--rail-w);
+    top: 488px;
+  }
+
+  .zr-module-editor-grid.is-vfx,
+  .zr-module-editor-grid.is-scene,
+  .zr-module-editor-grid.is-library,
+  .zr-module-editor-grid.is-extension {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zr-module-editor-grid.is-extension .zr-module-card:first-child {
+    grid-row: auto;
+  }
+
+  .zr-extension-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zr-module-output-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .zr-module-output-grid > :not(:first-child) {
+    display: none;
+  }
+}

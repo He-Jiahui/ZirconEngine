@@ -1,233 +1,371 @@
-//! Static contracts for Zircon Hub top header chrome.
+//! Static contracts for React/MUI Zircon Hub top header chrome.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
+
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            source.contains(snippet),
+            "{source_name} should contain shell-header snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete shell-header snippet {snippet:?}"
+        );
+    }
+}
+
 #[test]
-fn top_header_uses_aligned_interactive_titlebar_regions() {
-    let app = read_ui_file("app.slint");
-    for snippet in [
-        "private property <length> shell-drag-height: HubTokens.space-0;",
-        "private property <length> shell-row-height: root.shell-header-height;",
-    ] {
-        assert!(
-            app.contains(snippet),
-            "Hub top header should not keep an invisible titlebar strip that offsets pointer hit testing; missing {snippet}"
-        );
-    }
+fn topbar_owns_brand_engine_status_user_and_window_control_regions() {
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
 
-    let shell_header_components = read_ui_file("shell_header_components.slint");
-    let shell_header_popup_components = read_ui_file("shell_header_popup_components.slint");
-    let shared_components = read_ui_file("shared.slint");
-    for snippet in [
-        "component HeaderControlSlot inherits Rectangle",
-        "slot-height: HubTokens.shell-header-height;",
-        "VerticalLayout {",
-        "@children",
-    ] {
-        assert!(
-            shell_header_components.contains(snippet),
-            "shell_header_components.slint should provide a shared titlebar control slot that centers existing controls without replacing them; missing {snippet}"
-        );
-    }
-    let header = shell_header_components
-        .split("export component HubTopHeader")
-        .nth(1)
-        .expect("shell_header_components.slint must export HubTopHeader");
-    let brand_title_stack = shell_header_components
-        .split("component HeaderBrandTitleStack")
-        .nth(1)
-        .and_then(|source| source.split("export component HubTopHeader").next())
-        .expect(
-            "shell_header_components.slint must declare HeaderBrandTitleStack before HubTopHeader",
-        );
-    assert!(
-        !ui_dir().join("shell.slint").exists(),
-        "shell.slint was a migration-only compatibility note and must stay deleted after shell chrome extraction"
+    assert_contains_all(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "import { Avatar, Box, ButtonBase, Divider, Typography } from \"@mui/material\";",
+            "import { brandMark } from \"../../data/hubData\";",
+            "import { getCurrentWindow } from \"@tauri-apps/api/window\";",
+            "import { StatusBadge } from \"../data\";",
+            "import { HubIconButton } from \"../inputs\";",
+            "import { SourceEnginePopover, UserMenuPopover } from \"../overlays\";",
+            "export interface TopBarProps",
+            "state: HubShellState;",
+            "onAction: HubActionHandler;",
+            "component=\"header\"",
+            "height: hubTokens.window.topBarHeight",
+            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
+            "src={brandMark}",
+            "{state.productName}",
+            "{state.ui.shell.productCategory}",
+            "activeEngine?.name ?? state.engineVersion",
+            "state.taskStatus.map((status) =>",
+            "<StatusBadge key={status.id} label={status.label} tone={status.tone} />",
+            "const userName = state.team.identityName || state.ui.common.notConfigured;",
+            "const userInitials = initialsFromName(userName);",
+            "const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());",
+            "const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());",
+            "const handleClose = () => runWindowAction((appWindow) => appWindow.close());",
+            "{userName}",
+            "HubIconButton label={state.ui.shell.minimize} onClick={handleMinimize}",
+            "HubIconButton label={state.ui.shell.maximize} onClick={handleToggleMaximize}",
+            "HubIconButton label={state.ui.shell.close} onClick={handleClose}",
+        ],
     );
-    assert!(
-        shell_header_components
-            .contains("import { HeaderEngineSelector } from \"shell_header_popup_components.slint\";")
-            && !shell_header_components.contains("export component HeaderEngineSelector")
-            && !shell_header_components.contains("export component HeaderEngineOption")
-            && shell_header_popup_components.contains("export component HeaderEngineSelector")
-            && shell_header_popup_components.contains("export component HeaderEngineOption"),
-        "shell_header_components.slint should import Source Engine popup components from shell_header_popup_components.slint instead of defining them inline"
-    );
-    assert!(
-        shell_header_components
-            .contains("import { HubTopbarIconButton } from \"icon_button_components.slint\";")
-            && !shell_header_components.contains("component HeaderPlainIconButton"),
-        "HubTopHeader should consume the shared HubTopbarIconButton primitive instead of owning a local plain icon button"
-    );
-    for snippet in [
-        "HorizontalLayout {",
-        "width: parent.width;",
-        "height: root.row-height;",
-        "horizontal-stretch: 1;",
-        "padding-left: root.pad-x;",
-        "padding-right: max(HubTokens.space-2, root.pad-x / 3);",
-        "spacing: root.gap;",
-        "alignment: stretch;",
-    ] {
-        assert!(
-            header.contains(snippet),
-            "HubTopHeader main titlebar row should keep main-axis stretch so compact windows do not center the whole chrome group; missing {snippet}"
-        );
-    }
-    for snippet in [
-        "width: root.brand-width;",
-        "WindowDragRegion {",
-        "status-running-pill-width: HubTokens.control-md * 3;",
-        "status-standard-pill-width: HubTokens.control-md * 5 / 2 + HubTokens.space-2;",
-        "status-error-pill-width: HubTokens.control-md * 2 + HubTokens.space-2;",
-        "status-cluster-width: root.header-statuses.length == 0 ? 0px : root.status-running-pill-width + root.status-standard-pill-width * 2 + root.status-error-pill-width",
-        "width: pill.icon == \">\" ? root.status-running-pill-width : (pill.state == \"error\" ? root.status-error-pill-width : root.status-standard-pill-width);",
-        "slot-width: root.status-cluster-width;",
-        "height: parent.height;",
-        "region-height: parent.height;",
-    ] {
-        assert!(
-            header.contains(snippet),
-            "HubTopHeader should center titlebar controls and reserve drag hit testing for explicit titlebar regions; missing {snippet}"
-        );
-    }
+}
 
-    let brand_start = header
-        .find("width: root.brand-width;")
-        .expect("HubTopHeader must keep a brand slot");
-    let selector_start = header
-        .find("HeaderEngineSelector {")
-        .expect("HubTopHeader must keep an engine selector after the brand slot");
-    assert!(
-        brand_start < selector_start,
-        "HubTopHeader brand drag slot must stay before the engine selector so the selector remains a normal Material button"
-    );
+#[test]
+fn topbar_routes_engine_user_settings_and_help_regions_through_shared_actions() {
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
 
-    for snippet in [
-        "private property <string> brand-subtitle: root.project.selected ? root.project.title : root.ui-text.game-engine;",
-        "HeaderBrandTitleStack {",
-        "stack-height: parent.height;",
-        "subtitle-text: root.brand-subtitle;",
-    ] {
-        assert!(
-            header.contains(snippet),
-            "HubTopHeader must forward selected-project context through the focused brand title stack; missing {snippet}"
-        );
-    }
-    assert!(
-        shell_header_components.contains("component HeaderBrandTitleStack inherits Rectangle"),
-        "shell_header_components.slint must keep HeaderBrandTitleStack as a private focused helper"
+    assert_contains_all(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "const [engineAnchor, setEngineAnchor] = useState<HTMLElement | null>(null);",
+            "const [userAnchor, setUserAnchor] = useState<HTMLElement | null>(null);",
+            "const handleUserAction = (actionId: string) => {",
+            "if (actionId === \"preferences\")",
+            "void onAction(HUB_ACTION.showPage, \"settings\")",
+            "if (actionId === \"documentation\")",
+            "void onAction(HUB_ACTION.showPage, \"learn\")",
+            "if (actionId === \"account\")",
+            "void onAction(HUB_ACTION.showPage, \"team\")",
+            "HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled",
+            "HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, \"learn\")}",
+            "HubIconButton label={state.ui.shell.settings} onClick={() => void onAction(HUB_ACTION.showPage, \"settings\")}",
+            "\"&.Mui-disabled\"",
+            "onClick={(event) => setEngineAnchor(event.currentTarget)}",
+            "onClick={(event) => setUserAnchor(event.currentTarget)}",
+            "void onAction(HUB_ACTION.selectEngine, engineId);",
+            "void onAction(HUB_ACTION.showPage, \"settings\");",
+            "onAction={handleUserAction}",
+        ],
     );
-    for snippet in [
-        "in property <string> title-text: \"ZIRCON HUB\";",
-        "in property <string> subtitle-text;",
-        "MaterialText {",
-        "text: root.title-text;",
-        "color: HubVisualSpec.brand-title-foreground;",
-        "style: MaterialTypography.title_medium;",
-        "text: root.subtitle-text;",
-        "color: HubVisualSpec.brand-subtitle-foreground;",
-        "style: MaterialTypography.body_medium;",
-    ] {
-        assert!(
-            brand_title_stack.contains(snippet),
-            "HeaderBrandTitleStack must own top-header brand typography: {snippet}"
-        );
-    }
-    assert!(
-        !header.contains("private property <string> brand-subtitle: root.ui-text.game-engine;"),
-        "HubTopHeader brand subtitle must not become static game-engine copy when a project is selected"
+    assert_not_contains_any(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "HubIconButton label={state.ui.shell.notifications} sx={topIconSx}",
+            "HubIconButton label={state.ui.shell.help} sx={topIconSx}",
+        ],
     );
-    for forbidden in [
-        "MaterialText {",
-        "text: \"ZIRCON HUB\";",
-        "                        text: root.brand-subtitle;",
-        "style: MaterialTypography.title_medium;",
-        "style: MaterialTypography.body_medium;",
-    ] {
-        assert!(
-            !header.contains(forbidden),
-            "HubTopHeader should not own brand text after adopting HeaderBrandTitleStack: {forbidden}"
-        );
-    }
-    for snippet in [
-        "HubTopbarIconButton {",
-        "button-size: root.header-button-size;",
-        "icon-image: @image-url(\"../assets/icons/ui/bell.svg\");",
-        "icon-image: @image-url(\"../assets/icons/ui/help.svg\");",
-        "icon-image: @image-url(\"../assets/icons/ui/settings.svg\");",
-        "clicked => {",
-        "root.settings-clicked();",
-    ] {
-        assert!(
-            header.contains(snippet),
-            "HubTopHeader topbar tool buttons should consume HubTopbarIconButton instead of repeating transparent HubIconButton chrome: {snippet}"
-        );
-    }
-    assert!(
-        !header.contains("HubIconButton {")
-            && !header.contains("idle-background: transparent;")
-            && !header.contains("button-border-width: 0px;"),
-        "HubTopHeader should not repeat transparent topbar HubIconButton styling after HubTopbarIconButton extraction"
-    );
-    assert!(
-        !header.contains("danger: true;"),
-        "HubTopHeader window controls should keep the neutral reference chrome; close must not use the red danger icon state"
-    );
-    for snippet in [
-        "export component BrandMark inherits Rectangle",
-        "width: MaterialStyleMetrics.size_40 + MaterialStyleMetrics.size_1;",
-        "source: @image-url(\"../assets/brand/zircon-mark.svg\");",
-        "y: MaterialStyleMetrics.size_1;",
-        "opacity: 0.68;",
-    ] {
-        assert!(
-            shared_components.contains(snippet),
-            "BrandMark should keep the topbar mark sized and toned toward the reference header chrome; missing {snippet}"
-        );
-    }
+}
 
-    let user_menu = shell_header_popup_components
-        .split("export component HeaderUserMenu")
-        .nth(1)
-        .expect("shell_header_popup_components.slint must export HeaderUserMenu");
-    for snippet in [
-        "HubUserMenuTriggerButton {",
-        "avatar-text: root.ui-text.local-user-initials;",
-        "user-name: root.ui-text.local-user;",
-        "tight: root.tight;",
-    ] {
-        assert!(
-            user_menu.contains(snippet),
-            "HeaderUserMenu should route its trigger through the shared button wrapper; missing {snippet}"
-        );
-    }
-    for forbidden in ["StateLayerArea {", "MaterialTypography.label_medium"] {
-        assert!(
-            !user_menu.contains(forbidden),
-            "HeaderUserMenu should not retain local trigger state/text styling after delegating to HubUserMenuTriggerButton: {forbidden}"
-        );
-    }
-    for forbidden in ["height: root.width;", "border-radius: root.width / 2;"] {
-        assert!(
-            !user_menu.contains(forbidden),
-            "HeaderUserMenu popup avatar should use token-derived square sizing rather than popup width; found {forbidden}"
-        );
-    }
+#[test]
+fn status_badge_and_icon_button_own_reusable_header_chrome() {
+    let status_badge = read_crate_file("web/src/components/data/StatusBadge.tsx");
+    let icon_button = read_crate_file("web/src/components/inputs/HubIconButton.tsx");
+
+    assert_contains_all(
+        "StatusBadge.tsx",
+        &status_badge,
+        &[
+            "export interface StatusBadgeProps",
+            "label: string;",
+            "tone: StatusTone;",
+            "const toneMap: Record<StatusTone",
+            "running:",
+            "success:",
+            "warning:",
+            "error:",
+            "neutral:",
+            "Icon: PlayArrowIcon",
+            "Icon: CheckCircleIcon",
+            "Icon: WarningIcon",
+            "Icon: ErrorIcon",
+            "height: 36",
+            "minWidth: 112",
+            "borderRadius: `${hubTokens.radius.compact}px`",
+            "tone === \"running\"",
+        ],
+    );
+    assert_contains_all(
+        "HubIconButton.tsx",
+        &icon_button,
+        &[
+            "export interface HubIconButtonProps extends IconButtonProps",
+            "selected?: boolean;",
+            "label: string;",
+            "tooltip?: string;",
+            "Tooltip title={tooltip ?? label}",
+            "aria-label={label}",
+            "width: 50",
+            "height: 42",
+            "backgroundColor: selected ?",
+            "\"&.Mui-disabled\"",
+            "...asSxArray(sx)",
+        ],
+    );
+}
+
+#[test]
+fn brand_asset_and_fallback_header_state_stay_centralized() {
+    let data = read_crate_file("web/src/data/hubData.ts");
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "hubData.ts",
+        &data,
+        &[
+            "import brandMarkAsset from \"../../../assets/brand/zircon-mark.svg\";",
+            "export const brandMark = brandMarkAsset;",
+            "productName: \"Zircon Hub\"",
+            "engineVersion: \"Zircon Engine 1.8.2\"",
+            "taskStatus: [",
+            "{ id: \"running\", label: \"运行中\", tone: \"running\" }",
+            "{ id: \"success\", label: \"成功\", tone: \"success\" }",
+            "{ id: \"warning\", label: \"警告\", tone: \"warning\" }",
+            "{ id: \"error\", label: \"错误\", tone: \"error\" }",
+            "activeSourceEngineId: \"zircon-engine-1-8-2\"",
+            "notificationsDetail: \"通知中心敬请期待；本地 v1 不启用通知服务。\"",
+        ],
+    );
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "productName: string;",
+            "engineVersion: string;",
+            "activeSourceEngineId?: string | null;",
+            "taskStatus: HubStatusPill[];",
+            "sourceEngines: HubSourceEngineSummary[];",
+            "settings: HubSettingsSummary;",
+        ],
+    );
+    assert_not_contains_any(
+        "hubData.ts",
+        &data,
+        &["docs/ui-and-layout", "hub-ai-drafts", "hub.png"],
+    );
+}
+
+#[test]
+fn user_menu_keeps_local_v1_sign_out_reserved_and_disabled() {
+    let user_menu = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
+    let fallback_data = read_crate_file("web/src/data/hubData.ts");
+
+    assert_contains_all(
+        "UserMenuPopover.tsx",
+        &user_menu,
+        &[
+            "{ id: \"sign-out\", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
+            "menuItems.map(({ id, label, detail, Icon, danger, disabled }) => {",
+            "const isDisabled = Boolean(disabled);",
+            "disabled={isDisabled}",
+            "if (isDisabled) {",
+            "return;",
+            "onAction(id);",
+            "onClose();",
+            "color: isDisabled ? hubTokens.colors.textMuted : danger ? hubTokens.colors.error : hubTokens.colors.text",
+            "backgroundColor: isDisabled ? \"transparent\"",
+            "\"&.Mui-disabled\"",
+            "cursor: \"not-allowed\"",
+        ],
+    );
+    assert_not_contains_any("TopBar.tsx", &topbar, &["if (actionId === \"sign-out\")"]);
+    assert_contains_all(
+        "ui_text.rs",
+        &ui_text,
+        &[
+            "Remote account service is not enabled in local v1.",
+            "本地 v1 不启用远程账号服务。",
+            "Notification center is coming soon; local v1 does not enable a notification service.",
+            "通知中心敬请期待；本地 v1 不启用通知服务。",
+        ],
+    );
+    assert_contains_all(
+        "hubData.ts",
+        &fallback_data,
+        &["signOutDetail: \"本地 v1 不启用远程账号服务。\""],
+    );
+}
+
+#[test]
+fn frameless_window_controls_call_tauri_current_window_actions() {
+    let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
+    let capability = read_crate_file("capabilities/default.json");
+
+    assert_contains_all(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "import { getCurrentWindow } from \"@tauri-apps/api/window\";",
+            "const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());",
+            "const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());",
+            "const handleClose = () => runWindowAction((appWindow) => appWindow.close());",
+            "HubIconButton label={state.ui.shell.minimize} onClick={handleMinimize}",
+            "HubIconButton label={state.ui.shell.maximize} onClick={handleToggleMaximize}",
+            "HubIconButton label={state.ui.shell.close} onClick={handleClose}",
+            "type TauriWindow = ReturnType<typeof getCurrentWindow>;",
+            "function runWindowAction(action: (appWindow: TauriWindow) => Promise<void>)",
+            "if (typeof window === \"undefined\" || !(\"__TAURI_INTERNALS__\" in window))",
+            "void action(getCurrentWindow());",
+        ],
+    );
+    assert_not_contains_any(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "HubIconButton label={state.ui.shell.minimize} sx={windowIconSx}",
+            "HubIconButton label={state.ui.shell.maximize} sx={windowIconSx}",
+            "HubIconButton label={state.ui.shell.close} sx={windowIconSx}",
+            "void onAction(HUB_ACTION.minimize",
+        ],
+    );
+    assert_contains_all(
+        "capabilities/default.json",
+        &capability,
+        &[
+            "\"core:window:allow-minimize\"",
+            "\"core:window:allow-toggle-maximize\"",
+            "\"core:window:allow-close\"",
+        ],
+    );
+}
+
+#[test]
+fn shell_header_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_shell_header_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_shell_header_contract",
+            "## Shell Header Contract Cutover",
+            "React/MUI shell header chrome",
+            "web/src/components/shell/TopBar.tsx",
+            "web/src/components/data/StatusBadge.tsx",
+            "web/src/components/inputs/HubIconButton.tsx",
+            "web/src/data/hubData.ts",
+            "disabled local-v1 account-service reservation",
+            "disabled local-v1 notification-service reservation",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_shell_header_contract.rs`",
+            "React/MUI shell header chrome",
+            "brand, engine selector, status badges, user menu, settings/help tools, disabled local-v1 notification-service reservation, and window controls",
+            "disabled local-v1 account-service reservation",
+            "disabled local-v1 notification-service reservation",
+        ],
+    );
+}
+
+#[test]
+fn shell_header_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_shell_header_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_shell_header_contract.rs",
+        &contract,
+        &[
+            "web/src/components/shell/TopBar.tsx",
+            "web/src/components/data/StatusBadge.tsx",
+            "web/src/components/inputs/HubIconButton.tsx",
+            "web/src/data/hubData.ts",
+            "web/src/types/hub.ts",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_shell_header_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

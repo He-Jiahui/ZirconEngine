@@ -8,12 +8,12 @@ use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPa
 
 #[test]
 fn authoring_descriptors_register_and_preserve_capability_gates() {
-    let open = EditorOperationPath::parse("Authoring.Material.Open").unwrap();
-    let validate = EditorOperationPath::parse("Authoring.Material.Validate").unwrap();
-    let compile = EditorOperationPath::parse("Authoring.Material.Compile").unwrap();
-    let create = EditorOperationPath::parse("Authoring.Material.Create").unwrap();
-    let tool = EditorOperationPath::parse("Authoring.Terrain.Sculpt").unwrap();
-    let timeline_open = EditorOperationPath::parse("Authoring.Sequence.Open").unwrap();
+    let open = EditorOperationPath::parse("authoring.material.open").unwrap();
+    let validate = EditorOperationPath::parse("authoring.material.validate").unwrap();
+    let compile = EditorOperationPath::parse("authoring.material.compile").unwrap();
+    let create = EditorOperationPath::parse("authoring.material.create").unwrap();
+    let tool = EditorOperationPath::parse("authoring.terrain.sculpt").unwrap();
+    let timeline_open = EditorOperationPath::parse("authoring.sequence.open").unwrap();
     let mut registry = EditorExtensionRegistry::default();
 
     for operation in [&open, &validate, &compile, &create, &tool, &timeline_open] {
@@ -24,7 +24,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
             ))
             .unwrap();
     }
-    let schema_operation = EditorOperationPath::parse("Authoring.Material.SchemaCompile").unwrap();
+    let schema_operation = EditorOperationPath::parse("authoring.material.schema_compile").unwrap();
     registry
         .register_operation(
             EditorOperationDescriptor::new(schema_operation.clone(), "Compile With Schema")
@@ -162,7 +162,7 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
 #[test]
 fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
     let mut registry = EditorExtensionRegistry::default();
-    let operation = EditorOperationPath::parse("Authoring.Material.Compile").unwrap();
+    let operation = EditorOperationPath::parse("authoring.material.compile").unwrap();
     let error = registry
         .register_operation(
             EditorOperationDescriptor::new(operation, "Compile Material")

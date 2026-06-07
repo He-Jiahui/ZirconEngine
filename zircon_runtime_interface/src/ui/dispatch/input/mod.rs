@@ -14,9 +14,9 @@ pub use effect::{
 pub use event::{
     UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,
     UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
-    UiNavigationInputEvent, UiPointerInputEvent, UiPopupInputEvent, UiPopupInputEventKind,
-    UiPreciseScrollDelta, UiScrollDeltaUnit, UiTextByteRange, UiTextInputEvent,
-    UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+    UiMouseMotionInputEvent, UiNavigationInputEvent, UiPointerInputEvent, UiPopupInputEvent,
+    UiPopupInputEventKind, UiPreciseScrollDelta, UiScrollDeltaUnit, UiTextByteRange,
+    UiTextInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
 };
 pub use metadata::{
     UiDeviceId, UiDragSessionId, UiInputEventMetadata, UiInputModifiers, UiInputSequence,

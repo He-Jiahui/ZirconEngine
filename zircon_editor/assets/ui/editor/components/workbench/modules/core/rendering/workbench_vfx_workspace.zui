@@ -1,0 +1,215 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui"
+version = 2
+display_name = "Workbench VFX Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+]
+styles = []
+
+[components.WorkbenchVfxWorkspace]
+root = "vfx_workspace"
+default_classes = ["workbench-module-body"]
+
+[nodes.vfx_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchModuleVfxWorkspace"
+classes = ["workbench-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_rail_gap" }, { node = "vfx_left" }, { node = "vfx_center" }, { node = "vfx_right" }]
+
+[nodes.vfx_rail_gap]
+component = "Container"
+control_id = "WorkbenchVfxRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.vfx_left]
+component = "VerticalGroup"
+control_id = "WorkbenchVfxLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_title" }, { node = "vfx_emitters_tab" }, { node = "vfx_timeline_tab" }, { node = "vfx_compile_tab" }, { node = "vfx_emitter_row" }, { node = "vfx_curve_row" }]
+
+[nodes.vfx_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchVfxTitle"
+classes = ["workbench-section-title"]
+props = { text = "VFX" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.vfx_emitters_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchVfxEmittersTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Emitters", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxEmittersTab", event = "Click", route = "workbench.module.vfx.emitters" }]
+
+[nodes.vfx_timeline_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchVfxTimelineTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Timeline", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxTimelineTab", event = "Click", route = "workbench.module.vfx.timeline" }]
+
+[nodes.vfx_compile_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchVfxCompileTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Compile", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxCompileTab", event = "Click", route = "workbench.module.vfx.compile" }]
+
+[nodes.vfx_emitter_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchVfxEmitterRow"
+classes = ["workbench-list-row"]
+props = { text = "Emitter: Sparks", value = "sparks", selected = true, checked = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxEmitterRow", event = "Click", route = "workbench.module.vfx.emitter" }]
+
+[nodes.vfx_curve_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchVfxCurveRow"
+classes = ["workbench-list-row"]
+props = { text = "Curve: Spawn Rate", value = "spawn_rate", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxCurveRow", event = "Click", route = "workbench.module.vfx.curve" }]
+
+[nodes.vfx_center]
+component = "VerticalGroup"
+control_id = "WorkbenchVfxCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_center_header" }, { node = "vfx_canvas" }, { node = "vfx_output" }]
+
+[nodes.vfx_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchVfxCenterHeader"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
+children = [{ node = "vfx_center_title" }, { node = "vfx_header_fill" }, { node = "vfx_particle_library_button" }, { node = "vfx_simulate_button" }]
+
+[nodes.vfx_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchVfxCenterTitle"
+classes = ["workbench-section-title"]
+props = { text = "P_Bolt_01" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.vfx_header_fill]
+component = "Container"
+control_id = "WorkbenchVfxHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.vfx_particle_library_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchVfxParticleLibraryButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Particle Library", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 126.0, preferred = 126.0, max = 136.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ParticleLibraryOpen", event = "Click", route = "workbench.extension.particle_library.open" }]
+
+[nodes.vfx_simulate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchVfxSimulateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Simulate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 90.0, preferred = 90.0, max = 100.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxSimulate", event = "Click", route = "workbench.module.vfx.simulate" }]
+
+[nodes.vfx_canvas]
+component = "VerticalGroup"
+control_id = "WorkbenchVfxCanvas"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#11171b", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_spawn_row" }, { node = "vfx_lifetime_row" }, { node = "vfx_material_row" }]
+
+[nodes.vfx_spawn_row]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchVfxSpawnRow"
+classes = ["workbench-property-row"]
+props = { text = "Spawn Rate", value = "280 / sec" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxSpawnRow", event = "Click", route = "workbench.module.vfx.spawn" }]
+
+[nodes.vfx_lifetime_row]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchVfxLifetimeRow"
+classes = ["workbench-property-row"]
+props = { text = "Lifetime", value = "0.65 s" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxLifetimeRow", event = "Click", route = "workbench.module.vfx.lifetime" }]
+
+[nodes.vfx_material_row]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchVfxMaterialRow"
+classes = ["workbench-property-row"]
+props = { text = "Material", value = "M_Bolt_01" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxMaterialRow", event = "Click", route = "workbench.module.vfx.material" }]
+
+[nodes.vfx_output]
+component = "WorkbenchListRow"
+control_id = "WorkbenchVfxOutputRow"
+classes = ["workbench-list-row"]
+props = { text = "Compile Output: 60 fps preview, no errors", value = "vfx_output" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/VfxOutput", event = "Click", route = "workbench.module.vfx.output" }]
+
+[nodes.vfx_right]
+component = "VerticalGroup"
+control_id = "WorkbenchVfxRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "vfx_details_title" }, { node = "vfx_system_field" }, { node = "vfx_bounds_field" }, { node = "vfx_sort_field" }]
+
+[nodes.vfx_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchVfxDetailsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.vfx_system_field]
+component = "WorkbenchField"
+control_id = "WorkbenchVfxSystemField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "P_Bolt_01" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/VfxSystemEdit", event = "Change", route = "workbench.module.vfx.system.edit" },
+  { id = "WorkbenchModule/VfxSystemCommit", event = "Submit", route = "workbench.module.vfx.system.commit" },
+]
+
+[nodes.vfx_bounds_field]
+component = "WorkbenchField"
+control_id = "WorkbenchVfxBoundsField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Fixed Bounds: 400 cm" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/VfxBoundsEdit", event = "Change", route = "workbench.module.vfx.bounds.edit" },
+  { id = "WorkbenchModule/VfxBoundsCommit", event = "Submit", route = "workbench.module.vfx.bounds.commit" },
+]
+
+[nodes.vfx_sort_field]
+component = "WorkbenchField"
+control_id = "WorkbenchVfxSortField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Sort: Depth" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/VfxSortEdit", event = "Change", route = "workbench.module.vfx.sort.edit" },
+  { id = "WorkbenchModule/VfxSortCommit", event = "Submit", route = "workbench.module.vfx.sort.commit" },
+]

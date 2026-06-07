@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 use crate::ui::tree::{
-    UiHitTestIndex, UiHitTestResult, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt,
+    UiHitTestIndex, UiHitTestResult, UiRuntimeTreeFocusExt,
     UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
 };
 use crate::ui::v2::UiV2RuntimeStyleIndex;
@@ -20,17 +20,19 @@ use zircon_runtime_interface::ui::{
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
     layout::{UiLayoutEngineSelectionReport, UiPoint},
     surface::{
-        UiArrangedTree, UiFocusState, UiHitTestDebugDump, UiHitTestQuery, UiNavigationEventKind,
-        UiNavigationRoute, UiNavigationState, UiPointerActivationPhase, UiPointerButton,
+        UiArrangedTree, UiFocusPath, UiFocusState, UiHitTestDebugDump, UiHitTestQuery,
+        UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerActivationPhase,
+        UiPointerButton,
         UiPointerEventKind, UiPointerRoute, UiRenderExtract, UiRenderList, UiSurfaceDebugOptions,
         UiSurfaceDebugSnapshot, UiSurfaceFrame,
     },
 };
 
 use super::{
-    component_state::UiSurfaceComponentStateStore,
+    component_state::{property_may_affect_runtime_pseudo_state, UiSurfaceComponentStateStore},
     debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
+    arranged_focus_path,
     input::{
         apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event,
         is_valid_input_owner, UiSurfaceInputState,
@@ -113,51 +115,7 @@ impl UiSurface {
     }
 
     pub(crate) fn seed_component_states_from_tree_metadata(&mut self) {
-        for (node_id, node) in &self.tree.nodes {
-            if let Some(metadata) = node.template_metadata.as_ref() {
-                if bool_attribute(&metadata.attributes, "hovered")
-                    || bool_attribute(&metadata.attributes, "hover")
-                {
-                    let _ = self.component_states.set_hovered(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "focused")
-                    || bool_attribute(&metadata.attributes, "focus")
-                {
-                    let _ = self.component_states.set_focused(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "pressed")
-                    || bool_attribute(&metadata.attributes, "active")
-                {
-                    let _ = self.component_states.set_pressed(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "checked") {
-                    let _ = self.component_states.set_checked(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "disabled") {
-                    let _ = self.component_states.set_disabled(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "expanded") {
-                    let _ = self.component_states.set_expanded(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "popup_open")
-                    || bool_attribute(&metadata.attributes, "open")
-                {
-                    let _ = self.component_states.set_popup_open(*node_id, true);
-                }
-                if bool_attribute(&metadata.attributes, "selected") {
-                    let _ = self.component_states.set_selected(*node_id, true);
-                }
-            }
-            if node.state_flags.pressed {
-                let _ = self.component_states.set_pressed(*node_id, true);
-            }
-            if node.state_flags.checked {
-                let _ = self.component_states.set_checked(*node_id, true);
-            }
-            if !node.state_flags.enabled {
-                let _ = self.component_states.set_disabled(*node_id, true);
-            }
-        }
+        self.component_states.seed_from_tree_metadata(&self.tree);
         self.seed_popup_stack_from_tree_metadata();
     }
 
@@ -205,6 +163,7 @@ impl UiSurface {
             render_extract: self.render_extract.clone(),
             hit_grid: self.hit_test.grid.clone(),
             focus_state: self.focus.clone(),
+            focus_path: self.focus_path(),
             last_rebuild: self.last_rebuild_report.debug_stats(),
             layout_engine_report: self.layout_engine_report.clone(),
             pipeline_report: self.last_rebuild_report.pipeline_report(0),
@@ -288,7 +247,8 @@ impl UiSurface {
         }
         let component_state_changed = if matches!(report.status, UiPropertyMutationStatus::Accepted)
         {
-            self.sync_component_state_from_property(node_id, &property, &value)?
+            self.component_states
+                .sync_from_property(node_id, &property, &value)
         } else {
             false
         };
@@ -329,54 +289,6 @@ impl UiSurface {
         Ok(report)
     }
 
-    fn sync_component_state_from_property(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-        value: &UiValue,
-    ) -> Result<bool, UiTreeError> {
-        let mut changed =
-            self.component_states
-                .set_value(node_id, property.to_string(), value.clone());
-        let UiValue::Bool(value) = value else {
-            return Ok(changed);
-        };
-        match property {
-            "hover" | "hovered" => {
-                changed |= self.component_states.set_hovered(node_id, *value);
-            }
-            "focus" | "focused" => {
-                changed |= self.component_states.set_focused(node_id, *value);
-            }
-            "pressed" => {
-                changed |= self.component_states.set_pressed(node_id, *value);
-            }
-            "active" => {
-                changed |= self.component_states.set_pressed(node_id, *value);
-            }
-            "checked" => {
-                changed |= self.component_states.set_checked(node_id, *value);
-            }
-            "enabled" => {
-                changed |= self.component_states.set_disabled(node_id, !*value);
-            }
-            "disabled" => {
-                changed |= self.component_states.set_disabled(node_id, *value);
-            }
-            "expanded" => {
-                changed |= self.component_states.set_expanded(node_id, *value);
-            }
-            "popup_open" | "open" => {
-                changed |= self.component_states.set_popup_open(node_id, *value);
-            }
-            "selected" => {
-                changed |= self.component_states.set_selected(node_id, *value);
-            }
-            _ => {}
-        }
-        Ok(changed)
-    }
-
     pub fn reflector_snapshot(&self, query: Option<UiHitTestQuery>) -> UiReflectorSnapshot {
         reflector_snapshot(self, query)
     }
@@ -385,11 +297,12 @@ impl UiSurface {
         self.tree.bubble_route(node_id)
     }
 
+    pub fn focus_path(&self) -> UiFocusPath {
+        arranged_focus_path(&self.arranged_tree, self.focus.focused)
+    }
+
     pub fn focused_route(&self) -> Vec<UiNodeId> {
-        self.focus
-            .focused
-            .and_then(|node_id| self.tree.bubble_route(node_id).ok())
-            .unwrap_or_default()
+        self.focus_path().bubble_route
     }
 
     pub fn capture_pointer(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
@@ -1144,10 +1057,6 @@ fn diff_nodes(current: &[UiNodeId], previous: &[UiNodeId]) -> Vec<UiNodeId> {
         .collect()
 }
 
-fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key: &str) -> bool {
-    values.get(key).and_then(toml::Value::as_bool) == Some(true)
-}
-
 fn focus_reconcile_reason(property: &str, tree: &UiTree, node_id: UiNodeId) -> UiFocusChangeReason {
     match property {
         "disabled" | "enabled" | "focusable" => UiFocusChangeReason::Disabled,
@@ -1165,25 +1074,6 @@ fn focus_reconcile_reason(property: &str, tree: &UiTree, node_id: UiNodeId) -> U
             .unwrap_or(UiFocusChangeReason::Hidden),
         _ => UiFocusChangeReason::Clear,
     }
-}
-
-fn property_may_affect_runtime_pseudo_state(property: &str) -> bool {
-    matches!(
-        property,
-        "checked"
-            | "selected"
-            | "disabled"
-            | "enabled"
-            | "pressed"
-            | "active"
-            | "expanded"
-            | "popup_open"
-            | "open"
-            | "focus"
-            | "focused"
-            | "hover"
-            | "hovered"
-    )
 }
 
 fn activation_phase(

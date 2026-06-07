@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetError, NetEvent,
+    NetConnectionId, NetConnectionState, NetError, NetEvent, NetTransportKind,
 };
 
 use super::DefaultNetManager;
@@ -41,8 +41,10 @@ impl DefaultNetManager {
             .remove(&connection)
         {
             let _ = entry.stream;
-            self.state
-                .push_event(NetEvent::ConnectionClosed { connection });
+            self.state.push_event(NetEvent::ConnectionClosed {
+                connection,
+                transport: NetTransportKind::Tcp,
+            });
             return Ok(());
         }
 

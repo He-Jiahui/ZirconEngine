@@ -1,7 +1,7 @@
 use std::io::{Cursor, ErrorKind};
 use std::path::Path;
 
-use symphonia::core::audio::SampleBuffer;
+use symphonia::core::audio::{Channels, SampleBuffer};
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::FormatOptions;
@@ -13,6 +13,7 @@ use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, SoundAsset,
 };
+use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::{
     plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginModuleManifest,
@@ -206,6 +207,7 @@ fn decode_symphonia_audio(
 
     let mut sample_rate_hz = None;
     let mut channel_count = None;
+    let mut channel_layout = None;
     let mut samples = Vec::new();
     loop {
         let packet = match format.next_packet() {
@@ -245,13 +247,21 @@ fn decode_symphonia_audio(
             None => sample_rate_hz = Some(spec.rate),
             _ => {}
         }
+        let decoded_layout = sound_channel_layout_from_symphonia_channels(spec.channels);
         match channel_count {
-            Some(existing) if existing != decoded_channels => {
+            Some(existing) if existing != decoded_layout.channel_count as usize => {
                 return Err(format!(
-                    "decoded audio changed channel count from {existing} to {decoded_channels}"
+                    "decoded audio changed channel count from {existing} to {}",
+                    decoded_layout.channel_count
                 ));
             }
-            None => channel_count = Some(decoded_channels),
+            Some(_) if channel_layout.as_ref() != Some(&decoded_layout) => {
+                return Err("decoded audio changed channel layout".to_string());
+            }
+            None => {
+                channel_count = Some(decoded_layout.channel_count as usize);
+                channel_layout = Some(decoded_layout);
+            }
             _ => {}
         }
 
@@ -264,6 +274,8 @@ fn decode_symphonia_audio(
         sample_rate_hz.ok_or_else(|| "audio file produced no decoded samples".to_string())?;
     let channel_count =
         channel_count.ok_or_else(|| "audio file produced no decoded channels".to_string())?;
+    let channel_layout =
+        channel_layout.ok_or_else(|| "audio file produced no decoded channel layout".to_string())?;
     if channel_count > u16::MAX as usize {
         return Err(format!(
             "decoded audio channel count {channel_count} exceeds u16"
@@ -273,7 +285,66 @@ fn decode_symphonia_audio(
         uri: uri.clone(),
         sample_rate_hz,
         channel_count: channel_count as u16,
+        channel_layout,
         samples,
+    })
+}
+
+fn sound_channel_layout_from_symphonia_channels(channels: Channels) -> SoundChannelLayout {
+    let channel_count = channels.count() as u16;
+    if channel_count == 1 {
+        return SoundChannelLayout::mono();
+    }
+    let supported_mask = Channels::FRONT_LEFT
+        | Channels::FRONT_RIGHT
+        | Channels::FRONT_CENTRE
+        | Channels::LFE1
+        | Channels::REAR_LEFT
+        | Channels::REAR_RIGHT
+        | Channels::SIDE_LEFT
+        | Channels::SIDE_RIGHT;
+    if !supported_mask.contains(channels) {
+        return SoundChannelLayout::discrete(channel_count);
+    }
+
+    let mut speakers = Vec::with_capacity(channel_count as usize);
+    for (channel, speaker) in [
+        (Channels::FRONT_LEFT, SoundSpeakerChannel::FrontLeft),
+        (Channels::FRONT_RIGHT, SoundSpeakerChannel::FrontRight),
+        (Channels::FRONT_CENTRE, SoundSpeakerChannel::FrontCenter),
+        (Channels::LFE1, SoundSpeakerChannel::LowFrequency),
+        (Channels::REAR_LEFT, SoundSpeakerChannel::BackLeft),
+        (Channels::REAR_RIGHT, SoundSpeakerChannel::BackRight),
+        (Channels::SIDE_LEFT, SoundSpeakerChannel::SideLeft),
+        (Channels::SIDE_RIGHT, SoundSpeakerChannel::SideRight),
+    ] {
+        if channels.contains(channel) {
+            speakers.push(speaker);
+        }
+    }
+    sound_channel_layout_from_speakers(channel_count, speakers)
+}
+
+fn sound_channel_layout_from_speakers(
+    channel_count: u16,
+    speakers: Vec<SoundSpeakerChannel>,
+) -> SoundChannelLayout {
+    [
+        SoundChannelLayout::mono(),
+        SoundChannelLayout::stereo(),
+        SoundChannelLayout::quad(),
+        SoundChannelLayout::surround_5_0(),
+        SoundChannelLayout::surround_5_1(),
+        SoundChannelLayout::surround_5_1_side(),
+        SoundChannelLayout::surround_7_0(),
+        SoundChannelLayout::surround_7_1(),
+    ]
+    .into_iter()
+    .find(|layout| layout.channel_count == channel_count && layout.speakers == speakers)
+    .unwrap_or(SoundChannelLayout {
+        name: format!("codec_channels_{channel_count}"),
+        channel_count,
+        speakers,
     })
 }
 
@@ -323,6 +394,27 @@ mod tests {
     }
 
     #[test]
+    fn codec_channel_masks_preserve_named_sound_layouts_when_supported() {
+        assert_eq!(
+            sound_channel_layout_from_symphonia_channels(
+                Channels::FRONT_LEFT
+                    | Channels::FRONT_RIGHT
+                    | Channels::FRONT_CENTRE
+                    | Channels::LFE1
+                    | Channels::SIDE_LEFT
+                    | Channels::SIDE_RIGHT
+            ),
+            SoundChannelLayout::surround_5_1_side()
+        );
+        assert_eq!(
+            sound_channel_layout_from_symphonia_channels(
+                Channels::FRONT_LEFT | Channels::FRONT_RIGHT | Channels::TOP_CENTRE
+            ),
+            SoundChannelLayout::discrete(3)
+        );
+    }
+
+    #[test]
     fn wav_importer_decodes_sound_asset() {
         let report = plugin_registration();
         let importer = report
@@ -344,6 +436,7 @@ mod tests {
             zircon_runtime::asset::ImportedAsset::Sound(sound) => {
                 assert_eq!(sound.sample_rate_hz, 8_000);
                 assert_eq!(sound.channel_count, 1);
+                assert_eq!(sound.channel_layout, SoundChannelLayout::mono());
                 assert_eq!(sound.frame_count(), 2);
                 assert_eq!(sound.duration_seconds(), 2.0 / 8_000.0);
             }
@@ -395,6 +488,9 @@ mod tests {
             zircon_runtime::asset::ImportedAsset::Sound(sound) => {
                 assert!(sound.sample_rate_hz > 0);
                 assert!(sound.channel_count > 0);
+                assert!(sound
+                    .channel_layout
+                    .matches_channel_count(sound.channel_count));
                 assert!(sound.frame_count() > 0);
                 assert_eq!(sound.samples.len() % sound.channel_count as usize, 0);
             }

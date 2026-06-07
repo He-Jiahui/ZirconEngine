@@ -7,7 +7,13 @@ pub struct TaskStatus {
     pub recovery: Option<String>,
     pub operation: Option<TaskOperationKind>,
     pub target: Option<String>,
+    pub progress_percent: u8,
 }
+
+pub const TASK_PROGRESS_IDLE_PERCENT: u8 = 0;
+pub const TASK_PROGRESS_STARTED_PERCENT: u8 = 10;
+pub const TASK_PROGRESS_PREPARED_PERCENT: u8 = 35;
+pub const TASK_PROGRESS_COMPLETE_PERCENT: u8 = 100;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TaskSeverity {
@@ -38,6 +44,7 @@ impl TaskStatus {
             recovery: None,
             operation: Some(TaskOperationKind::Hub),
             target: None,
+            progress_percent: TASK_PROGRESS_IDLE_PERCENT,
         }
     }
 
@@ -50,6 +57,7 @@ impl TaskStatus {
             recovery: None,
             operation: None,
             target: None,
+            progress_percent: TASK_PROGRESS_STARTED_PERCENT,
         }
     }
 
@@ -96,7 +104,20 @@ impl TaskStatus {
             recovery,
             operation: None,
             target: None,
+            progress_percent: match severity {
+                TaskSeverity::Success => TASK_PROGRESS_COMPLETE_PERCENT,
+                _ => TASK_PROGRESS_IDLE_PERCENT,
+            },
         }
+    }
+
+    pub fn with_progress_percent(mut self, progress_percent: u8) -> Self {
+        self.progress_percent = progress_percent.min(TASK_PROGRESS_COMPLETE_PERCENT);
+        self
+    }
+
+    pub fn set_progress_percent(&mut self, progress_percent: u8) {
+        self.progress_percent = progress_percent.min(TASK_PROGRESS_COMPLETE_PERCENT);
     }
 
     pub fn with_operation(
@@ -171,5 +192,30 @@ mod tests {
             .with_operation(TaskOperationKind::Project, "Game");
 
         assert_eq!(status.operation_summary(), "Project: Game");
+    }
+
+    #[test]
+    fn task_status_progress_tracks_lifecycle_checkpoints() {
+        assert_eq!(
+            TaskStatus::idle().progress_percent,
+            TASK_PROGRESS_IDLE_PERCENT
+        );
+        assert_eq!(
+            TaskStatus::running("Building", "Running tools/zircon_build.py").progress_percent,
+            TASK_PROGRESS_STARTED_PERCENT
+        );
+        assert_eq!(
+            TaskStatus::success("Build complete", "out").progress_percent,
+            TASK_PROGRESS_COMPLETE_PERCENT
+        );
+        assert_eq!(
+            TaskStatus::error("Build failed", "failed", "retry").progress_percent,
+            TASK_PROGRESS_IDLE_PERCENT
+        );
+
+        let clamped = TaskStatus::running("Building", "Running tools/zircon_build.py")
+            .with_progress_percent(TASK_PROGRESS_COMPLETE_PERCENT + 1);
+
+        assert_eq!(clamped.progress_percent, TASK_PROGRESS_COMPLETE_PERCENT);
     }
 }

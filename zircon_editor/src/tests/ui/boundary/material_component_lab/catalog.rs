@@ -308,9 +308,7 @@ fn material_component_lab_mui_x_samples_use_runtime_descriptors_and_custom_props
     for &(prototype_key, expected_component, expected_classes, expected_props) in
         MUI_X_SAMPLE_CONTRACTS.iter()
     {
-        let path = editor_asset(&format!(
-            "assets/ui/editor/material_components/material_{prototype_key}.zui"
-        ));
+        let path = material_prototype_path(prototype_key);
         let source = fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
         let document = UiZuiAssetLoader::load_zui_str(&source)

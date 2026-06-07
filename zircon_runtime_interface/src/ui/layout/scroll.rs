@@ -85,7 +85,9 @@ pub struct UiSizeBoxConfig {
 pub enum UiContainerKind {
     #[default]
     Free,
+    Canvas,
     Container,
+    BlockBox,
     Overlay,
     Space,
     SizeBox(UiSizeBoxConfig),
@@ -98,6 +100,22 @@ pub enum UiContainerKind {
 }
 
 impl UiContainerKind {
+    pub const fn child_slot_kind(self) -> Option<super::UiSlotKind> {
+        match self {
+            Self::Free => Some(super::UiSlotKind::Free),
+            Self::Canvas => Some(super::UiSlotKind::Canvas),
+            Self::Container | Self::BlockBox | Self::SizeBox(_) => {
+                Some(super::UiSlotKind::Container)
+            }
+            Self::Overlay => Some(super::UiSlotKind::Overlay),
+            Self::Space => None,
+            Self::HorizontalBox(_) | Self::VerticalBox(_) => Some(super::UiSlotKind::Linear),
+            Self::ScrollableBox(_) => Some(super::UiSlotKind::Scrollable),
+            Self::WrapBox(_) | Self::MasonryBox(_) => Some(super::UiSlotKind::Flow),
+            Self::GridBox(_) => Some(super::UiSlotKind::Grid),
+        }
+    }
+
     pub const fn clips_to_bounds(self) -> bool {
         matches!(self, Self::ScrollableBox(_))
     }
@@ -111,6 +129,7 @@ impl UiContainerKind {
             self,
             Self::HorizontalBox(_)
                 | Self::VerticalBox(_)
+                | Self::BlockBox
                 | Self::SizeBox(_)
                 | Self::ScrollableBox(_)
                 | Self::WrapBox(_)

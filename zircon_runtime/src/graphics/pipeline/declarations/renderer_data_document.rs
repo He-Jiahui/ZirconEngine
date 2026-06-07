@@ -169,6 +169,7 @@ fn parse_render_pass_stage(value: &str) -> Result<RenderPassStage, RendererDataD
 fn parse_builtin_render_feature(value: &str) -> Result<BuiltinRenderFeature, String> {
     match value {
         "Mesh" => Ok(BuiltinRenderFeature::Mesh),
+        "MeshLod" => Ok(BuiltinRenderFeature::MeshLod),
         "Sprite" => Ok(BuiltinRenderFeature::Sprite),
         "DeferredGeometry" => Ok(BuiltinRenderFeature::DeferredGeometry),
         "DeferredLighting" => Ok(BuiltinRenderFeature::DeferredLighting),
@@ -191,6 +192,7 @@ fn parse_builtin_render_feature(value: &str) -> Result<BuiltinRenderFeature, Str
         "SparseTexture" => Ok(BuiltinRenderFeature::SparseTexture),
         "Terrain" => Ok(BuiltinRenderFeature::Terrain),
         "Tree" => Ok(BuiltinRenderFeature::Tree),
+        "Decal" => Ok(BuiltinRenderFeature::Decal),
         "Projector" => Ok(BuiltinRenderFeature::Projector),
         "Halo" => Ok(BuiltinRenderFeature::Halo),
         "LensFlare" => Ok(BuiltinRenderFeature::LensFlare),

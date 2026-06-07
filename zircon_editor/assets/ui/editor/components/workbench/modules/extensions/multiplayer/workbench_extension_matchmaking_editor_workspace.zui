@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Matchmaking Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionMatchmakingEditorWorkspace]
+root = "matchmaking_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.matchmaking_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_rail_gap" }, { node = "matchmaking_editor_left" }, { node = "matchmaking_editor_center" }, { node = "matchmaking_editor_right" }]
+
+[nodes.matchmaking_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionMatchmakingEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.matchmaking_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_title" }, { node = "matchmaking_editor_queues_tab" }, { node = "matchmaking_editor_rules_tab" }, { node = "matchmaking_editor_telemetry_tab" }, { node = "matchmaking_editor_playlist_ranked_row" }, { node = "matchmaking_editor_queue_solo_row" }, { node = "matchmaking_editor_rule_latency_row" }]
+
+[nodes.matchmaking_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMatchmakingEditorTitle"
+props = { text = "Matchmaking Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.matchmaking_editor_queues_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMatchmakingEditorQueuesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Queues", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorQueuesTab", event = "Click", route = "workbench.extension.matchmaking_editor.queues" }]
+
+[nodes.matchmaking_editor_rules_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMatchmakingEditorRulesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Rules", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorRulesTab", event = "Click", route = "workbench.extension.matchmaking_editor.rules" }]
+
+[nodes.matchmaking_editor_telemetry_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionMatchmakingEditorTelemetryTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Telemetry", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorTelemetryTab", event = "Click", route = "workbench.extension.matchmaking_editor.telemetry" }]
+
+[nodes.matchmaking_editor_playlist_ranked_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMatchmakingEditorPlaylistRankedRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "Playlist_Ranked", icon = "target", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorPlaylistRankedRow", event = "Click", route = "workbench.extension.matchmaking_editor.playlist.ranked" }]
+
+[nodes.matchmaking_editor_queue_solo_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMatchmakingEditorQueueSoloRow"
+classes = ["workbench-list-row"]
+props = { text = "Queue_Solo", icon = "user", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorQueueSoloRow", event = "Click", route = "workbench.extension.matchmaking_editor.queue.solo" }]
+
+[nodes.matchmaking_editor_rule_latency_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionMatchmakingEditorRuleLatencyRow"
+classes = ["workbench-list-row"]
+props = { text = "Rule_Latency", icon = "activity", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorRuleLatencyRow", event = "Click", route = "workbench.extension.matchmaking_editor.rule.latency" }]
+
+[nodes.matchmaking_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_center_header" }, { node = "matchmaking_editor_queue_table" }, { node = "matchmaking_editor_output" }]
+
+[nodes.matchmaking_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "matchmaking_editor_center_title" }, { node = "matchmaking_editor_header_fill" }, { node = "matchmaking_editor_simulate_button" }, { node = "matchmaking_editor_validate_button" }]
+
+[nodes.matchmaking_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMatchmakingEditorCenterTitle"
+props = { text = "Matchmaking Queue" }
+layout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.matchmaking_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionMatchmakingEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.matchmaking_editor_simulate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMatchmakingEditorSimulateMatchButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Simulate Match", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 126.0, preferred = 126.0, max = 142.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorSimulateMatch", event = "Click", route = "workbench.extension.matchmaking_editor.simulate_match" }]
+
+[nodes.matchmaking_editor_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionMatchmakingEditorValidateRulesButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate Rules", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 122.0, preferred = 122.0, max = 136.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorValidateRules", event = "Click", route = "workbench.extension.matchmaking_editor.validate_rules" }]
+
+[nodes.matchmaking_editor_queue_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorQueueTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_bronze_bucket_table_row" }, { node = "matchmaking_editor_gold_bucket_table_row" }, { node = "matchmaking_editor_diamond_bucket_table_row" }, { node = "matchmaking_editor_backfill_table_row" }]
+
+[nodes.matchmaking_editor_bronze_bucket_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMatchmakingEditorBronzeBucketTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Bronze", value_text = "28 players   42 ms   Open" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorBronzeBucketTableRow", event = "Click", route = "workbench.extension.matchmaking_editor.queue.bronze" }]
+
+[nodes.matchmaking_editor_gold_bucket_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMatchmakingEditorGoldBucketTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Gold", value_text = "64 players   48 ms   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorGoldBucketTableRow", event = "Click", route = "workbench.extension.matchmaking_editor.queue.gold" }]
+
+[nodes.matchmaking_editor_diamond_bucket_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMatchmakingEditorDiamondBucketTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Diamond", value_text = "18 players   58 ms   Limited" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorDiamondBucketTableRow", event = "Click", route = "workbench.extension.matchmaking_editor.queue.diamond" }]
+
+[nodes.matchmaking_editor_backfill_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMatchmakingEditorBackfillTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Backfill", value_text = "18 players   62 ms   Queued" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorBackfillTableRow", event = "Click", route = "workbench.extension.matchmaking_editor.queue.backfill" }]
+
+[nodes.matchmaking_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionMatchmakingEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Matchmaking Output", value_text = "6 queues   128 players   2 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/MatchmakingEditorOutput", event = "Click", route = "workbench.extension.matchmaking_editor.output" }]
+
+[nodes.matchmaking_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMatchmakingEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "matchmaking_editor_details_title" }, { node = "matchmaking_editor_playlist_dropdown" }, { node = "matchmaking_editor_region_dropdown" }, { node = "matchmaking_editor_max_wait_field" }]
+
+[nodes.matchmaking_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionMatchmakingEditorDetailsTitle"
+props = { text = "Queue Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.matchmaking_editor_playlist_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMatchmakingEditorPlaylistDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Ranked", value = "Ranked", options = ["Ranked", "Solo", "Duo", "Casual"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MatchmakingEditorPlaylistEdit", event = "Change", route = "workbench.extension.matchmaking_editor.playlist.edit" },
+  { id = "WorkbenchExtension/MatchmakingEditorPlaylistCommit", event = "Submit", route = "workbench.extension.matchmaking_editor.playlist.commit" },
+]
+
+[nodes.matchmaking_editor_region_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionMatchmakingEditorRegionDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "NA-East", value = "NA-East", options = ["NA-East", "NA-West", "EU-West", "Oceania"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MatchmakingEditorRegionEdit", event = "Change", route = "workbench.extension.matchmaking_editor.region.edit" },
+  { id = "WorkbenchExtension/MatchmakingEditorRegionCommit", event = "Submit", route = "workbench.extension.matchmaking_editor.region.commit" },
+]
+
+[nodes.matchmaking_editor_max_wait_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionMatchmakingEditorMaxWaitField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { label = "Max Wait", value = "90" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/MatchmakingEditorMaxWaitEdit", event = "Change", route = "workbench.extension.matchmaking_editor.max_wait.edit" },
+  { id = "WorkbenchExtension/MatchmakingEditorMaxWaitCommit", event = "Submit", route = "workbench.extension.matchmaking_editor.max_wait.commit" },
+]

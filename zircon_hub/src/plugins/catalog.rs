@@ -21,6 +21,7 @@ pub struct PluginCatalogEntry {
     pub description: String,
     pub category: String,
     pub maturity: String,
+    pub editor_scoped: bool,
     pub default_packaging: Vec<String>,
     pub module_count: usize,
     pub scope: String,
@@ -36,6 +37,10 @@ struct PluginManifest {
     category: Option<String>,
     maturity: Option<String>,
     #[serde(default)]
+    supported_targets: Vec<String>,
+    #[serde(default)]
+    capabilities: Vec<String>,
+    #[serde(default)]
     default_packaging: Vec<String>,
     #[serde(default)]
     modules: Vec<PluginManifestModule>,
@@ -44,6 +49,11 @@ struct PluginManifest {
 #[derive(Debug, Deserialize)]
 struct PluginManifestModule {
     name: Option<String>,
+    kind: Option<String>,
+    #[serde(default)]
+    target_modes: Vec<String>,
+    #[serde(default)]
+    capabilities: Vec<String>,
 }
 
 pub fn discover_plugin_catalog<I>(repo_roots: I) -> Result<Vec<PluginCatalogEntry>, HubError>
@@ -160,6 +170,7 @@ fn read_plugin_manifest(manifest_path: &Path, scope: &str) -> Result<PluginCatal
         .and_then(|name| name.to_str())
         .unwrap_or("plugin")
         .to_string();
+    let editor_scoped = plugin_manifest_is_editor_scoped(&manifest);
     let id = non_empty_or(manifest.id, fallback_id);
     let display_name = non_empty_or(manifest.display_name, id.clone());
     Ok(PluginCatalogEntry {
@@ -170,6 +181,7 @@ fn read_plugin_manifest(manifest_path: &Path, scope: &str) -> Result<PluginCatal
             .category
             .unwrap_or_else(|| "uncategorized".to_string()),
         maturity: manifest.maturity.unwrap_or_else(|| "unknown".to_string()),
+        editor_scoped,
         default_packaging: manifest.default_packaging,
         module_count: manifest
             .modules
@@ -185,6 +197,40 @@ fn read_plugin_manifest(manifest_path: &Path, scope: &str) -> Result<PluginCatal
         package_root,
         manifest_path: manifest_path.to_path_buf(),
     })
+}
+
+fn plugin_manifest_is_editor_scoped(manifest: &PluginManifest) -> bool {
+    manifest
+        .supported_targets
+        .iter()
+        .any(|target| is_editor_target(target))
+        || manifest
+            .capabilities
+            .iter()
+            .any(|capability| is_editor_capability(capability))
+        || manifest.modules.iter().any(|module| {
+            module
+                .kind
+                .as_deref()
+                .is_some_and(|kind| kind.eq_ignore_ascii_case("editor"))
+                || module
+                    .target_modes
+                    .iter()
+                    .any(|mode| is_editor_target(mode))
+                || module
+                    .capabilities
+                    .iter()
+                    .any(|capability| is_editor_capability(capability))
+        })
+}
+
+fn is_editor_target(value: &str) -> bool {
+    let normalized = value.trim().to_ascii_lowercase();
+    normalized == "editor" || normalized == "editor_host"
+}
+
+fn is_editor_capability(value: &str) -> bool {
+    value.trim().to_ascii_lowercase().starts_with("editor.")
 }
 
 fn should_skip_directory(name: &str) -> bool {
@@ -242,6 +288,57 @@ name = "demo.editor"
             vec!["native_dynamic".to_string(), "library_embed".to_string()]
         );
         assert_eq!(entries[0].module_count, 2);
+    }
+
+    #[test]
+    fn editor_scoped_manifest_does_not_depend_on_description_copy() {
+        let repo_root = temp_repo_root("catalog-editor-scope");
+        let editor_plugin_root = repo_root.join(PLUGINS_DIR).join("authoring");
+        let runtime_plugin_root = repo_root.join(PLUGINS_DIR).join("runtime");
+        fs::create_dir_all(&editor_plugin_root).unwrap();
+        fs::create_dir_all(&runtime_plugin_root).unwrap();
+        fs::write(
+            editor_plugin_root.join(PLUGIN_MANIFEST_FILE),
+            r#"
+id = "authoring"
+display_name = "Authoring"
+description = "Graph tools."
+supported_targets = ["editor_host"]
+capabilities = ["editor.extension.graph"]
+
+[[modules]]
+name = "authoring.tools"
+kind = "editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.graph"]
+"#,
+        )
+        .unwrap();
+        fs::write(
+            runtime_plugin_root.join(PLUGIN_MANIFEST_FILE),
+            r#"
+id = "runtime"
+display_name = "Runtime"
+description = "Runtime tools."
+supported_targets = ["client_runtime"]
+
+[[modules]]
+name = "runtime.core"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.plugin.core"]
+"#,
+        )
+        .unwrap();
+
+        let entries = discover_plugin_catalog([repo_root.clone()]).unwrap();
+        fs::remove_dir_all(repo_root).unwrap();
+
+        assert!(entries
+            .iter()
+            .any(|entry| entry.id == "authoring" && entry.editor_scoped));
+        assert!(entries
+            .iter()
+            .any(|entry| entry.id == "runtime" && !entry.editor_scoped));
     }
 
     #[test]

@@ -3,6 +3,7 @@ mod anti_alias;
 mod backend_types;
 mod camera;
 mod camera_ordering;
+mod capture;
 mod core_pipeline;
 mod frame_extract;
 mod framework;
@@ -18,6 +19,7 @@ mod prepared_runtime_sidebands;
 mod profile;
 mod scene_extract;
 mod shader;
+mod shadow;
 mod solari;
 mod sprite;
 mod surface;
@@ -34,26 +36,31 @@ pub use anti_alias::{
     AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
 };
 pub use backend_types::{
-    CapturedFrame, FrameHistoryHandle, FrameHistoryInvalidationReason, FrameHistoryStatus,
-    GraphicsDebuggerStatus, RenderCapabilityClass, RenderCapabilityClassReport,
-    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderCommand,
-    RenderFeatureQualitySettings, RenderHybridGiPayloadSource, RenderPipelineHandle,
-    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
+    FrameHistoryHandle, FrameHistoryInvalidationReason, FrameHistoryStatus, GraphicsDebuggerStatus,
+    MotionVectorCameraStatus, RenderCameraTargetGraphImportReport,
+    RenderCameraTargetGraphImportStatus, RenderCameraTargetResolutionReport,
+    RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus, RenderCapabilityClass,
+    RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings,
+    RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
+    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderHybridGiPayloadSource,
+    RenderPipelineHandle, RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
     RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
     RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
     FallbackSkyboxKind, ProjectionMode, RenderCameraClearColor, RenderCameraTarget,
-    RenderDynamicResolutionSettings, RenderLayer, RenderLayerSet, RenderViewportRect,
-    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
-    DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER,
-    DEFAULT_RENDER_LAYER_MASK,
+    RenderCameraTargetKind, RenderDynamicResolutionSettings, RenderLayer, RenderLayerSet,
+    RenderViewportRect, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    ViewportRenderSettings, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
+    DEFAULT_RENDER_LAYER, DEFAULT_RENDER_LAYER_MASK,
 };
 pub use camera_ordering::{
     sort_render_cameras, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
     RenderCameraOrderReport, RenderCameraTargetOrderKey, SortedRenderCamera,
 };
+pub use capture::{CapturedFrame, RenderCaptureReport, RenderCaptureSource};
 pub use core_pipeline::{
     build_mesh_phase_queue, build_sprite_phase_queue, CorePipelineKind, MeshPhaseInput,
     RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue,
@@ -129,7 +136,7 @@ pub use post_process::{
     PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
     PostProcessStackDescriptor, RenderBlurSettings, RenderChromaticAberrationSettings,
     RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderDepthOfFieldSettings,
-    RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
+    RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings, RenderMotionBlurSettings,
     RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
     RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
     RenderPostProcessVolumeStack, RenderResolvedPostProcessSettings,
@@ -157,6 +164,7 @@ pub use shader::{
     RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
     RenderShaderVariantKey,
 };
+pub use shadow::RenderShadowExecutionReport;
 pub use solari::{
     SolariCapabilityRequirement, SolariDegradationReason, SolariProviderAvailability,
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,

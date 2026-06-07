@@ -524,6 +524,8 @@ fn tree_specialist_api_moves_under_tree_namespace() {
     let tree_mod_source = include_str!("../tree/mod.rs");
     let interface_tree_mod_source =
         include_str!("../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
+    let interface_ui_tree_source =
+        include_str!("../../../../zircon_runtime_interface/src/ui/tree/node/ui_tree.rs");
 
     assert!(
         lib_source.contains("pub mod tree;"),
@@ -551,13 +553,29 @@ fn tree_specialist_api_moves_under_tree_namespace() {
     for required in [
         "UiHitTestIndex",
         "UiHitTestResult",
-        "UiRuntimeTreeAccessExt",
         "UiRuntimeTreeLayoutExt",
         "UiRuntimeTreeRoutingExt",
     ] {
         assert!(
             tree_mod_source.contains(required),
             "zircon_ui::tree should expose runtime behavior helper `{required}`"
+        );
+    }
+
+    for required in [
+        "pub fn new(",
+        "pub fn insert_root(",
+        "pub fn insert_child(",
+        "pub fn node(",
+        "pub fn node_mut(",
+    ] {
+        assert!(
+            interface_ui_tree_source.contains(required),
+            "zircon_runtime_interface::ui::tree::UiTree should own base tree access method `{required}`"
+        );
+        assert!(
+            !tree_mod_source.contains("UiRuntimeTreeAccessExt"),
+            "zircon_ui::tree should not keep the old runtime-only base tree access extension"
         );
     }
 

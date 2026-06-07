@@ -7,7 +7,7 @@ use super::assert_non_dispatchable_child;
 
 #[test]
 fn material_switch_sample_covers_on_off_small_disabled_and_error_states() {
-    let path = editor_asset("assets/ui/editor/material_components/material_switches.zui");
+    let path = editor_asset("assets/ui/editor/material_components/inputs/material_switches.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

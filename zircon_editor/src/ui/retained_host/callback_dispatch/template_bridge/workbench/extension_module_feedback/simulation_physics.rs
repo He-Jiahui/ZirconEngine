@@ -31,6 +31,35 @@ pub(super) fn feedback(action_id: &str) -> Option<ExtensionModuleFeedback> {
                 output_text: "Selected Channel Mask   WorldStatic   Player block",
             }
         }
+        "workbench.extension.physics_collision.open" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPhysicsCollisionOutputRow",
+            status_text: "Physics collision opened",
+            output_text: "Native extension workspace opened for Body_PlayerCapsule",
+        },
+        "workbench.extension.physics_collision.simulate.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPhysicsCollisionOutputRow",
+            status_text: "Physics simulation queued",
+            output_text: "Simulation queued   124 bodies   32 contacts",
+        },
+        "workbench.extension.physics_collision.validate.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPhysicsCollisionOutputRow",
+            status_text: "Physics validation queued",
+            output_text: "Validation queued   Character profile   1 warning",
+        },
+        "workbench.extension.physics_collision.player_capsule_table_row.select" => {
+            ExtensionModuleFeedback {
+                output_control_id: "WorkbenchExtensionPhysicsCollisionOutputRow",
+                status_text: "Physics body selected",
+                output_text: "Selected Player Capsule   Dynamic body   82 kg",
+            }
+        }
+        "workbench.extension.physics_collision.ccd_warning_table_row.select" => {
+            ExtensionModuleFeedback {
+                output_control_id: "WorkbenchExtensionPhysicsCollisionOutputRow",
+                status_text: "Physics warning selected",
+                output_text: "Selected CCD Warning   Projectile layer missing sweep",
+            }
+        }
         _ => return None,
     };
     Some(feedback)

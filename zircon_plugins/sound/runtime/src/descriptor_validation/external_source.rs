@@ -21,6 +21,19 @@ pub(crate) fn validate_external_source_block(
             "external source block sample rate and channel count must be positive".to_string(),
         ));
     }
+    if !block
+        .channel_layout
+        .matches_channel_count(block.channel_count)
+    {
+        return Err(SoundError::InvalidParameter(
+            "external source block channel layout must match channel count".to_string(),
+        ));
+    }
+    if !block.channel_layout.is_valid_contract_layout() {
+        return Err(SoundError::InvalidParameter(
+            "external source block channel layout must use canonical speaker metadata".to_string(),
+        ));
+    }
     if block.samples.iter().any(|sample| !sample.is_finite()) {
         return Err(SoundError::InvalidParameter(
             "external source block samples must be finite".to_string(),

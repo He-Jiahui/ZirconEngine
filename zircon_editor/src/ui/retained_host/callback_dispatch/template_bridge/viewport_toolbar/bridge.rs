@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

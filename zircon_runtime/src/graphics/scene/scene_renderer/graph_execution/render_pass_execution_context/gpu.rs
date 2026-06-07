@@ -1,29 +1,29 @@
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPluginRendererOutputs,
+    MotionVectorCameraStatus, RenderFrameExtract, RenderPluginRendererOutputs,
 };
 use crate::core::math::UVec2;
-use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
-use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};
 use crate::graphics::scene::scene_renderer::overlay::{
     BaseScenePass, PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
-use crate::graphics::scene::scene_renderer::post_process::{
-    clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size, ssao_dispatch_groups,
-    ssao_workgroup_size, ScenePostProcessResources, SceneRuntimeFeatureFlags,
-};
 use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
+use crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer;
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
 use super::super::{RenderGraphComputeDispatchRecord, RenderGraphExecutionResources};
+
+mod mesh_motion_vector;
+mod post_process;
+
+pub(in crate::graphics::scene::scene_renderer) use post_process::RenderPassPostProcessStackContext;
 
 #[derive(Clone, Copy)]
 pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshDrawLists<'a> {
@@ -32,6 +32,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshDrawLists<'a
     pub alpha_mask: &'a [&'a MeshDraw],
     pub transparent: &'a [&'a MeshDraw],
     pub non_transparent: &'a [&'a MeshDraw],
+    pub shadow_casters: &'a [&'a MeshDraw],
 }
 
 impl<'a> RenderPassMeshDrawLists<'a> {
@@ -44,6 +45,7 @@ impl<'a> RenderPassMeshDrawLists<'a> {
             RenderPassStage::Opaque3d => self.opaque,
             RenderPassStage::AlphaMask3d => self.alpha_mask,
             RenderPassStage::Transparent3d => self.transparent,
+            RenderPassStage::Shadow => self.shadow_casters,
             _ => &[],
         }
     }
@@ -63,6 +65,7 @@ pub struct RenderPassGpuExecutionContext<'a> {
     overlay_renderer: Option<&'a mut ViewportOverlayRenderer>,
     prepared_overlays: Option<&'a PreparedOverlayBuffers>,
     prepass: Option<&'a NormalPrepassPipeline>,
+    shadow_map_renderer: Option<&'a ShadowMapRenderer>,
     particle_renderer: Option<&'a ParticleRenderer>,
     sprite_renderer: Option<&'a SpriteRenderer>,
     deferred: Option<&'a DeferredSceneResources>,
@@ -70,6 +73,7 @@ pub struct RenderPassGpuExecutionContext<'a> {
     mesh_pipelines: Option<&'a mut MeshPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshDrawLists<'a>>,
     compute_dispatches: Vec<RenderGraphComputeDispatchRecord>,
+    motion_vector_camera_status: MotionVectorCameraStatus,
 }
 
 impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
@@ -80,6 +84,10 @@ impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
             .field("has_post_process_stack", &self.post_process_stack.is_some())
             .field("has_overlay_renderer", &self.overlay_renderer.is_some())
             .field("has_prepass", &self.prepass.is_some())
+            .field(
+                "has_shadow_map_renderer",
+                &self.shadow_map_renderer.is_some(),
+            )
             .field("has_particle_renderer", &self.particle_renderer.is_some())
             .field("has_sprite_renderer", &self.sprite_renderer.is_some())
             .field("has_deferred_renderer", &self.deferred.is_some())
@@ -112,6 +120,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             overlay_renderer: None,
             prepared_overlays: None,
             prepass: None,
+            shadow_map_renderer: None,
             particle_renderer: None,
             sprite_renderer: None,
             deferred: None,
@@ -119,6 +128,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             mesh_pipelines: None,
             mesh_draw_lists: None,
             compute_dispatches: Vec::new(),
+            motion_vector_camera_status: MotionVectorCameraStatus::NotRequested,
         }
     }
 
@@ -159,6 +169,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         std::mem::take(&mut self.compute_dispatches)
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn motion_vector_camera_status(
+        &self,
+    ) -> MotionVectorCameraStatus {
+        self.motion_vector_camera_status
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn with_prepass_renderer(
         mut self,
         prepass: &'a NormalPrepassPipeline,
@@ -169,11 +185,21 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn with_post_process_stack_context(
+    pub(in crate::graphics::scene::scene_renderer) fn with_shadow_map_renderer(
         mut self,
-        post_process_stack: RenderPassPostProcessStackContext<'a>,
+        shadow_map_renderer: &'a ShadowMapRenderer,
+        mesh_draw_lists: RenderPassMeshDrawLists<'a>,
     ) -> Self {
-        self.post_process_stack = Some(post_process_stack);
+        self.shadow_map_renderer = Some(shadow_map_renderer);
+        self.mesh_draw_lists = Some(mesh_draw_lists);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_shadow_receiver(
+        mut self,
+        shadow_map_renderer: &'a ShadowMapRenderer,
+    ) -> Self {
+        self.shadow_map_renderer = Some(shadow_map_renderer);
         self
     }
 
@@ -279,6 +305,23 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let shadow_map_view = self
             .resources
             .require_texture_view(shadow_map_resource_name)?;
+        if let Some(shadow_map_renderer) = self.shadow_map_renderer {
+            let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
+                format!(
+                    "shadow map graph executor for pass `{pass_name}` requires mesh draw context"
+                )
+            })?;
+            shadow_map_renderer.record_with_attachment_ops(
+                self.queue,
+                self.encoder,
+                pass_name,
+                shadow_map_view,
+                self.frame,
+                mesh_draw_lists.shadow_casters.iter().copied(),
+                attachment_ops,
+            );
+            return Ok(());
+        }
         let _pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(pass_name),
             color_attachments: &[],
@@ -298,6 +341,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
         color_resource_name: &str,
         depth_resource_name: &str,
+        shadow_map_resource_name: Option<&str>,
         stage: RenderPassStage,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
@@ -317,6 +361,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if draws.is_empty() {
             return Ok(());
         }
+        let shadow_map_view = shadow_map_resource_name
+            .map(|resource_name| self.resources.require_texture_view(resource_name))
+            .transpose()?;
+        let shadow_scene_uniform = shadow_map_resource_name
+            .and_then(|_| self.shadow_map_renderer)
+            .and_then(|renderer| renderer.scene_uniform_for_frame(self.frame));
         BaseScenePass.record_with_attachment_ops(
             self.encoder,
             self.device,
@@ -327,6 +377,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             mesh_pipelines,
             streamer,
             self.frame,
+            Some(self.queue),
+            shadow_map_view,
+            shadow_scene_uniform,
             mesh_stage_attachment_ops(stage, attachment_ops),
             mesh_stage_attachment_ops(stage, depth_attachment_ops),
         );
@@ -376,6 +429,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         gbuffer_albedo_resource_name: &str,
         gbuffer_normal_resource_name: &str,
         gbuffer_material_resource_name: &str,
+        scene_depth_resource_name: &str,
+        shadow_map_resource_name: &str,
         background_resource_name: &str,
         scene_color_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
@@ -389,12 +444,21 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let gbuffer_material_view = self
             .resources
             .require_texture_view(gbuffer_material_resource_name)?;
+        let scene_depth_view = self
+            .resources
+            .require_texture_view(scene_depth_resource_name)?;
+        let shadow_map_view = self
+            .resources
+            .require_texture_view(shadow_map_resource_name)?;
         let background_view = self
             .resources
             .require_texture_view(background_resource_name)?;
         let scene_color_view = self
             .resources
             .require_texture_view(scene_color_resource_name)?;
+        let shadow_scene_uniform = self
+            .shadow_map_renderer
+            .and_then(|renderer| renderer.scene_uniform_for_frame(self.frame));
         let deferred = self.deferred.ok_or_else(|| {
             format!(
                 "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
@@ -402,11 +466,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         })?;
         deferred.execute_lighting(
             self.device,
+            self.queue,
             self.encoder,
             self.scene_bind_group,
             gbuffer_albedo_view,
             gbuffer_normal_view,
             gbuffer_material_view,
+            scene_depth_view,
+            shadow_map_view,
+            shadow_scene_uniform,
             background_view,
             scene_color_view,
             attachment_ops,
@@ -518,222 +586,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         Ok(())
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn record_post_process_stack(
-        &mut self,
-        pass_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "post-process stack graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let target = stack.target;
-        let history = stack.history_textures;
-        let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_COLOR)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
-        let scene_material_view = stack
-            .material_gbuffer_valid
-            .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            })
-            .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let _final_composited_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::FINAL_COMPOSITED)?;
-        let final_color_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::FINAL_COLOR)?;
-        let global_illumination_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION)?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
-        stack.post_process.execute_post_process(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            target.cluster_dimensions,
-            scene_color_view,
-            scene_depth_view,
-            scene_normal_view,
-            scene_material_view,
-            ambient_occlusion_view,
-            history.map(|history| &history.scene_color_view),
-            history.map(|history| &history.global_illumination_view),
-            bloom_view,
-            final_color_view,
-            global_illumination_view,
-            cluster_buffer,
-            self.frame,
-            stack.streamer,
-            features,
-            stack.history_available,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_ssao_to_resources(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        depth_resource_name: &str,
-        normal_resource_name: &str,
-        ambient_occlusion_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "SSAO graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let normal_view = self.resources.require_texture_view(normal_resource_name)?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(ambient_occlusion_resource_name)?;
-        let target = stack.target;
-        let enabled = stack.runtime_features.ssao_enabled;
-        let dispatch_groups = ssao_dispatch_groups(target.size);
-        let workgroup_size = ssao_workgroup_size();
-        stack.post_process.execute_ssao(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            depth_view,
-            normal_view,
-            stack
-                .history_textures
-                .map(|history| &history.ambient_occlusion_view),
-            ambient_occlusion_view,
-            enabled,
-            stack.history_available,
-        );
-        if enabled {
-            self.compute_dispatches
-                .push(RenderGraphComputeDispatchRecord::new(
-                    pass_name,
-                    executor_id,
-                    "zircon-ssao-pipeline",
-                    workgroup_size,
-                    dispatch_groups,
-                    vec![ambient_occlusion_resource_name.to_string()],
-                ));
-        }
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_clustered_lighting_to_resources(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        depth_resource_name: &str,
-        light_list_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "clustered lighting graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let _depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let light_list_buffer = self.resources.require_buffer(light_list_resource_name)?;
-        let target = stack.target;
-        let enabled = stack.runtime_features.clustered_lighting_enabled;
-        let dispatch_groups = clustered_lighting_dispatch_groups(target.cluster_dimensions);
-        let workgroup_size = clustered_lighting_workgroup_size();
-        stack.post_process.execute_clustered_lighting(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            target.cluster_dimensions,
-            light_list_buffer,
-            target.cluster_buffer_bytes,
-            &self.frame.extract.lighting.directional_lights,
-            enabled,
-        );
-        if enabled {
-            self.compute_dispatches
-                .push(RenderGraphComputeDispatchRecord::new(
-                    pass_name,
-                    executor_id,
-                    "zircon-cluster-pipeline",
-                    workgroup_size,
-                    dispatch_groups,
-                    vec![light_list_resource_name.to_string()],
-                ));
-        }
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_bloom_to_resources(
-        &mut self,
-        pass_name: &str,
-        scene_color_resource_name: &str,
-        bloom_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "bloom graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let bloom_view = self.resources.require_texture_view(bloom_resource_name)?;
-        let target = stack.target;
-        stack.post_process.execute_bloom(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            scene_color_view,
-            bloom_view,
-            self.frame.extract.post_process.bloom,
-            stack.runtime_features.bloom_enabled,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_depth_of_field_prepare_to_resources(
-        &mut self,
-        pass_name: &str,
-        scene_depth_resource_name: &str,
-        coc_resource_name: &str,
-        bokeh_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "depth-of-field prepare graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let _scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let coc_view = self.resources.require_texture_view(coc_resource_name)?;
-        let bokeh_view = self.resources.require_texture_view(bokeh_resource_name)?;
-        stack
-            .post_process
-            .execute_depth_of_field_prepare(self.encoder, coc_view, bokeh_view);
-        Ok(())
-    }
-
     pub(in crate::graphics::scene::scene_renderer) fn record_overlay_to_resources(
         &mut self,
         pass_name: &str,
@@ -761,46 +613,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             prepared_overlays,
         );
         Ok(())
-    }
-}
-
-#[derive(Clone, Copy)]
-pub(in crate::graphics::scene::scene_renderer) struct RenderPassPostProcessStackContext<'a> {
-    post_process: &'a ScenePostProcessResources,
-    target: &'a OffscreenTarget,
-    streamer: &'a ResourceStreamer,
-    runtime_features: SceneRuntimeFeatureFlags,
-    history_textures: Option<&'a SceneFrameHistoryTextures>,
-    history_available: bool,
-    material_gbuffer_valid: bool,
-}
-
-impl<'a> RenderPassPostProcessStackContext<'a> {
-    pub(in crate::graphics::scene::scene_renderer) fn new(
-        post_process: &'a ScenePostProcessResources,
-        target: &'a OffscreenTarget,
-        streamer: &'a ResourceStreamer,
-        runtime_features: SceneRuntimeFeatureFlags,
-        history_textures: Option<&'a SceneFrameHistoryTextures>,
-        history_available: bool,
-    ) -> Self {
-        Self {
-            post_process,
-            target,
-            streamer,
-            runtime_features,
-            history_textures,
-            history_available,
-            material_gbuffer_valid: false,
-        }
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn with_material_gbuffer_valid(
-        mut self,
-        material_gbuffer_valid: bool,
-    ) -> Self {
-        self.material_gbuffer_valid = material_gbuffer_valid;
-        self
     }
 }
 

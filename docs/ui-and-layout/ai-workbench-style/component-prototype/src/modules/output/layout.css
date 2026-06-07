@@ -1,0 +1,19 @@
+.zr-module-filterbar {
+  margin-bottom: 8px;
+}
+
+.zr-module-filterbar .zr-search {
+  min-width: 220px;
+  margin-left: auto;
+}
+
+.zr-module-output-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 220px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.zr-module-output-grid > .zr-module-table {
+  align-self: start;
+}

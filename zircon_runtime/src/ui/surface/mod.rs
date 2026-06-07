@@ -11,12 +11,13 @@ mod popup_stack;
 mod property_mutation;
 mod reflection_snapshot;
 mod render;
+mod slots;
 mod surface;
 mod timeline;
 
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
-    arranged_bubble_route, arranged_effective_input_policy, build_arranged_tree,
+    arranged_bubble_route, arranged_effective_input_policy, arranged_focus_path, build_arranged_tree,
     is_arranged_child_hit_path_visible, is_arranged_render_visible,
 };
 pub use component_state::UiSurfaceComponentStateStore;

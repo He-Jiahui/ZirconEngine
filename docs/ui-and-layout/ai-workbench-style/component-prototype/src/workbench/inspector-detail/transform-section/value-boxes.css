@@ -1,0 +1,15 @@
+.zr-inspector .zr-section.is-transform .zr-value-box {
+  border-color: #21282d;
+  background: linear-gradient(180deg, #15191c, #101417);
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) .zr-value-box,
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(4) .zr-value-box {
+  border-color: #1f252a;
+  background: linear-gradient(180deg, #14181b, #0f1316);
+}
+
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(2) .zr-value-box,
+.zr-inspector .zr-section.is-transform .zr-vector-row:nth-of-type(4) .zr-value-box {
+  color: #929ea4;
+}

@@ -97,7 +97,7 @@ mod tests {
             inspector_layout_box_gap: "8".to_string(),
             inspector_binding_id: "SaveButton/onClick".to_string(),
             inspector_binding_event: "Click".to_string(),
-            inspector_binding_route: "Route.Save".to_string(),
+            inspector_binding_route: "route.save".to_string(),
             inspector_binding_route_target: "editor".to_string(),
             inspector_binding_action_target: "save_project".to_string(),
             inspector_can_edit_binding: true,

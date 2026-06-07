@@ -54,6 +54,18 @@ impl DefaultNetManager {
                 .lock()
                 .expect("net TCP listeners mutex poisoned")
                 .len(),
+            open_http_listeners: self
+                .state
+                .http_listeners
+                .lock()
+                .expect("net HTTP listeners mutex poisoned")
+                .len(),
+            open_websocket_listeners: self
+                .state
+                .websocket_listeners
+                .lock()
+                .expect("net WebSocket listeners mutex poisoned")
+                .len(),
             open_tcp_connections: self
                 .state
                 .tcp_connections

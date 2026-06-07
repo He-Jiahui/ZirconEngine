@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    FallbackSkyboxKind, PostProcessGraphResourceNames, PreviewEnvironmentExtract,
+    RenderFrameExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
 use crate::render_graph::{
@@ -66,6 +67,50 @@ fn shadow_map_pass_stays_live_as_depth_only_graph_contract() {
                     && !desc.usage.contains(TextureUsage::STORAGE)
         ));
     }
+}
+
+#[test]
+fn deferred_lighting_reads_shadow_map_for_receiver_sampling() {
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile(&test_extract())
+        .unwrap();
+
+    pass_resource_access(
+        &compiled,
+        "deferred-lighting",
+        PostProcessGraphResourceNames::SHADOW_MAP,
+        RenderGraphResourceAccessKind::Read,
+    );
+}
+
+#[test]
+fn forward_mesh_passes_read_shadow_map_for_receiver_sampling() {
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile(&test_extract())
+        .unwrap();
+
+    for pass_name in ["opaque-mesh", "alpha-mask-mesh", "transparent-mesh"] {
+        pass_resource_access(
+            &compiled,
+            pass_name,
+            PostProcessGraphResourceNames::SHADOW_MAP,
+            RenderGraphResourceAccessKind::Read,
+        );
+    }
+}
+
+#[test]
+fn deferred_transparent_mesh_reads_shadow_map_for_receiver_sampling() {
+    let compiled = RenderPipelineAsset::default_deferred()
+        .compile(&test_extract())
+        .unwrap();
+
+    pass_resource_access(
+        &compiled,
+        "transparent-mesh",
+        PostProcessGraphResourceNames::SHADOW_MAP,
+        RenderGraphResourceAccessKind::Read,
+    );
 }
 
 fn test_extract() -> RenderFrameExtract {

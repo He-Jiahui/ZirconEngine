@@ -1,0 +1,33 @@
+.zr-layer-list,
+.zr-history-list {
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+}
+
+.zr-layer-row,
+.zr-history-row {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.018);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.zr-layer-row.is-active,
+.zr-history-row.is-active {
+  border-color: rgba(53, 199, 208, 0.26);
+  background: linear-gradient(90deg, rgba(24, 74, 82, 0.54), rgba(18, 49, 55, 0.34));
+}
+
+.zr-layer-row small,
+.zr-history-row small {
+  color: var(--text-muted);
+}

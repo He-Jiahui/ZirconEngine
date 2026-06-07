@@ -1,0 +1,32 @@
+.zr-rail {
+  position: absolute;
+  left: 0;
+  top: var(--topbar-h);
+  bottom: var(--bottom-h);
+  width: var(--rail-w);
+  display: grid;
+  grid-template-rows: repeat(auto-fit, minmax(42px, 48px));
+  align-content: start;
+  justify-items: center;
+  gap: 4px;
+  padding-top: 14px;
+  overflow: hidden auto;
+  border-left: 1px solid #252a2e;
+  border-right: 1px solid #060809;
+  background: linear-gradient(180deg, #14181b, #101417);
+}
+
+.zr-rail-spacer {
+  min-height: 8px;
+}
+
+.zr-rail .zr-icon-button {
+  color: #b8c0c4;
+  border-color: transparent;
+  background: transparent;
+}
+
+.zr-rail .zr-icon-button.is-active {
+  color: var(--accent);
+  background: linear-gradient(180deg, #0f515a, #123b42);
+}

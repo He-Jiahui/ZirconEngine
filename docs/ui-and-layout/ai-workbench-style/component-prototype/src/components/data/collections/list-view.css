@@ -1,0 +1,47 @@
+.zr-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #15191c;
+}
+
+.zr-list-item {
+  height: 32px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 0 10px;
+  border: 0;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.zr-list-item:last-child {
+  border-bottom: 0;
+}
+
+.zr-list-item.is-selected {
+  color: var(--accent);
+  background: linear-gradient(90deg, rgba(23, 88, 95, 0.56), rgba(19, 63, 68, 0.64));
+}
+
+.zr-list-item.is-disabled {
+  color: var(--text-dim);
+}
+
+.zr-list-item:disabled {
+  cursor: default;
+}
+
+.zr-list-handle {
+  width: 14px;
+  height: 14px;
+  background:
+    radial-gradient(circle, #7d8b91 1px, transparent 1.5px) 0 0 / 6px 6px;
+  opacity: 0.9;
+}

@@ -1,0 +1,10 @@
+@media (max-width: 660px) {
+  .zr-viewport-cluster:first-child .zr-select {
+    min-width: 86px;
+    padding-inline: 8px;
+  }
+
+  .zr-viewport-cluster:last-child > :nth-child(n+4) {
+    display: none;
+  }
+}

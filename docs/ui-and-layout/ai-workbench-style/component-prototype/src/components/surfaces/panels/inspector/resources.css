@@ -1,0 +1,29 @@
+.zr-resource-row {
+  display: grid;
+  grid-template-columns: 108px 12px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.zr-resource-row.is-single-resource {
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.zr-resource-row.has-count {
+  grid-template-columns: 100px 12px minmax(0, 1fr);
+}
+
+.zr-resource-row.is-single-resource > span:nth-child(2) {
+  display: none;
+}
+
+.zr-resource-row.is-nested-resource {
+  grid-template-columns: 116px 28px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.zr-resource-row .zr-select {
+  width: 100%;
+}

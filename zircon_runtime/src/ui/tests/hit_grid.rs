@@ -1,6 +1,6 @@
 use crate::ui::{
     surface::{debug_hit_test_surface_frame_with_query, hit_test_surface_frame, UiSurface},
-    tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeScrollExt},
+    tree::UiRuntimeTreeScrollExt,
 };
 use zircon_runtime_interface::ui::dispatch::{UiPointerId, UiSurfaceId, UiUserId, UiWindowId};
 use zircon_runtime_interface::ui::surface::{

@@ -44,6 +44,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_selection_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_slider.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_status_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_inspector_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
@@ -94,30 +95,30 @@ related_code:
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_component_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_rail_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_popup_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tooltip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_component_property_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_segmented_control.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_rail_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_list_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_chip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_section_title.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_icon_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_status_item.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_table_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_tooltip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_tree_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_viewport_panel.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/retained_host/mod.rs
@@ -164,6 +165,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_segmented_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_selection_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_slider.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_status_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_inspector_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
@@ -207,30 +209,30 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_component_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_rail_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_popup_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tooltip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_component_property_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_segmented_control.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_rail_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_list_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_chip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\chrome\workbench_section_title.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\inputs\workbench_icon_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_status_item.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_table_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\feedback\workbench_tooltip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_tree_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_viewport_panel.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.v2.ui.toml
 plan_sources:
   - .codex/plans/Zircon Editor Runtime UI Rust-Owned Retained Host 重构计划.md
@@ -258,6 +260,7 @@ tests:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_dropdowns.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_status_controls.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - cargo check -p zircon_editor --lib --locked --message-format=short
   - cargo check -p zircon_editor --lib --tests --locked --message-format=short
@@ -592,7 +595,7 @@ The lower component table now uses a real four-row table group instead of three 
 
 Scene tree rows now use the same native primitive route. `template_tree_rows.rs` recognizes declared `TreeRow` / `workbench-tree-row` nodes and generated `WorkbenchSceneVirtualItem*` rows before the generic Label/ListRow fallback, then paints hierarchy indentation guides, expanded/collapsed chevrons, small object-type icons, selected/hover/pressed row chrome, and right-side visibility/lock or overflow actions. The existing scene-tree snapshot sync, virtual row materialization, hit testing, and `Hierarchy.SelectEntity` route ownership remain unchanged; this slice only replaces fallback text pixels with a Workbench-specific hierarchy vocabulary. The retained projection contract now verifies both scene-tree rows and Inspector component-property overflow rows declare the same repeat metadata shape, including `node_path_namespace = "v2"`, so future template edits cannot silently move generated rows out of the Workbench v2 node-path space.
 
-The bottom status bar now uses the same native primitive route. `template_status_controls.rs` recognizes the authored `WorkbenchStatus*` nodes before the generic Label/IconButton pass, draws left-side status marks, low-contrast grid/snap/zoom dropdown chips, and the snap/world/target icon buttons as explicit quads/text instead of relying on placeholder icon assets. `WorkbenchStatusReady` now carries its measured ready declaration through `.zui`: `layout_offset_x`, `layout_offset_y`, `layout_gap`, `text_color = #8f9aa0`, `icon_fill`, and `icon_size` project into the retained host contract and are consumed by the status painter without moving the 9 px dot or following items. The `No Errors` status mark uses the audited `#58b866` fill and now projects `icon_color`/`icon_stroke` into `TemplatePaneNodeData.icon_color`, so its internal check mark consumes the declared `#112018` foreground instead of relying on the generic dark mark fallback. It also declares `layout_icon_size = 12.04`; the painter keeps the outer 14 px status icon slot for label placement and uses the declared size only for centered mark painting, matching the browser `scale(0.86)` without moving following status items. The right-side chip/icon-button normal borders use the audited `#242c32` status-right edge from the HTML/CSS reference while focused/pressed/selected states still use the shared focus-ring path. `WorkbenchStatusWarnings` carries its measured warning declaration through `.zui`: `layout_gap`, `text_color`, `icon_fill`, `icon_color`/`icon_stroke = #11181a`, `icon_stroke_width = 1.45`, `icon_size`, and `icon_offset_y` project into the retained host contract and are consumed by the status painter before theme fallbacks, keeping the internal mark color and softened mark width native without changing the 21 px warning icon slot. `WorkbenchStatusMessages` follows the same declaration path for its message row offsets, text color, info fill, icon size, and icon offset. The right-side status defaults now live on `WorkbenchWindowStatusBar`: `status_right_offset_y` is inherited into grid/snap/zoom chips and snap/world/target icon buttons, while `status_right_text_color` is inherited into grid/snap/zoom chip labels when the leaf does not override `text_color`. This keeps the low-contrast right-side labels and vertical offset tied to one `.zui` declaration instead of repeated leaf props. The `.zui` status bar remains the layout authority for item width and ordering; this painter slice only supplies the missing pixel vocabulary for the declared primitives.
+The bottom status bar now uses the same native primitive route. `template_status_controls.rs` recognizes the authored `WorkbenchStatus*` nodes before the generic Label/IconButton pass, draws left-side status marks, low-contrast grid/snap/zoom dropdown chips, and the snap/world/target icon buttons as explicit quads/text instead of relying on placeholder icon assets. The final color and interaction state are selected through `style_selector/workbench_status_control.rs`, which consumes the shared `UiPainterState` / `UiPainterResolvedState` priority model for disabled, loading, pressed, focused, open, dragging, drop-hover, selected, checked, and hovered states before the painter emits geometry and glyph segments. `WorkbenchStatusReady` now carries its measured ready declaration through `.zui`: `layout_offset_x`, `layout_offset_y`, `layout_gap`, `text_color = #8f9aa0`, `icon_fill`, and `icon_size` project into the retained host contract and are consumed by the status painter without moving the 9 px dot or following items. The `No Errors` status mark uses the audited `#58b866` fill and now projects `icon_color`/`icon_stroke` into `TemplatePaneNodeData.icon_color`, so its internal check mark consumes the declared `#112018` foreground instead of relying on the generic dark mark fallback. It also declares `layout_icon_size = 12.04`; the painter keeps the outer 14 px status icon slot for label placement and uses the declared size only for centered mark painting, matching the browser `scale(0.86)` without moving following status items. The right-side chip/icon-button normal borders use the audited `#242c32` status-right edge from the HTML/CSS reference while focused/pressed/selected states still use the shared focus-ring path. `WorkbenchStatusWarnings` carries its measured warning declaration through `.zui`: `layout_gap`, `text_color`, `icon_fill`, `icon_color`/`icon_stroke = #11181a`, `icon_stroke_width = 1.45`, `icon_size`, and `icon_offset_y` project into the retained host contract and are consumed by the status painter before theme fallbacks, keeping the internal mark color and softened mark width native without changing the 21 px warning icon slot. `WorkbenchStatusMessages` follows the same declaration path for its message row offsets, text color, info fill, icon size, and icon offset. The right-side status defaults now live on `WorkbenchWindowStatusBar`: `status_right_offset_y` is inherited into grid/snap/zoom chips and snap/world/target icon buttons, while `status_right_text_color` is inherited into grid/snap/zoom chip labels when the leaf does not override `text_color`. This keeps the low-contrast right-side labels and vertical offset tied to one `.zui` declaration instead of repeated leaf props. The `.zui` status bar remains the layout authority for item width and ordering; this painter slice only supplies the missing pixel vocabulary for the declared primitives.
 
 Component-drawer feedback rows, the feedback tooltip, and the notification toast now have the same Workbench-specific painter route. `template_alerts.rs` recognizes `WorkbenchInfoAlert`, `WorkbenchSuccessAlert`, `WorkbenchWarningAlert`, `WorkbenchErrorAlert`, and the standalone `WorkbenchToastRoot` before the generic Material Alert fallback. It draws compact tinted alert rows, deterministic severity glyphs, the teal toast status mark, `UNDO` action, close affordance, and the audited toast surface/border pair from the HTML/CSS prototype: `rgba(21, 48, 53, 0.97)` surface with an `rgba(53, 199, 208, 0.08)` border. `template_tooltips.rs` recognizes `WorkbenchTooltipRoot` before the generic Material fallback and draws the 96 px dark bubble, 8 px declared arrow, title/body text, shadow, and cyan info mark. `workbench_component_drawer.zui`, `workbench_toast.zui`, and `workbench_tooltip.zui` remain the layout and text authority, with the latest tooltip tones declared as `#171c20` bubble/arrow fill, `#252d32` border, `#d0d9dd` title, `#a8b3b8` body, and `#259ca7` info mark. The toast root projects its declared `status_mark_size`, `status_mark_color`, and `action_color`; the tooltip root projects `arrow_size` and `arrow_color`; both paths keep geometry and action/arrow tones editable from `.zui` rather than hardcoded in the painter. The drawer structure now separates the feedback region into `WorkbenchFeedbackAlerts`, `WorkbenchTooltipRoot`, and `WorkbenchFeedbackToastColumn`; the standalone `feedback_toast` instance deliberately leaves its instance `control_id` empty so component expansion exposes exactly one `WorkbenchToastRoot`, while the four alert samples retain their own IDs.
 

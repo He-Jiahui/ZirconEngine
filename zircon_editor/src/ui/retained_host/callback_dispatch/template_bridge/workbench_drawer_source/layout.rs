@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime::ui::tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeLayoutExt};
+use zircon_runtime::ui::tree::UiRuntimeTreeLayoutExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{AxisConstraint, StretchMode, UiFrame, UiSize},

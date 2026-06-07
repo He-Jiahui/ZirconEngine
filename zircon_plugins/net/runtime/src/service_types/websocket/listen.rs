@@ -70,6 +70,7 @@ impl DefaultNetManager {
             self.state.push_event(NetEvent::ConnectionAccepted {
                 listener,
                 connection,
+                transport: NetTransportKind::WebSocket,
                 remote: remote_endpoint,
             });
             self.state.push_event(NetEvent::ConnectionStateChanged {

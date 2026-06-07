@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui"
+version = 2
+display_name = "Workbench Toggle"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchToggle]
+root = "root"
+default_classes = ["workbench-toggle", "workbench-primitive"]
+
+[nodes.root]
+component = "Toggle"
+control_id = "WorkbenchToggleRoot"
+classes = ["workbench-toggle"]
+props = { text = "Switch", value = false, checked = false, layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }

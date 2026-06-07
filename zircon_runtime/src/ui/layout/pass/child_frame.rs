@@ -1,7 +1,6 @@
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{UiAlignment, UiAxis, UiFrame, UiMargin, UiSlot},
+    layout::{UiAlignment, UiAxis, UiCanvasSlotPlacement, UiFrame, UiMargin, UiSlot},
     tree::{UiTree, UiTreeError},
 };
 
@@ -17,6 +16,16 @@ pub(crate) fn free_child_frame(
     let node = tree
         .node(node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
+
+    if let Some(placement) = slot.and_then(|slot| slot.canvas_placement) {
+        return Ok(canvas_slot_child_frame(
+            node.constraints,
+            node.layout_cache.desired_size.width,
+            node.layout_cache.desired_size.height,
+            parent_frame,
+            placement,
+        ));
+    }
 
     if has_slot_frame_policy(slot) {
         let slot = slot.expect("slot policy requires a slot");
@@ -48,6 +57,57 @@ pub(crate) fn free_child_frame(
         - height * node.pivot.y;
 
     Ok(UiFrame::new(x, y, width, height))
+}
+
+fn canvas_slot_child_frame(
+    constraints: zircon_runtime_interface::ui::layout::BoxConstraints,
+    desired_width: f32,
+    desired_height: f32,
+    parent_frame: UiFrame,
+    placement: UiCanvasSlotPlacement,
+) -> UiFrame {
+    let anchor_max = placement.resolved_anchor_max();
+    let anchor_min_x = parent_frame.width * placement.anchor.x;
+    let anchor_min_y = parent_frame.height * placement.anchor.y;
+    let anchor_max_x = parent_frame.width * anchor_max.x;
+    let anchor_max_y = parent_frame.height * anchor_max.y;
+    let is_horizontal_stretch = placement.anchor.x != anchor_max.x;
+    let is_vertical_stretch = placement.anchor.y != anchor_max.y;
+    let local_x = anchor_min_x + placement.position.x + placement.offset.left;
+    let local_y = anchor_min_y + placement.position.y + placement.offset.top;
+
+    let slot_width = if is_horizontal_stretch {
+        anchor_max_x - local_x - placement.offset.right
+    } else if placement.auto_size {
+        desired_width
+    } else {
+        placement.offset.right
+    };
+    let slot_height = if is_vertical_stretch {
+        anchor_max_y - local_y - placement.offset.bottom
+    } else if placement.auto_size {
+        desired_height
+    } else {
+        placement.offset.bottom
+    };
+    let width = arranged_axis_extent(constraints.width, desired_width, slot_width.max(0.0));
+    let height = arranged_axis_extent(constraints.height, desired_height, slot_height.max(0.0));
+    UiFrame::new(
+        parent_frame.x
+            + if is_horizontal_stretch {
+                local_x
+            } else {
+                local_x - width * placement.pivot.x
+            },
+        parent_frame.y
+            + if is_vertical_stretch {
+                local_y
+            } else {
+                local_y - height * placement.pivot.y
+            },
+        width,
+        height,
+    )
 }
 
 pub(crate) fn linear_child_frame(

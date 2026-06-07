@@ -3,8 +3,8 @@ use crate::scene::components::{
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
-    PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent,
-    WorldMatrix,
+    PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
+    RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
 use crate::scene::EntityId;
@@ -42,6 +42,8 @@ impl_component_for_scene_type!(
     PointLight,
     RectLight,
     SpotLight,
+    PostProcessSettingsComponent,
+    PostProcessVolumeComponent,
     Mobility,
 );
 
@@ -91,6 +93,8 @@ fixed_component_map!(DirectionalLight, directional_lights);
 fixed_component_map!(PointLight, point_lights);
 fixed_component_map!(RectLight, rect_lights);
 fixed_component_map!(SpotLight, spot_lights);
+fixed_component_map!(PostProcessSettingsComponent, post_process_settings);
+fixed_component_map!(PostProcessVolumeComponent, post_process_volumes);
 fixed_component_map!(Mobility, mobility);
 
 impl World {
@@ -199,6 +203,16 @@ impl World {
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<SpotLight>() {
             return SpotLight::insert_fixed(self, entity, component);
         }
+        if let Some(component) =
+            (component as &dyn std::any::Any).downcast_ref::<PostProcessSettingsComponent>()
+        {
+            return PostProcessSettingsComponent::insert_fixed(self, entity, component);
+        }
+        if let Some(component) =
+            (component as &dyn std::any::Any).downcast_ref::<PostProcessVolumeComponent>()
+        {
+            return PostProcessVolumeComponent::insert_fixed(self, entity, component);
+        }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mobility>() {
             self.validate_mobility_change(entity, *component)?;
             return Mobility::insert_fixed(self, entity, component);
@@ -283,6 +297,14 @@ impl World {
             self.rect_lights.remove(&entity).map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.remove(&entity).map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
+            self.post_process_settings
+                .remove(&entity)
+                .map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
+            self.post_process_volumes
+                .remove(&entity)
+                .map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
             self.mobility.remove(&entity).map(cast_fixed_component)
         } else {
@@ -357,6 +379,14 @@ impl World {
             self.rect_lights.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.get(&entity).and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
+            self.post_process_settings
+                .get(&entity)
+                .and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
+            self.post_process_volumes
+                .get(&entity)
+                .and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
             self.mobility.get(&entity).and_then(cast_fixed_ref)
         } else {
@@ -441,6 +471,14 @@ impl World {
             self.rect_lights.get_mut(&entity).and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<SpotLight>() {
             self.spot_lights.get_mut(&entity).and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
+            self.post_process_settings
+                .get_mut(&entity)
+                .and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
+            self.post_process_volumes
+                .get_mut(&entity)
+                .and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<Mobility>() {
             self.mobility.get_mut(&entity).and_then(cast_fixed_mut)
         } else {
@@ -477,6 +515,8 @@ impl World {
             || type_id == std::any::TypeId::of::<PointLight>()
             || type_id == std::any::TypeId::of::<RectLight>()
             || type_id == std::any::TypeId::of::<SpotLight>()
+            || type_id == std::any::TypeId::of::<PostProcessSettingsComponent>()
+            || type_id == std::any::TypeId::of::<PostProcessVolumeComponent>()
             || type_id == std::any::TypeId::of::<Mobility>()
     }
 
@@ -554,6 +594,12 @@ impl World {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.spot_lights.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
+        if let Some(component) = self.post_process_settings.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
+        if let Some(component) = self.post_process_volumes.get(&entity).cloned() {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.mobility.get(&entity).copied() {

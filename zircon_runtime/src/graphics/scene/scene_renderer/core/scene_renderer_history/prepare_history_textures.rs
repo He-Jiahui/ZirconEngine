@@ -14,6 +14,7 @@ pub(crate) fn prepare_history_textures<'a>(
     previous_history_available: bool,
     size: crate::core::math::UVec2,
     runtime_features: SceneRuntimeFeatureFlags,
+    screen_space_reflection_history_enabled: bool,
 ) -> (Option<&'a mut SceneFrameHistoryTextures>, bool) {
     let mut history_available = false;
     let mut history_textures = None;
@@ -21,6 +22,7 @@ pub(crate) fn prepare_history_textures<'a>(
     if runtime_features.history_resolve_enabled
         || runtime_features.ssao_enabled
         || runtime_features.hybrid_global_illumination_enabled
+        || screen_space_reflection_history_enabled
     {
         if let Some(handle) = history_handle {
             let existing_history_matches_target = history_targets

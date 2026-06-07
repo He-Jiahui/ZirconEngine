@@ -18,7 +18,7 @@ props = { text = "Ready" }
 [[root.bindings]]
 id = "Root/onClick"
 event = "Click"
-route = "Route.Invalid"
+route = "route.invalid"
 
 [[root.bindings.targets]]
 target = { kind = "prop", name = "text" }

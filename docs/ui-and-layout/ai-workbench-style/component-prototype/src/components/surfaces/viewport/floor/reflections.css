@@ -1,0 +1,11 @@
+.zr-floor-reflection {
+  position: absolute;
+  left: 60%;
+  top: 76px;
+  width: 118px;
+  height: 170px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, rgba(194, 198, 190, 0.085), transparent);
+  filter: blur(12px);
+  transform: rotate(8deg);
+}

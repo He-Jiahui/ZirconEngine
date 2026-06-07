@@ -1,0 +1,30 @@
+.zr-module-log {
+  min-height: 100px;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid #273036;
+  border-radius: var(--radius-sm);
+  background: #101519;
+  color: #aeb8bd;
+  font-family: Consolas, "Segoe UI", monospace;
+  font-size: 12px;
+}
+
+.zr-module-log p {
+  margin: 0 0 7px;
+}
+
+.zr-module-log .is-success,
+.zr-module-log p.is-success {
+  color: #75d67e;
+}
+
+.zr-module-log .is-warning,
+.zr-module-log p.is-warning {
+  color: #e1be56;
+}
+
+.zr-module-log .is-error,
+.zr-module-log p.is-error {
+  color: #ef7064;
+}

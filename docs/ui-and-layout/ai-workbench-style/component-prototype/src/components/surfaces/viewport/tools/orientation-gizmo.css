@@ -1,0 +1,67 @@
+.zr-orientation-gizmo {
+  position: absolute;
+  right: 22px;
+  top: 27px;
+  width: 92px;
+  height: 86px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+}
+
+.zr-orientation-gizmo .axis,
+.zr-orientation-gizmo .center {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.zr-orientation-gizmo .axis.y {
+  left: 44px;
+  top: 0;
+  color: #58d05e;
+  background: transparent;
+  font-size: 12px;
+}
+
+.zr-orientation-gizmo .axis.z {
+  left: 5px;
+  top: 52px;
+  color: #58d05e;
+  background: transparent;
+  font-size: 12px;
+}
+
+.zr-orientation-gizmo .axis.x {
+  right: 0;
+  top: 50px;
+  color: #ef493f;
+  background: transparent;
+  font-size: 12px;
+}
+
+.zr-orientation-gizmo .center {
+  left: 39px;
+  top: 35px;
+  width: 36px;
+  height: 31px;
+  background: linear-gradient(145deg, #6f9fdc, #315d9f);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  box-shadow: 0 0 12px rgba(74, 126, 198, 0.28);
+}
+
+.zr-orientation-gizmo .center::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: -28px;
+  width: 2px;
+  height: 28px;
+  background: #58d05e;
+  box-shadow: 0 0 8px rgba(88, 208, 94, 0.35);
+}

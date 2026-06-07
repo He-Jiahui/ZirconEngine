@@ -5,7 +5,7 @@ use crate::scene::ecs::{
 use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::super::{cached_query_iter::cached_query_many_indices, single_from_iter};
+use super::super::single_from_iter;
 use super::helpers::collect_many_query_items;
 use super::QueryState;
 
@@ -32,7 +32,7 @@ where
         &'state mut self,
         world: &'world World,
         entities: EntityList,
-    ) -> CachedQueryManyIter<'world, 'state, D, F>
+    ) -> CachedQueryManyIter<'world, 'state, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
@@ -48,7 +48,7 @@ where
         &'state mut self,
         world: &'world World,
         entities: UniqueEntityArray<N>,
-    ) -> CachedQueryManyIter<'world, 'state, D, F> {
+    ) -> CachedQueryManyIter<'world, 'state, D, F, std::array::IntoIter<EntityId, N>> {
         self.iter_many_unique_cached_direct_with_ticks(
             world,
             entities,
@@ -122,6 +122,7 @@ where
             &self.cached_entities,
             &self.cached_locations,
             &self.cached_component_locations,
+            &self.cached_component_location_offsets,
             ticks,
         )
     }
@@ -131,19 +132,20 @@ where
         world: &'world World,
         entities: EntityList,
         ticks: ChangeTickWindow,
-    ) -> CachedQueryManyIter<'world, 'state, D, F>
+    ) -> CachedQueryManyIter<'world, 'state, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
     {
         self.update_cache(world);
-        let indices = cached_query_many_indices(&self.cached_entity_indices, entities);
         CachedQueryManyIter::new(
             world,
             &self.cached_entities,
             &self.cached_locations,
             &self.cached_component_locations,
-            indices,
+            &self.cached_component_location_offsets,
+            &self.cached_entity_indices,
+            entities,
             ticks,
         )
     }
@@ -153,7 +155,7 @@ where
         world: &'world World,
         entities: UniqueEntityArray<N>,
         ticks: ChangeTickWindow,
-    ) -> CachedQueryManyIter<'world, 'state, D, F> {
+    ) -> CachedQueryManyIter<'world, 'state, D, F, std::array::IntoIter<EntityId, N>> {
         self.iter_many_cached_direct_with_ticks(world, entities, ticks)
     }
 
@@ -182,12 +184,10 @@ where
         ticks: ChangeTickWindow,
     ) -> bool {
         self.update_cache(world);
-        let Some(index) = self.cached_entity_index(entity) else {
+        let Some((_, component_locations)) = self.cached_entity_location(entity) else {
             return false;
         };
-        let component_locations = &self.cached_component_locations[index];
         F::matches_cached(world, entity, component_locations, ticks)
-            && D::matches_cached_data(world, entity, component_locations)
     }
 
     pub(crate) fn get_cached_direct_with_ticks<'world>(
@@ -200,14 +200,11 @@ where
             return Err(QueryEntityError::NotSpawned(entity));
         }
         self.update_cache(world);
-        let Some(index) = self.cached_entity_index(entity) else {
+        let Some((stable_location, component_locations)) = self.cached_entity_location(entity)
+        else {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
-        let stable_location = self.cached_locations[index];
-        let component_locations = &self.cached_component_locations[index];
-        if !F::matches_cached(world, entity, component_locations, ticks)
-            || !D::matches_cached_data(world, entity, component_locations)
-        {
+        if !F::matches_cached(world, entity, component_locations, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         D::fetch_cached(world, entity, stable_location, component_locations, ticks)
@@ -244,14 +241,11 @@ where
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        let Some(index) = self.cached_entity_index(entity) else {
+        let Some((stable_location, component_locations)) = self.cached_entity_location(entity)
+        else {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
-        let stable_location = self.cached_locations[index];
-        let component_locations = &self.cached_component_locations[index];
-        if !F::matches_cached(world, entity, component_locations, ticks)
-            || !D::matches_cached_data(world, entity, component_locations)
-        {
+        if !F::matches_cached(world, entity, component_locations, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         D::fetch_cached(world, entity, stable_location, component_locations, ticks)

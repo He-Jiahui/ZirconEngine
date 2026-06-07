@@ -26,4 +26,4 @@ pub use system_param_access::{SystemParamAccess, SystemParamConflictKind};
 pub use system_param_error::SystemParamError;
 pub use system_state::SystemState;
 
-pub(crate) use native::ScheduledSceneStep;
+pub(crate) use native::{ScheduledSceneStep, ScheduledSceneStepRef};

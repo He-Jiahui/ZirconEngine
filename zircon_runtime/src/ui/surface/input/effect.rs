@@ -1,23 +1,34 @@
+mod component_event;
+mod drag_drop;
+mod focus_pointer;
+mod host_request;
+mod navigation;
+mod node;
+mod popup_tooltip;
+mod redraw;
+mod target;
+mod text_services;
+
+use component_event::{apply_component_event_effect, component_event_report_for_effect};
+use drag_drop::apply_drag_drop_effect;
+use focus_pointer::apply_focus_pointer_effect;
+use host_request::host_request_for_effect;
+use navigation::apply_navigation_effect;
+use popup_tooltip::apply_popup_tooltip_effect;
+use redraw::apply_redraw_effect;
+use target::effect_target;
+use text_services::apply_text_service_effect;
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiClipboardRequest, UiClipboardRequestKind, UiComponentEmissionPolicy,
-        UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
+        UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
         UiDispatchHostRequestKind, UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep,
-        UiDragDropEffectKind, UiInputDispatchResult, UiInputEvent, UiInputMethodRequest,
-        UiInputMethodRequestKind,
+        UiInputDispatchResult, UiInputEvent,
     },
     event_ui::UiNodeId,
-    focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
-    tree::UiDirtyFlags,
 };
-
-use crate::ui::tree::UiRuntimeTreeFocusExt;
 
 use super::super::surface::UiSurface;
-use super::{
-    require_valid_input_owner, route_policy::annotate_route_policy,
-    route_steps::annotate_result_route_steps,
-};
+use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
 pub(crate) fn apply_dispatch_reply(
     surface: &mut UiSurface,
@@ -57,39 +68,84 @@ fn apply_dispatch_reply_core(
             });
 
     for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
-        match apply_effect(surface, &effect) {
-            Ok(applied) => {
-                if result.diagnostics.route_target.is_none() {
-                    result.diagnostics.route_target = applied.or_else(|| effect_target(&effect));
-                }
-                result.applied_effects.push(UiDispatchAppliedEffect {
-                    effect_index,
-                    effect: effect.clone(),
-                });
-                if let Some(host_request) = host_request_for_effect(effect_index, &effect, applied)
-                {
-                    result.host_requests.push(host_request);
-                }
-                if let UiDispatchEffect::EmitComponentEvent { target, event, .. } = effect {
-                    result.component_events.push(UiComponentEventReport {
-                        target,
-                        event,
-                        delivered: true,
-                        drag: None,
-                    });
-                }
-            }
-            Err(reason) => {
-                result.rejected_effects.push(UiDispatchRejectedEffect {
-                    effect_index,
-                    effect,
-                    reason,
-                });
-            }
-        }
+        apply_dispatch_effect_at_index(surface, &mut result, effect_index, effect);
     }
 
     result
+}
+
+pub(in crate::ui::surface::input) fn append_dispatch_effect_to_result(
+    surface: &mut UiSurface,
+    result: &mut UiInputDispatchResult,
+    effect: UiDispatchEffect,
+) {
+    let effect_index = result.reply.effects.len();
+    result.reply.effects.push(effect.clone());
+    apply_dispatch_effect_at_index(surface, result, effect_index, effect);
+}
+
+fn apply_dispatch_effect_at_index(
+    surface: &mut UiSurface,
+    result: &mut UiInputDispatchResult,
+    effect_index: usize,
+    effect: UiDispatchEffect,
+) {
+    let high_precision_release_target = high_precision_release_target_for_effect(surface, &effect);
+    match apply_effect(surface, &effect) {
+        Ok(applied) => {
+            let high_precision_released = high_precision_release_target
+                .filter(|target| surface.input.high_precision_owner != Some(*target));
+            if result.diagnostics.route_target.is_none() {
+                result.diagnostics.route_target = applied.or_else(|| effect_target(&effect));
+            }
+            result.applied_effects.push(UiDispatchAppliedEffect {
+                effect_index,
+                effect: effect.clone(),
+            });
+            if let Some(host_request) = host_request_for_effect(effect_index, &effect, applied) {
+                result.host_requests.push(host_request);
+            }
+            if let Some(target) = high_precision_released {
+                result
+                    .host_requests
+                    .push(high_precision_release_host_request(effect_index, target));
+            }
+            if let Some(report) = component_event_report_for_effect(&effect) {
+                result.component_events.push(report);
+            }
+        }
+        Err(reason) => {
+            result.rejected_effects.push(UiDispatchRejectedEffect {
+                effect_index,
+                effect,
+                reason,
+            });
+        }
+    }
+}
+
+fn high_precision_release_target_for_effect(
+    surface: &UiSurface,
+    effect: &UiDispatchEffect,
+) -> Option<UiNodeId> {
+    let UiDispatchEffect::ReleasePointerCapture { target, .. } = effect else {
+        return None;
+    };
+    (surface.input.high_precision_owner == Some(*target)).then_some(*target)
+}
+
+fn high_precision_release_host_request(
+    effect_index: usize,
+    target: UiNodeId,
+) -> UiDispatchHostRequest {
+    UiDispatchHostRequest {
+        effect_index,
+        request: UiDispatchHostRequestKind::HighPrecisionPointer {
+            target,
+            enabled: false,
+        },
+        reason: format!("release pointer capture disabled high precision for {target:?}"),
+    }
 }
 
 pub(crate) fn apply_dispatch_reply_steps(
@@ -131,412 +187,26 @@ fn apply_effect(
     effect: &UiDispatchEffect,
 ) -> Result<Option<UiNodeId>, String> {
     match effect {
-        UiDispatchEffect::SetFocus { target, reason } => {
-            let (change_reason, visible) = focus_effect_reasons(*reason);
-            surface
-                .focus_node_with_reason(*target, change_reason, visible)
-                .map_err(|error| format!("focus rejected: {error}"))?;
-            Ok(Some(*target))
+        UiDispatchEffect::SetFocus { .. }
+        | UiDispatchEffect::ClearFocus { .. }
+        | UiDispatchEffect::CapturePointer { .. }
+        | UiDispatchEffect::ReleasePointerCapture { .. }
+        | UiDispatchEffect::LockPointer { .. }
+        | UiDispatchEffect::UnlockPointer { .. }
+        | UiDispatchEffect::UseHighPrecisionPointer { .. } => {
+            apply_focus_pointer_effect(surface, effect)
         }
-        UiDispatchEffect::ClearFocus { target, reason } => {
-            if surface.focus.focused != Some(*target) {
-                return Err("focus owner mismatch".to_string());
-            }
-            surface.clear_focus_with_reason(clear_focus_effect_reason(*reason));
-            if surface.input.input_method_owner == Some(*target) {
-                surface.input.clear_input_method();
-            }
-            Ok(Some(*target))
+        UiDispatchEffect::DragDrop { .. } => apply_drag_drop_effect(surface, effect),
+        UiDispatchEffect::RequestNavigation { .. } => apply_navigation_effect(surface, effect),
+        UiDispatchEffect::Popup { .. } | UiDispatchEffect::Tooltip { .. } => {
+            apply_popup_tooltip_effect(surface, effect)
         }
-        UiDispatchEffect::CapturePointer {
-            target, pointer_id, ..
-        } => {
-            require_valid_input_owner(surface, *target)?;
-            if let Some(previous) = surface.focus.captured.filter(|owner| owner != target) {
-                surface.input.clear_high_precision_for(previous);
-            }
-            surface.focus.captured = Some(*target);
-            surface.input.captured_pointer_id = Some(*pointer_id);
-            Ok(Some(*target))
+        UiDispatchEffect::RequestInputMethod { .. } | UiDispatchEffect::RequestClipboard { .. } => {
+            apply_text_service_effect(surface, effect)
         }
-        UiDispatchEffect::ReleasePointerCapture {
-            target, pointer_id, ..
-        } => {
-            if surface.focus.captured == Some(*target)
-                && surface.input.captured_pointer_id == Some(*pointer_id)
-            {
-                surface.focus.captured = None;
-                surface.input.clear_pointer_capture_for(*target);
-                Ok(None)
-            } else {
-                Err("pointer capture belongs to a different or unknown pointer".to_string())
-            }
-        }
-        UiDispatchEffect::LockPointer { target, policy } => {
-            require_valid_input_owner(surface, *target)?;
-            surface.input.pointer_lock_owner = Some(*target);
-            surface.input.pointer_lock_policy = Some(*policy);
-            Ok(Some(*target))
-        }
-        UiDispatchEffect::UnlockPointer { target, .. } => {
-            if surface.input.pointer_lock_owner == Some(*target) {
-                surface.input.pointer_lock_owner = None;
-                surface.input.pointer_lock_policy = None;
-                Ok(Some(*target))
-            } else {
-                Err("pointer lock owner mismatch".to_string())
-            }
-        }
-        UiDispatchEffect::UseHighPrecisionPointer { target, enabled } => {
-            require_valid_input_owner(surface, *target)?;
-            if *enabled {
-                if surface.focus.captured != Some(*target)
-                    || surface.input.captured_pointer_id.is_none()
-                {
-                    return Err("high precision requires pointer capture".to_string());
-                }
-                surface.input.high_precision_owner = Some(*target);
-            } else if surface.input.high_precision_owner == Some(*target) {
-                surface.input.high_precision_owner = None;
-            } else {
-                return Err("high precision owner mismatch".to_string());
-            }
-            Ok(Some(*target))
-        }
-        UiDispatchEffect::DragDrop {
-            target,
-            kind,
-            pointer_id,
-            session_id,
-            point,
-            payload,
-        } => {
-            require_node(surface, *target)?;
-            match kind {
-                UiDragDropEffectKind::Begin => {
-                    require_valid_input_owner(surface, *target)?;
-                    surface.input.begin_drag_drop(
-                        *target,
-                        *target,
-                        *pointer_id,
-                        *session_id,
-                        *point,
-                        payload.clone(),
-                    )?;
-                    surface.focus.captured = Some(*target);
-                    surface.input.captured_pointer_id = Some(*pointer_id);
-                    Ok(Some(*target))
-                }
-                UiDragDropEffectKind::Update => {
-                    require_valid_input_owner(surface, *target)?;
-                    surface.input.update_drag_drop(
-                        *target,
-                        *pointer_id,
-                        *session_id,
-                        *point,
-                        payload.clone(),
-                    )?;
-                    Ok(Some(*target))
-                }
-                UiDragDropEffectKind::Accept => {
-                    require_valid_input_owner(surface, *target)?;
-                    surface
-                        .input
-                        .accept_drag_drop(*target, *pointer_id, *session_id)?;
-                    Ok(Some(*target))
-                }
-                UiDragDropEffectKind::Reject => {
-                    require_valid_input_owner(surface, *target)?;
-                    surface
-                        .input
-                        .reject_drag_drop(*target, *pointer_id, *session_id)?;
-                    Ok(Some(*target))
-                }
-                UiDragDropEffectKind::Complete | UiDragDropEffectKind::Cancel => {
-                    if let Some(source) = surface.input.end_drag_drop(*pointer_id, *session_id)? {
-                        if surface.focus.captured == Some(source) {
-                            surface.focus.captured = None;
-                        }
-                        surface.input.clear_pointer_capture_for(source);
-                    }
-                    Ok(Some(*target))
-                }
-            }
-        }
-        UiDispatchEffect::RequestNavigation { kind, .. } => {
-            let route = surface
-                .route_navigation_event(*kind)
-                .map_err(|error| format!("navigation route rejected: {error}"))?;
-            let target = surface
-                .tree
-                .next_navigation_target(route.target, *kind)
-                .map_err(|error| format!("navigation target rejected: {error}"))?;
-            if let Some(target) = target {
-                surface
-                    .focus_node_with_reason(
-                        target,
-                        UiFocusChangeReason::Navigation,
-                        UiFocusVisible::visible(UiFocusVisibleReason::KeyboardNavigation),
-                    )
-                    .map_err(|error| format!("navigation focus rejected: {error}"))?;
-                Ok(Some(target))
-            } else {
-                Ok(route.target)
-            }
-        }
-        UiDispatchEffect::Popup {
-            kind,
-            popup_id,
-            owner,
-            anchor,
-        } => {
-            if let Some(owner) = owner {
-                require_valid_input_owner(surface, *owner)?;
-            }
-            let route_owner = owner.or_else(|| surface.input.popup_owner(popup_id.as_str()));
-            match kind {
-                zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Open => {
-                    surface
-                        .input
-                        .open_popup(popup_id.clone(), route_owner, *anchor);
-                }
-                zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Close => {
-                    surface.input.close_popup(popup_id.as_str());
-                }
-                zircon_runtime_interface::ui::dispatch::UiPopupEffectKind::Toggle => {
-                    surface
-                        .input
-                        .toggle_popup(popup_id.clone(), route_owner, *anchor);
-                }
-            }
-            Ok(route_owner)
-        }
-        UiDispatchEffect::Tooltip {
-            kind,
-            tooltip_id,
-            owner,
-        } => {
-            if let Some(owner) = owner {
-                require_valid_input_owner(surface, *owner)?;
-            }
-            let route_owner = owner.or_else(|| surface.input.tooltip_owner(tooltip_id.as_str()));
-            match kind {
-                zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Arm => {
-                    surface.input.arm_tooltip(tooltip_id.clone(), route_owner);
-                }
-                zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Show => {
-                    surface.input.show_tooltip(tooltip_id.clone(), route_owner);
-                }
-                zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Hide
-                | zircon_runtime_interface::ui::dispatch::UiTooltipEffectKind::Cancel => {
-                    surface.input.clear_tooltip(tooltip_id.as_str());
-                }
-            }
-            Ok(route_owner)
-        }
-        UiDispatchEffect::RequestInputMethod { request } => {
-            apply_input_method_request(surface, request)
-        }
-        UiDispatchEffect::RequestClipboard { request } => apply_clipboard_request(surface, request),
-        UiDispatchEffect::DirtyRedraw { target, dirty, .. } => {
-            let node = surface
-                .tree
-                .nodes
-                .get_mut(target)
-                .ok_or_else(|| format!("missing dirty target {target:?}"))?;
-            merge_dirty(&mut node.dirty, *dirty);
-            node.state_flags.dirty |= dirty.hit_test || dirty.input;
-            Ok(Some(*target))
-        }
-        UiDispatchEffect::EmitComponentEvent { target, policy, .. } => {
-            require_node(surface, *target)?;
-            match policy {
-                UiComponentEmissionPolicy::Immediate
-                | UiComponentEmissionPolicy::Queue
-                | UiComponentEmissionPolicy::Coalesce => Ok(Some(*target)),
-            }
-        }
-    }
-}
-
-fn apply_input_method_request(
-    surface: &mut UiSurface,
-    request: &UiInputMethodRequest,
-) -> Result<Option<UiNodeId>, String> {
-    require_valid_input_owner(surface, request.owner)?;
-    if let Some(surrounding_text) = &request.surrounding_text {
-        surrounding_text
-            .validate()
-            .map_err(|error| format!("invalid input method surrounding text: {error}"))?;
-    }
-    match request.kind {
-        UiInputMethodRequestKind::Enable => {
-            surface.input.input_method_owner = Some(request.owner);
-            surface.input.input_method_request = Some(request.clone());
-        }
-        UiInputMethodRequestKind::Reset | UiInputMethodRequestKind::UpdateCursor => {
-            if surface.input.input_method_owner == Some(request.owner) {
-                surface.input.input_method_request = Some(request.clone());
-            } else {
-                return Err("input method owner mismatch".to_string());
-            }
-        }
-        UiInputMethodRequestKind::Disable => {
-            if surface.input.input_method_owner == Some(request.owner) {
-                surface.input.clear_input_method();
-            } else {
-                return Err("input method owner mismatch".to_string());
-            }
-        }
-    }
-    Ok(Some(request.owner))
-}
-
-fn apply_clipboard_request(
-    surface: &UiSurface,
-    request: &UiClipboardRequest,
-) -> Result<Option<UiNodeId>, String> {
-    require_valid_input_owner(surface, request.owner)?;
-    match request.kind {
-        UiClipboardRequestKind::ReadText if request.text.is_some() => {
-            Err("clipboard read request cannot carry text".to_string())
-        }
-        UiClipboardRequestKind::WriteText if request.text.is_none() => {
-            Err("clipboard write request missing text".to_string())
-        }
-        UiClipboardRequestKind::ReadText | UiClipboardRequestKind::WriteText => {
-            Ok(Some(request.owner))
-        }
-    }
-}
-
-fn host_request_for_effect(
-    effect_index: usize,
-    effect: &UiDispatchEffect,
-    target: Option<UiNodeId>,
-) -> Option<UiDispatchHostRequest> {
-    let request = match effect {
-        UiDispatchEffect::LockPointer { target, policy } => {
-            UiDispatchHostRequestKind::PointerLock {
-                target: *target,
-                policy: *policy,
-            }
-        }
-        UiDispatchEffect::UnlockPointer { policy, .. } => {
-            UiDispatchHostRequestKind::PointerUnlock { policy: *policy }
-        }
-        UiDispatchEffect::UseHighPrecisionPointer { target, enabled } => {
-            UiDispatchHostRequestKind::HighPrecisionPointer {
-                target: *target,
-                enabled: *enabled,
-            }
-        }
-        UiDispatchEffect::Popup {
-            kind,
-            popup_id,
-            owner: _,
-            anchor,
-        } => UiDispatchHostRequestKind::Popup {
-            kind: *kind,
-            popup_id: popup_id.clone(),
-            anchor: *anchor,
-        },
-        UiDispatchEffect::Tooltip {
-            kind,
-            tooltip_id,
-            owner: _,
-        } => UiDispatchHostRequestKind::Tooltip {
-            kind: *kind,
-            tooltip_id: tooltip_id.clone(),
-        },
-        UiDispatchEffect::RequestInputMethod { request } => {
-            UiDispatchHostRequestKind::InputMethod(request.clone())
-        }
-        UiDispatchEffect::RequestClipboard { request } => {
-            UiDispatchHostRequestKind::Clipboard(request.clone())
-        }
-        _ => return None,
-    };
-    Some(UiDispatchHostRequest {
-        effect_index,
-        request,
-        reason: target
-            .map(|node_id| format!("effect applied for {node_id:?}"))
-            .unwrap_or_else(|| "effect applied".to_string()),
-    })
-}
-
-fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
-    match effect {
-        UiDispatchEffect::SetFocus { target, .. }
-        | UiDispatchEffect::ClearFocus { target, .. }
-        | UiDispatchEffect::CapturePointer { target, .. }
-        | UiDispatchEffect::ReleasePointerCapture { target, .. }
-        | UiDispatchEffect::LockPointer { target, .. }
-        | UiDispatchEffect::UnlockPointer { target, .. }
-        | UiDispatchEffect::UseHighPrecisionPointer { target, .. }
-        | UiDispatchEffect::DragDrop { target, .. }
-        | UiDispatchEffect::DirtyRedraw { target, .. }
-        | UiDispatchEffect::EmitComponentEvent { target, .. } => Some(*target),
-        UiDispatchEffect::RequestInputMethod { request } => Some(request.owner),
-        UiDispatchEffect::RequestClipboard { request } => Some(request.owner),
-        UiDispatchEffect::Popup { owner, .. } | UiDispatchEffect::Tooltip { owner, .. } => *owner,
-        UiDispatchEffect::RequestNavigation { .. } => None,
-    }
-}
-
-fn require_node(surface: &UiSurface, node_id: UiNodeId) -> Result<(), String> {
-    surface
-        .tree
-        .nodes
-        .contains_key(&node_id)
-        .then_some(())
-        .ok_or_else(|| format!("missing node {node_id:?}"))
-}
-
-fn merge_dirty(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
-    target.layout |= dirty.layout;
-    target.hit_test |= dirty.hit_test;
-    target.render |= dirty.render;
-    target.style |= dirty.style;
-    target.text |= dirty.text;
-    target.input |= dirty.input;
-    target.visible_range |= dirty.visible_range;
-}
-
-fn focus_effect_reasons(
-    reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason,
-) -> (UiFocusChangeReason, UiFocusVisible) {
-    match reason {
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input => (
-            UiFocusChangeReason::Input,
-            UiFocusVisible::hidden(UiFocusVisibleReason::PointerInteraction),
-        ),
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Navigation => (
-            UiFocusChangeReason::Navigation,
-            UiFocusVisible::visible(UiFocusVisibleReason::KeyboardNavigation),
-        ),
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Programmatic
-        | zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Dismissal => (
-            UiFocusChangeReason::Programmatic,
-            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
-        ),
-    }
-}
-
-fn clear_focus_effect_reason(
-    reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason,
-) -> UiFocusChangeReason {
-    match reason {
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input => {
-            UiFocusChangeReason::Input
-        }
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Navigation => {
-            UiFocusChangeReason::Navigation
-        }
-        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Programmatic
-        | zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Dismissal => {
-            UiFocusChangeReason::Clear
+        UiDispatchEffect::DirtyRedraw { .. } => apply_redraw_effect(surface, effect),
+        UiDispatchEffect::EmitComponentEvent { .. } => {
+            apply_component_event_effect(surface, effect)
         }
     }
 }

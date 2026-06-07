@@ -6,43 +6,56 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import WebAssetOutlinedIcon from "@mui/icons-material/WebAssetOutlined";
-import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Typography } from "@mui/material";
+import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Tooltip, Typography } from "@mui/material";
+import { useState } from "react";
 import { hubTokens } from "../../theme/tokens";
+import type { HubActionHandler, HubPageId, HubShellText } from "../../types/hub";
+import { HUB_ACTION } from "../../types/hub";
 
-const navItems = [
-  { id: "projects", label: "Projects", Icon: FolderOutlinedIcon },
-  { id: "editor", label: "Editor", Icon: WebAssetOutlinedIcon },
-  { id: "assets", label: "Assets", Icon: Inventory2OutlinedIcon },
-  { id: "builds", label: "Builds", Icon: ConstructionOutlinedIcon },
-  { id: "plugins", label: "Plugins", Icon: ExtensionOutlinedIcon },
-  { id: "cloud", label: "Cloud", Icon: CloudOutlinedIcon },
-  { id: "team", label: "Team", Icon: GroupsOutlinedIcon },
-  { id: "learn", label: "Learn", Icon: AutoStoriesOutlinedIcon },
-  { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },
-];
+const navIcons: Record<HubPageId, typeof FolderOutlinedIcon> = {
+  projects: FolderOutlinedIcon,
+  editor: WebAssetOutlinedIcon,
+  assets: Inventory2OutlinedIcon,
+  builds: ConstructionOutlinedIcon,
+  plugins: ExtensionOutlinedIcon,
+  cloud: CloudOutlinedIcon,
+  team: GroupsOutlinedIcon,
+  learn: AutoStoriesOutlinedIcon,
+  settings: SettingsOutlinedIcon,
+};
 
 export interface NavigationDrawerProps {
   activePage: string;
+  text: HubShellText;
+  engineVersion: string;
+  onAction: HubActionHandler;
 }
 
-export function NavigationDrawer({ activePage }: NavigationDrawerProps) {
+export function NavigationDrawer({ activePage, text, engineVersion, onAction }: NavigationDrawerProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const drawerWidth = collapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;
+  const collapseLabel = collapsed ? text.expand : text.collapse;
+  const CollapseIcon = collapsed ? KeyboardDoubleArrowRightIcon : KeyboardDoubleArrowLeftIcon;
+
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width: hubTokens.window.sidebarWidth,
+        width: drawerWidth,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
           position: "relative",
-          width: hubTokens.window.sidebarWidth,
+          width: drawerWidth,
           height: "100%",
           boxSizing: "border-box",
           backgroundImage: "none",
           backgroundColor: "rgba(16,16,16,0.96)",
           borderRight: `1px solid ${hubTokens.colors.line}`,
           overflow: "hidden",
+          transition: "width 160ms ease",
           "@media (max-width: 980px)": {
             width: hubTokens.window.sidebarCollapsedWidth,
           },
@@ -51,12 +64,14 @@ export function NavigationDrawer({ activePage }: NavigationDrawerProps) {
     >
       <Box sx={{ display: "flex", flexDirection: "column", height: "100%", p: 2, gap: 2 }}>
         <List sx={{ display: "grid", gap: 0.8, p: 0 }}>
-          {navItems.map(({ id, label, Icon }) => {
+          {text.navItems.map(({ id, label }) => {
+            const Icon = navIcons[id];
             const selected = activePage === id;
             return (
               <ListItemButton
                 key={id}
                 selected={selected}
+                onClick={() => void onAction(HUB_ACTION.showPage, id)}
                 sx={{
                   height: 49,
                   borderRadius: `${hubTokens.radius.panel}px`,
@@ -77,6 +92,7 @@ export function NavigationDrawer({ activePage }: NavigationDrawerProps) {
                 <Typography
                   variant="body2"
                   sx={{
+                    display: collapsed ? "none" : "block",
                     fontWeight: selected ? 700 : 500,
                     "@media (max-width: 980px)": { display: "none" },
                   }}
@@ -96,47 +112,60 @@ export function NavigationDrawer({ activePage }: NavigationDrawerProps) {
             borderRadius: `${hubTokens.radius.panel}px`,
             border: `1px solid ${hubTokens.colors.lineStrong}`,
             backgroundColor: "rgba(32,32,32,0.62)",
+            display: collapsed ? "none" : "block",
             "@media (max-width: 980px)": { display: "none" },
           }}
         >
           <Typography variant="caption" sx={{ color: hubTokens.colors.text, display: "flex", gap: 0.8, alignItems: "center" }}>
             <Box sx={{ width: 8, height: 8, borderRadius: 999, backgroundColor: hubTokens.colors.success }} />
-            Engine Status
+            {text.engineStatus}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1.2, color: hubTokens.colors.textSoft }}>
-            Zircon Engine 1.8.2
+            {engineVersion}
           </Typography>
           <Typography variant="caption" sx={{ color: hubTokens.colors.success }}>
-            Up to date
+            {text.upToDate}
           </Typography>
-          <ButtonBase
-            sx={{
-              width: "100%",
-              height: 38,
-              mt: 1.4,
-              borderRadius: `${hubTokens.radius.compact}px`,
-              border: `1px solid ${hubTokens.colors.lineStrong}`,
-              color: hubTokens.colors.textSoft,
-              backgroundColor: "rgba(28,28,28,0.7)",
-            }}
-          >
-            <Typography variant="caption">Check for Updates</Typography>
-          </ButtonBase>
+          <Tooltip title={text.checkForUpdatesDetail}>
+            <span style={{ display: "block" }}>
+              <ButtonBase
+                disabled
+                sx={{
+                  width: "100%",
+                  height: 38,
+                  mt: 1.4,
+                  borderRadius: `${hubTokens.radius.compact}px`,
+                  border: `1px solid ${hubTokens.colors.lineStrong}`,
+                  color: hubTokens.colors.textMuted,
+                  backgroundColor: "rgba(28,28,28,0.7)",
+                  cursor: "not-allowed",
+                  "&.Mui-disabled": {
+                    color: hubTokens.colors.textMuted,
+                    opacity: 0.62,
+                  },
+                }}
+              >
+                <Typography variant="caption">{text.checkForUpdates}</Typography>
+              </ButtonBase>
+            </span>
+          </Tooltip>
         </Box>
 
         <ButtonBase
+          aria-label={collapseLabel}
+          onClick={() => setCollapsed((current) => !current)}
           sx={{
             height: 42,
-            justifyContent: "flex-start",
+            justifyContent: collapsed ? "center" : "flex-start",
             gap: 1,
-            px: 1,
+            px: collapsed ? 0 : 1,
             color: hubTokens.colors.textSoft,
             borderTop: `1px solid ${hubTokens.colors.line}`,
           }}
         >
-          <KeyboardDoubleArrowLeftIcon fontSize="small" />
-          <Typography variant="body2" sx={{ "@media (max-width: 980px)": { display: "none" } }}>
-            Collapse
+          <CollapseIcon fontSize="small" />
+          <Typography variant="body2" sx={{ display: collapsed ? "none" : "block", "@media (max-width: 980px)": { display: "none" } }}>
+            {collapseLabel}
           </Typography>
         </ButtonBase>
       </Box>

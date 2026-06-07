@@ -1,7 +1,6 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
-    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},

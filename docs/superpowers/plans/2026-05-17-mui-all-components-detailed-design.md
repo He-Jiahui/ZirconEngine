@@ -621,7 +621,7 @@ Every new or polished prototype should update this matrix only when it introduce
 - **Typed Contract:** selected date/time value, open popup, min/max date, disabled dates, range start/end, focused day/time cell, view mode (`day|month|year|hours|minutes`) if needed.
 - **Runtime Behavior:** open/close popup, select day/time, keyboard navigation, disabled date rejection, range selection. Full calendar math/timezone behavior is `needs support` unless a shared date-time model already exists.
 - **Editor Projection/Painter:** field frame, popup paper, calendar grid cells, selected/today/focused/disabled tones, time list rows.
-- **Prototype Asset:** create `zircon_editor/assets/ui/editor/material_components/material_mui_x_date_time_pickers.zui` or deliberately bind to existing date/time popup assets if implementation chooses that owner.
+- **Prototype Asset:** create `zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_date_time_pickers.zui` or deliberately bind to existing date/time popup assets if implementation chooses that owner.
 - **Validation:** popup open/close, select date/time, disabled date no-op, selected/focused/today pixels, docs/static matrix row existence.
 - **Docs:** update matrix, token audit, and popup/dialog lifecycle docs; explicitly state timezone/parsing limits.
 

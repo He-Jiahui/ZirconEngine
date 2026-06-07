@@ -21,6 +21,87 @@ pub(super) const MUI_X_PROTOTYPES: &[&str] = &[
     "mui_x_chat_composer",
 ];
 
+pub(super) const MATERIAL_COMPONENT_DOMAINS: &[&str] = &[
+    "data_display",
+    "feedback",
+    "inputs",
+    "layout",
+    "mui_x",
+    "navigation",
+    "surfaces",
+    "utils_lab",
+];
+
+pub(super) fn material_prototype_domain(key: &str) -> &'static str {
+    match key {
+        "avatars" | "badges" | "chips" | "dividers" | "icons" | "image_list" | "lists"
+        | "material_icons" | "table" | "timeline" | "typography" => "data_display",
+        "alert" | "backdrop" | "dialogs" | "modal" | "popover" | "popper" | "progress"
+        | "skeleton" | "snackbars" | "speed_dial" | "tooltips" => "feedback",
+        "autocomplete"
+        | "button_group"
+        | "buttons"
+        | "checkboxes"
+        | "floating_action_button"
+        | "number_field"
+        | "radio_buttons"
+        | "rating"
+        | "selects"
+        | "slider"
+        | "switches"
+        | "text_fields"
+        | "textarea_autosize"
+        | "toggle_button" => "inputs",
+        "box" | "container" | "grid" | "masonry" | "stack" => "layout",
+        "mui_x_agent_chat"
+        | "mui_x_bar_chart"
+        | "mui_x_charts"
+        | "mui_x_chat_composer"
+        | "mui_x_data_grid"
+        | "mui_x_date_time_pickers"
+        | "mui_x_gauge"
+        | "mui_x_line_chart"
+        | "mui_x_pie_chart"
+        | "mui_x_sparkline"
+        | "mui_x_tree_view" => "mui_x",
+        "bottom_navigation" | "breadcrumbs" | "links" | "menubar" | "menus" | "pagination"
+        | "steppers" | "tabs" | "transfer_list" => "navigation",
+        "accordion" | "app_bar" | "cards" | "drawers" | "paper" => "surfaces",
+        "about_the_lab"
+        | "click_away_listener"
+        | "css_baseline"
+        | "init_color_scheme_script"
+        | "no_ssr"
+        | "portal"
+        | "transitions"
+        | "use_media_query" => "utils_lab",
+        _ => panic!("unknown Material component prototype key `{key}`"),
+    }
+}
+
+pub(super) fn material_prototype_path(key: &str) -> PathBuf {
+    editor_asset(&format!(
+        "assets/ui/editor/material_components/{}/material_{key}.zui",
+        material_prototype_domain(key)
+    ))
+}
+
+pub(super) fn material_prototype_res_path(path: &Path, component_name: &str) -> String {
+    let editor_root = editor_asset("assets/ui/editor");
+    let relative = path
+        .strip_prefix(&editor_root)
+        .unwrap_or_else(|error| {
+            panic!(
+                "{} should live under {}: {error}",
+                path.display(),
+                editor_root.display()
+            )
+        })
+        .to_string_lossy()
+        .replace('\\', "/");
+    format!("res://ui/editor/{relative}#{component_name}")
+}
+
 pub(super) const INTERACTIVE_PROTOTYPES: &[&str] = &[
     "accordion",
     "autocomplete",
@@ -127,19 +208,26 @@ pub(super) fn numeric_prop(value: Option<&toml::Value>) -> Option<f64> {
 
 pub(super) fn material_prototype_files() -> Vec<PathBuf> {
     let dir = editor_asset("assets/ui/editor/material_components");
-    let mut files = fs::read_dir(&dir)
-        .unwrap_or_else(|error| panic!("{} should be readable: {error}", dir.display()))
-        .map(|entry| {
-            entry
-                .expect("prototype dir entry should be readable")
-                .path()
-        })
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("material_") && name.ends_with(".zui"))
-        })
-        .collect::<Vec<_>>();
+    let mut files = Vec::new();
+    for domain in MATERIAL_COMPONENT_DOMAINS {
+        let domain_dir = dir.join(domain);
+        files.extend(
+            fs::read_dir(&domain_dir)
+                .unwrap_or_else(|error| {
+                    panic!("{} should be readable: {error}", domain_dir.display())
+                })
+                .map(|entry| {
+                    entry
+                        .expect("prototype dir entry should be readable")
+                        .path()
+                })
+                .filter(|path| {
+                    path.file_name()
+                        .and_then(|name| name.to_str())
+                        .is_some_and(|name| name.starts_with("material_") && name.ends_with(".zui"))
+                }),
+        );
+    }
     files.sort();
     files
 }

@@ -1,0 +1,372 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/shell/workbench_inspector_panel.zui"
+version = 2
+display_name = "Workbench Inspector Panel"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_axis_value_field.zui#WorkbenchAxisValueField",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui#WorkbenchComponentPropertyRow",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+]
+styles = []
+
+[components.WorkbenchInspectorPanel]
+root = "inspector_panel"
+default_classes = ["workbench-panel", "workbench-right-panel"]
+
+[nodes.inspector_panel]
+component = "VerticalGroup"
+control_id = "WorkbenchInspectorPanel"
+classes = ["workbench-panel", "workbench-right-panel"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "inspector_tabs" }, { node = "inspector_title" }, { node = "inspector_tags" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }]
+
+[nodes.inspector_tabs]
+component = "HorizontalGroup"
+control_id = "WorkbenchInspectorTabs"
+classes = ["workbench-tabs"]
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
+children = [{ node = "inspector_tab_inspector" }, { node = "inspector_tab_history" }]
+
+[nodes.inspector_tab_inspector]
+component = "WorkbenchTab"
+control_id = "WorkbenchInspectorTabInspector"
+classes = ["workbench-tab"]
+props = { text = "Inspector", checked = true, selected = true, value = true }
+layout = { width = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PanelTab/InspectorMain", event = "Click", route = "workbench.panel_tab.select.inspector_main" }]
+
+[nodes.inspector_tab_history]
+component = "WorkbenchTab"
+control_id = "WorkbenchInspectorTabHistory"
+classes = ["workbench-tab"]
+props = { text = "History" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PanelTab/InspectorHistory", event = "Click", route = "workbench.panel_tab.select.inspector_history" }]
+
+[nodes.inspector_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchInspectorTitle"
+classes = ["workbench-section-title"]
+props = { text = "Props" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.inspector_tags]
+component = "HorizontalGroup"
+control_id = "WorkbenchInspectorTags"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+children = [{ node = "inspector_tag" }, { node = "inspector_layer" }]
+
+[nodes.inspector_tag]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchInspectorTag"
+classes = ["workbench-field"]
+props = { value = "untagged", value_text = "Untagged", options = ["untagged", "gameplay", "lighting"], popup_open = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.inspector_layer]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchInspectorLayer"
+classes = ["workbench-field"]
+props = { value = "default", value_text = "Default", options = ["default", "foreground", "background"], popup_open = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.inspector_transform]
+component = "VerticalGroup"
+control_id = "WorkbenchInspectorTransform"
+classes = ["workbench-property-section", "workbench-transform-section"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
+children = [{ node = "transform_label" }, { node = "position_row" }, { node = "rotation_row" }, { node = "scale_row" }]
+
+[nodes.transform_label]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchTransformLabel"
+classes = ["workbench-section-title", "workbench-transform-title"]
+props = { text = "Transform" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.position_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformPosition"
+classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-position-row"]
+props = { text = "Position", value = "X 128.4   Y 64.2   Z -32.7", layout_label_width = 83.0, layout_axis_width = 14.0, layout_primary_value_width = 61.0, layout_value_width = 68.0, layout_offset_x = 0.0, layout_offset_y = 12.0 }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "position_label" }, { node = "position_axis_x" }, { node = "position_value_x" }, { node = "position_axis_y" }, { node = "position_value_y" }, { node = "position_axis_z" }, { node = "position_value_z" }]
+
+[nodes.position_label]
+component = "Label"
+control_id = "WorkbenchTransformPositionLabel"
+classes = ["workbench-transform-row-label"]
+props = { text = "Position", text_tone = "muted", font_size = 12.0 }
+layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.position_axis_x]
+component = "Label"
+control_id = "WorkbenchTransformPositionAxisX"
+classes = ["workbench-axis-label", "workbench-axis-x"]
+props = { text = "X", font_size = 11.0, label_color = "#566871" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.position_value_x]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformPositionX"
+classes = ["workbench-axis-value-field"]
+props = { value = "128.4", value_color = "#929ea4" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformPositionXEdit", event = "Change", route = "workbench.inspector.transform.position_x.edit" },
+  { id = "Inspector/TransformPositionXCommit", event = "Submit", route = "workbench.inspector.transform.position_x.commit" },
+]
+
+[nodes.position_axis_y]
+component = "Label"
+control_id = "WorkbenchTransformPositionAxisY"
+classes = ["workbench-axis-label", "workbench-axis-y"]
+props = { text = "Y", font_size = 11.0, label_color = "#566871" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.position_value_y]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformPositionY"
+classes = ["workbench-axis-value-field"]
+props = { value = "64.2", value_color = "#929ea4" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformPositionYEdit", event = "Change", route = "workbench.inspector.transform.position_y.edit" },
+  { id = "Inspector/TransformPositionYCommit", event = "Submit", route = "workbench.inspector.transform.position_y.commit" },
+]
+
+[nodes.position_axis_z]
+component = "Label"
+control_id = "WorkbenchTransformPositionAxisZ"
+classes = ["workbench-axis-label", "workbench-axis-z"]
+props = { text = "Z", font_size = 11.0, label_color = "#566871" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.position_value_z]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformPositionZ"
+classes = ["workbench-axis-value-field"]
+props = { value = "-32.7", value_color = "#929ea4" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformPositionZEdit", event = "Change", route = "workbench.inspector.transform.position_z.edit" },
+  { id = "Inspector/TransformPositionZCommit", event = "Submit", route = "workbench.inspector.transform.position_z.commit" },
+]
+
+[nodes.rotation_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformRotation"
+classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-rotation-row"]
+props = { text = "Rotation", value = "X 0 deg   Y 90 deg   Z 0 deg" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "rotation_label" }, { node = "rotation_axis_x" }, { node = "rotation_value_x" }, { node = "rotation_axis_y" }, { node = "rotation_value_y" }, { node = "rotation_axis_z" }, { node = "rotation_value_z" }]
+
+[nodes.rotation_label]
+component = "Label"
+control_id = "WorkbenchTransformRotationLabel"
+classes = ["workbench-transform-row-label"]
+props = { text = "Rotation", text_tone = "muted", font_size = 12.0 }
+layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.rotation_axis_x]
+component = "Label"
+control_id = "WorkbenchTransformRotationAxisX"
+classes = ["workbench-axis-label", "workbench-axis-x"]
+props = { text = "X", font_size = 11.0 }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.rotation_value_x]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformRotationX"
+classes = ["workbench-axis-value-field"]
+props = { value = "0 deg" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformRotationXEdit", event = "Change", route = "workbench.inspector.transform.rotation_x.edit" },
+  { id = "Inspector/TransformRotationXCommit", event = "Submit", route = "workbench.inspector.transform.rotation_x.commit" },
+]
+
+[nodes.rotation_axis_y]
+component = "Label"
+control_id = "WorkbenchTransformRotationAxisY"
+classes = ["workbench-axis-label", "workbench-axis-y"]
+props = { text = "Y", font_size = 11.0 }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.rotation_value_y]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformRotationY"
+classes = ["workbench-axis-value-field"]
+props = { value = "90 deg" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformRotationYEdit", event = "Change", route = "workbench.inspector.transform.rotation_y.edit" },
+  { id = "Inspector/TransformRotationYCommit", event = "Submit", route = "workbench.inspector.transform.rotation_y.commit" },
+]
+
+[nodes.rotation_axis_z]
+component = "Label"
+control_id = "WorkbenchTransformRotationAxisZ"
+classes = ["workbench-axis-label", "workbench-axis-z"]
+props = { text = "Z", font_size = 11.0 }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.rotation_value_z]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformRotationZ"
+classes = ["workbench-axis-value-field"]
+props = { value = "0 deg" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformRotationZEdit", event = "Change", route = "workbench.inspector.transform.rotation_z.edit" },
+  { id = "Inspector/TransformRotationZCommit", event = "Submit", route = "workbench.inspector.transform.rotation_z.commit" },
+]
+
+[nodes.scale_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformScale"
+classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-scale-row"]
+props = { text = "Scale", value = "X 1.00   Y 1.00   Z 1.00" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "scale_label" }, { node = "scale_link" }, { node = "scale_axis_x" }, { node = "scale_value_x" }, { node = "scale_axis_y" }, { node = "scale_value_y" }, { node = "scale_axis_z" }, { node = "scale_value_z" }]
+
+[nodes.scale_label]
+component = "Label"
+control_id = "WorkbenchTransformScaleLabel"
+classes = ["workbench-transform-row-label"]
+props = { text = "Scale", text_tone = "muted", font_size = 12.0 }
+layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_link]
+component = "Label"
+control_id = "WorkbenchTransformScaleLink"
+classes = ["workbench-transform-scale-link"]
+props = { icon = "link", text = "", text_tone = "muted", font_size = 11.0, layout_offset_x = -12.0, layout_icon_size = 17.0 }
+layout = { width = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_axis_x]
+component = "Label"
+control_id = "WorkbenchTransformScaleAxisX"
+classes = ["workbench-axis-label", "workbench-axis-x"]
+props = { text = "X", font_size = 11.0, label_color = "#68767e" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_value_x]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformScaleX"
+classes = ["workbench-axis-value-field"]
+props = { value = "1.00", value_color = "#929ea4" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformScaleXEdit", event = "Change", route = "workbench.inspector.transform.scale_x.edit" },
+  { id = "Inspector/TransformScaleXCommit", event = "Submit", route = "workbench.inspector.transform.scale_x.commit" },
+]
+
+[nodes.scale_axis_y]
+component = "Label"
+control_id = "WorkbenchTransformScaleAxisY"
+classes = ["workbench-axis-label", "workbench-axis-y"]
+props = { text = "Y", font_size = 11.0, label_color = "#68767e" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_value_y]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformScaleY"
+classes = ["workbench-axis-value-field"]
+props = { value = "1.00", value_color = "#929ea4" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformScaleYEdit", event = "Change", route = "workbench.inspector.transform.scale_y.edit" },
+  { id = "Inspector/TransformScaleYCommit", event = "Submit", route = "workbench.inspector.transform.scale_y.commit" },
+]
+
+[nodes.scale_axis_z]
+component = "Label"
+control_id = "WorkbenchTransformScaleAxisZ"
+classes = ["workbench-axis-label", "workbench-axis-z"]
+props = { text = "Z", font_size = 11.0, label_color = "#68767e" }
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_value_z]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchTransformScaleZ"
+classes = ["workbench-axis-value-field"]
+props = { value = "1.00", value_color = "#929ea4" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/TransformScaleZEdit", event = "Change", route = "workbench.inspector.transform.scale_z.edit" },
+  { id = "Inspector/TransformScaleZCommit", event = "Submit", route = "workbench.inspector.transform.scale_z.commit" },
+]
+
+[nodes.inspector_mesh]
+component = "VerticalGroup"
+control_id = "WorkbenchInspectorMesh"
+classes = ["workbench-property-section"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+repeat = { kind = "virtual_rows", prototype = "WorkbenchComponentPropertySlot04Row", virtual_control_prefix = "WorkbenchComponentPropertyVirtualRow", authored_count = 4, node_path_namespace = "v2" }
+children = [{ node = "mesh_label" }, { node = "mesh_row" }, { node = "material_row" }, { node = "component_property_slot_03_row" }, { node = "component_property_slot_04_row" }]
+
+[nodes.mesh_label]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchMeshLabel"
+classes = ["workbench-section-title", "workbench-mesh-title"]
+props = { text = "Mesh Renderer" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.mesh_row]
+component = "WorkbenchComponentPropertyRow"
+control_id = "WorkbenchMeshRow"
+classes = ["workbench-component-property-row"]
+props = { text = "Mesh", value = "Box_01", value_text = "Box_01" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/ComponentProperty01Edit", event = "Change", route = "workbench.inspector.component_property01.edit" },
+  { id = "Inspector/ComponentProperty01Commit", event = "Submit", route = "workbench.inspector.component_property01.commit" },
+]
+
+[nodes.material_row]
+component = "WorkbenchComponentPropertyRow"
+control_id = "WorkbenchMaterialRow"
+classes = ["workbench-component-property-row"]
+props = { text = "Materials", value = "M_Metal", value_text = "M_Metal", label_color = "#9aa5ab", value_color = "#8f9aa0", icon_color = "#c2ccd1", background_color = "#13181b", border_color = "#20272c", layout_icon_size = 15.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/ComponentProperty02Edit", event = "Change", route = "workbench.inspector.component_property02.edit" },
+  { id = "Inspector/ComponentProperty02Commit", event = "Submit", route = "workbench.inspector.component_property02.commit" },
+]
+
+[nodes.component_property_slot_03_row]
+component = "WorkbenchComponentPropertyRow"
+control_id = "WorkbenchComponentPropertySlot03Row"
+classes = ["workbench-component-property-row"]
+props = { text = "Property", value = "", value_text = "-", visibility = "collapsed", layout_content_offset_x = 34.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/ComponentProperty03Edit", event = "Change", route = "workbench.inspector.component_property03.edit" },
+  { id = "Inspector/ComponentProperty03Commit", event = "Submit", route = "workbench.inspector.component_property03.commit" },
+]
+
+[nodes.component_property_slot_04_row]
+component = "WorkbenchComponentPropertyRow"
+control_id = "WorkbenchComponentPropertySlot04Row"
+classes = ["workbench-component-property-row"]
+props = { text = "Property", value = "", value_text = "-", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "Inspector/ComponentProperty04Edit", event = "Change", route = "workbench.inspector.component_property04.edit" },
+  { id = "Inspector/ComponentProperty04Commit", event = "Submit", route = "workbench.inspector.component_property04.commit" },
+]
+
+[nodes.inspector_add_component]
+component = "WorkbenchButton"
+control_id = "WorkbenchAddComponent"
+classes = ["workbench-control-button"]
+props = { text = "Add Component", border_color = "#364047" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "Inspector/AddComponent", event = "Click", route = "workbench.inspector.add_component" }]

@@ -2,37 +2,37 @@
 related_code:
   - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
   - zircon_editor/assets/ui/theme/editor_workbench_strict.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_checkbox.zui
-  - zircon_editor/assets/ui/editor/components/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_popup_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_radio.zui
-  - zircon_editor/assets/ui/editor/components/workbench_rail_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench_slider.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toast.zui
-  - zircon_editor/assets/ui/editor/components/workbench_toggle.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_checkbox.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_chip.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_icon_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_list_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_property_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_rail_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_section_title.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_segmented_control.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_slider.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_status_item.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_tab.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_table_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_toast.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_toggle.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_tree_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_viewport_panel.zui
   - zircon_runtime_interface/src/ui/v2/repeat.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
@@ -48,6 +48,7 @@ related_code:
   - zircon_editor/src/ui/workbench/reference/builder/nodes.rs
   - zircon_editor/src/ui/workbench/reference/builder/panels.rs
   - zircon_editor/src/ui/template_runtime/mod.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/builtin/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -71,6 +72,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_popup_actions.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/ui.rs
@@ -128,18 +130,18 @@ related_code:
   - zircon_runtime_interface/src/tests/render_contracts.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/components/workbench_axis_value_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench_checkbox.zui
-  - zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench_radio.zui
-  - zircon_editor/assets/ui/editor/components/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_checkbox.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_dropdown.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_inspector_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
+  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_status_bar.zui
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/workbench/reference/mod.rs
   - zircon_editor/src/ui/workbench/reference/ids.rs
@@ -151,6 +153,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reference/builder/nodes.rs
   - zircon_editor/src/ui/workbench/reference/builder/panels.rs
   - zircon_editor/src/ui/template_runtime/mod.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/builtin/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
@@ -176,6 +179,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_sliders.rs
   - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_popup_actions.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
@@ -339,7 +343,7 @@ tests:
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01: passed)
   - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01: passed, 1 passed)
   - cargo test -p zircon_editor --lib componentized_workbench --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01: passed, 23 passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui (2026-06-01 latest: passed, 10 scene-tree row slots with 07-10 collapsed by default)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui (2026-06-01 latest: passed, 10 scene-tree row slots with 07-10 collapsed by default)
   - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01 latest after ten scene-tree slots: passed, 1 passed)
   - cargo test -p zircon_editor --lib componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01: passed, 1 passed)
   - cargo test -p zircon_editor --lib componentized_workbench --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01 latest after virtual scene-tree rows: passed, 24 passed)
@@ -351,7 +355,7 @@ tests:
   - cargo test -p zircon_runtime --lib ui_v2_repeat_declaration_is_preserved_in_compiled_surface_metadata --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01: timed out after 604 seconds during zircon_runtime test binary link; no compiler diagnostic returned)
   - cargo test -p zircon_editor --lib componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01: timed out after 605 seconds during zircon_runtime test binary link; no compiler diagnostic returned)
   - rustfmt --edition 2021 --check over the touched repeat/runtime/editor Rust files (2026-06-01 after repeat declaration integration: passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_scene_tree_panel.zui (2026-06-01 after repeat declaration integration: passed, repeat table present and 10 authored scene-tree children)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui (2026-06-01 after repeat declaration integration: passed, repeat table present and 10 authored scene-tree children)
   - cargo fmt -p zircon_editor --check (2026-06-01 latest after ten scene-tree slots: passed)
   - git diff --check over the touched bridge Rust, test, docs, and session note files (2026-06-01 latest after virtual scene-tree rows: no whitespace errors; Git reported LF-to-CRLF warnings for workbench_projection.rs, error.rs, and mod.rs)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01 latest after virtual scene-tree rows: passed)
@@ -373,12 +377,12 @@ tests:
   - trailing-whitespace scan over the touched slider pointer-feedback Rust, theme, docs, and session-note files (2026-06-01 after slider pointer feedback: passed)
   - cargo test for componentized_workbench_pointer_drag_updates_slider_value_without_authored_binding was deferred on 2026-06-01 because unrelated cargo/rustc processes from other active sessions were still compiling; this leaves the focused compile/test gate open for the milestone testing stage.
   - rustfmt --edition 2021 --check over the touched workbench host-contract projection Rust files (2026-06-01 after structured dropdown/menu projection: passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui (2026-06-01 after structured dropdown/menu projection: passed, confirmed dropdown option state metadata)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui (2026-06-01 after structured dropdown/menu projection: passed, confirmed dropdown option state metadata)
   - git diff --check over the touched structured dropdown/menu projection files (2026-06-01 after structured dropdown/menu projection: passed; Git reported LF-to-CRLF working-tree warnings for existing Rust files)
   - trailing-whitespace scan over the touched structured dropdown/menu projection files (2026-06-01 after structured dropdown/menu projection: passed)
   - cargo test -p zircon_editor --lib componentized_workbench_window_projection_exports_dropdown_and_popup_rows --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after structured dropdown/menu projection: timed out after 718 seconds while compiling dependencies; no compiler diagnostic returned, and matching cargo processes were stopped)
   - rustfmt --edition 2021 --check over the touched Workbench dropdown-selection Rust files (2026-06-01 after dropdown option selection bridge: passed)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui (2026-06-01 after dropdown option selection bridge: passed, confirmed ComponentLab/InputDropdownSelect Change event plus dropdown option state metadata)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui (2026-06-01 after dropdown option selection bridge: passed, confirmed ComponentLab/InputDropdownSelect Change event plus dropdown option state metadata)
   - git diff --check over the touched dropdown-selection Rust/ZUI files (2026-06-01 after dropdown option selection bridge: passed; Git reported LF-to-CRLF working-tree warnings for existing Rust files)
   - trailing-whitespace scan over the touched dropdown-selection Rust/ZUI files (2026-06-01 after dropdown option selection bridge: passed)
   - focused Cargo for componentized_workbench_dropdown_option_selection_updates_value_and_projection deferred on 2026-06-01 because unrelated cargo/rustc processes from another active validation lane were still compiling; no new compiler diagnostic was produced by this slice
@@ -420,7 +424,7 @@ tests:
   - focused Cargo for workbench_hit_test_blocks_popup_menu_separator_row, native_workbench_disabled_dropdown_option_primary_press_is_ignored_without_cancel, and native_workbench_popup_menu_separator_primary_press_is_ignored_without_cancel was deferred on 2026-06-02 because unrelated workspace/runtime Cargo and rustc lanes remained active; no new compiler diagnostic was produced by this slice
   - rustfmt --edition 2021 --check over native_workbench_reference.rs (2026-06-02 after native Workbench text edit/commit lane: passed)
   - git diff --check over workbench_component_drawer.zui, native_workbench_reference.rs, docs, and session note (2026-06-02 after native Workbench text edit/commit lane: passed; Git reported only an LF-to-CRLF working-tree warning for the existing Rust test file)
-  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench_component_drawer.zui (2026-06-02 after native Workbench text edit/commit lane: passed)
+  - Python tomllib parse of zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui (2026-06-02 after native Workbench text edit/commit lane: passed)
   - trailing-whitespace scan over workbench_component_drawer.zui, native_workbench_reference.rs, docs, and session note (2026-06-02 after native Workbench text edit/commit lane: passed)
   - focused Cargo for native_workbench_text_input_focuses_edits_and_commits_from_keyboard was deferred on 2026-06-02 because unrelated workspace/runtime Cargo and rustc lanes remained active; no new compiler diagnostic was produced by this slice
   - rustfmt --edition 2021 --check over the Inspector property edit bridge Rust files (2026-06-02 after local edit/commit state bridge: passed)
@@ -473,6 +477,15 @@ tests:
   - Python tomllib parse of workbench_component_drawer.zui (2026-06-02 after component drawer feedback/toast layout sync: passed, confirmed WorkbenchFeedbackAlerts, WorkbenchTooltipRoot, WorkbenchFeedbackToastColumn, and a single uncontrolled feedback_toast instance)
   - tracked git diff --check over tracked touched files, plus trailing-whitespace scan over the feedback/toast layout ZUI/test/docs/session files (2026-06-02: passed; Git reported only LF-to-CRLF working-tree warnings for existing tracked files)
   - focused Cargo for the component drawer feedback/toast layout sync was deferred on 2026-06-02 because active cargo/rustc lanes were compiling; no new compiler diagnostic was produced by this slice
+  - rustfmt --edition 2021 --check over menu action, retained adapter, componentized workbench projection, hit-test, and showcase action input Rust files (2026-06-05 action-id normalization and projection support: passed)
+  - git diff --check over the touched action-id normalization, retained projection, runtime diagnostics, ECS query, showcase asset, and docs files (2026-06-05: passed with only Windows LF-to-CRLF working-tree warnings)
+  - Get-ChildItem/Select-String guard for component_lab.button_dropdown_option.select and component_lab.input_dropdown_option.select under zircon_editor/src and zircon_editor/assets (2026-06-05: passed, no legacy dropdown-option action ids remain)
+  - cargo test -p zircon_editor --lib componentized_workbench_dropdown_option_selection_updates_value_and_projection --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 after explicit route action-id projection: passed, 1 passed)
+  - cargo test -p zircon_editor --lib runtime_component_projection_preserves_primary_click_binding_id --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 after primary-click fallback change: passed, 1 passed)
+  - cargo test -p zircon_editor --lib workbench_hit_test_routes_componentized_text_input_center --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 after route action-id projection: passed, 1 passed)
+  - cargo test -p zircon_editor --lib workbench_hit_test_routes_open_popup_menu_rows --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 after popup menu-row action normalization: passed, 1 passed)
+  - cargo test -p zircon_editor --lib apply_presentation_carries_componentized_workbench_window_nodes_separately --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 after raw binding-id fallback restore: passed, 1 passed)
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never -- --test-threads=1 (2026-06-05 after workbench/showcase fixes: attempted twice; first failed before editor tests on runtime ECS query_many_iter.rs borrow error, fixed by cached read-only many local-field borrow split; second cargo/rustc exited -1 without a Rust diagnostic while concurrent editor/runtime cargo lanes were compiling)
 doc_type: module-detail
 ---
 
@@ -508,13 +521,15 @@ The component-drawer `Icon Buttons` lane also owns the large mini icon-button ed
 
 `workbench_window_projection.rs` converts the retained workbench surface projection into the native host `TemplatePaneNodeData` contract. The component drawer's `WorkbenchInputDropdown` now declares selected, special, focused, hovered, and disabled option metadata, and the workbench-window projection reuses the same structured option and menu parsers used by pane/component projection. That means dropdowns and popup menus expose both the raw string lists and typed `structured_options` / `structured_menu_items` rows, including separator, disabled, focused, hovered, and selected state. Native rendering can therefore consume explicit row state instead of reparsing display strings.
 
+The projection keeps authored binding identity and dispatch action identity separate. `retained_adapter.rs` carries each route's explicit action id alongside the binding id. `workbench_window_projection.rs` prefers that explicit action id for native route callbacks, but falls back to the raw binding id when no route action exists, so legacy tests and host contracts still see `ComponentLab/...` binding ids on primary clicks. Generic pane/component projection follows the same rule: it only emits a primary-click action id when the template binding authored one, rather than deriving a snake-case command id from every binding id. The componentized Workbench dropdown routes are hard-cut to `component_lab.input_dropdown.select` and `component_lab.button_dropdown.select`; the older `*_dropdown_option.select` ids are not kept as compatibility aliases.
+
 The same projection path now carries component-system metadata into the editor host contract. `TemplatePaneNodeData.component_category` and `TemplatePaneNodeData.component_layout_role` are resolved through `component_contract_metadata.rs`, which combines the runtime editor-showcase and Material foundation descriptor registries before falling back by component role. This gives native painter and diagnostic code stable tokens such as `input`, `selection`, `collection`, `container`, `leaf`, `flex`, `grid`, `popup`, and `virtual-list`, so Button/Input/List/Table/Drawer families can be grouped from a shared contract rather than from one-off control-id paint rules.
 
 Dropdown selection now has a Workbench-specific host bridge path. The `WorkbenchInputDropdown` template exposes `ComponentLab/InputDropdownSelect` as a Change route. When a structured option callback selects an enabled option, the bridge validates the option id against the authored `options` and `disabled_options`, writes the selected id into `value` and `value_text`, moves `special_options` to the selected id, clears transient option focus/hover/press arrays, closes `popup_open`, and refreshes the retained projection. Disabled or unknown option ids are swallowed as no-ops so native option rows cannot mutate the preview state accidentally.
 
 Popup-menu row selection uses the same preview-only boundary. When `dispatch_pane_surface_control_clicked(...)` receives a Workbench control id plus a non-binding action id, it first asks the componentized Workbench bridge whether the action matches an authored `menu_items` row. A matched enabled row updates the popup menu's `value` and `value_text`, removes transient `focused` / `hovered` / `pressed` row flags from the authored menu list, closes the popup, refreshes projection, and requests paint-only invalidation. It deliberately does not invoke real editor menu actions such as Delete, because the component drawer menu is a visual interaction sample rather than an editor command surface.
 
-Native hit testing now gives those structured rows real pointer targets. `surface_hit_test/template_node.rs` checks open popup rows before the normal template-node surface hit-test: dropdown options synthesize `workbench_option` hits below the dropdown frame and carry the Change binding id plus option id; popup menu rows synthesize `workbench_menu_item` hits across the menu frame and carry the row action id. Points inside an open popup but on a disabled option, separator row, or other non-activatable popup area are blocked from falling through to the popup parent or underlying controls. `native_pointer.rs` routes `workbench_option` through the structured-option callback lane, which the retained host already redirects to the active Workbench bridge. Menu row hits continue through `surface_control_clicked`, where the Workbench bridge handles them as preview-only row selection before any generic menu command fallback runs.
+Native hit testing now gives those structured rows real pointer targets. `surface_hit_test/template_node.rs` checks open popup rows before the normal template-node surface hit-test: dropdown options synthesize `workbench_option` hits below the dropdown frame and carry the Change binding id plus option id; popup menu rows synthesize `workbench_menu_item` hits across the menu frame and carry a normalized row action id. Hand-authored sample rows such as `Delete` are normalized to `menu.item.delete`, while already canonical `menu.item.*` rows pass through unchanged. Points inside an open popup but on a disabled option, separator row, or other non-activatable popup area are blocked from falling through to the popup parent or underlying controls. `native_pointer.rs` routes `workbench_option` through the structured-option callback lane, which the retained host already redirects to the active Workbench bridge. Menu row hits continue through `surface_control_clicked`, where the Workbench bridge handles them as preview-only row selection before any generic menu command fallback runs.
 
 Native painting now renders the same structured rows instead of leaving them as invisible hit zones. `template_nodes.rs` remains the orchestration boundary for retained template-node painting, while `template_popup_rows.rs` draws open dropdown options below the control frame and popup-menu rows inside the menu frame. Selected and special rows receive the selected background plus a narrow accent marker; hovered, focused, and pressed rows share the hover surface; disabled rows keep disabled text and no active row fill; separators and shortcuts are painted from structured menu row metadata. Both painter and hit-test consume `template_popup_layout.rs` for dropdown option and menu row frames, so visible rows and pointer targets are derived from the same geometry.
 

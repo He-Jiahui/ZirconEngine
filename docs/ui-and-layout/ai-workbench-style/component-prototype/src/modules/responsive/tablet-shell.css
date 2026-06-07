@@ -1,0 +1,38 @@
+@media (max-width: 1040px) {
+  .zr-module-left {
+    bottom: auto;
+    height: 428px;
+  }
+
+  .zr-module-right {
+    top: calc(var(--topbar-h) + 14px);
+    right: 12px;
+    bottom: auto;
+    height: 468px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .zr-module-main {
+    right: 0;
+    bottom: auto;
+    height: 428px;
+  }
+
+  .zr-module-bottom {
+    top: 488px;
+    height: 430px;
+    bottom: auto;
+  }
+
+  .zr-module-toolbar .zr-button span {
+    display: none;
+  }
+
+  .zr-module-main-actions .zr-select {
+    display: none;
+  }
+
+  .zr-status-right {
+    display: none;
+  }
+}

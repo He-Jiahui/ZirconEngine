@@ -22,11 +22,7 @@ fn clip_and_external_inputs_resample_to_mixer_rate() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock {
-                sample_rate_hz: 24_000,
-                channel_count: 1,
-                samples: vec![0.5, 1.0],
-            },
+            SoundExternalSourceBlock::new(24_000, SoundChannelLayout::mono(), vec![0.5, 1.0]),
         )
         .unwrap();
     sound

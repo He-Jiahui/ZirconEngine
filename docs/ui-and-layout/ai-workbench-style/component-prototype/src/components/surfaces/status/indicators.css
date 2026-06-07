@@ -1,0 +1,24 @@
+.zr-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.zr-status-item:nth-child(2) .zr-icon {
+  color: #5fcf75;
+}
+
+.zr-status-item:nth-child(3) .zr-icon {
+  color: #071114;
+  fill: #f0c04f;
+  stroke: #071114;
+  stroke-width: 1.6;
+}
+
+.zr-status-item:nth-child(4) .zr-icon {
+  color: #071114;
+  fill: #4c9ae8;
+  stroke: #071114;
+  stroke-width: 1.7;
+}

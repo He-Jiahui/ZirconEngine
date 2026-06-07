@@ -1,6 +1,5 @@
 use crate::core::framework::render::{
     AntiAliasMode, ProjectionMode, RenderFrameExtract, RenderPostProcessEffectStackSettings,
-    RenderTonemapOperator,
 };
 use crate::core::math::{UVec2, Vec3};
 
@@ -9,7 +8,7 @@ use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntime
 use super::baked_lighting::baked_lighting;
 use super::color_grading::color_grading;
 
-pub(in super::super) fn build_post_process_params(
+pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build_post_process_params(
     viewport_size: UVec2,
     cluster_dimensions: UVec2,
     extract: &RenderFrameExtract,
@@ -107,42 +106,34 @@ pub(in super::super) fn build_post_process_params(
         effect_view_x: effect_view[0],
         effect_view_y: effect_view[1],
         effect_view_z: effect_view[2],
+        effect_motion_blur: effect_motion_blur(effect_stack),
     }
 }
 
 fn effect_flags(settings: RenderPostProcessEffectStackSettings) -> [u32; 4] {
     [
-        tonemap_operator_id(settings.tonemap.operator),
+        settings.tonemap.render_operator_id(),
         u32::from(settings.color_lookup.is_enabled()),
         settings.screen_space_reflection.max_steps,
         u32::from(settings.is_enabled()),
     ]
 }
 
-fn tonemap_operator_id(operator: RenderTonemapOperator) -> u32 {
-    match operator {
-        RenderTonemapOperator::None => 0,
-        RenderTonemapOperator::Reinhard => 1,
-        RenderTonemapOperator::Aces => 2,
-        RenderTonemapOperator::Filmic => 3,
-    }
-}
-
 fn effect_tonemap_lut(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.tonemap.exposure_bias,
-        settings.tonemap.white_point.max(0.001),
-        settings.color_lookup.intensity.max(0.0),
+        settings.tonemap.render_exposure_bias(),
+        settings.tonemap.render_white_point(),
+        settings.color_lookup.render_intensity(),
         0.0,
     ]
 }
 
 fn effect_blur_dof(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.blur.radius.max(0.0),
-        settings.depth_of_field.focus_distance.max(0.0),
-        settings.depth_of_field.aperture.max(0.0),
-        settings.depth_of_field.max_blur_radius.max(0.0),
+        settings.blur.render_radius(),
+        settings.depth_of_field.render_focus_distance(),
+        settings.depth_of_field.render_aperture(),
+        settings.depth_of_field.render_max_blur_radius(),
     ]
 }
 
@@ -155,48 +146,61 @@ fn effect_dof_lens(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     ]
 }
 
+fn effect_motion_blur(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
+    [
+        settings.motion_blur.render_shutter_angle(),
+        settings.motion_blur.render_samples() as f32,
+        0.0,
+        0.0,
+    ]
+}
+
 fn effect_vignette_grain(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.vignette.intensity.max(0.0),
-        settings.vignette.smoothness.max(0.001),
-        settings.vignette.roundness.max(0.001),
-        settings.grain.intensity.max(0.0),
+        settings.vignette.render_intensity(),
+        settings.vignette.render_smoothness(),
+        settings.vignette.render_roundness(),
+        settings.grain.render_intensity(),
     ]
 }
 
 fn effect_chromatic_fog(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.chromatic_aberration.intensity.max(0.0),
-        settings.chromatic_aberration.sample_spread.max(0.0),
-        settings.fog.density.max(0.0),
-        settings.fog.height_falloff.max(0.0),
+        settings.chromatic_aberration.render_intensity(),
+        settings.chromatic_aberration.render_sample_spread(),
+        settings.fog.render_density(),
+        settings.fog.render_height_falloff(),
     ]
 }
 
 fn effect_fog_color(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
+    let fog_color = settings.fog.render_color();
+
     [
-        settings.fog.color.x.max(0.0),
-        settings.fog.color.y.max(0.0),
-        settings.fog.color.z.max(0.0),
-        settings.grain.response.max(0.0),
+        fog_color.x,
+        fog_color.y,
+        fog_color.z,
+        settings.grain.render_response(),
     ]
 }
 
 fn effect_dither_ssr(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.dither.intensity.max(0.0),
-        settings.dither.scale.max(0.001),
-        settings.screen_space_reflection.intensity.max(0.0),
-        settings.screen_space_reflection.thickness.max(0.0),
+        settings.dither.render_intensity(),
+        settings.dither.render_scale(),
+        settings.screen_space_reflection.render_intensity(),
+        settings.screen_space_reflection.render_thickness(),
     ]
 }
 
 fn effect_ssr_limits(settings: RenderPostProcessEffectStackSettings) -> [f32; 4] {
     [
-        settings.screen_space_reflection.max_ray_distance.max(0.0),
+        settings.screen_space_reflection.render_max_ray_distance(),
         settings.screen_space_reflection.max_steps as f32,
-        0.0,
-        0.0,
+        settings
+            .screen_space_reflection
+            .render_temporal_blend_factor(),
+        settings.screen_space_reflection.render_roughness_mip_bias(),
     ]
 }
 
@@ -254,9 +258,11 @@ fn camera_axis_row(axis: Vec3, fallback: Vec3) -> [f32; 4] {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderDepthOfFieldSettings, RenderDitherSettings, RenderFogSettings, RenderFrameExtract,
+        RenderChromaticAberrationSettings, RenderDepthOfFieldSettings, RenderDitherSettings,
+        RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderMotionBlurSettings,
         RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
-        RenderTonemapOperator, RenderTonemapSettings, RenderWorldSnapshotHandle,
+        RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
+        RenderWorldSnapshotHandle,
     };
     use crate::core::math::{Transform, UVec2, Vec3};
     use crate::scene::World;
@@ -313,14 +319,33 @@ mod tests {
                 bokeh_blade_count: 7,
                 bokeh_rotation_radians: 0.35,
             },
+            motion_blur: RenderMotionBlurSettings {
+                shutter_angle: 0.5,
+                samples: 12,
+            },
             screen_space_reflection: RenderScreenSpaceReflectionSettings {
                 intensity: 0.5,
                 max_steps: 24,
+                temporal_blend_factor: 0.27,
+                roughness_mip_bias: 0.35,
                 ..Default::default()
+            },
+            vignette: RenderVignetteSettings {
+                intensity: 0.35,
+                smoothness: 0.65,
+                roundness: 0.8,
+            },
+            grain: RenderFilmGrainSettings {
+                intensity: 0.07,
+                response: 0.9,
             },
             dither: RenderDitherSettings {
                 intensity: 0.1,
                 scale: 2.0,
+            },
+            chromatic_aberration: RenderChromaticAberrationSettings {
+                intensity: 0.12,
+                sample_spread: 1.75,
             },
             fog: RenderFogSettings {
                 density: 0.2,
@@ -355,11 +380,27 @@ mod tests {
         assert_near(params.effect_dof_lens[1], 2.5);
         assert_near(params.effect_dof_lens[2], 7.0);
         assert_near(params.effect_dof_lens[3], 0.35);
+        assert_near(params.effect_motion_blur[0], 0.5);
+        assert_near(params.effect_motion_blur[1], 12.0);
+        assert_near(params.effect_vignette_grain[0], 0.35);
+        assert_near(params.effect_vignette_grain[1], 0.65);
+        assert_near(params.effect_vignette_grain[2], 0.8);
+        assert_near(params.effect_vignette_grain[3], 0.07);
+        assert_near(params.effect_chromatic_fog[0], 0.12);
+        assert_near(params.effect_chromatic_fog[1], 1.75);
         assert_near(params.effect_chromatic_fog[2], 0.2);
+        assert_near(params.effect_chromatic_fog[3], 0.4);
+        assert_near(params.effect_fog_color[0], 0.3);
+        assert_near(params.effect_fog_color[1], 0.4);
         assert_near(params.effect_fog_color[2], 0.5);
+        assert_near(params.effect_fog_color[3], 0.9);
         assert_near(params.effect_dither_ssr[0], 0.1);
+        assert_near(params.effect_dither_ssr[1], 2.0);
         assert_near(params.effect_dither_ssr[2], 0.5);
+        assert_near(params.effect_dither_ssr[3], 0.1);
         assert_near(params.effect_ssr_limits[1], 24.0);
+        assert_near(params.effect_ssr_limits[2], 0.27);
+        assert_near(params.effect_ssr_limits[3], 0.35);
         assert_near(params.effect_depth[0], 0.25);
         assert_near(params.effect_depth[1], 128.0);
         assert_near(params.effect_depth[2], 1.0 / 127.75);

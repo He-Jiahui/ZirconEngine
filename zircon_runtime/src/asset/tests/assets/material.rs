@@ -164,6 +164,184 @@ custom_gain = 2.0
 }
 
 #[test]
+fn material_owned_receive_shadows_defaults_on_and_can_opt_out_without_shader_override() {
+    let default_material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Default Receiver"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+"#,
+    )
+    .unwrap();
+    let mut no_receive_material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "No Receiver"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+receive_shadows = false
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    assert!(default_material.receive_shadows());
+    assert!(
+        default_material
+            .standard_material_descriptor()
+            .receive_shadows
+    );
+    assert!(no_receive_material
+        .shader_property_override("receive_shadows")
+        .is_none());
+    assert!(no_receive_material
+        .shader_property_overrides()
+        .all(|(name, _)| name != "receive_shadows"));
+    assert!(!no_receive_material.receive_shadows());
+    assert!(
+        !no_receive_material
+            .standard_material_descriptor()
+            .receive_shadows
+    );
+    assert_eq!(
+        no_receive_material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+
+    let encoded = no_receive_material.to_toml_string().unwrap();
+    assert!(encoded.contains("receive_shadows = false"));
+    no_receive_material
+        .property_values
+        .insert("receive_shadows".to_string(), toml::Value::Boolean(true));
+    let encoded = no_receive_material.to_toml_string().unwrap();
+    assert!(!encoded.contains("receive_shadows"));
+}
+
+#[test]
+fn material_owned_cast_shadows_defaults_on_and_can_opt_out_without_shader_override() {
+    let default_material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Default Caster"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+"#,
+    )
+    .unwrap();
+    let mut no_cast_material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "No Caster"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+cast_shadows = false
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    assert!(default_material.cast_shadows());
+    assert!(default_material.standard_material_descriptor().cast_shadows);
+    assert!(no_cast_material
+        .shader_property_override("cast_shadows")
+        .is_none());
+    assert!(no_cast_material
+        .shader_property_overrides()
+        .all(|(name, _)| name != "cast_shadows"));
+    assert!(!no_cast_material.cast_shadows());
+    assert!(!no_cast_material.standard_material_descriptor().cast_shadows);
+    assert_eq!(
+        no_cast_material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+
+    let encoded = no_cast_material.to_toml_string().unwrap();
+    assert!(encoded.contains("cast_shadows = false"));
+    no_cast_material
+        .property_values
+        .insert("cast_shadows".to_string(), toml::Value::Boolean(true));
+    let encoded = no_cast_material.to_toml_string().unwrap();
+    assert!(!encoded.contains("cast_shadows"));
+}
+
+#[test]
+fn material_owned_receive_shadows_reports_non_bool_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Invalid Receiver"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+receive_shadows = "no"
+"#,
+    )
+    .unwrap();
+
+    assert!(material.receive_shadows());
+    assert!(material.validation_errors().iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.receive_shadows"
+            && name == "receive_shadows"
+            && expected == "bool"
+    )));
+}
+
+#[test]
+fn material_owned_cast_shadows_reports_non_bool_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Invalid Caster"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+cast_shadows = "no"
+"#,
+    )
+    .unwrap();
+
+    assert!(material.cast_shadows());
+    assert!(material.validation_errors().iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.cast_shadows"
+            && name == "cast_shadows"
+            && expected == "bool"
+    )));
+}
+
+#[test]
 fn material_asset_reports_invalid_lighting_model_as_material_validation_error() {
     let material = MaterialAsset::from_toml_str(
         r#"

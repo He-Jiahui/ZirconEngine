@@ -9,9 +9,9 @@ node = "host"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
-  "res://ui/editor/components/workbench_rail_button.zui#WorkbenchRailButton",
-  "res://ui/editor/components/workbench_status_item.zui#WorkbenchStatusItem",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
 ]
 styles = ["res://ui/theme/editor_workbench_strict.v2.ui.toml"]
 
@@ -20,7 +20,7 @@ component = "UiHostWindow"
 control_id = "UiHostWindowRoot"
 classes = ["editor-workbench", "workbench-shell-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }]
+events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "workbench.dock.activate_main_page" }]
 children = [
   { node = "scaffold" },
   { node = "left_drawer_shell" },
@@ -53,7 +53,7 @@ control_id = "OpenProject"
 classes = ["workbench-toolbar-button"]
 props = { icon = "editor_pages/workbench/menu/open-project.svg", label = "Open", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.workbench.project.open" }]
+events = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "workbench.project.open" }]
 
 [nodes.save_project]
 component = "WorkbenchIconButton"
@@ -61,7 +61,7 @@ control_id = "SaveProject"
 classes = ["workbench-toolbar-button"]
 props = { icon = "editor_pages/workbench/menu/save-all.svg", label = "Save", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.workbench.project.save" }]
+events = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "workbench.project.save" }]
 
 [nodes.reset_layout]
 component = "WorkbenchIconButton"
@@ -69,7 +69,7 @@ control_id = "ResetLayout"
 classes = ["workbench-toolbar-button"]
 props = { icon = "editor_pages/workbench/dock/reset-layout.svg", label = "Reset Layout", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "MenuAction.workbench.layout.reset" }]
+events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "workbench.layout.reset" }]
 
 [nodes.host_page_strip]
 component = "Container"
@@ -101,21 +101,21 @@ component = "WorkbenchRailButton"
 control_id = "AssetsToggle"
 props = { icon = "editor_pages/asset_browser/navigation/folder.svg", label = "Assets", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "ActivityRail/AssetsToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+events = [{ id = "ActivityRail/AssetsToggle", event = "Click", route = "workbench.dock.activate_drawer_tab" }]
 
 [nodes.hierarchy_toggle]
 component = "WorkbenchRailButton"
 control_id = "HierarchyToggle"
 props = { icon = "editor_pages/hierarchy/entity/scene.svg", label = "Hierarchy", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "ActivityRail/HierarchyToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+events = [{ id = "ActivityRail/HierarchyToggle", event = "Click", route = "workbench.dock.activate_drawer_tab" }]
 
 [nodes.console_toggle]
 component = "WorkbenchRailButton"
 control_id = "ConsoleToggle"
 props = { icon = "editor_pages/console_profiler/logs/log-info.svg", label = "Console", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "ActivityRail/ConsoleToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+events = [{ id = "ActivityRail/ConsoleToggle", event = "Click", route = "workbench.dock.activate_drawer_tab" }]
 
 [nodes.document_host]
 component = "DocumentHost"
@@ -128,8 +128,8 @@ component = "DocumentTabs"
 control_id = "DocumentTabsRoot"
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "DocumentTabs/ActivateTab", event = "Change", route = "DockCommand.FocusView" },
-  { id = "DocumentTabs/CloseTab", event = "Submit", route = "DockCommand.CloseView" },
+  { id = "DocumentTabs/ActivateTab", event = "Change", route = "workbench.dock.focus_view" },
+  { id = "DocumentTabs/CloseTab", event = "Submit", route = "workbench.dock.close_view" },
 ]
 
 [nodes.pane_surface]

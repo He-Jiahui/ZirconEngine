@@ -1,5 +1,6 @@
 mod dependency;
 mod feature;
+mod field;
 mod module;
 
 pub(super) use self::dependency::parse_optional_feature_dependency_line;

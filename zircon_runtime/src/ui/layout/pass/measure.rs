@@ -1,4 +1,4 @@
-use crate::ui::{surface::measure_text, tree::UiRuntimeTreeAccessExt};
+use crate::ui::surface::measure_text;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
@@ -99,9 +99,20 @@ fn measure_content_size(
     }
 
     let content_size = match container {
-        UiContainerKind::Free | UiContainerKind::Container | UiContainerKind::Overlay => {
+        UiContainerKind::Free
+        | UiContainerKind::Canvas
+        | UiContainerKind::Container
+        | UiContainerKind::Overlay => {
             measure_stacked_content_size(tree, node_id, container, child_desired)
         }
+        UiContainerKind::BlockBox => measure_linear_content_size(
+            tree,
+            node_id,
+            container,
+            UiAxis::Vertical,
+            0.0,
+            child_desired,
+        ),
         UiContainerKind::Space => UiSize::default(),
         UiContainerKind::SizeBox(config) => measure_size_box_content_size(
             measure_stacked_content_size(tree, node_id, container, child_desired),

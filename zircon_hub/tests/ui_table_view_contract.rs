@@ -1,236 +1,384 @@
-//! Static contracts for Hub table-view primitives.
+//! Static contracts for shared React/MUI Hub table, list, and tree-view primitives.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
+fn crate_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-#[test]
-fn table_header_and_body_text_use_shared_material_primitives() {
-    let table_view = read_ui_file("table_view_components.slint");
-    let table_header = table_view
-        .split("export component TableColumnHeader")
-        .nth(1)
-        .and_then(|source| source.split("export component TableCellText").next())
-        .expect("table_view_components.slint must declare TableColumnHeader before TableCellText");
-    let table_cell = table_view
-        .split("export component TableCellText")
-        .nth(1)
-        .and_then(|source| source.split("component ProjectTableNameCell").next())
-        .expect(
-            "table_view_components.slint must declare TableCellText before ProjectTableNameCell",
-        );
-    let table_name_cell = table_view
-        .split("component ProjectTableNameCell")
-        .nth(1)
-        .and_then(|source| source.split("export component ProjectTableRow").next())
-        .expect(
-            "table_view_components.slint must declare ProjectTableNameCell before ProjectTableRow",
-        );
-    let table_row = table_view
-        .split("export component ProjectTableRow")
-        .nth(1)
-        .and_then(|source| source.split("export component DataTable").next())
-        .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
-    let data_table = table_view
-        .split("export component DataTable")
-        .nth(1)
-        .and_then(|source| source.split("export component HubTableView").next())
-        .expect("table_view_components.slint must declare DataTable before HubTableView");
+fn read_repo_file(path: &str) -> String {
+    normalize_newlines(
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+    )
+}
 
-    for snippet in [
-        "MaterialText,",
-        "style: MaterialTypography.label_medium;",
-        "horizontal_alignment: left;",
-        "style: MaterialTypography.label_large;",
-        "style: MaterialTypography.body_small;",
-        "vertical_alignment: center;",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            table_view.contains(snippet),
-            "Table view typography should delegate metrics to MaterialText-backed primitives; missing {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain table/list/tree snippet {snippet:?}"
         );
     }
+}
 
-    for (name, source) in [
-        ("TableColumnHeader", table_header),
-        ("TableCellText", table_cell),
-        ("ProjectTableNameCell", table_name_cell),
-        ("ProjectTableRow", table_row),
-    ] {
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            !source.lines().any(|line| line.trim() == "Text {"),
-            "{name} should not return to raw Text nodes for table typography"
-        );
-        for forbidden in ["font-size:", "font-weight:", "font_size:", "font_weight:"] {
-            assert!(
-                !source.contains(forbidden),
-                "{name} should not return to raw Text font bindings: {forbidden}"
-            );
-        }
-    }
-
-    for snippet in [
-        "if root.row-count == 0: EmptyStateBlock",
-        "title: root.empty-text;",
-        "center-content: true;",
-    ] {
-        assert!(
-            data_table.contains(snippet),
-            "DataTable empty state should reuse EmptyStateBlock instead of page-local muted text: {snippet}"
-        );
-    }
-
-    assert!(
-        table_view.contains("export component ProjectTableRow inherits HubInteractiveRowSurface"),
-        "ProjectTableRow should inherit the shared interactive row surface"
-    );
-    assert!(
-        table_view.contains("component ProjectTableNameCell inherits Rectangle"),
-        "ProjectTableNameCell should stay a private focused helper for the table row name lane"
-    );
-    for snippet in [
-        "in property <RecentProjectRowData> project;",
-        "in property <color> title-foreground: MaterialPalette.on_surface;",
-        "private property <color> thumbnail-outline: root.show-thumbnail-accent ? HubVisualSpec.accent-stroke : MaterialPalette.on_surface.with_alpha(0.08);",
-        "border-color: root.thumbnail-outline;",
-        "source: root.project.cover-image;",
-        "source: @image-url(\"../assets/brand/zircon-mark.svg\");",
-        "MaterialText {",
-        "text: root.project.title;",
-        "color: root.title-foreground;",
-        "style: MaterialTypography.label_large;",
-        "vertical_alignment: center;",
-    ] {
-        assert!(
-            table_name_cell.contains(snippet),
-            "ProjectTableNameCell must own the table title/thumbnail lane: {snippet}"
-        );
-    }
-    for snippet in [
-        "ProjectTableNameCell {",
-        "project: root.project;",
-        "row-height: root.row-height;",
-        "content-gap: root.content-gap;",
-        "thumbnail-size: root.thumbnail-size;",
-        "thumbnail-radius: root.thumbnail-radius;",
-        "name-min-width: root.name-min-width;",
-        "show-thumbnail-accent: root.show-thumbnail-accent;",
-        "title-foreground: root.selection-visible ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;",
-    ] {
-        assert!(
-            table_row.contains(snippet),
-            "ProjectTableRow must delegate custom title/thumbnail content to ProjectTableNameCell: {snippet}"
-        );
-    }
-    for snippet in [
-        "export component TableCellText inherits Rectangle",
-        "in property <string> text;",
-        "in property <color> foreground: MaterialPalette.on_surface_variant;",
-        "style: MaterialTypography.body_small;",
-        "horizontal_alignment: left;",
-        "vertical_alignment: center;",
-    ] {
-        assert!(
-            table_cell.contains(snippet) || table_view.contains(snippet),
-            "TableCellText must own shared body table-cell typography: {snippet}"
-        );
-    }
-    for snippet in [
-        "TableCellText {",
-        "text: root.project.version;",
-        "text: root.visible-modified;",
-        "text: root.project.project-path;",
-        "row-height: root.row-height;",
-    ] {
-        assert!(
-            table_row.contains(snippet),
-            "ProjectTableRow must delegate ordinary body columns to TableCellText: {snippet}"
-        );
-    }
-    assert_eq!(
-        table_row.matches("TableCellText {").count(),
-        3,
-        "ProjectTableRow should use TableCellText for version, modified, and location columns"
-    );
-
-    for snippet in [
-        "row-radius: HubVisualSpec.compact-radius;",
-        "interaction-foreground: root.content-foreground;",
-        "clicked =>",
-        "root.select(root.project.open-path);",
-        "visible-modified: root.project.modified == \"1d ago\" ? \"Yesterday\" : root.project.modified;",
-        "text: root.visible-modified;",
-    ] {
-        assert!(
-            table_row.contains(snippet),
-            "ProjectTableRow should normalize reference fixture labels at the presentation edge: {snippet}"
-        );
-    }
-    for forbidden in [
-        "text: root.project.version;\n            overflow: elide;",
-        "text: root.visible-modified;\n            overflow: elide;",
-        "text: root.project.project-path;\n            overflow: elide;",
-        "style: MaterialTypography.body_small;",
-        "MaterialText {",
-        "text: root.project.title;",
-        "source: root.project.cover-image;",
-        "thumbnail-outline:",
-    ] {
-        assert!(
-            !table_row.contains(forbidden),
-            "ProjectTableRow should not own table body-cell or name-lane rendering after adopting focused cells: {forbidden}"
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete table/list/tree snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn data_table_rows_use_shared_trailing_action_slot() {
-    let table_view = read_ui_file("table_view_components.slint");
-    let table_row = table_view
-        .split("export component ProjectTableRow")
-        .nth(1)
-        .and_then(|source| source.split("export component DataTable").next())
-        .expect("table_view_components.slint must declare ProjectTableRow before DataTable");
+fn data_barrel_exports_table_list_and_tree_component_family() {
+    let data_index = read_crate_file("web/src/components/data/index.ts");
 
-    for snippet in [
-        "import { HubRowTrailingSlot } from \"row_slot_components.slint\";",
-        "HubRowTrailingSlot {",
-        "slot-width: root.action-size;",
-        "show-badge: false;",
-        "show-action: true;",
-        "action-framed: false;",
-        "action-size: root.action-size;",
-        "action-icon-image: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
-        "clicked => {\n                root.open(root.project.open-path);",
+    assert_contains_all(
+        "components/data/index.ts",
+        &data_index,
+        &[
+            "export * from \"./HubList\";",
+            "export * from \"./HubTreeView\";",
+            "export * from \"./ProjectCover\";",
+            "export * from \"./ProjectTable\";",
+        ],
+    );
+}
+
+#[test]
+fn project_table_owns_material_column_model_selection_and_detail_action() {
+    let table = read_crate_file("web/src/components/data/ProjectTable.tsx");
+    let hub_types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "ProjectTable.tsx",
+        &table,
+        &[
+            "import { IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from \"@mui/material\";",
+            "import type { HubRecentProject } from \"../../types/hub\";",
+            "import { ProjectCover } from \"./ProjectCover\";",
+            "export interface ProjectTableProps",
+            "projects: HubRecentProject[];",
+            "selectedProjectId?: string | null;",
+            "labels: {",
+            "onSelect?: (project: HubRecentProject) => void;",
+            "onOpenDetail?: (project: HubRecentProject) => void;",
+            "<Table size=\"small\" sx={{ tableLayout: \"fixed\" }}>",
+            "<TableHead>",
+            "<HeaderCell width=\"32%\">{labels.name}</HeaderCell>",
+            "<HeaderCell width=\"18%\">{labels.engineVersion}</HeaderCell>",
+            "<HeaderCell width=\"16%\">{labels.lastModified}</HeaderCell>",
+            "<HeaderCell>{labels.location}</HeaderCell>",
+            "const selected = project.id === selectedProjectId;",
+            "onClick={() => onSelect?.(project)}",
+            "cursor: onSelect ? \"pointer\" : \"default\"",
+            "\"&.Mui-selected, &.Mui-selected:hover\"",
+            "<ProjectCover coverId={project.coverId} size=\"thumb\" />",
+            "<BodyCell>{project.engineVersion}</BodyCell>",
+            "<BodyCell>{project.modified}</BodyCell>",
+            "<BodyCell>{project.location}</BodyCell>",
+            "aria-label={`${labels.openDetails}: ${project.name}`}",
+            "event.stopPropagation();",
+            "onOpenDetail?.(project);",
+            "function HeaderCell",
+            "function BodyCell",
+            "Typography variant=\"body2\" noWrap",
+        ],
+    );
+    assert_contains_all(
+        "hub.ts",
+        &hub_types,
+        &[
+            "export interface HubRecentProject",
+            "engineVersion: string;",
+            "modified: string;",
+            "location: string;",
+            "coverId: string;",
+            "recentProjects: HubRecentProject[];",
+            "browserProjects: HubRecentProject[];",
+        ],
+    );
+    assert_not_contains_any(
+        "ProjectTable.tsx",
+        &table,
+        &["<Card", "<List", "DataGrid", "readUiFile", "HubTableView"],
+    );
+}
+
+#[test]
+fn hub_list_owns_dense_material_row_model_and_optional_slots() {
+    let list = read_crate_file("web/src/components/data/HubList.tsx");
+
+    assert_contains_all(
+        "HubList.tsx",
+        &list,
+        &[
+            "import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from \"@mui/material\";",
+            "export interface HubListItem",
+            "id: string;",
+            "title: string;",
+            "detail?: string;",
+            "secondaryDetail?: string;",
+            "meta?: string;",
+            "icon?: ReactNode;",
+            "selected?: boolean;",
+            "disabled?: boolean;",
+            "export interface HubListProps",
+            "items: HubListItem[];",
+            "onSelect?: (item: HubListItem) => void;",
+            "const hasSelectHandler = Boolean(onSelect);",
+            "const itemDisabled = item.disabled || !hasSelectHandler;",
+            "<List dense sx={{ display: \"grid\", gap: 0.7, p: 0 }}>",
+            "selected={item.selected}",
+            "disabled={itemDisabled}",
+            "onClick={() => onSelect?.(item)}",
+            "cursor: hasSelectHandler && !item.disabled ? \"pointer\" : \"default\"",
+            "minHeight: item.secondaryDetail ? 64 : 48",
+            "borderRadius: `${hubTokens.radius.compact}px`",
+            "item.selected ? \"rgba(45,212,207,0.34)\" : hubTokens.colors.lineStrong",
+            "{item.icon ? <ListItemIcon",
+            "<ListItemText",
+            "primary={<Typography variant=\"body2\" noWrap>{item.title}</Typography>}",
+            "item.detail || item.secondaryDetail ? (",
+            "{item.secondaryDetail ? (",
+            "{item.meta ? (",
+        ],
+    );
+    assert_not_contains_any("HubList.tsx", &list, &["<Table", "<Card", "DataGrid"]);
+}
+
+#[test]
+fn hub_tree_view_owns_recursive_disclosure_and_collapse_model() {
+    let tree = read_crate_file("web/src/components/data/HubTreeView.tsx");
+
+    assert_contains_all(
+        "HubTreeView.tsx",
+        &tree,
+        &[
+            "import { useState } from \"react\";",
+            "import ChevronRightIcon from \"@mui/icons-material/ChevronRight\";",
+            "import ExpandMoreIcon from \"@mui/icons-material/ExpandMore\";",
+            "import { Box, Collapse, List, ListItemButton, Typography } from \"@mui/material\";",
+            "export interface HubTreeNode",
+            "label: string;",
+            "detail?: string;",
+            "children?: HubTreeNode[];",
+            "export interface HubTreeViewProps",
+            "nodes: HubTreeNode[];",
+            "defaultExpanded?: string[];",
+            "onSelect?: (node: HubTreeNode) => void;",
+            "const hasSelectHandler = Boolean(onSelect);",
+            "const [expanded, setExpanded] = useState(() => new Set(defaultExpanded));",
+            "const hasChildren = (node.children?.length ?? 0) > 0;",
+            "if (!hasSelectHandler && !hasChildren) {",
+            "onSelect?.(node);",
+            "const next = new Set(current);",
+            "<TreeNode key={node.id} node={node} depth={0} expanded={expanded} hasSelectHandler={hasSelectHandler} onToggle={toggle} />",
+            "function TreeNode",
+            "const childCount = node.children?.length ?? 0;",
+            "const open = expanded.has(node.id);",
+            "const rowIsActionable = childCount > 0 || hasSelectHandler;",
+            "const Icon = childCount > 0 && open ? ExpandMoreIcon : ChevronRightIcon;",
+            "disabled={!rowIsActionable}",
+            "pl: 0.8 + depth * 2",
+            "cursor: rowIsActionable ? \"pointer\" : \"default\"",
+            "<Collapse in={open} timeout={140} unmountOnExit>",
+            "<TreeNode key={child.id} node={child} depth={depth + 1} expanded={expanded} hasSelectHandler={hasSelectHandler} onToggle={onToggle} />",
+        ],
+    );
+    assert_not_contains_any("HubTreeView.tsx", &tree, &["<Table", "<Card", "TreeItem"]);
+}
+
+#[test]
+fn routed_pages_consume_shared_table_list_and_tree_views() {
+    for (page, snippets) in [
+        (
+            "ProjectsDashboard.tsx",
+            vec![
+                "ProjectTable",
+                "projects={visibleRows}",
+                "projects={state.recentProjects}",
+                "onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}",
+            ],
+        ),
+        (
+            "ProjectBrowserPage.tsx",
+            vec![
+                "ProjectTable",
+                "projects={visibleRows}",
+                "onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}",
+                "onOpenDetail={openDetail}",
+            ],
+        ),
+        (
+            "ProjectDetailPage.tsx",
+            vec![
+                "HubList items={detailRows}",
+                "HubTreeView nodes={projectTree} defaultExpanded={[\"project-root\"]}",
+            ],
+        ),
+        (
+            "EditorPage.tsx",
+            vec![
+                "HubList",
+                "items={editorPlugins.map((plugin) => ({",
+                "HubTreeView nodes={editorTree} defaultExpanded={[\"editor-workspace\", \"source-engines\", \"editor-plugins\"]}",
+            ],
+        ),
+        (
+            "BuildsPage.tsx",
+            vec![
+                "items={workflowRows}",
+                "void onAction(actionId, undefined, workflowProjectTarget);",
+                "items={buildHistory.map(historyRow)}",
+                "HubTreeView nodes={buildTree} defaultExpanded={[\"builds\", \"history\"]}",
+            ],
+        ),
+        (
+            "CatalogPage.tsx",
+            vec![
+                "HubList",
+                "items={visibleRows.map((row) => ({",
+                "HubTreeView nodes={treeNodes} defaultExpanded={[`${mode}-catalog`]}",
+            ],
+        ),
+        (
+            "CloudPage.tsx",
+            vec![
+                "HubList",
+                "items={packageActions.map((action) => ({",
+                "HubTreeView nodes={outputTree} defaultExpanded={[\"cloud\", \"services\"]}",
+            ],
+        ),
+        (
+            "TeamPage.tsx",
+            vec![
+                "HubList items={memberRows}",
+                "HubList items={actionRows}",
+                "HubTreeView nodes={teamTree} defaultExpanded={[\"repository\", \"identity\", \"contributors\"]}",
+            ],
+        ),
+        (
+            "SettingsPage.tsx",
+            vec![
+                "HubList items={healthRows}",
+                "HubTreeView nodes={pathTree} defaultExpanded={[\"settings-root\"]}",
+                "() => draftSettings.health.rows.map((row) => ({ ...row, disabled: false }))",
+            ],
+        ),
+        (
+            "WorkspacePage.tsx",
+            vec![
+                "HubList items={settingsRows}",
+                "HubTreeView nodes={sourceTree} defaultExpanded={[\"workspace\", \"source-engines\", \"paths\"]}",
+            ],
+        ),
     ] {
-        assert!(
-            table_view.contains(snippet) || table_row.contains(snippet),
-            "ProjectTableRow must express its trailing action with the shared row slot: {snippet}"
+        let source = read_crate_file(&format!("web/src/pages/{page}"));
+        assert_contains_all(page, &source, &snippets);
+        assert_not_contains_any(
+            page,
+            &source,
+            &[
+                " Table,",
+                " TableBody",
+                " TableCell",
+                " TableHead",
+                " TableRow",
+                " List,",
+                " ListItemButton",
+                " TreeItem",
+                " DataGrid",
+            ],
         );
     }
+}
 
-    for forbidden in [
-        "row-state := StateLayerArea {",
-        "source: @image-url(\"../assets/icons/ui/more-vertical.svg\");",
-        "StateLayerArea {\n                width: parent.width;",
-    ] {
-        assert!(
-            !table_row.contains(forbidden),
-            "ProjectTableRow should not recreate a local trailing action implementation after adopting HubRowTrailingSlot: {forbidden}"
-        );
-    }
+#[test]
+fn table_view_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_table_view_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_table_view_contract",
+            "## Table View Contract Cutover",
+            "React/MUI table/list/tree view system",
+            "web/src/components/data/ProjectTable.tsx",
+            "web/src/components/data/HubList.tsx",
+            "web/src/components/data/HubTreeView.tsx",
+            "web/src/pages",
+            "ProjectTable column model, HubList row model, and HubTreeView recursive tree model",
+        ],
+    );
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_table_view_contract.rs`",
+            "React/MUI table/list/tree view system",
+            "ProjectTable column model, HubList row model, and HubTreeView recursive tree model",
+            "routed pages consume shared table/list/tree components",
+        ],
+    );
+}
+
+#[test]
+fn table_view_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_table_view_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_table_view_contract.rs",
+        &contract,
+        &[
+            "web/src/components/data/ProjectTable.tsx",
+            "web/src/components/data/HubList.tsx",
+            "web/src/components/data/HubTreeView.tsx",
+            "web/src/pages/ProjectsDashboard.tsx",
+            "web/src/pages/ProjectBrowserPage.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/pages/WorkspacePage.tsx",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_table_view_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
+    );
 }

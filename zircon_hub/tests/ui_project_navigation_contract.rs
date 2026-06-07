@@ -1,363 +1,322 @@
-//! Static contracts for Projects subpage navigation and action routing.
+//! Static contracts for React + Material UI Projects subpage navigation.
 
 use std::{fs, path::PathBuf};
 
-fn ui_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui")
-}
-
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn repo_dir() -> PathBuf {
+    crate_dir()
+        .parent()
+        .expect("zircon_hub crate should live under the repository root")
+        .to_path_buf()
 }
 
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
-fn read_ui_file(name: &str) -> String {
+fn read_crate_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(ui_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub UI file {name}: {error}");
-        }),
+        fs::read_to_string(crate_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
     )
 }
 
-fn read_crate_file(name: &str) -> String {
+fn read_repo_file(path: &str) -> String {
     normalize_newlines(
-        fs::read_to_string(crate_dir().join(name)).unwrap_or_else(|error| {
-            panic!("failed to read Hub crate file {name}: {error}");
-        }),
+        fs::read_to_string(repo_dir().join(path))
+            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
     )
 }
-#[test]
-fn open_project_detail_runtime_selects_project_before_detail_subpage() {
-    let project_workspace = read_crate_file("src/app/runtime/project_workspace.rs");
-    let open_detail = project_workspace
-        .split("pub(super) fn open_project_detail")
-        .nth(1)
-        .expect("project_workspace.rs should define open_project_detail");
 
-    for snippet in [
-        "self.select_project_path(project_path)?;",
-        "self.project_subpage = ProjectSubpage::ProjectDetail;",
-        "self.project_view_mode = ProjectViewMode::List;",
-        "self.pending_delete_project_path = None;",
-    ] {
+fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
         assert!(
-            open_detail.contains(snippet),
-            "open_project_detail must select the project and enter the detail subpage; missing {snippet}"
+            source.contains(snippet),
+            "{source_name} should contain project-navigation contract snippet {snippet:?}"
+        );
+    }
+}
+
+fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    for snippet in snippets {
+        assert!(
+            !source.contains(snippet),
+            "{source_name} should not contain obsolete project-navigation snippet {snippet:?}"
         );
     }
 }
 
 #[test]
-fn import_project_header_imports_existing_project_without_launching_editor() {
-    let app = read_ui_file("app.slint");
-    let runtime = read_crate_file("src/app/runtime.rs");
-    let folder_picker = read_crate_file("src/app/runtime/folder_picker.rs");
-    let project_workspace = read_crate_file("src/app/runtime/project_workspace.rs");
+fn dashboard_routes_project_subpages_and_primary_project_commands() {
+    let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
 
-    assert!(
-        app.contains("callback import-project();"),
-        "Hub page header Import Project must expose the dedicated runtime import callback"
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &dashboard,
+        &[
+            "state.projectSubpage === \"project-browser\"",
+            "state.projectSubpage === \"project-detail\"",
+            "<ProjectBrowserPage state={state} onAction={onAction} />",
+            "<ProjectDetailPage state={state} onAction={onAction} />",
+            "const handleOpenProject = (project: HubProjectSummary) => {",
+            "void onAction(HUB_ACTION.openProjectDetail, project.id)",
+            "onOpen={handleOpenProject}",
+            "onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}",
+            "onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}",
+            "onClick={() => void onAction(HUB_ACTION.viewAllProjects)}",
+            "onClick={() => void onAction(HUB_ACTION.newProject)}",
+            "HubDialog",
+            "open={state.projectSubpage === \"new-project\"}",
+            "onClose={() => void onAction(HUB_ACTION.viewAllProjects)}",
+        ],
     );
-    assert!(
-        app.contains("import-project => {") && app.contains("root.import-project();"),
-        "Hub page header Import Project must call the dedicated runtime import callback instead of only routing to Project Browser"
-    );
-    for snippet in [
-        "ui.on_import_project",
-        "runtime.import_project(ui)",
-        "pub(super) fn import_project(&mut self, ui: &HubWindow) -> Result<(), HubError>",
-        "folder_picker_title(\"import-project\")",
-        "self.import_project_path(selection)",
-        "\"import-project\" => first_existing_dir",
-        "\"import-project\" => \"Select existing project\"",
-    ] {
-        assert!(
-            runtime.contains(snippet) || folder_picker.contains(snippet),
-            "Import Project must be a real picker-backed runtime action; missing {snippet}"
-        );
-    }
-
-    let import_project_path = project_workspace
-        .split("pub(super) fn import_project_path")
-        .nth(1)
-        .and_then(|source| source.split("pub(super) fn install_recent_project_to_device").next())
-        .expect("project_workspace.rs must declare import_project_path before install_recent_project_to_device");
-    for snippet in [
-        "validate_project_root(&project_path)",
-        "self.remember_project(RecentProject::with_now(",
-        "self.project_filter = ProjectFilterMode::All;",
-        "self.project_view_mode = ProjectViewMode::List;",
-        "self.project_subpage = ProjectSubpage::ProjectDetail;",
-        "self.pending_delete_project_path = None;",
-        "self.search_query.clear();",
-        "TaskStatus::success(\"Project imported\"",
-    ] {
-        assert!(
-            import_project_path.contains(snippet),
-            "Import Project must validate, remember, select, and open the imported project detail; missing {snippet}"
-        );
-    }
-    for forbidden in [
-        "ensure_editor_available",
-        "launch_editor",
-        "EditorLaunchCommand",
-        "ProjectSubpage::ProjectBrowser",
-    ] {
-        assert!(
-            !import_project_path.contains(forbidden),
-            "Import Project should not launch Editor or degrade into a plain browser route: {forbidden}"
-        );
-    }
 }
 
 #[test]
-fn project_browser_row_selects_and_detail_button_opens_detail() {
-    let components = read_ui_file("project_browser_components.slint");
-    let browser_row = components
-        .split("export component ProjectBrowserRow")
-        .nth(1)
-        .and_then(|source| source.split("export component ").next())
-        .expect("project_browser_components.slint must own ProjectBrowserRow");
-    assert!(
-        browser_row
-            .matches("root.select(root.project.open-path);")
-            .count()
-            >= 1,
-        "ProjectBrowserRow shared row interaction must still select the row project"
+fn browser_page_keeps_dashboard_new_project_filter_and_detail_navigation() {
+    let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
+
+    assert_contains_all(
+        "ProjectBrowserPage.tsx",
+        &browser,
+        &[
+            "state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects",
+            "const openDetail = (project: HubRecentProject) => {",
+            "void onAction(HUB_ACTION.openProjectDetail, project.id)",
+            "void onAction(HUB_ACTION.showProjectSubpage, \"dashboard\")",
+            "void onAction(HUB_ACTION.newProject)",
+            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
+            "void onAction(HUB_ACTION.setProjectFilter, value)",
+            "void onAction(HUB_ACTION.setProjectSort, value)",
+            "void onAction(HUB_ACTION.setProjectViewMode, value)",
+            "selectedProjectId={state.selectedProjectId}",
+            "onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}",
+            "onOpenDetail={openDetail}",
+            "HubPanel title={text.allProjects}",
+            "HubPanel title={text.quickActions}",
+            "HubPanel title={text.sourceEngines}",
+        ],
     );
-    assert_eq!(
-        browser_row
-            .matches("root.open-detail(root.project.open-path);")
-            .count(),
-        1,
-        "ProjectBrowserRow detail navigation should be limited to the trailing detail hit branch"
-    );
-    let detail_slot_index = browser_row
-        .find("detail-slot := HubRowTrailingSlot {")
-        .expect("ProjectBrowserRow must expose a trailing detail slot");
-    let row_click_index = browser_row
-        .find("clicked => {\n        root.select(root.project.open-path);\n    }")
-        .expect("ProjectBrowserRow must map inherited row clicks to project selection");
-    assert!(
-        row_click_index < detail_slot_index,
-        "ProjectBrowserRow shared row click handler must be declared before the trailing detail slot"
-    );
-    for snippet in [
-        "inherits HubInteractiveRowSurface",
-        "row-radius: HubVisualSpec.compact-radius;",
-        "interaction-foreground: root.content-foreground;",
-        "clicked =>",
-        "root.select(root.project.open-path);",
-    ] {
-        assert!(
-            browser_row.contains(snippet),
-            "ProjectBrowserRow must consume the shared interactive row surface for Browser row selection; missing {snippet}"
-        );
-    }
-    let content_index = browser_row
-        .find("Rectangle {\n            horizontal-stretch: 1;\n            min-width: 1px;\n            height: parent.height;\n            background: transparent;")
-        .expect("ProjectBrowserRow must keep an elastic content body before the trailing detail slot");
-    let content_body = &browser_row[content_index..detail_slot_index];
-    assert!(
-        content_body.contains("horizontal-stretch: 1;") && content_body.contains("min-width: 1px;"),
-        "ProjectBrowserRow content body should let layout reserve the trailing detail zone instead of subtracting row width by hand"
-    );
-    assert!(
-        !content_body.contains("row-state.mouse-x")
-            && !content_body.contains("root.open-detail(root.project.open-path);"),
-        "ProjectBrowserRow content body should not infer detail clicks from mouse coordinates"
-    );
-    assert!(
-        browser_row
-            .contains("detail-button-size: max(MaterialStyleMetrics.size_40, root.row-height * 2 / 5);")
-            && browser_row
-                .contains("in property <length> detail-column-width: HubTokens.control-md;"),
-        "ProjectBrowserRow detail control should be derived from Material icon-button and row-height tokens instead of fixed pixel coordinates"
-    );
-    let detail_body = &browser_row[detail_slot_index..];
-    assert!(
-        detail_body.contains("slot-width: root.detail-column-width;")
-            && detail_body.contains("row-height: root.row-height;")
-            && detail_body.contains("show-badge: false;")
-            && detail_body.contains("show-action: true;")
-            && detail_body.contains("action-framed: false;")
-            && detail_body.contains("action-size: root.detail-button-size;")
-            && detail_body.contains("action-icon-size: root.detail-button-size * 3 / 5;")
-            && detail_body.contains("action-foreground: root.project.selected ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant;")
-            && detail_body.contains("clicked => { root.open-detail(root.project.open-path); }"),
-        "ProjectBrowserRow trailing detail control should be described by the shared row trailing slot"
-    );
-    assert!(
-        !detail_body.contains("detail-button-shell := Rectangle")
-            && !detail_body.contains("detail-state := StateLayerArea")
-            && !detail_body.contains("Icon {"),
-        "ProjectBrowserRow should not recreate local detail-button internals after adopting HubRowTrailingSlot"
-    );
-    for forbidden in [
-        "row-state := StateLayerArea {",
-        "StateLayerArea {",
-        "thumb-area := TouchArea",
-        "body-area := TouchArea",
-        "area := TouchArea",
-    ] {
-        assert!(
-            !browser_row.contains(forbidden),
-            "ProjectBrowserRow must not return to local row/cell interaction handling after adopting HubInteractiveRowSurface: {forbidden}"
-        );
-    }
 }
 
 #[test]
-fn project_browser_entry_points_are_separate_from_dashboard_show_more() {
-    let projects_page = read_ui_file("projects.slint");
-    let dashboard = read_ui_file("project_dashboard.slint");
-    let dashboard_components = read_ui_file("project_dashboard_components.slint");
-    let button_components = read_ui_file("button_components.slint");
-    let icon_button_components = read_ui_file("icon_button_components.slint");
-    let project_card_flow_components = read_ui_file("project_card_flow_components.slint");
-    let dashboard_surface = format!(
-        "{dashboard}\n{dashboard_components}\n{button_components}\n{icon_button_components}\n{project_card_flow_components}"
-    );
-    let project_projection = read_crate_file("src/app/view_model/projects.rs");
+fn project_table_separates_row_selection_from_detail_icon_navigation() {
+    let table = read_crate_file("web/src/components/data/ProjectTable.tsx");
 
-    let show_more_block = project_card_flow_components
-        .split("HubDisclosureButton {")
-        .nth(1)
-        .expect("DashboardProjectCardsSection must keep the Show More disclosure button inside the project-card-flow component module");
-    assert!(
-        show_more_block.contains("toggled(expanded) => { root.expanded = expanded; }"),
-        "Dashboard Show More must only expand/collapse project cards"
+    assert_contains_all(
+        "ProjectTable.tsx",
+        &table,
+        &[
+            "onSelect?: (project: HubRecentProject) => void;",
+            "onOpenDetail?: (project: HubRecentProject) => void;",
+            "const selected = project.id === selectedProjectId;",
+            "selected={selected}",
+            "onClick={() => onSelect?.(project)}",
+            "cursor: onSelect ? \"pointer\" : \"default\"",
+            "aria-label={`${labels.openDetails}: ${project.name}`}",
+            "event.stopPropagation();",
+            "onOpenDetail?.(project);",
+        ],
     );
-    for forbidden in [
-        "project-browser",
-        "PillButton {",
-        "root.view-all-projects();",
-        "root.show-project-subpage",
-        "root.set-project-view-mode(\"list\")",
-    ] {
-        assert!(
-            !show_more_block.contains(forbidden),
-            "Dashboard Show More must not share View All/List navigation behavior: {forbidden}"
-        );
-    }
-
-    for snippet in [
-        "DashboardProjectCardsSection {",
-        "expanded <=> root.project-cards-expanded;",
-        "action-text: root.ui-text.view-all-projects;",
-        "clicked => { root.view-all(); }",
-        "text: root.action-text;",
-        "view-all => { root.view-all-projects(); }",
-        "root.project-view-mode = \"list\";",
-        "root.project-subpage = \"project-browser\";",
-        "root.view-all-projects();",
-        "HubViewToggleGroup {",
-        "selected-mode: root.project-view-mode;",
-        "icon-image: @image-url(\"../assets/icons/ui/list.svg\");",
-        "active: root.selected-mode == \"list\";",
-        "root.set-project-view-mode(\"list\");",
-        "root.show-project-subpage(\"project-browser\");",
-    ] {
-        assert!(
-            projects_page.contains(snippet) || dashboard_surface.contains(snippet),
-            "View All Projects and the dashboard list toggle must enter the Project Browser secondary page; missing {snippet}"
-        );
-    }
-
-    assert!(
-        projects_page.contains("list-title: root.dashboard-project-title;"),
-        "ProjectBrowserPage must reuse the shared Recent projection title instead of a hard-coded Project List heading"
+    assert_not_contains_any(
+        "ProjectTable.tsx",
+        &table,
+        &["event.clientX", "event.offsetX", "getBoundingClientRect"],
     );
-    for snippet in [
-        "localization::text(language, \"Recent Projects\", \"最近项目\")",
-        "pub(in crate::app) fn dashboard_project_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData>",
-        ".filtered_recent_projects()",
-        "fn project_browser_projects(snapshot: &HubSnapshot) -> Vec<RecentProject>",
-        ".filter(|project| project_is_pinned(project, snapshot))",
-        "if pinned.is_empty()",
-    ] {
-        assert!(
-            project_projection.contains(snippet),
-            "Dashboard must keep the complete recent-project list while Project Browser can prefer pinned projects; missing {snippet}"
-        );
-    }
 }
 
 #[test]
-fn new_project_location_state_is_separate_from_settings_default_location() {
-    let app = read_ui_file("app.slint");
-    let projects = read_ui_file("projects.slint");
-    let project_pages = read_ui_file("project_pages.slint");
-    let project_new_page = read_ui_file("project_new_page.slint");
-    let project_components = read_ui_file("project_page_components.slint");
-    let binding = read_crate_file("src/app/binding.rs");
-    let runtime = read_crate_file("src/app/runtime.rs");
-    let folder_picker = read_crate_file("src/app/runtime/folder_picker.rs");
-    let project_workspace = read_crate_file("src/app/runtime/project_workspace.rs");
-    let hub_config = read_crate_file("src/settings/hub_config.rs");
-    let snapshot = read_crate_file("src/state/hub_snapshot.rs");
+fn project_cards_route_corner_action_to_detail_instead_of_empty_menu() {
+    let card = read_crate_file("web/src/components/data/ProjectCard.tsx");
+    let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
 
-    for snippet in [
-        "in-out property <string> new-project-location;",
-        "new-project-location <=> root.new-project-location;",
-        "project-location <=> root.project-location;",
-    ] {
-        assert!(
-            app.contains(snippet),
-            "app.slint must keep New Project location separate from Settings default location; missing {snippet}"
-        );
-    }
+    assert_contains_all(
+        "ProjectCard.tsx",
+        &card,
+        &[
+            "onOpen?: (project: HubProjectSummary) => void;",
+            "openDetailsLabel: string;",
+            "CardActionArea",
+            "onClick={() => onOpen?.(project)}",
+            "selected ? \"rgba(45,212,207,0.44)\"",
+            "aria-label={`${openDetailsLabel}: ${project.name}`}",
+            "event.stopPropagation();",
+            "onOpen?.(project);",
+            "ProjectCover coverId={project.coverId}",
+            "project.engineVersion",
+            "project.platform",
+        ],
+    );
+    assert_not_contains_any(
+        "ProjectCard.tsx",
+        &card,
+        &["menuLabel", "Project menu", "MoreVertIcon"],
+    );
+    assert_contains_all(
+        "ProjectsDashboard.tsx",
+        &dashboard,
+        &["openDetailsLabel={text.openProjectDetailsLabel}"],
+    );
+    assert_not_contains_any(
+        "ProjectsDashboard.tsx",
+        &dashboard,
+        &["menuLabel={text.projectMenuLabel}"],
+    );
+}
 
-    for snippet in [
-        "in-out property <string> new-project-location;",
-        "project-location <=> root.new-project-location;",
-    ] {
-        assert!(
-            projects.contains(snippet),
-            "projects.slint must bind ProjectNewPage to the dedicated New Project location; missing {snippet}"
-        );
-    }
+#[test]
+fn detail_page_routes_back_to_browser_and_project_scoped_actions() {
+    let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
 
-    assert!(
-        project_pages.contains("export { ProjectNewPage } from \"project_new_page.slint\";")
-            && project_new_page.contains("browse-folder(kind) => { root.browse-folder(kind); }")
-            && project_components.contains("root.browse-folder(\"new-project-location\");"),
-        "ProjectNewPage browse must not mutate Settings' default project location"
+    assert_contains_all(
+        "ProjectDetailPage.tsx",
+        &detail,
+        &[
+            "const project = state.selectedProject ?? null;",
+            "const projectTarget = projectTargetPayload(project);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "void onAction(HUB_ACTION.viewAllProjects)",
+            "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+            "HubTabs",
+            "{ value: \"overview\", label: text.overview }",
+            "{ value: \"files\", label: text.files }",
+            "{ value: \"actions\", label: text.actions }",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "SourceEngineList engines={state.sourceEngines} emptyLabel={state.ui.shell.noSourceEngineRegistered} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)}",
+            "void onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
+            "void onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
+            "EmptyStateBlock title={text.noProjectSelected}",
+        ],
     );
-    assert!(
-        binding.contains("ui.set_new_project_location(")
-            && binding.contains("new_project_location"),
-        "binding.rs must drive the New Project location from HubSnapshot, not HubSettings"
+}
+
+#[test]
+fn tauri_runtime_preserves_project_navigation_state_transitions() {
+    let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let hub_api = read_crate_file("web/src/tauri/hubApi.ts");
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "runtime_state.rs",
+        &runtime_state,
+        &[
+            "HubAction::ShowProjectSubpage { target_id } =>",
+            "HubAction::SearchProjects { query } => self.search_projects(&query)",
+            "HubAction::SetProjectFilter { target_id } =>",
+            "self.set_project_filter_by_id(&target_id)?",
+            "HubAction::SetProjectSort { target_id } => self.set_project_sort_by_id(&target_id)?",
+            "HubAction::SetProjectViewMode { target_id } =>",
+            "HubAction::SelectProject { target_id } => self.select_project_target(&target_id)?",
+            "HubAction::OpenProjectDetail { target_id } => self.open_project_detail(&target_id)?",
+            "HubAction::ViewAllProjects => self.view_all_projects()",
+            "HubAction::NewProject =>",
+            "ProjectSubpage::NewProject.id()",
+            "self.select_project_target(target)?;",
+            "self.project_subpage = ProjectSubpage::ProjectDetail;",
+            "self.project_view_mode = ProjectViewMode::List;",
+            "self.pending_delete_project_path = None;",
+            "self.search_query.clear();",
+            "self.project_filter = ProjectFilterMode::All;",
+            "self.project_subpage = ProjectSubpage::ProjectBrowser;",
+        ],
     );
-    let runtime_persistence = read_crate_file("src/app/runtime/persistence.rs");
-    assert!(
-        runtime.contains("new_project_location: PathBuf")
-            && hub_config.contains("pub new_project_location: PathBuf,")
-            && hub_config.contains("new_project_location: default_project_dir(),")
-            && runtime_persistence
-                .contains("new_project_location: runtime_state.new_project_location,")
-            && runtime_persistence
-                .contains("new_project_location: config.settings.default_project_dir.clone(),")
-            && runtime_persistence.contains("new_project_location: self.new_project_location.clone(),")
-            && runtime.contains(
-                "self.new_project_location = PathBuf::from(ui.get_new_project_location().to_string());"
-            ),
-        "runtime and HubConfig must keep editable New Project location in Hub runtime state while retaining the default project directory fallback"
+    assert_contains_all(
+        "hubApi.ts",
+        &hub_api,
+        &[
+            "export async function dispatchHubAction<TActionId extends HubActionId>(",
+            "invoke<HubShellState>(\"hub_action\"",
+            "request: { actionId, targetId, payload }",
+        ],
     );
-    assert!(
-        snapshot.contains("pub new_project_location: PathBuf,"),
-        "HubSnapshot must expose the editable New Project location"
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "projectFilter: string;",
+            "projectSort: string;",
+            "projectViewMode: string;",
+            "projectSubpage: string;",
+            "searchQuery: string;",
+            "selectedProjectId?: string | null;",
+            "browserProjects: HubRecentProject[];",
+            "selectedProject?: HubProjectDetail | null;",
+        ],
     );
-    assert!(
-        folder_picker.contains("\"new-project-location\" => {")
-            && folder_picker.contains("ui.set_new_project_location(selected.clone().into());"),
-        "folder picker must update New Project location without changing Settings"
+}
+
+#[test]
+fn project_navigation_documentation_records_react_mui_contract_cutover() {
+    let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
+    let responsive_doc = read_repo_file("docs/zircon_hub/ui/responsive-component-system.md");
+
+    assert_contains_all(
+        "tauri-react-shell.md",
+        &shell_doc,
+        &[
+            "zircon_hub/tests/ui_project_navigation_contract.rs",
+            "cargo test --manifest-path zircon_hub/Cargo.toml --test ui_project_navigation_contract",
+            "## Project Navigation Contract Cutover",
+            "React/MUI Projects navigation",
+            "web/src/pages/ProjectsDashboard.tsx",
+            "web/src/pages/ProjectBrowserPage.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectTable.tsx",
+            "web/src/components/data/ProjectCard.tsx",
+            "web/src/tauri/hubApi.ts",
+            "src/tauri_app/runtime_state.rs",
+        ],
     );
-    assert!(
-        project_workspace.contains("self.new_project_location.clone(),"),
-        "create_project must use the dedicated New Project location"
+    assert_contains_all(
+        "responsive-component-system.md",
+        &responsive_doc,
+        &[
+            "`ui_project_navigation_contract.rs`",
+            "React/MUI Projects navigation",
+            "dashboard, browser, detail, and new-project subpage routing",
+            "shared project table row selection and detail icon navigation",
+            "project-card corner action opens Project Detail instead of an empty menu",
+            "Tauri project action dispatch",
+        ],
+    );
+}
+
+#[test]
+fn project_navigation_contract_is_cut_over_to_react_sources() {
+    let contract = read_crate_file("tests/ui_project_navigation_contract.rs");
+    let obsolete_ui_extension = format!("{}{}", ".s", "lint");
+    let obsolete_reader = format!("read_{}_file", "ui");
+    let obsolete_directory_helper = format!("fn {}_dir", "ui");
+    let old_app_path = ["src", "app"].join("/");
+    let old_material_text = format!("Material{}", "Text");
+    let old_taffy_name = format!("{}{}", "Taf", "fy");
+
+    assert_contains_all(
+        "ui_project_navigation_contract.rs",
+        &contract,
+        &[
+            "web/src/pages/ProjectsDashboard.tsx",
+            "web/src/pages/ProjectBrowserPage.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectTable.tsx",
+            "web/src/components/data/ProjectCard.tsx",
+            "web/src/tauri/hubApi.ts",
+            "src/tauri_app/runtime_state.rs",
+        ],
+    );
+    assert_not_contains_any(
+        "ui_project_navigation_contract.rs",
+        &contract,
+        &[
+            obsolete_ui_extension.as_str(),
+            obsolete_reader.as_str(),
+            obsolete_directory_helper.as_str(),
+            old_app_path.as_str(),
+            old_material_text.as_str(),
+            old_taffy_name.as_str(),
+        ],
     );
 }

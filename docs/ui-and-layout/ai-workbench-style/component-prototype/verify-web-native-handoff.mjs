@@ -1,71 +1,85 @@
 import { existsSync, readFileSync } from "node:fs";
-import { nativeModules, extensionModules } from "./modules.js";
+import { nativeModules, extensionModules, webModuleTabs } from "./src/modules/modules.js";
 import {
   coreReferenceSamples,
   extensionReferenceSamples,
   supplementalReferenceSamples
-} from "./reference-samples.js";
+} from "./src/foundation/reference-samples.js";
 
 const matrixUrl = new URL("./web-native-handoff-matrix.md", import.meta.url);
-const moduleComponentsUrl = new URL("./module-components.js", import.meta.url);
+const moduleComponentsUrl = new URL("./src/modules/shared/module-components.js", import.meta.url);
+const componentLabModuleUrl = new URL("./src/modules/component-lab/module.js", import.meta.url);
+const componentLabDataUrl = new URL("./src/modules/component-lab/data.js", import.meta.url);
+const moduleSharedComponentUrls = [
+  moduleComponentsUrl,
+  new URL("./src/modules/shared/actions.js", import.meta.url),
+  new URL("./src/modules/shared/bottom-output.js", import.meta.url),
+  new URL("./src/modules/shared/panels.js", import.meta.url),
+  new URL("./src/modules/shared/regions.js", import.meta.url),
+  new URL("./src/modules/shared/rows.js", import.meta.url),
+  new URL("./src/modules/shared/utils.js", import.meta.url),
+  new URL("./src/modules/shared/visuals.js", import.meta.url)
+];
+const actionPathsUrl = new URL("./src/foundation/action-paths.js", import.meta.url);
+const actionNamingContractUrl = new URL("./verify-action-naming-contract.mjs", import.meta.url);
 const moduleWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui",
   import.meta.url
 );
 const effectWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui",
   import.meta.url
 );
 const materialWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
   import.meta.url
 );
 const behaviorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui",
   import.meta.url
 );
 const assetsWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
   import.meta.url
 );
 const vfxWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
   import.meta.url
 );
 const additionalModuleWorkspacesUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_additional_module_workspaces.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui",
   import.meta.url
 );
 const abilityWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui",
   import.meta.url
 );
 const tagsWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui",
   import.meta.url
 );
 const perceptionWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui",
   import.meta.url
 );
 const renderWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui",
   import.meta.url
 );
 const hudWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
   import.meta.url
 );
 const extensionWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_module_workspaces.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui",
   import.meta.url
 );
 const generatedBottomPanelUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_generated_bottom_panel.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui",
   import.meta.url
 );
 const generatedBottomDrawerUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_generated_bottom_drawer.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui",
   import.meta.url
 );
 const generatedBottomBodyUrl = new URL(
@@ -73,167 +87,179 @@ const generatedBottomBodyUrl = new URL(
   import.meta.url
 );
 const extensionTerrainEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_terrain_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui",
   import.meta.url
 );
 const extensionFoliageEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_foliage_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui",
   import.meta.url
 );
 const extensionLevelStreamingWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_level_streaming_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui",
   import.meta.url
 );
 const extensionLevelVariantWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_level_variant_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui",
   import.meta.url
 );
 const extensionPrefabEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_prefab_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui",
   import.meta.url
 );
 const extensionScatterEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_scatter_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui",
   import.meta.url
 );
 const extensionVolumeEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_volume_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui",
   import.meta.url
 );
 const extensionWeatherEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_weather_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui",
   import.meta.url
 );
 const extensionSpawnRulesWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_spawn_rules_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui",
   import.meta.url
 );
 const extensionWorldStateWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_world_state_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui",
   import.meta.url
 );
 const extensionCollisionProxyWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_collision_proxy_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui",
+  import.meta.url
+);
+const extensionPhysicsCollisionWorkspaceUrl = new URL(
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui",
+  import.meta.url
+);
+const extensionNavmeshAiWorkspaceUrl = new URL(
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui",
   import.meta.url
 );
 const extensionLobbyEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_lobby_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui",
   import.meta.url
 );
 const extensionMatchmakingEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_matchmaking_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui",
   import.meta.url
 );
 const extensionShaderWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_shader_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui",
   import.meta.url
 );
 const extensionLightingBakeWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_lighting_bake_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui",
   import.meta.url
 );
 const extensionPostProcessWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_post_process_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui",
   import.meta.url
 );
 const extensionSequencerWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_sequencer_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui",
   import.meta.url
 );
 const extensionMontageEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_montage_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui",
   import.meta.url
 );
 const extensionBlendSpaceWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_blend_space_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui",
   import.meta.url
 );
 const extensionPoseLibraryWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_pose_library_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui",
   import.meta.url
 );
 const extensionRetargetWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_retarget_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui",
   import.meta.url
 );
 const extensionControlRigWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_control_rig_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui",
   import.meta.url
 );
 const extensionMotionMatchingWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_motion_matching_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui",
   import.meta.url
 );
 const extensionAnimationCompressionWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_animation_compression_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui",
   import.meta.url
 );
 const extensionDataTableWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_data_table_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui",
   import.meta.url
 );
 const extensionFontAtlasWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_font_atlas_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui",
   import.meta.url
 );
 const extensionConsoleDiagnosticsWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_console_diagnostics_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui",
   import.meta.url
 );
 const extensionRuntimeDiagnosticsWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_runtime_diagnostics_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui",
   import.meta.url
 );
 const extensionPerformanceWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_performance_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui",
   import.meta.url
 );
 const extensionTelemetryDashboardWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_telemetry_dashboard_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui",
   import.meta.url
 );
 const extensionSourceControlWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_source_control_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui",
   import.meta.url
 );
 const extensionBuildExportWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_build_export_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui",
   import.meta.url
 );
 const extensionAutomationReportWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_automation_report_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui",
   import.meta.url
 );
 const extensionProjectOverviewWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_project_overview_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui",
+  import.meta.url
+);
+const extensionPluginManagerWorkspaceUrl = new URL(
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui",
   import.meta.url
 );
 const extensionSaveDataWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_save_data_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui",
   import.meta.url
 );
 const extensionParticleLibraryWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_particle_library_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
   import.meta.url
 );
 const extensionUiAssetEditorWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_ui_asset_editor_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui",
   import.meta.url
 );
 const extensionUiBindingWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_ui_binding_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui",
   import.meta.url
 );
 const extensionIconLibraryWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_icon_library_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui",
   import.meta.url
 );
 const extensionAccessibilityAuditWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_accessibility_audit_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui",
   import.meta.url
 );
 const extensionMenuFlowWorkspaceUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/components/workbench_extension_menu_flow_workspace.zui",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui",
   import.meta.url
 );
 const coreModuleBindingsUrl = new URL(
@@ -431,7 +457,13 @@ if (!existsSync(matrixUrl)) {
 }
 
 const matrix = readFileSync(matrixUrl, "utf8");
-const moduleComponentsSource = readFileSync(moduleComponentsUrl, "utf8");
+const moduleComponentsSource = moduleSharedComponentUrls
+  .map((url) => readFileSync(url, "utf8"))
+  .join("\n");
+const componentLabModuleSource = readFileSync(componentLabModuleUrl, "utf8");
+const componentLabDataSource = readFileSync(componentLabDataUrl, "utf8");
+const actionPathsSource = readFileSync(actionPathsUrl, "utf8");
+const actionNamingContractSource = readFileSync(actionNamingContractUrl, "utf8");
 const moduleWorkspaceSource = readFileSync(moduleWorkspaceUrl, "utf8");
 const effectWorkspaceSource = readFileSync(effectWorkspaceUrl, "utf8");
 const materialWorkspaceSource = readFileSync(materialWorkspaceUrl, "utf8");
@@ -459,6 +491,8 @@ const extensionWeatherEditorWorkspaceSource = readFileSync(extensionWeatherEdito
 const extensionSpawnRulesWorkspaceSource = readFileSync(extensionSpawnRulesWorkspaceUrl, "utf8");
 const extensionWorldStateWorkspaceSource = readFileSync(extensionWorldStateWorkspaceUrl, "utf8");
 const extensionCollisionProxyWorkspaceSource = readFileSync(extensionCollisionProxyWorkspaceUrl, "utf8");
+const extensionPhysicsCollisionWorkspaceSource = readFileSync(extensionPhysicsCollisionWorkspaceUrl, "utf8");
+const extensionNavmeshAiWorkspaceSource = readFileSync(extensionNavmeshAiWorkspaceUrl, "utf8");
 const extensionLobbyEditorWorkspaceSource = readFileSync(extensionLobbyEditorWorkspaceUrl, "utf8");
 const extensionMatchmakingEditorWorkspaceSource = readFileSync(extensionMatchmakingEditorWorkspaceUrl, "utf8");
 const extensionShaderWorkspaceSource = readFileSync(extensionShaderWorkspaceUrl, "utf8");
@@ -482,6 +516,7 @@ const extensionSourceControlWorkspaceSource = readFileSync(extensionSourceContro
 const extensionBuildExportWorkspaceSource = readFileSync(extensionBuildExportWorkspaceUrl, "utf8");
 const extensionAutomationReportWorkspaceSource = readFileSync(extensionAutomationReportWorkspaceUrl, "utf8");
 const extensionProjectOverviewWorkspaceSource = readFileSync(extensionProjectOverviewWorkspaceUrl, "utf8");
+const extensionPluginManagerWorkspaceSource = readFileSync(extensionPluginManagerWorkspaceUrl, "utf8");
 const extensionSaveDataWorkspaceSource = readFileSync(extensionSaveDataWorkspaceUrl, "utf8");
 const extensionParticleLibraryWorkspaceSource = readFileSync(extensionParticleLibraryWorkspaceUrl, "utf8");
 const extensionUiAssetEditorWorkspaceSource = readFileSync(extensionUiAssetEditorWorkspaceUrl, "utf8");
@@ -501,6 +536,8 @@ const extensionWorkspaceEvidenceSource = [
   extensionSpawnRulesWorkspaceSource,
   extensionWorldStateWorkspaceSource,
   extensionCollisionProxyWorkspaceSource,
+  extensionPhysicsCollisionWorkspaceSource,
+  extensionNavmeshAiWorkspaceSource,
   extensionLobbyEditorWorkspaceSource,
   extensionMatchmakingEditorWorkspaceSource,
   extensionShaderWorkspaceSource,
@@ -524,6 +561,7 @@ const extensionWorkspaceEvidenceSource = [
   extensionBuildExportWorkspaceSource,
   extensionAutomationReportWorkspaceSource,
   extensionProjectOverviewWorkspaceSource,
+  extensionPluginManagerWorkspaceSource,
   extensionSaveDataWorkspaceSource,
   extensionParticleLibraryWorkspaceSource,
   extensionUiAssetEditorWorkspaceSource,
@@ -606,8 +644,45 @@ const componentFamilies = [
   "generated-bottom-panel"
 ];
 
+const primitiveZuiAssets = [
+  "workbench/primitives/inputs/workbench_button.zui",
+  "workbench/primitives/inputs/workbench_icon_button.zui",
+  "workbench/primitives/chrome/workbench_rail_button.zui",
+  "workbench/primitives/inputs/workbench_field.zui",
+  "workbench/primitives/inputs/workbench_checkbox.zui",
+  "workbench/primitives/inputs/workbench_radio.zui",
+  "workbench/primitives/inputs/workbench_toggle.zui",
+  "workbench/primitives/inputs/workbench_tab.zui",
+  "workbench/primitives/inputs/workbench_segmented_control.zui",
+  "workbench/primitives/inputs/workbench_dropdown.zui",
+  "workbench/primitives/inputs/workbench_slider.zui",
+  "workbench/primitives/data/workbench_list_row.zui",
+  "workbench/primitives/data/workbench_tree_row.zui",
+  "workbench/primitives/data/workbench_table_row.zui",
+  "workbench/primitives/feedback/workbench_popup_menu.zui",
+  "workbench/primitives/feedback/workbench_tooltip.zui",
+  "workbench/primitives/feedback/workbench_toast.zui",
+  "workbench/primitives/data/workbench_property_row.zui",
+  "workbench/primitives/data/workbench_component_property_row.zui",
+  "workbench/primitives/chrome/workbench_chip.zui",
+  "workbench/primitives/chrome/workbench_axis_value_field.zui",
+  "workbench/primitives/chrome/workbench_section_title.zui",
+  "workbench/primitives/feedback/workbench_status_item.zui"
+];
+
+const shellSurfaceZuiAssets = [
+  "workbench/shell/workbench_activity_rail.zui",
+  "workbench/shell/workbench_top_toolbar.zui",
+  "workbench/shell/workbench_scene_tree_panel.zui",
+  "workbench/shell/workbench_viewport_panel.zui",
+  "workbench/shell/workbench_inspector_panel.zui",
+  "workbench/shell/workbench_status_bar.zui",
+  "workbench/shell/workbench_main_band.zui"
+];
+
 const requiredCommands = [
   "node verify-interaction-contract.mjs",
+  "node verify-action-naming-contract.mjs",
   "node validate-control-routes.mjs",
   "node validate-responsive.mjs",
   "node verify-native-component-contract.mjs",
@@ -622,64 +697,79 @@ const failures = [];
 check(matrix.startsWith("---\nrelated_code:"), "matrix uses required docs header");
 check(matrix.includes("doc_type: workflow-detail"), "matrix is classified as a workflow detail");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/modules.js"), "matrix header mentions modules.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/component-lab/module.js"), "matrix header mentions Component Lab module");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-modules.js"), "matrix header mentions extension-modules.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-surfaces.js"), "matrix header mentions extension-surfaces.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-handoff.js"), "matrix header mentions extension-handoff.js");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_module_workspace.zui"), "matrix header mentions native module workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_effect_workspace.zui"), "matrix header mentions split native Effect workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_material_workspace.zui"), "matrix header mentions split native Material workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_behavior_workspace.zui"), "matrix header mentions split native Behavior workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_assets_workspace.zui"), "matrix header mentions split native Assets workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_vfx_workspace.zui"), "matrix header mentions split native VFX workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_ability_workspace.zui"), "matrix header mentions split native Ability workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_tags_workspace.zui"), "matrix header mentions split native Tags workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_perception_workspace.zui"), "matrix header mentions split native Perception workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_render_workspace.zui"), "matrix header mentions split native Render workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_hud_workspace.zui"), "matrix header mentions split native HUD workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_module_workspaces.zui"), "matrix header mentions native extension module workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_terrain_editor_workspace.zui"), "matrix header mentions terrain-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_foliage_editor_workspace.zui"), "matrix header mentions foliage-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_level_streaming_workspace.zui"), "matrix header mentions level-streaming extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_level_variant_workspace.zui"), "matrix header mentions level-variant extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_prefab_editor_workspace.zui"), "matrix header mentions prefab-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_scatter_editor_workspace.zui"), "matrix header mentions scatter-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_volume_editor_workspace.zui"), "matrix header mentions volume-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_weather_editor_workspace.zui"), "matrix header mentions weather-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_spawn_rules_workspace.zui"), "matrix header mentions spawn-rules extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_world_state_workspace.zui"), "matrix header mentions world-state extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_collision_proxy_workspace.zui"), "matrix header mentions collision-proxy extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_lobby_editor_workspace.zui"), "matrix header mentions lobby-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_matchmaking_editor_workspace.zui"), "matrix header mentions matchmaking-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_shader_editor_workspace.zui"), "matrix header mentions shader extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_lighting_bake_workspace.zui"), "matrix header mentions lighting-bake extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_post_process_workspace.zui"), "matrix header mentions post-process extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_sequencer_workspace.zui"), "matrix header mentions sequencer extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_montage_editor_workspace.zui"), "matrix header mentions montage-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_blend_space_workspace.zui"), "matrix header mentions blend-space extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_pose_library_workspace.zui"), "matrix header mentions pose-library extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_retarget_workspace.zui"), "matrix header mentions retarget extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_control_rig_workspace.zui"), "matrix header mentions control-rig extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_motion_matching_workspace.zui"), "matrix header mentions motion-matching extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_animation_compression_workspace.zui"), "matrix header mentions animation-compression extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_data_table_workspace.zui"), "matrix header mentions data-table extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_font_atlas_workspace.zui"), "matrix header mentions font-atlas extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_console_diagnostics_workspace.zui"), "matrix header mentions console-diagnostics extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_runtime_diagnostics_workspace.zui"), "matrix header mentions runtime-diagnostics extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_performance_workspace.zui"), "matrix header mentions performance extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_telemetry_dashboard_workspace.zui"), "matrix header mentions telemetry-dashboard extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_source_control_workspace.zui"), "matrix header mentions source-control extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_build_export_workspace.zui"), "matrix header mentions build-export extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_automation_report_workspace.zui"), "matrix header mentions automation-report extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_project_overview_workspace.zui"), "matrix header mentions project-overview extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_save_data_workspace.zui"), "matrix header mentions save-data extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_particle_library_workspace.zui"), "matrix header mentions particle-library extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_ui_asset_editor_workspace.zui"), "matrix header mentions ui-asset-editor extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_ui_binding_workspace.zui"), "matrix header mentions ui-binding extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_icon_library_workspace.zui"), "matrix header mentions icon-library extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_accessibility_audit_workspace.zui"), "matrix header mentions accessibility-audit extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_extension_menu_flow_workspace.zui"), "matrix header mentions menu-flow extension workspace zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_generated_bottom_panel.zui"), "matrix header mentions generated bottom panel zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench_generated_bottom_drawer.zui"), "matrix header mentions generated bottom drawer zui");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/action-paths.js"), "matrix header mentions action-paths.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/verify-action-naming-contract.mjs"), "matrix header mentions action naming contract verifier");
+check(actionPathsSource.includes("export function actionPath") && actionPathsSource.includes("export function actionRouteKey"), "action path helper exports naming and route-key helpers");
+check(actionNamingContractSource.includes("dottedActionPattern") && actionNamingContractSource.includes("collectNativeActionIds"), "action naming contract scans dotted web/native action ids");
+check(
+  matrix.includes("workbench.collection.menu.*") &&
+    matrix.includes("workbench.module.table.*") &&
+    matrix.includes("workbench.generated_bottom.*") &&
+    matrix.includes("workbench.component_lab.*"),
+  "matrix records dotted browser action namespaces"
+);
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui"), "matrix header mentions native module workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui"), "matrix header mentions split native Effect workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui"), "matrix header mentions split native Material workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui"), "matrix header mentions split native Behavior workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui"), "matrix header mentions split native Assets workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui"), "matrix header mentions split native VFX workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"), "matrix header mentions split native Ability workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui"), "matrix header mentions split native Tags workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui"), "matrix header mentions split native Perception workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui"), "matrix header mentions split native Render workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"), "matrix header mentions split native HUD workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui"), "matrix header mentions native extension module workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui"), "matrix header mentions terrain-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui"), "matrix header mentions foliage-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui"), "matrix header mentions level-streaming extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui"), "matrix header mentions level-variant extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui"), "matrix header mentions prefab-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui"), "matrix header mentions scatter-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui"), "matrix header mentions volume-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui"), "matrix header mentions weather-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui"), "matrix header mentions spawn-rules extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui"), "matrix header mentions world-state extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui"), "matrix header mentions collision-proxy extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui"), "matrix header mentions physics-collision extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui"), "matrix header mentions navmesh-ai extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui"), "matrix header mentions lobby-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui"), "matrix header mentions matchmaking-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui"), "matrix header mentions shader extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui"), "matrix header mentions lighting-bake extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui"), "matrix header mentions post-process extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui"), "matrix header mentions sequencer extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui"), "matrix header mentions montage-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui"), "matrix header mentions blend-space extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui"), "matrix header mentions pose-library extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui"), "matrix header mentions retarget extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui"), "matrix header mentions control-rig extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui"), "matrix header mentions motion-matching extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui"), "matrix header mentions animation-compression extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui"), "matrix header mentions data-table extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui"), "matrix header mentions font-atlas extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui"), "matrix header mentions console-diagnostics extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui"), "matrix header mentions runtime-diagnostics extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui"), "matrix header mentions performance extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui"), "matrix header mentions telemetry-dashboard extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui"), "matrix header mentions source-control extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui"), "matrix header mentions build-export extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui"), "matrix header mentions automation-report extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui"), "matrix header mentions project-overview extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui"), "matrix header mentions plugin-manager extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui"), "matrix header mentions save-data extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui"), "matrix header mentions particle-library extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui"), "matrix header mentions ui-asset-editor extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui"), "matrix header mentions ui-binding extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui"), "matrix header mentions icon-library extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui"), "matrix header mentions accessibility-audit extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui"), "matrix header mentions menu-flow extension workspace zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui"), "matrix header mentions generated bottom panel zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui"), "matrix header mentions generated bottom drawer zui");
 check(matrix.includes("zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml"), "matrix header mentions generated bottom shell body zui");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs"), "matrix header mentions generated bottom activity view descriptor");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs"), "matrix header mentions generated bottom shell view instance");
@@ -729,21 +819,52 @@ check(matrix.includes("## Component Family Handoff"), "component family section 
 for (const family of componentFamilies) {
   check(matrix.includes(`| ${family} |`), `component family ${family} is listed`);
 }
+for (const asset of primitiveZuiAssets) {
+  check(matrix.includes(asset), `matrix records primitive zui asset ${asset}`);
+}
+for (const asset of shellSurfaceZuiAssets) {
+  check(matrix.includes(asset), `matrix records shell surface zui asset ${asset}`);
+}
+check(matrix.includes("workbench/shell/workbench_component_drawer.zui"), "matrix records component drawer low-level zui composition");
+check(matrix.includes("23 declarative `.zui` component assets"), "matrix records native component zui asset count");
+check(matrix.includes("7 shell surface `.zui` assets"), "matrix records native shell surface zui asset count");
+check(matrix.includes("builtin import graph"), "matrix records native builtin import graph coverage");
+check(matrix.includes("primitive and shell surface set"), "matrix records focused workbench primitive and shell surface governance test");
+const componentLabTab = webModuleTabs.find((module) => module.id === "component-lab");
+check(
+  componentLabTab?.webOnly === true &&
+    componentLabTab.label === "Component Lab" &&
+    !nativeModules.some((module) => module.id === "component-lab") &&
+    !extensionModules.some((module) => module.id === "component-lab"),
+  "Component Lab is browser-only and excluded from native/extension registries"
+);
+check(
+  componentLabModuleSource.includes('id: "component-lab"') &&
+    componentLabModuleSource.includes("webOnly: true") &&
+    componentLabDataSource.includes("component-lab-right:inputs") &&
+    componentLabDataSource.includes("component-lab-main:collections") &&
+    componentLabDataSource.includes("module-bottom-component-lab:responsive"),
+  "Component Lab source records web-only module metadata and explicit panel routes"
+);
+check(
+  matrix.includes("| component-lab | web-only | Component Lab | `src/modules/component-lab/` |"),
+  "matrix records Component Lab web-only module row"
+);
 check(moduleComponentsSource.includes("function generatedBottomPanel"), "web generated bottom panel function exists");
 check(moduleComponentsSource.includes("data-generated-bottom-panel"), "web generated bottom panels expose handoff marker");
 check(matrix.includes("data-generated-bottom-panel"), "matrix names generated bottom panel marker");
 check(matrix.includes("visible shell bottom drawer pane body evidence recorded; module lifecycle remains state owner"), "matrix records generated bottom panels as visible shell drawer body evidence without full promotion");
 check(
-  moduleWorkspaceSource.includes("workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer") &&
+  moduleWorkspaceSource.includes("workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer") &&
     moduleWorkspaceSource.includes("WorkbenchGeneratedBottomDrawerHost") &&
-    generatedBottomDrawerSource.includes("workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
+    generatedBottomDrawerSource.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     generatedBottomDrawerSource.includes('props = { visibility = "collapsed" }') &&
     generatedBottomDrawerSource.includes("WorkbenchGeneratedBottomPanelHost"),
   "native module workspace hosts generated bottom drawer evidence"
 );
 check(
   generatedBottomBodySource.includes('id = "editor.host.pane.generated_bottom.body"') &&
-    generatedBottomBodySource.includes("workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
+    generatedBottomBodySource.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     generatedBottomBodySource.includes("GeneratedBottomPaneBodyRoot") &&
   generatedBottomBodySource.includes("GeneratedBottomPanePanelHost"),
   "native shell generated bottom pane body hosts shared generated bottom panel"
@@ -778,28 +899,28 @@ check(
   "retained host contract projects generated bottom shell pane nodes"
 );
 check(
-  moduleWorkspaceSource.includes("workbench_effect_workspace.zui#WorkbenchEffectWorkspace") &&
+  moduleWorkspaceSource.includes("workbench/modules/core/gameplay/workbench_effect_workspace.zui#WorkbenchEffectWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchEffectWorkspaceHost") &&
     effectWorkspaceSource.includes("[components.WorkbenchEffectWorkspace]") &&
     effectWorkspaceSource.includes("WorkbenchModule/EffectApply"),
   "native module workspace hosts split Effect workspace evidence"
 );
 check(
-  moduleWorkspaceSource.includes("workbench_material_workspace.zui#WorkbenchMaterialWorkspace") &&
+  moduleWorkspaceSource.includes("workbench/modules/core/rendering/workbench_material_workspace.zui#WorkbenchMaterialWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchMaterialWorkspaceHost") &&
     materialWorkspaceSource.includes("[components.WorkbenchMaterialWorkspace]") &&
     materialWorkspaceSource.includes("WorkbenchModule/MaterialCompile"),
   "native module workspace hosts split Material workspace evidence"
 );
 check(
-  moduleWorkspaceSource.includes("workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace") &&
+  moduleWorkspaceSource.includes("workbench/modules/core/ai/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchBehaviorWorkspaceHost") &&
     behaviorWorkspaceSource.includes("[components.WorkbenchBehaviorWorkspace]") &&
     behaviorWorkspaceSource.includes("WorkbenchModule/BehaviorValidate"),
   "native module workspace hosts split Behavior workspace evidence"
 );
 check(
-  moduleWorkspaceSource.includes("workbench_assets_workspace.zui#WorkbenchAssetsWorkspace") &&
+  moduleWorkspaceSource.includes("workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchAssetsWorkspaceHost") &&
     assetsWorkspaceSource.includes("[components.WorkbenchAssetsWorkspace]") &&
     assetsWorkspaceSource.includes("WorkbenchExtension/DataTableOpen") &&
@@ -810,7 +931,7 @@ check(
   "native module workspace hosts split Assets workspace evidence"
 );
 check(
-  moduleWorkspaceSource.includes("workbench_vfx_workspace.zui#WorkbenchVfxWorkspace") &&
+  moduleWorkspaceSource.includes("workbench/modules/core/rendering/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchVfxWorkspaceHost") &&
     vfxWorkspaceSource.includes("[components.WorkbenchVfxWorkspace]") &&
     vfxWorkspaceSource.includes("WorkbenchModule/VfxSimulate") &&
@@ -819,21 +940,21 @@ check(
   "native module workspace hosts split VFX workspace evidence"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_ability_workspace.zui#WorkbenchAbilityWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchAbilityWorkspaceHost") &&
     abilityWorkspaceSource.includes("[components.WorkbenchAbilityWorkspace]") &&
     abilityWorkspaceSource.includes("WorkbenchModule/AbilityPlaytest"),
   "native additional module workspace hosts split Ability workspace evidence"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_tags_workspace.zui#WorkbenchTagsWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/gameplay/workbench_tags_workspace.zui#WorkbenchTagsWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchTagsWorkspaceHost") &&
     tagsWorkspaceSource.includes("[components.WorkbenchTagsWorkspace]") &&
     tagsWorkspaceSource.includes("WorkbenchModule/TagsAdd"),
   "native additional module workspace hosts split Tags workspace evidence"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/ai/workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchPerceptionWorkspaceHost") &&
     perceptionWorkspaceSource.includes("[components.WorkbenchPerceptionWorkspace]") &&
     perceptionWorkspaceSource.includes("WorkbenchModule/PerceptionSimulate"),
@@ -859,14 +980,14 @@ check(
   "gameplay ability workspace exposes animation extension openers"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_render_workspace.zui#WorkbenchRenderWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchRenderWorkspaceHost") &&
     renderWorkspaceSource.includes("[components.WorkbenchRenderWorkspace]") &&
     renderWorkspaceSource.includes("WorkbenchModule/RenderCompile"),
   "native additional module workspace hosts split Render workspace evidence"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_hud_workspace.zui#WorkbenchHudWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/ui/workbench_hud_workspace.zui#WorkbenchHudWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchHudWorkspaceHost") &&
     hudWorkspaceSource.includes("[components.WorkbenchHudWorkspace]") &&
     hudWorkspaceSource.includes("WorkbenchModule/HudPreview") &&
@@ -942,177 +1063,189 @@ for (const module of extensionModules) {
   check(matrix.includes(`| ${module.id} | prototype-only |`), `extension module ${module.id} is marked prototype-only`);
 }
 check(
-  matrix.includes("| terrain-editor | prototype-only | Terrain Editor | `workbench_extension_terrain_editor_workspace.zui` |"),
+  matrix.includes("| terrain-editor | prototype-only | Terrain Editor | `workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui` |"),
   "terrain-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| foliage-editor | prototype-only | Foliage Editor | `workbench_extension_foliage_editor_workspace.zui` |"),
+  matrix.includes("| foliage-editor | prototype-only | Foliage Editor | `workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui` |"),
   "foliage-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| level-streaming | prototype-only | Level Streaming | `workbench_extension_level_streaming_workspace.zui` |"),
+  matrix.includes("| level-streaming | prototype-only | Level Streaming | `workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui` |"),
   "level-streaming row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| level-variant | prototype-only | Level Variant | `workbench_extension_level_variant_workspace.zui` |"),
+  matrix.includes("| level-variant | prototype-only | Level Variant | `workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui` |"),
   "level-variant row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| prefab-editor | prototype-only | Prefab Editor | `workbench_extension_prefab_editor_workspace.zui` |"),
+  matrix.includes("| prefab-editor | prototype-only | Prefab Editor | `workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui` |"),
   "prefab-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| scatter-editor | prototype-only | Scatter Editor | `workbench_extension_scatter_editor_workspace.zui` |"),
+  matrix.includes("| scatter-editor | prototype-only | Scatter Editor | `workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui` |"),
   "scatter-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| volume-editor | prototype-only | Volume Editor | `workbench_extension_volume_editor_workspace.zui` |"),
+  matrix.includes("| volume-editor | prototype-only | Volume Editor | `workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui` |"),
   "volume-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| weather-editor | prototype-only | Weather Editor | `workbench_extension_weather_editor_workspace.zui` |"),
+  matrix.includes("| weather-editor | prototype-only | Weather Editor | `workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui` |"),
   "weather-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| spawn-rules | prototype-only | Spawn Rules | `workbench_extension_spawn_rules_workspace.zui` |"),
+  matrix.includes("| spawn-rules | prototype-only | Spawn Rules | `workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui` |"),
   "spawn-rules row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| world-state | prototype-only | World State | `workbench_extension_world_state_workspace.zui` |"),
+  matrix.includes("| world-state | prototype-only | World State | `workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui` |"),
   "world-state row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| collision-proxy | prototype-only | Collision Proxy | `workbench_extension_collision_proxy_workspace.zui` |"),
+  matrix.includes("| collision-proxy | prototype-only | Collision Proxy | `workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui` |"),
   "collision-proxy row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| lobby-editor | prototype-only | Lobby Editor | `workbench_extension_lobby_editor_workspace.zui` |"),
+  matrix.includes("| physics-collision | prototype-only | Physics Collision | `workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui` |"),
+  "physics-collision row points at the native extension workspace evidence"
+);
+check(
+  matrix.includes("| navmesh-ai | prototype-only | Navmesh AI | `workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui` |"),
+  "navmesh-ai row points at the native extension workspace evidence"
+);
+check(
+  matrix.includes("| lobby-editor | prototype-only | Lobby Editor | `workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui` |"),
   "lobby-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| matchmaking-editor | prototype-only | Matchmaking Editor | `workbench_extension_matchmaking_editor_workspace.zui` |"),
+  matrix.includes("| matchmaking-editor | prototype-only | Matchmaking Editor | `workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui` |"),
   "matchmaking-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| shader-editor | prototype-only | Shader Editor | `workbench_extension_shader_editor_workspace.zui` |"),
+  matrix.includes("| shader-editor | prototype-only | Shader Editor | `workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui` |"),
   "shader-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| lighting-bake | prototype-only | Lighting Bake | `workbench_extension_lighting_bake_workspace.zui` |"),
+  matrix.includes("| lighting-bake | prototype-only | Lighting Bake | `workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui` |"),
   "lighting-bake row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| post-process | prototype-only | Post Process | `workbench_extension_post_process_workspace.zui` |"),
+  matrix.includes("| post-process | prototype-only | Post Process | `workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui` |"),
   "post-process row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| sequencer | prototype-only | Sequencer | `workbench_extension_sequencer_workspace.zui` |"),
+  matrix.includes("| sequencer | prototype-only | Sequencer | `workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui` |"),
   "sequencer row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| montage-editor | prototype-only | Montage Editor | `workbench_extension_montage_editor_workspace.zui` |"),
+  matrix.includes("| montage-editor | prototype-only | Montage Editor | `workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui` |"),
   "montage-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| blend-space | prototype-only | Blend Space | `workbench_extension_blend_space_workspace.zui` |"),
+  matrix.includes("| blend-space | prototype-only | Blend Space | `workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui` |"),
   "blend-space row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| pose-library | prototype-only | Pose Library | `workbench_extension_pose_library_workspace.zui` |"),
+  matrix.includes("| pose-library | prototype-only | Pose Library | `workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui` |"),
   "pose-library row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| retarget | prototype-only | Retarget | `workbench_extension_retarget_workspace.zui` |"),
+  matrix.includes("| retarget | prototype-only | Retarget | `workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui` |"),
   "retarget row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| control-rig | prototype-only | Control Rig | `workbench_extension_control_rig_workspace.zui` |"),
+  matrix.includes("| control-rig | prototype-only | Control Rig | `workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui` |"),
   "control-rig row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| motion-matching | prototype-only | Motion Matching | `workbench_extension_motion_matching_workspace.zui` |"),
+  matrix.includes("| motion-matching | prototype-only | Motion Matching | `workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui` |"),
   "motion-matching row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| animation-compression | prototype-only | Animation Compression | `workbench_extension_animation_compression_workspace.zui` |"),
+  matrix.includes("| animation-compression | prototype-only | Animation Compression | `workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui` |"),
   "animation-compression row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| data-table | prototype-only | Data Table | `workbench_extension_data_table_workspace.zui` |"),
+  matrix.includes("| data-table | prototype-only | Data Table | `workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui` |"),
   "data-table row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| source-control | prototype-only | Source Control | `workbench_extension_source_control_workspace.zui` |"),
+  matrix.includes("| source-control | prototype-only | Source Control | `workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui` |"),
   "source-control row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| build-export | prototype-only | Build Export | `workbench_extension_build_export_workspace.zui` |"),
+  matrix.includes("| build-export | prototype-only | Build Export | `workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui` |"),
   "build-export row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| automation-report | prototype-only | Automation Report | `workbench_extension_automation_report_workspace.zui` |"),
+  matrix.includes("| automation-report | prototype-only | Automation Report | `workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui` |"),
   "automation-report row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| project-overview | prototype-only | Project Overview | `workbench_extension_project_overview_workspace.zui` |"),
+  matrix.includes("| project-overview | prototype-only | Project Overview | `workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui` |"),
   "project-overview row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| particle-library | prototype-only | Particle Library | `workbench_extension_particle_library_workspace.zui` |"),
+  matrix.includes("| plugin-manager | prototype-only | Plugin Manager | `workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui` |"),
+  "plugin-manager row points at the native extension workspace evidence"
+);
+check(
+  matrix.includes("| particle-library | prototype-only | Particle Library | `workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui` |"),
   "particle-library row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| ui-asset-editor | prototype-only | UI Asset Editor | `workbench_extension_ui_asset_editor_workspace.zui` |"),
+  matrix.includes("| ui-asset-editor | prototype-only | UI Asset Editor | `workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui` |"),
   "ui-asset-editor row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| ui-binding | prototype-only | UI Binding | `workbench_extension_ui_binding_workspace.zui` |"),
+  matrix.includes("| ui-binding | prototype-only | UI Binding | `workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui` |"),
   "ui-binding row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| icon-library | prototype-only | Icon Library | `workbench_extension_icon_library_workspace.zui` |"),
+  matrix.includes("| icon-library | prototype-only | Icon Library | `workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui` |"),
   "icon-library row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| accessibility-audit | prototype-only | Accessibility Audit | `workbench_extension_accessibility_audit_workspace.zui` |"),
+  matrix.includes("| accessibility-audit | prototype-only | Accessibility Audit | `workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui` |"),
   "accessibility-audit row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| font-atlas | prototype-only | Font Atlas | `workbench_extension_font_atlas_workspace.zui` |"),
+  matrix.includes("| font-atlas | prototype-only | Font Atlas | `workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui` |"),
   "font-atlas row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| console-diagnostics | prototype-only | Console Diagnostics | `workbench_extension_console_diagnostics_workspace.zui` |"),
+  matrix.includes("| console-diagnostics | prototype-only | Console Diagnostics | `workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui` |"),
   "console-diagnostics row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| runtime-diagnostics | prototype-only | Runtime Diagnostics | `workbench_extension_runtime_diagnostics_workspace.zui` |"),
+  matrix.includes("| runtime-diagnostics | prototype-only | Runtime Diagnostics | `workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui` |"),
   "runtime-diagnostics row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| telemetry-dashboard | prototype-only | Telemetry Dashboard | `workbench_extension_telemetry_dashboard_workspace.zui` |"),
+  matrix.includes("| telemetry-dashboard | prototype-only | Telemetry Dashboard | `workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui` |"),
   "telemetry-dashboard row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| performance | prototype-only | Performance | `workbench_extension_performance_workspace.zui` |"),
+  matrix.includes("| performance | prototype-only | Performance | `workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui` |"),
   "performance row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| menu-flow | prototype-only | Menu Flow | `workbench_extension_menu_flow_workspace.zui` |"),
+  matrix.includes("| menu-flow | prototype-only | Menu Flow | `workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui` |"),
   "menu-flow row points at the native extension workspace evidence"
 );
 check(
-  matrix.includes("| save-data | prototype-only | Save Data | `workbench_extension_save_data_workspace.zui` |"),
+  matrix.includes("| save-data | prototype-only | Save Data | `workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui` |"),
   "save-data row points at the native extension workspace evidence"
 );
 check(matrix.includes("native-extension workspace evidence"), "matrix names native extension workspace evidence");
 check(
-  moduleWorkspaceSource.includes("workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces") &&
+  moduleWorkspaceSource.includes("workbench/modules/extensions/index/workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces") &&
     moduleWorkspaceSource.includes("WorkbenchExtensionModuleWorkspacesHost"),
   "native module workspace hosts extension module workspaces"
 );
 check(
-  additionalModuleWorkspacesSource.includes("workbench_render_workspace.zui#WorkbenchRenderWorkspace") &&
+  additionalModuleWorkspacesSource.includes("workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchRenderWorkspaceHost") &&
     renderWorkspaceSource.includes("WorkbenchRenderShaderEditorButton") &&
     renderWorkspaceSource.includes("WorkbenchExtension/ShaderEditorOpen") &&
@@ -1141,6 +1274,12 @@ check(
     assetsWorkspaceSource.includes("WorkbenchExtension/AutomationReportOpen") &&
     assetsWorkspaceSource.includes("WorkbenchAssetsProjectOverviewButton") &&
     assetsWorkspaceSource.includes("WorkbenchExtension/ProjectOverviewOpen") &&
+    assetsWorkspaceSource.includes("WorkbenchAssetsPhysicsCollisionButton") &&
+    assetsWorkspaceSource.includes("WorkbenchExtension/PhysicsCollisionOpen") &&
+    assetsWorkspaceSource.includes("WorkbenchAssetsNavmeshAiButton") &&
+    assetsWorkspaceSource.includes("WorkbenchExtension/NavmeshAiOpen") &&
+    assetsWorkspaceSource.includes("WorkbenchAssetsPluginManagerButton") &&
+    assetsWorkspaceSource.includes("WorkbenchExtension/PluginManagerOpen") &&
     assetsWorkspaceSource.includes("WorkbenchAssetsSaveDataButton") &&
     assetsWorkspaceSource.includes("WorkbenchExtension/SaveDataOpen") &&
     assetsWorkspaceSource.includes("WorkbenchAssetsWorldStateButton") &&
@@ -1149,42 +1288,45 @@ check(
 );
 check(
     extensionWorkspaceSource.includes("WorkbenchExtensionModuleWorkspaces") &&
-    extensionWorkspaceSource.includes("workbench_extension_terrain_editor_workspace.zui#WorkbenchExtensionTerrainEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_foliage_editor_workspace.zui#WorkbenchExtensionFoliageEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_level_streaming_workspace.zui#WorkbenchExtensionLevelStreamingWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_level_variant_workspace.zui#WorkbenchExtensionLevelVariantWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_shader_editor_workspace.zui#WorkbenchExtensionShaderEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_lighting_bake_workspace.zui#WorkbenchExtensionLightingBakeWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_post_process_workspace.zui#WorkbenchExtensionPostProcessWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_sequencer_workspace.zui#WorkbenchExtensionSequencerWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_montage_editor_workspace.zui#WorkbenchExtensionMontageEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_blend_space_workspace.zui#WorkbenchExtensionBlendSpaceWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_pose_library_workspace.zui#WorkbenchExtensionPoseLibraryWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_retarget_workspace.zui#WorkbenchExtensionRetargetWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_control_rig_workspace.zui#WorkbenchExtensionControlRigWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_motion_matching_workspace.zui#WorkbenchExtensionMotionMatchingWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_animation_compression_workspace.zui#WorkbenchExtensionAnimationCompressionWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_world_state_workspace.zui#WorkbenchExtensionWorldStateWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_collision_proxy_workspace.zui#WorkbenchExtensionCollisionProxyWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_lobby_editor_workspace.zui#WorkbenchExtensionLobbyEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_matchmaking_editor_workspace.zui#WorkbenchExtensionMatchmakingEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_data_table_workspace.zui#WorkbenchExtensionDataTableWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_font_atlas_workspace.zui#WorkbenchExtensionFontAtlasWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_console_diagnostics_workspace.zui#WorkbenchExtensionConsoleDiagnosticsWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_runtime_diagnostics_workspace.zui#WorkbenchExtensionRuntimeDiagnosticsWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_performance_workspace.zui#WorkbenchExtensionPerformanceWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_telemetry_dashboard_workspace.zui#WorkbenchExtensionTelemetryDashboardWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_source_control_workspace.zui#WorkbenchExtensionSourceControlWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_build_export_workspace.zui#WorkbenchExtensionBuildExportWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_automation_report_workspace.zui#WorkbenchExtensionAutomationReportWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_project_overview_workspace.zui#WorkbenchExtensionProjectOverviewWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_save_data_workspace.zui#WorkbenchExtensionSaveDataWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_particle_library_workspace.zui#WorkbenchExtensionParticleLibraryWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_ui_asset_editor_workspace.zui#WorkbenchExtensionUiAssetEditorWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_ui_binding_workspace.zui#WorkbenchExtensionUiBindingWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_icon_library_workspace.zui#WorkbenchExtensionIconLibraryWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_accessibility_audit_workspace.zui#WorkbenchExtensionAccessibilityAuditWorkspace") &&
-    extensionWorkspaceSource.includes("workbench_extension_menu_flow_workspace.zui#WorkbenchExtensionMenuFlowWorkspace"),
+    extensionWorkspaceSource.includes("workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui#WorkbenchExtensionTerrainEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui#WorkbenchExtensionFoliageEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui#WorkbenchExtensionLevelStreamingWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui#WorkbenchExtensionLevelVariantWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui#WorkbenchExtensionShaderEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui#WorkbenchExtensionLightingBakeWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui#WorkbenchExtensionPostProcessWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui#WorkbenchExtensionSequencerWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui#WorkbenchExtensionMontageEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui#WorkbenchExtensionBlendSpaceWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui#WorkbenchExtensionPoseLibraryWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui#WorkbenchExtensionRetargetWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui#WorkbenchExtensionControlRigWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui#WorkbenchExtensionMotionMatchingWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui#WorkbenchExtensionAnimationCompressionWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui#WorkbenchExtensionWorldStateWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui#WorkbenchExtensionCollisionProxyWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui#WorkbenchExtensionPhysicsCollisionWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui#WorkbenchExtensionNavmeshAiWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui#WorkbenchExtensionLobbyEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui#WorkbenchExtensionMatchmakingEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui#WorkbenchExtensionDataTableWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui#WorkbenchExtensionFontAtlasWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui#WorkbenchExtensionConsoleDiagnosticsWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui#WorkbenchExtensionRuntimeDiagnosticsWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui#WorkbenchExtensionPerformanceWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui#WorkbenchExtensionTelemetryDashboardWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui#WorkbenchExtensionSourceControlWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui#WorkbenchExtensionBuildExportWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui#WorkbenchExtensionAutomationReportWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui#WorkbenchExtensionProjectOverviewWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui#WorkbenchExtensionPluginManagerWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui#WorkbenchExtensionSaveDataWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui#WorkbenchExtensionParticleLibraryWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui#WorkbenchExtensionUiAssetEditorWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui#WorkbenchExtensionUiBindingWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui#WorkbenchExtensionIconLibraryWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui#WorkbenchExtensionAccessibilityAuditWorkspace") &&
+    extensionWorkspaceSource.includes("workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui#WorkbenchExtensionMenuFlowWorkspace"),
   "native extension workspace host imports split extension workspace components"
 );
 check(
@@ -1210,6 +1352,10 @@ check(
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/WorldStateValidate") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionCollisionProxyWorkspace") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/CollisionProxyBake") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionPhysicsCollisionWorkspace") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/PhysicsCollisionValidate") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionNavmeshAiWorkspace") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/NavmeshAiQueryPath") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionLobbyEditorWorkspace") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/LobbyEditorSimulateLobby") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionMatchmakingEditorWorkspace") &&
@@ -1257,6 +1403,8 @@ check(
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/AutomationReportPublish") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionProjectOverviewWorkspace") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/ProjectOverviewPublish") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionPluginManagerWorkspace") &&
+    extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/PluginManagerHotReload") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionSaveDataWorkspace") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtension/SaveDataSaveSlot") &&
     extensionWorkspaceEvidenceSource.includes("WorkbenchExtensionParticleLibraryWorkspace") &&
@@ -1296,6 +1444,10 @@ check(
     extensionModuleBindingsSource.includes("workbench.extension.spawn_rules.seed.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.world_state.open") &&
     extensionModuleBindingsSource.includes("workbench.extension.world_state.authority.commit") &&
+    extensionModuleBindingsSource.includes("workbench.extension.navmesh_ai.open") &&
+    extensionModuleBindingsSource.includes("workbench.extension.navmesh_ai.cost.commit") &&
+    extensionModuleBindingsSource.includes("workbench.extension.physics_collision.open") &&
+    extensionModuleBindingsSource.includes("workbench.extension.physics_collision.mass.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.lobby_editor.open") &&
     extensionModuleBindingsSource.includes("workbench.extension.lobby_editor.max_players.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.shader_editor.open") &&
@@ -1326,6 +1478,8 @@ check(
     extensionModuleBindingsSource.includes("workbench.extension.automation_report.retry.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.project_overview.open") &&
     extensionModuleBindingsSource.includes("workbench.extension.project_overview.health.commit") &&
+    extensionModuleBindingsSource.includes("workbench.extension.plugin_manager.open") &&
+    extensionModuleBindingsSource.includes("workbench.extension.plugin_manager.version.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.save_data.open") &&
     extensionModuleBindingsSource.includes("workbench.extension.save_data.compression.commit") &&
     extensionModuleBindingsSource.includes("workbench.extension.font_atlas.open") &&
@@ -1383,6 +1537,10 @@ check(
     extensionNavigationSource.includes("WorkbenchExtensionSpawnRulesWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.world_state.open") &&
     extensionNavigationSource.includes("WorkbenchExtensionWorldStateWorkspace") &&
+    extensionNavigationSource.includes("workbench.extension.navmesh_ai.open") &&
+    extensionNavigationSource.includes("WorkbenchExtensionNavmeshAiWorkspace") &&
+    extensionNavigationSource.includes("workbench.extension.physics_collision.open") &&
+    extensionNavigationSource.includes("WorkbenchExtensionPhysicsCollisionWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.lobby_editor.open") &&
     extensionNavigationSource.includes("WorkbenchExtensionLobbyEditorWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.matchmaking_editor.open") &&
@@ -1429,6 +1587,8 @@ check(
     extensionNavigationSource.includes("WorkbenchExtensionAutomationReportWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.project_overview.open") &&
     extensionNavigationSource.includes("WorkbenchExtensionProjectOverviewWorkspace") &&
+    extensionNavigationSource.includes("workbench.extension.plugin_manager.open") &&
+    extensionNavigationSource.includes("WorkbenchExtensionPluginManagerWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.save_data.open") &&
     extensionNavigationSource.includes("WorkbenchExtensionSaveDataWorkspace") &&
     extensionNavigationSource.includes("workbench.extension.particle_library.open") &&
@@ -1469,6 +1629,10 @@ check(
     extensionFeedbackSource.includes("workbench.extension.world_state.validate.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionCollisionProxyOutputRow") &&
     extensionFeedbackSource.includes("workbench.extension.collision_proxy.bake.invoke") &&
+    extensionFeedbackSource.includes("WorkbenchExtensionPhysicsCollisionOutputRow") &&
+    extensionFeedbackSource.includes("workbench.extension.physics_collision.validate.invoke") &&
+    extensionFeedbackSource.includes("WorkbenchExtensionNavmeshAiOutputRow") &&
+    extensionFeedbackSource.includes("workbench.extension.navmesh_ai.query_path.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionLobbyEditorOutputRow") &&
     extensionFeedbackSource.includes("workbench.extension.lobby_editor.simulate_lobby.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionShaderOutputRow") &&
@@ -1513,6 +1677,8 @@ check(
     extensionFeedbackSource.includes("workbench.extension.automation_report.publish.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionProjectOverviewOutputRow") &&
     extensionFeedbackSource.includes("workbench.extension.project_overview.publish.invoke") &&
+    extensionFeedbackSource.includes("WorkbenchExtensionPluginManagerOutputRow") &&
+    extensionFeedbackSource.includes("workbench.extension.plugin_manager.hot_reload.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionSaveDataOutputRow") &&
     extensionFeedbackSource.includes("workbench.extension.save_data.save_slot.invoke") &&
     extensionFeedbackSource.includes("WorkbenchExtensionParticleLibraryOutputRow") &&
@@ -1552,6 +1718,10 @@ check(
     previewActionsSource.includes("workbench.extension.world_state.authority.commit") &&
     previewActionsSource.includes("workbench.extension.collision_proxy.open") &&
     previewActionsSource.includes("workbench.extension.collision_proxy.lod.commit") &&
+    previewActionsSource.includes("workbench.extension.physics_collision.open") &&
+    previewActionsSource.includes("workbench.extension.physics_collision.mass.commit") &&
+    previewActionsSource.includes("workbench.extension.navmesh_ai.open") &&
+    previewActionsSource.includes("workbench.extension.navmesh_ai.cost.commit") &&
     previewActionsSource.includes("workbench.extension.lobby_editor.open") &&
     previewActionsSource.includes("workbench.extension.lobby_editor.max_players.commit") &&
     previewActionsSource.includes("workbench.extension.shader_editor.open") &&
@@ -1597,6 +1767,8 @@ check(
     previewActionsSource.includes("workbench.extension.automation_report.retry.commit") &&
     previewActionsSource.includes("workbench.extension.project_overview.open") &&
     previewActionsSource.includes("workbench.extension.project_overview.health.commit") &&
+    previewActionsSource.includes("workbench.extension.plugin_manager.open") &&
+    previewActionsSource.includes("workbench.extension.plugin_manager.version.commit") &&
     previewActionsSource.includes("workbench.extension.save_data.open") &&
     previewActionsSource.includes("workbench.extension.save_data.compression.commit") &&
     previewActionsSource.includes("workbench.extension.particle_library.open") &&
@@ -1632,7 +1804,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`web-native handoff matrix: native=${nativeModules.length} extension=${extensionModules.length} componentFamilies=${componentFamilies.length} nativeExtensionEvidence=41`);
+console.log(`web-native handoff matrix: native=${nativeModules.length} webTabs=${webModuleTabs.length} extension=${extensionModules.length} componentFamilies=${componentFamilies.length} nativeExtensionEvidence=44`);
 console.log("ok web-native handoff matrix");
 
 function check(condition, message) {

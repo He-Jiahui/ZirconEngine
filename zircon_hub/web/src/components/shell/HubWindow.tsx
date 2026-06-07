@@ -1,15 +1,23 @@
 import { Box } from "@mui/material";
+import { BuildsPage } from "../../pages/BuildsPage";
+import { CatalogPage } from "../../pages/CatalogPage";
+import { CloudPage } from "../../pages/CloudPage";
+import { EditorPage } from "../../pages/EditorPage";
 import { ProjectsDashboard } from "../../pages/ProjectsDashboard";
+import { SettingsPage } from "../../pages/SettingsPage";
+import { TeamPage } from "../../pages/TeamPage";
+import { WorkspacePage } from "../../pages/WorkspacePage";
 import { hubTokens } from "../../theme/tokens";
-import type { HubShellState } from "../../types/hub";
+import type { HubActionHandler, HubShellState } from "../../types/hub";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { TopBar } from "./TopBar";
 
 export interface HubWindowProps {
   state: HubShellState;
+  onAction: HubActionHandler;
 }
 
-export function HubWindow({ state }: HubWindowProps) {
+export function HubWindow({ state, onAction }: HubWindowProps) {
   return (
     <Box
       sx={{
@@ -25,9 +33,9 @@ export function HubWindow({ state }: HubWindowProps) {
         borderRadius: "10px",
       }}
     >
-      <TopBar state={state} />
+      <TopBar state={state} onAction={onAction} />
       <Box sx={{ display: "flex", height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`, minHeight: 0 }}>
-        <NavigationDrawer activePage={state.activePage} />
+        <NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction} />
         <Box
           component="main"
           sx={{
@@ -38,7 +46,23 @@ export function HubWindow({ state }: HubWindowProps) {
             backgroundColor: "rgba(17,17,17,0.55)",
           }}
         >
-          <ProjectsDashboard state={state} />
+          {state.activePage === "projects" ? (
+            <ProjectsDashboard state={state} onAction={onAction} />
+          ) : state.activePage === "editor" ? (
+            <EditorPage state={state} onAction={onAction} />
+          ) : state.activePage === "builds" ? (
+            <BuildsPage state={state} onAction={onAction} />
+          ) : state.activePage === "cloud" ? (
+            <CloudPage state={state} onAction={onAction} />
+          ) : state.activePage === "assets" || state.activePage === "plugins" || state.activePage === "learn" ? (
+            <CatalogPage state={state} onAction={onAction} />
+          ) : state.activePage === "team" ? (
+            <TeamPage state={state} onAction={onAction} />
+          ) : state.activePage === "settings" ? (
+            <SettingsPage state={state} onAction={onAction} />
+          ) : (
+            <WorkspacePage state={state} onAction={onAction} />
+          )}
         </Box>
       </Box>
     </Box>

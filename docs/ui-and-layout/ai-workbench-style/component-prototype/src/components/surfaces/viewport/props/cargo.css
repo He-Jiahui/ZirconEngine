@@ -1,0 +1,53 @@
+.zr-scene-cargo {
+  position: absolute;
+  border: 1px solid #2f393d;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 36px),
+    linear-gradient(180deg, #272b2d, #171b1d);
+  box-shadow: inset -16px -8px rgba(0, 0, 0, 0.24), 0 12px 26px rgba(0, 0, 0, 0.28);
+}
+
+.zr-cargo-inner {
+  position: absolute;
+  inset: 12px 13px;
+  border: 1px solid rgba(148, 160, 162, 0.12);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.zr-scene-cargo.c1 {
+  left: 4%;
+  top: 154px;
+  width: 104px;
+  height: 74px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 24px),
+    linear-gradient(180deg, #343336, #171a1b);
+}
+
+.zr-scene-cargo.c2 {
+  right: 7%;
+  top: 268px;
+  width: 216px;
+  height: 78px;
+}
+
+.zr-scene-cargo.c3 {
+  left: 3%;
+  top: 220px;
+  width: 138px;
+  height: 72px;
+  opacity: 0.92;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, #262b2d, #111416);
+}
+
+.zr-scene-cargo.c4 {
+  right: 2%;
+  top: 205px;
+  width: 84px;
+  height: 48px;
+  opacity: 0.72;
+}

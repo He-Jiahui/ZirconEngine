@@ -45,11 +45,14 @@ impl World {
         &self,
         internal: InternalEntity,
         component_ids: &[ComponentId],
-    ) -> Vec<ComponentStorageLocation> {
-        component_ids
-            .iter()
-            .filter_map(|component_id| self.component_storage.location(*component_id, internal))
-            .collect()
+        output: &mut Vec<ComponentStorageLocation>,
+    ) {
+        output.clear();
+        output.extend(
+            component_ids.iter().filter_map(|component_id| {
+                self.component_storage.location(*component_id, internal)
+            }),
+        );
     }
 
     pub(crate) fn component_ref_with_ticks_at_location<T>(

@@ -1,3 +1,4 @@
+use crate::core::framework::render::RenderCaptureReport;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 
 use super::super::scene_renderer::SceneRenderer;
@@ -31,13 +32,23 @@ impl SceneRenderer {
             &target.final_color_view,
             &target.depth_view,
         )?;
+        self.streamer.execute_output_target_writeback(
+            &self.backend.device,
+            &self.backend.queue,
+            frame,
+            &target.final_color,
+            &target.final_color_view,
+            target.size,
+        )?;
         self.generation += 1;
 
         finish_viewport_frame(
             &self.backend.device,
             &self.backend.queue,
-            target,
+            &target.final_color,
+            target.size,
             self.generation,
+            RenderCaptureReport::framework_offscreen(frame.output_target().kind(), target.size),
         )
     }
 }

@@ -28,4 +28,5 @@ pub(in crate::graphics::scene::scene_renderer::post_process) struct PostProcessP
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_view_x: [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_view_y: [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_view_z: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) effect_motion_blur: [f32; 4],
 }

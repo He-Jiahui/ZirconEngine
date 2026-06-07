@@ -1,0 +1,23 @@
+.zr-lower-demo .zr-toast {
+  align-self: end;
+  justify-self: end;
+  margin-top: 78px;
+  transform: translate(-15px, 0);
+  border-color: rgba(53, 199, 208, 0.08);
+  background: linear-gradient(180deg, rgba(21, 48, 53, 0.97), rgba(19, 38, 42, 0.97));
+}
+
+.zr-lower-demo .zr-toast-status {
+  width: 18px;
+  height: 18px;
+  background: #209fa9;
+}
+
+.zr-lower-demo .zr-toast-status .zr-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.zr-lower-demo .zr-toast strong {
+  color: #238f98;
+}

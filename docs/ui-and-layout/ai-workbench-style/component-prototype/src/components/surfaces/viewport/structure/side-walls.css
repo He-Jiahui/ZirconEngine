@@ -1,0 +1,62 @@
+.zr-scene-side {
+  position: absolute;
+  top: 128px;
+  bottom: 56px;
+  width: 210px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 44px),
+    linear-gradient(180deg, rgba(58, 64, 66, 0.5), rgba(10, 12, 13, 0.78));
+  border: 1px solid rgba(88, 96, 98, 0.16);
+  opacity: 0.36;
+}
+
+.zr-scene-side.left::after {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: 40px;
+  width: 110px;
+  height: 90px;
+  background: repeating-linear-gradient(0deg, rgba(184, 194, 194, 0.22) 0 3px, transparent 3px 13px);
+  opacity: 0.45;
+  transform: skewX(-27deg);
+}
+
+.zr-scene-side.left {
+  left: -22px;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, rgba(68, 75, 78, 0.62), rgba(8, 10, 11, 0.72));
+  transform: perspective(560px) rotateY(43deg);
+  transform-origin: left center;
+}
+
+.zr-scene-side.right {
+  right: 0;
+  transform: perspective(560px) rotateY(-46deg);
+  transform-origin: right center;
+}
+
+.zr-scene-rack {
+  position: absolute;
+  pointer-events: none;
+}
+
+.zr-scene-rack.left {
+  left: 8px;
+  top: 158px;
+  width: 160px;
+  height: 100px;
+  z-index: 1;
+  border-top: 3px solid rgba(161, 96, 45, 0.35);
+  border-bottom: 2px solid rgba(118, 76, 42, 0.28);
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 8px, transparent 8px 28px),
+    repeating-linear-gradient(0deg, rgba(172, 109, 55, 0.12) 0 3px, transparent 3px 42px),
+    linear-gradient(180deg, rgba(45, 37, 31, 0.28), rgba(8, 10, 11, 0.42));
+  filter: blur(0.2px);
+  opacity: 0.48;
+  transform: perspective(560px) rotateY(22deg);
+  transform-origin: left center;
+}

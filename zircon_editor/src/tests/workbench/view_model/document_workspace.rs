@@ -309,7 +309,7 @@ fn view_menu_operation_paths_route_plugin_manager_and_build_export() {
             .operation_path
             .as_ref()
             .map(|path| path.as_str()),
-        Some("View.PluginManager.Open")
+        Some("view.plugin_manager.open")
     );
 
     let desktop_export = view_menu
@@ -322,7 +322,7 @@ fn view_menu_operation_paths_route_plugin_manager_and_build_export() {
             .operation_path
             .as_ref()
             .map(|path| path.as_str()),
-        Some("View.BuildExport.Open")
+        Some("view.build_export.open")
     );
 }
 

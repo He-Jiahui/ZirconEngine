@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+    dispatch::UiPointerDispatcher, surface::UiSurface,
 };
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,

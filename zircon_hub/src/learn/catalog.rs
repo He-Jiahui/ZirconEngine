@@ -21,6 +21,11 @@ pub struct LearnCatalogEntry {
     pub path: PathBuf,
 }
 
+struct RankedLearnCatalogEntry {
+    root_rank: usize,
+    entry: LearnCatalogEntry,
+}
+
 pub fn discover_learn_catalog<I>(repo_roots: I) -> Result<Vec<LearnCatalogEntry>, HubError>
 where
     I: IntoIterator<Item = PathBuf>,
@@ -42,37 +47,41 @@ where
         collect_docs_root(
             SELECTED_PROJECT_LEARN_SOURCE,
             &project_root,
+            0,
             &mut visited_roots,
             &mut entries,
         )?;
     }
 
-    for repo_root in repo_roots {
+    for (root_rank, repo_root) in repo_roots.into_iter().enumerate() {
         collect_docs_root(
             SOURCE_ENGINE_LEARN_SOURCE,
             &repo_root,
+            root_rank,
             &mut visited_roots,
             &mut entries,
         )?;
     }
 
     entries.sort_by(|left, right| {
-        source_priority(&left.source)
-            .cmp(&source_priority(&right.source))
-            .then_with(|| left.source.cmp(&right.source))
-            .then_with(|| left.category.cmp(&right.category))
-            .then_with(|| left.title.cmp(&right.title))
-            .then_with(|| left.path.cmp(&right.path))
+        source_priority(&left.entry.source)
+            .cmp(&source_priority(&right.entry.source))
+            .then_with(|| left.root_rank.cmp(&right.root_rank))
+            .then_with(|| left.entry.source.cmp(&right.entry.source))
+            .then_with(|| left.entry.category.cmp(&right.entry.category))
+            .then_with(|| left.entry.title.cmp(&right.entry.title))
+            .then_with(|| left.entry.path.cmp(&right.entry.path))
     });
     entries.truncate(LEARN_CATALOG_LIMIT);
-    Ok(entries)
+    Ok(entries.into_iter().map(|ranked| ranked.entry).collect())
 }
 
 fn collect_docs_root(
     source: &str,
     repo_root: &Path,
+    root_rank: usize,
     visited_roots: &mut HashSet<String>,
-    entries: &mut Vec<LearnCatalogEntry>,
+    entries: &mut Vec<RankedLearnCatalogEntry>,
 ) -> Result<(), HubError> {
     let docs_root = repo_root.join(DOCS_DIR);
     if !docs_root.is_dir() {
@@ -82,7 +91,7 @@ fn collect_docs_root(
     if !visited_roots.insert(key) {
         return Ok(());
     }
-    collect_docs(source, &docs_root, &docs_root, entries)
+    collect_docs(source, &docs_root, &docs_root, root_rank, entries)
 }
 
 fn source_priority(source: &str) -> u8 {
@@ -97,7 +106,8 @@ fn collect_docs(
     source: &str,
     docs_root: &Path,
     directory: &Path,
-    entries: &mut Vec<LearnCatalogEntry>,
+    root_rank: usize,
+    entries: &mut Vec<RankedLearnCatalogEntry>,
 ) -> Result<(), HubError> {
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
@@ -107,9 +117,12 @@ fn collect_docs(
             if should_skip_directory(&entry.file_name().to_string_lossy()) {
                 continue;
             }
-            collect_docs(source, docs_root, &path, entries)?;
+            collect_docs(source, docs_root, &path, root_rank, entries)?;
         } else if file_type.is_file() && is_markdown_file(&path) {
-            entries.push(read_learn_doc(source, docs_root, &path)?);
+            entries.push(RankedLearnCatalogEntry {
+                root_rank,
+                entry: read_learn_doc(source, docs_root, &path)?,
+            });
         }
     }
     Ok(())
@@ -291,6 +304,40 @@ related_code:
         fs::remove_dir_all(repo_root).unwrap();
 
         assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn discover_learn_catalog_keeps_first_source_engine_root_before_fallback_limit() {
+        let preferred_root = temp_repo_root("learn-preferred-engine");
+        let fallback_root = temp_repo_root("learn-fallback-engine");
+        fs::create_dir_all(preferred_root.join(DOCS_DIR).join("settings")).unwrap();
+        fs::write(
+            preferred_root
+                .join(DOCS_DIR)
+                .join("settings")
+                .join("source-settings-refresh.md"),
+            "# Source Settings Refresh\n\nPreferred docs root.",
+        )
+        .unwrap();
+        let fallback_docs = fallback_root.join(DOCS_DIR).join("aaa");
+        fs::create_dir_all(&fallback_docs).unwrap();
+        for index in 0..LEARN_CATALOG_LIMIT {
+            fs::write(
+                fallback_docs.join(format!("aaa-{index:03}.md")),
+                format!("# Aaa {index:03}\n\nFallback docs root."),
+            )
+            .unwrap();
+        }
+
+        let entries =
+            discover_learn_catalog([preferred_root.clone(), fallback_root.clone()]).unwrap();
+        fs::remove_dir_all(preferred_root).unwrap();
+        fs::remove_dir_all(fallback_root).unwrap();
+
+        assert!(entries
+            .iter()
+            .any(|entry| entry.title == "Source Settings Refresh"
+                && entry.source == SOURCE_ENGINE_LEARN_SOURCE));
     }
 
     fn temp_repo_root(label: &str) -> PathBuf {

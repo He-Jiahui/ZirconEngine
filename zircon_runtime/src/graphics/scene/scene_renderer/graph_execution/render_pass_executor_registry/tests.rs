@@ -168,7 +168,18 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
     for executor_id in [
         "post.bloom",
         "post.bloom-extract",
+        "post.motion-vector-clear",
+        "post.motion-vector-camera",
+        "post.motion-vector-tile-max",
+        "post.motion-vector-tile-max-coarse",
+        "post.motion-vector-neighbor-max",
         "post.depth-of-field-prepare",
+        "post.screen-space-reflection-depth-pyramid",
+        "post.screen-space-reflection-depth-pyramid-coarse",
+        "post.screen-space-reflection-reflection-pyramid",
+        "post.screen-space-reflection-reflection-pyramid-coarse",
+        "post.screen-space-reflection-resolve",
+        "post.screen-space-reflection-specular-occlusion",
         "post.color-grade",
         "post.stack",
         "history.scene-color",
@@ -318,6 +329,71 @@ fn bloom_extract_executor_requires_post_process_context_instead_of_nooping() {
 }
 
 #[test]
+fn motion_vector_clear_executor_requires_graph_target_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "motion-vector-clear",
+        "post.motion-vector-clear",
+    );
+
+    assert_eq!(
+        error,
+        "render graph execution texture resource `scene-motion-vector` is not bound"
+    );
+}
+
+#[test]
+fn motion_vector_camera_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "motion-vector-camera",
+        "post.motion-vector-camera",
+    );
+
+    assert_eq!(
+        error,
+        "motion-vector camera graph executor for pass `motion-vector-camera` requires post-process stack context"
+    );
+}
+
+#[test]
+fn motion_vector_tile_max_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "motion-vector-tile-max",
+        "post.motion-vector-tile-max",
+    );
+
+    assert_eq!(
+        error,
+        "motion-vector tile-max graph executor for pass `motion-vector-tile-max` requires post-process stack context"
+    );
+}
+
+#[test]
+fn motion_vector_tile_max_coarse_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "motion-vector-tile-max-coarse",
+        "post.motion-vector-tile-max-coarse",
+    );
+
+    assert_eq!(
+        error,
+        "motion-vector tile-max graph executor for pass `motion-vector-tile-max-coarse` requires post-process stack context"
+    );
+}
+
+#[test]
+fn motion_vector_neighbor_max_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "motion-vector-neighbor-max",
+        "post.motion-vector-neighbor-max",
+    );
+
+    assert_eq!(
+        error,
+        "motion-vector neighbor-max graph executor for pass `motion-vector-neighbor-max` requires post-process stack context"
+    );
+}
+
+#[test]
 fn depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping() {
     let error = execute_gpu_executor_without_specialized_context(
         "depth-of-field-prepare",
@@ -327,6 +403,75 @@ fn depth_of_field_prepare_executor_requires_post_process_context_instead_of_noop
     assert_eq!(
         error,
         "depth-of-field prepare graph executor for pass `depth-of-field-prepare` requires post-process stack context"
+    );
+}
+
+#[test]
+fn screen_space_reflection_resolve_executor_requires_post_process_context_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context(
+        "screen-space-reflection-resolve",
+        "post.screen-space-reflection-resolve",
+    );
+
+    assert_eq!(
+        error,
+        "screen-space reflection resolve graph executor for pass `screen-space-reflection-resolve` requires post-process stack context"
+    );
+}
+
+#[test]
+fn screen_space_reflection_depth_pyramid_executor_requires_post_process_context_instead_of_nooping()
+{
+    let error = execute_gpu_executor_without_specialized_context(
+        "screen-space-reflection-depth-pyramid",
+        "post.screen-space-reflection-depth-pyramid",
+    );
+
+    assert_eq!(
+        error,
+        "screen-space reflection depth-pyramid graph executor for pass `screen-space-reflection-depth-pyramid` requires post-process stack context"
+    );
+}
+
+#[test]
+fn screen_space_reflection_depth_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
+) {
+    let error = execute_gpu_executor_without_specialized_context(
+        "screen-space-reflection-depth-pyramid-coarse",
+        "post.screen-space-reflection-depth-pyramid-coarse",
+    );
+
+    assert_eq!(
+        error,
+        "screen-space reflection depth-pyramid coarse graph executor for pass `screen-space-reflection-depth-pyramid-coarse` requires post-process stack context"
+    );
+}
+
+#[test]
+fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping(
+) {
+    let error = execute_gpu_executor_without_specialized_context(
+        "screen-space-reflection-reflection-pyramid",
+        "post.screen-space-reflection-reflection-pyramid",
+    );
+
+    assert_eq!(
+        error,
+        "screen-space reflection reflection-pyramid graph executor for pass `screen-space-reflection-reflection-pyramid` requires post-process stack context"
+    );
+}
+
+#[test]
+fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
+) {
+    let error = execute_gpu_executor_without_specialized_context(
+        "screen-space-reflection-reflection-pyramid-coarse",
+        "post.screen-space-reflection-reflection-pyramid-coarse",
+    );
+
+    assert_eq!(
+        error,
+        "screen-space reflection reflection-pyramid coarse graph executor for pass `screen-space-reflection-reflection-pyramid-coarse` requires post-process stack context"
     );
 }
 

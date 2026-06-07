@@ -1,0 +1,60 @@
+@media (max-width: 720px) {
+  .zr-scene-panel {
+    display: none;
+  }
+
+  .zr-inspector {
+    left: 64px;
+    right: 12px;
+    top: 74px;
+    width: auto;
+    height: 350px;
+  }
+
+  .zr-viewport {
+    left: var(--rail-w);
+    right: 0;
+    top: var(--topbar-h);
+    height: 428px;
+  }
+
+  .zr-showcase {
+    left: var(--rail-w);
+    top: 488px;
+  }
+
+  .zr-showcase-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .zr-lower-demo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 6px 12px 0 14px;
+  }
+
+  .zr-lower-demo .zr-table {
+    width: 100%;
+    transform: none;
+  }
+
+  .zr-lower-demo .zr-alert-stack {
+    transform: none;
+  }
+
+  .zr-viewport-tools {
+    inset: 10px 10px auto 10px;
+    gap: 8px;
+  }
+
+  .zr-scene-lightwash.lower {
+    left: 4px;
+    right: 4px;
+    width: auto;
+  }
+
+  .zr-viewport-cluster {
+    min-width: 0;
+    gap: 6px;
+  }
+}

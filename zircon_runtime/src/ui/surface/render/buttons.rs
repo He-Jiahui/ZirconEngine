@@ -1,11 +1,14 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{
+    component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
+    style::{UiPainterFamily, UiPainterResolvedState, UiPainterStyleSelector},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
+
+use super::painter_state::UiRenderPainterStateSource;
 
 const DEFAULT_PADDING_X: f32 = 12.0;
 const DEFAULT_ICON_SIZE: f32 = 16.0;
@@ -51,6 +54,7 @@ pub(super) fn button_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
+    component_state: Option<&UiComponentState>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -63,7 +67,7 @@ pub(super) fn button_render_commands(
         return Vec::new();
     }
 
-    let state = ButtonRenderState::resolve(metadata, state_flags);
+    let state = ButtonRenderState::resolve(metadata, state_flags, component_state);
     if is_icon_button(metadata) {
         icon_button_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,
@@ -82,25 +86,22 @@ struct ButtonRenderState {
 }
 
 impl ButtonRenderState {
-    fn resolve(metadata: &UiTemplateNodeMetadata, state_flags: &UiStateFlags) -> Self {
-        let selected = bool_attribute(metadata, "selected").unwrap_or(false);
-        let checked = state_flags.checked || bool_attribute(metadata, "checked").unwrap_or(false);
-        let painter_state = UiPainterState {
-            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
-            pressed: state_flags.pressed || bool_attribute(metadata, "pressed").unwrap_or(false),
-            focused: bool_attribute(metadata, "focused").unwrap_or(false),
-            disabled: !state_flags.enabled || bool_attribute(metadata, "disabled").unwrap_or(false),
-            checked,
-            selected,
-            open: bool_attribute(metadata, "open")
-                .or_else(|| bool_attribute(metadata, "popup_open"))
-                .unwrap_or(false),
-            dragging: bool_attribute(metadata, "dragging").unwrap_or(false),
-            drop_hovered: bool_attribute(metadata, "drop_hovered")
-                .or_else(|| bool_attribute(metadata, "active_drag_target"))
-                .unwrap_or(false),
-            loading: bool_attribute(metadata, "loading").unwrap_or(false),
-        };
+    fn resolve(
+        metadata: &UiTemplateNodeMetadata,
+        state_flags: &UiStateFlags,
+        component_state: Option<&UiComponentState>,
+    ) -> Self {
+        let component_flags = component_state.map(|state| &state.flags);
+        let selected = component_flags.is_some_and(|flags| flags.selected)
+            || bool_attribute(metadata, "selected").unwrap_or(false);
+        let checked = component_flags.is_some_and(|flags| flags.checked)
+            || state_flags.checked
+            || bool_attribute(metadata, "checked").unwrap_or(false);
+        let mut painter_state =
+            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
+                .painter_state();
+        painter_state.checked = checked;
+        painter_state.selected = selected;
         let family = if is_icon_button(metadata) {
             UiPainterFamily::IconButton
         } else {
@@ -108,7 +109,10 @@ impl ButtonRenderState {
         };
         Self {
             family,
-            visual_state: painter_state.resolved_state_for_family(family),
+            visual_state: UiPainterStyleSelector::resolved_state_for_family(
+                painter_state,
+                family,
+            ),
         }
     }
 

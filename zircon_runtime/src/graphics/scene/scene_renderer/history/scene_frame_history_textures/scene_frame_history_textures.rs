@@ -8,4 +8,6 @@ pub(crate) struct SceneFrameHistoryTextures {
     pub(crate) global_illumination_view: wgpu::TextureView,
     pub(crate) ambient_occlusion: wgpu::Texture,
     pub(crate) ambient_occlusion_view: wgpu::TextureView,
+    pub(crate) screen_space_reflection: wgpu::Texture,
+    pub(crate) screen_space_reflection_view: wgpu::TextureView,
 }

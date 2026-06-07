@@ -302,3 +302,122 @@ fn unified_touch_move_with_different_pointer_id_bypasses_existing_capture() {
     assert_eq!(surface.focus.captured, None);
     assert_eq!(surface.input.captured_pointer_id, None);
 }
+
+#[test]
+fn unified_touch_pointer_capture_is_indexed_by_pointer_id() {
+    let mut surface = press_release_route_surface();
+    let first_pointer = UiPointerId::new(11);
+    let second_pointer = UiPointerId::new(12);
+
+    let first_capture = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::CapturePointer {
+            target: UiNodeId::new(2),
+            pointer_id: first_pointer,
+            reason: UiPointerCaptureReason::Press,
+        }),
+    );
+    assert!(first_capture.rejected_effects.is_empty());
+    let second_capture = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::CapturePointer {
+            target: UiNodeId::new(3),
+            pointer_id: second_pointer,
+            reason: UiPointerCaptureReason::Press,
+        }),
+    );
+    assert!(second_capture.rejected_effects.is_empty());
+    assert_eq!(
+        surface.input.pointer_capture_owner(first_pointer),
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        surface.input.pointer_capture_owner(second_pointer),
+        Some(UiNodeId::new(3))
+    );
+    assert_eq!(surface.focus.captured, Some(UiNodeId::new(3)));
+
+    let first_move = dispatch_touch_pointer(
+        &mut surface,
+        first_pointer,
+        UiPointerEventKind::Move,
+        UiPoint::new(200.0, 200.0),
+    );
+    assert_eq!(
+        first_move.diagnostics.route_policy,
+        UiInputRoutePolicy::PointerCapture
+    );
+    assert_eq!(
+        first_move.diagnostics.route_trace.direct_target,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        first_move.diagnostics.route_trace.capture_target,
+        Some(UiNodeId::new(2))
+    );
+    assert_touch_notes(&first_move, first_pointer);
+
+    let second_move = dispatch_touch_pointer(
+        &mut surface,
+        second_pointer,
+        UiPointerEventKind::Move,
+        UiPoint::new(200.0, 200.0),
+    );
+    assert_eq!(
+        second_move.diagnostics.route_policy,
+        UiInputRoutePolicy::PointerCapture
+    );
+    assert_eq!(
+        second_move.diagnostics.route_trace.direct_target,
+        Some(UiNodeId::new(3))
+    );
+    assert_eq!(
+        second_move.diagnostics.route_trace.capture_target,
+        Some(UiNodeId::new(3))
+    );
+    assert_touch_notes(&second_move, second_pointer);
+
+    let first_cancel = dispatch_touch_pointer(
+        &mut surface,
+        first_pointer,
+        UiPointerEventKind::Cancel,
+        UiPoint::new(200.0, 200.0),
+    );
+    assert_eq!(
+        first_cancel.diagnostics.route_policy,
+        UiInputRoutePolicy::PointerCapture
+    );
+    assert!(first_cancel.reply.effects.iter().any(|effect| matches!(
+        effect,
+        UiDispatchEffect::ReleasePointerCapture {
+            target,
+            pointer_id,
+            reason,
+        } if *target == UiNodeId::new(2)
+            && *pointer_id == first_pointer
+            && *reason == UiPointerCaptureReason::Cancel
+    )));
+    assert_eq!(surface.input.pointer_capture_owner(first_pointer), None);
+    assert_eq!(
+        surface.input.pointer_capture_owner(second_pointer),
+        Some(UiNodeId::new(3))
+    );
+    assert_eq!(surface.focus.captured, Some(UiNodeId::new(3)));
+    assert_eq!(surface.input.captured_pointer_id, Some(second_pointer));
+    assert_touch_notes(&first_cancel, first_pointer);
+
+    let second_cancel = dispatch_touch_pointer(
+        &mut surface,
+        second_pointer,
+        UiPointerEventKind::Cancel,
+        UiPoint::new(200.0, 200.0),
+    );
+    assert_eq!(
+        second_cancel.diagnostics.route_policy,
+        UiInputRoutePolicy::PointerCapture
+    );
+    assert_eq!(surface.input.pointer_capture_owner(second_pointer), None);
+    assert_eq!(surface.focus.captured, None);
+    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_touch_notes(&second_cancel, second_pointer);
+}

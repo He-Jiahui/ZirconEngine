@@ -1,0 +1,29 @@
+.zr-axis-mini {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  color: var(--green);
+}
+
+.zr-axis-mini.left { left: 24px; bottom: 26px; }
+
+.zr-axis-mini::before,
+.zr-axis-mini::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: currentColor;
+}
+
+.zr-axis-mini::before {
+  width: 2px;
+  height: 44px;
+}
+
+.zr-axis-mini::after {
+  width: 44px;
+  height: 2px;
+  color: var(--red);
+  background: #ef4f45;
+}

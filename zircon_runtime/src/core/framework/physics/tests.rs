@@ -241,6 +241,77 @@ fn backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos() {
 }
 
 #[test]
+fn joint_constraint_metadata_toml_roundtrips_sparse_axis_limits() {
+    let default_document = toml::to_string_pretty(&PhysicsJointConstraintMetadata::default())
+        .expect("default joint constraint should serialize as TOML");
+
+    assert!(!default_document.contains("linear_limits"));
+    assert!(!default_document.contains("angular_limits"));
+    assert_eq!(
+        toml::from_str::<PhysicsJointConstraintMetadata>(&default_document)
+            .expect("default joint constraint TOML should deserialize"),
+        PhysicsJointConstraintMetadata::default()
+    );
+
+    let constraint = PhysicsJointConstraintMetadata {
+        linear_limits: [Some([-0.2, 0.2]), None, Some([0.0, 1.0])],
+        angular_limits: [None, Some([-0.25, 0.25]), None],
+        linear_drives: [
+            PhysicsJointDrive {
+                target_position: 0.1,
+                stiffness: 12.0,
+                damping: 2.0,
+                max_force: 30.0,
+                ..PhysicsJointDrive::default()
+            },
+            PhysicsJointDrive::default(),
+            PhysicsJointDrive::default(),
+        ],
+        break_force: Some(120.0),
+        ..PhysicsJointConstraintMetadata::default()
+    };
+
+    let document = toml::to_string_pretty(&constraint)
+        .expect("sparse joint constraint should serialize as TOML");
+    let loaded = toml::from_str::<PhysicsJointConstraintMetadata>(&document)
+        .expect("sparse joint constraint TOML should deserialize");
+
+    assert_eq!(loaded, constraint);
+    let value = toml::from_str::<toml::Table>(&document)
+        .expect("sparse joint constraint should be valid TOML");
+    let linear_limits = value
+        .get("linear_limits")
+        .and_then(toml::Value::as_table)
+        .expect("linear limits should serialize as an axis table");
+    assert!(linear_limits.contains_key("x"));
+    assert!(!linear_limits.contains_key("y"));
+    assert!(linear_limits.contains_key("z"));
+    assert!(value
+        .get("angular_limits")
+        .and_then(toml::Value::as_table)
+        .expect("angular limits should serialize as an axis table")
+        .contains_key("y"));
+    assert!(document.contains("break_force"));
+    assert_eq!(
+        serde_json::from_value::<PhysicsJointConstraintMetadata>(
+            serde_json::to_value(&constraint).unwrap()
+        )
+        .unwrap(),
+        constraint
+    );
+
+    let legacy_axis_array = serde_json::json!({
+        "linear_limits": [[-0.2, 0.2], null, [0.0, 1.0]],
+        "angular_limits": [null, [-0.25, 0.25], null],
+    });
+    let legacy_constraint =
+        serde_json::from_value::<PhysicsJointConstraintMetadata>(legacy_axis_array).unwrap();
+
+    assert_eq!(legacy_constraint.linear_limits, constraint.linear_limits);
+    assert_eq!(legacy_constraint.angular_limits, constraint.angular_limits);
+}
+
+#[test]
 fn body_collider_material_and_contact_sync_use_scene_identity() {
     let body = PhysicsBodySyncState {
         entity: 42,

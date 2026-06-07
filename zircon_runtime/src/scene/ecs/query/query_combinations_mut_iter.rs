@@ -1,47 +1,80 @@
 use std::{array, marker::PhantomData};
 
-use crate::scene::ecs::{ChangeTickWindow, QueryFilter, QueryMutData};
+use crate::scene::ecs::{ChangeTickWindow, ComponentStorageLocation, QueryFilter, QueryMutData};
 use crate::scene::{EntityId, World};
 
+use super::cached_query_iter::cached_query_component_locations;
 use super::query_combinations_iter::combination_count;
 
 /// Mutable K-combination cursor. Items are produced only through `fetch_next`.
-pub struct QueryCombinationMutIter<'world, D, F = (), const K: usize = 2>
+pub struct QueryCombinationMutIter<'world, 'state, D, F = (), const K: usize = 2>
 where
     D: QueryMutData,
     F: QueryFilter,
 {
     world: *mut World,
-    entities: Vec<EntityId>,
+    candidates: QueryCombinationMutCandidates<'state>,
     // Lexicographic entity-list positions for the next combination to fetch.
     indices: [usize; K],
     remaining: usize,
     ticks: ChangeTickWindow,
-    _marker: PhantomData<(&'world mut World, fn() -> (D, F))>,
+    _marker: PhantomData<(&'world mut World, &'state [EntityId], fn() -> (D, F))>,
 }
 
-impl<'world, D, F, const K: usize> QueryCombinationMutIter<'world, D, F, K>
+struct QueryCombinationMutCandidates<'state> {
+    entities: &'state [EntityId],
+    cache_indices: Vec<usize>,
+}
+
+impl QueryCombinationMutCandidates<'_> {
+    fn len(&self) -> usize {
+        self.cache_indices.len()
+    }
+
+    fn entity(&self, candidate_index: usize) -> EntityId {
+        self.entities[self.cache_indices[candidate_index]]
+    }
+}
+
+impl<'world, 'state, D, F, const K: usize> QueryCombinationMutIter<'world, 'state, D, F, K>
 where
     D: QueryMutData,
     F: QueryFilter,
 {
-    pub(crate) fn new<EntityList>(
+    pub(crate) fn new_from_cached_entities(
         world: &'world mut World,
-        entities: EntityList,
+        entities: &'state [EntityId],
+        component_locations: &'state [ComponentStorageLocation],
+        component_location_offsets: &'state [usize],
         ticks: ChangeTickWindow,
-    ) -> Self
-    where
-        EntityList: IntoIterator<Item = EntityId>,
-    {
+    ) -> Self {
         assert!(K != 0, "query combinations require K greater than zero");
-        let entities = entities
-            .into_iter()
-            .filter(|entity| D::matches_data(world, *entity) && F::matches(world, *entity, ticks))
-            .collect::<Vec<_>>();
-        let remaining = combination_count(entities.len(), K);
+        let cache_indices = {
+            let world = &*world;
+            let mut cache_indices = Vec::with_capacity(entities.len());
+            for (index, entity) in entities.iter().copied().enumerate() {
+                let component_locations = cached_query_component_locations(
+                    component_locations,
+                    component_location_offsets,
+                    index,
+                );
+                let Some(component_locations) = component_locations else {
+                    continue;
+                };
+                if F::matches_component_locations(world, entity, component_locations, ticks) {
+                    cache_indices.push(index);
+                }
+            }
+            cache_indices
+        };
+        let candidates = QueryCombinationMutCandidates {
+            entities,
+            cache_indices,
+        };
+        let remaining = combination_count(candidates.len(), K);
         Self {
             world,
-            entities,
+            candidates,
             indices: array::from_fn(|index| index),
             remaining,
             ticks,
@@ -74,11 +107,11 @@ where
     }
 
     fn current_entities(&self) -> [EntityId; K] {
-        array::from_fn(|index| self.entities[self.indices[index]])
+        array::from_fn(|index| self.candidates.entity(self.indices[index]))
     }
 
     fn advance_indices(&mut self) {
-        let entity_count = self.entities.len();
+        let entity_count = self.candidates.len();
         for index in (0..K).rev() {
             let max = entity_count - K + index;
             if self.indices[index] < max {

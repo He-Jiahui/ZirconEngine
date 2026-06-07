@@ -71,6 +71,7 @@ impl DefaultSoundManager {
             locator: clip.asset.uri.to_string(),
             sample_rate_hz: clip.asset.sample_rate_hz,
             channel_count: clip.asset.channel_count,
+            channel_layout: clip.asset.channel_layout.clone(),
             frame_count: clip.asset.frame_count(),
             duration_seconds: clip.asset.duration_seconds(),
         })

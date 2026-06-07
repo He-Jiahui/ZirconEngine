@@ -172,7 +172,7 @@ fn dynamic_operation_for_event(
     event: &EditorEvent,
 ) -> Option<EditorOperationDescriptor> {
     let path = match event {
-        EditorEvent::Inspector(_) => "Inspector.Field.ApplyBatch",
+        EditorEvent::Inspector(_) => "inspector.field.apply_batch",
         _ => return None,
     };
     let path = EditorOperationPath::parse(path).ok()?;
@@ -288,7 +288,7 @@ impl EditorEventRuntime {
         inner.next_sequence += 1;
 
         let revision = inner.revision;
-        let node_path = binding_node_path(binding);
+        let node_path = component_lab_preview_node_path(binding, action_id);
         let event = EditorEvent::Transient(EditorEventTransient::PressNode {
             node_path: node_path.clone(),
             pressed: false,
@@ -321,4 +321,13 @@ impl EditorEventRuntime {
 
 fn binding_node_path(binding: &EditorUiBinding) -> String {
     format!("{}/{}", binding.path().view_id, binding.path().control_id)
+}
+
+fn component_lab_preview_node_path(binding: &EditorUiBinding, action_id: &str) -> String {
+    match action_id {
+        "component_lab.input_dropdown.select" | "component_lab.button_dropdown.select" => {
+            action_id.to_string()
+        }
+        _ => binding_node_path(binding),
+    }
 }

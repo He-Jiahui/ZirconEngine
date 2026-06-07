@@ -129,6 +129,35 @@ pub(super) fn feedback(action_id: &str) -> Option<ExtensionModuleFeedback> {
             status_text: "Project dependencies selected",
             output_text: "Selected Module Dependencies   2 warnings",
         },
+        "workbench.extension.plugin_manager.open" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPluginManagerOutputRow",
+            status_text: "Plugin manager opened",
+            output_text: "Native extension workspace opened for Audio Runtime",
+        },
+        "workbench.extension.plugin_manager.hot_reload.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPluginManagerOutputRow",
+            status_text: "Plugin hot reload queued",
+            output_text: "Hot reload queued   Audio Runtime   editor + game",
+        },
+        "workbench.extension.plugin_manager.validate.invoke" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionPluginManagerOutputRow",
+            status_text: "Plugin validation queued",
+            output_text: "Validation queued   18 installed   1 warning",
+        },
+        "workbench.extension.plugin_manager.audio_runtime_table_row.select" => {
+            ExtensionModuleFeedback {
+                output_control_id: "WorkbenchExtensionPluginManagerOutputRow",
+                status_text: "Plugin runtime selected",
+                output_text: "Selected Audio Runtime   enabled   v1.8.2",
+            }
+        }
+        "workbench.extension.plugin_manager.version_warning_table_row.select" => {
+            ExtensionModuleFeedback {
+                output_control_id: "WorkbenchExtensionPluginManagerOutputRow",
+                status_text: "Plugin warning selected",
+                output_text: "Selected Version Warning   engine api 0.12",
+            }
+        }
         _ => return None,
     };
     Some(feedback)

@@ -1,0 +1,14 @@
+.zr-floor-seam {
+  position: absolute;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: rgba(80, 90, 95, 0.36);
+  box-shadow: 0 0 10px rgba(174, 192, 196, 0.04);
+  transform: skewX(-12deg);
+  opacity: 0.86;
+}
+
+.zr-floor-seam.seam-right {
+  left: 66%;
+}

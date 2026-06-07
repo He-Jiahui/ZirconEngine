@@ -1,0 +1,13 @@
+.zr-inspector .zr-section.is-transform {
+  border-top-color: #252b30;
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.zr-inspector .zr-section.is-transform .zr-section-title {
+  color: #b0babf;
+}
+
+.zr-inspector .zr-section.is-transform .zr-section-title .zr-icon:first-child {
+  opacity: 0.38;
+}

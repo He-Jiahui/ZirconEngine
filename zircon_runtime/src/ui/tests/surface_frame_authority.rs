@@ -1,7 +1,6 @@
 use crate::ui::{
     dispatch::UiPointerDispatcher,
     surface::{hit_test_surface_frame, UiSurface},
-    tree::UiRuntimeTreeAccessExt,
 };
 use zircon_runtime_interface::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerEvent},
@@ -90,6 +89,23 @@ fn surface_frame_render_hit_and_pointer_dispatch_share_arranged_authority() {
     assert_eq!(dispatch.route.target, frame_hit.path.target);
     assert_eq!(dispatch.route.hit_path, frame_hit.path);
     assert_eq!(dispatch.route.stacked, frame_hit.stacked);
+}
+
+#[test]
+fn surface_frame_focus_path_uses_arranged_authority() {
+    let mut surface = overlapping_button_surface();
+    surface.focus_node(FRONT_ID).unwrap();
+
+    let frame = surface.surface_frame();
+    let frame_hit = hit_test_surface_frame(&frame, UiPoint::new(48.0, 36.0));
+
+    assert_eq!(frame.focus_state.focused, Some(FRONT_ID));
+    assert_eq!(frame.focus_path.focused, Some(FRONT_ID));
+    assert_eq!(frame.focus_path.root_to_leaf, vec![ROOT_ID, FRONT_ID]);
+    assert_eq!(frame.focus_path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+    assert_eq!(surface.focused_route(), frame.focus_path.bubble_route);
+    assert_eq!(frame_hit.path.root_to_leaf, frame.focus_path.root_to_leaf);
+    assert_eq!(frame_hit.path.bubble_route, frame.focus_path.bubble_route);
 }
 
 #[test]

@@ -1,0 +1,230 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Prefab Editor Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchExtensionPrefabEditorWorkspace]
+root = "prefab_editor_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.prefab_editor_workspace]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPrefabEditorWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_rail_gap" }, { node = "prefab_editor_left" }, { node = "prefab_editor_center" }, { node = "prefab_editor_right" }]
+
+[nodes.prefab_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionPrefabEditorRailGap"
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.prefab_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPrefabEditorLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_title" }, { node = "prefab_editor_hierarchy_tab" }, { node = "prefab_editor_overrides_tab" }, { node = "prefab_editor_validation_tab" }, { node = "prefab_editor_root_row" }, { node = "prefab_editor_mesh_component_row" }, { node = "prefab_editor_loot_socket_row" }]
+
+[nodes.prefab_editor_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPrefabEditorTitle"
+props = { text = "Prefab Editor" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.prefab_editor_hierarchy_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPrefabEditorHierarchyTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Hierarchy", checked = true, selected = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorHierarchyTab", event = "Click", route = "workbench.extension.prefab_editor.hierarchy" }]
+
+[nodes.prefab_editor_overrides_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPrefabEditorOverridesTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Overrides", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorOverridesTab", event = "Click", route = "workbench.extension.prefab_editor.overrides" }]
+
+[nodes.prefab_editor_validation_tab]
+component = "WorkbenchTab"
+control_id = "WorkbenchExtensionPrefabEditorValidationTab"
+classes = ["workbench-tab", "workbench-module-panel-tab"]
+props = { text = "Validation", checked = false, selected = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorValidationTab", event = "Click", route = "workbench.extension.prefab_editor.validation" }]
+
+[nodes.prefab_editor_root_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPrefabEditorPrefabRootRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "PF_Chest", icon = "cube", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorPrefabRootRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.root" }]
+
+[nodes.prefab_editor_mesh_component_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPrefabEditorMeshComponentRow"
+classes = ["workbench-list-row"]
+props = { text = "Mesh_Chest", icon = "box", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorMeshComponentRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.mesh" }]
+
+[nodes.prefab_editor_loot_socket_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionPrefabEditorLootSocketRow"
+classes = ["workbench-list-row"]
+props = { text = "LootSocket", icon = "target", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorLootSocketRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.socket" }]
+
+[nodes.prefab_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPrefabEditorCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_center_header" }, { node = "prefab_editor_composition_table" }, { node = "prefab_editor_output" }]
+
+[nodes.prefab_editor_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionPrefabEditorCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "prefab_editor_center_title" }, { node = "prefab_editor_header_fill" }, { node = "prefab_editor_apply_button" }, { node = "prefab_editor_validate_button" }]
+
+[nodes.prefab_editor_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPrefabEditorCenterTitle"
+props = { text = "Prefab Composition" }
+layout = { width = { min = 240.0, preferred = 240.0, max = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.prefab_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionPrefabEditorHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.prefab_editor_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPrefabEditorApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorApply", event = "Click", route = "workbench.extension.prefab_editor.apply" }]
+
+[nodes.prefab_editor_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionPrefabEditorValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorValidate", event = "Click", route = "workbench.extension.prefab_editor.validate" }]
+
+[nodes.prefab_editor_composition_table]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPrefabEditorCompositionTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_mesh_table_row" }, { node = "prefab_editor_loot_socket_table_row" }, { node = "prefab_editor_light_table_row" }, { node = "prefab_editor_override_table_row" }]
+
+[nodes.prefab_editor_mesh_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPrefabEditorMeshTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Mesh_Chest", value_text = "Component   Static Mesh   Selected", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorMeshTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.mesh" }]
+
+[nodes.prefab_editor_loot_socket_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPrefabEditorLootSocketTableRow"
+classes = ["workbench-table-row"]
+props = { text = "LootSocket", value_text = "Socket   LootDrop   Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorLootSocketTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.loot_socket" }]
+
+[nodes.prefab_editor_light_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPrefabEditorLightTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Light_Glow", value_text = "Component   Point Light   Override" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorLightTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.light" }]
+
+[nodes.prefab_editor_override_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPrefabEditorOverrideTableRow"
+classes = ["workbench-table-row"]
+props = { text = "Override_Open", value_text = "Instance   Chest_04   Warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorOverrideTableRow", event = "Click", route = "workbench.extension.prefab_editor.override.open" }]
+
+[nodes.prefab_editor_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionPrefabEditorOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Prefab Log", value_text = "18 children   6 overrides   2 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/PrefabEditorOutput", event = "Click", route = "workbench.extension.prefab_editor.output" }]
+
+[nodes.prefab_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPrefabEditorRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_details_title" }, { node = "prefab_editor_prefab_dropdown" }, { node = "prefab_editor_variant_dropdown" }, { node = "prefab_editor_instance_field" }]
+
+[nodes.prefab_editor_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionPrefabEditorDetailsTitle"
+props = { text = "Prefab Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.prefab_editor_prefab_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPrefabEditorPrefabDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "PF_Chest", value = "PF_Chest", options = ["PF_Chest", "PF_Door", "PF_Torch", "PF_Crate"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PrefabEditorPrefabEdit", event = "Change", route = "workbench.extension.prefab_editor.prefab.edit" },
+  { id = "WorkbenchExtension/PrefabEditorPrefabCommit", event = "Submit", route = "workbench.extension.prefab_editor.prefab.commit" },
+]
+
+[nodes.prefab_editor_variant_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionPrefabEditorVariantDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { text = "Default", value = "Default", options = ["Default", "Open", "Locked", "Damaged"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PrefabEditorVariantEdit", event = "Change", route = "workbench.extension.prefab_editor.variant.edit" },
+  { id = "WorkbenchExtension/PrefabEditorVariantCommit", event = "Submit", route = "workbench.extension.prefab_editor.variant.commit" },
+]
+
+[nodes.prefab_editor_instance_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionPrefabEditorInstanceField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Chest_04" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/PrefabEditorInstanceEdit", event = "Change", route = "workbench.extension.prefab_editor.instance.edit" },
+  { id = "WorkbenchExtension/PrefabEditorInstanceCommit", event = "Submit", route = "workbench.extension.prefab_editor.instance.commit" },
+]

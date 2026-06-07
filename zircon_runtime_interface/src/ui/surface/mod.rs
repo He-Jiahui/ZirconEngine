@@ -9,7 +9,7 @@ mod pointer;
 mod render;
 mod timeline;
 
-pub use arranged::{UiArrangedNode, UiArrangedTree};
+pub use arranged::{UiArrangedNode, UiArrangedSlotSummary, UiArrangedTree, UiCanvasLayerGroup};
 pub use diagnostics::{
     UiBackendRenderDebugStats, UiDamageDebugReport, UiDebugEventRecord, UiDebugOverlayPrimitive,
     UiDebugOverlayPrimitiveKind, UiHitGridCellDebugRecord, UiHitGridDebugStats,
@@ -18,7 +18,7 @@ pub use diagnostics::{
     UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
     UiSurfaceRebuildDebugStats, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
 };
-pub use focus_state::{UiFocusState, UiModalFocusRestoreState};
+pub use focus_state::{UiFocusPath, UiFocusState, UiModalFocusRestoreState};
 pub use frame::UiSurfaceFrame;
 pub use hit::{
     UiHitCoordinateSpace, UiHitPath, UiHitTestCell, UiHitTestDebugDump, UiHitTestEntry,

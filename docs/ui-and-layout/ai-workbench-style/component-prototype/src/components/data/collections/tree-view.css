@@ -1,0 +1,87 @@
+.zr-tree {
+  position: relative;
+  padding: 8px 12px 12px 10px;
+  background: linear-gradient(180deg, rgba(34, 42, 46, 0.24), rgba(26, 33, 37, 0.16));
+}
+
+.zr-tree::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(#2c363c, #2c363c) 32px 63px / 1px 165px no-repeat,
+    linear-gradient(#2c363c, #2c363c) 104px 120px / 1px 60px no-repeat;
+  opacity: 0.62;
+}
+
+.zr-tree-row {
+  position: relative;
+  height: 28px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 20px 18px minmax(0, 1fr) 24px 24px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.zr-tree-row.is-child {
+  margin-left: 22px;
+}
+
+.zr-tree-row.is-grandchild {
+  margin-left: 44px;
+}
+
+.zr-tree-row.is-selected {
+  color: #eaf8f9;
+  background: transparent;
+}
+
+.zr-tree-row.is-selected::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(22, 79, 86, 0.5), rgba(17, 59, 65, 0.66));
+}
+
+.zr-tree-row.is-child.is-selected::before {
+  left: -22px;
+}
+
+.zr-tree-row.is-grandchild.is-selected::before {
+  left: -44px;
+}
+
+.zr-tree-row > * {
+  position: relative;
+  z-index: 1;
+}
+
+.zr-tree-row .zr-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.zr-tree-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zr-tree-action {
+  width: 18px;
+  height: 18px;
+  color: #d9e0e3;
+  opacity: 0.9;
+}

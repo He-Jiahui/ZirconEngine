@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiFrame, UiLayoutEngineSelectionReport, UiSize},

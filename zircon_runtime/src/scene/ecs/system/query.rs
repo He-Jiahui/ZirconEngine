@@ -3,7 +3,7 @@ use std::{array, marker::PhantomData};
 use crate::scene::ecs::{
     single_from_iter, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter,
     ChangeTickWindow, QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryEntityError,
-    QueryEntityItem, QueryFilter, QueryIter, QueryManyIter, QueryManyMutIter,
+    QueryEntityItem, QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
     QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError, QueryState,
     UniqueEntityArray,
 };
@@ -75,7 +75,10 @@ where
         state.iter_cached_with_ticks(world, self.ticks)
     }
 
-    pub fn iter_many_cached<EntityList>(&mut self, entities: EntityList) -> QueryManyIter<'_, D, F>
+    pub fn iter_many_cached<EntityList>(
+        &mut self,
+        entities: EntityList,
+    ) -> QueryManyCachedIter<'_, '_, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
@@ -88,13 +91,13 @@ where
     pub fn iter_many_unique_cached<const N: usize>(
         &mut self,
         entities: UniqueEntityArray<N>,
-    ) -> QueryManyIter<'_, D, F> {
+    ) -> QueryManyCachedIter<'_, '_, D, F, array::IntoIter<EntityId, N>> {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.iter_many_unique_cached_with_ticks(world, entities, self.ticks)
     }
 
-    pub fn iter_combinations<const K: usize>(&self) -> QueryCombinationIter<'_, D, F, K> {
+    pub fn iter_combinations<const K: usize>(&self) -> QueryCombinationIter<'_, '_, D, F, K> {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.iter_combinations_cached_with_ticks(world, self.ticks)
@@ -102,7 +105,7 @@ where
 
     pub fn iter_combinations_cached<const K: usize>(
         &mut self,
-    ) -> QueryCombinationIter<'_, D, F, K> {
+    ) -> QueryCombinationIter<'_, '_, D, F, K> {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.iter_combinations_cached_with_ticks(world, self.ticks)
@@ -215,7 +218,7 @@ where
     pub fn iter_many_cached_direct<EntityList>(
         &mut self,
         entities: EntityList,
-    ) -> CachedQueryManyIter<'_, '_, D, F>
+    ) -> CachedQueryManyIter<'_, '_, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
@@ -228,7 +231,7 @@ where
     pub fn iter_many_unique_cached_direct<const N: usize>(
         &mut self,
         entities: UniqueEntityArray<N>,
-    ) -> CachedQueryManyIter<'_, '_, D, F> {
+    ) -> CachedQueryManyIter<'_, '_, D, F, array::IntoIter<EntityId, N>> {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.iter_many_unique_cached_direct_with_ticks(world, entities, self.ticks)
@@ -294,7 +297,7 @@ where
         state.single_mut_with_ticks(world, self.ticks)
     }
 
-    pub fn iter_mut(&mut self) -> QueryMutIter<'_, D, F> {
+    pub fn iter_mut(&mut self) -> QueryMutIter<'_, '_, D, F> {
         let world = unsafe { &mut *self.world };
         let state = unsafe { &mut *self.state };
         state.iter_mut_with_ticks(world, self.ticks)
@@ -321,7 +324,7 @@ where
     pub fn iter_many_mut<EntityList>(
         &mut self,
         entities: EntityList,
-    ) -> QueryManyMutIter<'_, D, F, EntityList::IntoIter>
+    ) -> QueryManyMutIter<'_, '_, D, F, EntityList::IntoIter>
     where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
@@ -334,7 +337,7 @@ where
     pub fn iter_many_unique_mut<const N: usize>(
         &mut self,
         entities: UniqueEntityArray<N>,
-    ) -> QueryManyUniqueMutIter<'_, D, F, array::IntoIter<EntityId, N>> {
+    ) -> QueryManyUniqueMutIter<'_, '_, D, F, array::IntoIter<EntityId, N>> {
         let world = unsafe { &mut *self.world };
         let state = unsafe { &mut *self.state };
         state.iter_many_unique_mut_with_ticks(world, entities, self.ticks)
@@ -342,7 +345,7 @@ where
 
     pub fn iter_combinations_mut<const K: usize>(
         &mut self,
-    ) -> QueryCombinationMutIter<'_, D, F, K> {
+    ) -> QueryCombinationMutIter<'_, '_, D, F, K> {
         let world = unsafe { &mut *self.world };
         let state = unsafe { &mut *self.state };
         state.iter_combinations_mut_with_ticks(world, self.ticks)

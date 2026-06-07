@@ -1,0 +1,34 @@
+.zr-table {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #0f1316;
+}
+
+.zr-table-row {
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 104px 96px 112px 26px;
+  align-items: center;
+  width: 100%;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.zr-table-head {
+  color: var(--text);
+  background: #0e1113;
+}
+
+.zr-table-row.is-selected {
+  background: linear-gradient(90deg, rgba(15, 73, 80, 0.82), rgba(13, 45, 50, 0.78));
+}
+
+.zr-table-row:last-child {
+  border-bottom: 0;
+}
